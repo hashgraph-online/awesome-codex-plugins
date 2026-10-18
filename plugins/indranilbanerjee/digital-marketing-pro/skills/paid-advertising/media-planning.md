@@ -1,8 +1,10 @@
 # Media Planning Framework
 
-> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
-Before rate assumptions enter a plan, quote each metric x channel from the benchmark book (`python scripts/benchmark_book.py --action quote --metric cpm --channel <channel>`). A refusal (exit 3) means the figure must be researched live and recorded first — never carried forward from memory or from this document.
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python "${CLAUDE_PLUGIN_ROOT}/scripts/benchmark_book.py" --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+
+Before rate assumptions enter a plan, quote each metric x channel from the benchmark book (`python "${CLAUDE_PLUGIN_ROOT}/scripts/benchmark_book.py" --action quote --metric cpm --channel <channel>`). A refusal (exit 3) means the figure must be researched live and recorded first — never carried forward from memory or from this document.
 
 ## Media Planning Fundamentals
 

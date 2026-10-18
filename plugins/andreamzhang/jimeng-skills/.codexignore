@@ -1,0 +1,11 @@
+# Local Codex scanner ignore list - keep the plugin surface clean
+#
+# Drama script workspaces and per-drama artifacts live here for the
+# producer workflow, but are not part of the installable plugin surface.
+scripts/
+# Local temp files
+.tmp/
+*.bak
+*.log
+.DS_Store
+Thumbs.db

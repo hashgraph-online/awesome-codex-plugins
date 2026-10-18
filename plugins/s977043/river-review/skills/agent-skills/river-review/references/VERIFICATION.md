@@ -68,21 +68,30 @@ Evidence が `file:line` を指す以上、その周辺コメントは読める�
 | リポジトリ横断で繰り返し適用される規約・設計方針            | `.river/rules.md` |
 | 同じ指摘が 2 回以上出た（コメントだけでは止まらなかった）   | `.river/rules.md` |
 
+### 8. 統合時の照合ガード
+
+複数観点の finding を統合する段階で、次の 2 点を確認する。
+
+- **デザイン実値と照合済み**: UI・スタイルの規約違反を指摘する前に、デザインツール（Figma 等）の該当ノードの実値を確認する。デザインが指定している値に沿った実装（例: デザインが `font-feature-settings: "palt"` を指定している箇所の `palt`）を「規約違反」とする finding は出さない。デザインを確認できない場合は断定せず、`confidence: low` の質問として返す。**床（floor）: アクセシビリティ標準の違反（WCAG のコントラスト比など）と security の問題は、デザインが指定している値であっても取り下げない。** この場合は finding 本文にデザインの指定値を引用し、それでもなお問題と考える理由を書く。
+- **テスト検出力だけの指摘は minor**: 実装側のガードは効いていて、テストケースがそのガードを外しても通る（変異を検出できない）ことだけを示す finding は、`major` ではなく `minor` にする。例: host を必須とするホスト判定とスキーム判定を併用する実装で、スキーム判定のテストに `javascript:alert(1)` だけを使うと、host が無いためホスト判定でも弾かれ、スキーム判定を消してもテストは通る。検出力を持たせるには `javascript://self.example/%0Aalert(1)` のような、ホスト判定を通る入力が要る。降格の判定は、欠けているテスト入力を実装に与えて行う。実装がその入力を拒否するなら `minor` に下げる。実装もその入力を受け付けるなら実装の欠落なので、severity を維持する。
+
 ## Reject conditions / 却下条件
 
 以下に該当する finding は出力しない。
 
-| 条件                                     | 対処                              |
-| ---------------------------------------- | --------------------------------- |
-| evidence なし（差分参照ゼロ）            | 出力しない                        |
-| diff に含まれない行への指摘              | 出力しない                        |
-| 「〜した方が良い」のみで impact 未提示   | 出力しない                        |
-| critical なのに confidence low           | severity を major / info に下げる |
-| 同一 file:line で別 severity の重複      | 上位 severity に統合              |
-| PR 目的と無関係（チケット範囲外）        | 出力しない or follow-up issue へ  |
-| 近傍コメントの意図が懸念を完全に解消     | 出力しない（nit / style 限定）    |
-| 近傍コメントの意図に触れない再提案       | 意図への反証を本文に明記する      |
-| intentional と書かれた security 等リスク | 取り下げない。必ず報告する        |
+| 条件                                     | 対処                                     |
+| ---------------------------------------- | ---------------------------------------- |
+| evidence なし（差分参照ゼロ）            | 出力しない                               |
+| diff に含まれない行への指摘              | 出力しない                               |
+| 「〜した方が良い」のみで impact 未提示   | 出力しない                               |
+| critical なのに confidence low           | severity を major / info に下げる        |
+| 同一 file:line で別 severity の重複      | 上位 severity に統合                     |
+| PR 目的と無関係（チケット範囲外）        | 出力しない or follow-up issue へ         |
+| 近傍コメントの意図が懸念を完全に解消     | 出力しない（nit / style 限定）           |
+| 近傍コメントの意図に触れない再提案       | 意図への反証を本文に明記する             |
+| intentional と書かれた security 等リスク | 取り下げない。必ず報告する               |
+| デザイン指定値に沿った実装への規約違反   | 出力しない（a11y 標準・security は除く） |
+| テスト検出力だけを示す major             | 欠けた入力を実装が拒否すれば minor       |
 
 ## 自己点検フロー / Self-check flow
 
@@ -101,7 +110,13 @@ for each candidate_finding:
        → nit / style fully resolved by the intent → reject
        → intent mitigates only part of the risk   → downgrade + rebut the stated intent
        → comment contradicts the code             → keep (the contradiction is the finding)
-emit only findings that survived all seven checks
+  8. integration guards
+       → UI/style rule violation not checked against design values → check, or reject if the design specifies it
+           (floor: a11y standard violations and security issues are kept even if the design specifies them)
+       → only shows missing test detection power → feed the missing input to the implementation
+           → implementation rejects it → downgrade to minor
+           → implementation accepts it → implementation gap, keep severity
+emit only findings that survived all eight checks
 ```
 
 ## 関連リソース
@@ -112,3 +127,4 @@ emit only findings that survived all seven checks
 - フィードバック取り扱い: [FEEDBACK.md](./FEEDBACK.md)
 - 改善ループ: [IMPROVEMENT_LOOP.md](./IMPROVEMENT_LOOP.md)
 - self-check 7 の canary: `../fixtures/01-intent-comment-resolves-finding.md`、`../fixtures/02-intent-comment-downgrade-with-rebuttal.md`、`../fixtures/03-comment-contradicts-implementation.md`、`../fixtures/04-intentional-comment-does-not-suppress-security.md`（床）
+- self-check 8 の canary: `../fixtures/05-test-detection-power-only-is-minor.md`

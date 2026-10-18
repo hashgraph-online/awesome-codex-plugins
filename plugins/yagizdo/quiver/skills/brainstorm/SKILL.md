@@ -24,7 +24,7 @@ when-to-use: "user wants to explore ideas, compare approaches, or decide what to
 # Instructions
 
 **Before starting Step 0**, use the Glob tool to gather project context silently (do not show results to the user):
-1. `docs/brainstorms/*.md` -- existing brainstorm specs
+1. `.claude/specs/*.md` -- existing brainstorm specs
 2. `.claude/plans/*.md` -- existing plans
 3. `*.md` and `*.json` and `*.yaml` and `*.yml` in project root -- root config files
 4. `src/**` or `lib/**` or `app/**` or `packages/**` or `commands/**` or `components/**` -- source directory structure (first level only)
@@ -161,8 +161,8 @@ Write the validated design as a spec document. Scale section depth to complexity
 
 ### Save the spec:
 
-1. Create `docs/brainstorms/` if it does not exist.
-2. Write the spec as `docs/brainstorms/YYYY-MM-DD-<descriptive-name>.md` (use `date '+%Y-%m-%d'` for the date prefix).
+1. Create `.claude/specs/` if it does not exist. Before the first write, apply the keep-local rule in `skills/local-files/SKILL.md`.
+2. Write the spec as `.claude/specs/YYYY-MM-DD-<descriptive-name>.md` (use `date '+%Y-%m-%d'` for the date prefix).
 3. **Verify:** Read the file back and confirm it was written correctly. Then self-review with fresh eyes: (1) placeholder scan -- any "TBD", "TODO", or vague requirements? Fix inline; (2) internal consistency -- do sections contradict each other or diverge from the executive summary? Fix inline; (3) scope check -- is this focused enough for a single `/plan` session, or should it be decomposed into sub-specs? (4) ambiguity check -- can any requirement be read two ways? Pick one interpretation and make it explicit. Fix any issues by editing the saved file.
 
 ## Step 7 -- User Review Gate

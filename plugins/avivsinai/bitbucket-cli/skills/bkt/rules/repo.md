@@ -20,6 +20,7 @@ bkt repo <command> [flags]
 | [clone](#bkt-repo-clone) | Clone a repository | `--dest`, `--project`, `--ssh`, `--workspace` |
 | [create](#bkt-repo-create) | Create a new repository | `--cloud-project`, `--default-branch`, `--description`, `--forkable` |
 | [default-reviewers](#bkt-repo-default-reviewers) | List effective default reviewers for a repository | — |
+| [downloads](#bkt-repo-downloads) | Work with repository downloads *(Cloud)* | — |
 | [list](#bkt-repo-list) | List repositories within the active scope | `--limit`, `--project`, `--workspace` |
 | [view](#bkt-repo-view) | Display details for a repository | `--project`, `--repo`, `--workspace` |
 
@@ -250,6 +251,110 @@ bkt repo default-reviewers list [flags]
 
   # List default reviewers for a Data Center repository
   bkt repo default-reviewers list --project PLATFORM --repo backend --source feature/auth --target main
+```
+
+## bkt repo downloads
+
+Manage files in a Bitbucket Cloud repository's Downloads section.
+
+Downloads is the only place the public API accepts arbitrary file uploads
+for a repository, which makes it the way to host images for pull request
+descriptions and comments. Workspaces on the Free plan cannot upload or
+download files; the API rejects those requests.
+
+**Alias:** `download`
+
+```
+bkt repo downloads <command> [flags]
+```
+
+| Subcommand | Description |
+|---|---|
+| list | List repository downloads (Cloud only) |
+| upload | Upload files to the repository downloads (Cloud only) |
+
+## bkt repo downloads list
+
+List repository downloads (Cloud only)
+
+### Usage
+
+```
+bkt repo downloads list [flags]
+```
+
+### Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--repo` |  | Repository slug |
+| `--workspace` |  | Bitbucket workspace |
+
+### Inherited Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--context` | `-c` | Active Bitbucket context name |
+| `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
+| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--json` |  | Output in JSON format when supported |
+| `--template` |  | Render output using Go templates |
+| `--yaml` |  | Output in YAML format when supported |
+
+### Examples
+
+```bash
+# List downloads of the active context repository
+  bkt repo downloads list
+
+  # List downloads of a specific repository as JSON
+  bkt repo downloads list --workspace my-team --repo api-service --json
+```
+
+## bkt repo downloads upload
+
+Upload one or more files to a Bitbucket Cloud repository's Downloads section
+and print their URLs.
+
+An existing download with the same file name is replaced, so give images
+unique names. All files are validated before any upload begins. Directories
+cannot be uploaded.
+
+Downloads are visible to everyone with access to the repository. Do not
+upload anything that should stay private to a subset of them.
+
+### Usage
+
+```
+bkt repo downloads upload <files>... [flags]
+```
+
+### Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--repo` |  | Repository slug |
+| `--workspace` |  | Bitbucket workspace |
+
+### Inherited Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--context` | `-c` | Active Bitbucket context name |
+| `--format` |  | Output format: json or yaml (alias for --json/--yaml) |
+| `--jq` |  | Apply a jq expression to JSON output (requires --json or --format json) |
+| `--json` |  | Output in JSON format when supported |
+| `--template` |  | Render output using Go templates |
+| `--yaml` |  | Output in YAML format when supported |
+
+### Examples
+
+```bash
+# Upload a screenshot and print its URL
+  bkt repo downloads upload screenshot.png
+
+  # Upload several images and get Markdown image links for a PR description
+  bkt repo downloads upload before.png after.png --json --jq '.downloads[] | "![" + .name + "](" + .url + ")"'
 ```
 
 ## bkt repo list

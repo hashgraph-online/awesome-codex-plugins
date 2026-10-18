@@ -71,9 +71,12 @@ case that applies:
    This is also how CLI commands authenticate in CI.
 2. A stored account is authenticated: reuse it.
 3. A signup is pending: run the `next` command that `auth status` prints.
-4. The user needs a new account: run `runtype auth register --email <email>`, then
+4. `auth status` reports `unauthenticated` with a `requestedOrgId`: the project is linked
+   (`.runtype/project.json`) to an organization with no stored login. Do not register; have
+   the user privately run `runtype auth login --api-key <key>` for that organization.
+5. The user needs a new account: run `runtype auth register --email <email>`, then
    `runtype auth verify <code>`.
-5. The user wants the browser login flow of `runtype auth login`: the user runs it in their
+6. The user wants the browser login flow of `runtype auth login`: the user runs it in their
    own interactive terminal, not in an automated agent's shell.
 
 For existing-account or installation recovery, follow

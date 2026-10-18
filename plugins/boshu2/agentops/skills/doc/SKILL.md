@@ -1,6 +1,6 @@
 ---
 name: doc
-description: 'Write grounded docs, READMEs, repo instructions or continuity handoffs. Use when: these documents are requested; no reports as a routine completion ritual.'
+description: 'Write or update READMEs, docs, repo instructions and handoff notes, checked against source. Use when: documenting something, writing a README or leaving a session handoff.'
 practices:
 - wiki-knowledge-surface
 - code-complete
@@ -42,9 +42,10 @@ coverage ledger or separate report. Select only the mode relevant to the task.
 |---|---|
 | Explain an API, command, code-map or architecture | Inspect its consumers and source; use [code/API guidance](references/default-mode.md) or [architecture guidance](references/architecture-report.md) when useful. |
 | Create or improve a README | Lead with the user's problem and a working first-use path; preserve useful depth. See [README craft](references/readme-craft.md). |
+| Check an advertised install, upgrade or first-success path | Follow the selected package and current instructions in an authorized disposable environment. See [developer journey](references/developer-journey.md). |
 | Audit or scaffold OSS documentation | Compare existing docs with the requested pack. Create missing files; revise existing files only within the authorized request. See [OSS pack](references/oss-pack.md). |
 | Initialize missing entry documents | Create only explicitly requested missing files; report existing paths as skipped. See [setup examples](references/bootstrap/examples.md). |
-| Preserve a session for another context | Write the compact factual handoff described below to the caller's authorized destination. |
+| Preserve a session for another context | Fill the [handoff template](#session-handoff) and deliver it as described there. |
 
 These are optional task shapes, not successive phases. Detailed references
 supply techniques and formats; they do not add interviews, approval checkpoints,
@@ -69,57 +70,59 @@ specified documents is sufficient.
    separate report only when the caller requests one or an existing consumer
    requires it.
 
-For AgentOps itself, read `docs/contracts/ubiquitous-language.md`: the product
-is the operations layer for agentic engineering. Preserve the distinction
-between that layer and caller-owned execution, work tracking and delivery.
-
 ## Missing-document setup
 
 Create only the requested missing documents, such as `PRODUCT.md`, `GOALS.md`
 or `AGENTS.md`; a collision is skipped, not overwritten by setup. Verify the
 created paths and report created, skipped and failed writes. Setup does not
 install tools, run `ao session bootstrap`, initialize Git or trackers, start a
-runtime, add hooks, or infer a repository workflow.
-
-Standalone verdict storage at `.agents/ao/verdicts/sha256/` is created only when
-explicitly requested. New CDLC proof uses the caller-selected protected external
-non-Git evidence root; a missing route permits no checkout fallback. Preserve
-existing evidence and use the repository's actual source owners.
+runtime, add hooks, or infer a repository workflow. AgentOps verdict storage is
+created only on explicit request; see [AgentOps internals](references/agentops-internal.md).
 
 ## Session handoff
 
-A requested handoff records end-state facts another context can verify:
+A requested handoff records end-state facts another context can verify. Fill
+every field. Write `unknown` with the reason for any fact you did not observe;
+record a caller's unobserved claim as "stated, unverified", never as fact.
 
-- accepted goal, completed artifacts and exact evidence paths;
-- commands and observed results, unresolved acceptance, findings and causal gaps;
-- useful repository/content identity, observed native stop state and measured
-  remaining allowance or explicit unknowns; record whether the helper for a
-  current HOLD incident was used when that fact matters to continuation;
-- permitted dispatch/startup association and observed runtime/session/context
-  identities, with separately evidenced parent/resume links and source bounds;
-- caller-supplied continuation, when present.
+```markdown
+# Handoff: <goal, one line>
+- Goal and acceptance: <accepted goal>; acceptance <met | not met | unknown>
+- Done: <change or artifact> (<exact path, commit or command>) -> <observed result>
+- Failed or withdrawn: <attempt> -> <observed failure or reason> | none
+- Open: <unmet acceptance, findings, causal gaps> | none known
+- Stop state: <native state and where it was read> | unknown
+- Remaining allowance: <measured time, cost or turns left; helper use for the current incident when it matters> | unknown
+- Identities: <repository and commit; runtime, session or context IDs and resume links as observed> | unknown
+- Continuation: <caller-supplied next step> | none supplied
+```
 
-Follow [session associations](../agent-native/references/session-associations.md#work-to-session-associations)
-for those identities. End-state notes cannot replace missing startup evidence.
-Do not invent IDs, infer a paused goal from a report saying HOLD, assign a whole
-multi-work session to one task, or reset budgets and helper incidents through
-compaction. Preserve informative failures and withdrawn claims.
+- **IDs:** record only observed identities. A remembered, approximate or
+  reconstructed ID is `unknown`; at most quote it as the caller's unverified claim.
+- **Stop state:** a note or report saying HOLD, paused or done is only a note.
+  Read the state from its native owner (tracker, runtime, goal controller) or
+  write `unknown`.
+- **Allowance:** compaction, a new session or a handoff resets no budget,
+  allowance or helper incident. Carry the measured remainder or `unknown`.
+- **Failures:** keep informative failures and withdrawn claims so the next
+  context does not repeat them.
+- **Sessions:** do not assign a whole multi-work session to one task. Follow
+  [session associations](../agent-native/references/session-associations.md#work-to-session-associations)
+  for startup and resume links; end-state notes cannot replace missing startup
+  evidence.
 
-Check source, recipient/model and destination authorization before copying
-metadata. An opaque locator grants no access. New CDLC handoffs require the
-selected protected external non-Git destination; preserve legacy evidence and
-report missing routing without creating a fallback file. Otherwise use the
-caller's named location and read it back after writing.
-
-Existing JSON under `.agents/handoff/` remains read-only evidence.
-`ao session handoff` writes `.agents/ao/handoff/`; `ao session rehydrate` searches
-both and selects the newest lexical ID, preferring the canonical directory for
-an identical filename. Those commands do not establish startup associations or
-external storage authorization. Return the exact path to Markdown consumers.
+**Destination.** A new CDLC handoff, draft or proof goes only to the selected
+protected external non-Git destination; with none selected, report the missing
+routing and create no fallback file. For any other handoff a location the
+caller names wins: write there, read it back and return the exact path. With no
+named location, return the handoff in the response and create no file. Check source, recipient/model and destination
+authorization before copying metadata; an opaque locator grants no access.
+AgentOps evidence routing and the `ao session` handoff commands are in
+[AgentOps internals](references/agentops-internal.md).
 
 Writing a handoff changes no tracker, Git, runtime or verdict state. The native
-caller continues owning the authorized outcome; this documentation mode does
-not select work or decide continuation for it.
+caller keeps owning the authorized outcome; this mode does not select work or
+decide continuation for it.
 
 ## Reference menu
 
@@ -130,3 +133,5 @@ techniques under the kernel's accepted scope, not additional workflow gates.
 - OSS scope: [documentation tiers](references/oss-documentation-tiers.md), [OSS project types](references/oss-project-types.md).
 - Writing and checks: [prose workmanship](references/prose-and-report-workmanship.md), [validation techniques](references/validation-rules.md).
 - Explicit context configuration: [context routing](references/bootstrap/context-routing.md).
+- Behavior scenarios: [documentation](references/doc.feature), [README](references/readme.feature), [OSS pack](references/oss-docs.feature).
+- AgentOps itself (vocabulary, evidence routing, handoff commands): [AgentOps internals](references/agentops-internal.md).

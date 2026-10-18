@@ -6,7 +6,7 @@ numeric strings.
 
 ## Request example
 
-Send reads through the Python `get_json` helper from [Retries](#retries):
+Send reads through the Python `get_json` helper from [Retries](#retries).
 
 ```python
 page = get_json(
@@ -24,27 +24,35 @@ page = get_json(
 | `GET /x/tweets?ids=` | Up to 100 comma-separated tweet IDs |
 | `GET /x/tweets/{id}/replies` | `pageSize` (1 to 300), `sort` (`relevance`, `latest`, `oldest`, `likes`), `excludeOriginalAuthor`, `includeOriginalPost`, `hasMediaOnly`, `scope`, `cursor` |
 | `GET /x/tweets/{id}/quotes` | `pageSize` (1 to 300), `sinceTime`, `untilTime`, `includeReplies`, `cursor` |
-| `GET /x/tweets/{id}/thread` | Visible posts in the conversation thread, from any author: `pageSize` (1 to 100), `cursor` |
+| `GET /x/tweets/{id}/thread` | Visible posts in the conversation thread, from any author. Takes `pageSize` (1 to 100), `cursor` |
 | `GET /x/tweets/{id}/retweeters` | `pageSize` (1 to 200), profile filters, `cursor` |
 | `GET /x/tweets/{id}/favoriters` | `pageSize` (1 to 200), profile filters, `cursor` |
 | `GET /x/articles/{tweetId}` | Full X Article content |
+| `GET /x/tweets/top` | X's top tweets. Takes `metric` (`likes` default, `replies`, `quotes`, `bookmarks`, `shares`, `views`), `window` (`day` default, `week`, `month`), `country` or `language`, `pageSize` (1 to 100), `cursor`. The list ends at 100 |
+| `GET /x/tweets/{id}/hidden-replies` | Replies the author hid, oldest first. Takes `pageSize` (1 to 100), tweet filters, `cursor` |
+| `GET /x/tweets/{id}/retweeter-ids` | Reposter user IDs only. Takes `pageSize` (1 to 200), `cursor` |
+| `GET /x/tweets/{id}/retweeters/check` | `user` (required) takes an ID, username, or profile URL. Returns `isRetweeted`, `retweetedAt`, and `complete` |
+| `GET /x/tweets/{id}/insights` | Engagements per hour, per view, and per follower of the author |
+| `GET /x/tweets/{id}/translation` | `language` (required), such as `en` or `pt-br`. Returns X's own translation |
+| `GET /x/tweets/{id}/subtitles` | Caption tracks of the tweet's videos, with language, timed cues, and full text |
+| `GET /x/tweets/{id}/embed` | Embed HTML. Takes `theme` (`light` or `dark`), `hideMedia`, `hideThread`, `omitScript` |
 
 Search, replies, quotes, thread, and user timelines accept the same tweet
-filters as named query parameters. Send only the ones the user asked for:
+filters as named query parameters. Send only the ones the user asked for.
 
-- Authors and targets: `fromUser`, `toUser`, `mentioning`, `verifiedOnly`,
+- Authors and targets use `fromUser`, `toUser`, `mentioning`, `verifiedOnly`,
   `blueVerifiedOnly`
-- Text: `exactPhrase`, `anyWords`, `excludeWords`, `hashtags`, `cashtags`, `url`
-- Time: `sinceDate` and `untilDate` (`YYYY-MM-DD`), `sinceTime` (ISO,
+- Text uses `exactPhrase`, `anyWords`, `excludeWords`, `hashtags`, `cashtags`, `url`
+- Time uses `sinceDate` and `untilDate` (`YYYY-MM-DD`), `sinceTime` (ISO,
   inclusive) and `untilTime` (ISO, exclusive, so end 2023 with
   `2024-01-01T00:00:00Z`), `withinTime` (such as `7d`)
-- Language: `language` (such as `en`)
-- Media: `mediaType` (`images`, `videos`, `gifs`, `media`, `links`, `none`)
-- Engagement: `minLikes`, `minRetweets`, `minReplies`, `minQuotes`,
+- Language uses `language` (such as `en`)
+- Media uses `mediaType` (`images`, `videos`, `gifs`, `media`, `links`, `none`)
+- Engagement uses `minLikes`, `minRetweets`, `minReplies`, `minQuotes`,
   `minViews`, `minBookmarks`, `maxFaves`, `maxRetweets`, `maxReplies`
-- Post types: `replies`, `retweets`, `quotes`, each `include`, `exclude`, or `only`
-- Conversation: `conversationId`, `inReplyToTweetId`, `quotesOfTweetId`
-- Raw operators: `advancedQuery` for a known X search operator string, on search only
+- Post types use `replies`, `retweets`, `quotes`, each `include`, `exclude`, or `only`
+- Conversation uses `conversationId`, `inReplyToTweetId`, `quotesOfTweetId`
+- Raw operators use `advancedQuery` for a known X search operator string, on search only
 
 Tweet responses hold `tweets`, `has_next_page`, and `next_cursor`. Each tweet
 has `id`, `text`, `createdAt`, `lang`, `likeCount`, `retweetCount`,
@@ -59,16 +67,24 @@ username or numeric ID.
 
 | Route | Key parameters |
 | --- | --- |
-| `GET /x/users/{id}` | Profile: `followers`, `following`, `description` (bio), `verified`, `isVerified`, `isBlueVerified`, `verifiedType`, `statusesCount`, `location`, `createdAt` |
+| `GET /x/users/{id}` | Profile with `followers`, `following`, `description` (bio), `verified`, `isVerified`, `isBlueVerified`, `verifiedType`, `statusesCount`, `location`, `createdAt` |
 | `GET /x/users/search` | `q` (required), `pageSize` (1 to 100), profile filters, `cursor` |
 | `GET /x/users/batch` | `ids` (comma-separated user IDs), profile filters |
 | `GET /x/users/{id}/tweets` | `pageSize` (1 to 300, default 20), `sinceTime`, `untilTime`, `includeReplies` (default `false`), tweet filters, `cursor` |
-| `GET /x/users/{id}/replies` | With Replies timeline: `pageSize` (1 to 300), `sinceTime`, `untilTime`, tweet filters, `cursor` |
+| `GET /x/users/{id}/replies` | With Replies timeline. Takes `pageSize` (1 to 300), `sinceTime`, `untilTime`, tweet filters, `cursor` |
 | `GET /x/users/{id}/media` | `pageSize` (1 to 100), tweet filters, `cursor` |
 | `GET /x/users/{id}/mentions` | `pageSize` (1 to 100), `sinceTime`, `untilTime`, tweet filters, `cursor` |
 | `GET /x/users/{id}/likes` | `pageSize` (1 to 100), tweet filters, `cursor`. Needs a connected X account for the owner's likes |
+| `GET /x/users/batch/tweets` | Newest posts of up to 20 users. Takes `ids` or `usernames` (comma-separated, send 1 of the 2), `pageSize` (1 to 20) |
+| `GET /x/users/{id}/articles` | Posts on the Articles tab, newest first. Takes `pageSize` (1 to 100), tweet filters, `cursor`. Read the full text with `GET /x/articles/{tweetId}` |
+| `GET /x/users/{id}/highlights` | Posts on the Highlights tab. Takes `pageSize` (1 to 100), tweet filters, `cursor` |
+| `GET /x/users/{id}/insights` | Engagement rate, averages per post, and posting rate, from the last 20 posts |
+| `GET /x/users/{id}/translation` | `language` (required). Returns X's own translation of the bio |
+| `GET /x/users/{id}/live` | Whether the user broadcasts live video now, with the latest broadcast |
+| `GET /x/users/{id}/lists` | Public Lists the user created. Takes `pageSize` (1 to 100), `cursor` |
+| `GET /x/users/{id}/list-memberships` | Public Lists that include the user. Takes `pageSize` (1 to 100), `cursor` |
 
-Verification: `isBlueVerified` means X shows the blue badge. `isVerified` and
+For verification, `isBlueVerified` means X shows the blue badge. `isVerified` and
 `verified` mean X marks the profile as verified. `verifiedType` names the kind,
 such as `Business`. Report only the values the response returns.
 
@@ -80,8 +96,13 @@ such as `Business`. Report only the values the response returns.
 | `GET /x/users/{id}/following` | Same as followers |
 | `GET /x/users/{id}/verified-followers` | Same as followers |
 | `GET /x/followers/check` | `source` and `target` usernames. Returns `isFollowing` and `isFollowedBy` |
+| `GET /x/users/{id}/follower-ids` | Follower user IDs only, newest first. Takes `pageSize` (1 to 5,000), `cursor` |
+| `GET /x/users/{id}/following-ids` | User IDs of the accounts the user follows. Takes `pageSize` (1 to 5,000), `cursor` |
+| `GET /x/users/{id}/similar` | Accounts X lists as similar. Takes `pageSize` (1 to 200), profile filters, `cursor` |
+| `GET /x/users/{id}/affiliates` | Accounts an organization lists as affiliates. Takes `pageSize` (1 to 200), profile filters, `cursor` |
+| `GET /x/users/{id}/subscriptions` | Creators the user subscribes to. Takes `pageSize` (1 to 200), profile filters, `cursor` |
 
-Profile filters, applied before billing: `minFollowers`, `maxFollowers`,
+Profile filters, applied before billing, are `minFollowers`, `maxFollowers`,
 `minFollowing`, `maxFollowing`, `minStatuses`, `maxStatuses`,
 `minAccountAgeDays`, `verifiedOnly`, `hasWebsite`, `hasLocation`,
 `bioContains` (any comma-separated term, ignoring case), `locationContains`,
@@ -89,19 +110,52 @@ Profile filters, applied before billing: `minFollowers`, `maxFollowers`,
 `users`, `has_next_page`, and `next_cursor`. Use a `follower_explorer`
 extraction for a complete follower list.
 
-## Lists, communities, Spaces, and trends
+## Lists and communities
 
 | Route | Notes |
 | --- | --- |
+| `GET /x/lists/search` | Find public Lists with `q` (required), `pageSize` (1 to 100), `cursor` |
+| `GET /x/lists/{id}` | Name, description, counts, and owner. Takes a List ID or a URL-encoded List URL |
 | `GET /x/lists/{id}/members`, `/followers`, `/tweets` | List ID |
+| `GET /x/communities/find` | Find communities by keyword with `q` (required), `pageSize` (1 to 100), `cursor` |
+| `GET /x/communities/topics` | Topics and subtopics X groups communities under. Takes `limit` |
+| `GET /x/communities/popular` | Top communities of a topic. Takes `topicId` or `topic`, `pageSize` (1 to 100), `cursor` |
+| `GET /x/communities/suggested` | Communities X suggests to join. Takes `limit` |
 | `GET /x/communities/{id}/info`, `/members`, `/moderators`, `/tweets` | Community ID |
+| `GET /x/communities/{id}/media` | Posts with photos or videos on the Media tab, newest first. Takes `pageSize` (1 to 100), tweet filters, `cursor` |
+| `GET /x/communities/{id}/members/search` | Find members by name or username with `q` (required) |
 | `GET /x/communities/search` | Search posts inside a community |
-| `GET /x/trends` | `woeid`, a Yahoo WOEID (default 1, worldwide), and `count` (1 to 50, default 30) |
-| `GET /radar` | Trending topics from curated sources: `category`, `region`, `hours`, `limit` |
+| `GET /x/communities/tweets` | Search posts in 1 community with `communityId`, or in every community without it. Takes `q` (required), `queryType`, `pageSize` (1 to 100), tweet filters, `cursor` |
 
-Xquik documents and tests trends for these 12 regions. `GET /x/trends` passes
-other WOEIDs to X, which may return no trends for them. The `GET /trends`
-alias accepts only these 12.
+## Spaces, broadcasts, and jobs
+
+| Route | Notes |
+| --- | --- |
+| `GET /x/spaces/search` | `q` (required) takes words, hashtags, or operators such as `from:solana`. `queryType`, `pageSize` (1 to 100), `cursor` |
+| `GET /x/spaces/{id}` | Title, state, times, audience, host, and speakers. Takes a Space ID or a URL-encoded Space URL |
+| `GET /x/spaces/{id}/replay` | HLS playback URL of an ended Space. A live or scheduled Space answers `409` |
+| `GET /x/broadcasts/{id}` | Title, state, times, watch counts, and host of a live video broadcast |
+| `GET /x/jobs/search` | `q` (required), `location` or `locationId`, `locationType`, `seniority`, `employmentType`, `company`, `pageSize` (1 to 100), `cursor` |
+| `GET /x/jobs/locations` | `q` (required). Returns the location IDs that job search takes |
+| `GET /x/jobs/{id}` | 1 job listing with its description, salary, company, and apply link |
+
+Use the `space_explorer` extraction for a Space's participants.
+
+## Trends and search helpers
+
+| Route | Notes |
+| --- | --- |
+| `GET /x/trends` | Pick the place by `woeid` (default 1, worldwide), `country`, or `location`. `count` (1 to 50, default 30) |
+| `GET /x/trends/locations` | Places X offers trends for. Takes `country`, `placeType`, `q`, `limit`. Pass a location's `woeid` to `/x/trends` |
+| `GET /radar` | Trending topics from curated sources. Takes `category`, `region`, `hours`, `limit` |
+| `GET /x/search/autocomplete` | Suggestions for a partial query. Takes `q` (required), `types` (comma-separated `users`, `topics`, `hashtags`, `cashtags`), `limit` (1 to 100, default 20) |
+| `GET /x/places/search` | `q` (required), `limit`. Pass a place `id` as `place` to tweet search |
+| `GET /x/hashflags` | Custom emoji X shows after hashtags. Takes `q`, `activeOnly` (default `true`), `limit` |
+| `GET /x/links/resolve` | `urls` (required) takes 1 to 100 `https://t.co/` links, comma-separated. Returns each `resolvedUrl` |
+
+A trends request bills 1 credit, however many trends it returns. `woeid` wins
+when a request also names a `country` or `location`. The table lists common
+WOEIDs.
 
 | Region | WOEID | Region | WOEID |
 | --- | --- | --- | --- |
@@ -112,7 +166,13 @@ alias accepts only these 12.
 | Spain | 23424950 | Canada | 23424775 |
 | Germany | 23424829 | Mexico | 23424900 |
 
-Spaces use the `space_explorer` extraction.
+`GET /x/trends/locations` lists every other place.
+
+Lookups, checks, insights, translations, and embeds bill 1 credit per call.
+Lists of IDs, Lists, communities, topics, Spaces, jobs, places, locations,
+hashflags, suggestions, and resolved links bill 1 credit per returned item.
+Subtitles bill 1 credit only when a caption track returns.
+[Pricing](compare-faq.md#pricing-facts) lists every rate.
 
 ## Media
 
@@ -127,11 +187,59 @@ one tweet, or `{"tweetIds": ["<id>", "..."]}` for up to 50 tweets.
 A download grants no reuse rights. Tell the user to confirm permission before
 using the media in their own work.
 
+## AI analysis
+
+These routes read posts and answer questions about each one with AI. Send a
+JSON body with `POST`. Each analyzed post bills 2 credits, read included.
+
+| Route | Answers |
+| --- | --- |
+| `POST /x/analysis/sentiment` | `sentiment`, `intensity`, `sarcasm` |
+| `POST /x/analysis/brand` | `relevance`, `sentiment`, `experience` for the brand in `analysis.targets` |
+| `POST /x/analysis/news` | `format`, `attribution`, `relevance` for the topic in `analysis.targets` |
+| `POST /x/analysis/market-signals` | `stance`, `content`, `conviction`, `relevance`, plus bullish & bearish counts per cashtag |
+| `POST /x/analysis/viral-score` | 8 wording traits, `viralScore` from 0 to 100 & `viralVerdict` |
+| `POST /x/analysis/classify` | 1 to 8 questions you write in `analysis.questions` |
+
+Send exactly 1 source.
+
+- `tweetIds` takes up to 100 post IDs or URLs.
+- `texts` takes up to 100 texts of the user's, such as drafts. Nothing is read
+  from X.
+- A search takes `query`, `username`, `listId`, `quotesOf`, or `repliesTo`,
+  alone or together, with `sinceTime`, `untilTime`, `queryType`, `limit` (1 to
+  100, default 20), and `cursor`.
+
+`analysis` is optional. It takes `targets` (names with `aliases`), `context`,
+`questions`, or a `preset`. Question IDs and category names are lower case
+with underscores.
+
+Send each analysis once with the helpers from [Retries](#retries). A refused
+call bills nothing. Ask the user before sending it again.
+
+```python
+response = requests.post(
+    f"{BASE}/x/analysis/brand",
+    headers=HEADERS,
+    json={"username": "Sony", "limit": 50, "analysis": {"targets": [{"name": "Sony"}]}},
+    timeout=60,
+    allow_redirects=False,
+)
+page = read_body(response)
+if not 200 <= response.status_code < 300 or isinstance(page, str):
+    raise XquikError(f"{response.status_code}: {page}", response.status_code, page)
+```
+
+The response holds `results` (each post with its `answers`), `unanalyzed`
+(free, with a `reason`), `analysisSummary` (totals per question, target and
+cashtag), `has_next_page`, and `next_cursor`. Answers describe what posts say.
+They do not verify claims or give investment advice.
+
 ## Private reads
 
-These need a connected X account:
+These need a connected X account.
 
-- `GET /x/dm/{userId}/history?account=<connected handle>`: `userId` is the
+- In `GET /x/dm/{userId}/history?account=<connected handle>`, `userId` is the
   other person's numeric ID. Resolve it with `GET /x/users/{username}`. It
   bills 1 credit per returned message and has no page size, so the last page
   can go past a message target. Give the cost per message, not a hard cap.
@@ -143,16 +251,16 @@ These need a connected X account:
 
 - Follow `next_cursor` while `has_next_page` is true. Stop at the user's bound.
   Never build or decode a cursor.
-- `409 coverage_cursor_unavailable`: wait the exact `Retry-After` seconds,
+- On `409 coverage_cursor_unavailable`, wait the exact `Retry-After` seconds,
   then retry the same cursor. The helper below does this.
-- `410 coverage_cursor_gone` or `400 invalid_coverage_cursor`: restart once
+- On `410 coverage_cursor_gone` or `400 invalid_coverage_cursor`, restart once
   without a cursor and deduplicate by ID. The paging loop below catches
   `XquikError` from the helper and restarts with the remaining budget.
 - Generated paging code keeps one result budget across the entire run. Count
   every returned row before deduplication, including refetched rows after a
   restart. Lower later page sizes to the remaining budget. Persist IDs
   already appended across cron runs. An empty page can still have a cursor.
-- `429`, `5xx`, and failed connections: retry as [Retries](#retries) shows.
+- On `429`, `5xx`, and failed connections, retry as [Retries](#retries) shows.
 
 ## Retries
 
@@ -271,7 +379,7 @@ def get_json(path, params=None, budget_s=300):
 A paging loop on that helper. It restarts once on a gone or invalid cursor.
 It counts every returned tweet toward the user's number, refetched ones
 included, so the bill never passes that cap. Load `seen_ids` from earlier
-output, and make `append_row` save each row before it returns:
+output, and make `append_row` save each row before it returns.
 
 ```python
 def append_search_tweets(q, cap, seen_ids, append_row):

@@ -52,6 +52,8 @@ from kicad_utils import (
     parse_value,
     parse_voltage_from_net_name as _parse_voltage_from_net_name,
     snap_to_mil_grid as _snap_mil,
+    MPN_FIELD_ALIASES_PRIMARY, MPN_FIELD_ALIASES_GENERIC,
+    DIGIKEY_FIELD_ALIASES, normalize_field_name, pick_field, pick_mpn,
 )
 from kicad_types import AnalysisContext
 from bus_resolver import BusGraph, expand_bus_name, match_ports
@@ -192,18 +194,8 @@ def _clean_hierarchical_name(name: str) -> str:
 # an ever-growing list of explicit variants, build a lowercase property dict
 # once and match against normalised known aliases.
 
-_MPN_KEYS = frozenset({
-    "mpn", "mfg part", "partnumber", "part number", "part#",
-    "manufacturer_part_number", "mfr no.", "mfr_no",
-    "manufacturerpartnumber", "partno", "partno.", "mfr_part_number",
-})
 _MANUFACTURER_KEYS = frozenset({
     "manufacturer", "mfr", "mfg",
-})
-_DIGIKEY_KEYS = frozenset({
-    "digikey", "digi-key", "digi-key part number", "digi-key_pn",
-    "digikey part", "digikey part number", "digikey_part_number",
-    "digi-key pn", "digikey part number", "dk",
 })
 _MOUSER_KEYS = frozenset({
     "mouser", "mouser part number", "mouser part", "mouser_pn", "mouser pn",
@@ -220,12 +212,12 @@ _ELEMENT14_KEYS = frozenset({
 
 
 def _pick(props: dict, keys: frozenset) -> str:
-    """Return the first non-empty value whose lowercased key is in *keys*."""
-    for k in keys:
-        v = props.get(k)
-        if v:
-            return v
-    return ""
+    """Return the first non-empty value whose normalized key is in *keys*.
+
+    Iterates the property dict in file order (not the alias frozenset) so
+    the pick is hash-seed independent when two aliases are present (KH-414).
+    """
+    return pick_field(props, keys)
 
 
 
@@ -576,9 +568,9 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
                     if si_entry.get("unit"):
                         unit_num = si_entry["unit"]
         _props = get_properties(sym)
-        mpn = _pick(_props, _MPN_KEYS)
+        mpn = pick_mpn(_props)
         manufacturer = _pick(_props, _MANUFACTURER_KEYS)
-        digikey = _pick(_props, _DIGIKEY_KEYS)
+        digikey = _pick(_props, DIGIKEY_FIELD_ALIASES)
         mouser = _pick(_props, _MOUSER_KEYS)
         lcsc = _pick(_props, _LCSC_KEYS)
         element14 = _pick(_props, _ELEMENT14_KEYS)
@@ -3145,12 +3137,20 @@ def _parse_legacy_single_sheet(path: str) -> tuple:
                             name_match = re.search(r'"([^"]*)"[^"]*$', cl[fm.end():])
                             fname = name_match.group(1) if name_match else f"Field{field_num}"
                             if name_match:
-                                fl = fname.lower()
-                                if fl in _MPN_KEYS:
-                                    comp["mpn"] = field_val
+                                fl = normalize_field_name(fname)
+                                if fl in MPN_FIELD_ALIASES_PRIMARY:
+                                    # Final wave fix: a blank primary may still SET
+                                    # an unset mpn (old last-wins behaviour for
+                                    # blank-only symbols) but may not OVERWRITE a
+                                    # populated one.
+                                    if field_val.strip() or not comp.get("mpn"):
+                                        comp["mpn"] = field_val
+                                elif fl in MPN_FIELD_ALIASES_GENERIC:
+                                    if not (comp.get("mpn") or "").strip():
+                                        comp["mpn"] = field_val
                                 elif fl in _MANUFACTURER_KEYS:
                                     comp["manufacturer"] = field_val
-                                elif fl in _DIGIKEY_KEYS:
+                                elif fl in DIGIKEY_FIELD_ALIASES:
                                     comp["digikey"] = field_val
                                 elif fl in _MOUSER_KEYS:
                                     comp["mouser"] = field_val
@@ -9581,6 +9581,16 @@ def analyze_schematic(path: str, project_root: str | None = None,
                             j["_sheet"] = sheet_idx
                         for nc in no_connects:
                             nc["_sheet"] = sheet_idx
+                        # KH-409: untagged peer bus_wires/bus_entries made
+                        # build_net_map's wires_by_sheet/entries_by_sheet
+                        # (~line 1457) file every peer's bus geometry under
+                        # sheet 0 with the root's -- one shared BusGraph
+                        # instead of one per sheet, bogusly flagging a valid
+                        # peer tap "unlabeled_entry_tap".
+                        for be in bus_elems.get("bus_wires", []):
+                            be["_sheet"] = sheet_idx
+                        for be in bus_elems.get("bus_entries", []):
+                            be["_sheet"] = sheet_idx
                         parsed["components"].extend(comps)
                         parsed["wires"].extend(wires)
                         parsed["labels"].extend(labels)

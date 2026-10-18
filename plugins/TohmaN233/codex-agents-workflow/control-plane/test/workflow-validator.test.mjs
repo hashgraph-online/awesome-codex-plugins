@@ -1,8 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWorkflowGraph } from '../lib/workflow-validator.mjs';
-import { evaluateExpression, intersectBoundaries, readPointer, resolveBindings } from '../lib/workflow-bindings.mjs';
+import { evaluateExpression, intersectBoundaries, pathBoundaryContains, readPointer, resolveBindings } from '../lib/workflow-bindings.mjs';
 import { agent, edge, readyWorkflow } from './fixtures/workflow-fixtures.mjs';
+import { NATIVE_BUILTINS_PROFILE_NAME } from '../../scripts/native-context-profile.mjs';
+
+test('an upstream node cannot replace a narrowed native tool context with the parent context',()=>{
+  const workflow=readyWorkflow('narrow-profile');
+  workflow.nodes.splice(1,0,agent('producer'));
+  workflow.edges=[edge('start','producer'),edge('producer','final'),edge('final','end')];
+  workflow.nodes.find(node=>node.id==='producer').executor={kind:'provider',provider_id:'narrow',context_inheritance:'upstream'};
+  const result=validateWorkflowGraph(workflow,{providers:[{id:'narrow',kind:'native_agent',enabled:true,
+    capabilities:{read:true,write:true},config:{agent_type:NATIVE_BUILTINS_PROFILE_NAME,fresh_context:true}}]});
+  assert(result.errors.some(error=>error.code==='NATIVE_CONTEXT_PROFILE_HISTORY'));
+});
+
+test('a native tool context profile cannot be published on Strict or task-thread routes',()=>{
+  for(const [kind,mode]of [['provider','strict'],['thread','cooperative']]){
+    const workflow=readyWorkflow('unsupported-tool-context'),producer=agent('producer');
+    producer.executor={kind,provider_id:'narrow',...(kind==='thread'?{lifecycle:'create'}:{})};
+    producer.skill_policy={mode,implicit:mode==='strict'?'deny':'allow',ambient_allow:[],shadowed_skill_paths:[]};
+    workflow.nodes.splice(1,0,producer);workflow.edges=[edge('start','producer'),edge('producer','final'),edge('final','end')];
+    const result=validateWorkflowGraph(workflow,{providers:[{id:'narrow',kind:'native_agent',enabled:true,
+      capabilities:{read:true,write:true},config:{agent_type:NATIVE_BUILTINS_PROFILE_NAME,fresh_context:true}}]});
+    assert(result.errors.some(error=>error.code==='NATIVE_CONTEXT_PROFILE_EXECUTION_UNSUPPORTED'),JSON.stringify(result));
+  }
+});
 
 test('declared array projections pass only needed child fields to downstream nodes',()=>{
   const batch_results=[{changes:'A',scenario_jobs:[{card:'A'},{card:'B'}]},
@@ -40,6 +63,28 @@ function branching(type) {
 }
 const valid = (workflow, context) => assert.equal(validateWorkflowGraph(workflow, context).valid, true, JSON.stringify(validateWorkflowGraph(workflow, context).errors));
 const invalid = (workflow, code, context) => assert(validateWorkflowGraph(workflow, context).errors.some(error => error.code === code), `Missing ${code}: ${JSON.stringify(validateWorkflowGraph(workflow, context))}`);
+
+test('runtime requirements resolve local Host contracts only through an available registered broker', () => {
+  const workflow=readyWorkflow();
+  const contract={id:'local-check',identity:{name:'registered-check-broker',version:'1',sha256:'a'.repeat(64)},argv:['check'],
+    input_schema:{type:'object',additionalProperties:false},output_schema:{type:'object',additionalProperties:false},env_allow:[],
+    permissions:{network:false,read_paths:[],write_paths:[]},output_cap_bytes:4096,deadline_ms:1000,idempotency:{mode:'safe'}};
+  workflow.host_tools=[contract];workflow.requirements.tools=[contract.id];
+  const context={check_runtime_requirements:true,tools:[],host_tools:[contract.identity.name]};
+  const before=JSON.stringify({workflow,context});
+  const missing=result=>result.blockers.filter(b=>b.code==='REQUIREMENT_UNAVAILABLE');
+  assert.deepEqual(missing(validateWorkflowGraph(workflow,context)),[]);
+  assert.deepEqual(missing(validateWorkflowGraph(workflow,{...context,host_tools:[contract.id]})),[]);
+  const absent=missing(validateWorkflowGraph(workflow,{...context,host_tools:[]}));
+  assert.equal(absent.length,1);assert.equal(absent[0].requirement,contract.id);
+  assert.deepEqual(absent[0].host_tool_identity,contract.identity);
+  workflow.requirements.tools=['undeclared-check'];
+  assert.equal(missing(validateWorkflowGraph(workflow,context))[0].requirement,'undeclared-check');
+  workflow.requirements.tools=[contract.id];workflow.requirements.mcp_servers=[contract.id];
+  assert.equal(missing(validateWorkflowGraph(workflow,context)).length,1,'Tool contracts cannot satisfy MCP server requirements');
+  workflow.requirements.mcp_servers=[];
+  assert.equal(JSON.stringify({workflow,context}),before,'Validation must not mutate runtime capability lists');
+});
 
 test('valid sequential, conditional and parallel graphs are deterministic and validation does not mutate inputs', () => {
   for (const workflow of [readyWorkflow(), withWork(), branching('condition'), branching('parallel')]) {
@@ -113,7 +158,8 @@ test('disabled Provider is structurally valid but launch blocked; binding and ca
   assert(validateWorkflowGraph(workflow, context).blockers.some(b => b.code === 'PROVIDER_DISABLED'));
   invalid(workflow, 'PROVIDER_MISSING');
   provider.capabilities.write = false; invalid(workflow, 'PROVIDER_CAPABILITY', context);
-  provider.capabilities.write = true; provider.config.role = 'reviewer'; invalid(workflow, 'PROVIDER_ROLE', context);
+  provider.capabilities.write = true; provider.config.role = 'reviewer'; valid(workflow,context);
+  delete worker.role;valid(workflow,context);
 });
 
 test('legacy Role metadata cannot affect Workflow validation or node authority',()=>{
@@ -217,7 +263,7 @@ test('reviewer role does not decide write authority; explicit access and Provide
   invalid(workflow, 'PROVIDER_CAPABILITY', { providers: [provider] });
 });
 
-test('sub-Agent quantity is configurable only on non-Main Agent nodes and fan-out stays finite and typed',()=>{
+test('Agent quantity supports Main worker fan-out while retaining finite typed plans',()=>{
   const workflow=withWork(),worker=workflow.nodes.find(node=>node.id==='work');
   workflow.inputs_schema={type:'object',properties:{items:{type:'array',minItems:1,maxItems:32,items:{type:'string'}}},required:['items'],additionalProperties:false};
   Object.assign(worker,{executor:{kind:'thread',provider_id:'p',lifecycle:'start'},subagent_count:'auto',input_bindings:{items:'/inputs/items'},outputs_schema:{type:'object',properties:{results:{type:'array',items:{type:'string'}}},required:['results'],additionalProperties:false},fanout:{input:'items',item_name:'item',result_output:'results',distribution:'one_per_item',scheduling:'parallel',join:'all_required'}});
@@ -227,7 +273,10 @@ test('sub-Agent quantity is configurable only on non-Main Agent nodes and fan-ou
   worker.fanout.result_mode='per_item';invalid(workflow,'SUBAGENT_FANOUT',context);
   worker.executor={kind:'provider',provider_id:'p'};valid(workflow,context);
   delete worker.fanout.result_mode;worker.executor={kind:'thread',provider_id:'p',lifecycle:'start'};
-  worker.executor={kind:'main'};invalid(workflow,'SUBAGENT_COUNT',context);invalid(workflow,'SUBAGENT_FANOUT',context);
+  worker.executor={kind:'main'};invalid(workflow,'MAIN_FANOUT',context);
+  worker.fanout.result_mode='per_item';worker.fanout.max_concurrency=2;worker.access='read_only';worker.path_scope=[];valid(workflow,context);
+  worker.executor.mode='orchestration';invalid(workflow,'SUBAGENT_COUNT',context);invalid(workflow,'SUBAGENT_FANOUT',context);
+  delete worker.fanout.result_mode;delete worker.fanout.max_concurrency;
   worker.executor={kind:'thread',provider_id:'p',lifecycle:'start'};worker.subagent_count=4;delete worker.fanout;invalid(workflow,'SUBAGENT_FANOUT',context);
   worker.fanout={input:'items',item_name:'item',result_output:'results',distribution:'one_per_item',scheduling:'parallel',join:'all_required'};invalid(workflow,'SUBAGENT_FANOUT',context);
   worker.fanout.distribution='partition';workflow.inputs_schema.properties.items.minItems=4;valid(workflow,context);
@@ -386,6 +435,10 @@ test('finite condition language has typed comparisons, JSON Pointer and short-ci
   assert.deepEqual({ ...resolveBindings({ result: { coalesce: ['/missing', '/present'] }, optional: { path: '/missing', default: '' } }, { present: 3 }) }, { result: 3, optional: '' });
   assert.throws(() => resolveBindings({ result: { coalesce: ['/missing', '/also-missing'] } }, {}), { code: 'BINDING_MISSING' });
   assert.deepEqual(intersectBoundaries(['src', 'README.md'], ['src/lib', 'README.md', 'other']), ['README.md', 'src/lib']);
+  assert.equal(pathBoundaryContains('pages/a', 'PAGES/A/OUTPUT.TXT', { caseInsensitive: true }), true);
+  assert.equal(pathBoundaryContains('pages/a', 'PAGES/A/OUTPUT.TXT', { caseInsensitive: false }), false);
+  assert.equal(pathBoundaryContains('pages/a', 'pages/ab/output.txt', { caseInsensitive: true }), false);
+  assert.equal(pathBoundaryContains('pages/a/output.txt', 'pages/a', { caseInsensitive: true }), false);
 });
 
 test('current validation rejects pre-declared context packs and legacy widening', () => {

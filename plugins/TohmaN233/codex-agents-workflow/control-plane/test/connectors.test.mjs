@@ -1,3 +1,4 @@
+import { loadLegacyConfig } from './legacy-config.mjs';
 import assert from 'node:assert/strict';
 import { execFile, spawn } from 'node:child_process';
 import { EventEmitter } from 'node:events';
@@ -9,7 +10,7 @@ import { promisify } from 'node:util';
 import test from 'node:test';
 import { Script } from 'node:vm';
 
-import { loadConfig, saveConfig } from '../lib/config.mjs';
+import { saveConfig } from '../lib/config.mjs';
 import { ConnectorRegistry } from '../connectors/registry.mjs';
 import { GrokAcpConnector, stopOwnedProcess } from '../connectors/grok-acp.mjs';
 import { ConnectorTaskStore } from '../connectors/task-store.mjs';
@@ -101,7 +102,7 @@ async function fixture() {
   await execFileAsync('git', ['-C', workspace, 'add', 'tracked.txt']);
   await execFileAsync('git', ['-C', workspace, 'commit', '-qm', 'fixture']);
   const configPath = join(root, 'control-plane.json');
-  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const config = await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   const provider = config.providers.find((item) => item.id === 'grok-local');
   provider.enabled = true;
   provider.config.task_timeout_ms = 1000;

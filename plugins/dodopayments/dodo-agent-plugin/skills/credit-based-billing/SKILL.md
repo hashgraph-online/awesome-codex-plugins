@@ -1,6 +1,6 @@
 ---
 name: credit-based-billing
-description: Complete guide for giving customers included, free, prepaid, promotional, or top-up credits using grants, balances, ledger deductions, rollover, expiry, alerts, and overage.
+description: Dodo Payments credit-based billing with credit entitlements, grants, balances, ledger deductions, rollover, expiry, low-balance alerts, and overage. Use when selling prepaid or top-up credit packs, including credits in a plan, deducting AI token or API credits via meters, or granting promo credits; use usage-based-billing for direct per-unit charges.
 ---
 
 # Dodo Payments Credit-Based Billing
@@ -203,7 +203,7 @@ Attach the credit entitlement to the same usage-based product as the meter. The 
 | Field | Purpose |
 |---|---|
 | `meter_id` | Meter to aggregate usage. |
-| `free_threshold` | Optional usage excluded before rating. |
+| `free_threshold` | Free usage excluded before rating - applies **only** when the meter bills in money. It is ignored for credit-billed meters: every unit is deducted from the credit balance. |
 | `credit_entitlement_id` | Credit pool consumed by this meter. |
 | `meter_units_per_credit` | Usage units required to deduct one credit; required when `credit_entitlement_id` is set. |
 | `price_per_unit` | Direct per-unit monetary price when using pure usage pricing; decimal string. |
@@ -297,7 +297,7 @@ If the same `idempotency_key` already exists, the API can return `409`. Treat th
 
 ## Deduct credits manually
 
-Use the same method with `entry_type: 'debit'`. Debits consume the oldest grants first (FIFO) and can return `400` when the balance is insufficient.
+Use the same method with `entry_type: 'debit'`. Debits consume the earliest-expiring grants first and can return `400` when the balance is insufficient.
 
 ```typescript
 async function deductJobCredits(
@@ -356,10 +356,9 @@ Persist the Dodo ledger entry ID with internal order, support-case, or job IDs. 
 2. Add the meter to the same product.
 3. Enable **Bill usage in Credits** for that meter.
 4. Set `credit_entitlement_id` and `meter_units_per_credit`.
-5. Optionally set `free_threshold`; usage under it is excluded.
-6. Ingest events whose case-sensitive `event_name` matches the meter.
+5. Ingest events whose case-sensitive `event_name` matches the meter.
 
-A background worker processes new usage approximately every minute, aggregates it according to the meter, converts meter units using `meter_units_per_credit`, and consumes the oldest non-expired grants first (FIFO). Multiple meters can consume one shared credit pool at different conversion rates.
+A background worker processes new usage approximately every minute, aggregates it according to the meter, converts meter units using `meter_units_per_credit`, and deducts from non-expired grants with the earliest-expiring grants consumed first. There is no free threshold on a credit-billed meter. Multiple meters can consume one shared credit pool at different conversion rates.
 
 This delay is material: an accepted usage event does not imply that a balance read immediately afterward includes its deduction.
 
@@ -367,162 +366,16 @@ Use the `usage-based-billing` skill to create the meter, choose `count`, `sum`, 
 
 ## End-to-end AI token example
 
-Assume the dashboard/API configuration already has:
-
-- a custom-unit entitlement named `AI Token Credits`, precision `0`;
-- a subscription product that issues credits each cycle;
-- a `sum` meter whose case-sensitive event name is `ai.tokens` and key is `tokens`;
-- that meter linked through `credit_entitlement_id` and `meter_units_per_credit`;
-- a one-time product `pdt_ai_token_topup` with credits attached.
-
-The following server-side script records actual model usage, reads the credit balance, and creates a top-up checkout when your verified low-balance webhook flow prompts the customer:
-
-```typescript
-import DodoPayments from 'dodopayments';
-
-const client = new DodoPayments({
-  bearerToken: process.env['DODO_PAYMENTS_API_KEY'],
-  environment: 'test_mode',
-});
-
-async function recordTokenUsage(
-  customerId: string,
-  generationId: string,
-  model: string,
-  promptTokens: number,
-  completionTokens: number,
-): Promise<number> {
-  const tokens = promptTokens + completionTokens;
-  const response = await client.usageEvents.ingest({
-    events: [
-      {
-        event_id: `generation:${generationId}`,
-        customer_id: customerId,
-        event_name: 'ai.tokens',
-        timestamp: new Date().toISOString(),
-        metadata: {
-          tokens,
-          prompt_tokens: promptTokens,
-          completion_tokens: completionTokens,
-          model,
-        },
-      },
-    ],
-  });
-
-  return response.ingested_count;
-}
-
-async function readTokenBalance(
-  customerId: string,
-  creditEntitlementId: string,
-): Promise<string> {
-  const response = await client.creditEntitlements.balances.retrieve(
-    customerId,
-    { credit_entitlement_id: creditEntitlementId },
-  );
-  return response.balance;
-}
-
-async function createTopUpCheckout(customerEmail: string) {
-  return client.checkoutSessions.create({
-    product_cart: [
-      { product_id: 'pdt_ai_token_topup', quantity: 1 },
-    ],
-    customer: { email: customerEmail },
-    return_url: 'https://app.example.com/credits',
-  });
-}
-
-async function main(): Promise<void> {
-  const customerId = 'cus_8VbC6JDZzPEqfBPUdpj0K';
-  const creditEntitlementId = 'cde_ztxm5XJsKxWucRWA3rjdM';
-
-  const ingested = await recordTokenUsage(
-    customerId,
-    'gen_01JZAIEXAMPLE',
-    'example-model',
-    1800,
-    700,
-  );
-  console.log({ ingested });
-
-  // Meter deduction is asynchronous; this read may still show the prior balance.
-  const balance = await readTokenBalance(customerId, creditEntitlementId);
-  console.log({ balance });
-
-  // Call this after a verified credit.balance_low event and customer action.
-  const topUp = await createTopUpCheckout('customer@example.com');
-  console.log(topUp);
-}
-
-main().catch((error: unknown) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
-```
-
-The lifecycle is:
-
-1. The model returns actual prompt and completion token counts.
-2. The app ingests one uniquely identified `ai.tokens` event.
-3. The meter aggregates the `tokens` metadata value.
-4. The worker converts units into credits and deducts FIFO from non-expired grants.
-5. Dodo emits `credit.deducted`; when configured threshold conditions are met, it emits `credit.balance_low`.
-6. The app notifies the customer and offers checkout for the attached top-up product.
-
-Do not poll every minute to synthesize your own threshold event. Use the verified webhook and keep polling only for user-interface freshness.
+Full guide: [references/ai-token-example.md](references/ai-token-example.md).
 
 ## Handle credit webhooks
 
-Webhook signature verification, raw-body handling, retries, and event deduplication are covered in the `webhook-integration` skill. Verify with `client.webhooks.unwrap()` before dispatching any event; never trust a parsed, unverified body.
+Full guide: [references/credit-webhooks.md](references/credit-webhooks.md).
 
-All credit events except `credit.balance_low` use the full ledger payload.
+Covers:
 
-| Exact event | Application action |
-|---|---|
-| `credit.added` | Refresh cached balance; correlate the grant or purchase and ledger entry. |
-| `credit.deducted` | Refresh cached balance and usage display; reconcile the source usage/job. |
-| `credit.expired` | Refresh balance; notify only if your product policy promises expiry notices. |
-| `credit.rolled_over` | Refresh balance and expose the new rollover grant in account history. |
-| `credit.rollover_forfeited` | Refresh balance and explain forfeiture according to the configured rollover limit. |
-| `credit.overage_charged` | Reconcile the overage charge with billing and customer-visible history. |
-| `credit.overage_reset` | Clear cached overage state after confirming the ledger payload. |
-| `credit.manual_adjustment` | Reconcile the adjustment with its internal support/admin operation. |
-| `credit.balance_low` | Deduplicate, refresh the authoritative balance, notify the customer, and offer upgrade or top-up. |
-
-### Low-balance payload
-
-`credit.balance_low` has a dedicated payload:
-
-```json
-{
-  "business_id": "bus_H4ekzPSlcg",
-  "type": "credit.balance_low",
-  "timestamp": "2025-08-04T06:15:00.000000Z",
-  "data": {
-    "payload_type": "CreditBalanceLow",
-    "customer_id": "cus_8VbC6JDZzPEqfBPUdpj0K",
-    "subscription_id": "sub_7EeHq2ewQuadropD2ra",
-    "credit_entitlement_id": "cent_9xY2bKwQn5MjRpL8d",
-    "credit_entitlement_name": "API Credits",
-    "available_balance": "15",
-    "subscription_credits_amount": "100",
-    "threshold_percent": 20,
-    "threshold_amount": "20"
-  }
-}
-```
-
-### Low-balance notification flow
-
-1. Verify the raw webhook and deduplicate by `webhook-id` as described in `webhook-integration`.
-2. Confirm `type === 'credit.balance_low'` and validate the dedicated payload.
-3. Map `customer_id` to the authenticated application account; do not accept a customer ID supplied by a browser.
-4. Read the current balance with `balances.retrieve(...)` because another grant or deduction may have occurred since emission.
-5. If the balance is still below your customer-notification policy, enqueue one notification keyed by webhook ID or threshold occurrence.
-6. Link to a one-time top-up checkout or plan-upgrade flow.
-7. Record notification delivery separately from the Dodo ledger; never manufacture a ledger entry for an email.
+- Low-balance payload
+- Low-balance notification flow
 
 ## Enforce credits safely
 
@@ -588,7 +441,7 @@ Return an application-level payment/credit-required response with a top-up or up
 16. **Sending duplicate IDs within one batch.** Duplicate `event_id` values in the same ingestion request reject the entire request. Previously ingested IDs are ignored on retry.
 17. **Inventing a deduplication window.** Current docs require unique event IDs but do not publish a retention duration.
 18. **Getting conversion backward.** `meter_units_per_credit` is usage units required for one credit, and is required when `credit_entitlement_id` is set.
-19. **Ignoring the free threshold.** Usage under `free_threshold` is excluded before credit deduction.
+19. **Expecting a free threshold on credit-billed meters.** `free_threshold` applies only to meters billed in money. When **Bill usage in Credits** is on, every unit deducts credits; model included usage as granted credits instead.
 20. **Supplying one rollover timeframe field.** `rollover_timeframe_count` and `rollover_timeframe_interval` must be supplied together.
 21. **Using the wrong rollover enum case.** Confirmed values are `Day`, `Week`, `Month`, and `Year`.
 22. **Assuming expiry happens before rollover.** Rollover is applied first; only the remainder expires.

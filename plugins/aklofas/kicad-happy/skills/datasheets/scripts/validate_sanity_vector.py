@@ -146,8 +146,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("extraction_path", type=Path)
     args = ap.parse_args(argv)
 
-    vector = yaml.safe_load(args.vector_path.read_text())
-    extraction = json.loads(args.extraction_path.read_text())
+    vector = yaml.safe_load(args.vector_path.read_text(encoding="utf-8"))
+    extraction = json.loads(args.extraction_path.read_text(encoding="utf-8"))
     report = diff(vector, extraction)
     print(json.dumps(report, indent=2, default=str))
     return 0 if report["summary"]["failed"] == 0 else 1

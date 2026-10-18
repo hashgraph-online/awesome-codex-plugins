@@ -1,17 +1,13 @@
 import { createCodexToolBroker } from './codex-tool-broker.mjs';
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { digest } from '../workflow-revisions.mjs';
-import { requireValue } from '../workflow-paths.mjs';
+import {readPinnedObject} from '../pinned-object-reader.mjs';
 
 export async function loadNodeSkillSnapshots(runtime, runId, envelope) {
   const snapshots = [];
   for (const pin of envelope.allowed_skills ?? []) {
     const files = Object.create(null);
     for (const resource of pin.resources) {
-      requireValue(/^[a-f0-9]{64}$/.test(resource.sha256), 'SKILL_PIN', 'Invalid pinned Skill object');
-      const bytes = await readFile(join(runtime.runs.directory(runId), 'objects', resource.sha256));
-      requireValue(digest(bytes) === resource.sha256, 'SKILL_PIN_CHANGED', 'Pinned Skill resource changed');
+      const bytes = await readPinnedObject(join(runtime.runs.directory(runId),'objects'),resource);
       files[resource.path] = bytes;
     }
     snapshots.push({source_path:pin.path, source_hash:pin.source_hash, name:pin.name, files});

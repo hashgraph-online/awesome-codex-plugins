@@ -1,6 +1,6 @@
 {
   "name": "roadmapsmith",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": false,
   "description": "Self-contained skill for Claude Code, Codex, and any host that reads SKILL.md. Keeps ROADMAP.md coherent with real code.",
   "bin": "./install.js",

@@ -1,7 +1,8 @@
 # Journey Content Contract
 
 Plugin runtime asset. Loaded by skills creating journeys: `plan` (the intent
-instrument at `sdd.require`); no `document` mode produces a journey. Companion to `skills/_shared/scenario-contract.md`,
+instrument at `sdd.require`) and `document` when the subject names `journey`
+(its Named type path); no `document` mode produces a journey. Companion to `skills/_shared/scenario-contract.md`,
 `skills/_shared/prd-contract.md`, and `skills/_shared/precision-rules.md`. Engine
 gate: `skills/_shared/actor-subject-compatibility.md`.
 

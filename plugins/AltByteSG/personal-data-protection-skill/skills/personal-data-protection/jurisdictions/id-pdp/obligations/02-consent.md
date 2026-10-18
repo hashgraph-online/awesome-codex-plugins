@@ -1,6 +1,18 @@
 # Pasal 4, 20–26 — Lawful Bases, Consent, Sensitive Data, Special Subjects
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+
+## Contents
+
+- Pasal 4 — Specific (sensitive) vs general Personal Data
+- Pasal 20 — Lawful bases (6 GDPR-style)
+- Pasal 21 — Information at consent (7 categories)
+- Pasal 22 — Consent form requirements
+- Pasal 23 — Null contractual clauses
+- Pasal 24 — Demonstrate consent
+- Pasal 25 — Children's data consent
+- Pasal 26 — Disability accommodations
+- Penalty exposure (this Part)
 
 ## Pasal 4 — Specific (sensitive) vs general Personal Data
 

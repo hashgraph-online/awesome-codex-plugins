@@ -68,12 +68,17 @@ export function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-// Only different code of the same or a newer version replaces a running engine. A plugin server left over from before
-// an update either finds its folder replaced (then it reads the new code, the same as the new engine's) or gone (no
-// build), or it is an older version: none of them pushes the new engine out.
-export function shouldReplace(running: Health, own: { build: string | null; version: string | null }): boolean {
+// Only different code of a newer version replaces a running engine on its own; the same version with other code only
+// when installing (`force`, cam install). A plugin server left over from before an update either finds its folder
+// replaced (then it reads the new code, the same as the new engine's) or gone (no build), or it is an older version:
+// none of them pushes the new engine out.
+// v0.4: Codex and Claude Code each keep their own copy of the plugin, and both start this engine. Two copies of the
+// same version with different code (one updated, the other not yet) would otherwise push each other's engine out over
+// and over; until both are the same, the engine already running stays.
+export function shouldReplace(running: Health, own: { build: string | null; version: string | null }, force = false): boolean {
   if (!own.build || running.build === own.build) return false;
-  return compareVersions(own.version ?? "0.0.0", running.version ?? "0.0.0") >= 0;
+  const newer = compareVersions(own.version ?? "0.0.0", running.version ?? "0.0.0");
+  return newer > 0 || (force && newer === 0) || !running.build;
 }
 
 // Detached and hidden, so it outlives whoever asked for it (a plugin server instance, the CLI). Its working folder is
@@ -101,7 +106,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // The build of each runtime folder, read again once for every different build a running engine reports.
 const knownBuilds = new Map<string, { build: string | null; against: string | null | undefined }>();
 
-export async function ensureEngine(options: { port?: number; waitMs?: number; extraArgs?: string[]; dir?: string } = {}): Promise<{ state: EngineState; health: Health | null; replaced?: Health }> {
+export async function ensureEngine(options: { port?: number; waitMs?: number; extraArgs?: string[]; dir?: string; force?: boolean } = {}): Promise<{ state: EngineState; health: Health | null; replaced?: Health }> {
   const port = options.port ?? DEFAULT_PORT;
   const dir = options.dir ?? here;
   const existing = await engineHealth(port);
@@ -110,7 +115,7 @@ export async function ensureEngine(options: { port?: number; waitMs?: number; ex
     const known = knownBuilds.get(dir);
     if (!known || (known.build !== existing.build && known.against !== existing.build)) knownBuilds.set(dir, { build: buildOf(dir), against: existing.build });
     const build = knownBuilds.get(dir)!.build;
-    if (build === existing.build || !shouldReplace(existing, { build, version: versionOf(dir) })) return { state: "running", health: existing };
+    if (build === existing.build || !shouldReplace(existing, { build, version: versionOf(dir) }, options.force)) return { state: "running", health: existing };
     await retireEngine(port, existing, build);
     // A retiring engine closes its listener at once; a stopped one lets go of the port as it exits.
     for (let i = 0; i < 20 && (await engineHealth(port, 300))?.pid === existing.pid; i++) await sleep(150);
@@ -137,18 +142,30 @@ export function countCodexInPs(psOutput: string): number {
   return psOutput.split(/\r?\n/).filter((line) => posix.basename(line.trim()) === "codex").length;
 }
 
+// v0.4: Claude Code uses the engine too. Its command line and the desktop app are both `claude.exe` on Windows;
+// `claude` (the command line) and `Claude` (the desktop app) on macOS and Linux.
+export function countClaudeProcesses(tasklistCsv: string): number {
+  return tasklistCsv.split(/\r?\n/).filter((line) => /^"claude\.exe",/i.test(line.trim())).length;
+}
+
+export function countClaudeInPs(psOutput: string): number {
+  return psOutput.split(/\r?\n/).filter((line) => ["claude", "Claude"].includes(posix.basename(line.trim()))).length;
+}
+
+// The processes that may use the engine: Codex's and, since v0.4, Claude Code's.
 export function listCodexProcesses(): Promise<number> {
   const windows = process.platform === "win32";
-  const [file, args] = windows ? ["tasklist", ["/FI", "IMAGENAME eq codex.exe", "/FO", "CSV", "/NH"]] : ["ps", ["-A", "-o", "comm="]];
+  const [file, args] = windows ? ["tasklist", ["/FO", "CSV", "/NH"]] : ["ps", ["-A", "-o", "comm="]];
   return new Promise((resolve) => {
-    execFile(file, args, { windowsHide: true }, (error, stdout) => {
+    execFile(file, args, { windowsHide: true, maxBuffer: 16 * 1024 * 1024 }, (error, stdout) => {
       // If the check itself fails, assume Codex is still there rather than shutting down under it.
-      resolve(error ? 1 : windows ? countCodexProcesses(stdout) : countCodexInPs(stdout));
+      resolve(error ? 1 : windows ? countCodexProcesses(stdout) + countClaudeProcesses(stdout) : countCodexInPs(stdout) + countClaudeInPs(stdout));
     });
   });
 }
 
-// Exit only after `misses` checks in a row found no Codex, so a Codex restart does not stop the engine.
+// Exit only after `misses` checks in a row found no Codex (v0.4: and no Claude Code), so a restart does not stop the
+// engine.
 export function watchForCodex(onGone: () => void, options: { intervalMs?: number; misses?: number; count?: () => Promise<number> } = {}): () => void {
   const count = options.count ?? listCodexProcesses;
   const needed = options.misses ?? 2;

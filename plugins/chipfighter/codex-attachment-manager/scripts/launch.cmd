@@ -3,6 +3,7 @@ rem Purpose: P5 - start one of the plugin's scripts (the MCP server, the command
 rem directly (Node 24 or newer). Tries the Node runtimes that Codex ships first, then a node on PATH.
 rem Codex finds this file for the plugin's MCP server (.mcp.json: ./scripts/launch); scripts/launch is the macOS and
 rem Linux version. Input: the script to run and its arguments. Output: whatever the script prints (the MCP stdio stream).
+rem v0.4: Claude Code runs it too (.claude-plugin/plugin.json); without Codex, the node on PATH must be Node 24 or newer.
 setlocal
 
 if "%~1"=="" (
@@ -44,5 +45,5 @@ node %*
 exit /b
 
 :missing
-echo codex-attachment-manager: no Node 24 or newer found; update Codex or install Node 24 1>&2
+echo codex-attachment-manager: no Node 24 or newer found; install Node 24 or newer from nodejs.org ^(with Codex, updating Codex also works^) 1>&2
 exit /b 127

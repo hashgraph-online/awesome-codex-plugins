@@ -1,6 +1,15 @@
 # Chapter I + Section 37, 39, 41–42 — Accountability, Controller / Processor Duties, DPO
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+
+## Contents
+
+- Section 37 — Data Controller duties
+- Section 39 — Records of Processing Activities
+- Section 40 — Data Processor duties
+- Section 41 / 42 — DPO (engineering touch-points)
+- Chapter I — Personal Data Protection Committee (s8–18)
+- Penalty exposure (this Part)
 
 ## Section 37 — Data Controller duties
 

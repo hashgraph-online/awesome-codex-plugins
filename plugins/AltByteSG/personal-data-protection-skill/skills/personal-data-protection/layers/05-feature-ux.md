@@ -1,8 +1,23 @@
 # Layer 05 — Feature / UX
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 User-facing flows that implement PDP-family obligations or interact with personal data. Universal patterns across native, hybrid, and web stacks.
+
+## Contents
+
+- Signup consent
+- Settings — consent management
+- Account deletion
+- Data export (Access right)
+- Just-in-time permission prompts (OS-level)
+- Soft-prompt dialog pattern
+- Block / unblock
+- Photo / file uploads — EXIF stripping
+- OAuth signup flows
+- Email / phone verification (OTP)
+- Re-prompting after a previous decline
+- Children's / minors' data
 
 ## Signup consent
 

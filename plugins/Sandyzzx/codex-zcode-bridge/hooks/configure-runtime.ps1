@@ -9,7 +9,12 @@ param(
     [string]$DefaultModelId,
     [string]$DefaultReasoningLevel,
     [ValidateSet("plan", "build", "edit", "yolo")][string]$Mode,
-    [ValidateRange(1, 8)][int]$MaxConcurrentWorkers
+    [ValidateRange(1, 8)][int]$MaxConcurrentWorkers,
+    # ADR-007 optional headless browser host. Default off; when headless is
+    # enabled the managed runtime uses an isolated temporary profile and can
+    # be pointed at an installed system browser executable.
+    [ValidateSet("off", "headless")][string]$BrowserUse,
+    [string]$BrowserExecutablePath
 )
 
 $ErrorActionPreference = "Stop"
@@ -287,6 +292,17 @@ if (-not $effectiveDataDir) { $effectiveDataDir = Join-Path $HOME ".codex\codex-
 if (-not [IO.Path]::IsPathRooted($effectiveDataDir)) { throw "ZCODE_BRIDGE_DATA_DIR must be an absolute path: $effectiveDataDir" }
 $effectiveDataDir = [IO.Path]::GetFullPath($effectiveDataDir)
 
+$effectiveBrowserUse = if ($BrowserUse) { $BrowserUse } elseif ((Get-ConfiguredEnvironmentValue "ZCODE_BRIDGE_BROWSER_USE")) { Get-ConfiguredEnvironmentValue "ZCODE_BRIDGE_BROWSER_USE" } else { "off" }
+if ($effectiveBrowserUse -notin @("off", "headless")) {
+    throw "ZCODE_BRIDGE_BROWSER_USE must be one of: off, headless."
+}
+$effectiveBrowserExecutable = if ($BrowserExecutablePath) { $BrowserExecutablePath.Trim() } else { Get-ConfiguredEnvironmentValue "ZCODE_BRIDGE_BROWSER_EXECUTABLE" }
+if ($effectiveBrowserExecutable) {
+    if (-not [IO.Path]::IsPathRooted($effectiveBrowserExecutable)) { throw "ZCODE_BRIDGE_BROWSER_EXECUTABLE must be an absolute path: $effectiveBrowserExecutable" }
+    $effectiveBrowserExecutable = [IO.Path]::GetFullPath($effectiveBrowserExecutable)
+    if (-not (Test-Path -LiteralPath $effectiveBrowserExecutable -PathType Leaf)) { throw "Browser executable does not exist: $effectiveBrowserExecutable" }
+}
+
 Write-Host "ZCode runtime and provider configuration were found and validated."
 Write-Host "Runtime: $effectiveRuntime"
 Write-Host "Node.js: $effectiveNode ($nodeVersionText)"
@@ -299,6 +315,7 @@ Write-Host "Bridge data directory: $effectiveDataDir"
 if ($effectiveDefaultProvider) { Write-Host "Default model: $effectiveDefaultProvider/$effectiveDefaultModel" }
 Write-Host "Default execution mode: $effectiveMode"
 Write-Host "Maximum concurrent ZCode workers: $effectiveMaxWorkers"
+Write-Host "Browser host: $effectiveBrowserUse$(if ($effectiveBrowserExecutable) { " ($effectiveBrowserExecutable)" })"
 
 $bridgeRuntimeSettings = [ordered]@{
     ZCODE_BRIDGE_NODE = $effectiveNode
@@ -314,6 +331,8 @@ $bridgeRuntimeSettings = [ordered]@{
     ZCODE_BRIDGE_DEFAULT_PROVIDER_ID = if ($effectiveDefaultProvider) { $effectiveDefaultProvider } else { "" }
     ZCODE_BRIDGE_DEFAULT_MODEL_ID = if ($effectiveDefaultModel) { $effectiveDefaultModel } else { "" }
     ZCODE_BRIDGE_DEFAULT_REASONING_LEVEL = if ($effectiveReasoning) { $effectiveReasoning } else { "" }
+    ZCODE_BRIDGE_BROWSER_USE = $effectiveBrowserUse
+    ZCODE_BRIDGE_BROWSER_EXECUTABLE = if ($effectiveBrowserExecutable) { $effectiveBrowserExecutable } else { "" }
 }
 Write-BridgeRuntimeSettings -Directory $script:RuntimeSettingsDirectory -Settings $bridgeRuntimeSettings
 

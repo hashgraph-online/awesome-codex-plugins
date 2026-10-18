@@ -42,6 +42,15 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      # @vitest/coverage-v8 peer-pins the exact vitest version, so a major
+      # bump of either one alone cannot install (ERESOLVE). #581 and #582 were
+      # that pair split across two PRs, each red until the other landed.
+      vitest-major:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+        update-types:
+          - "major"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -58,10 +67,10 @@ updates:
     # untagged commit and it has no version to reason about, so it follows the
     # default branch instead — and cooldown, which ages *releases*, never fires.
     #
-    # Two pins track a branch deliberately, because that is how those actions
-    # ship: `dtolnay/rust-toolchain` (comment `stable`) and
-    # `trufflesecurity/trufflehog` (comment `main`). Their comments name a
-    # branch, not a version, so the absent cooldown is visible on the line.
+    # Only `dtolnay/rust-toolchain` may track `stable` with a branch comment.
+    # Its pin must be reachable from stable, and callers set toolchain: stable
+    # explicitly. This comment names a branch, so the absent cooldown is visible
+    # on the line. TruffleHog uses an exact release tag like the other actions.
     #
     # Every other pin must carry an exact version comment (`# v2.9.2`) and the
     # SHA must be that tag's commit. `Swatinem/rust-cache` was pinned to an

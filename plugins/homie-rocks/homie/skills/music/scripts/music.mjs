@@ -1,31 +1,11 @@
 #!/usr/bin/env node
-/**
- * music.mjs — songs and game scores for a Homie studio, made with ElevenLabs
- * Music through the creator's own account, mastered, looped on bar lines, and
- * published as a song page on the studio's site.
- *
- *   check                                   the provider road, the plan, credits left, the rights, ffmpeg, the studio
- *   quote --seconds <s> [--vocals]          the credit cost before anything is rendered
- *   budget <slug> --cap <credits>           the cap the person approved for this song (refuses anything past it)
- *   plan <slug> --spec <spec.json>          a composition plan with bar-exact sections (free, local)
- *   render <slug> [--dry-run] [--yes]       ONE paid render of the plan (or --prompt/--seconds); --dry-run sends nothing
- *   lyrics <slug> [--render <n>]            the transcription check: is every planned line actually sung?
- *   reconcile <slug>                        settle receipts the account had not reported yet (its balance can lag)
- *   master <slug> [--lufs -14] [--tp -1]    two-pass loudness to a target, measured after
- *   loop <slug> --bars <n> [--from-bar <k>] a seamless loop cut on bar lines (WAV + OGG), seam measured
- *   stems <slug> [--yes]                    stems from the provider (paid; priced by measurement)
- *   analyze <file>                          duration, loudness, tempo and beat grid of any audio file
- *   add <slug> --title "<t>" [--blurb] [--kind song|score|loop] [--for-game <id>] [--publish]
- *                                           the entry in music/manifest.json from what is in music/<slug>/
- *   publish <slug>                          media to R2 when the studio has it, rebuild and redeploy, check the page
- *
- * Everything prints a few lines; --json prints the result. Nothing prints a key.
- */
+/** music.mjs: local asset preparation only. Generation, schemas and pricing belong to the official provider MCP.
+ * Read ../SKILL.md for the current workflow. */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { beatsOf, decodeMono, loudness, need, probe, run } from './lib/audio.mjs';
-import { composeDetailed, dryRun, quoteCredits, rightsFor, road, separateStems, subscription, transcribe } from './lib/eleven.mjs';
+
 import { SLUG, checkBudget, getEntry, readBudget, readJson, receipt, rel, requireStudio, setBudget, studioHasMediaPages, upsertEntry, writeJson } from './lib/studio.mjs';
 
 const argv = process.argv.slice(2);
@@ -55,29 +35,12 @@ function jobDir(root, slug) {
 /* ---------------------------------------------------------------- check / quote / budget */
 
 async function check() {
-  const r = road();
-  const out = { ok: true, command: 'check', road: r.road, cli: r.cli ?? null, ffmpeg: need('ffmpeg') && need('ffprobe') };
-  if (!r.road) { out.ok = false; out.why = r.why; }
-  else {
-    try { const s = await subscription(r); out.plan = s; out.rights = rightsFor(s.tier); } catch (error) { out.ok = false; out.why = error.message; }
-  }
+  const out = { ok: true, command: 'check', ffmpeg: need('ffmpeg') && need('ffprobe'), generation: 'Use the official ElevenLabs MCP in your AI client' };
   let root = null;
   try { root = requireStudio(); } catch (error) { out.studio = { ok: false, why: error.message }; }
   if (root) out.studio = { ok: true, root, pages: studioHasMediaPages(root) };
   if (!out.ffmpeg) { out.ok = false; out.why = [out.why, 'ffmpeg is not installed (macOS: `brew install ffmpeg`; the person approves the install)'].filter(Boolean).join('; '); }
   return out;
-}
-
-async function quote() {
-  const seconds = Number(flags.get('seconds'));
-  if (!(seconds >= 3 && seconds <= 600)) throw new Error('--seconds must be 3..600 (ElevenLabs Music renders 3 s to 10 min)');
-  const q = quoteCredits(seconds, { vocals: flags.has('vocals') });
-  let plan = null;
-  try { plan = await subscription(); } catch { /* quote without the account */ }
-  const fits = plan ? q.total <= plan.remaining : null;
-  const cap = flags.has('budget') ? Number(flags.get('budget')) : null;
-  const longest = cap ? Math.floor(cap / (q.total / seconds)) : null;
-  return { ok: true, command: 'quote', seconds, credits: q, plan, fitsInPlan: fits, budget: cap, longestWithinBudget: longest };
 }
 
 function budget(root) {
@@ -143,7 +106,7 @@ function plan(root) {
   if (specFile !== join(dir, 'spec.json')) writeJson(join(dir, 'spec.json'), spec);
   const p = buildPlan(spec);
   writeJson(join(dir, 'plan.json'), { title: spec.title ?? slug, bpm: p.bpm, key: spec.key ?? null, beatsPerBar: p.beatsPerBar, bars: p.bars, totalMs: p.totalMs, vocals: p.vocals, lyrics: p.lyrics, composition_plan: p.plan });
-  const q = quoteCredits(p.totalMs / 1000, { vocals: p.vocals });
+  const q = { status: 'unknown', next: 'Quote through the official ElevenLabs MCP before generation' };
   return { ok: true, command: 'plan', slug, seconds: p.totalMs / 1000, bars: p.bars, bpm: p.bpm, vocals: p.vocals, sections: p.plan.chunks.map((c) => ({ text: c.text.split('\n')[0], ms: c.duration_ms })), warnings: p.warnings, quote: q, file: rel(root, join(dir, 'plan.json')) };
 }
 
@@ -154,76 +117,9 @@ function plan(root) {
  * +445 a minute later). Wait up to ~40 s for it to move; null when it has not (the receipt then holds
  * the quote and is marked pending, and `reconcile` settles it later).
  */
-async function settle(r, beforeUsed) {
-  for (let i = 0; i < 10; i++) {
-    const s = await subscription(r).catch(() => null);
-    if (s && s.used > beforeUsed) return { delta: s.used - beforeUsed, after: s };
-    await new Promise((ok) => setTimeout(ok, Number(process.env.MUSIC_SETTLE_MS ?? 4000)));
-  }
-  return { delta: null, after: await subscription(r).catch(() => null) };
-}
 
-function nextRender(dir) {
-  const ns = readdirSync(join(dir, 'work')).map((f) => /^render-(\d+)\./.exec(f)?.[1]).filter(Boolean).map(Number);
-  return ns.length ? Math.max(...ns) + 1 : 1;
-}
 
-async function render(root) {
-  const slug = pos[1];
-  const dir = jobDir(root, slug);
-  const p = readJson(join(dir, 'plan.json'), null);
-  let body; let seconds; let vocals = false;
-  if (flags.has('prompt')) {
-    seconds = Number(flags.get('seconds'));
-    if (!(seconds >= 3 && seconds <= 600)) throw new Error('--seconds 3..600 with --prompt');
-    if (!flags.has('instrumental')) throw new Error('a prompt-only render is for instrumentals (--instrumental): words go through a composition plan (`plan`), because a prompt with lyrics has come back with nothing sung');
-    body = { prompt: String(flags.get('prompt')), music_length_ms: Math.round(seconds * 1000), force_instrumental: true, model_id: 'music_v2' };
-  } else {
-    if (!p) throw new Error(`no plan for ${slug}: run \`plan ${slug} --spec <spec.json>\` first (or --prompt ... --instrumental --seconds n)`);
-    seconds = p.totalMs / 1000; vocals = p.vocals;
-    body = { model_id: 'music_v2', composition_plan: p.composition_plan, with_timestamps: true };
-  }
-  const q = quoteCredits(seconds, { vocals });
-  if (flags.has('dry-run')) {
-    const d = dryRun(body, { outputFormat: OUTPUT_FORMAT });
-    return { ok: d.ok, command: 'render', dryRun: true, slug, seconds, quote: q, ...d };
-  }
-  const b = checkBudget(dir, q.music, { provider: 'elevenlabs', unit: 'credits' });
-  if (!flags.has('yes')) {
-    return { ok: false, command: 'render', slug, needs: 'approval', seconds, quote: q, budget: { cap: b.cap, spent: b.spent }, why: `This render costs about ${q.music} credits (${q.basis}). Tell the person that, and render with --yes once they say go.` };
-  }
-  const n = nextRender(dir);
-  const pending = join(dir, 'work', `render-${n}.pending`);
-  const stale = readdirSync(join(dir, 'work')).find((f) => f.endsWith('.pending'));
-  if (stale && !flags.has('again')) throw new Error(`work/${stale} says an earlier render was sent and never came back; it may have been billed. Check the account's history, then run again with --again if the person agrees`);
-  if (stale) rmSync(join(dir, 'work', stale));
-  const r = road();
-  const before = await subscription(r);
-  if (before.remaining < q.music) throw new Error(`the account has ${before.remaining} credits left and this needs about ${q.music}; nothing was sent (ElevenLabs does not go over on this plan: ${before.canGoOver ? 'it can' : 'it cannot'})`);
-  writeJson(pending, { at: new Date().toISOString(), seconds, quote: q.music });
-  say(`rendering ${seconds} s (about ${q.music} credits)…`);
-  const started = Date.now();
-  const res = await composeDetailed(body, { outputFormat: OUTPUT_FORMAT });
-  rmSync(pending, { force: true });
-  if (!res.audio?.length) throw new Error('the answer had no audio in it');
-  const audio = join(dir, 'work', `render-${n}.mp3`);
-  writeFileSync(audio, res.audio);
-  writeJson(join(dir, 'work', `render-${n}.json`), { songId: res.songId, composition_plan: res.json?.composition_plan ?? null, song_metadata: res.json?.song_metadata ?? null, words: res.json?.words_timestamps ?? null });
-  const { delta: measured, after } = await settle(r, before.used);
-  const facts = probe(audio);
-  const rights = rightsFor(before.tier);
-  // The budget counts the larger of the quote and the measurement until the account has reported the real cost.
-  const line = receipt(root, dir, {
-    provider: 'elevenlabs', model: 'music_v2', requestId: res.songId, cost: measured ?? q.music, unit: 'credits', pending: measured === null,
-    quoted: q.music, measured, balanceBefore: before.used, seconds: facts.duration, artifact: rel(root, audio), plan: before.tier, rights,
-  });
-  const out = { n, file: rel(root, audio), seconds: facts.duration, askedSeconds: seconds, songId: res.songId, words: res.json?.words_timestamps?.length ?? 0, creditsQuoted: q.music, creditsMeasured: measured, creditsLeft: after?.remaining ?? null, tier: before.tier, rights, ms: Date.now() - started, receiptAt: line.at };
-  writeJson(join(dir, 'render.json'), { ...out, at: new Date().toISOString() });
-  const note = measured === null
-    ? 'the account had not reported this render\'s cost yet: the quote is counted against the budget; run `reconcile` in a minute for the real number'
-    : Math.abs(measured - q.music) > q.music * 0.5 ? 'the measured cost is far from the quote: another job on the same account may have spent at the same time' : undefined;
-  return { ok: true, command: 'render', slug, ...out, note };
-}
+
 
 /* ---------------------------------------------------------------- lyrics check */
 
@@ -262,32 +158,6 @@ export function matchLyrics(lines, heardWords, { pass = 0.75 } = {}) {
     if (frac >= pass) at = best.from + Math.max(1, Math.round(best.score));
   }
   return rows;
-}
-
-async function lyricsCheck(root) {
-  const slug = pos[1];
-  const dir = jobDir(root, slug);
-  const p = readJson(join(dir, 'plan.json'), null);
-  if (!p?.vocals) throw new Error('this song has no sung lines in its plan');
-  const last = readJson(join(dir, 'render.json'), null);
-  const n = flags.has('render') ? Number(flags.get('render')) : last?.n;
-  const file = flags.get('file') ? resolve(String(flags.get('file'))) : join(dir, 'work', `render-${n}.mp3`);
-  if (!existsSync(file)) throw new Error(`no audio at ${rel(root, file)}`);
-  const seconds = probe(file).duration;
-  const cost = Math.ceil(seconds * 0.5);
-  const b = readBudget(dir);
-  if (b) checkBudget(dir, cost, { provider: 'elevenlabs', unit: 'credits' });
-  const r = road();
-  const before = await subscription(r).catch(() => null);
-  const t = await transcribe(file, { language: flags.get('language') ?? null });
-  const measured = before ? (await settle(r, before.used)).delta : null;
-  receipt(root, dir, { provider: 'elevenlabs', model: 'scribe_v2', requestId: t.transcription_id ?? null, cost: measured ?? cost, unit: 'credits', pending: measured === null, quoted: cost, measured, balanceBefore: before?.used ?? null, seconds, artifact: rel(root, file) });
-  const words = (t.words ?? []).filter((w) => (w.type ?? 'word') === 'word');
-  const lines = p.lyrics.flatMap((s) => s.lines);
-  const rows = matchLyrics(lines, words);
-  const out = { ok: rows.every((x) => x.ok), command: 'lyrics', slug, file: rel(root, file), heard: t.text ?? '', lines: rows, missing: rows.filter((x) => !x.ok).map((x) => x.line), creditsMeasured: measured };
-  writeJson(join(dir, `lyrics-check-${n ?? 'file'}.json`), out);
-  return out;
 }
 
 /* ---------------------------------------------------------------- master */
@@ -396,58 +266,13 @@ function loop(root) {
 
 /* ---------------------------------------------------------------- stems */
 
-async function stems(root) {
-  const slug = pos[1];
-  const dir = jobDir(root, slug);
-  const src = flags.get('in') ? resolve(String(flags.get('in'))) : join(dir, `${slug}-master.wav`);
-  if (!existsSync(src)) throw new Error('stems of what? master first, or --in <file>');
-  const est = Math.ceil(probe(src).duration * 10);
-  checkBudget(dir, est, { provider: 'elevenlabs', unit: 'credits' });
-  if (!flags.has('yes')) return { ok: false, command: 'stems', needs: 'approval', why: `Stem separation is paid and its price is not published per second; this job's budget allows it (a guess of ${est} credits is held against the cap). Ask the person, then run with --yes.` };
-  const r = road();
-  const before = await subscription(r);
-  const zip = join(dir, 'work', 'stems.zip');
-  await separateStems(src, zip);
-  const after = await subscription(r).catch(() => null);
-  const measured = after ? after.used - before.used : null;
-  receipt(root, dir, { provider: 'elevenlabs', model: 'stem-separation', cost: measured ?? est, unit: 'credits', estimated: measured === null, artifact: rel(root, zip) });
-  const outDir = join(dir, 'stems');
-  mkdirSync(outDir, { recursive: true });
-  const u = spawnSync('unzip', ['-o', '-q', zip, '-d', outDir]);
-  if (u.status !== 0) throw new Error('could not unzip the stems');
-  return { ok: true, command: 'stems', slug, files: readdirSync(outDir).map((f) => rel(root, join(outDir, f))), creditsMeasured: measured };
-}
-
 /* ---------------------------------------------------------------- reconcile */
 
 /**
  * Settle pending receipts: the account's usage now, minus its usage before this song's first pending call,
  * is what those calls cost (plus anything else the account did meanwhile, which is said, not hidden).
  */
-async function reconcile(root) {
-  const slug = pos[1];
-  const dir = jobDir(root, slug);
-  const b = readJson(join(dir, 'budget.json'), null);
-  if (!b) throw new Error('this song has no budget.json');
-  const pendingIdx = b.calls.map((c, i) => (c.pending ? i : -1)).filter((i) => i >= 0);
-  const now = await subscription();
-  if (!pendingIdx.length) return { ok: true, command: 'reconcile', slug, pending: 0, spent: b.spent, creditsLeft: now.remaining };
-  const first = b.calls[pendingIdx[0]];
-  if (first.balanceBefore == null) throw new Error('the pending call has no balance reading to settle from');
-  const settledBefore = b.calls.slice(pendingIdx[0]).filter((c) => !c.pending).reduce((a, c) => a + (c.cost || 0), 0);
-  const delta = now.used - first.balanceBefore - settledBefore;
-  const quoted = pendingIdx.reduce((a, i) => a + (b.calls[i].quoted ?? b.calls[i].cost), 0);
-  if (delta <= 0) return { ok: false, command: 'reconcile', slug, why: 'the account still shows no change since the render; try again in a minute' };
-  for (const i of pendingIdx) {
-    const c = b.calls[i];
-    const share = Math.round(delta * ((c.quoted ?? c.cost) / quoted));
-    c.measured = share; c.cost = share; c.pending = false; c.reconciledAt = new Date().toISOString();
-  }
-  b.spent = b.calls.reduce((a, c) => a + (c.cost || 0), 0);
-  writeJson(join(dir, 'budget.json'), b);
-  receipt(root, dir, { provider: 'elevenlabs', model: 'reconcile', cost: 0, unit: 'credits', note: `settled ${pendingIdx.length} pending call(s): ${delta} credits measured against ${quoted} quoted (anything else the account did in between is included)`, measuredTotal: delta });
-  return { ok: true, command: 'reconcile', slug, settled: pendingIdx.length, measured: delta, quoted, spent: b.spent, cap: b.cap, creditsLeft: now.remaining };
-}
+
 
 /* ---------------------------------------------------------------- analyze */
 
@@ -573,27 +398,16 @@ function print(r) {
   const L = [];
   switch (r.command) {
     case 'check':
-      L.push(`ElevenLabs: ${r.road ? `connected (${r.road === 'cli' ? `the elevenlabs CLI, ${r.cli}` : r.via === 'stripe-projects' ? 'the key Stripe Projects keeps for this studio' : 'ELEVENLABS_API_KEY'})` : 'not connected'}`);
       if (r.plan) L.push(`Plan: ${r.plan.tier} (${r.plan.status}); ${r.plan.remaining} credits left of ${r.plan.limit}; resets ${r.plan.resetAt ?? '?'}; ${r.plan.canGoOver ? 'CAN go over (usage-based billing)' : 'cannot go over'}`);
       if (r.rights) L.push(`Rights: ${r.rights.words}`);
       L.push(`ffmpeg: ${r.ffmpeg ? 'yes' : 'NO'}`, `Studio: ${r.studio?.ok ? r.studio.root : r.studio?.why}${r.studio?.pages && !r.studio.pages.ok ? ` (song pages: ${r.studio.pages.why})` : ''}`);
       break;
-    case 'quote':
-      L.push(`${r.seconds} s: about ${r.credits.total} credits (${r.credits.music} music${r.credits.lyricCheck ? ` + ${r.credits.lyricCheck} lyric check` : ''}); ${r.credits.basis}.`);
-      if (r.plan) L.push(`The account has ${r.plan.remaining} credits left (${r.plan.tier}).`);
-      if (r.budget) L.push(`Within a budget of ${r.budget} credits the longest render is about ${r.longestWithinBudget} s.`);
-      break;
+
     case 'plan':
-      L.push(`Plan: ${r.seconds} s, ${r.bars} bars at ${r.bpm} BPM${r.vocals ? ', with vocals' : ', instrumental'}; about ${r.quote.total} credits.`, ...r.sections.map((s) => `  ${s.text} ${s.ms} ms`), ...r.warnings.map((w) => `  warning: ${w}`), `Wrote ${r.file}`);
+      L.push(`Plan: ${r.seconds} s, ${r.bars} bars at ${r.bpm} BPM${r.vocals ? ', with vocals' : ', instrumental'}; quote through the official ElevenLabs MCP.`, ...r.sections.map((s) => `  ${s.text} ${s.ms} ms`), ...r.warnings.map((w) => `  warning: ${w}`), `Wrote ${r.file}`);
       break;
-    case 'render':
-      if (r.dryRun) L.push(`Dry run (nothing sent): ${r.ok ? 'the request is valid' : r.why}; it would cost about ${r.quote.music} credits.`);
-      else if (r.needs) L.push(r.why);
-      else L.push(`Rendered ${r.file}: ${r.seconds.toFixed(2)} s (asked ${r.askedSeconds} s). Credits: quoted ${r.creditsQuoted}, measured ${r.creditsMeasured ?? 'unknown'}; ${r.creditsLeft ?? '?'} left. Plan ${r.tier}: ${r.rights.commercial ? 'commercial licence' : 'NO commercial licence'}.`, ...(r.note ? [r.note] : []));
-      break;
-    case 'lyrics':
-      L.push(`${r.ok ? 'Every planned line is sung.' : `NOT every line is sung: ${r.missing.length} missing.`}`, ...r.lines.map((x) => `  ${x.ok ? 'ok  ' : 'MISS'} ${Math.round(x.matched * 100)}%  "${x.line}"  heard: "${x.heard}"`));
-      break;
+
+
     case 'master':
       L.push(`Mastered to ${r.master.lufs} LUFS, ${r.master.truePeak} dBTP (target ${r.target.lufs} / ${r.target.truePeak}); the mp3 reads ${r.mp3.lufs} LUFS, ${r.mp3.truePeak} dBTP. ${r.master.file}, ${r.mp3.file}`);
       break;
@@ -616,17 +430,12 @@ async function main() {
     return null;
   }
   if (cmd === 'check') return check();
-  if (cmd === 'quote') return quote();
   if (cmd === 'analyze') return analyze();
   const root = requireStudio();
   if (cmd === 'budget') return budget(root);
   if (cmd === 'plan') return plan(root);
-  if (cmd === 'render') return render(root);
-  if (cmd === 'lyrics') return lyricsCheck(root);
-  if (cmd === 'reconcile') return reconcile(root);
   if (cmd === 'master') return master(root);
   if (cmd === 'loop') return loop(root);
-  if (cmd === 'stems') return stems(root);
   if (cmd === 'add') return add(root);
   if (cmd === 'publish') return publishEntry(root, 'music', pos[1], { deploy: !flags.has('no-deploy') });
   return { ok: false, command: cmd, why: `unknown command "${cmd}" (music.mjs help)` };

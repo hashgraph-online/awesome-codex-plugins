@@ -20,7 +20,7 @@
 - [ ] `/advise React useEffect cleanup` triggers context7 lookup for React.
 - [ ] `/advise what do you think?` (no library, no code) responds from general knowledge without unnecessary tool calls.
 - [ ] After 2 follow-up questions in a row, both responses stay in shape; on third "ok" the skill exits silently.
-- [ ] `ls docs/brainstorms/ .claude/plans/ .claude/handovers/` shows no new files with today's timestamp after a session.
+- [ ] `ls .claude/specs/ .claude/plans/ .claude/handovers/` shows no new files with today's timestamp after a session.
 - [ ] WebSearch only appears in tool traces when user said "search" or equivalent.
 
 **Known gotchas:**

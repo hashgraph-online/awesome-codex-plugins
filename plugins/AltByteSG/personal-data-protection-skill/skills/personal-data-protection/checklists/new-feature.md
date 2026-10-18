@@ -1,10 +1,23 @@
 # Checklist — Adding or Modifying a Feature
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Use when introducing or significantly changing any user-facing feature that touches personal data.
 
 > Walk this checklist against the universal layer files (`../layers/`) for **how** to implement, and against the active jurisdiction's obligation files (`../jurisdictions/<code>/obligations/`) for **what** must be true.
+
+## Contents
+
+- 1\. What data does the feature touch?
+- 2\. Jurisdiction-specific review
+- 3\. Architecture review ([layer 02](../layers/02-architecture.md))
+- 4\. Data model review ([layer 03](../layers/03-data-model.md))
+- 5\. Controls / processes review ([layer 04](../layers/04-controls-and-processes.md))
+- 6\. Feature / UX review ([layer 05](../layers/05-feature-ux.md))
+- 7\. Disclosure review ([layer 06](../layers/06-disclosure.md))
+- 8\. Operational review ([layer 07](../layers/07-operational.md))
+- 9\. Backwards compatibility
+- 10\. Cross-references
 
 ## 1. What data does the feature touch?
 

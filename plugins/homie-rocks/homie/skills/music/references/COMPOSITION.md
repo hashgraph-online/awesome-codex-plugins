@@ -1,7 +1,8 @@
 # Composition plans
 
-ElevenLabs Music (`music_v2`) takes either a short prompt or a **composition plan**: a list of
-chunks, each with its own length, text, and styles. Anything with words goes through a plan.
+Homie plans music as sections with their own length, lyrics and styles. Discover the official
+ElevenLabs MCP music capability and read its current schema before adapting this local plan
+to a generation request; the local plan is not a promise about a provider API.
 
 ## The spec `plan` reads
 
@@ -25,9 +26,9 @@ chunks, each with its own length, text, and styles. Anything with words goes thr
 What `plan` does with it:
 
 - **Whole bars.** A section of `bars` bars at `bpm` lasts `bars × beatsPerBar × 60 / bpm`
-  seconds; the boundaries are rounded to the millisecond so the total is exact. For `music_v2`
-  ElevenLabs holds every section to its length, so section starts are bar lines in the render.
-- **Limits.** Each section 3 s to 120 s (at 120 BPM a bar is 2 s, so the shortest section is 2
+  seconds; the boundaries are rounded to the millisecond so the planned total is exact. Measure
+  the generated audio before relying on these boundaries.
+- **Local planning limits.** Each section 3 s to 120 s (at 120 BPM a bar is 2 s, so the shortest section is 2
   bars); the whole song 3 s to 10 min; a line up to 200 characters.
 - **Styles.** The first chunk carries the global styles, the tempo and the key (they set the whole
   song); every later chunk repeats the tempo and adds its own. `avoid` becomes each chunk's
@@ -36,24 +37,18 @@ What `plan` does with it:
 - **Lines.** A sung section's text is `[Name]` and its lines. About one line a bar at pop tempos,
   two at most; more comes back rushed or skipped.
 
-## Traps, measured
+## Generation and review
 
-- **A prompt with `lyrics_text` has come back with nothing sung.** Words go in the plan's
-  sections. `render --prompt` refuses words for this reason.
-- **`output_format` is a query option, not a body field.** Put in the JSON body it is rejected
-  before anything is sent. The script passes `--output-format mp3_48000_192`.
-- **Short hooks drift.** In one render a three-word hook came back as a different three words;
-  making the key word unambiguous (and on a strong beat) fixed it in the next render. The lyric
-  check (Scribe) is what catches this, not listening once.
-- **Contractions drift.** "I'll wake up" came back "I wake up": the check passes lines at 75 % of
-  their words, and the page should show what is actually sung.
-- **The cost is about 27.5 credits per second** of `music_v2` on a paid plan (1,015 credits for
-  37 s and 5,204 for 189 s, measured). The quote uses this; the render records the real number off
-  the account.
+Read the discovered music tool's model guide, supported durations, lyric controls and output
+formats. Adapt the plan to that schema; do not send unsupported fields or assume a fixed model.
+Quote the requested duration through the official integration where available, and keep it
+within the approved budget. Record unknown cost explicitly when no quote is exposed.
 
-## What a render leaves
+Short hooks and contractions can drift. Listen to every sung line; use an official transcription
+capability if available and compare the words with the plan. The page should show what is
+actually sung. Timestamps are optional provider output, not guaranteed by Homie.
 
-`music/<slug>/work/render-<n>.mp3` (the audio as rendered), `render-<n>.json` (the plan
-ElevenLabs used, song metadata, and word timestamps: the model's own times for every sung
-word, which the `video` skill uses for lyric type), `music/<slug>/render.json` (the latest),
-`budget.json` (the cap and every call), and a line in `music/receipts.jsonl`.
+Keep the original audio under `music/<slug>/work/`, along with the local composition plan and
+any usable timing metadata. Place the final audio through `homie-studio media import` and keep
+its normalized receipt in `media/provenance.json`. Local analysis, mastering and loop commands
+operate on downloaded files; they do not generate music or inspect provider credentials.

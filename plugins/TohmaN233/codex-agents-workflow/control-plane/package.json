@@ -1,6 +1,6 @@
 {
   "name": "codex-agents-workflow-control-plane",
-  "version": "1.1.1",
+  "version": "1.2.2",
   "private": true,
   "type": "module",
   "description": "Local versioned Workflow editor and journal-backed execution with pinned Providers and opt-in Strict sessions.",

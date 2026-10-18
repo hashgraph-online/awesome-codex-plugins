@@ -24,9 +24,10 @@ permissions and disclosure controls remain limitations. No count, absence of
 matches or inventory certifies full reachability or safety. Effect status remains
 `NOT_PROVEN` even when selected static conformance is `PASS`.
 
-Canonical source and exported portable packages are distinct subjects. Host
-checks remain necessary; this bounded audit does not attest installed
-invocation policy or host execution.
+Canonical source and exported portable packages are distinct subjects. Profile
+selection follows package location unless `--profile` is explicit; canonical
+source metadata is not portable host metadata. Host checks remain necessary;
+this bounded audit does not attest installed invocation policy or host execution.
 
 Exit 0 means only no selected static conformance failure; exit 1 means a concrete
 conformance defect; exit 2 means invalid inputs or destination. `--strict` is
@@ -37,6 +38,9 @@ accepted but cannot turn suspicions into blockers. JSON defaults to stdout;
 
 `audit.sh --legacy` emits the accepted S1 report under
 `schemas/audit-report-legacy.json`, with the original field/exit contract.
+Consumers that need the old `verdict`, `pass1`, `pass2`, `density`, `rubric`,
+`craft` and `authoring` fields must opt in explicitly; do not use legacy scores
+to rank or optimize packages.
 The historical reference below applies **only** to that option. Canonical lexical
 WARNs remain nonblocking even under strict mode; external strict semantics stay
 unchanged. Direct readiness/craft scripts remain legacy measurements, not a

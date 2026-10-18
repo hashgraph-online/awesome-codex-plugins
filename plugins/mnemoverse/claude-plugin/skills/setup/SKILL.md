@@ -14,12 +14,12 @@ Look at the available tools. If tools named `memory_read`, `memory_write`, `memo
 ## If the tools are missing
 
 1. The user needs a Mnemoverse account: free tier at https://console.mnemoverse.com, no credit card.
-2. The plugin declares the server, so in most cases the first call simply opens a browser sign-in window. Tell the user to complete it and grant the requested scopes, which include `memory:read` and `memory:write`.
-3. If no browser window appears, have the user run `/mcp` to inspect server status, or re-add manually: `claude mcp add --transport http mnemoverse https://mcp.mnemoverse.com/mcp`.
+2. The plugin declares the server, but installing it does not open a browser, and Claude Code does not start the sign-in by itself. Tell the user to run `/mcp`, select the Mnemoverse server (from this plugin it is listed as `plugin:mnemoverse:mnemoverse`) and choose Authenticate, then complete the sign-in in the browser and grant the requested scopes, which include `memory:read` and `memory:write`.
+3. If the server is not listed in `/mcp`, have the user add it for all their projects: `claude mcp add --transport http --scope user mnemoverse https://mcp.mnemoverse.com/mcp`, then authenticate from `/mcp` as in step 2. Without `--scope user` the server is added for the current project only.
 
 ## If a call fails after it used to work
 
-An expired token normally refreshes on the next tool call. If it does not, remove and re-add the server, then run the sign-in again.
+An expired token normally refreshes on the next tool call. If it does not, have the user run `/mcp`, select the server and choose Re-authenticate.
 
 ## What the connection exposes
 
@@ -27,4 +27,4 @@ The memory tools the remote server serves: read, write, newest-first listing, st
 
 ## Privacy
 
-Memory content is stored in the user's Mnemoverse account and follows the privacy policy at https://mnemoverse.com/privacy. Never store secrets, API keys, passwords, payment data, or personal identifiers in memory regardless of backend.
+Memory content is stored in the user's Mnemoverse account and follows the privacy policy at https://mnemoverse.com/docs/legal/privacy-policy. Never store secrets, API keys, passwords, payment data, or personal identifiers in memory regardless of backend.

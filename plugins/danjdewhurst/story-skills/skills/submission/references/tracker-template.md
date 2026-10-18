@@ -39,11 +39,17 @@ updated: YYYY-MM-DD
 - **Notes:** the personalization used, feedback received, and follow-up
   rules.
 
+For magazines, anthologies, and contests, `short-fiction-markets.md` adds
+Story, Type (`exclusive` or `simultaneous`), and Rights Offered columns, and
+a publication history section.
+
 ## Statuses
 
 | Status | Meaning |
 |--------|---------|
 | `queried` | Sent; waiting for a reply |
+| `submitted` | Short fiction: the full story sent to a market; waiting for a reply |
+| `held` | Short fiction: the market is holding or shortlisting the story before a final decision |
 | `requested-partial` | The agent asked for part of the manuscript |
 | `requested-full` | The agent asked for the full manuscript |
 | `offer` | An offer of representation or publication |

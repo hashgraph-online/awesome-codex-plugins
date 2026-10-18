@@ -1,6 +1,6 @@
 ---
 name: navigate
-description: 'Pick the next wave on a bead graph and keep the graph honest toward frozen acceptance. Use when: a goal starts a wave, or you ask what is next on an epic.'
+description: 'Pick the next work in an epic or bead graph; closed is not proven. Use when: asked what is next or whether an epic is done.'
 practices: [lean-startup, bdd-gherkin, ddd-bounded-context]
 hexagonal_role: supporting
 consumes: [outer-goal-prompt, goal-acceptance, native-work-state, validation-result]
@@ -21,25 +21,39 @@ output_contract: 'wave checkpoint in the existing handoff or root epic: acceptan
 
 # Navigate
 
-A crafted goal runs many RPIs over one bead graph: the root epic holds frozen acceptance
-and each child bead is one experiment with one RPI. A running goal applies
-Navigate each wave to pick beads and write results back; a person can run
-[one pass](#one-pass-without-a-goal). It never edits acceptance, dispatches,
-judges or closes: Craft Goal owns the prompt and HOLD,
-[Plan](../plan/SKILL.md) shapes a bead, [Orchestrate](../orchestrate/SKILL.md)
-dispatches, RPI runs, [Validate](../validate/SKILL.md) judges.
+Pick the next wave on a bead graph and keep the graph honest toward its frozen
+acceptance. The root epic holds acceptance; each child bead is one experiment
+with one RPI. Navigate never edits acceptance, dispatches, judges or closes:
+Craft Goal owns the prompt and HOLD, [Plan](../plan/SKILL.md) shapes a bead,
+[Orchestrate](../orchestrate/SKILL.md) dispatches, RPI runs,
+[Validate](../validate/SKILL.md) judges.
+
+**One pass**, when a person asks what is next on an epic: steps 1 and 2 plus
+[hygiene](#hygiene), returning the wave in the step 4 shape instead of handing
+it off. Write nothing; change edges only on the caller's go-ahead; stop after
+one pass. **Each wave of a running goal:** steps 1 to 4.
+
+## Rules that decide the pick
+
+- **Closed is not proven.** Only cited evidence for a criterion proves its row:
+  the passing check that exercises it, or the Validate PASS where a fresh read
+  was required. Closed status, a merge or an approving note leaves it open.
+- **Serve an open row.** Pick only ready beads that serve an open criterion or
+  a named blocking uncertainty; a bead tied to none is a hygiene finding.
+- **Stay disjoint.** Picked write and generated scopes overlap neither each
+  other nor any in-flight bead; an overlapping ready bead waits.
+- **Ready is a tracker state.** An empty ready list does not prove completion;
+  a closed prerequisite with missing or stale bytes is not usable readiness.
 
 ## Speak the domain
 
 - **BDD:** each criterion is a Given/When/Then example with an observable
   result. Each bead names the example it moves; a bead that lacks one gets
-  Plan first inside its RPI. A criterion with no observable result is an open
-  decision for the caller, who can settle it with Interview: report it, never
-  rewrite it.
+  Plan first inside its RPI.
 - **DDD:** the root epic defines each domain term once, in one line. Titles,
   examples, code and tests reuse that exact word. A synonym is a hygiene
   finding; [Domain](../domain/SKILL.md) settles disputes.
-- Write a bead as its title, then its id: `Redelivery test (ag-12)`.
+- Write a bead as its title, then its id: `Locale fallback test (ag-12)`.
 
 ## Bead graph contract
 
@@ -67,28 +81,25 @@ bd blocked --parent <epic>          # blocked work
 bd show <bead>; bd comments <bead>  # prior verdicts and evidence refs
 ```
 
-Build the acceptance matrix (criterion, evidence, status); note in-flight beads
-and any result limit you hit. Only a cited Validate PASS proves a row; closed
-status proves nothing. A closed bead with missing or stale bytes is not usable
-readiness: report it. An empty ready list does not prove completion. Done when
-every criterion has a row and every open row names its bead, blocker or gap.
+Build the acceptance matrix (criterion, evidence, status) under the rules
+above; note in-flight beads with their scopes and any result limit you hit.
+Done when every criterion has a row and every open row names its bead, blocker
+or gap.
 
 ## 2. Pick the wave
 
 When every row is proven, or no ready bead serves an open row, pick nothing,
 say which, and go to step 4. Otherwise pick the smallest set of ready beads
-with the most decision-relevant information. Each serves an open row or a
-named blocking uncertainty, has write and generated scopes disjoint from the
-rest and from in-flight beads, and fits the declared wave budget; no budget
-means one bead. Prefer an early falsifier.
+with the most decision-relevant information that meets the rules above and
+fits the declared wave budget; no budget means one bead. Prefer an early
+falsifier.
 
-Hand each bead to one RPI. When delegation is authorized, hand it to
-Orchestrate or Agent Native to dispatch, one bead per worker; otherwise the
-caller's runtime runs it. A candidate's checks and CI are its result. A
-candidate gets one fresh, author-distinct Validate only when the caller asks, a
-mistake cannot be cheaply undone after it lands, or no deterministic check
-covers the changed behavior; a repair does not start another.
-Done when each picked bead has a one-line reason and a named handoff.
+Hand each bead to one RPI: through Orchestrate or Agent Native when delegation
+is authorized, one bead per worker, otherwise the caller's runtime. Its checks
+and CI are its result; it gets one fresh, author-distinct Validate only when
+the caller asks, a mistake cannot be cheaply undone after it lands, or no
+deterministic check covers the changed behavior, and a repair does not start
+another. Done when each picked bead has a one-line reason and a named handoff.
 
 ## 3. Ratchet the graph
 
@@ -117,25 +128,27 @@ has a class.
 ## 4. Checkpoint
 
 Append this block to the existing handoff or root epic notes; no new artifact.
-Stop after appending it: the goal continues, holds or ends.
+Stop after appending it: the goal continues, holds or ends. A one-pass reply
+uses the same block, writes nothing, and marks Ratchets, Budget and Helper
+`n/a`.
 
 ```text
-Acceptance: A1 Given a completed Job, when redelivered, then its side effect runs once: proven (<PASS ref>)
-            A2 <Given/When/Then>: open (<bead title> <id>)
+Acceptance: <id> <Given/When/Then>: proven (<check or PASS ref>)
+            <id> <Given/When/Then>: open (<bead title> <id>, or the gap)
 Frontier:   <ready beads, by title>
-Wave:       <bead title>: <row or uncertainty it serves>
+Wave:       <bead title>: <row or uncertainty it serves>; or none: <why>
 Ratchets:   <results that changed a decision>; churn: <results that did not>
+Hygiene:    <one finding per line>, or none
 Budget:     <remaining if measured, else unmeasured>
 Helper:     <HOLD incident and helper use, or none>; native state: <observed continue/stop>
 Next:       <thesis>; decisions: <open questions for the caller>
 ```
 
-## One pass without a goal
+## Hygiene
 
-Run steps 1 and 2 and return the wave instead of handing it off. Add hygiene
-findings: cycles among the epic's beads (`bd dep cycles`, filtered to them),
-beads tied to no criterion, `blocks` edges
-that are not real ordering, criteria with no observable result, closed beads
-with missing bytes and drifted terms. `bd graph <epic>` shows the shape. Reply
-in the step 4 shape and write nothing; change edges only on the caller's
-go-ahead. Stop after one pass.
+Report cycles among the epic's beads (`bd dep cycles`, filtered to them),
+beads tied to no criterion, `blocks` edges that are not real ordering,
+criteria with no observable result (an open decision the caller can settle
+with Interview; never rewrite one), closed beads with missing bytes and
+drifted terms. `bd graph <epic>` shows the shape. Change edges only on the
+caller's go-ahead.

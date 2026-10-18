@@ -5,10 +5,12 @@ const key={type:'string',minLength:1,maxLength:128};
 const source={type:'string',minLength:1,maxLength:260};
 const until={type:'object',required:['output'],additionalProperties:false,properties:{activity:key,loop:key,output:key,op:{type:'string',enum:['eq','ne','gt','gte','lt','lte']},value:{description:'A typed JSON scalar compared with the named semantic output.'}}};
 export const SEMANTIC_LOOP_SCHEMA=Object.freeze({type:'object',required:['key','entry_activity','exit_activity','activity_keys','max_rounds','until'],additionalProperties:false,properties:{
-  key,entry_activity:key,exit_activity:key,activity_keys:{type:'array',minItems:2,maxItems:64,items:key},max_rounds:{type:'integer',minimum:1,maximum:Number.MAX_SAFE_INTEGER},until,
+  key,entry_activity:key,exit_activity:key,activity_keys:{type:'array',minItems:2,maxItems:64,items:key},max_rounds:{description:'Use a positive safe integer for a finite loop; null is valid only with review_context current_main.'},review_context:{type:'string',const:'current_main'},until,
   feedback_inputs:{type:'array',maxItems:128,items:{type:'object',required:['name','from'],additionalProperties:false,properties:{name:key,from:source}}},
   item_scope:{type:'object',required:['items','verdicts','paths_field'],additionalProperties:false,properties:{items:source,verdicts:source,paths_field:key,dependencies_field:key}},
 }});
+const previousLoopProperties={...SEMANTIC_LOOP_SCHEMA.properties,max_rounds:{type:'integer',minimum:1,maximum:Number.MAX_SAFE_INTEGER}};delete previousLoopProperties.review_context;
+export const PREVIOUS_SEMANTIC_LOOP_SCHEMA=Object.freeze({...SEMANTIC_LOOP_SCHEMA,properties:previousLoopProperties});
 export const LOOP_FIELDS=new Set(['round','status','feedback','all_accepted','review_items','repair_items']);
 export function semanticLoopReference(value){
   if(typeof value!=='string'||!value.startsWith('loop:'))return null;
@@ -25,11 +27,14 @@ export function semanticLoopFindings(blueprint){
     if(loops.has(item.key))report('loop_duplicate',`Repair loop ${item.key} must have a unique semantic key`,item);
     if(activities.has(item.key))report('loop_key_collision',`Repair loop ${item.key} must not reuse an activity semantic key`,item);
     loops.set(item.key,item);
-    if(!Number.isSafeInteger(item.max_rounds)||item.max_rounds<1)report('loop_bound',`Repair loop ${item.key} requires a finite positive safe-integer max_rounds`,item);
+    const currentMain=item.review_context==='current_main';
+    if(!Number.isSafeInteger(item.max_rounds)||item.max_rounds<1){
+      if(!(currentMain&&item.max_rounds===null))report('loop_bound',currentMain?`Current-Main repair loop ${item.key} requires a positive finite max_rounds or explicit null for uncapped semantic revisions`:`Repair loop ${item.key} requires a finite positive safe-integer max_rounds`,item);
+    }
     const members=item.activity_keys??[];
     if(members.length<2||new Set(members).size!==members.length||members.some(key=>!activities.has(key))||!members.includes(item.entry_activity)||!members.includes(item.exit_activity))report('loop_members',`Repair loop ${item.key} requires distinct existing repair/review activities and entry/exit members`,item);
     const exit=activities.get(item.exit_activity);
-    if(exit?.profile!=='review'||exit.tool||exit.task_continues)report('loop_independent_review',`Repair loop ${item.key} must end with a fresh read-only review Provider`,item);
+    if((currentMain?exit?.profile!=='orchestration_read':exit?.profile!=='review')||exit?.tool||exit?.task_continues)report('loop_independent_review',currentMain?`Current-Main repair loop ${item.key} must end with an orchestration_read activity`: `Repair loop ${item.key} must end with a fresh read-only review Provider`,item);
     if(exit?.fail_on_false?.length)report('loop_acceptance_guard',`Repair loop ${item.key} review rejection is semantic feedback; remove fail_on_false from its exit review`,item);
     if(exit?.repeat_until)report('loop_review_retry',`Repair loop ${item.key} exit review cannot replace downstream semantic repair with repeat_until`,item);
     const condition=item.until;
@@ -40,6 +45,7 @@ export function semanticLoopFindings(blueprint){
       const declared=output(`${condition.activity}.${condition.output}`),value=Object.hasOwn(condition,'value')?condition.value:true;
       const kind=declared?.kind==='text'||declared?.kind==='enum'?'string':declared?.kind;
       if(!['boolean','string','number','integer'].includes(kind)||(kind==='integer'?!Number.isInteger(value):kind!==typeof value)||['gt','gte','lt','lte'].includes(condition.op)&&!['number','integer'].includes(kind))report('loop_until_type',`Repair loop ${item.key} acceptance comparison must match its exit output type`,item);
+      if(currentMain&&(condition.activity!==item.exit_activity||condition.output!=='accepted'||kind!=='boolean'||(condition.op??'eq')!=='eq'||value!==true))report('loop_current_main_acceptance',`Current-Main repair loop ${item.key} must stop only when its exit accepted output is true`,item);
     }
     if(condition&&Object.hasOwn(condition,'value')&&(!['string','boolean','number'].includes(typeof condition.value)||typeof condition.value==='number'&&!Number.isFinite(condition.value)))report('loop_until_value',`Repair loop ${item.key} acceptance comparison must use a finite JSON scalar`,item);
     if(new Set((item.feedback_inputs??[]).map(input=>input.name)).size!==(item.feedback_inputs??[]).length)report('loop_feedback',`Repair loop ${item.key} feedback names must be unique`,item);
@@ -53,6 +59,13 @@ export function semanticLoopFindings(blueprint){
       if(!entry?.profile?.endsWith('_write')||!(entry.inputs??[]).some(input=>input.from===`loop:${item.key}.repair_items`))report('loop_repair_input',`Repair loop ${item.key} entry must write only from its Host repair_items handoff`,item);
       if(!(exit?.inputs??[]).some(input=>input.from===`loop:${item.key}.review_items`))report('loop_review_input',`Repair loop ${item.key} exit review must read its Host review_items handoff`,item);
     }
+  }
+  for(const parallel of blueprint.parallels??[]){
+    const policy=parallel.workspace_policy;
+    if(policy?.semantic_rejection!=='defer_to_join')continue;
+    const loop=(blueprint.loops??[]).find(item=>item.review_context==='current_main'
+      &&item.activity_keys?.includes(policy.tool_activity)&&item.activity_keys?.includes(policy.main_activity));
+    if(!loop)findings.push(finding('overlap_semantic_rejection_loop',`Parallel ${parallel.key} may defer semantic rejection only inside a current-Main repair loop containing both overlap branches`,[parallel.key,policy.tool_activity,policy.main_activity].filter(Boolean),'parallels.workspace_policy.semantic_rejection'));
   }
   for(const activity of activities.values())for(const input of activity.inputs??[]){
     const ref=semanticLoopReference(input.from);if(!ref)continue;
@@ -140,7 +153,7 @@ export function compileSemanticLoops({blueprint,nodes,edges,activityIds,activity
       addEdge(entryNode,entry,{label:'repair',section_ids:sections});addEdge(entryNode,exit,{label:'review',section_ids:sections});members.add(entryNode);
     }
     const source=item.until.loop?`/loops/${loopIds.get(item.until.loop)}/${item.until.output}`:pointer(`${item.until.activity}.${item.until.output}`);
-    compiled.push({id,entry_node:entryNode,exit_node:exit,node_ids:[...members],max_rounds:item.max_rounds,until:{op:item.until.op??'eq',args:[{path:source},{value:Object.hasOwn(item.until,'value')?item.until.value:true}]},...(item.feedback_inputs?.length?{feedback_bindings:Object.fromEntries(item.feedback_inputs.map(input=>[input.name,pointer(input.from)]))}:{}),...(item.item_scope?{item_scope:{items:pointer(item.item_scope.items),verdicts:pointer(item.item_scope.verdicts),paths_field:item.item_scope.paths_field,...(item.item_scope.dependencies_field?{dependencies_field:item.item_scope.dependencies_field}:{})}}:{})});
+    compiled.push({id,entry_node:entryNode,exit_node:exit,node_ids:[...members],max_rounds:item.max_rounds,...(item.review_context?{review_context:item.review_context}:{}),until:{op:item.until.op??'eq',args:[{path:source},{value:Object.hasOwn(item.until,'value')?item.until.value:true}]},...(item.feedback_inputs?.length?{feedback_bindings:Object.fromEntries(item.feedback_inputs.map(input=>[input.name,pointer(input.from)]))}:{}),...(item.item_scope?{item_scope:{items:pointer(item.item_scope.items),verdicts:pointer(item.item_scope.verdicts),paths_field:item.item_scope.paths_field,...(item.item_scope.dependencies_field?{dependencies_field:item.item_scope.dependencies_field}:{})}}:{})});
   }
   for(let left=0;left<compiled.length;left++)for(let right=left+1;right<compiled.length;right++){
     const a=new Set(compiled[left].node_ids),b=new Set(compiled[right].node_ids),overlap=[...a].filter(id=>b.has(id));

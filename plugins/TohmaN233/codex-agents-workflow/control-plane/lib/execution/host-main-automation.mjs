@@ -113,7 +113,6 @@ export function createMainHostBinding({ runId, controlToken, owner, definition, 
 export function createMainAgentPacket({ definition, dispatched, resources, finalAcceptance }) {
   const schema = semanticResultSchema(definition, { finalAcceptance });
   return {
-    role: definition.role ?? null,
     access: dispatched.envelope.access,
     workspace: dispatched.envelope.workspace,
     allowed_paths: dispatched.envelope.effective_allowed_paths,

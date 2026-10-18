@@ -38,7 +38,7 @@ function envelopeFor(node, overrides = {}) {
   };
   const pins = {
     thread_protocol_version: 2,
-    root: { workflow: { name: 'Fixture', skill_policy: { mode: 'cooperative', implicit: 'allow', ambient_allow: [], shadowed_skill_paths: [] }, edges: [], requirements: {} } },
+    root: { workflow: { name: 'Fixture', finalization:{node_id:'final'}, skill_policy: { mode: 'cooperative', implicit: 'allow', ambient_allow: [], shadowed_skill_paths: [] }, edges: [], requirements: {} } },
     providers: [provider], skills: [],
   };
   return executionEnvelope(node, { ...state, ...overrides }, pins, { id: 'attempt-envelope' }, 'lease');
@@ -98,6 +98,12 @@ function executorFixture({ max_prompt_chars = 100_000, schema = undefined } = {}
   const state = { nodes: { work: { attempts: [{ id: envelope.attempt_id, dispatch: null }] } } };
   let intents = 0;
   const runtime = {
+    authorizedExecution: async (runId,args,select) => {
+      assert.equal(runId,envelope.run_id);
+      assert.equal(args.node_id,envelope.node_id);assert.equal(args.attempt_id,envelope.attempt_id);
+      const record={state:structuredClone(state)};
+      return {record,binding:select(record),envelope};
+    },
     execution: async () => envelope,
     get: async () => structuredClone(state),
     threadResourcePacket: async () => [],

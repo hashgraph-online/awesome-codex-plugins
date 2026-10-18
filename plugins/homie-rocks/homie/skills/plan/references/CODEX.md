@@ -101,5 +101,5 @@ Text before the first `###` of a section is its introduction.
 - One codex per game; change it, never replace it.
 - A changed decision: change its section, add a dated line under Latest, redraw (`codex <id>`), and update
   the artifact if there is one.
-- The codex is the person's plan, not a public page: it is not in the game's remix source, not served
+- The codex is the person's plan, not a public page: it is not served
   with a game's files, and on the site only at `/_studio/codex/<id>/` for the owner.

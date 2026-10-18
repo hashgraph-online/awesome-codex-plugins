@@ -1,7 +1,7 @@
 import { informationalImportObservation } from '../workflow-import-observations.mjs';
 import { canonicalJSON, digest } from '../workflow-revisions.mjs';
 import { requireValue } from '../workflow-paths.mjs';
-import { compileDeployableConversion } from './conversion-deployment.mjs';
+import { compileDeployableConversion, sanitizeConversionReviewHistory } from './conversion-deployment.mjs';
 import { createConversionCertificate } from './conversion-certificate.mjs';
 
 export function importIssueId(issue) {
@@ -54,7 +54,7 @@ export async function reviewImportedDraft(store, workflowId, { expected_revision
   const resources=await store.resources(workflowId,pack.revision_hash);
   const deployed=compileDeployableConversion({workflow,proposal:expansion.canonical_proposal,resources,pack,proposalHash:expansion.proposal_hash,
     reviewContractVersion:expansion.review_contract_version});
-  deployed.import_report.review_history=review_history;
+  deployed.import_report.review_history=sanitizeConversionReviewHistory(review_history,{resources});
   deployed.import_report.expansion.certificate=createConversionCertificate(deployed.workflow,deployed.resources,{source_revision:pack.revision_hash,
     source_hash:deployed.provenance.source_hash,proposal_hash:expansion.proposal_hash,review_contract_version:expansion.review_contract_version});
   const saved=await store.save(workflowId,deployed.workflow,{expected_revision,resources:deployed.resources,provenance:deployed.provenance,

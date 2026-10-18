@@ -45,7 +45,8 @@ Check task, source owner, model/provider and destination authorization before
 reading pages, private citations, session-search hits or tracker comments.
 Read permission is not permission to transmit to a reviewer or store in Git.
 Native runtime/OS filesystem and egress controls enforce the declared profile;
-prompt restrictions, a worktree or a same-user unrestricted process do not.
+prompt restrictions, a worktree, chmod or a same-user unrestricted process do
+not. Observe synthetic canary denials before restricted-source work.
 Unsupported protection prevents restricted-source dispatch. The repository
 contract is ADR-0016, State tiers; this installed skill carries the requirements
 above without depending on a repository-relative documentation link.
@@ -83,15 +84,15 @@ merely because it is installed. No substitute can satisfy a required family.
 | Selected shape | Readiness and use |
 |---|---|
 | Native Codex or `codex-exec` | Native fresh context or available `codex exec`; close stdin or supply the finite prompt for non-TTY runs. |
-| Bounded Claude print | Available `claude` with the requested model/effort and a host-authorized native control profile; recipe below. |
+| Headless Claude (`claude -p`) or `claude-exec` | Available `claude` with the requested model/effort; [claude-exec](../../claude-exec/SKILL.md) runs one prompt, and a judgment leg adds the requirements below. |
 | Interactive runtime / NTM | Only when the caller selects interactive hosting; verify native readiness, observation and stop support. NTM itself is never required. |
 | Test runner | Synthetic conformance only; never evidence of a live model or semantic judgment. |
 
-Prefer the matching native runtime for same-family judgment. A Claude-family
-checkpoint may use the bounded adapter below when the actual host permits it;
-Codex-family judgment may use a fresh native Codex context or `codex exec`.
-A selection is not permission to override a host prohibition, missing controls,
-quota ceiling or provider guard in a specialist skill.
+Prefer the matching native runtime for same-family judgment. Claude-family
+judgment may use a fresh native context or headless `claude -p` under the
+requirements below; Codex-family judgment may use a fresh native Codex context
+or `codex exec`. A selection is not permission to override host policy, missing
+controls, a quota ceiling or a provider guard in a specialist skill.
 
 ## Review duration
 
@@ -109,9 +110,12 @@ same goal deadline across invocations; retries, context resets and renewed
 connections do not renew the caller's allowance. Record a timeout as an
 incomplete review, preserve its bounded output, and return control to the caller.
 
-## Authorized bounded Claude invocation
+## Headless Claude judgment leg
 
-For a caller-selected Fable profile, the native command is:
+Print mode (`claude -p` / `--print`) is an ordinary dispatch option;
+[claude-exec](../../claude-exec/SKILL.md) owns the one-prompt mechanics. A
+judgment leg adds the requirements in this section. For a caller-selected Fable
+profile, the command is:
 
 ```sh
 claude --print --model claude-fable-5-1 --effort xhigh

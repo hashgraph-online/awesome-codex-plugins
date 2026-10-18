@@ -63,13 +63,14 @@ Maintain `continuity/clues/` with one file per clue (kebab-case ids). The
 CLI creates them with `story add clue`:
 
 ```shell
-story add clue "The silver locket" --planted chapter-02 --payoff chapter-05
+story add clue 'The silver locket' --planted chapter-02 --payoff chapter-05
 ```
 
 Omit `--payoff` when the payoff is not yet known. `--planted` records the
-chapter and sets `status: planted`; without it the status is `planned`.
-Pass `--status planned` if the clue is not on the page yet. The generated
-frontmatter:
+chapter and sets `status: planted` when that chapter has a file, even an
+outline; with a chapter that has no file yet, or without `--planted`, the
+status is `planned`. Pass `--status planned` if the chapter has a file but
+the clue is not on the page yet. The generated frontmatter:
 
 ```yaml
 ---
@@ -103,8 +104,8 @@ detective, the witness); a clue nobody can notice cannot be played fair.
 - A clue with `significance-delayed: true` is fair play *only if* the clue
   itself was visible; delayed significance is the game, hidden clues are
   the cheat.
-- After adding or editing clues, run `story reindex .`, `story links .`,
-  `story validate .`, `story continuity .`
+- After adding or editing clues, run `story reindex .`,
+  `story wordcount . --write`, and `story check .`, then `story clues .`
 
 ## The fair-play matrix
 

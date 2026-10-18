@@ -33,7 +33,7 @@ export const gainToDb = (g) => 20 * Math.log10(Math.max(1e-12, Math.abs(g)));
 export const semis = (n) => 2 ** (n / 12);
 
 const NOTE_INDEX = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
-/** "A4" → 69, "C#3" → 49, "Bb2" → 46, 60 → 60. */
+/** A note as a MIDI number: "A4" → 69, "C#3" → 49, "Bb2" → 46; a number is taken as a MIDI number already (60 → 60). */
 export function midiOf(note) {
   if (typeof note === 'number') return note;
   const m = /^([A-Ga-g])([#b]?)(-?\d)$/.exec(String(note).trim());
@@ -42,7 +42,33 @@ export function midiOf(note) {
   return 12 * (Number(m[3]) + 1) + NOTE_INDEX[m[1].toLowerCase()] + acc;
 }
 export const hzOfMidi = (m) => 440 * 2 ** ((m - 69) / 12);
-export const hzOf = (note) => (typeof note === 'number' && note > 127 ? note : hzOfMidi(midiOf(note)));
+/**
+ * A pitch as hertz. A NUMBER IS ALWAYS HERTZ; a string is a note name ("A2" → 110). There is no guessing by size.
+ *
+ * This used to read a number of 127 or less as a MIDI note, so that 60 could mean middle C. But every bass note
+ * is a frequency under 127 Hz: a caller that had already converted its note (A2 → 110 Hz) had it converted again
+ * (MIDI 110 = 4698.6 Hz; B2 → 123.47 Hz → 10.2 kHz), and a bass line came out as a whistle five octaves up with no
+ * error. A MIDI number is now said out loud: hzOfMidi(57), or `midi` / `slide.toMidi` on a voice.
+ */
+export function hzOf(pitch) {
+  if (typeof pitch === 'number') {
+    if (!(pitch > 0) || !Number.isFinite(pitch)) throw new Error(`not a frequency: ${pitch} (a number is hertz and must be above 0; for a MIDI note use "midi", for a name write "A2")`);
+    return pitch;
+  }
+  return hzOfMidi(midiOf(pitch));
+}
+/**
+ * The pitch of a spec that may give it either way: { freq } (hertz, or a note name) or { midi } (a MIDI note
+ * number, fractions allowed for a detune). Giving both is refused: one of them would be silently ignored.
+ */
+export function pitchHz(freq, midi, what = 'freq') {
+  if (midi !== undefined && midi !== null) {
+    if (freq !== undefined && freq !== null) throw new Error(`give ${what} (hertz or a note name) or its MIDI form, not both`);
+    if (typeof midi !== 'number' || !Number.isFinite(midi)) throw new Error(`not a MIDI note: ${midi} (a number, 69 = A4 = 440 Hz)`);
+    return hzOfMidi(midi);
+  }
+  return hzOf(freq);
+}
 
 /* ---------------------------------------------------------------- buffers */
 
@@ -181,8 +207,10 @@ export function svf() {
 
 /**
  * Render one voice (mono). spec:
- *   wave, freq (Hz or a note like "A4"), duty,
- *   slide: { to (Hz or note), time (s), curve: 'exp' | 'lin' }       pitch glide from freq to `to`
+ *   wave, duty,
+ *   freq (a number is hertz, a string is a note like "A4")  OR  midi (a MIDI note number, 57 = A2 = 110 Hz)
+ *   slide: { to (hertz or a note name) OR toMidi, time (s), curve: 'exp' | 'lin' }   pitch glide from freq to `to`
+ *         (a number is never guessed to be one or the other: 110 is 110 Hz, and MIDI 110 is written midi: 110)
  *   vibrato: { rate (Hz), depth (semitones), delay (s) }
  *   arp: { steps: [semitones...], every (s) }                          stepped pitch: a coin, a power-up
  *   env: { a, d, s, r, curve }, gate (s held; one-shots leave it out)
@@ -197,8 +225,8 @@ export function voice(spec) {
   const env = spec.env ?? {};
   const len = Math.min(30, (spec.length ?? envLength(gate, env)) + 0.002);
   const out = mono(len);
-  const f0 = hzOf(spec.freq ?? 440);
-  const to = spec.slide ? hzOf(spec.slide.to) : f0;
+  const f0 = spec.freq === undefined && spec.midi === undefined ? 440 : pitchHz(spec.freq, spec.midi, 'freq');
+  const to = spec.slide ? pitchHz(spec.slide.to, spec.slide.toMidi, 'slide.to') : f0;
   const slideT = Math.max(1e-4, spec.slide?.time ?? len);
   const vib = spec.vibrato;
   const arp = spec.arp;
@@ -235,9 +263,10 @@ export function voice(spec) {
 }
 
 /** Karplus-Strong plucked string: a noise burst in a tuned delay line that loses its highs each pass. */
-export function pluck({ freq = 'A3', gate = 0.5, bright = 0.5, decay = 0.996, gain = 1, seed = 1, length = null }) {
+export function pluck({ freq, midi, gate = 0.5, bright = 0.5, decay = 0.996, gain = 1, seed = 1, length = null }) {
   const rnd = mulberry32(seed);
-  const f = hzOf(freq);
+  // The same two explicit forms as voice(): freq (hertz or a note name) or midi; A3 when neither is given.
+  const f = freq === undefined && midi === undefined ? hzOf('A3') : pitchHz(freq, midi, 'freq');
   const len = length ?? Math.max(gate + 0.4, 1.2);
   const out = mono(len);
   const n = Math.max(2, Math.round(RATE / f));

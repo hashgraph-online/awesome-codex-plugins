@@ -4,6 +4,17 @@ import { compilePrompt } from '../lib/workflow-executor.mjs';
 
 const envelope = inputs => ({ node_id: 'write', workflow_id: 'fixture', inputs, constraints: {}, context_projection: { references: [] } });
 
+test('semantic prompt excludes the entire Host mechanical checker without changing its contract',()=>{
+  const completion_contract={outcome:'validated_artifact',on_missing:'block',fail_on_false:['accepted'],
+    host_check:{tool:'HOST_CHECKER_ONLY',success_field:'HOST_SUCCESS_ONLY',correction_field:'HOST_CORRECTION_ONLY',
+      input_bindings:{baseline:'/inputs/HOST_BASELINE_ONLY'}}};
+  const original=structuredClone(completion_contract);
+  const prompt=compilePrompt({...envelope({task:'Author the semantic proposal.'}),completion_contract},64000);
+  assert.doesNotMatch(prompt,/host_check|HOST_CHECKER_ONLY|HOST_SUCCESS_ONLY|HOST_CORRECTION_ONLY|HOST_BASELINE_ONLY/);
+  assert.deepEqual(JSON.parse(prompt.split('\nCompletion:\n')[1]),{outcome:'validated_artifact',on_missing:'block',fail_on_false:['accepted']});
+  assert.deepEqual(completion_contract,original);
+});
+
 test('template-bound task context and verification cross the model boundary once', () => {
   const inputs = { task: 'EXACT_TASK_PAYLOAD', context: { marker: 'EXACT_CONTEXT_PAYLOAD' }, verification: 'EXACT_VERIFICATION_PAYLOAD', card_jobs: [{ id: 'card-1' }] };
   const prompt = compilePrompt({ ...envelope(inputs), prompt_template: 'Task: {{ task }}\nBackground: {{context}}\nCheck: {{verification}}' }, 64000);

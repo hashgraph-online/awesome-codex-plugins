@@ -32,17 +32,17 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, type=Path)
     args = parser.parse_args()
 
+    output_dir = args.output_dir.expanduser().resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    # Clear success before input or dependency validation can fail.
+    (output_dir / "review.json").unlink(missing_ok=True)
+
     source = args.input.expanduser().resolve()
     if not source.is_file():
         parser.error(f"input file does not exist: {source}")
     for executable in ("ffmpeg", "ffprobe"):
         if not shutil.which(executable):
             parser.error(f"{executable} is required")
-
-    output_dir = args.output_dir.expanduser().resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
-    # A failed rerun must not leave an earlier success report behind.
-    (output_dir / "review.json").unlink(missing_ok=True)
     probe = json.loads(
         run(
             [
@@ -104,6 +104,11 @@ def main() -> None:
         review["artifacts"].append(str(preview))
 
     if video and duration:
+        first_frame = output_dir / "first-frame.jpg"
+        last_frame = output_dir / "last-frame.jpg"
+        for frame in (first_frame, last_frame):
+            frame.unlink(missing_ok=True)
+        # Stream the final decoded frame to disk; do not buffer/reverse the video.
         diagnostics = run(
             [
                 "ffmpeg",
@@ -112,14 +117,41 @@ def main() -> None:
                 "-xerror",
                 "-i",
                 str(source),
-                "-vf",
-                "blackdetect=d=0.2:pix_th=0.05",
-                "-an",
-                "-f",
-                "null",
-                "-",
+                "-filter_complex_threads",
+                "1",
+                "-filter_complex",
+                "[0:v:0]blackdetect=d=0.2:pix_th=0.05,scale=1280:-2,"
+                r"split=2[opening][ending];[opening]select=eq(n\,0)[first]",
+                "-map",
+                "[first]",
+                "-frames:v",
+                "1",
+                "-threads",
+                "1",
+                "-q:v",
+                "2",
+                "-update",
+                "1",
+                "-y",
+                str(first_frame),
+                "-map",
+                "[ending]",
+                "-fps_mode",
+                "passthrough",
+                "-threads",
+                "1",
+                "-q:v",
+                "2",
+                "-update",
+                "1",
+                "-y",
+                str(last_frame),
             ]
         ).stderr
+        for frame in (first_frame, last_frame):
+            if not frame.is_file() or not frame.stat().st_size:
+                raise RuntimeError(f"endpoint frame was not created: {frame}")
+            review["artifacts"].append(str(frame))
         review["black_segments"] = [
             {"start": float(start), "end": float(end), "duration": float(length)}
             for start, end, length in re.findall(

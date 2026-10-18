@@ -1,11 +1,13 @@
 ---
 name: data-import
-description: "Import CSV, JSON, or Google Sheets data into a connected CRM, email platform, or audience store — auto-suggested field mapping, validation, dedup against existing records, consent verification, and batched writes behind a mandatory approval gate, with rollback guidance. Produces a per-record import results report. Triggers on \"/digital-marketing-pro:data-import\", \"import this CSV of leads into HubSpot\", \"load subscribers into Mailchimp\", \"half these rows have bad emails\", \"dry-run this import first\". Reads brand compliance rules (GDPR, CAN-SPAM, CCPA) for contact data and executes through the destination platform's connected MCP."
+description: "Import CSV or Sheets data into a CRM or ESP with mapping and dedup, approval-gated. \"dry-run this import first\""
 disable-model-invocation: false
 argument-hint: "[source-file or URL]"
 ---
 
 # /digital-marketing-pro:data-import
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## Purpose
 
@@ -16,7 +18,8 @@ Universal data import tool for bringing structured data into any connected platf
 1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"data-import","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 
@@ -34,7 +37,7 @@ The user must provide (or will be prompted for):
 3. **Field mapping wizard**: Auto-suggest mappings based on column name similarity to destination field names (fuzzy matching on common patterns like "email", "first_name", "phone", "company"). Present the suggested mapping for user confirmation. Flag any unmapped source columns (data that will be ignored) and any unmapped required destination fields (blockers that must be resolved before import). Allow the user to adjust, add, or remove mappings.
 4. **Validate data quality**: Run validation checks on every record — email format validation (RFC 5322), phone number format detection, required fields present and non-empty, data type conformance (dates, numbers, strings), field length limits per destination platform. Detect duplicates within the import file itself. If CRM is connected, check for duplicates against existing records using email or phone as match keys. For email and SMS imports, verify consent fields — check for explicit opt-in timestamps, unsubscribe flags, and compliance with the brand's market regulations.
 5. **Create approval gate**: Present a comprehensive import summary for user confirmation — total records in source, records passing validation, records failing validation (with categorized reasons), duplicate records detected (within file and against existing data), consent verification status for contact imports, destination platform and target object type, field mapping summary, and deduplication strategy that will be applied. Block execution until the user explicitly approves.
-6. **Execute import via destination MCP**: On approval, write records to the destination platform in batches through the appropriate MCP — CRM contacts via CRM MCP (HubSpot or Salesforce), email subscriber lists via email MCP (Mailchimp, ActiveCampaign, or SendGrid), competitor baseline data via `competitor-tracker.py`, or audience segments via the audience manager. Track success, failure, and skip status per record. Implement retry logic for transient API failures (rate limits, timeouts) with exponential backoff.
+6. **Execute import via destination MCP**: On approval, write records to the destination platform in batches through the appropriate MCP — CRM contacts via CRM MCP (HubSpot or Salesforce), email subscriber lists via email MCP (Mailchimp, ActiveCampaign, or SendGrid), competitor baseline data via `competitor-tracker.py`, or audience segments via the audience manager. Track success, failure, and skip status per record. Back off on rate limits and retry only a write that provably never reached the platform (connection refused, DNS failure, or a 429 rate-limit rejection); after a timeout or a lost reply, look the record up on the platform first (by email or external ID) and resend only what is missing: a timeout is never a reason to resend.
 7. **Report results**: Generate a detailed import results report — records successfully imported with destination IDs, records that failed with specific error reasons per record, records skipped due to deduplication or validation, consent verification summary, total API calls made, and processing time. If failures exceed 10% of total records, flag for review and provide rollback guidance.
 
 ## Output
@@ -46,10 +49,10 @@ A structured import results report containing:
 - **Validation report**: Categorized list of data quality issues found — invalid emails, missing required fields, format mismatches, field length violations — with affected record counts and sample values for each issue type
 - **Consent verification status**: For contact data imports — count of records with verified opt-in, records missing consent, records with unsubscribe flags, and compliance assessment against the brand's target market regulations (GDPR, CAN-SPAM, CCPA)
 - **Destination confirmation**: Platform name, object type, batch count, API response summary, and destination record IDs for successfully imported records where available
-- **Error details for failed records**: Per-record failure reasons grouped by error type — API validation errors, rate limit failures after retry exhaustion, permission errors, and data format rejections from the destination platform
+- **Error details for failed records**: Per-record failure reasons grouped by error type — API validation errors, rate-limit (429) rejections still refused after the retries allowed for writes that provably never reached the platform, permission errors, and data format rejections from the destination platform
 - **Rollback instructions**: If the import needs to be reversed — record IDs to delete, API endpoints to use, and batch deletion guidance for the destination platform
 
 ## Agents Used
 
-- **execution-coordinator** — Import pipeline orchestration from source parsing through MCP execution, approval workflow with comprehensive pre-import summary and risk assessment, batched MCP data writing with retry logic and error handling, execution logging with per-record status tracking, and rollback guidance generation for failed or problematic imports
+- **execution-coordinator** — Import pipeline orchestration from source parsing through MCP execution, approval workflow with comprehensive pre-import summary and risk assessment, batched MCP data writing with retries limited to writes that provably never reached the platform and error handling, execution logging with per-record status tracking, and rollback guidance generation for failed or problematic imports
 - **crm-manager** — CRM-specific field mapping intelligence with platform schema awareness (HubSpot properties, Salesforce fields), deduplication logic using email and phone match keys against existing CRM records, contact data quality scoring, and consent field verification against compliance requirements for the brand's target markets

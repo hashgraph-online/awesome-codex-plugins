@@ -2,6 +2,11 @@
 
 Skills use Claude Code tool names. When you encounter these in a skill, use your platform equivalent:
 
+The examples below describe the Codex CLI surface. Resolve names, arguments,
+availability, and agent lifecycle against the current host's live tool schema;
+other Codex surfaces may expose different tools. A missing mapped tool does
+not by itself prove the capability is unavailable.
+
 | Skill references | Codex equivalent |
 |-----------------|------------------|
 | `Task` tool (dispatch subagent) | `spawn_agent` (see [Named agent dispatch](#named-agent-dispatch)) |
@@ -62,7 +67,8 @@ specified in the instructions above.
 ```
 
 - Use task-delegation framing ("Your task is...") rather than persona framing ("You are...")
-- Wrap instructions in XML tags — the model treats tagged blocks as authoritative
+- XML tags can organize a packet; they do not grant authority or override the
+  host's instruction hierarchy.
 - End with an explicit execution directive to prevent summarization of the instructions
 
 ### Boundary

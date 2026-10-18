@@ -1,6 +1,6 @@
 import { isAbsolute, relative, resolve } from 'node:path';
 import { createHmac } from 'node:crypto';
-import { runtimeEnvironmentForWorker } from './runtime-environment-state.mjs';
+import { runtimeEnvironmentForWorker, runtimeRequirementsForState } from './runtime-environment-state.mjs';
 import { requireValue } from './workflow-paths.mjs';
 import { intersectBoundaries, pathBoundaries } from './workflow-bindings.mjs';
 import { digest, canonicalJSON } from './workflow-revisions.mjs';
@@ -9,7 +9,9 @@ import { effectiveSkillPolicy } from './workflow-reference-schema.mjs';
 import { nodeWorkspace } from './parallel/workspace.mjs';
 import { isThreadExecutor, threadContext } from './thread-handoff.mjs';
 import { projectNodeContext } from './workflow-context-projection.mjs';
+import {projectSharedHostInputs,sharedHostRegion} from './execution/shared-host-work.mjs';
 import { WORKSPACE_SOURCE_LOCATIONS, WORKSPACE_SOURCE_LOCATION_RULES } from './workspace-source-locations.mjs';
+import { isWorkerMain } from './execution/main-execution-mode.mjs';
 
 export function runPermissions({ workspace, access, allowed_paths = [] }) {
   requireValue(typeof workspace === 'string' && isAbsolute(workspace), 'RUN_WORKSPACE', 'Run workspace must be absolute');
@@ -41,7 +43,10 @@ export function nodePermissions(node, state) {
 export function bindingContext(state) {
   const loops = Object.fromEntries(Object.entries(state.loops ?? {}).map(([id, loop]) => [id,
     Object.fromEntries(['round','status','feedback','all_accepted','review_items','repair_items'].filter(key => Object.hasOwn(loop, key)).map(key => [key, loop[key]]))]));
-  return { inputs: state.inputs, loops, nodes: Object.fromEntries(Object.entries(state.nodes).map(([id, node]) => [id, { output: node.output }])) };
+  // A skipped branch never produced a result. Its journal placeholder null is
+  // not a semantic null and must not win a coalesce selector before a live route.
+  // Preserve explicit null outputs from executed nodes; null is valid data there.
+  return { inputs: state.inputs, loops, nodes: Object.fromEntries(Object.entries(state.nodes).map(([id, node]) => [id, node.status === 'skipped' ? {} : { output: node.output }])) };
 }
 
 export function approvalBinding(node, state, pins, attemptNumber = state.nodes[node.id].attempts.length + 1) {
@@ -62,7 +67,7 @@ export function executionEnvelope(node, state, pins, attempt, token) {
   const constraints=structuredClone(state.constraints);
   delete constraints.native_parent_thread_id;
   delete constraints.runtime_requirements;
-  const runtimeEnvironment = runtimeEnvironmentForWorker(state);
+  const runtimeEnvironment = runtimeEnvironmentForWorker(state,node,pins);
   if (runtimeEnvironment) constraints.runtime_environment = runtimeEnvironment;
   const context = projectNodeContext(node, pins.root.workflow, bindingContext(state));
   const skillPolicy = effectiveSkillPolicy(pins.inherited_policy ?? pins.root.workflow.skill_policy, node.skill_policy);
@@ -75,7 +80,7 @@ export function executionEnvelope(node, state, pins, attempt, token) {
   const threadExecutor = isThreadExecutor(node.executor);
   let subagents=null;
   if(node.subagent_count!==undefined){
-    requireValue(node.executor?.kind!=='main','SUBAGENT_COUNT','Main Agent nodes cannot configure sub-Agent quantity');
+    requireValue(node.executor?.kind!=='main'||node.fanout&&node.executor.mode!=='orchestration','SUBAGENT_COUNT','Main quantity requires a worker fan-out');
     let resolved_count=node.subagent_count==='auto'?1:node.subagent_count,items=null;
     if(node.fanout){
       items=context.inputs[node.fanout.input];
@@ -93,19 +98,40 @@ export function executionEnvelope(node, state, pins, attempt, token) {
       : 'Resources listed below are logical identifiers, not filesystem paths. Use read_workflow_resource; cite resource IDs.'
     : '';
   const locationOutputs=Object.entries(node.output_validators??{}).filter(([,kind])=>kind===WORKSPACE_SOURCE_LOCATIONS).map(([name])=>name);
+  requireValue(pins.executable_projection_version === undefined || pins.executable_projection_version === 1,
+    'EXECUTABLE_PROJECTION_VERSION', 'Unsupported pinned executable projection version');
+  const currentExecutableProjection = pins.executable_projection_version === 1;
+  // Old dispatch hashes bind the old prompt bytes. Only new Host-pinned Runs
+  // use this projection; historical continuations retain their original bytes.
+  const executableRequirements = [...(currentExecutableProjection
+    ? state.constraints?.runtime_requirements?.executables ?? pins.root.workflow.requirements?.executables ?? runtimeRequirementsForState(state).executables
+    : runtimeRequirementsForState(state).executables), ...(node.runtime_requirements?.executables ?? [])];
+  const hostPreparedExecutables = runtimeEnvironment?.status === 'ready'
+    && runtimeEnvironment.tools.every(tool => tool.status === 'found' && isAbsolute(tool.path ?? ''))
+    && executableRequirements.every(requirement => runtimeEnvironment.tools.some(tool => tool.name === (typeof requirement === 'string' ? requirement : requirement.name)));
+  const hostPreparedMain = isWorkerMain(node) && hostPreparedExecutables;
+  // Step 0 has already verified these executables for every executor. Native
+  // children still need exact locations because their existing PATH is not
+  // Host-owned; that does not assign another discovery/version probe.
+  // Environment variables remain separate task declarations.
+  const dependencies = { executables: (currentExecutableProjection ? hostPreparedExecutables : hostPreparedMain) ? [] : pins.root.workflow.requirements?.executables ?? [],
+    environment: pins.root.workflow.requirements?.environment ?? [] };
   return {
     run_id: state.run_id, workflow_id: state.workflow_id, workflow_name: pins.root.workflow.name, workflow_revision: state.workflow_revision,
     node_id: node.id, node_name: node.name ?? node.id, attempt_id: attempt.id, lease_token: token, executor: structuredClone(node.executor),
     provider: ['provider', 'thread'].includes(node.executor.kind) ? structuredClone(pins.providers.find(item => item.id === node.executor.provider_id)) : null,
-    role: node.role ?? null, access: permissions.access, workspace: nodeWorkspace(node.id, state, pins),
-    inputs: context.inputs, context_projection: context.projection,
+    final_acceptance_required: node.id === pins.root.workflow.finalization.node_id,
+    access: permissions.access, workspace: nodeWorkspace(node.id, state, pins),
+    inputs: projectSharedHostInputs(state,pins.root.workflow,node.id,context.inputs), context_projection: context.projection,
     constraints: {...constraints,...(state.constraints.task_workspace?{task_workspace:nodeWorkspace(node.id,state,pins)}:{})},
-    prompt_template: ((pins.root.workflow.requirements?.executables?.length || pins.root.workflow.requirements?.environment?.length)
-        ? `Dependencies: ${JSON.stringify({executables:pins.root.workflow.requirements?.executables ?? [],environment:pins.root.workflow.requirements?.environment ?? []})}. Report unresolved dependencies with command/error evidence.\n` : '')
+    prompt_template: ((dependencies.executables.length || dependencies.environment.length)
+        ? `Dependencies: ${JSON.stringify(dependencies)}. Report unresolved dependencies with command/error evidence.\n` : '')
       + (constraints.runtime_environment?.tools?.length
-        ? `Run executables: ${JSON.stringify(constraints.runtime_environment.tools)}. Use these locations and a process-local PATH for helpers.\n` : '')
+        ? `Run executables: ${JSON.stringify(constraints.runtime_environment.tools)}.${hostPreparedMain ? '' : ' Use these locations and a process-local PATH for helpers.'}\n` : '')
       + resourceInstruction + (resourceInstruction ? '\n' : '')
       + (locationOutputs.length ? `Marked output ${locationOutputs.join(', ')}: ${WORKSPACE_SOURCE_LOCATION_RULES}\n` : '')
+      + (sharedHostRegion(pins.root.workflow,node.id)?.workspace_policy.main_node_id===node.id
+        ? 'Read the supplied immutable source projection in this node workspace. The Host is concurrently producing the original artifact in a separate workspace; do not read or modify the original source or inspect an unfinished product.\n' : '')
       + (node.prompt_template ?? (node.type === 'skill_ref' ? 'Apply the pinned Skill to {{task}} using its mapped resources.' : '')),
     resources: context.references, outputs_schema: structuredClone(node.outputs_schema ?? {}), completion_contract:structuredClone(node.completion_contract ?? null),
     subagents,

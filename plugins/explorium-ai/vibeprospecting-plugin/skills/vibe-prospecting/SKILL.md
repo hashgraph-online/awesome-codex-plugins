@@ -16,21 +16,23 @@ B2B prospecting — companies, contacts, enrichment, events.
 ### Detecting your runtime (mandatory, in order)
 
 1. **Host identity in your system context** (check this first — overrides tool names):
-   - **Claude Code** — context says you are Claude Code / Anthropic's CLI, or shows a CLI **Environment** block (cwd, shell, platform). → read [`claude-code.md`](platforms/claude-code.md) only. **Do not read `claude-chat.md` or `cowork.md`.** MCP tools in the list (`mcp__*__fetch-entities`) do **not** change this.
+   - **Claude Code** — context explicitly says you are Claude Code / Anthropic's CLI. → read [`claude-code.md`](platforms/claude-code.md) only. **Do not read `claude-chat.md` or `cowork.md`.** MCP tools in the list (`mcp__*__fetch-entities`) do **not** change this.
    - **OpenAI Codex** — context identifies Codex or `CODEX_SHELL=1`. → [`codex.md`](platforms/codex.md)
    - **OpenClaw** — context identifies OpenClaw or `OPENCLAW_CLI=1` / `OPENCLAW_SHELL`. → [`openclaw.md`](platforms/openclaw.md)
+   - **Grok Build** — context identifies Grok Build / xAI's CLI. → [`other.md`](platforms/other.md), using the `vpai` CLI workflow.
 2. **Only if step 1 did not match** — no CLI host identity, no shell:
    - **Claude Cowork** — Cowork workspace, `.plugin` install, connector store. → [`cowork.md`](platforms/cowork.md)
    - **Claude Chat** — claude.ai or Claude desktop MCP connector (not Cowork). → [`claude-chat.md`](platforms/claude-chat.md)
 3. **Fallback:** terminal, scripts, CI, or unknown host → [`other.md`](platforms/other.md)
 
-**Never infer platform from MCP tool names alone** (`mcp__claude_ai_*`, `mcp__*__fetch-entities`, etc.). Tool prefixes are not a host signal when step 1 already identified Claude Code, Codex, or OpenClaw.
+**Never infer platform from MCP tool names alone** (`mcp__claude_ai_*`, `mcp__*__fetch-entities`, etc.). Tool prefixes are not a host signal when step 1 already identified Claude Code, Codex, OpenClaw, or Grok Build. A generic CLI **Environment** block (cwd, shell, platform) establishes shell access, not host identity; without an explicit host match, use the fallback guide.
 
 | Platform | Read now |
 |----------|----------|
 | **Claude Code** | [`claude-code.md`](platforms/claude-code.md) — `vpai` CLI |
 | **OpenAI Codex** | [`codex.md`](platforms/codex.md) |
 | **OpenClaw gateway** | [`openclaw.md`](platforms/openclaw.md) |
+| **Grok Build** | [`other.md`](platforms/other.md) — `vpai` CLI |
 | **Claude Cowork** | [`cowork.md`](platforms/cowork.md) — MCP connector; **not** Claude Code |
 | **Claude Chat** (claude.ai, Claude desktop) | [`claude-chat.md`](platforms/claude-chat.md) — MCP connector; **not** Cowork or Claude Code |
 | **Other** (terminal, scripts, CI, generic hosts) | [`other.md`](platforms/other.md) |

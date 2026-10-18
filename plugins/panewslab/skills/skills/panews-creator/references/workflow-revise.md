@@ -25,9 +25,11 @@ node cli.mjs update-article \
   --article-id <id> \
   --title "<new title>" \
   --desc "<new summary>" \
-  --content-file <new-content.html> \
+  --content-file <new-content.md> \
   --session <token>
 ```
+
+Edits save as `DRAFT` unless `--status PENDING` explicitly submits the article for review.
 
 Pass only the fields that need to change.
 

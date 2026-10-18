@@ -1,6 +1,6 @@
 {
   "name": "repobrain",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Repository knowledge engine plugin (Codex CLI). Bundles slash commands (/rb-setup, /rb-init, /rb-refresh, /rb-ask) plus the agent-repo-init skill. Backed by the rb-ask / rb-refresh CLI; MCP optional.",
   "skills": "./skills/",
   "interface": {

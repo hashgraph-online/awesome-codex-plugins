@@ -1,0 +1,10 @@
+{
+  "name": "babeldoc-pdf-translate-community",
+  "interface": {"displayName": "BabelDOC PDF Translate"},
+  "plugins": [{
+    "name": "babeldoc-pdf-translate",
+    "source": {"source": "local", "path": "./"},
+    "policy": {"installation": "AVAILABLE", "authentication": "ON_USE"},
+    "category": "Productivity"
+  }]
+}

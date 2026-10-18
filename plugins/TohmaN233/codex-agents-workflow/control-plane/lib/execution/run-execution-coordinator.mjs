@@ -19,30 +19,30 @@ export class RunExecutionCoordinator {
 
   bind(runtime) { this.runtime = runtime; }
 
-  fenceRun(runId) {
+  fenceRun(runId, foregroundFence) {
     this.admission.fenceRun(runId);
+    this.runtime.settleForegroundExecutionFence(foregroundFence,runId);
     for (const manager of [this.strictManager, this.managedNativeManager, this.hostMainManager]) manager.fenceRun(runId);
   }
 
-  fenceAttempt(runId, nodeId, attemptId) {
+  fenceAttempt(runId, nodeId, attemptId, foregroundFence) {
     this.admission.fenceAttempt(runId, nodeId, attemptId);
+    this.runtime.settleForegroundExecutionFence(foregroundFence,runId,nodeId,attemptId);
     for (const manager of [this.strictManager, this.managedNativeManager, this.hostMainManager]) manager.fenceAttempt(runId, nodeId, attemptId);
   }
 
-  async fenceAndSnapshotAttempt(runId, nodeId, attemptId) {
+  async fenceAndSnapshotAttempt(runId, nodeId, attemptId, authorization, retry=false) {
     return this.runtime.runs.withRunWriter(runId, async () => {
-      const record = await this.runtime.runs.read(runId);
-      requireValue(record.state.nodes[nodeId]?.attempts.some(item => item.id === attemptId),
-        'ATTEMPT_MISSING', 'The exact execution attempt is missing');
-      this.fenceAttempt(runId, nodeId, attemptId);
+      const {record,foregroundFence}=await this.runtime.executionFenceSnapshot(runId,{node_id:nodeId,attempt_id:attemptId,authorization,retry});
+      this.fenceAttempt(runId, nodeId, attemptId,foregroundFence);
       return record;
     });
   }
 
-  async drainAttempt(runId, nodeId, attemptId, { skipManager = null } = {}) {
+  async drainAttempt(runId, nodeId, attemptId, { skipManager = null, authorization, retry=false } = {}) {
     // The fence is ordered with durable publication by the Run writer.  A
     // caller's earlier read is never an execution-ownership inventory.
-    await this.fenceAndSnapshotAttempt(runId, nodeId, attemptId);
+    await this.fenceAndSnapshotAttempt(runId, nodeId, attemptId,authorization,retry);
     const stopped = await Promise.allSettled([
       skipManager === this.strictManager ? undefined : this.strictManager.stopAttempt(runId, nodeId, attemptId),
       skipManager === this.managedNativeManager ? undefined : this.managedNativeManager.stopAttempt(runId, nodeId, attemptId),
@@ -56,6 +56,7 @@ export class RunExecutionCoordinator {
     try { await this.stopConnector(record, nodeId, attempt); } catch (error) { errors.push(error); }
     if (attempt.child_run_id) try {
       await this.runtime.runs.mutate(attempt.child_run_id, 'parent_execution_lost', state => {
+        this.runtime.fenceMainForeground(state);
         if (state.status === 'running') { interruptActiveNodes(state, 'Parent attempt lost execution authority'); state.status = 'cancelled'; }
       });
       await this.drainRun(attempt.child_run_id);
@@ -86,7 +87,7 @@ export class RunExecutionCoordinator {
   }
 
   async failAttemptAfterQuiescence(runId, args, error, { originEntry = null, originManager = null, commitFailure = true } = {}) {
-    this.fenceAttempt(runId, args.node_id, args.attempt_id);
+    this.fenceAttempt(runId, args.node_id, args.attempt_id,this.runtime.foregroundExecutionFence(runId,args));
     if (originEntry) await this.quiesceOrigin(originEntry);
     await this.drainAttempt(runId, args.node_id, args.attempt_id, { skipManager: originManager });
     const current = await this.runtime.get(runId);
@@ -170,7 +171,8 @@ export class RunExecutionCoordinator {
   async drainRun(runId, seen = new Set(), { cancelChildren = true } = {}) {
     requireValue(!seen.has(runId) && seen.size < 4096, 'RUN_EXECUTION_TREE', 'Invalid execution ownership tree');
     seen.add(runId); this.fenceRun(runId);
-    const record = await this.runtime.runs.read(runId);
+    const {record,foregroundFence}=await this.runtime.executionFenceSnapshot(runId);
+    this.runtime.settleForegroundExecutionFence(foregroundFence,runId);
     const children = [...new Set(Object.values(record.state.nodes).flatMap(node => node.attempts.flatMap(attempt => attempt.child_run_id ? [attempt.child_run_id] : [])))];
     for (const childId of children) this.fenceRun(childId);
     const stopped = await Promise.allSettled([
@@ -184,6 +186,7 @@ export class RunExecutionCoordinator {
     for (const childId of children) {
       try {
         await this.runtime.runs.mutate(childId, 'parent_execution_lost', state => {
+          this.runtime.fenceMainForeground(state);
           if (state.status === 'running') { interruptActiveNodes(state, 'Parent Run lost execution authority'); state.status = cancelChildren ? 'cancelled' : 'interrupted'; }
         });
         await this.drainRun(childId, seen, { cancelChildren });

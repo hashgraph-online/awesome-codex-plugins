@@ -580,18 +580,21 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
             ds_feat = get_regulator_features(p_mpn, project_dir=ctx.project_dir) if p_mpn else None
             if ds_feat and not ds_feat.get('quality', {}).get('trusted', True):
                 ds_feat = None   # deterministic detectors keep the v1.4 trust gate (v2.0 §3.A.1)
+            ds_decided = False
             if ds_feat and ds_feat.get('en_pin'):
                 pin_names = ctx.ref_pins.get(p['ref'], {})
                 for pnum, (net, pname) in pin_names.items():
                     if net == net_name and str(pnum) == str(ds_feat['en_pin']):
                         en_ih = ds_feat.get('en_v_ih_max')
-                        if en_ih is not None and v_min >= 2 * en_ih:
-                            skip_en = True
-                            break
+                        if en_ih is not None:
+                            ds_decided = True
+                            if v_min >= 2 * en_ih:
+                                skip_en = True
+                        break
                 if skip_en:
                     break
             # Heuristic fallback: pin name matches EN pattern on a regulator-family part
-            if not ds_feat:
+            if not ds_decided:
                 val_mpn = ((comp.get('mpn') or '') + ' ' + (comp.get('value') or '')).upper()
                 is_regulator_like = any(pfx in val_mpn for pfx in (
                     'TPS6', 'TPS5', 'LM25', 'LM33', 'LM317', 'AP21', 'AMS11',
@@ -659,7 +662,7 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
             },
             report_section='Signal Integrity',
             impact='Risk of damage or unreliable logic levels',
-            provenance=make_provenance('vm_rail_mismatch', 'deterministic'),
+            provenance=make_provenance('vm_rail_mismatch', 'heuristic'),
             design_context=design_context,
             schema_era='v1.4',
             source=ctx.source,))

@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: 'Coordinate authorized workers, prerequisites, isolated scopes and review capacity. Use when: dispatching, recovering or routing feedback. Not for implementation or judgment.'
+description: 'Coordinate several workers: what idle agents do next, which finished work gets checked first, how to recover a dead one. Use when: managing multiple agents.'
 practices: [team-topologies, evidence-based-engineering]
 hexagonal_role: supporting
 consumes: [accepted-intent, native-work-state, candidate-evidence]
@@ -27,6 +27,28 @@ Selecting Orchestrate adds in-session guidance, not an AgentOps scheduler, work
 index, queue, ownership system, aggregate retry controller or delivery authority.
 The caller's tracker owns assignments and dependencies; its runtime owns running
 contexts, bounds and supervision; repository policy owns integration and delivery.
+Orchestrate decides what each worker does next.
+[Agent Native](../agent-native/SKILL.md) launches and observes workers;
+[Navigate](../navigate/SKILL.md) picks the wave on a bead graph toward frozen
+acceptance and records verdicts.
+
+## Before any dispatch
+
+- **Finished is not done.** Exit 0, a pushed branch, a closed tracker item or a
+  worker saying "done" makes a candidate. It still owes its checks, integration
+  and, when one is owed, a fresh judgment.
+- **Drain before starting.** While candidates wait on checks, repair,
+  integration or an owed judgment, free capacity goes there first. A free slot
+  alone is not a dispatch reason; start new implementation with what is left.
+- **Judges did not author.** Review or validation of a candidate goes to a
+  context that did not write it.
+- **Readiness is content.** A prerequisite counts only when its bytes are in
+  the intended checkout. A closed item whose change is missing, stale or
+  unavailable there is not ready: hold its dependents, keep its native status,
+  and report the gap.
+- **Reconcile before resuming.** Match tracker assignments against observed
+  runtime state, validators included, before dispatching. Never duplicate an
+  assignment because this conversation lacks it.
 
 ## Recover the actual work
 
@@ -36,36 +58,26 @@ questions and the next investigation from the existing native handoff. Do not
 repeat settled interviews or require the full transcript. Missing or contradictory
 pointers require source investigation, not a guessed decision.
 
-Before dispatch, inspect actual prerequisite content in the intended checkout,
-its identity and applicable evidence. A closed prerequisite whose bytes are
-missing, stale or unavailable is not usable readiness. Resolve that gap before
-dependent execution; preserve its native status and report the distinction.
-
-Inspect native assignments and runtime state together: task acceptance, observed
-worker/context identity, workspace and starting content, occupied write scope,
-pending checks and review, current candidate identity, and integration owner.
-Include active validators as well as writers. An empty ready list does not prove
-completion. A replacement coordinator reconciles these facts before resuming;
-it must not duplicate an assignment because its prior conversation is absent.
+Inspect, together: task acceptance, observed worker/context identity, workspace
+and starting content, occupied write scope, pending checks and review, current
+candidate identity, integration owner, and the actual content and evidence of
+each prerequisite. An empty ready list does not prove completion.
 
 ## Choose the next useful dispatch
 
-Concurrency follows the observed bottleneck. Inspect work waiting for checks,
-repair, integration or independent judgment before adding implementation. A free
-runtime slot alone is not a dispatch reason. Reserve capacity for integration,
-review and repair; reduce new starts while candidates accumulate. Record only
+Concurrency follows the observed bottleneck. Reserve capacity for integration,
+review and repair, and reduce new starts while candidates accumulate. Record only
 the concrete constraint and next action in the existing native handoff, then
 reassess when evidence changes. Do not add a capacity ledger or queue.
-On a bead graph toward frozen acceptance, [Navigate](../navigate/SKILL.md)
-picks the wave and records verdicts; Orchestrate dispatches it.
 
-Use [Agent Native](../agent-native/SKILL.md) for runtime mechanics: executor
-selection, startup/engagement evidence, actual context identity, normalized
-scopes, native waits and follow-up, bounds and cleanup. Its optional adapters
-retain those methods; Orchestrate does not copy or replace them. Concurrent
-writers require disjoint write scopes and separate isolation, including generated
-companions and transitive effects. Serialize shared paths. A worktree separates
-Git edits; it does not establish restricted-source or model-egress enforcement.
+Agent Native owns runtime mechanics: executor selection, startup and engagement
+evidence, actual context identity, normalized scopes, native waits and
+follow-up, bounds and cleanup. One-shot headless runs go through
+[Codex Exec](../codex-exec/SKILL.md), [Claude Exec](../claude-exec/SKILL.md) or
+[AGY Native](../agy-native/SKILL.md). Concurrent writers require disjoint write
+scopes and separate isolation, including generated companions and transitive
+effects. Serialize shared paths. A worktree separates Git edits; it does not
+establish restricted-source or model-egress enforcement.
 
 Dispatch a genuinely fresh implementer for one coherent accepted task, without
 the coordinator's accumulated transcript or unrelated research. A new goal,
@@ -79,8 +91,7 @@ identity at startup through Agent Native's existing association procedure.
 [Implement](../implement/SKILL.md) owns the complete change, meaningful checks
 and direct repair. It is optional guidance for that worker, not a compulsory
 stage. The handoff returns candidate identity, changed scope, check facts,
-discoveries and gaps. Successful prompt delivery or worker exit proves neither
-engagement nor acceptance.
+discoveries and gaps; prompt delivery proves neither engagement nor acceptance.
 
 ## Integrate and obtain judgment
 
@@ -133,22 +144,26 @@ Replacement workers, retries, new subjects and compaction never reset those
 bounds. Inspect native evidence before replacing a worker; use native waits for
 unchanged pending state instead of repeated analysis or probes.
 
-When maintained context could change the next action, selectively use
-[Memory find/recall](../memory/references/recall.md). A supported correction may
-use its [capture](../memory/references/mine-learn.md) and
-[curation](../memory/references/curate.md) procedures. Memory retains admission,
-support/disclosure review and context ownership; no automatic lesson, private
-import or mandatory recall follows from coordination. No change is valid, and
-context capture alone proves no benefit.
+When maintained context could change the next action, use
+[Memory find/recall](../memory/references/recall.md); coordination triggers no
+automatic capture, import or recall.
 
-## Selected external factory
+A caller-selected external factory keeps its coordinator in control: hand it
+source intent through its supported door, never create, scale or repair its
+internal sessions by hand, and do not mirror its work in an AgentOps tracker.
+Judge the returned exact content independently; factory completion neither
+authorizes delivery nor establishes acceptance. For Gas City, follow
+[Using GC](../using-gc/SKILL.md).
 
-Keep the selected factory's coordinator in control. Hand it the caller-authorized
-source intent through its supported door; the coordinator creates its workflow
-and dispatches internal runs. For Gas City, use the Mayor through
-[Using GC](../using-gc/SKILL.md). Do not manufacture, scale or repair internal
-sessions by hand, or mirror factory work in an AgentOps tracker. Doctor and
-supervisor operations use the factory's supported external doors within caller
-authority. Read native state, recover through that coordinator and judge the
-returned exact content independently. Factory completion does not authorize
-delivery or establish acceptance.
+## Status block
+
+When reporting coordination state, return:
+
+```text
+assignments: <worker/context id> -> <task>, state as observed (how)
+candidates:  <task> -> <exact ref>; checks <result>; judgment <ref | owed | not owed>
+next:        <free capacity> -> <dispatch>, because <observed bottleneck>
+held:        <task>, blocked by <prerequisite gap>
+handoffs:    <affected work updated, and where>
+gaps:        <unobserved state, unknown identities, unresolved dissent>
+```

@@ -79,6 +79,14 @@ test('empty per-item review sources fail before launch or activation without res
   assert.equal(prepareLoops(state, definition), true);
 });
 
+test('writable loop review keeps independent context and does not bypass item scope validation',()=>{
+  const definition=workflow(),review=definition.nodes.find(node=>node.id==='review');
+  review.access='bounded_write';review.path_scope={binding:'run.allowed_paths'};delete review.role;
+  assert.equal(validateLoopRegions(definition),true);
+  review.executor.mode='orchestration';
+  assert.throws(()=>validateLoopRegions(definition),{code:'LOOP_REVIEW_CONTEXT'});
+});
+
 test('SkillRef review exits also require independent execution context', () => {
   const definition = workflow();
   const review = definition.nodes.find(node => node.id === 'review');
@@ -201,7 +209,7 @@ test('parallel ownership is archived before reset and unresolved merge prevents 
 
 test('region validation rejects malformed structure, overlapping ownership and unsafe review boundaries', () => {
   assert.equal(validateLoopRegions(workflow()), true);
-  for (const mutate of [d => { d.loops = {}; }, d => { d.loops[0].max_rounds = 0; }, d => { d.loops[0].node_ids.push('unknown'); }, d => { d.loops[0].entry_node = 'start'; }, d => { d.loops[0].node_ids.push('final'); }, d => { d.nodes[2].access = 'bounded_write'; }, d => { d.nodes[2].executor.mode = 'orchestration'; }, d => { d.nodes[2].completion_contract = { fail_on_false: ['passed'] }; }, d => { d.edges.push(edge('start', 'review')); }, d => { d.edges.push(edge('repair', 'final')); }, d => { d.loops.push({ ...d.loops[0], id: 'same-region' }); }, d => { d.loops[0].until = { op: 'unsupported', args: [] }; }, d => { d.loops[0].item_scope.items = '/nodes/unknown/output/items'; }]) { const definition = workflow(); mutate(definition); assert.throws(() => validateLoopRegions(definition)); }
+  for (const mutate of [d => { d.loops = {}; }, d => { d.loops[0].max_rounds = 0; }, d => { d.loops[0].node_ids.push('unknown'); }, d => { d.loops[0].entry_node = 'start'; }, d => { d.loops[0].node_ids.push('final'); }, d => { d.nodes[2].access = 'invalid'; }, d => { d.nodes[2].executor.mode = 'orchestration'; }, d => { d.nodes[2].completion_contract = { fail_on_false: ['passed'] }; }, d => { d.edges.push(edge('start', 'review')); }, d => { d.edges.push(edge('repair', 'final')); }, d => { d.loops.push({ ...d.loops[0], id: 'same-region' }); }, d => { d.loops[0].until = { op: 'unsupported', args: [] }; }, d => { d.loops[0].item_scope.items = '/nodes/unknown/output/items'; }]) { const definition = workflow(); mutate(definition); assert.throws(() => validateLoopRegions(definition)); }
 });
 
 test('loop pointers expose only public fields and first review does not require skipped repair output', () => {

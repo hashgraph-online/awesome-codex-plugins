@@ -71,27 +71,31 @@ const bassNote = (ch, octave = 2) => 12 * (octave + 1) + ch.bass;
 
 /* ---------------------------------------------------------------- instruments */
 
-/** A note on an instrument: a mono (or stereo) buffer. `gate` is how long the key is held, in seconds. */
+/**
+ * A note on an instrument: a mono (or stereo) buffer. `gate` is how long the key is held, in seconds.
+ * `m` is a MIDI note number and is handed to the synthesizer AS one (`midi:`), never as a bare number in `freq`:
+ * a bare number there is hertz. Only the organ converts, because a harmonic is a multiple of hertz, not of a note.
+ */
 export const INSTRUMENTS = {
-  'pulse-lead': { about: 'a narrow pulse lead with a late vibrato: the classic game melody', role: 'lead', play: (m, gate, v) => voice({ wave: 'pulse', duty: 0.25, freq: hzOfMidi(m), gate, env: { a: 0.004, d: 0.15, s: 0.62, r: 0.07 }, vibrato: { rate: 5.5, depth: 0.12, delay: 0.18 }, filter: { type: 'lowpass', freq: 5200 }, gain: v }) },
-  'square-lead': { about: 'a hollow square lead: brighter, more 8-bit', role: 'lead', play: (m, gate, v) => voice({ wave: 'square', freq: hzOfMidi(m), gate, env: { a: 0.003, d: 0.12, s: 0.6, r: 0.06 }, filter: { type: 'lowpass', freq: 4200 }, gain: v * 0.8 }) },
-  'saw-lead': { about: 'two detuned saws, filtered: a fat synth lead', role: 'lead', play: (m, gate, v) => mixMono([voice({ wave: 'saw', freq: hzOfMidi(m + 0.07), gate, env: { a: 0.008, d: 0.2, s: 0.7, r: 0.1 }, filter: { type: 'lowpass', freq: 3400, q: 0.9 }, gain: v * 0.55 }), voice({ wave: 'saw', freq: hzOfMidi(m - 0.07), phase: 0.37, gate, env: { a: 0.008, d: 0.2, s: 0.7, r: 0.1 }, filter: { type: 'lowpass', freq: 3400, q: 0.9 }, gain: v * 0.55 })]) },
-  'soft-lead': { about: 'a triangle with vibrato: a gentle flute-like line', role: 'lead', play: (m, gate, v) => voice({ wave: 'triangle', freq: hzOfMidi(m), gate, env: { a: 0.03, d: 0.2, s: 0.8, r: 0.15 }, vibrato: { rate: 5, depth: 0.15, delay: 0.2 }, gain: v }) },
-  bell: { about: 'an FM bell: sparkle, a music box, a menu theme', role: 'lead', play: (m, gate, v) => voice({ fm: { ratio: 3.5, index: 2.4, decay: 0.3 }, freq: hzOfMidi(m), gate, env: { a: 0.001, d: 1.4, s: 0, r: 0.6, curve: 2.4 }, gain: v * 0.8, length: Math.max(gate, 1.4) }) },
-  epiano: { about: 'an FM electric piano: warm chords and lines', role: 'keys', play: (m, gate, v) => voice({ fm: { ratio: 1, index: 1.6, decay: 0.45 }, freq: hzOfMidi(m), gate, env: { a: 0.002, d: 1.2, s: 0.25, r: 0.25 }, gain: v * 0.8 }) },
-  pluck: { about: 'a plucked string (Karplus-Strong): arpeggios, a harp, a koto', role: 'keys', play: (m, gate, v) => pluck({ freq: hzOfMidi(m), gate, bright: 0.55, gain: v * 0.9 }) },
+  'pulse-lead': { about: 'a narrow pulse lead with a late vibrato: the classic game melody', role: 'lead', play: (m, gate, v) => voice({ wave: 'pulse', duty: 0.25, midi: m, gate, env: { a: 0.004, d: 0.15, s: 0.62, r: 0.07 }, vibrato: { rate: 5.5, depth: 0.12, delay: 0.18 }, filter: { type: 'lowpass', freq: 5200 }, gain: v }) },
+  'square-lead': { about: 'a hollow square lead: brighter, more 8-bit', role: 'lead', play: (m, gate, v) => voice({ wave: 'square', midi: m, gate, env: { a: 0.003, d: 0.12, s: 0.6, r: 0.06 }, filter: { type: 'lowpass', freq: 4200 }, gain: v * 0.8 }) },
+  'saw-lead': { about: 'two detuned saws, filtered: a fat synth lead', role: 'lead', play: (m, gate, v) => mixMono([voice({ wave: 'saw', midi: m + 0.07, gate, env: { a: 0.008, d: 0.2, s: 0.7, r: 0.1 }, filter: { type: 'lowpass', freq: 3400, q: 0.9 }, gain: v * 0.55 }), voice({ wave: 'saw', midi: m - 0.07, phase: 0.37, gate, env: { a: 0.008, d: 0.2, s: 0.7, r: 0.1 }, filter: { type: 'lowpass', freq: 3400, q: 0.9 }, gain: v * 0.55 })]) },
+  'soft-lead': { about: 'a triangle with vibrato: a gentle flute-like line', role: 'lead', play: (m, gate, v) => voice({ wave: 'triangle', midi: m, gate, env: { a: 0.03, d: 0.2, s: 0.8, r: 0.15 }, vibrato: { rate: 5, depth: 0.15, delay: 0.2 }, gain: v }) },
+  bell: { about: 'an FM bell: sparkle, a music box, a menu theme', role: 'lead', play: (m, gate, v) => voice({ fm: { ratio: 3.5, index: 2.4, decay: 0.3 }, midi: m, gate, env: { a: 0.001, d: 1.4, s: 0, r: 0.6, curve: 2.4 }, gain: v * 0.8, length: Math.max(gate, 1.4) }) },
+  epiano: { about: 'an FM electric piano: warm chords and lines', role: 'keys', play: (m, gate, v) => voice({ fm: { ratio: 1, index: 1.6, decay: 0.45 }, midi: m, gate, env: { a: 0.002, d: 1.2, s: 0.25, r: 0.25 }, gain: v * 0.8 }) },
+  pluck: { about: 'a plucked string (Karplus-Strong): arpeggios, a harp, a koto', role: 'keys', play: (m, gate, v) => pluck({ midi: m, gate, bright: 0.55, gain: v * 0.9 }) },
   organ: { about: 'three sine harmonics: an organ, a calm pad', role: 'keys', play: (m, gate, v) => mixMono([1, 2, 3].map((h, i) => voice({ wave: 'sine', freq: hzOfMidi(m) * h, gate, env: { a: 0.01, d: 0.1, s: 0.9, r: 0.08 }, gain: v * [0.6, 0.3, 0.15][i] }))) },
   pad: { about: 'three detuned saws, slow and filtered: a wide, soft bed', role: 'pad', stereo: true, play: (m, gate, v) => {
     const len = gate + 0.9;
     const out = stereo(len);
-    [[-0.1, -0.6], [0, 0], [0.1, 0.6]].forEach(([det, pan], i) => addInto(out, voice({ wave: 'saw', freq: hzOfMidi(m + det), phase: i * 0.31, gate, env: { a: 0.35, d: 0.5, s: 0.8, r: 0.8 }, filter: { type: 'lowpass', freq: 1500, q: 0.7 }, gain: v * 0.4 }), { pan }));
+    [[-0.1, -0.6], [0, 0], [0.1, 0.6]].forEach(([det, pan], i) => addInto(out, voice({ wave: 'saw', midi: m + det, phase: i * 0.31, gate, env: { a: 0.35, d: 0.5, s: 0.8, r: 0.8 }, filter: { type: 'lowpass', freq: 1500, q: 0.7 }, gain: v * 0.4 }), { pan }));
     return out;
   } },
-  'warm-pad': { about: 'soft triangles and a sine: a darker, calmer bed', role: 'pad', play: (m, gate, v) => mixMono([voice({ wave: 'triangle', freq: hzOfMidi(m), gate, env: { a: 0.5, d: 0.5, s: 0.85, r: 1.0 }, gain: v * 0.6 }), voice({ wave: 'sine', freq: hzOfMidi(m + 12), gate, env: { a: 0.6, d: 0.5, s: 0.7, r: 1.0 }, gain: v * 0.2 })]) },
-  'saw-bass': { about: 'a filtered saw bass with a pluck on the filter', role: 'bass', play: (m, gate, v) => voice({ wave: 'saw', freq: hzOfMidi(m), gate, env: { a: 0.003, d: 0.25, s: 0.7, r: 0.05 }, filter: { type: 'lowpass', freq: 1800, to: 420, time: 0.18, q: 1.1 }, gain: v }) },
-  'square-bass': { about: 'a square bass: chiptune', role: 'bass', play: (m, gate, v) => voice({ wave: 'square', freq: hzOfMidi(m), gate, env: { a: 0.002, d: 0.1, s: 0.8, r: 0.04 }, filter: { type: 'lowpass', freq: 1400 }, gain: v * 0.8 }) },
-  'triangle-bass': { about: 'a triangle bass: the 8-bit console bass', role: 'bass', play: (m, gate, v) => voice({ wave: 'triangle', freq: hzOfMidi(m), gate, env: { a: 0.002, d: 0.05, s: 0.95, r: 0.03 }, gain: v }) },
-  'sub-bass': { about: 'a sine sub with a little edge (phones need the edge to hear it)', role: 'bass', play: (m, gate, v) => mixMono([voice({ wave: 'sine', freq: hzOfMidi(m), gate, env: { a: 0.004, d: 0.1, s: 0.9, r: 0.06 }, gain: v }), voice({ wave: 'saw', freq: hzOfMidi(m + 12), gate, env: { a: 0.004, d: 0.1, s: 0.9, r: 0.06 }, filter: { type: 'lowpass', freq: 900 }, gain: v * 0.18 })]) },
+  'warm-pad': { about: 'soft triangles and a sine: a darker, calmer bed', role: 'pad', play: (m, gate, v) => mixMono([voice({ wave: 'triangle', midi: m, gate, env: { a: 0.5, d: 0.5, s: 0.85, r: 1.0 }, gain: v * 0.6 }), voice({ wave: 'sine', midi: m + 12, gate, env: { a: 0.6, d: 0.5, s: 0.7, r: 1.0 }, gain: v * 0.2 })]) },
+  'saw-bass': { about: 'a filtered saw bass with a pluck on the filter', role: 'bass', play: (m, gate, v) => voice({ wave: 'saw', midi: m, gate, env: { a: 0.003, d: 0.25, s: 0.7, r: 0.05 }, filter: { type: 'lowpass', freq: 1800, to: 420, time: 0.18, q: 1.1 }, gain: v }) },
+  'square-bass': { about: 'a square bass: chiptune', role: 'bass', play: (m, gate, v) => voice({ wave: 'square', midi: m, gate, env: { a: 0.002, d: 0.1, s: 0.8, r: 0.04 }, filter: { type: 'lowpass', freq: 1400 }, gain: v * 0.8 }) },
+  'triangle-bass': { about: 'a triangle bass: the 8-bit console bass', role: 'bass', play: (m, gate, v) => voice({ wave: 'triangle', midi: m, gate, env: { a: 0.002, d: 0.05, s: 0.95, r: 0.03 }, gain: v }) },
+  'sub-bass': { about: 'a sine sub with a little edge (phones need the edge to hear it)', role: 'bass', play: (m, gate, v) => mixMono([voice({ wave: 'sine', midi: m, gate, env: { a: 0.004, d: 0.1, s: 0.9, r: 0.06 }, gain: v }), voice({ wave: 'saw', midi: m + 12, gate, env: { a: 0.004, d: 0.1, s: 0.9, r: 0.06 }, filter: { type: 'lowpass', freq: 900 }, gain: v * 0.18 })]) },
   kit: { about: 'synthesized drums (kick, snare, clap, hats, toms)', role: 'drums' },
   'chip-kit': { about: 'crunchy 8-bit drums', role: 'drums' },
 };
@@ -247,8 +251,13 @@ export function normalise(score) {
 /**
  * Render a list of section names (an arrangement) to stems and a mix.
  * Returns { stems: { name: stereo }, mix: stereo, grid }.
+ * `sameSeeds` gives every section in the list the same drum noise (by default each place in the arrangement
+ * has its own, so a repeat is not a photocopy): a loop is cut from three copies that must be the same copy.
+ * `period` (seconds) starts each section in the list exactly that far after the one before, instead of on its
+ * bar line: a loop is a whole number of samples, and at a tempo whose bar is not (140 bpm: 82285.71 samples) the
+ * third copy would otherwise start a fraction of a sample away from where the cut expects it.
  */
-export function render(scoreIn, { sections: order = null, tail = 2.5 } = {}) {
+export function render(scoreIn, { sections: order = null, tail = 2.5, sameSeeds = false, period = null } = {}) {
   const s = normalise(scoreIn);
   const list = order ?? s.arrangement;
   const beat = 60 / s.bpm;
@@ -265,7 +274,7 @@ export function render(scoreIn, { sections: order = null, tail = 2.5 } = {}) {
   let bar0 = 0;
   for (const [si, name] of list.entries()) {
     const sec = byName[name];
-    const t0 = bar0 * barSeconds;
+    const t0 = period !== null ? si * period : bar0 * barSeconds;
     grid.sections.push({ name, bar: bar0, at: +t0.toFixed(6), bars: sec.bars });
     const cbars = chordBars(sec.chords, sec.bars, s.beatsPerBar);
     for (const [inst, pat] of Object.entries(sec.play ?? {})) {
@@ -277,7 +286,7 @@ export function render(scoreIn, { sections: order = null, tail = 2.5 } = {}) {
         for (const h of hits) {
           const at = t0 + h.step * step + swingAt(h.step);
           const kind = h.drum === 'tom' ? 'tom' : h.drum;
-          let buf = drum(kind, { gain: vel(h.accent), seed: 7 + si * 131 + h.step, tone: ins.tone ?? 0 });
+          let buf = drum(kind, { gain: vel(h.accent), seed: 7 + (sameSeeds ? 0 : si) * 131 + h.step, tone: ins.tone ?? 0 });
           if (ins.preset === 'chip-kit') { for (let i = 0, held = 0; i < buf.length; i++) { if (i % 3 === 0) held = Math.round(buf[i] * 16) / 16; buf[i] = held; } }
           const pan = { hat: 0.25, openhat: 0.25, shaker: -0.3, tom: -0.2, rim: 0.2 }[kind] ?? 0;
           addInto(stems[inst], buf, { at, pan });
@@ -343,30 +352,58 @@ export function render(scoreIn, { sections: order = null, tail = 2.5 } = {}) {
 
 /**
  * One section as a seamless loop: rendered three times in a row, the middle copy kept, so whatever rings over
- * from the copy before it is already in its head. Returns { mix, stems, seconds }.
+ * from the copy before it is already in its head. Returns { mix, stems, seconds, bars, seam }.
+ *
+ * `gain` and `ceilingDb` are the master's: the level and the limiter are applied HERE, across all three copies,
+ * and then the middle is cut. A limiter run over the cut loop alone starts at full gain on its first sample and
+ * ends wherever the last bar left it, and that step of gain at the wrap is a click the unlimited loop never had
+ * (measured: loops with a seam of 0.1 came out at 2 to 15 once limited that way).
+ *
+ * `seam` is measured against the truth this render has and a finished file does not: the sample the music
+ * really played next (the first sample of the third copy). See seamRatio.
  */
-export function loop(scoreIn, name) {
+export function loop(scoreIn, name, { gain = 1, ceilingDb = null } = {}) {
   const s = normalise(scoreIn);
   const sec = s.sections.find((x) => x.name === name);
   if (!sec) throw new Error(`no section "${name}" to loop`);
-  const r = render(s, { sections: [name, name, name], tail: 0 });
   const barSeconds = (60 / s.bpm) * s.beatsPerBar;
   const n = Math.round(sec.bars * barSeconds * RATE);
+  const r = render(s, { sections: [name, name, name], tail: 0, sameSeeds: true, period: n / RATE });
   const from = n;
+  if (gain !== 1) for (const ch of [r.mix.L, r.mix.R]) for (let i = 0; i < ch.length; i++) ch[i] *= gain;
+  if (ceilingDb !== null) limit(r.mix, { ceiling: dbToGain(ceilingDb), releaseMs: 150 });
   const cut = (b) => ({ L: b.L.slice(from, from + n), R: b.R.slice(from, from + n) });
   const stems = Object.fromEntries(Object.entries(r.stems).map(([k, v]) => [k, cut(v)]));
-  return { mix: cut(r.mix), stems, seconds: n / RATE, bars: sec.bars };
+  const mix = cut(r.mix);
+  const next = from + n < r.mix.L.length ? { L: r.mix.L[from + n], R: r.mix.R[from + n] } : null;
+  return { mix, stems, seconds: n / RATE, bars: sec.bars, seam: seamRatio(mix, next) };
 }
 
-/** How big the jump is where a loop wraps, against the music's own sample-to-sample steps (1 or less is seamless). */
-export function seamRatio(buf) {
+/**
+ * How wrong the wrap of a loop is, against the music's own sample-to-sample steps (1 or less is seamless).
+ *
+ * With `next` (the sample the music played right after the loop's last one, which loop() has), the number is how
+ * far the loop's FIRST sample is from that: 0 means the wrap is exactly what the music did. That is the honest
+ * measure, because a jump at the wrap is often the music's own (a plucked string or a drum starting on the bar
+ * line, the edge of a saw or a square falling on the last sample), and calling that a seam fails good loops.
+ * Without `next` (a loop cut from a finished file) the whole jump across the wrap is all there is to measure.
+ */
+export function seamRatio(buf, next = null) {
   const n = buf.L.length;
   const steps = [];
   for (let i = 1; i < n; i += 97) steps.push(Math.abs(buf.L[i] - buf.L[i - 1]) + Math.abs(buf.R[i] - buf.R[i - 1]));
   steps.sort((a, b) => a - b);
   const typical = steps[Math.floor(steps.length * 0.95)] || 1e-6;
-  const jump = Math.abs(buf.L[0] - buf.L[n - 1]) + Math.abs(buf.R[0] - buf.R[n - 1]);
+  const to = next ?? { L: buf.L[n - 1], R: buf.R[n - 1] };
+  const jump = Math.abs(buf.L[0] - to.L) + Math.abs(buf.R[0] - to.R);
   return +(jump / typical).toFixed(3);
+}
+
+/** The seam a loop may have and still be called seamless, and the sentence for one that is over it. */
+export const SEAM_LIMIT = 1;
+export function seamWarning(section, seam) {
+  if (!(seam > SEAM_LIMIT)) return null;
+  return `loop "${section}": seam ${seam} is over ${SEAM_LIMIT}: the wrap will click or bump every time it comes round. Do not ship this loop as it is: something in the section does not repeat (a note or an echo longer than the section, a pattern that does not fill its bars); shorten it or make the section longer`;
 }
 
 /** Master: limit the peaks of a mix (the loudness target is applied by the caller with ffmpeg's measure). */

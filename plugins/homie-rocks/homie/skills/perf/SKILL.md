@@ -1,14 +1,13 @@
 ---
 name: perf
-description: Make a studio's game run faster with a measured loop, and keep only what really helped. Measure a baseline on a computer and an emulated phone in real Chrome on the GPU (frame times p50/p95/long frames, the game's JavaScript and the main thread per frame, time to the first meaningful frame, to the game's first frame and to playable, what it downloads, the heap, netplay messages a second, the host against a replica), profile it to name the hot functions and the biggest files, then try one small change at a time, each measured against the build to beat in alternating runs and kept only when it is better beyond the noise, nothing guarded got worse and the two-browser check still passes; anything else is reverted. Ends with a report in the studio's perf/ folder. Use when someone asks to make a game faster, smoother or lighter, to find out why it stutters, lags, loads slowly or drains a phone, to tune particles, shadows, lighting or bots for frame rate, or to run a performance or optimisation pass overnight.
+description: Make a studio's game faster with a measured loop in real GPU Chrome on a computer and an emulated phone. Measure frame times, startup, downloads, memory and netplay for both server-room replicas or a browser-host pair. Profile hot functions, try one small change, compare alternating runs, and keep it only when the improvement exceeds noise, guarded measures hold and the two-browser check passes. Write the report in perf/. Use for stutter, lag, slow loading, phone drain, rendering costs or an overnight performance pass.
 ---
 
 # Make a game faster, honestly
 
 The question is never "does it feel faster". It is: **is this build measurably better than the one before it, beyond
 the noise, without looking or playing any differently, and does it still work?** Every number here comes from a real
-Chrome on this computer's GPU, two browsers in a room (the host runs the rules and the bots, the replica draws from
-snapshots), playing the same seeded presses every run.
+Chrome on this computer's GPU, two browsers in a room playing the same seeded presses every run. New games use server rules by default. When the server hosts the rules, both browsers are replicas (`replica` and `replica-2`); reports and regression guards include both, and the default goal uses `replica` instead of `host`. An explicit `--goal` keeps the role you name.
 
 One script: `scripts/perf.mjs` in this skill's folder (Claude Code:
 `node "${CLAUDE_PLUGIN_ROOT}/skills/perf/scripts/perf.mjs" <command>`), run from inside the studio. It drives the
@@ -34,24 +33,26 @@ opens at most two browsers at a time, all muted, and writes everything it measur
 ## 1. The baseline
 
 ```sh
-node <perf.mjs> baseline <game> --url http://127.0.0.1:8787 [--goal phone.host.frame.p95] [--runs 6] [--seconds 15]
+node <perf.mjs> baseline <game> --url http://127.0.0.1:8787 [--goal phone.replica.frame.p95] [--runs 6] [--seconds 15]
 ```
 
 It builds the game keeping its source map (never shipped), runs the two-browser check (it must pass: a game that does
 not work is not made faster), measures `--runs` runs per device, profiles one run per device, and writes `BASELINE.md`
 in the loop's folder: every number with its run-to-run spread, the load during each run, the hottest functions (read
-through the source map: `draw (src/main.ts:620)`, not `Xe`), what a player downloads, and **what to try first**,
+through the source map: `draw (src/view.ts:620)`, not `Xe`), what a player downloads, and **what to try first**,
 each hint naming the number it read. Ten to fifteen minutes; poll its output, never end your turn while it runs.
 
 **The goal** is one metric, lower is better (`perf.mjs goals` lists them):
 
 | the person said | goal |
 | --- | --- |
-| "it stutters on my phone", "make it smoother" | `phone.host.frame.p95` (and `frame.over50`: hitches) |
-| "it runs fine but my phone gets hot", frames already at 16.7 ms | `phone.host.busy` (main thread per frame) |
-| "it takes ages to load" | `phone.host.load.playable` (4G, slow CPU) or `bytes.jsGzip` |
-| "it opens on a blank screen" | `phone.host.load.look` (the first meaningful frame: the play page's arrival card, 0.26.0) |
-| "it lags when lots of people play" | `phone.host.busy` (the host runs the rules) or `phone.host.net.kbOut` (its upload) |
+| "it stutters on my phone", "make it smoother" | `phone.replica.frame.p95` (and `frame.over50`: hitches) |
+| "it runs fine but my phone gets hot", frames already at 16.7 ms | `phone.replica.busy` (main thread per frame) |
+| "it takes ages to load" | `phone.replica.load.playable` (4G, slow CPU), `phone.replica.load.prePlayKb` (what was really fetched before play) or `bytes.jsGzip` |
+| "is the scene too heavy for a phone" | `phone.replica.render.calls` / `render.triangles` (the renderer's own counters while playing, when the game exposes them) |
+| "I can move before my character has loaded", "it shows too early" | `phone.replica.load.ready` (the game's own `net.playable()`) against `load.playable` (control-ready); the headline says the arrival mode, and "ready … after the cover had lifted" means the game should declare `arrival: 'game'` |
+| "it opens on a blank screen" | `phone.replica.load.look` (the first meaningful frame: the play page's arrival card, 0.26.0) |
+| "it lags when lots of people play" | `phone.replica.busy` and `phone.replica.net.kbOut` measure the browser, not server CPU; use rules build budget diagnostics for server work |
 
 Read BASELINE.md before choosing. **If frames already keep pace with the display (p95 about 16.7 ms), a faster frame
 cannot show on this profile**: aim at `busy` (CPU per frame is battery and headroom on a slower phone), or measure a
@@ -138,3 +139,22 @@ plainly when nothing was kept: "nothing I tried was faster beyond the noise" is 
   phone's frame rate, try one (or the iOS Simulator).
 - Never run more browsers beside a loop, and never trust numbers taken while the computer was busy: rerun them.
 - Never leave a room open on a live site: measure against `npm run dev`; each run opens a fresh room of its own.
+
+## Measured, not estimated
+
+Two numbers here are easy to confuse with ones that come from the game's files, and they are not the same thing:
+
+- **First-play traffic** (`load.prePlayKb`, and "Fetched before playable" in the reports): every request the browser
+  made up to the moment the game was playable, on the wire, one run on one device. The shipped payload (`bytes.*`,
+  `perf sizes`, the asset check's download figure) totals the built folder, which also holds files the game never
+  asks for and music it streams later. A run that never became playable has no pre-play number at all.
+- **Runtime scene cost** (`render.calls`, `render.triangles`): the renderer's counters while the game is played, read
+  from the port probe when the game exposes them: `exposePort(net, { extra: { drawCalls: () =>
+  renderer.info.render.calls, triangles: () => renderer.info.render.triangles } })`. They include procedural geometry,
+  repeated characters, effects and shadow passes, which an inventory estimate from the asset manifest does not. A
+  game that exposes neither has no such metric: "not measured", never zero.
+
+An address this computer's Node.js cannot look up (a browser on the same computer may still open it) stops the loop
+as BLOCKED, "network preflight failed, before any page or game was opened": measure against the local site
+instead. It is never reported as the game or the site failing. `check`, `perf`, `shoot`, `port check`, the
+playtest and a deploy's read-back all say it in these words.

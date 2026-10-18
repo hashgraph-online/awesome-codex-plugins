@@ -4,7 +4,7 @@ description: Generate, edit, and retrieve images, video, and audio with Magic Ho
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.5.0"
+  version: "1.6.0"
 ---
 
 # Magic Hour media
@@ -37,7 +37,8 @@ Use live tool schemas, or the [API documentation index](https://docs.magichour.a
 | Generate video from a text description              | `text_to_video_create_video`                               | `wait_for_video_project`       |
 | Match an existing video's mouth movement to audio   | `lip_sync_create_video`                                    | `wait_for_video_project`       |
 | Animate a portrait using supplied speech            | `ai_talking_photo_create_talking_photo`                    | `wait_for_video_project`       |
-| Generate speech from text                           | `ai_voice_generator_create_audio`                          | `wait_for_audio_project`       |
+| Generate speech from text                           | Voice Generator MCP tool when exposed, otherwise API      | `wait_for_audio_project`       |
+| Read new text in an authorized sample voice          | Voice Cloner API or matching exposed MCP tool              | `wait_for_audio_project`       |
 | Create visuals from a supplied soundtrack           | `audio_to_video_create_video`                              | `wait_for_video_project`       |
 | Evolving visuals with audio-sync camera effects     | `animation_create_video`                                   | `wait_for_video_project`       |
 | Replace a face or body in a still photo             | `face_swap_photo_create_image` or `body_swap_create_image` | `wait_for_image_project`       |
@@ -47,11 +48,21 @@ Use live tool schemas, or the [API documentation index](https://docs.magichour.a
 | Exact headline, crop, trim or assembled layout      | Available local editor/compositor                          | Inspect the exported file      |
 | Retrieve a known project                            | No new creation call                                       | Matching wait or retrieve tool |
 
-Tool names can have a client-specific prefix. Discover their current input schemas before calling them.
+Tool names can have a client-specific prefix. Discover which tools are actually exposed and their current input schemas before calling them. For API operations absent from this client's MCP, use the existing authenticated API route in `references/setup.md`, or explain the exact missing access. Do not invent a tool name.
+
+Speech routes are `POST /v1/ai-voice-generator` for a supported preset and `POST /v1/ai-voice-cloner` for new text from an authorized audio sample. Read the live schema; cloning uses `assets.audio_file_path` and `style.prompt`, not a saved-item ID as `voice_name`. Review the generated speech before animation.
 
 For full-person photo placement, distinguish Body Swap's `person_file_path` and `scene_file_path` from face-only replacement. For Video-to-Video, a custom prompt is ignored under the default prompt mode. Music Video Generator's web scene-assembly workflow, Video Extender and Video Upscaler have no equivalent dedicated endpoints in the public schema as checked September 11, 2026. Recheck support; when still absent, prepare the accepted inputs and direct web handoff instead of inventing tools. The [complete use-case map](https://github.com/magichourhq/skills/blob/main/docs/use-cases.md) links those workflows.
 
 When installed, use `ai-video-generation` for a broad video request, `creator-video-remix` for a supplied reference format and `ai-media-quality-review` before final delivery. Use the other focused skill for image-to-video, face/body swap, text-to-video, image editing, talking video, character replace, music video, existing-video editing, product visuals, campaign kits, character consistency or thumbnails. Distinguish face-only identity changes from whole-character replacement, and a portrait's new speech from an existing video's performance. Do not require the user to memorize a skill name or install a companion just to finish a supported task. Reuse the current connection, project brief and accepted media; only ask for missing information that changes the output or authorization.
+
+## Reuse saved media
+
+When the user names a saved character, reference, voice, moodboard or brand kit, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with the matching `type` before requesting another upload or recreating it. Match the returned name; follow `next_cursor` only while the requested item remains missing or ambiguous. Ask which item when several match. Preserve an explicitly supplied reference over an inferred library choice.
+
+Select assets by `media_kind` and `is_primary`, inspect their temporary preview URLs, and pass the durable `file_path` directly to compatible asset fields. An item ID is not an image path or voice preset. A saved voice recording is an input sample for the supported Voice Cloner route when new speech is requested, not a preset or an already completed take. A brand kit's images do not establish exact colors, fonts or editable logo sources.
+
+Retain the chosen item ID and asset path in private continuation notes, not expiring preview URLs. If the tool is unavailable or the item cannot be found, ask only for the needed accessible source; do not claim the web library is inaccessible without checking.
 
 ## Set the quality target
 
@@ -70,7 +81,9 @@ Write a concrete prompt in natural language. Describe the subject and action fir
 
 ## Create within the authorized scope
 
-Generation spends credits. Use `account_retrieve` when balance or tier affects feasibility; its result contains private account data, so report only the relevant balance or eligibility. Select supported parameters from the current schema. Prefer one output for an initial asset unless the user requests a batch. An authorized generation does not authorize buying credits, upgrading a plan, or running an unrequested batch.
+Generation spends credits. Use `account_retrieve` when balance or tier affects feasibility; its result contains private account data, so report only the relevant balance or eligibility. Check eligibility for both selected settings and endpoint defaults; credits do not unlock paid-only models. Omit optional fields only when their defaults suit this account. For example, current Image Editor guidance distinguishes its paid-only default from explicitly selected Free-compatible settings; read that guidance rather than assuming omission chooses an eligible model. Preserve requested quality and model choices. After a tier restriction, do not repeat the unchanged request or remove fields blindly: choose an explicitly supported combination when already delegated, otherwise explain the restriction and ask before changing a requirement.
+
+Select supported parameters from the current schema. Prefer one output for an initial asset unless the user requests a batch. An authorized generation does not authorize buying credits, upgrading a plan, or running an unrequested batch.
 
 For face and voice inputs, use material the user is entitled to use and follow the host's applicable safety rules. Do not imply ownership or consent from a public URL alone.
 

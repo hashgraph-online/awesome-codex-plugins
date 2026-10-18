@@ -8,10 +8,12 @@ import { WorkflowRuntime, resolvedSubagentPlan } from '../lib/workflow-runtime.m
 import { createDraft } from '../lib/workflow-schema.mjs';
 import { canonicalJSON, digest } from '../lib/workflow-revisions.mjs';
 import { decodeEvents } from '../lib/workflow-events.mjs';
-import { compilePrompt } from '../lib/workflow-executor.mjs';
+import { compilePrompt, WorkflowExecutor } from '../lib/workflow-executor.mjs';
 import { createCodexToolBroker } from '../lib/execution/codex-tool-broker.mjs';
 import { WORKSPACE_SOURCE_LOCATIONS, WORKSPACE_SOURCE_LOCATIONS_SCHEMA, WORKSPACE_SOURCE_LOCATION_RULES } from '../lib/workspace-source-locations.mjs';
 import { reattachAttempt } from '../lib/workflow-recovery.mjs';
+import { leaseToken, executionEnvelope } from '../lib/workflow-execution-envelope.mjs';
+import { HostMainManager } from '../lib/execution/host-main-manager.mjs';
 
 const agent = id => ({ id, type: 'agent', executor: { kind: 'provider', provider_id: 'fixture-provider' }, role: 'implementer', access: 'read_only', prompt_template: '{{task}}', approval: { required: false }, retry: { max_attempts: 3 }, input_bindings: {} });
 const edge = (source, target, label) => ({ id: source + '-' + target, source, target, ...(label ? { label } : {}) });
@@ -37,6 +39,46 @@ async function fixture(t, workflow = definition(), options = {}) {
   return { root, workspace, store, runtime, runtimeOptions, start: extra => runtime.start({ workflow_id: workflow.id, workspace, access: 'read_only', main_actor: 'root', ...extra }) };
 }
 const payload = (output = {}, extra = {}) => ({ status: 'succeeded', summary: 'Verified by synthetic executor', structured_output: output, artifacts: [], evidence: [{ check: 'fake executor', passed: true }], changed_paths: [], outside_paths: [], ...extra });
+
+test('startup rejects missing initially ready bindings before publishing a Run', async t => {
+  const workflow = definition();
+  workflow.inputs_schema = { type: 'object', properties: { repository: { type: 'string' }, request: { type: 'string' } } };
+  workflow.nodes.find(node => node.id === 'work').input_bindings = { repository: '/inputs/repository', request: '/inputs/request' };
+  const f = await fixture(t, workflow);
+  const run_id = '00000000-0000-4000-8000-000000000001';
+  await assert.rejects(f.start({ run_id, inputs: { task: 'Missing declared business inputs' } }), { code: 'BINDING_MISSING' });
+  await assert.rejects(readFile(join(f.runtime.runs.directory(run_id), 'events.jsonl')), { code: 'ENOENT' });
+  assert.deepEqual(await f.runtime.runs.list(), []);
+  const corrected = await f.start({ run_id, inputs: { repository: 'fixture-repository', request: 'Inspect it' } });
+  assert.equal(corrected.nodes.work.status, 'ready');
+  assert.equal(Object.values(corrected.nodes).flatMap(node => node.attempts).length, 0);
+  assert.deepEqual(corrected.cost_ledger.calls, []);
+});
+
+test('startup binding preflight follows the selected branch and preserves defaults, coalesce and future outputs', async t => {
+  const workflow = definition('condition');
+  workflow.nodes.find(node => node.id === 'a').input_bindings = {
+    repository: { coalesce: ['/inputs/preferred_repository', '/inputs/repository'] },
+    request: { path: '/inputs/request', default: 'Inspect the repository' },
+  };
+  workflow.nodes.find(node => node.id === 'b').input_bindings = { unselected: '/inputs/not_supplied' };
+  workflow.nodes.find(node => node.id === 'final').input_bindings = { result: { coalesce: ['/nodes/b/output/result', '/nodes/a/output/result'] } };
+  const f = await fixture(t, workflow);
+  const run = await f.start({ inputs: { choice: true, repository: 'fixture-repository' } });
+  assert.equal(run.nodes.a.status, 'ready');assert.equal(run.nodes.b.status, 'skipped');assert.equal(run.nodes.final.status, 'pending');
+  const lease = await claim(f, run, 'a');
+  const envelope = await f.runtime.execution(run.run_id, { control_token: run.control_token, node_id: 'a', attempt_id: lease.attempt_id, lease_token: lease.lease_token });
+  assert.deepEqual({ ...envelope.inputs }, { repository: 'fixture-repository', request: 'Inspect the repository' });
+});
+
+test('startup binding preflight checks every initially ready parallel branch', async t => {
+  const workflow = definition('parallel');
+  workflow.nodes.find(node => node.id === 'a').input_bindings = { repository: '/inputs/repository' };
+  workflow.nodes.find(node => node.id === 'b').input_bindings = { request: '/inputs/request' };
+  const f = await fixture(t, workflow);
+  await assert.rejects(f.start({ inputs: { repository: 'fixture-repository' } }), error => error.code === 'BINDING_MISSING' && /request/.test(error.message));
+  assert.deepEqual(await f.runtime.runs.list(), []);
+});
 
 async function hostReceiptFixture(t) {
   const output = { ok: true }, contract = {
@@ -320,6 +362,56 @@ test('task dependencies reach the executor without a host inventory launch gate'
   assert.match(envelope.prompt_template,/python/);assert.match(envelope.prompt_template,/VIDEO_TOOL_HOME/);
   assert.match(envelope.prompt_template,/Report unresolved dependencies with command\/error evidence/);
 });
+
+test('Host-prepared worker Main keeps executable aliases and environment requirements without manual PATH framing', async t => {
+  const workflow = definition(), node = workflow.nodes.find(node => node.id === 'work');
+  node.executor = { kind: 'main' };
+  workflow.requirements.executables = ['node', 'fixture-alias']; workflow.requirements.environment = ['FIXTURE_TOOL_HOME'];
+  const f = await fixture(t, workflow, {
+    environmentResolver: async () => ({ status: 'ready', tools: ['node', 'fixture-alias'].map(name => ({ name, status: 'found', path: process.execPath })), missing: [] }),
+  });
+  const run = await f.start(), envelope = await claim(f, run, 'work');
+  assert.match(envelope.prompt_template, /Dependencies: \{"executables":\[\],"environment":\["FIXTURE_TOOL_HOME"\]\}/);
+  assert.match(envelope.prompt_template, /Report unresolved dependencies with command\/error evidence/);
+  assert.doesNotMatch(envelope.prompt_template, /process-local PATH/);
+  assert.match(envelope.prompt_template, /Run executables: /);
+  assert(envelope.prompt_template.includes(JSON.stringify(process.execPath))); assert.match(envelope.prompt_template, /fixture-alias/);
+  const withoutEnvironment = structuredClone(workflow); withoutEnvironment.requirements.environment = [];
+  const record = await f.runtime.runs.read(run.run_id), attempt = record.state.nodes.work.attempts[0];
+  const rendered = executionEnvelope(node, record.state, { ...record.pins, root: { ...record.pins.root, workflow: withoutEnvironment } }, attempt, envelope.lease_token);
+  assert.doesNotMatch(rendered.prompt_template, /Dependencies:|Report unresolved dependencies|process-local PATH/);
+});
+
+test('dependency framing remains for other executors and missing or incomplete Main environments', async t => {
+  const workflow = definition(); workflow.requirements.executables = ['node']; workflow.requirements.environment = ['FIXTURE_TOOL_HOME'];
+  const f = await fixture(t, workflow), run = await f.start(), envelope = await claim(f, run, 'work');
+  const record = await f.runtime.runs.read(run.run_id), original = record.pins.root.workflow.nodes.find(node => node.id === 'work'), attempt = record.state.nodes.work.attempts[0];
+  const ready = { status: 'ready', tools: [{ name: 'node', status: 'found', path: process.execPath }] };
+  const cases = [
+    { executor: original.executor, environment: ready },
+    { executor: { kind: 'thread', provider_id: 'fixture-provider', lifecycle: 'start' }, environment: ready },
+    { executor: { kind: 'main', mode: 'orchestration' }, environment: ready },
+    { executor: { kind: 'main' }, environment: { ...ready, status: 'installation_approval_required' } },
+    { executor: { kind: 'main' }, environment: { status: 'ready', tools: [{ name: 'node', status: 'missing', path: null }] } },
+    { executor: { kind: 'main' }, environment: { status: 'ready', tools: [] } },
+    { executor: { kind: 'main' }, environment: { status: 'ready', tools: [{ name: 'node', status: 'found', path: 'relative-node' }] } },
+    { executor: { kind: 'main' }, environment: null },
+  ];
+  for (const { executor, environment } of cases) {
+    const state = structuredClone(record.state); state.constraints.runtime_environment = environment; delete state.runtime_environment;
+    const rendered = executionEnvelope({ ...original, executor }, state, record.pins, attempt, envelope.lease_token);
+    const hostPrepared = environment?.status === 'ready' && Array.isArray(environment.tools)
+      && environment.tools.some(tool => tool.name === 'node')
+      && environment.tools.every(tool => tool.status === 'found' && typeof tool.path === 'string' && resolve(tool.path) === tool.path);
+    const executableDependencies = hostPrepared ? '[]' : '["node"]';
+    assert.ok(rendered.prompt_template.includes(`Dependencies: {"executables":${executableDependencies},"environment":["FIXTURE_TOOL_HOME"]}`), rendered.prompt_template);
+    assert.match(rendered.prompt_template, /Report unresolved dependencies with command\/error evidence/);
+    if (environment?.tools?.length) {
+      assert.ok(rendered.prompt_template.includes(JSON.stringify(environment.tools)), rendered.prompt_template);
+      assert.match(rendered.prompt_template, /Use these locations and a process-local PATH for helpers/);
+    }
+  }
+});
 const claim = async (f, run, nodeId, extra = {}) => {
   const record = await f.runtime.runs.read(run.run_id);
   const args = { node_id: nodeId, owner: 'root', request_id: 'claim-' + nodeId, control_token: run.control_token, ...extra };
@@ -376,6 +468,162 @@ test('a per-item node retry inherits accepted item results into the new attempt'
   assert.deepEqual(retryAttempt.native_item_results,{0:{agent_id:'first-child',result:'done-a'},2:{agent_id:'third-child',result:'done-c'}});
 });
 const control = run => ({ control_token: run.control_token });
+
+test('authorized execution audits once per operation and keeps the public envelope and lease barriers', async t => {
+  const f = await fixture(t), run = await f.start(), lease = await claim(f, run, 'work');
+  const args = { ...control(run), node_id: 'work', attempt_id: lease.attempt_id, lease_token: lease.lease_token };
+  const expected = await f.runtime.execution(run.run_id, args);
+  const read = f.runtime.runs.read.bind(f.runtime.runs); let reads = 0, selections = 0;
+  f.runtime.runs.read = (...values) => { reads++; return read(...values); };
+  const select = () => { selections++; return args; };
+  const projection = await f.runtime.authorizedExecution(run.run_id, args, select);
+  assert.equal(reads, 1); assert.equal(selections, 2);
+  assert.deepEqual(projection.envelope, expected);
+  assert.equal(projection.record.state.run_id, run.run_id);
+  assert.equal(projection.record.state.nodes.work.active_attempt_id, args.attempt_id);
+  reads = 0;
+  assert.deepEqual(await f.runtime.execution(run.run_id, args), expected); assert.equal(reads, 1);
+  selections = 0;
+  await assert.rejects(f.runtime.authorizedExecution(run.run_id, { control_token: 'wrong' }, select), { code: 'RUN_AUTHORITY' });
+  assert.equal(selections, 0, 'Unauthorized callers must never receive a record in the selector');
+  await assert.rejects(f.runtime.authorizedExecution(run.run_id, args, () => ({ ...args, lease_token: 'wrong' })), { code: 'LEASE_INVALID' });
+  await complete(f, run, lease);
+  await assert.rejects(f.runtime.authorizedExecution(run.run_id, args, select), { code: 'STALE_LEASE' });
+  assert.deepEqual((await f.runtime.authorizedExecution(run.run_id, args, select, { allowInactive: true })).envelope,
+    await f.runtime.execution(run.run_id, args, { allowInactive: true }));
+});
+
+for (const change of ['none', 'authority', 'lease', 'committed pins', 'authority after projection']) test(`Main initial projection uses one audited read and preserves real ${change} barrier`, async t => {
+  const workflow = definition(); workflow.nodes.find(node => node.id === 'work').executor = { kind: 'main' };
+  const f = await fixture(t, workflow), run = await f.start(), lease = await claim(f, run, 'work');
+  const binding = { run_id: run.run_id, ...control(run), node_id: 'work', attempt_id: lease.attempt_id, lease_token: lease.lease_token };
+  const revoke = () => f.runtime.runs.mutate(run.run_id, 'runtime_environment_rebound', state => { state.control_hash = digest('new-controller'); });
+  if (change === 'authority') await revoke();
+  if (change === 'lease') await f.runtime.cancel(run.run_id, control(run));
+  if (change === 'committed pins') {
+    const record = await f.runtime.runs.read(run.run_id), pin = record.pins.root.resources[0];
+    await writeFile(join(f.runtime.runs.directory(run.run_id), 'pins.json'), '{}');
+  }
+  let reads = 0, configurations = 0; const read = f.runtime.runs.read.bind(f.runtime.runs);
+  f.runtime.runs.read = (...args) => { reads++; return read(...args); };
+  const marker = new Error('stop after projection');
+  const strict = { enabled: true, codex_binary: process.execPath, binary_sha256: 'b'.repeat(64), authentication: { mode: 'managed_chatgpt', api_key_env: '' },
+    main_model: 'fixture', main_reasoning_effort: 'high', inactivity_timeout_ms: 0 };
+  const manager = new HostMainManager({register:async({config})=>config, configPath: join(f.root, 'control-plane.json'), env: {},
+    getConfig: async () => {
+      configurations++; assert.equal(reads, 1, 'The initial node metadata and execution envelope share one complete read');
+      if (change !== 'authority after projection') throw marker;
+      await revoke(); return { global: { enabled: true }, strict_executor: strict, providers: [] };
+    }, qualify: async () => strict, sessionFactory: async () => assert.fail('No model session may start in this test') });
+  t.after(() => manager.close());
+  await assert.rejects(manager.executeNode({ runtime: f.runtime, runId: run.run_id, status: 'running', stopping: false },
+    { host_binding: binding, agent_packet: { prompt: 'fixture' } }), error => change === 'none' ? error === marker
+      : error.code === (change.startsWith('authority') ? 'RUN_AUTHORITY' : change === 'lease' ? 'STALE_LEASE' : 'RUN_PINS_CORRUPT'));
+  assert.equal(configurations, change === 'none' || change === 'authority after projection' ? 1 : 0);
+  assert.equal(reads, change === 'authority after projection' ? 3 : 1,
+    'Post-projection revocation includes its injected mutation verification and the fresh execution read');
+});
+
+test('bounded raw census and startup phase evidence persist through the existing journal schema and reopen', async t => {
+  const f = await fixture(t), run = await f.start(), work = await claim(f, run, 'work');
+  const binding = { node_id: work.node_id, attempt_id: work.attempt_id, lease_token: work.lease_token, ...control(run) };
+  const events = [
+    { kind: 'codex_event', metadata: { method: 'workflow/rawObservation', thread_id: 'owned-thread', turn_id: 'owned-turn', status: 'turn_summary',
+      diagnostic: canonicalJSON({ supported: true, item_type_counts: { function_call: 2, reasoning: 1 }, response_completion_count: 1,
+        identity_census_complete: true, identity_limit: 4096, unretained_item_notifications: 0,
+        unretained_response_notifications: 0, counter_saturated: false,
+        unobserved_item_notifications: 0, unattributed_item_notifications: 0, first_observation_ms: 2, last_observation_ms: 5 }) } },
+    { kind: 'session_state', metadata: { status: 'running', diagnostic: canonicalJSON({ startup_phase_ms: {
+      authorized_execution: 1, materialization: 2, snapshot: 3, receipt_commit: 1 } }) } },
+  ];
+  for (const event of events) await f.runtime.recordExecutorEvent(run.run_id, { ...binding, event });
+  const reopened = await new WorkflowRuntime(f.runtimeOptions).initialize();
+  assert.deepEqual((await reopened.get(run.run_id)).nodes.work.attempts[0].executor_events, events.map((event, index) => ({ ...event, sequence: index + 1 })));
+});
+
+test('authorized execution checks fresh metadata; explicit audit checks unconsumed pinned content', async t => {
+  const f = await fixture(t), run = await f.start(), lease = await claim(f, run, 'work');
+  const args = { ...control(run), node_id: 'work', attempt_id: lease.attempt_id, lease_token: lease.lease_token };
+  const first = await f.runtime.authorizedExecution(run.run_id, args, () => args);
+  assert.deepEqual(first.envelope.resources, []);
+  const pin = first.record.pins.root.resources.find(resource => resource.path === 'instructions/task.md');
+  await writeFile(join(f.runtime.runs.directory(run.run_id), 'objects', pin.sha256), 'modified committed pins');
+  await f.runtime.authorizedExecution(run.run_id, args, () => args);
+  await assert.rejects(f.runtime.runs.audit(run.run_id), { code: 'RUN_RESOURCE_CORRUPT' });
+});
+
+test('authorized execution preserves paused and cancelled Run barriers', async t => {
+  const f = await fixture(t), run = await f.start(), lease = await claim(f, run, 'work');
+  const args = { ...control(run), node_id: 'work', attempt_id: lease.attempt_id, lease_token: lease.lease_token };
+  await f.runtime.pause(run.run_id, control(run));
+  await assert.rejects(f.runtime.authorizedExecution(run.run_id, args, () => args), { code: 'RUN_NOT_RUNNING' });
+  assert.equal((await f.runtime.authorizedExecution(run.run_id, args, () => args, { allowPaused: true })).record.state.status, 'paused');
+  await f.runtime.cancel(run.run_id, control(run));
+  await assert.rejects(f.runtime.authorizedExecution(run.run_id, args, () => args), { code: 'STALE_LEASE' });
+});
+
+test('Host tool receipt reconciliation reads one authorized projection before its unchanged commit', async t => {
+  const f = await hostReceiptFixture(t);
+  await f.runtime.recordHostToolReceipt(f.run.run_id, { ...f.args, receipt: f.receipt });
+  const read = f.runtime.runs.read.bind(f.runtime.runs), observe=f.runtime.runs.observe.bind(f.runtime.runs); let reads = 0,observations=0;
+  f.runtime.runs.read = (...values) => { reads++; return read(...values); };
+  f.runtime.runs.observe = (...values) => { observations++; return observe(...values); };
+  const completeNode = f.runtime.completeNode.bind(f.runtime);
+  f.runtime.completeNode = (...values) => {
+    assert.equal(reads, 1, 'Only the authorized projection precedes the locked acceptance transaction');
+    assert.equal(observations, 1, 'Cancellation uses strict lock-free lifecycle observation');
+    return completeNode(...values);
+  };
+  const executor = new WorkflowExecutor({ runtime: f.runtime, hostToolRunner: { execute: () => assert.fail('A committed receipt must never rerun effects') } });
+  const result = await executor.executeHostTool(f.run.run_id, f.args);
+  assert.equal(result.nodes.work.status, 'succeeded');
+});
+
+for (const change of ['environment', 'lease', 'authority', 'cancel', 'committed pins']) test(`authorized execution rechecks metadata after actual dependency verification changes ${change}`, async t => {
+  const workflow = definition(); workflow.nodes.find(node => node.id === 'work').runtime_requirements = { executables: ['node'] };
+  const f = await fixture(t, workflow, {
+    environmentResolver: async requirements => ({ status: 'ready', tools: requirements.executables.map(tool => ({ name: tool.name, status: 'found', path: process.execPath })), missing: [] }),
+    environmentVerifier: async (_requirements, environment) => {
+      if (!environment) throw Object.assign(new Error('Scoped binding needs preparation'), { code: 'ENVIRONMENT_BINDING_STALE' });
+    },
+  });
+  const run = await f.start(), lease = await claim(f, run, 'work');
+  const args = { ...control(run), node_id: 'work', attempt_id: lease.attempt_id, lease_token: lease.lease_token };
+  let selections = 0, preparations = 0, discoveries = 0;
+  const resolveEnvironment = f.runtime.environmentResolver;
+  f.runtime.environmentResolver = async (...args) => { discoveries++; return resolveEnvironment(...args); };
+  const select = record => {
+    selections++;
+    const node = record.state.nodes.work, attempt = node.attempts.find(item => item.id === node.active_attempt_id);
+    return { ...args, attempt_id: attempt.id, lease_token: leaseToken(run.control_token, run.run_id, 'work', attempt.id, attempt.lease_generation ?? 0) };
+  };
+  f.runtime.environmentVerifier = async () => {
+    preparations++; const id = run.run_id;
+    if (change === 'cancel') return f.runtime.cancel(id, control(run));
+    if (change === 'committed pins') {
+      const record = await f.runtime.runs.read(id), pin = record.pins.root.resources.find(resource => resource.path === 'instructions/task.md');
+      await writeFile(join(f.runtime.runs.directory(id), 'pins.json'), '{}'); return;
+    }
+    return f.runtime.runs.mutate(id, 'runtime_environment_rebound', state => {
+      if (change === 'environment') state.nodes.work.runtime_environment_binding.environment.tools.find(tool => tool.name === 'node').path += '.changed';
+      if (change === 'authority') state.control_hash = digest('revoked-controller');
+      if (change === 'lease') {
+        const attempt = state.nodes.work.attempts.find(item => item.id === args.attempt_id);
+        attempt.lease_generation = (attempt.lease_generation ?? 0) + 1;
+        attempt.lease_hash = digest(leaseToken(run.control_token, id, 'work', args.attempt_id, attempt.lease_generation));
+      }
+    });
+  };
+  const expectedCode = { environment: 'ENVIRONMENT_BINDING_STALE', lease: 'LEASE_INVALID', authority: 'RUN_AUTHORITY', cancel: 'RUN_NOT_RUNNING', 'committed pins': 'RUN_PINS_CORRUPT' }[change];
+  await assert.rejects(f.runtime.authorizedExecution(run.run_id, args, select), { code: expectedCode });
+  assert.equal(preparations, 1);
+  assert.equal(discoveries, 0, 'A stale authority or environment must fail before dependency rediscovery');
+  assert.equal(selections, 1, 'Invalidated authority fails before a refreshed selection or executable projection');
+  if (['environment', 'lease', 'cancel'].includes(change)) {
+    const after = await f.runtime.runs.read(run.run_id);
+    assert.equal(after.state.nodes.work.attempts[0].dispatch, null, 'The rejected authorization must not create executor effects');
+  }
+});
 
 test('a required boolean validation result fails at the Host boundary',async t=>{
   const workflow=definition(),work=workflow.nodes.find(node=>node.id==='work');
@@ -501,6 +749,27 @@ test('concurrent local executors serialize one Run journal across runtime instan
   const events = await other.events(run.run_id, control(run)); assert.equal(events.filter(event => event.kind === 'executor_event').length, 24);
 });
 
+test('turn metering preserves cumulative totals, delta basis and unknown causes in the durable executor journal', async t => {
+  const f = await fixture(t), run = await f.start(), work = await claim(f, run, 'work');
+  const binding = { node_id: work.node_id, attempt_id: work.attempt_id, lease_token: work.lease_token, control_token: run.control_token };
+  const notification = { method: 'thread/tokenUsage/updated', thread_id: 'thread', turn_id: 'turn', usage_available: true,
+    input_tokens: 100, output_tokens: 10, reasoning_output_tokens: 5, cached_input_tokens: 50,
+    total_input_tokens: 300, total_output_tokens: 30, total_reasoning_output_tokens: 15, total_cached_input_tokens: 150, total_cache_write_input_tokens: 2 };
+  const known = { method: 'workflow/turnUsage', thread_id: 'thread', turn_id: 'turn', usage_available: true, usage_basis: 'thread_total_delta', usage_update_count: 3,
+    input_tokens: 200, output_tokens: 20, reasoning_output_tokens: 10, cached_input_tokens: 100, cache_write_input_tokens: 1,
+    usage_baseline_input_tokens: 100, usage_baseline_output_tokens: 10, usage_baseline_reasoning_output_tokens: 5, usage_baseline_cached_input_tokens: 50, usage_baseline_cache_write_input_tokens: 1,
+    usage_total_input_tokens: 300, usage_total_output_tokens: 30, usage_total_reasoning_output_tokens: 15, usage_total_cached_input_tokens: 150, usage_total_cache_write_input_tokens: 2 };
+  const unknown = { method: 'workflow/turnUsage', thread_id: 'thread', turn_id: 'correction', usage_available: false, usage_basis: 'thread_total_delta', usage_update_count: 1, usage_unavailable_reason: 'total_missing', usage_baseline_input_tokens: 300 };
+  for (const metadata of [notification, known, unknown]) await f.runtime.recordExecutorEvent(run.run_id, { ...binding, event: { kind: 'codex_event', metadata } });
+  const reopened = await new WorkflowRuntime(f.runtimeOptions).initialize();
+  const state = await reopened.get(run.run_id);
+  assert.deepEqual(state.nodes.work.attempts[0].executor_events.map(event => event.metadata), [notification, known, unknown]);
+  const record = await reopened.runs.read(run.run_id);
+  const patches = record.events.filter(event => event.kind === 'executor_event').map(event => event.payload.patch.nodes.work.attempts[0].executor_events.at(-1).metadata);
+  assert.deepEqual(patches, [notification, known, unknown]);
+  await assert.rejects(reopened.recordExecutorEvent(run.run_id, { ...binding, event: { kind: 'codex_event', metadata: { ...known, tokenUsage: { secret: 'raw payload' } } } }), { code: 'EXECUTOR_EVENT_SCHEMA' });
+});
+
 test('journal releases sequential nodes, binds leases, rejects conflicting duplicates and requires main acceptance', async t => {
   const f = await fixture(t); const run = await f.start();
   assert.deepEqual((await f.runtime.next(run.run_id)).ready, ['work']);
@@ -583,6 +852,28 @@ test('approval binding, denial/reapproval, human gate and pause do not release u
   assert.equal(approved.nodes.work.status, 'succeeded'); assert.equal(approved.nodes.work.attempts.length, 0);
 });
 
+test('cancel preserves closed executor proof and reconciles historical pending flags without accepting its result',async t=>{
+  const f=await fixture(t),run=await f.start(),work=await claim(f,run,'work');
+  await f.runtime.recordDispatchIntent(run.run_id,{...work,...control(run),request_id:'closed-dispatch',envelope_hash:digest(canonicalJSON(work))});
+  await f.runtime.recordExecutorEvent(run.run_id,{...work,...control(run),event:{kind:'session_state',metadata:{status:'closed'}}});
+  const cancelled=await f.runtime.cancel(run.run_id,control(run));
+  assert.equal(cancelled.nodes.work.status,'cancelled');
+  assert.equal(cancelled.nodes.work.attempts[0].dispatch.cancellation_pending,false);
+  await f.runtime.runs.mutate(run.run_id,'cancel',state=>{state.nodes.work.attempts[0].dispatch.cancellation_pending=true;});
+  const reconciled=await f.runtime.cancel(run.run_id,control(run));
+  assert.equal(reconciled.nodes.work.attempts[0].dispatch.cancellation_pending,false);
+  assert.equal(reconciled.nodes.work.attempts[0].cancellation_reconciliation.kind,'recorded_session_closed');
+  assert.equal(reconciled.status,'cancelled');
+});
+
+test('a later open session keeps cancellation uncertain despite an earlier close',async t=>{
+  const f=await fixture(t),run=await f.start(),work=await claim(f,run,'work');
+  await f.runtime.recordDispatchIntent(run.run_id,{...work,...control(run),request_id:'reopened-dispatch',envelope_hash:digest(canonicalJSON(work))});
+  for(const status of ['closed','running'])await f.runtime.recordExecutorEvent(run.run_id,{...work,...control(run),event:{kind:'session_state',metadata:{status}}});
+  const cancelled=await f.runtime.cancel(run.run_id,control(run));
+  assert.equal(cancelled.nodes.work.attempts[0].dispatch.cancellation_pending,true);
+});
+
 test('restart fences dispatched work; reconciliation required; cancel records pending external cancellation', async t => {
   const f = await fixture(t); const run = await f.start(); const work = await claim(f, run, 'work');
   const dispatch = { ...work, ...control(run), request_id: 'dispatch-1', envelope_hash: digest(canonicalJSON(work)) };
@@ -600,13 +891,31 @@ test('restart fences dispatched work; reconciliation required; cancel records pe
   await assert.rejects(complete(f, run, second), { code: 'STALE_LEASE' });
 });
 
+test('a paused recovered Run can reconcile an unstarted attempt without resuming execution',async t=>{
+  const f=await fixture(t),run=await f.start(),work=await claim(f,run,'work');
+  await f.runtime.recordDispatchIntent(run.run_id,{...work,...control(run),request_id:'unstarted-dispatch',envelope_hash:digest(canonicalJSON(work))});
+  await f.runtime.resume(run.run_id,{...control(run),after_restart:true});
+  await f.runtime.pause(run.run_id,{...control(run),reason:'Recovered controller; repair before resume'});
+  await f.runtime.authorizedRetryRun(run.run_id,{...control(run),node_id:'work'});
+  await assert.rejects(f.runtime.retryNode(run.run_id,{...control(run),node_id:'work'}),{code:'DISPATCH_RECONCILIATION_REQUIRED'});
+  const repaired=await f.runtime.retryNode(run.run_id,{...control(run),node_id:'work',reconciliation:{
+    attempt_id:work.attempt_id,dispatch_request_id:'unstarted-dispatch',outcome:'not_started',evidence:['No packet was released']}});
+  assert.equal(repaired.status,'paused');assert.equal(repaired.nodes.work.status,'pending');
+  assert.equal(repaired.pause_reason,'Recovered controller; repair before resume');
+  assert.deepEqual((await f.runtime.next(run.run_id,control(run))).ready,[]);
+  const resumed=await f.runtime.resume(run.run_id,control(run));assert.equal(resumed.status,'running');
+  const second=await claim(f,run,'work',{request_id:'after-repair'});
+  assert.notEqual(second.attempt_id,work.attempt_id);
+});
+
 test('Run pins survive preset edit/delete and reject tampered resources', async t => {
   const f = await fixture(t); const run = await f.start();
   const head = await f.store.snapshot('example'); await f.store.rename('example', 'Changed preset', head.revision_hash);
   const edited = await f.store.snapshot('example'); await f.store.delete('example', edited.revision_hash);
   const work = await claim(f, run, 'work'); assert.equal(work.workflow_revision, run.workflow_revision);
   const record = await f.runtime.runs.read(run.run_id); const object = join(f.runtime.runs.directory(run.run_id), 'objects', record.pins.resources[0].sha256);
-  await writeFile(object, 'tampered'); await assert.rejects(f.runtime.get(run.run_id), { code: 'RUN_RESOURCE_CORRUPT' });
+  await writeFile(object, 'tampered'); await f.runtime.get(run.run_id);
+  await assert.rejects(f.runtime.runs.audit(run.run_id), { code: 'RUN_RESOURCE_CORRUPT' });
 });
 
 test('journal-only transitions ignore legacy cache; stale CAS and torn/corrupt journal fail closed', async t => {
@@ -734,7 +1043,8 @@ test('Run snapshot shares one validated read and preserves event authorization',
   await assert.rejects(f.runtime.snapshot(run.run_id, { control_token: 'wrong' }), { code: 'RUN_AUTHORITY' });
   const record = await read(run.run_id);
   await writeFile(join(f.runtime.runs.directory(run.run_id), 'objects', record.pins.resources[0].sha256), 'tampered');
-  await assert.rejects(f.runtime.snapshot(run.run_id, control(run)), { code: 'RUN_RESOURCE_CORRUPT' });
+  await f.runtime.snapshot(run.run_id, control(run));
+  await assert.rejects(f.runtime.runs.audit(run.run_id), { code: 'RUN_RESOURCE_CORRUPT' });
 });
 
 test('absolute Run targets are persisted and leased relative to the chosen project',async t=>{

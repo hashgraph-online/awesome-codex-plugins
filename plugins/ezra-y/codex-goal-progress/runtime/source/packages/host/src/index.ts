@@ -527,6 +527,8 @@ export class GoalProgressHelper {
       event: "startup.handoff",
       pid: event.pid,
       code: response.code,
+      ...(response.mismatchReason === undefined ? {} : { mismatchReason: response.mismatchReason }),
+      ...(response.clockSkewMs === undefined ? {} : { clockSkewMs: response.clockSkewMs }),
       ...(failureCause === undefined ? {} : { causeCode: failureCause }),
       durationMs: Date.now() - startedAt,
       ...(response.mainPid === undefined ? {} : { mainPid: response.mainPid }),
@@ -2303,13 +2305,10 @@ export class GoalProgressHelper {
   }
 
   async #handleDoctorIpc(request: HelperDoctorIpcRequest): Promise<GoalProgressIpcHandlerResult> {
-    const doctor = await inspectGoalProgressLocal(
-      this.paths,
-      request.params.sessionId,
-      true,
-      this.#store,
-    );
-    const runtime = await this.#inspectRuntimeDoctor(request.params.sessionId);
+    const [doctor, runtime] = await Promise.all([
+      inspectGoalProgressLocal(this.paths, request.params.sessionId, true, this.#store),
+      this.#inspectRuntimeDoctor(request.params.sessionId),
+    ]);
     return {
       revision:
         doctor.store.checked && doctor.store.revision !== null ? doctor.store.revision : null,

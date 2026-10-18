@@ -63,6 +63,17 @@ export function normalizeRuntimeRequirements(requirements={}){
   return {...requirements,executables:normalizeExecutableRequirements(requirements.executables??[])};
 }
 
+// This is a node's explicit activation boundary, not a textual condition or a
+// request to install software. Source IDs retain the provenance of compiler projections.
+export function normalizeNodeRuntimeRequirements(value){
+  requireValue(value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(key=>['executables','source_requirement_ids'].includes(key))&&Array.isArray(value.executables)&&value.executables.length>0,
+    'NODE_RUNTIME_REQUIREMENTS','Node runtime requirements need nonempty executable descriptors and optional source requirement IDs');
+  const ids=value.source_requirement_ids??[];
+  requireValue(Array.isArray(ids)&&ids.length<=128&&ids.every(id=>typeof id==='string'&&/^[a-zA-Z][a-zA-Z0-9_-]{0,127}$/.test(id))&&new Set(ids).size===ids.length,
+    'NODE_RUNTIME_REQUIREMENTS','Source requirement IDs must be unique stable identifiers');
+  return {executables:normalizeExecutableRequirements(value.executables),source_requirement_ids:[...ids].sort()};
+}
+
 export function runtimeRequirementKey(requirement){
   const [normalized]=normalizeExecutableRequirements([requirement]);
   return `${normalized.name}:${createHash('sha256').update(JSON.stringify(normalized)).digest('hex')}`;

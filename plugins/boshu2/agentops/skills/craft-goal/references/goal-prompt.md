@@ -1,4 +1,4 @@
-# Mayor-style goal prompt
+# Goal prompt
 
 Copy this prompt verbatim, replacing every angle-bracket field. Do not delete
 the wave, hard-envelope, and terminal-report sections.

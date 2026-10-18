@@ -6,8 +6,14 @@ import { isAbsolute,resolve } from 'node:path';
 import { lstat,realpath } from 'node:fs/promises';
 
 const MAX_INPUT = 128 * 1024;
+const MAX_DECLARED_INPUT = 16 * 1024 * 1024;
 const MAX_OUTPUT = 1024 * 1024;
 const statusValues = new Set(['succeeded', 'failed', 'timed_out', 'cancelled']);
+// Host broker capability, never serialized in workflow/model contracts.
+export const PROGRAM_ENVIRONMENT_ADMISSION=Symbol('Host program environment admission');
+export function requireHostToolInputCapacity(contract,input){
+  requireValue(Buffer.byteLength(canonicalJSON(input)) <= (contract.input_cap_bytes??MAX_INPUT), 'HOST_TOOL_INPUT_LIMIT', 'Host input exceeds the declared bounded receipt limit');
+}
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const credentialKey = /(?:api[_-]?key|access[_-]?token|refresh[_-]?token|authorization|password|cookie|secret)/i;
 const credentialText = /(?:api[_-]?key|access[_-]?token|refresh[_-]?token|authorization|password|cookie|secret)\s*[:=]\s*(?:"[^"]*"|'[^']*'|\S+)/i;
@@ -77,13 +83,39 @@ function qualifiedBroker(registered, pinned) {
   requireValue(object(attestation) && attestation.qualified === true && attestation.cancellable === true && attestation.effect_observation === true && canonicalJSON(attestation.tool_identity) === canonicalJSON(pinned.identity) && typeof attestation.broker_id === 'string' && attestation.broker_id.length > 0 && /^[a-f0-9]{64}$/.test(attestation.evidence_sha256), 'HOST_TOOL_BROKER_UNQUALIFIED', 'Host tool requires an exact qualified cancellable/effect-observing broker attestation');
   return attestation;
 }
+const programPlatformEnvironment = process.platform === 'win32'
+  ? ['PATH','PATHEXT','TEMP','TMP','TMPDIR','SystemRoot','windir','HOME','USER','LOGNAME','USERNAME','USERPROFILE','HOMEDRIVE','HOMEPATH','APPDATA','LOCALAPPDATA']
+  : ['PATH','TMPDIR','TMP','TEMP','HOME','USER','LOGNAME'];
+function environmentString(env, name) {
+  let key=name;
+  if(process.platform==='win32'){
+    const matches=Object.keys(env).filter(candidate=>candidate.toUpperCase()===name.toUpperCase());
+    requireValue(matches.length<=1,'HOST_TOOL_ENVIRONMENT_AMBIGUOUS',`Host environment has duplicate case-insensitive names for ${name}`);
+    key=matches[0];
+  }
+  if(key===undefined||!Object.hasOwn(env,key))return undefined;
+  const value=env[key];
+  return typeof value==='string'?value:undefined;
+}
+function hostToolEnvironment(env, envAllow, programEnvironment) {
+  const platformNames=programEnvironment?programPlatformEnvironment:[];
+  const platformName=name=>process.platform==='win32'?name.toUpperCase():name;
+  const platformKeys=new Set(platformNames.map(platformName));
+  const names=[...platformNames,...envAllow.filter(name=>!platformKeys.has(platformName(name)))];
+  const selected={};
+  for(const name of names){
+    const value=environmentString(env,name);
+    if(value!==undefined)selected[name]=value;
+  }
+  return selected;
+}
 function reconciliation(raw, status) {
   requireValue(object(raw) && raw.termination_confirmed === true && Array.isArray(raw.evidence) && raw.evidence.length > 0 && raw.evidence.length <= 32 && raw.evidence.every(item => object(item) && typeof item.kind === 'string' && /^[a-f0-9]{64}$/.test(item.sha256) && Object.keys(item).every(key => ['kind', 'sha256'].includes(key))), 'HOST_TOOL_CANCELLATION_UNCONFIRMED', 'Timeout/cancellation requires broker-confirmed termination evidence');
   return { status, termination_confirmed: true, evidence: structuredClone(raw.evidence), effects: raw.effects };
 }
 
 export function validateHostToolContract(contract) {
-  requireValue(object(contract) && Object.keys(contract).every(key => ['id', 'identity', 'argv', 'input_schema', 'output_schema', 'env_allow', 'permissions', 'output_cap_bytes', 'deadline_ms', 'idempotency', 'implements', 'host_owned_item_fields'].includes(key)), 'HOST_TOOL_CONTRACT', 'Host tool contract has unsupported fields');
+  requireValue(object(contract) && Object.keys(contract).every(key => ['id', 'identity', 'argv', 'input_schema', 'output_schema', 'env_allow', 'permissions', 'input_cap_bytes', 'output_cap_bytes', 'deadline_ms', 'idempotency', 'implements', 'host_owned_item_fields'].includes(key)), 'HOST_TOOL_CONTRACT', 'Host tool contract has unsupported fields');
   requireValue(typeof contract.id === 'string' && /^[a-z][a-z0-9_-]{0,127}$/.test(contract.id), 'HOST_TOOL_CONTRACT', 'Host tool needs a stable lowercase ID');
   requireValue(object(contract.identity) && typeof contract.identity.name === 'string' && contract.identity.name.length > 0 && contract.identity.name.length <= 256 && typeof contract.identity.version === 'string' && contract.identity.version.length > 0 && contract.identity.version.length <= 128 && /^[a-f0-9]{64}$/.test(contract.identity.sha256) && Object.keys(contract.identity).every(key => ['name', 'version', 'sha256'].includes(key)), 'HOST_TOOL_CONTRACT', 'Host tool needs an exact name/version/content identity');
   const argv = stringArray(contract.argv, 'argv', 32); requireValue(!argv.some(item => /[\x00-\x1f]/.test(item)), 'HOST_TOOL_CONTRACT', 'Host argv cannot include control characters');
@@ -94,7 +126,8 @@ export function validateHostToolContract(contract) {
   const permissions = { network: contract.permissions.network, read_paths: pathBoundaries(stringArray(contract.permissions.read_paths, 'read_paths')),
     write_paths: pathBoundaries(stringArray(contract.permissions.write_paths, 'write_paths')).filter(path=>path!==scratch) };
   requireValue(Number.isInteger(contract.output_cap_bytes) && contract.output_cap_bytes > 0 && contract.output_cap_bytes <= MAX_OUTPUT, 'HOST_TOOL_CONTRACT', 'Host output cap must be a bounded positive byte count');
-  requireValue(Number.isInteger(contract.deadline_ms) && contract.deadline_ms > 0 && contract.deadline_ms <= 300000, 'HOST_TOOL_CONTRACT', 'Host deadline must be between 1ms and 5 minutes');
+  requireValue(contract.input_cap_bytes === undefined || Number.isInteger(contract.input_cap_bytes) && contract.input_cap_bytes > 0 && contract.input_cap_bytes <= MAX_DECLARED_INPUT, 'HOST_TOOL_CONTRACT', 'Declared Host input cap must be a bounded positive byte count');
+  requireValue(Number.isInteger(contract.deadline_ms) && contract.deadline_ms > 0 && contract.deadline_ms <= 3600000, 'HOST_TOOL_CONTRACT', 'Host deadline must be between 1ms and 1 hour');
   requireValue(object(contract.idempotency) && ['safe', 'reconcile_required', 'non_idempotent'].includes(contract.idempotency.mode) && Object.keys(contract.idempotency).length === 1, 'HOST_TOOL_CONTRACT', 'Host tool must declare one retry/idempotency mode');
   const implementsRequirements=contract.implements === undefined ? [] : stringArray(contract.implements,'implements',256);
   requireValue(implementsRequirements.every(id=>/^[a-zA-Z][a-zA-Z0-9_-]{0,127}$/.test(id)),'HOST_TOOL_CONTRACT','Host tool implemented requirement IDs must be stable identifiers');
@@ -111,7 +144,7 @@ export function validateHostToolContract(contract) {
     requireValue(fromInputs.every(name=>Object.hasOwn(inputProperties,name)&&requiredInputs.has(name)),'HOST_TOOL_CONTRACT','Host-owned item provenance inputs must be required Host-tool inputs');
     return {output:entry.output,fields,from_inputs:fromInputs};
   });
-  return { id: contract.id, identity: structuredClone(contract.identity), argv, input_schema: structuredClone(contract.input_schema ?? {}), output_schema: structuredClone(contract.output_schema ?? {}), env_allow, permissions, output_cap_bytes: contract.output_cap_bytes, deadline_ms: contract.deadline_ms, idempotency: structuredClone(contract.idempotency), ...(implementsRequirements.length?{implements:implementsRequirements}:{}), ...(normalizedHostOwnedItemFields.length?{host_owned_item_fields:normalizedHostOwnedItemFields}:{}) };
+  return { id: contract.id, identity: structuredClone(contract.identity), argv, input_schema: structuredClone(contract.input_schema ?? {}), output_schema: structuredClone(contract.output_schema ?? {}), env_allow, permissions, ...(contract.input_cap_bytes!==undefined?{input_cap_bytes:contract.input_cap_bytes}:{}), output_cap_bytes: contract.output_cap_bytes, deadline_ms: contract.deadline_ms, idempotency: structuredClone(contract.idempotency), ...(implementsRequirements.length?{implements:implementsRequirements}:{}), ...(normalizedHostOwnedItemFields.length?{host_owned_item_fields:normalizedHostOwnedItemFields}:{}) };
 }
 export function hostToolContracts(workflow) {
   requireValue(workflow.host_tools === undefined || Array.isArray(workflow.host_tools), 'HOST_TOOL_CONTRACT', 'Workflow host tools must be an array'); const contracts = new Map();
@@ -149,14 +182,20 @@ export function requireHostToolBindings(workflow, registry = {}) {
 /** A qualified broker receives AbortSignal and must attest effects/cancellation. */
 export class HostToolRunner {
   constructor({ registry = {}, env = process.env, now = () => Date.now() } = {}) { this.registry = registry; this.env = env; this.now = now; }
-  async execute(contract, input, context, { signal, assertActive } = {}) {
-      const pinned = validateHostToolContract(contract); validateData(input, pinned.input_schema); requireValue(Buffer.byteLength(canonicalJSON(input)) <= MAX_INPUT, 'HOST_TOOL_INPUT_LIMIT', 'Host input exceeds the bounded durable receipt limit'); noCredential(input); await declaredWorkspace(input, context); const registered = registryEntry(this.registry, pinned.id, pinned.identity); const attestation = qualifiedBroker(registered, pinned); const permissions = effectivePermissions(pinned, context);
-    const env = Object.fromEntries(pinned.env_allow.filter(key => Object.hasOwn(this.env, key)).map(key => [key, this.env[key]])); const started = this.now(); const started_at = new Date(started).toISOString(); const controller = new AbortController(); let timer; let abortListener;
+  hasProgramEnvironmentAdmission(contract){
+    const pinned=validateHostToolContract(contract),registered=registryEntry(this.registry,pinned.id,pinned.identity);
+    qualifiedBroker(registered,pinned);return registered[PROGRAM_ENVIRONMENT_ADMISSION]===true;
+  }
+  async execute(contract, input, context, { signal, assertActive, receiptOnError = false } = {}) {
+      const pinned = validateHostToolContract(contract); validateData(input, pinned.input_schema); requireHostToolInputCapacity(pinned,input); noCredential(input); await declaredWorkspace(input, context); const registered = registryEntry(this.registry, pinned.id, pinned.identity); const attestation = qualifiedBroker(registered, pinned); const permissions = effectivePermissions(pinned, context);
+    const env=hostToolEnvironment(this.env,pinned.env_allow,registered[PROGRAM_ENVIRONMENT_ADMISSION]===true); const started = this.now(); const started_at = new Date(started).toISOString(); const controller = new AbortController(); let timer; let abortListener;
     const inputSha = digest(canonicalJSON(input)); const base = { run_id: context.run_id, node_id: context.node_id, attempt_id: context.attempt_id, tool: pinned.id, contract_sha256: digest(canonicalJSON(pinned)), input_sha256: inputSha, broker: { id: attestation.broker_id, evidence_sha256: attestation.evidence_sha256 }, started_at };
     const brokerContext = {
       run_id: context.run_id,
       node_id: context.node_id,
       attempt_id: context.attempt_id,
+      deadline_ms: pinned.deadline_ms,
+      ...(context.execution_slot ? {execution_slot:context.execution_slot} : {}),
       workspace: context.workspace,
       resources: context.resources,
       task_root: context.task_root,
@@ -165,7 +204,7 @@ export class HostToolRunner {
       ...(context.execution_binding ? { execution_binding: structuredClone(context.execution_binding) } : {}),
     };
     const stop = async (status, reason) => {
-      controller.abort(reason); const cancelled = await registered.cancel({ context: { run_id: context.run_id, node_id: context.node_id, attempt_id: context.attempt_id }, reason, signal: controller.signal }); const recon = reconciliation(cancelled, status); const effects = boundedEffects(recon.effects, permissions); const finished = this.now(); const message = safeDiagnostic(reason?.message ?? reason);
+      controller.abort(reason); const cancelled = await registered.cancel({ context: { run_id: context.run_id, node_id: context.node_id, attempt_id: context.attempt_id, ...(context.execution_slot?{execution_slot:context.execution_slot}:{}) }, reason, signal: controller.signal }); const recon = reconciliation(cancelled, status); const effects = boundedEffects(recon.effects, permissions); const finished = this.now(); const message = safeDiagnostic(reason?.message ?? reason);
       return { receipt: { ...base, output_sha256: null, output_ref: null, diagnostics: { message, sha256: digest(message) }, status, exit_code: null, finished_at: new Date(finished).toISOString(), duration_ms: finished - started, effects, reconciliation: { status: recon.status, termination_confirmed: true, evidence: recon.evidence } }, output: null };
     };
     const admitted = () => {
@@ -193,6 +232,12 @@ export class HostToolRunner {
       const effects = boundedEffects(response.effects, permissions); const diagnostic = safeDiagnostic(response.diagnostic); const succeeded = response.exit_code === 0;
       if (succeeded) { validateData(response.output, pinned.output_schema); requireValue(Buffer.byteLength(canonicalJSON(response.output)) <= pinned.output_cap_bytes, 'HOST_TOOL_OUTPUT_LIMIT', 'Host structured output exceeds the pinned cap'); noCredential(response.output); }
       const finished = this.now(); return { receipt: { ...base, output_sha256: succeeded ? digest(canonicalJSON(response.output)) : null, output_ref: null, diagnostics: { message: diagnostic, sha256: digest(diagnostic) }, status: succeeded ? 'succeeded' : 'failed', exit_code: response.exit_code, finished_at: new Date(finished).toISOString(), duration_ms: finished - started, effects, reconciliation: null }, output: succeeded ? structuredClone(response.output) : null };
+    } catch (error) {
+      if (receiptOnError) {
+        try { error.host_tool_receipt = (await stop('cancelled',error)).receipt; }
+        catch (cleanup) { throw new AggregateError([error,cleanup],'Host tool failure did not confirm quiescence'); }
+      }
+      throw error;
     } finally { if (timer) clearTimeout(timer); if (signal && abortListener) signal.removeEventListener('abort', abortListener); }
   }
 }

@@ -4,8 +4,161 @@ import { Script } from 'node:vm';
 import {mkdir,mkdtemp,readFile,readdir,rm,writeFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {dirname,join} from 'node:path';
+import {execFileSync} from 'node:child_process';
 import {tmpdir} from './physical-tempdir.mjs';
-import { nativeAgentHandoff, materializedNativeAgentHandoff, nativeAgentReceipt, nativeAgentCompletion, nativeAgentResultSchema } from '../lib/execution/native-agent-bridge.mjs';
+import { nativeAgentHandoff, materializedNativeAgentHandoff, nativeAgentReceipt, nativeAgentCompletion, nativeAgentResultSchema, preflightNativeHostCompletion } from '../lib/execution/native-agent-bridge.mjs';
+import {canonicalJSON} from '../lib/workflow-revisions.mjs';
+
+test('native public carrier sends compact scope and sealed semantic file instead of copying known content',async t=>{
+  const workspace=await mkdtemp(join(tmpdir(),'native-carrier-'));t.after(()=>rm(workspace,{recursive:true,force:true}));
+  const task='NEUTRAL_SEMANTIC_TEXT '+ '雪'.repeat(600),schema={type:'object',properties:{conclusion:{type:'string'}},required:['conclusion'],additionalProperties:false};
+  const definition={id:'worker',type:'agent',executor:{kind:'provider',context_inheritance:'upstream'},outputs_schema:schema};
+  const record={state:{run_id:'carrier-run',inputs:{task},nodes:{}}};
+  const dispatched={handoff_required:true,adapter:{execution:'native_agent',spawn_config:{agent_type:'default'}},envelope:{workspace,access:'bounded_write',effective_allowed_paths:['output'],node_id:'worker',prompt_template:'Author {{task}}',inputs:{task}}};
+  const packet=(await materializedNativeAgentHandoff(record,definition,{attempt_id:'carrier-attempt'},dispatched)).packets[0];
+  assert.match(packet.prompt,/semantic-task\.json/);assert.doesNotMatch(packet.prompt,/NEUTRAL_SEMANTIC_TEXT|雪|context-preparation|sha256|"result_schema"/);
+  assert(packet.prompt.includes('Writable paths: ["output"]'));assert(packet.prompt.length<1000);
+  const publicPath=JSON.parse(packet.prompt.match(/Task bundle: (".*")\n/)[1]),semantic=JSON.parse(await readFile(publicPath,'utf8'));
+  assert(semantic.task.includes(task));assert.deepEqual(semantic.result_schema,schema);assert.deepEqual(semantic.writable_paths,['output']);
+  assert.equal(semantic.workspace,workspace);assert.equal(semantic.access,'bounded_write');assert.equal(semantic.context_preparation,undefined);
+  const inlineReference=nativeAgentHandoff(record,definition,{attempt_id:'carrier-attempt'},{...dispatched,
+    materialized_packets:{0:{task_projection:{inline:true,task_bundle:semantic},allowed_paths:['output'],assigned_items:null}}}).packets[0];
+  assert(inlineReference.prompt.includes(semantic.task));assert(inlineReference.prompt.includes(canonicalJSON(semantic.result_schema)));
+  assert.deepEqual(inlineReference.allowed_paths,packet.allowed_paths);assert.deepEqual(inlineReference.spawn_config,packet.spawn_config);
+  const original=await readFile(packet.task_bundle_path);
+  const replay=(await materializedNativeAgentHandoff(record,definition,{attempt_id:'carrier-attempt'},dispatched)).packets[0];assert.equal(replay.prompt,packet.prompt);assert((await readFile(packet.task_bundle_path)).equals(original));
+  await writeFile(publicPath,'tampered');await assert.rejects(materializedNativeAgentHandoff(record,definition,{attempt_id:'carrier-attempt'},dispatched),{code:'NODE_INPUT_MATERIALS_CONFLICT'});
+});
+
+test('native public carrier retains callable pinned resource addresses and rejects missing projections',async t=>{
+  const root=await mkdtemp(join(tmpdir(),'native-carrier-resource-')),workspace=join(root,'workspace'),objects=join(root,'objects');
+  await mkdir(workspace);await mkdir(objects);t.after(()=>rm(root,{recursive:true,force:true}));
+  const bytes=Buffer.from('console.log("NEUTRAL_RESOURCE_CALL");'),sha256=createHash('sha256').update(bytes).digest('hex');await writeFile(join(objects,sha256),bytes);
+  const definition={id:'writer',type:'agent',resources:['helper.mjs'],outputs_schema:{type:'object',properties:{done:{type:'boolean'}},required:['done']}};
+  const record={state:{run_id:'carrier-resource',inputs:{},nodes:{}},pins:{root:{resources:[{path:'helper.mjs',sha256,bytes:bytes.length}]}}};
+  const dispatched={handoff_required:true,adapter:{execution:'native_agent',spawn_config:{agent_type:'default'}},envelope:{workspace,access:'read_only',effective_allowed_paths:[],node_id:'writer',inputs:{},
+    prompt_template:'Execute the declared helper. '+'NEUTRAL_TASK '.repeat(130),resource_access:{paths:['helper.mjs']},context_projection:{references:[{path:'helper.mjs',sha256,bytes:bytes.length}]}}};
+  const packet=(await materializedNativeAgentHandoff(record,definition,{attempt_id:'resource-attempt'},dispatched,64000,null,{resourceRoot:objects})).packets[0];
+  const publicPath=JSON.parse(packet.prompt.match(/Task bundle: (".*")\n/)[1]),semantic=JSON.parse(await readFile(publicPath,'utf8'));
+  const bundle=JSON.parse(await readFile(packet.task_bundle_path)),preparation=JSON.parse(await readFile(bundle.context_preparation.path));
+  const resourcePath=preparation.resources[0].local_path;assert(semantic.task.includes(canonicalJSON(resourcePath)));
+  assert.equal(execFileSync(process.execPath,[resourcePath],{encoding:'utf8'}).trim(),'NEUTRAL_RESOURCE_CALL');
+  assert.doesNotMatch(packet.prompt,/NEUTRAL_TASK|NEUTRAL_RESOURCE_CALL|helper\.mjs|sha256|context-preparation/);
+  assert.throws(()=>nativeAgentHandoff(record,definition,{attempt_id:'resource-attempt'},{...dispatched,materialized_packets:{0:{task_bundle_path:packet.task_bundle_path,allowed_paths:[],assigned_items:null}}}),{code:'NATIVE_TASK_BUNDLE'});
+  await writeFile(resourcePath,'changed');await assert.rejects(materializedNativeAgentHandoff(record,definition,{attempt_id:'resource-attempt'},dispatched,64000,null,{resourceRoot:objects}),{code:'NODE_INPUT_MATERIALS_CONFLICT'});
+});
+
+test('native legacy inline display retains every nonempty semantic material address',()=>{
+  const schema={type:'object',properties:{summary:{type:'string'}},required:['summary']};
+  const semantic={schema_version:1,task:'Read the declared historical materials.',workspace:'C:/legacy',access:'read_only',writable_paths:[],result_schema:schema,
+    resources:[{path:'reference.md',local_path:'C:/legacy/resources/reference.md'}],
+    verified_files:[{path:'source.bin',local_path:'C:/legacy/verified/source.bin'}]};
+  const original=structuredClone(semantic);
+  const definition={id:'legacy',type:'agent',outputs_schema:schema};
+  const dispatched={handoff_required:true,adapter:{execution:'native_agent',spawn_config:{agent_type:'default'}},
+    envelope:{workspace:semantic.workspace,access:semantic.access,effective_allowed_paths:[]},
+    materialized_packets:{0:{task_projection:{inline:true,task_bundle:semantic},allowed_paths:[],assigned_items:null}}};
+  const packet=nativeAgentHandoff({state:{run_id:'legacy-addresses',nodes:{}}},definition,{attempt_id:'legacy-attempt'},dispatched).packets[0];
+  for(const [field,items]of Object.entries({resources:semantic.resources,verified_files:semantic.verified_files})){
+    assert(packet.prompt.includes(canonicalJSON(items)),field+' semantic addresses must reach the child');
+    for(const item of items)assert(packet.prompt.includes(item.local_path),item.local_path);
+  }
+  assert(packet.prompt.includes(semantic.task));
+  assert(packet.prompt.includes(canonicalJSON(schema)));
+  assert.doesNotMatch(packet.prompt,/schema_version|sha256|context-preparation/);
+  assert.deepEqual(semantic,original);
+});
+
+test('native inline display preserves canonical semantic task bytes without nesting JSON string encoding',async t=>{
+  const workspace=await mkdtemp(join(tmpdir(),'native-readable-'));t.after(()=>rm(workspace,{recursive:true,force:true}));
+  const task='  Preserve "quoted" text, C:\\source\\file, a literal \\n, and\n\tindented second line. ';
+  const schema={type:'object',properties:{conclusion:{type:'string'}},required:['conclusion'],additionalProperties:false};
+  for(const inheritance of ['fresh','upstream']){
+    const definition={id:'worker',type:'agent',executor:{kind:'provider',context_inheritance:inheritance},outputs_schema:schema};
+    const record={state:{run_id:'readable-'+inheritance,inputs:{task},nodes:{}}};
+    const dispatched={handoff_required:true,adapter:{execution:'native_agent',spawn_config:{agent_type:'default'}},
+      envelope:{workspace,access:'read_only',effective_allowed_paths:[],node_id:'worker',prompt_template:'Author {{task}}',inputs:{task,notes:'Unexpanded "notes"\nremain exact.'}}};
+    const packet=(await materializedNativeAgentHandoff(record,definition,{attempt_id:'readable-attempt'},dispatched)).packets[0];
+    const bytes=await readFile(packet.task_bundle_path),bundle=JSON.parse(bytes);
+    assert.equal(createHash('sha256').update(bytes).digest('hex'),packet.task_bundle_sha256);
+    assert.equal(packet.prompt,'Workspace: '+workspace+'\nAccess: read_only\nWritable paths: []\n\n'+bundle.task+'\nResult schema:\n'+canonicalJSON(schema));
+    assert(packet.prompt.includes(task));
+    assert.doesNotMatch(packet.prompt,/"schema_version"|"result_schema"|context-preparation/);
+    assert.equal(packet.spawn_config.fork_turns,inheritance==='upstream'?'all':'none');
+    const replay=(await materializedNativeAgentHandoff(record,definition,{attempt_id:'readable-attempt'},dispatched)).packets[0];
+    assert.equal(replay.prompt,packet.prompt);assert.equal(replay.task_bundle_sha256,packet.task_bundle_sha256);
+  }
+});
+
+test('native size preflight uses only distinct recorded active children and exact observed assignment',async t=>{
+  const definition={id:'writer',type:'agent',subagent_count:'auto',input_bindings:{jobs:'/inputs/jobs'},
+    fanout:{input:'jobs',distribution:'one_per_item',item_name:'page',result_mode:'per_item',result_output:'results'},outputs_schema:{}};
+  const record={state:{run_id:'neutral-preflight',inputs:{jobs:[{id:'a'},{id:'b'},{id:'c'}]},nodes:{}}};
+  const attempt={id:'neutral-attempt',dispatch:{receipt:null},native_agents:{0:'exact-child-a',1:'exact-child-b'}};
+  const proposal={result:{items:[{outcome:'completed',result:{summary:'exact a'}}]},target_indices:[0],
+    native_observation:{index:0,agent_id:'exact-child-a',turn_id:'exact-terminal-turn'}};
+  const original=structuredClone(attempt),completion=preflightNativeHostCompletion(record,definition,attempt,proposal);
+  assert.deepEqual(attempt,original,'Size preflight must not create a receipt or accept any item');
+  assert.deepEqual(completion.structured_output.results,[{summary:'exact a'},null,null]);
+  assert.deepEqual(completion.evidence.find(item=>item.kind==='subagent_pool').dispatch_ids,['exact-child-a','exact-child-b']);
+  const invalid=[
+    ['wrong slot',a=>{},p=>{p.native_observation.index=1;}],
+    ['wrong child',a=>{},p=>{p.native_observation.agent_id='foreign-child';}],
+    ['missing observed turn',a=>{},p=>{p.native_observation.turn_id='';}],
+    ['duplicate recorded child',a=>{a.native_agents[1]=a.native_agents[0];},p=>{}],
+    ['inactive slot',a=>{a.native_agents[3]='foreign-slot';},p=>{}],
+    ['noncanonical slot',a=>{a.native_agents['01']='foreign-slot';},p=>{}],
+    ['another assignment target',a=>{},p=>{p.target_indices=[1];}],
+    ['duplicate target',a=>{},p=>{p.target_indices=[0,0];}],
+    ['accepted target',a=>{a.native_item_results={0:{result:{summary:'retained'}}};},p=>{}],
+  ];
+  for(const [name,changeAttempt,changeProposal]of invalid)await t.test(name,()=>{
+    const a=structuredClone(attempt),p=structuredClone(proposal);changeAttempt(a);changeProposal(p);
+    assert.throws(()=>preflightNativeHostCompletion(record,definition,a,p),{code:'NATIVE_HOST_CHECK_IDENTITY'});
+  });
+  await t.test('foreign sealed receipt',()=>{
+    const a=structuredClone(attempt);a.dispatch.receipt={executor:'codex-native-subagent',agent_ids:['foreign-child']};
+    assert.throws(()=>preflightNativeHostCompletion(record,definition,a,proposal),{code:'NATIVE_AGENT_RECEIPT'});
+  });
+  await t.test('inherited assignment is inactive',()=>{
+    const a=structuredClone(attempt);a.inherited_native_item_indices=[0];
+    assert.throws(()=>preflightNativeHostCompletion(record,definition,a,proposal),{code:'NATIVE_HOST_CHECK_IDENTITY'});
+  });
+});
+
+test('materialized native small semantic assignment reaches the child directly without index or input reads',async t=>{
+  const workspace=await mkdtemp(join(tmpdir(),'native-inline-'));t.after(()=>rm(workspace,{recursive:true,force:true}));
+  const jobs=[{id:'first',task:'TCP ownership',write_paths:['pages/first']},{id:'second',task:'UDP ownership',write_paths:['pages/second']}];
+  const definition={id:'writer',type:'agent',access:'bounded_write',allowed_paths:['pages'],subagent_count:'auto',fanout:{input:'jobs',distribution:'one_per_item',item_name:'jobs',result_mode:'per_item',result_output:'results',write_paths_field:'write_paths'},
+    input_bindings:{jobs:'/inputs/jobs'},outputs_schema:{type:'object',properties:{results:{type:'array',items:{type:'object',properties:{markdown:{type:'string'}},required:['markdown'],additionalProperties:false}}}}};
+  const state={run_id:'inline-run',inputs:{jobs},nodes:{},permissions:{workspace,access:'bounded_write',allowed_paths:['pages']}};
+  const dispatched={handoff_required:true,adapter:{execution:'native_agent',spawn_config:{agent_type:'default'}},envelope:{workspace,access:'bounded_write',effective_allowed_paths:['pages'],
+    prompt_template:'Write the assigned page.',inputs:{jobs},node_id:'writer'}};
+  const handoff=await materializedNativeAgentHandoff({state},definition,{attempt_id:'inline-attempt'},dispatched);
+  assert.equal(handoff.packets.length,2);
+  for(const [index,packet] of handoff.packets.entries()){
+    assert.match(packet.prompt,new RegExp(jobs[index].task));
+    assert.doesNotMatch(packet.prompt,new RegExp(jobs[1-index].task));
+    assert.doesNotMatch(packet.prompt,/Read this Host-generated|Task bundle:|context-preparation|task_bundle_sha256|prompt_sha256/);
+    assert.match(packet.prompt,/one ordered entry per supplied item/);
+    assert.deepEqual(packet.allowed_paths,jobs[index].write_paths);
+  }
+});
+
+test('materialized native large assignment uses its prepared sidecar without recompiling the raw prompt',async t=>{
+  const workspace=await mkdtemp(join(tmpdir(),'native-large-inline-'));t.after(()=>rm(workspace,{recursive:true,force:true}));
+  const jobs=[{id:'large',body:'LARGE_BOUND_BODY'.repeat(10000)}];
+  const definition={id:'writer',type:'agent',subagent_count:'auto',fanout:{input:'jobs',distribution:'one_per_item',item_name:'job',result_output:'results'},
+    input_bindings:{jobs:'/inputs/jobs'}};
+  const state={run_id:'large-inline-run',inputs:{jobs},nodes:{}};
+  const dispatched={handoff_required:true,adapter:{execution:'native_agent',spawn_config:{agent_type:'default'}},envelope:{workspace,access:'read_only',effective_allowed_paths:[],
+    prompt_template:'Inspect the assigned input.',inputs:{jobs},node_id:'writer'}};
+  const packet=(await materializedNativeAgentHandoff({state},definition,{attempt_id:'large-inline-attempt'},dispatched)).packets[0];
+  assert.doesNotMatch(packet.prompt,/LARGE_BOUND_BODY/);
+  const inputs=JSON.parse(packet.prompt.match(/\nInputs:\n([^\n]+)/)[1]);
+  const path=JSON.parse(inputs.jobs.match(/local file at (".*") \(format: json\)\./)[1]);
+  assert.deepEqual(JSON.parse(await readFile(path)),jobs);
+});
 import { resolvedSubagentPlan } from '../lib/workflow-runtime.mjs';
 import { executionEnvelope } from '../lib/workflow-execution-envelope.mjs';
 import { compilePrompt } from '../lib/workflow-executor.mjs';
@@ -35,7 +188,18 @@ test('native packet keeps only the task scope needed by a real native subagent',
   assert.doesNotMatch(packet.prompt,/Code Mode shell call example|outer display budget|output truncation|pinned Workflow|workflow_revision/);
 });
 
-test('native handoff materializes each assigned task packet and sends only exact local addresses',async t=>{
+test('explicit upstream native packet inherits context and omits model overrides',()=>{
+  const definition={id:'worker',type:'agent',executor:{kind:'provider',provider_id:'native-sol',context_inheritance:'upstream'}};
+  const dispatched={handoff_required:true,adapter:{execution:'native_agent',spawn_config:{agent_type:'default',model:'gpt-6.1-sol',reasoning_effort:'high'}},
+    envelope:{workspace:'C:/work',access:'bounded_write',effective_allowed_paths:['.'],inputs:{}},compiled_prompt:'Assigned page only.'};
+  const packet=nativeAgentHandoff({state:{run_id:'run',nodes:{}}},definition,{attempt_id:'attempt'},dispatched).packets[0];
+  assert.equal(packet.spawn_config.fork_turns,'all');
+  assert.equal(Object.hasOwn(packet.spawn_config,'model'),false);
+  assert.equal(Object.hasOwn(packet.spawn_config,'reasoning_effort'),false);
+  assert.equal(Object.hasOwn(packet.spawn_config,'cwd'),false);
+});
+
+test('native handoff materializes each assigned task packet and preserves inputs through its selected public carrier',async t=>{
   const root=await mkdtemp(join(tmpdir(),'native-materials-')),workspace=join(root,'workspace');await mkdir(workspace);
   t.after(()=>rm(root,{recursive:true,maxRetries:3,retryDelay:50}));
   const jobs=[{card_id:'card-a',payload:'A'.repeat(2000)},{card_id:'card-b',payload:'B'.repeat(2000)}];
@@ -52,16 +216,18 @@ test('native handoff materializes each assigned task packet and sends only exact
     assert.equal(typeof packet.task_bundle_path,'string');
     const bundle=JSON.parse(await readFile(packet.task_bundle_path,'utf8'));
     const inputs=JSON.parse(bundle.task.match(/\nInputs:\n([^\n]+)/)?.[1]??'null');
-    const inputPath=JSON.parse(inputs.jobs_json.match(/local file at (".*") \(format: json\)\./)?.[1]??'null');
-    assert.deepEqual(JSON.parse(await readFile(inputPath,'utf8')),[jobs[packet.index]]);
-    assert.deepEqual(await readdir(dirname(packet.task_bundle_path)),['inputs','task.json']);
-    assert.doesNotMatch(packet.prompt,/"payload":"[AB]{100}/);
-    assert.doesNotMatch(packet.prompt,/Implement one assigned card\./);
+    assert.deepEqual(inputs.jobs_json,[jobs[packet.index]]);
+    const publicPath=packet.prompt.match(/Task bundle: (".*")\n/)?.[1];
+    assert.deepEqual(await readdir(dirname(packet.task_bundle_path)),publicPath?['context-preparation.json','semantic-task.json','task.json']:['context-preparation.json','task.json']);
+    const delivered=publicPath?JSON.parse(await readFile(JSON.parse(publicPath),'utf8')).task:packet.prompt;
+    assert.match(delivered,/Implement one assigned card\./);
+    assert(delivered.includes(jobs[packet.index].payload));
+    assert(!delivered.includes(jobs[1-packet.index].payload));
     assert.match(bundle.task,/Implement one assigned card\./);
   }
 });
 
-test('materialized native handoff gives pinned resources exact local paths instead of making the child call the workflow reader',async t=>{
+test('materialized native handoff delivers small declared pinned resources without workflow reader calls',async t=>{
   const root=await mkdtemp(join(tmpdir(),'native-resource-bundle-')),workspace=join(root,'workspace'),objects=join(root,'objects');
   await mkdir(workspace);await mkdir(objects);t.after(()=>rm(root,{recursive:true,maxRetries:3,retryDelay:50}));
   const bytes=Buffer.from('Exact pinned contract body.','utf8'),sha256=createHash('sha256').update(bytes).digest('hex');
@@ -76,12 +242,13 @@ test('materialized native handoff gives pinned resources exact local paths inste
       context_projection:{mode:'declared_bindings',bindings:[],references:[{path:'contract.md',sha256,bytes:bytes.length}]}}};
   const handoff=await materializedNativeAgentHandoff(record,definition,{attempt_id:'attempt-resources'},dispatched,64000,null,{resourceRoot:objects});
   const packet=handoff.packets[0],bundle=JSON.parse(await readFile(packet.task_bundle_path,'utf8'));
-  assert.equal(bundle.resources.length,1);
-  assert.deepEqual({...bundle.resources[0],local_path:undefined},{path:'contract.md',sha256,bytes:bytes.length,local_path:undefined});
-  assert.equal(await readFile(bundle.resources[0].local_path,'utf8'),bytes.toString('utf8'));
-  assert.doesNotMatch(packet.prompt,/workflow_read_resource|Exact pinned contract body|Use the contract/);
+  const preparation=JSON.parse(await readFile(bundle.context_preparation.path,'utf8'));
+  assert.equal(preparation.resources.length,1);
+  assert.equal(await readFile(preparation.resources[0].local_path,'utf8'),bytes.toString('utf8'));
+  assert.doesNotMatch(packet.prompt,/workflow_read_resource|context-preparation|prompt_sha256/);
+  assert.match(packet.prompt,/Exact pinned contract body|Use the contract/);
   assert.doesNotMatch(bundle.task,/workflow_read_resource/);
-  assert.match(bundle.task,/Pinned resources are Host-materialized local files listed in this task bundle/);
+  assert.match(bundle.task,/Declared pinned resources below contain complete text or an exact Host-prepared local file address/);
 });
 
 test('native resource guidance gives the exact pinned MCP call without changing Main or task data', () => {
@@ -91,7 +258,7 @@ test('native resource guidance gives the exact pinned MCP call without changing 
   const state={run_id:'resource-run',workflow_id:'sample-workflow',workflow_revision:'a'.repeat(64),
     inputs:{task:'Preserve this task literal: read_workflow_resource.'},nodes:{},constraints:{},
     permissions:{workspace:'C:/workspace',access:'read_only',allowed_paths:[]}};
-  const pins={root:{workflow:{name:'Sample',nodes:[definition],edges:[],context_projection_version:2,
+  const pins={root:{workflow:{name:'Sample',finalization:{node_id:'final'},nodes:[definition],edges:[],context_projection_version:2,
     skill_policy:{mode:'cooperative',implicit:'deny',ambient_allow:[],shadowed_skill_paths:[]}}},providers:[{id:'native'}]};
   const envelope=executionEnvelope(definition,state,pins,{id:'attempt'},'example-private-lease-token');
   const original=JSON.stringify(envelope);

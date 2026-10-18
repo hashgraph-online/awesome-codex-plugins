@@ -1,8 +1,20 @@
 # Criminal Offences and Penalties — §§ 25–37 RA 10173
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 PH treats data privacy violations as **criminal offences** with personal prison time, in addition to corporate fines. § 34 makes the **responsible officers personally liable** for offences committed by juridical persons. § 35 aggravates penalties to the maximum period when at least 100 data subjects are affected. The combination — personal prison time, aggravation by scale, and a discrete concealment offence — is the most punitive criminal regime among the four SEA jurisdictions covered in this skill.
+
+## Contents
+
+- Engineering implications, up front
+- §§ 25–32 — The principal offences
+- § 33 — Combination or series of acts
+- § 34 — Extent of liability (officer / employee personal liability)
+- § 35 — Large-scale aggravation
+- § 36 — Public officers
+- § 37 — Restitution
+- What's at stake — the cumulative picture
+- Defences and mitigation
 
 ## Engineering implications, up front
 

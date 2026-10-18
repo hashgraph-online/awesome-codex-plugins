@@ -1,4 +1,6 @@
+import {readPinnedObject} from '../pinned-object-reader.mjs';
 import { join, dirname, resolve } from 'node:path';
+import { augmentedRuntimeEnvironment } from '../runtime-environment-state.mjs';
 import { readFile, lstat } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { createCodexSession } from './codex-session.mjs';
@@ -29,7 +31,7 @@ async function settleOwnedTask(promise) {
   finally { clearTimeout(timer); }
 }
 const key = (runId, attemptId) => runId + '/' + attemptId;
-const trackedEvents = new Set(['thread/started', 'turn/started', 'turn/completed', 'item/started', 'item/completed', 'error', 'thread/tokenUsage/updated', 'account/login/completed', 'account/updated']);
+const trackedEvents = new Set(['thread/started', 'turn/started', 'turn/completed', 'item/started', 'item/completed', 'error', 'thread/tokenUsage/updated', 'workflow/turnUsage', 'account/login/completed', 'account/updated']);
 export function strictOutputByteBudget(repairState=null) {
   if(!repairState?.previous_proposal)return EXECUTOR_RESULT_MAX_BYTES;
   // A targeted patch can replace existing entities and add new ones, but should
@@ -105,7 +107,7 @@ export class StrictSessionManager {
       : { model: envelope.provider.config.model, effort: envelope.provider.config.reasoning_effort };
     return { execution: 'strict_codex', model: selection.model, effort: selection.effort,
       executable_sha256: settings.binary_sha256, settings_sha256: digest(canonicalJSON(settings)),
-      final_acceptance_required: main && envelope.role === 'finalizer', qualification: codexQualification(settings) };
+      final_acceptance_required: main && envelope.node_id === pins.root.workflow.finalization.node_id, qualification: codexQualification(settings) };
   }
   async launch(runtime, runId, args, { envelope, adapter, prompt }) {
     requireValue(this.accepting && executionAdmissionOpen(this.configPath), 'STRICT_SESSION_STOPPED', 'Strict manager is closed to new work');
@@ -152,13 +154,13 @@ export class StrictSessionManager {
       const resources = await Promise.all(envelope.resources.map(async path => {
         const pin = pins.root.resources.find(item => item.path === path);
         requireValue(pin, 'STRICT_RESOURCE_UNAVAILABLE', 'Node resource is not pinned');
-        return { path, sha256: pin.sha256, bytes: await readFile(join(resourceObjectRoot, pin.sha256)) };
+        return { path, sha256: pin.sha256, bytes: await readPinnedObject(resourceObjectRoot,pin) };
       }));
       const allowedSkills = []; const skillResources = [];
       for (const pin of envelope.allowed_skills ?? []) {
         const files = Object.create(null); const prefix = '__skill_pins__/' + digest(pin.path) + '/';
         for (const resource of pin.resources) {
-          const bytes = await readFile(join(resourceObjectRoot, resource.sha256)); files[resource.path] = bytes;
+          const bytes = await readPinnedObject(resourceObjectRoot,resource); files[resource.path] = bytes;
           resources.push({ path: prefix + resource.path, sha256: resource.sha256, bytes });
         }
         allowedSkills.push({ source_path: pin.path, source_hash: pin.source_hash, name: pin.name, files });
@@ -201,7 +203,7 @@ export class StrictSessionManager {
         hostAuth: settings.authentication.mode === 'host_chatgpt' ? this.hostAuth : undefined,
         binary: settings.codex_binary, expectedBinaryHash: settings.binary_sha256, expectedBinaryPath: adapter.qualification?.resolved_path,
         dynamicToolFormat: adapter.qualification?.dynamic_tool_format, authentication: settings.authentication, model: adapter.model, effort: adapter.effort,
-        cwd: envelope.workspace, access: envelope.access, allowedPaths:envelope.effective_allowed_paths, env: this.env, skillPolicy: envelope.skill_policy, allowedSkills, toolBroker: entry.broker, authorize: entry.authorize, assertActive: entry.assertActive,
+        cwd: envelope.workspace, access: envelope.access, allowedPaths:envelope.effective_allowed_paths, env: augmentedRuntimeEnvironment(this.env,envelope.constraints?.runtime_environment,{workspace:envelope.workspace}), skillPolicy: envelope.skill_policy, allowedSkills, toolBroker: entry.broker, authorize: entry.authorize, assertActive: entry.assertActive,
         onSessionOwned: session => { entry.session = session; },
         onProfilePrepared: profile => event('profile_owned', { home: profile.home, ...(profile.receipt_home ? {receipt_home:profile.receipt_home} : {}), executable_sha256: profile.binary_sha256 }),
         onEvent: metadata => trackedEvents.has(metadata.method) ? event('codex_event', metadata) : undefined,
@@ -378,7 +380,7 @@ export class StrictSessionManager {
       const expected=authoringReviewIdentity(record),proposed={proposal_hash:attempt.result_proposal.proposal_hash,source_revision:attempt.result_proposal.source_revision,expand_attempt_id:attempt.result_proposal.expand_attempt_id};
       requireValue(canonicalJSON(proposed)===canonicalJSON(expected)&&canonicalJSON(attempt.dispatch?.receipt?.authoring_review_context)===canonicalJSON(expected),'AUTHORING_REVIEW_IDENTITY','Collected reviewer result is not bound to the current canonical proposal');
     }
-    if (envelope.role === 'finalizer') {
+    if (args.node_id === record.pins.root.workflow.finalization.node_id) {
       if (args.accepted !== true) return { final_acceptance_required: true, completion };
       completion.acceptance = { accepted: true };
       if(authoringFinal){
@@ -389,8 +391,7 @@ export class StrictSessionManager {
     return runtime.completeNode(runId, { ...args, completion });
   }
   async acceptAuthoring(runtime,runId,args){
-    const envelope=await runtime.execution(runId,args,{allowInactive:true});
-    requireValue(envelope.role==='finalizer','AUTHORING_HUMAN_ACCEPTANCE_REQUIRED','Authoring acceptance requires the final reviewer attempt');
+    await runtime.execution(runId,args,{allowInactive:true});
     const record=await runtime.runs.read(runId),attempt=record.state.nodes[args.node_id]?.attempts.find(item=>item.id===args.attempt_id);
     requireValue(isAuthoringRunProvenance(record.pins.root.provenance)&&args.node_id===record.pins.root.workflow.finalization.node_id,'AUTHORING_HUMAN_ACCEPTANCE_REQUIRED','This attempt is not an authoring final review');
     requireValue(attempt?.result_proposal,'STRICT_RESULT_PENDING','No durable reviewer result exists for this attempt');

@@ -63,6 +63,7 @@ def sentence_candidates(text: str) -> list[dict[str, object]]:
     long_sentences: list[dict[str, object]] = []
     comma_heavy_sentences: list[dict[str, object]] = []
     stacked_modifier_sentences: list[dict[str, object]] = []
+    parallel_detail_sentences: list[dict[str, object]] = []
     for number, sentence in enumerate(sentences, start=1):
         words = word_count(sentence)
         comma_count = sentence.count(",")
@@ -72,12 +73,15 @@ def sentence_candidates(text: str) -> list[dict[str, object]]:
             long_sentences.append(record)
         if comma_count >= 3:
             comma_heavy_sentences.append({**record, "comma_count": comma_count})
+        if comma_count >= 3 and re.search(r"\b(?:and|or|nor)\b", sentence, flags=re.IGNORECASE):
+            parallel_detail_sentences.append({**record, "comma_count": comma_count})
         if compound_count >= 2:
             stacked_modifier_sentences.append({**record, "hyphenated_compound_count": compound_count})
     return {
         "long_sentences": long_sentences,
         "comma_heavy_sentences": comma_heavy_sentences,
         "stacked_modifier_sentences": stacked_modifier_sentences,
+        "parallel_detail_sentences": parallel_detail_sentences,
     }
 
 
@@ -141,8 +145,8 @@ def build_report(text: str, source: Path, extra_terms: Iterable[str]) -> dict[st
         "editorial_note": (
             "Counts and compound inventories are review candidates, not errors or evidence of AI authorship. "
             "Check whether a term states a specific mechanism or result, whether a compound is standard or defined, "
-            "whether dash spacing follows the target style, and whether a reader can identify the main point before "
-            "the qualifiers."
+            "whether dash spacing follows the target style, whether a reader can identify the main point before "
+            "the qualifiers, and whether a long parallel list should be consolidated into a specific higher-level concept."
         ),
     }
 

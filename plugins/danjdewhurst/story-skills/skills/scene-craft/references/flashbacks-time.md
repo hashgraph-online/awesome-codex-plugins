@@ -23,7 +23,7 @@ Use a two-step entry and a two-step exit:
 Record flashbacks in the scene record with `flashback-to: {when}` (a freeform
 scalar validated by `story validate` and preserved by the CLI) and the
 characters appearing in them under `mentions` (not `characters`), per the
-story-init convention — this keeps `story continuity` from flagging
+shared story conventions — this keeps `story continuity` from flagging
 posthumous or temporally-impossible appearances (continuity checks use
 `mentions`, not `flashback-to`).
 

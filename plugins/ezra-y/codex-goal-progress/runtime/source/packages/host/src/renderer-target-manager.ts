@@ -1,4 +1,4 @@
-import { isCodexRendererPageUrl } from "../../codex-adapter/src/cdp.js";
+import { GoalProgressPageError, isCodexRendererPageUrl } from "../../codex-adapter/src/cdp.js";
 import type { GoalProgressRendererBridgeDoctor } from "../../codex-adapter/src/index.js";
 import {
   classifyGoalProgressUpdateState,
@@ -86,6 +86,7 @@ export class RendererTargetManager implements ViewModelPublisherSink {
   readonly #sourceReconnectDelaysMs: readonly number[];
   readonly #sleep: (delayMs: number) => Promise<void>;
   readonly #targets = new Map<string, ManagedRendererTarget>();
+  readonly #targetRecoveryTimers = new Map<string, ReturnType<typeof setTimeout>>();
   #source: RendererTargetSource | undefined;
   #removeInfoListener: (() => void) | undefined;
   #removeDestroyedListener: (() => void) | undefined;
@@ -144,7 +145,19 @@ export class RendererTargetManager implements ViewModelPublisherSink {
       if (this.#closed || this.#source) {
         return;
       }
-      const source = await this.#connector();
+      let source: RendererTargetSource | undefined;
+      try {
+        source = await this.#connector();
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message.startsWith("GOAL_PROGRESS_CDP_TIME_IDENTITY_REBUILD_REQUIRED")
+        ) {
+          // 连接等待受控重建时，保留后台与更新操作；下一次连接继续读取新身份。
+          return;
+        }
+        throw error;
+      }
       if (!source) {
         throw new Error("RENDERER_TARGET_SOURCE_UNAVAILABLE");
       }
@@ -153,6 +166,7 @@ export class RendererTargetManager implements ViewModelPublisherSink {
         void this.#enqueue(() => this.#connectTarget(target));
       });
       this.#removeDestroyedListener = source.onTargetDestroyed((targetId) => {
+        this.#cancelTargetRecovery(targetId);
         void this.#enqueue(() =>
           this.#destroyTarget(targetId, true, "GOAL_PROGRESS_CDP_TARGET_DESTROYED"),
         );
@@ -245,7 +259,11 @@ export class RendererTargetManager implements ViewModelPublisherSink {
         target.lastErrorCode = null;
       } catch (error) {
         target.lastErrorCode = stableTargetError(error);
-        await this.#destroyTarget(targetId);
+        target.deliveryCurrent = false;
+        if (!(error instanceof GoalProgressPageError)) {
+          await this.#destroyTarget(targetId);
+          this.#scheduleTargetRecovery(target.info);
+        }
         throw error;
       }
     });
@@ -255,18 +273,13 @@ export class RendererTargetManager implements ViewModelPublisherSink {
     targetId: string,
     expectedThreadId?: string,
   ): Promise<GoalProgressRendererBridgeDoctor> {
-    let doctor: GoalProgressRendererBridgeDoctor | undefined;
-    await this.#enqueue(async () => {
-      const target = this.#requireTarget(targetId);
-      if (!target.bridge) {
-        throw new Error(target.lastErrorCode ?? "RENDERER_TARGET_UNAVAILABLE");
-      }
-      doctor = await target.bridge.doctor(expectedThreadId);
-      target.doctor = doctor;
-    });
-    if (!doctor) {
-      throw new Error("RENDERER_TARGET_UNAVAILABLE");
-    }
+    const target = this.#requireTarget(targetId);
+    const bridge = target.bridge;
+    if (!bridge) throw new Error(target.lastErrorCode ?? "RENDERER_TARGET_UNAVAILABLE");
+    const doctor = await bridge.doctor(expectedThreadId);
+    if (this.#targets.get(targetId) !== target || target.bridge !== bridge || target.closed)
+      throw new Error("RENDERER_TARGET_UNKNOWN");
+    target.doctor = doctor;
     return doctor;
   }
 
@@ -275,6 +288,7 @@ export class RendererTargetManager implements ViewModelPublisherSink {
       const target = this.#requireTarget(targetId);
       target.lastErrorCode = code;
       await this.#destroyTarget(targetId);
+      if (code !== "GOAL_PROGRESS_CDP_TARGET_DESTROYED") this.#scheduleTargetRecovery(target.info);
     });
   }
 
@@ -335,18 +349,40 @@ export class RendererTargetManager implements ViewModelPublisherSink {
 
   async doctor(expectedThreadId?: string): Promise<GoalProgressRendererBridgeDoctor> {
     let lastError: unknown;
-    for (const targetId of this.targetIds()) {
-      if (
-        expectedThreadId !== undefined &&
-        this.#targets.get(targetId)?.visibleThreadId !== expectedThreadId
-      ) {
-        continue;
-      }
-      try {
-        return await this.doctorTarget(targetId, expectedThreadId);
-      } catch (error) {
-        lastError = error;
-      }
+    const doctors: GoalProgressRendererBridgeDoctor[] = [];
+    const results = await Promise.allSettled(
+      this.targetIds()
+        .filter(
+          (targetId) =>
+            expectedThreadId === undefined ||
+            this.#targets.get(targetId)?.visibleThreadId === expectedThreadId,
+        )
+        .map((targetId) => this.doctorTarget(targetId, expectedThreadId)),
+    );
+    for (const result of results) {
+      if (result.status === "fulfilled") doctors.push(result.value);
+      else lastError = result.reason;
+    }
+    if (doctors.length > 0 && lastError === undefined) {
+      return (
+        doctors.find((doctor) => doctor.lastErrorCode !== null) ??
+        doctors.find(
+          (doctor) =>
+            doctor.displayRequired === true &&
+            (doctor.componentVisible !== true ||
+              doctor.componentCount !== 1 ||
+              doctor.currentThreadMatched !== true ||
+              (doctor.visibleThreadStatus !== "matched" &&
+                doctor.visibleThreadStatus !== "retained") ||
+              !Number.isSafeInteger(doctor.latestViewModelRevision) ||
+              !Number.isSafeInteger(doctor.receivedViewModelRevision) ||
+              doctor.displayState !== "rendered" ||
+              doctor.latestViewModelRevision !== doctor.receivedViewModelRevision),
+        ) ??
+        doctors.find((doctor) => doctor.displayRequired == null) ??
+        doctors.find((doctor) => doctor.displayRequired === true) ??
+        (doctors[0] as GoalProgressRendererBridgeDoctor)
+      );
     }
     throw lastError ?? new Error("RENDERER_TARGET_UNAVAILABLE");
   }
@@ -410,11 +446,48 @@ export class RendererTargetManager implements ViewModelPublisherSink {
         target.visibleThreadId,
         bridge.visibleThreadLifecycleId,
       );
+      this.#cancelTargetRecovery(info.targetId);
     } catch (error) {
       target.lastErrorCode = stableTargetError(error);
+      if (error instanceof GoalProgressPageError && target.bridge) return;
       await target.bridge?.close().catch(() => undefined);
       this.#targets.delete(info.targetId);
     }
+  }
+
+  #scheduleTargetRecovery(info: RendererTargetInfo, attempt = 0): void {
+    const source = this.#source;
+    const delay = this.#sourceReconnectDelaysMs.filter((value) => value > 0)[attempt];
+    if (
+      !source ||
+      this.#closed ||
+      delay === undefined ||
+      this.#targetRecoveryTimers.has(info.targetId)
+    )
+      return;
+    const timer = setTimeout(() => {
+      if (this.#targetRecoveryTimers.get(info.targetId) !== timer) return;
+      this.#targetRecoveryTimers.delete(info.targetId);
+      void this.#enqueue(async () => {
+        if (
+          this.#closed ||
+          this.#source !== source ||
+          this.hasTarget(info.targetId) ||
+          !source.initialTargets.some((target) => target.targetId === info.targetId)
+        )
+          return;
+        await this.#connectTarget(info);
+        if (!this.hasTarget(info.targetId)) this.#scheduleTargetRecovery(info, attempt + 1);
+      }).catch(() => undefined);
+    }, delay);
+    timer.unref();
+    this.#targetRecoveryTimers.set(info.targetId, timer);
+  }
+
+  #cancelTargetRecovery(targetId: string): void {
+    const timer = this.#targetRecoveryTimers.get(targetId);
+    if (timer) clearTimeout(timer);
+    this.#targetRecoveryTimers.delete(targetId);
   }
 
   async #destroyTarget(targetId: string, notify = false, code?: string): Promise<void> {
@@ -507,6 +580,7 @@ export class RendererTargetManager implements ViewModelPublisherSink {
   }
 
   async #closeSourceAndTargets(preservePage = false, notifyCode?: string): Promise<void> {
+    for (const targetId of this.#targetRecoveryTimers.keys()) this.#cancelTargetRecovery(targetId);
     this.#removeInfoListener?.();
     this.#removeDestroyedListener?.();
     this.#removeFailureListener?.();

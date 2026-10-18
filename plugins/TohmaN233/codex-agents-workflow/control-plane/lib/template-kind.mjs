@@ -13,7 +13,7 @@ export function templateKind(pack) {
 
 export function roleNode(pack) {
   requireValue(templateKind(pack)==='role','ROLE_TEMPLATE_KIND','Selected template is a Workflow, not a role');
-  const stages=pack.workflow.nodes.filter(node=>node.type==='agent'&&node.role!=='finalizer');
+  const stages=pack.workflow.nodes.filter(node=>node.type==='agent'&&node.id!==pack.workflow.finalization.node_id);
   requireValue(stages.length===1,'ROLE_TEMPLATE_SHAPE','A role needs exactly one agent instruction stage');
   return stages[0];
 }

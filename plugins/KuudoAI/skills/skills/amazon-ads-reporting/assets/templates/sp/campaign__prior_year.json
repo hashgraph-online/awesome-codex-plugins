@@ -1,0 +1,43 @@
+{
+  "accessRequestedAccounts": [
+    {
+      "advertiserAccountId": "amzn1.ads-account.g.REPLACE_ME"
+    }
+  ],
+  "reports": [
+    {
+      "format": "GZIP_JSON",
+      "query": {
+        "fields": [
+          "date.value",
+          "campaign.id",
+          "campaign.name",
+          "adProduct.value",
+          "budgetCurrency.value",
+          "metric.impressions",
+          "metric.clicks",
+          "metric.cpc",
+          "metric.totalCost"
+        ],
+        "filter": {
+          "on": {
+            "comparisonOperator": "EQUALS",
+            "field": "adProduct.value",
+            "not": false,
+            "values": [
+              "SPONSORED_PRODUCTS"
+            ]
+          }
+        }
+      },
+      "periods": [
+        {
+          "datePeriod": {
+            "startDate": "PRIOR_YEAR_START_DATE",
+            "endDate": "PRIOR_YEAR_END_DATE"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -21,6 +21,7 @@ manifest=$plugin_dir/.codex-plugin/plugin.json
 mcp_manifest=$plugin_dir/.mcp.json
 marketplace=$repo_dir/.agents/plugins/marketplace.json
 config=$control/default-config.json
+roles=$control/builtin-role-definitions.json
 server=$control/server.mjs
 web_app=$control/web/app.js
 skill=$plugin_dir/skills/control-plane/SKILL.md
@@ -33,7 +34,7 @@ tutorial=$repo_dir/docs/TUTORIAL.zh-CN.md
 for required in \
   "$manifest" "$mcp_manifest" "$marketplace" "$config" "$server" "$skill" "$architecture" \
   "$contracts" "$ui" "$workflow" "$tutorial" \
-  "$control/package.json" \
+  "$control/package.json" "$roles" \
   "$control/open-console.mjs" \
   "$control/connectors/cursor-cdp.mjs" \
   "$control/connectors/cursor-profile.mjs" \
@@ -96,21 +97,24 @@ print("default prompts fit the 128-character host cap")
 PY
 pass "plugin and skill prompt lengths"
 
-jq -e '.version == 6 and .global.enabled == true and .global.allow_direct_api == false and (.scenarios | not)' "$config" >/dev/null || fail "default global switches or schema are unsafe"
+jq -e '.version == 7 and (has("task_types") | not) and .workflow_store == {schema_version:1, relative_path:"workflows"} and .legacy_mapping == {} and .global.enabled == true and .global.allow_direct_api == false and (.scenarios | not)' "$config" >/dev/null || fail "default global switches or schema are unsafe"
+jq -e '.strict_executor == {enabled:true}' "$config" >/dev/null || fail "fresh Strict default must defer local executable registration to the Host"
 jq -e '[.providers[] | select(.kind != "native_agent") | .enabled] | all(. == false)' "$config" >/dev/null || fail "a non-native provider is enabled by default"
 jq -e '[.providers[] | select(.kind == "native_agent") | [.id, .config.model, .config.reasoning_effort]] | sort == ([["native-luna", "gpt-6-luna", "max"], ["native-sol", "gpt-6.1-sol", "high"], ["native-astra", "gpt-6-astra", "medium"]] | sort)' "$config" >/dev/null || fail "native Provider defaults do not match the three model connections"
 jq -e '[.providers[] | select(.kind == "native_agent") | (.enabled == true and .config.agent_type == "default" and .config.role == "advisor")] | all' "$config" >/dev/null || fail "native Providers must use the generic Agent connection"
 jq -e '.providers[] | select(.id == "cursor-local" and .kind == "builtin_connector" and .enabled == false and .requires_user_approval == false and .capabilities.write == true and .config.connector == "cursor_cdp" and .config.transport == "cdp_ui")' "$config" >/dev/null || fail "built-in Cursor default is missing or unsafe"
 jq -e '.providers[] | select(.id == "grok-local" and .kind == "builtin_connector" and .enabled == false and .requires_user_approval == false and .capabilities.write == true and .config.connector == "grok_acp" and .config.transport == "leader_acp_stdio")' "$config" >/dev/null || fail "built-in Grok default is missing or unsafe"
-jq -e '[.providers[].requires_user_approval, .task_types[].stages[].requires_user_approval] | all(. == false)' "$config" >/dev/null || fail "bundled approval gates must default off"
-jq -e '[.task_types[] | select(.id != "hard-path-web-advice") | select((.id + " " + .name + " " + .description + " " + (.tags | join(" "))) | test("cursor|grok|chatgpt|luna|terra|openai"; "i"))] | length == 0' "$config" >/dev/null || fail "default Task Type metadata is Provider-specific"
-jq -e '[.task_types[] | select(.id == "hard-path-web-advice")] | length == 1 and all(.[]; .enabled == false and .name == "GPT reviewer" and .route == "audit" and (.stages | length) == 1 and .stages[0].provider_id == "chatgpt-web-pro" and .stages[0].access == "read_only")' "$config" >/dev/null || fail "optional GPT reviewer must remain disabled and reuse its read-only packet Provider"
-jq -e '.task_types[] | select(.id == "bounded-code-change" and .route == "delegate" and (.stages | length) == 1)' "$config" >/dev/null || fail "bounded change is not the delegate default"
-jq -e '.task_types[] | select(.id == "judgment-heavy-change" and .route == "delegate" and (.stages | length) == 1)' "$config" >/dev/null || fail "judgment-heavy change must use its single implementation role"
-jq -e 'all(.task_types[]; (.route == "solo" and (.stages|length)==0) or (.route == "delegate" and (.stages|length)==1 and .stages[0].id=="implementation" and .stages[0].role=="implementer") or (.route == "audit" and (.stages|length)==1 and .stages[0].id=="review" and .stages[0].role=="reviewer") or (.route == "full" and (.stages|length)==2 and .stages[0].id=="implementation" and .stages[1].id=="review"))' "$config" >/dev/null || fail "Task Type route topology is invalid"
+jq -e '[.providers[].requires_user_approval] | all(. == false)' "$config" >/dev/null || fail "bundled approval gates must default off"
+jq -e '(.roles | length) == 8 and all(.roles[]; (.stages | length) == 1)' "$roles" >/dev/null || fail "bundled Roles must be eight single-stage definitions"
+jq -e '[.roles[].stages[].requires_user_approval] | all(. == false)' "$roles" >/dev/null || fail "bundled Role approval gates must default off"
+jq -e '[.roles[] | select(.id != "hard-path-web-advice") | select((.id + " " + .name + " " + .description + " " + (.tags | join(" "))) | test("cursor|grok|chatgpt|luna|terra|openai"; "i"))] | length == 0' "$roles" >/dev/null || fail "default Role metadata is Provider-specific"
+jq -e '[.roles[] | select(.id == "hard-path-web-advice")] | length == 1 and all(.[]; .enabled == false and .name == "GPT reviewer" and .route == "audit" and (.stages | length) == 1 and .stages[0].provider_id == "chatgpt-web-pro" and .stages[0].access == "read_only")' "$roles" >/dev/null || fail "optional GPT reviewer must remain disabled and reuse its read-only packet Provider"
+jq -e '.roles[] | select(.id == "bounded-code-change" and .route == "delegate" and (.stages | length) == 1)' "$roles" >/dev/null || fail "bounded change is not the delegate default"
+jq -e '.roles[] | select(.id == "judgment-heavy-change" and .route == "delegate" and (.stages | length) == 1)' "$roles" >/dev/null || fail "judgment-heavy change must use its single implementation role"
+jq -e 'all(.roles[]; (.route == "delegate" and (.stages|length)==1 and .stages[0].id=="implementation" and .stages[0].role=="implementer") or (.route == "audit" and (.stages|length)==1 and .stages[0].id=="review" and .stages[0].role=="reviewer"))' "$roles" >/dev/null || fail "Role route topology is invalid"
 if grep -Eqi '"sk-[A-Za-z0-9_-]{20,}"' "$config"; then fail "default config appears to contain a credential value"; fi
 jq -e '.providers[] | select(.kind == "openai_compatible") | .config.api_key_env | test("^[A-Z_][A-Z0-9_]*$")' "$config" >/dev/null || fail "API provider does not use an environment-variable name"
-pass "safe Provider defaults and model-independent Task Types"
+pass "safe Provider defaults and model-independent Roles"
 
 for phrase in \
   'codex_agents_workflow_status' \
@@ -154,8 +158,10 @@ for operation in workflow_start workflow_native_next workflow_native_spawned_bat
 done
 pass "v7 execution, v6 compatibility, connector contracts, and three-platform CI documented"
 
-node "$script_dir/rebind-workflow-packages.mjs" --check
-pass "shipped packages use current built-in Host implementations"
+# The engine ships no personal Workflow packages. Package collections validate
+# their selected exports separately; retain the explicit-folder maintenance CLI.
+node --check "$script_dir/rebind-workflow-packages.mjs"
+pass "package maintenance CLI syntax"
 
 node --check "$server"
 node --check "$control/open-console.mjs"

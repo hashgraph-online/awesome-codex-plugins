@@ -1,0 +1,4 @@
+interface:
+  display_name: "Amazon Product Images"
+  short_description: "Create, audit, and troubleshoot Amazon listing images"
+  default_prompt: "Use $amazon-product-image to create, edit, audit, or troubleshoot an Amazon listing image."

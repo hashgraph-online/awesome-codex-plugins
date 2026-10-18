@@ -14,7 +14,7 @@ function rotateAttempt(state, nodeId, attempt, controlToken) {
   const token = leaseToken(controlToken, state.run_id, nodeId, attempt.id, generation); attempt.lease_hash = digest(token); return token;
 }
 
-const CONTROL_RECOVERY_FIELDS = ['run_id', 'expected_sequence', 'main_actor', 'reason', 'authorization'];
+const CONTROL_RECOVERY_FIELDS = ['run_id', 'expected_sequence', 'main_actor', 'reason'];
 const USER_MESSAGE_AUTHORIZATION_FIELDS = ['confirmed', 'source', 'statement'];
 function exactObject(value, fields) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -22,26 +22,31 @@ function exactObject(value, fields) {
 }
 
 export function conversationControlRecoveryRequest(args) {
-  requireValue(exactObject(args, CONTROL_RECOVERY_FIELDS), 'CONTROL_RECOVERY_SCHEMA', 'Conversational recovery needs only the exact Run, observed sequence, main actor, reason and user authorization');
+  const fields = args && Object.hasOwn(args, 'authorization') ? [...CONTROL_RECOVERY_FIELDS, 'authorization'] : CONTROL_RECOVERY_FIELDS;
+  requireValue(exactObject(args, fields), 'CONTROL_RECOVERY_SCHEMA', 'Conversational recovery needs only the exact Run, observed sequence, main actor and reason; an existing user authorization may also be recorded');
   const { run_id, expected_sequence, main_actor, reason, authorization } = args;
   workflowId(run_id);
   requireValue(Number.isSafeInteger(expected_sequence) && expected_sequence > 0 && typeof reason === 'string' && reason.trim() && reason.length <= 2000 && typeof main_actor === 'string' && main_actor.trim() && main_actor.length <= 256,
     'CONTROL_RECOVERY_SCHEMA', 'Conversational recovery needs the observed sequence, a reason and one main actor');
+  if (!Object.hasOwn(args, 'authorization')) return { run_id, expected_sequence, main_actor, reason,
+    recovery: { channel: 'conversation_mcp', authorization_source: 'existing_task', authorization_statement: null } };
   requireValue(exactObject(authorization, USER_MESSAGE_AUTHORIZATION_FIELDS) && authorization.confirmed === true && authorization.source === 'user_message' && typeof authorization.statement === 'string' && authorization.statement.trim() && authorization.statement.length <= 2000,
-    'CONTROL_RECOVERY_AUTHORIZATION', 'Conversational recovery requires an explicit bounded user-message authorization attestation');
+    'CONTROL_RECOVERY_AUTHORIZATION', 'An explicitly supplied user-message authorization must be valid and bounded');
   return { run_id, expected_sequence, main_actor, reason, authorization: { confirmed: true, source: 'user_message', statement: authorization.statement },
     recovery: { channel: 'conversation_mcp', authorization_source: 'user_message', authorization_statement: authorization.statement } };
 }
 
 function recoveryAudit(recovery) {
   if (recovery === undefined) return {};
-  requireValue(exactObject(recovery, ['channel', 'authorization_source', 'authorization_statement']) && recovery.channel === 'conversation_mcp' && recovery.authorization_source === 'user_message' && typeof recovery.authorization_statement === 'string' && recovery.authorization_statement.trim() && recovery.authorization_statement.length <= 2000,
+  const validAuthorization = recovery?.authorization_source === 'existing_task' ? recovery.authorization_statement === null
+    : recovery?.authorization_source === 'user_message' && typeof recovery.authorization_statement === 'string' && recovery.authorization_statement.trim() && recovery.authorization_statement.length <= 2000;
+  requireValue(exactObject(recovery, ['channel', 'authorization_source', 'authorization_statement']) && recovery.channel === 'conversation_mcp' && validAuthorization,
     'CONTROL_RECOVERY_SCHEMA', 'Conversational recovery audit data is invalid');
   return recovery;
 }
 
 // Called only after authenticated human-console adoption or validated host-attested
-// user-message recovery. The root CAS and ancestor fence precede all descendant
+// task-authorized conversation recovery. The root CAS and ancestor fence precede all descendant
 // writes. A partial recovery stays paused; repeating it repairs its exact tree.
 export async function adoptRunTree(runtime, runId, { expected_sequence, reason, main_actor, recovery }, onFenced = () => {}) {
   requireValue(Number.isSafeInteger(expected_sequence) && expected_sequence > 0 && typeof reason === 'string' && reason.trim() && reason.length <= 2000 && typeof main_actor === 'string' && main_actor.trim() && main_actor.length <= 256,
@@ -54,6 +59,7 @@ export async function adoptRunTree(runtime, runId, { expected_sequence, reason, 
       if (!parent) { requireValue(!pins.parent, 'CONTROL_RECOVERY_ROOT', 'Adopt the top-level Run so child authority remains attached to its parent', { parent_run_id: pins.parent?.run_id }); requireValue(current.sequence === expected_sequence, 'RUN_SEQUENCE_CONFLICT', 'Run changed since recovery was requested'); }
       else requireValue(pins.parent?.run_id === parent.run_id && pins.parent.node_id === parent.node_id && pins.parent.attempt_id === parent.attempt_id && pins.parent.pins_hash === parent.pins_hash, 'CHILD_RUN_CONFLICT', 'Recovered child ancestry differs from the exact parent dispatch');
       onFenced(id, state);
+      runtime.fenceMainForeground(state);
       interruptActiveNodes(state, 'Human controller recovery fenced the previous executor');
       if (!terminal.has(state.status)) { state.status = 'paused'; state.pause_reason = reason; }
       state.control_hash = digest(controlToken); state.main_actor = main_actor;

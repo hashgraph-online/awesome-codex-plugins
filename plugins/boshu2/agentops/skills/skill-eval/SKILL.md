@@ -1,6 +1,6 @@
 ---
 name: skill-eval
-description: 'Measure whether a skill helps a named task or needs revision or removal. Use when: a bounded routing or coding evaluation is requested; conformance alone cannot show benefit.'
+description: 'Measure whether a skill helps by comparing runs with and without it. Use when: reading skill A/B results or deciding to keep, revise or remove one.'
 practices:
 - measurement-over-assertion
 - ab-testing
@@ -23,34 +23,96 @@ metadata:
   canonical_status: canonical
   disposition: keep_specialist
   stability: experimental
+output_contract: one recommendation (retain, revise, remove or insufficient evidence) with cases, all-attempt denominators, paired outcomes, uncertainty, cost and unknowns
 ---
 
-# /skill-eval
+# Skill Eval
 
 Answer one named maintenance decision: **retain, revise, remove, or insufficient
 evidence**. Choose the measurement that can answer that decision, use the caller's
 accepted cases and resource envelope, make one scoped recommendation, and stop.
 A completed evaluation does not require a positive difference.
 
-This is an optional specialist. The repository's selected runner owns execution
-and bounds; native results own measurements; BD and Git retain their authority.
-Do not add a core skill, AO evaluation command, scheduler, dashboard, second
-tracker, or mandatory review merely to run an experiment.
+This is an optional specialist. The selected runner owns execution and bounds;
+native results own measurements; BD and Git retain their authority. Do not add
+a core skill, AO evaluation command, scheduler, dashboard, second tracker, or
+mandatory review merely to run an experiment.
+
+## Rules that decide the answer
+
+- **Count every attempt.** Keep failed, crashed, interrupted, blocked, abandoned,
+  missing and infrastructure-invalid attempts in the all-attempt accounting. A
+  rerun adds an attempt; it never overwrites the one that failed.
+- **Vary one thing.** Equalize instructions, tools, environment, model and
+  effort across arms apart from the intended variable. If one arm's task prompt
+  repeats the skill's direction, attribute the result to the combined
+  instructions, not the skill alone.
+- **Confirm the skill loaded.** Before reading a zero or small delta as no
+  benefit, check each treatment run for the skill actually being loaded or
+  injected. A run where it never loaded measures routing, not content.
+- **Calibrate the grader.** Before trusting scores, confirm the judge or
+  discriminator passes a response that plainly meets each criterion and fails
+  one that plainly does not. A weak judge can fail correct responses wholesale.
+- **Small samples are directional.** Report uncertainty with every difference.
+  A difference without it shows neither benefit nor equivalence, and a
+  zero-crossing interval is not equivalence.
+- **Fix the stop before running.** Do not add trials until the result turns
+  positive, remove losing observations or relax acceptance.
 
 ## Choose the question
 
 | Caller decision | Measurement | What it can establish |
 |---|---|---|
-| Does loading this skill change a specific observable act? | Behavioral probe with `scripts/probe-skill.sh` | Behavior change on that scenario; not correct code or productivity |
+| Does a natural request load this skill? | An authorized available [routing probe](../../evals/routing-probes/README.md) that observes loading; optionally `claude plugin eval` with a with-only `tool_used: Skill` grader when Claude is explicitly authorized | Natural-request loading on the observed host/catalog; not whether loading helps |
+| Does supplied skill text change a specific observable act? | Behavioral probe with the available authorized Codex adapter in `scripts/probe-skill.sh` | Behavior change under forced source injection; not routing, correct code or productivity |
+| Does the installed plugin change graded answers end to end? | `claude plugin eval` against its no-plugin baseline, only when explicitly authorized and available | Routing and content together on the selected cases |
 | Does this package or version improve engineering outcomes at acceptable cost? | Repository-selected controlled coding comparison, such as `evals/skills-rpi` | Endpoint outcomes and cost on selected tasks; independent completion only when required exact-subject evidence exists |
 | Does a qualified memory update help later work? | Separate frozen-versus-updated memory transfer test | Narrow later-task reuse evidence with skill and runtime held fixed |
 | What happened in ordinary runs? | Existing native accounting and acceptance evidence | Observational failures, repairs and cost; not causal skill benefit |
 
-Start from the caller's intended decision, not a mandatory quiz. Reuse an
-existing accepted decision and scope. For a behavioral question, name one
-observable action (a file written, tool used, criterion rejected); a belief such
-as “understands validation” needs translation into an action. For coding or
-memory questions, name unchanged task acceptance and the maintenance choice.
+Start from the caller's intended decision, not a mandatory quiz. For a
+behavioral question, name one observable action (a file written, tool used,
+criterion rejected); a belief such as “understands validation” needs translation
+into an action. For coding or memory questions, name unchanged task acceptance
+and the maintenance choice.
+
+## Runners
+
+Select the intersection of the caller's runtime authority, an available adapter
+and the named question. A runner's presence grants no runtime permission. If no
+route meets all three, return **insufficient evidence** with the missing route;
+do not automatically substitute another runtime or build a replacement runner.
+Forced SKILL.md injection, natural-request routing and installed-package coding
+comparisons answer different questions.
+
+When Claude Code is explicitly authorized and its evaluator is available,
+`claude plugin eval <plugin-path> --model <id>` is an optional route. It
+runs the cases in the plugin's eval directory (`evals/` by default) with the
+plugin and, by default (`--ablation with-without`), without it, scores each
+response with the case graders (LLM graders use `--judge-model`, default haiku)
+and reports the score delta. `--runs` sets repetitions per case,
+`--max-cost-usd` caps spend and `--json` writes per-run results. The model
+decides whether to load each skill, so the delta mixes routing with content.
+By default it also publishes its HTML report (prompts, responses and verdicts)
+to claude.ai and writes results under the plugin's eval directory: pass
+`--no-publish`, and point `--output-dir`, `--json` and `--report` at
+caller-selected storage. Confirm flags with `claude plugin eval --help`.
+
+`scripts/probe-skill.sh` is the repository runner for small behavioral probes.
+Its live route uses `scripts/lib/codex-exec.sh`; select it only when Codex and
+the runner's required isolation support are available and authorized. It injects
+the exact SKILL.md bytes (or a declared prelude) into the treatment arm, grades
+with a deterministic discriminator and replays immutable fixtures. Loading is
+forced, so it measures the text's effect on one act, not routing or a complete
+installed package. Neither runner's result substitutes for the other.
+Probe forms, headroom classifications and legacy ledger rules are in
+[behavioral probes](references/behavioral-probes.md).
+
+`scripts/probe-skill.sh`, `evals/` and the probe gates exist only in an
+AgentOps source checkout. Elsewhere, use the caller's authorized existing runner
+if it supports the question and record its identity and limits. With no such
+runner, report the measurement unsupported; do not install a platform or start
+another runtime to replace the missing route.
 
 ## Procedure
 
@@ -58,7 +120,7 @@ memory questions, name unchanged task acceptance and the maintenance choice.
    memory update, relevant cases, allowed runtime and existing aggregate time,
    trial and cost limits. Do not infer billing enforcement from token counters.
    Smoke runs, infrastructure retries, interrupted attempts and inner review
-   consume the same declared envelope. A new configuration or context does not
+   consume the same declared envelope; a new configuration or context does not
    renew it. Do not launch live work without caller authorization and bounds.
 2. **Choose the smallest relevant measurement.** Use behavioral probes for acts,
    coding tasks for engineering outcomes, and separate later sessions for memory.
@@ -72,143 +134,53 @@ memory questions, name unchanged task acceptance and the maintenance choice.
    Exposed incidents are development cases, never unseen holdouts by renaming.
    Broken or leaked cases invalidate affected comparisons; preserve their
    historical disposition when versioning a correction.
-4. **Run within the selected consumer's bounds.** Equalize instructions, tools
-   and environment across arms apart from the intended variable. Coding trials
-   expose the actual selected package and required resources. A worktree or a
-   prompt prohibition is not runtime isolation. Exclude operator home, production
-   tracker, session history, sibling output and solutions; capture launched
-   configuration and final artifacts outside the worker. Report an incompatible
-   adapter as such; do not build a replacement platform to rescue a result.
+   If the existing capture/readout pipeline is new or changed, check parsing and
+   scoring with a cheap known-input dry run. Consider an A/A control only when
+   noise could change the decision, within the same authorized envelope; neither
+   requires a fixed trial count or a new artifact.
+4. **Run within the selected consumer's bounds.** Coding trials expose the actual
+   selected package and required resources. A worktree or a prompt prohibition
+   is not runtime isolation. Exclude operator home, production tracker, session
+   history, sibling output and solutions; capture launched configuration and
+   final artifacts outside the worker. Report an incompatible adapter as such;
+   do not build a replacement platform to rescue a result.
 5. **Read all attempts.** Use native runner results and existing accounting;
    collection must not require another model call or handwritten evaluation.
-   Keep failed, abandoned, blocked, interrupted and missing attempts visible.
    Wrong identity, changed acceptance, contamination or ambiguous pairing cannot
    establish comparison proof even when a deterministic check passed.
 6. **Compare only supported facts.** Pair by task and repetition; preserve
-   repetitions within task clusters. Report case outcomes, denominators,
-   uncertainty and failure disposition. Endpoint reward, worker done claim,
+   repetitions within task clusters. Endpoint reward, worker done claim,
    in-workflow validator PASS and independent acceptance are different facts.
    Missing review, usage, billing, phase or feasibility evidence stays unknown.
    A worker following an instruction establishes adherence, not reduced rework
-   or causal benefit. If its task prompt repeats the skill's direction, attribute
-   the observation to the combined instructions, not the skill alone. A passing
-   case far from a failed boundary does not prove the boundary is repaired.
-7. **Recommend once and stop.** State retain, revise, remove or insufficient
-   evidence, the scope and supporting facts, and what remains unproven. A
-   concrete reproduced defect with clean controls can support a provisional
-   narrow repair; general improvement needs held-out comparison. Do not add
-   trials until green, require a positive result, or automatically publish a
-   lesson. Do not remove losing observations or relax acceptance.
+   or causal benefit. A passing case far from a failed boundary does not prove
+   the boundary is repaired. Coding and memory comparisons follow
+   [coding and memory readout](references/coding-memory-readout.md).
+7. **Recommend once and stop.** A concrete reproduced defect with clean controls
+   can support a provisional narrow repair; general improvement needs held-out
+   comparison. Do not automatically publish a lesson.
 
-## Coding and memory readout
+Raw trials and new proof go to caller-selected protected external non-Git
+storage; only public, sanitized fixtures cleared for that destination belong in
+Git (ADR-0016).
 
-Use the development adapter documented in
-[`evals/skills-rpi/readout.md`](../../evals/skills-rpi/readout.md), or the caller's
-existing equivalent. Its report is a rebuildable view, not work authority.
-The pilot's default `insufficient-evidence` recommendation is an honest limit;
-the specialist may make a narrower supported maintenance recommendation and
-must state its evidence and provisional scope.
+## Output
 
-- Report endpoint success against **all assigned/observed attempts** alongside
-  any feasible-task rate. Retain infrastructure invalidity, infeasibility and
-  unknown coverage separately; do not hide them by dropping the denominator.
-- Report false completion, false acceptance and needless blocking separately
-  when independent evidence measures them. Clean cases and abstentions are
-  denominators, not opportunities to reward finding-count spray. Unknown is not
-  zero. Deterministic code truth may settle an experimental criterion, while a
-  required native handoff or exact-subject judgment remains unproven.
-- Report raw time/cost distributions and total cost of all attempts per accepted
-  outcome. Zero accepted outcomes makes that ratio undefined. Partial Harbor
-  cost is not total billing. Native input includes cached input; native output
-  includes reasoning. Keep counters distinct and never add native totals to
-  Harbor totals or assume parents exclude children. Split producer, in-workflow
-  validation, orchestration and grading only where native identity supports it.
-  State the measurement window and excluded setup/analysis overhead.
-  Fresh contexts can still carry large startup instructions and tool catalogs;
-  use actual input accounting when available, not freshness as a cost proxy.
-- Use `evals/_stats` for paired task-cluster uncertainty after verifying its
-  dependencies and semantics. A pilot is descriptive unless sample size and
-  decision thresholds were justified and fixed in advance. A zero-crossing
-  interval or `no_change` is **not equivalence**; equivalence needs its own margin
-  and test. Same numeric repetitions/seeds do not prove controlled provider
-  randomness. Do not extrapolate local results across libraries or models.
-- For memory, hold skill/runtime fixed and compare frozen with independently
-  qualified updated memory in fresh later sessions, using an unseen transfer
-  task and an unrelated or invalidating control. Count acquisition, qualification,
-  retrieval and downstream trial cost separately. Package available, content
-  delivered, relevant action and later outcome are separate facts. Saving a page
-  earns no benefit credit; coding-pilot completion does not establish compounding.
-
-Raw trials and new proof belong in caller-selected protected external non-Git
-storage. Only public/sanitized fixtures cleared for that destination belong in
-Git. Preserve legacy `.agents/` evidence. Existing independent support and
-disclosure review precedes memory import; this skill does not auto-publish
-transcripts or mutate knowledge from aggregate scores (ADR-0016).
-
-## Behavioral probes: preserve their existing meaning
-
-`scripts/probe-skill.sh` remains the runner for small behavioral regression
-probes and immutable replay. It exposes an empty workspace and one injected
-SKILL.md, not a complete installed-package coding trial. Its verdict measures
-**behavior change**, never quality uplift or productive engineering completion.
-Existing ledger entries retain that meaning and their recorded limitations.
-
-| Probe form | Use when | Discriminator |
-|---|---|---|
-| Tier 1 — quiz | A decision rule is the caller's behavioral question | The answer/action on the scenario |
-| Tier 2 — seeded task | Applying a discipline in work is the question | Whether the agent acted on a realistic planted defect |
-
-Either form may be the starting point. Use
-[`references/seeding.md`](references/seeding.md) for seeded tasks. Grade the act,
-never vocabulary copied from the treatment. A floor probe detects at least one
-act; a multi-defect band needs both lower and upper bounds to catch omission and
-finding spray. Calibrate against a transcript performing the act without the
-prelude's wording and one repeating the wording without the act.
-
-The declared `treatment_source` remains the only arm variable: `canonical-skill`
-uses exact SKILL.md bytes and is the mode the coverage gate counts;
-`injected-prelude` establishes prelude-only evidence. Live runs use the selected
-authorized native producer with equal scenario and repetitions. Effort levels
-are a declared experimental choice, not a prerequisite for every question.
-
-```bash
-bash scripts/probe-skill.sh --probe <id> --replay
-# Only within an already authorized live envelope:
-bash scripts/probe-skill.sh --probe <id> --live --capture --reps 3 --output out.json
-bash scripts/check-skill-probe-headroom.sh
+```text
+Decision: retain | revise | remove | insufficient evidence; scope <skill, version, cases>
+Question: <maintenance decision and the measurement chosen>
+Setup: <runner, model, effort, grader; what differs between arms>
+Attempts: <per arm: assigned, completed, crashed or infra, interrupted, reruns>
+Outcomes: <paired by case and repetition; whether the skill loaded in each treatment run>
+Uncertainty: <interval and method, or "directional, n=<count>">
+Cost: <measured time and cost per arm, or unknown>
+Not proven: <confounds, missing coverage, what this measurement cannot show>
 ```
 
-The existing `skill.probe-headroom` gate in `cli/internal/probeheadroom` owns
-classification and thresholds. Its multi-effort saturation rule remains the
-legacy gate contract; do not fabricate enough runs to satisfy it or rederive
-the rule in a new report. Read and report the actual answer:
-
-- **SATURATED:** the probe cannot distinguish the targeted act. Preserve the
-  observation as a scenario limitation in the RUNBOOK; do not append a skill
-  verdict to the legacy ledger. Do not infer skill value or lack of value.
-- **FLOOR:** treatment did not act. Check the discriminator on a known passing
-  transcript. The result alone does not prove the skill cannot help elsewhere.
-- **UNMEASURED:** no usable measurement, not INERT.
-- **SEPARATED:** the gate found usable headroom. This classification itself does
-  not establish positive treatment benefit; retain the actual probe verdict.
-
-Legacy behavioral ledger rows cite the headroom result, model, effort and
-sample size. Append one row only under that ledger's existing admissibility
-rules; preserve a valid INERT or losing result. Small samples remain
-directional. If producer failure or truncation makes a rep `infra`
-(discriminator exit 2), exclude it from the legacy **usable behavioral rate**
-and report its count in the all-attempt accounting. Zero usable treatment reps
-is UNMEASURED, never INERT. This rate convention does not authorize dropping
-infrastructure attempts from coding-cohort accounting.
-
-## Output and completion
-
-One scoped recommendation with the decision, cases, all attempts/coverage,
-paired outcomes when valid, uncertainty, cost/unknowns and failure disposition.
 For behavioral authoring, also supply the existing probe package (`probe.json`,
 `question.md`, `discriminator.sh`, `fixtures/`, and a prelude only in
-`injected-prelude` mode) and its replay result. Use the legacy ledger/RUNBOOK
-only for their existing consumers. No new per-run worksheet is required.
+`injected-prelude` mode) and its replay result. No new per-run worksheet is
+required.
 
 Done when the requested measurement has reached its accepted stop, the relevant
 replay/oracle checks discriminate, missing coverage is explicit, and one
@@ -218,7 +190,7 @@ none counts as demonstrated skill benefit.
 
 ## References
 
-- Behavioral runner and conventions: [`scripts/probe-skill.sh`](../../scripts/probe-skill.sh), [`evals/skill-probes/README.md`](../../evals/skill-probes/README.md).
+- Behavioral runner and conventions: [`scripts/probe-skill.sh`](../../scripts/probe-skill.sh), [`evals/skill-probes/README.md`](../../evals/skill-probes/README.md), [seeding](references/seeding.md).
 - Behavioral verdicts and non-verdict incidents: [`LEDGER.md`](../../evals/skill-probes/LEDGER.md), [`RUNBOOK.md`](../../evals/skill-probes/RUNBOOK.md).
 - Existing coverage and headroom gates: [`check-skill-probe-coverage.sh`](../../scripts/check-skill-probe-coverage.sh), [`check-skill-probe-headroom.sh`](../../scripts/check-skill-probe-headroom.sh).
 - Evidence and overclaim limits: ADR-0011, ADR-0016 and [`RPI traversal`](../../docs/architecture/rpi-traversal.md).

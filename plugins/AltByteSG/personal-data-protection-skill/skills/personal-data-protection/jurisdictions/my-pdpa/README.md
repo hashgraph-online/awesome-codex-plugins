@@ -1,6 +1,6 @@
 # Malaysia PDPA — Jurisdiction Notes
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 | | |
 |---|---|
@@ -13,7 +13,7 @@
 | **Operative JPDP guidelines (issued 25 February 2025; effective 1 June 2025)** | Personal Data Protection Guideline on the Appointment of Data Protection Officer; Personal Data Protection Guideline on Data Breach Notification |
 | **Pending amendments / guidance** | Subordinate regulations on data portability period under s43A(3) and on cross-border safeguards under s129(2) post-whitelist still expected; check JPDP for updates |
 
-> **Source copyright:** the statute text (Act 709 and Act A1727) is published by Percetakan Nasional Malaysia Berhad as Appointed Printer to the Government of Malaysia. Verbatim quotations in this skill are short operative phrases reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence. See [DISCLAIMER.md § Copyright in source materials](../../../../DISCLAIMER.md#copyright-in-source-materials).
+> **Source copyright:** the statute text (Act 709 and Act A1727) is published by Percetakan Nasional Malaysia Berhad as Appointed Printer to the Government of Malaysia. Verbatim quotations in this skill are short operative phrases reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence. See [DISCLAIMER.md § Copyright in source materials](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md#copyright-in-source-materials).
 
 ## Critical thresholds
 

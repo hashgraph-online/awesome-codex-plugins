@@ -1,6 +1,6 @@
 {
   "schema_version": "3",
-  "skill_count": 28,
+  "skill_count": 29,
   "skills": [
     {
       "canonical_status": "canonical",
@@ -17,10 +17,14 @@
         {
           "kind": "customer-of",
           "with": "codex-exec"
+        },
+        {
+          "kind": "customer-of",
+          "with": "claude-exec"
         }
       ],
       "dependencies": [],
-      "description": "Dispatch independent tasks to parallel workers or selected persistent roles. Use when: delegation is authorized with disjoint scopes; execution does not validate output.",
+      "description": "Dispatch independent tasks to parallel workers or subagents without write collisions. Use when: running or planning agents in parallel, even two; check scopes before any launch.",
       "disposition": "keep_optional_adapter",
       "effects": [
         "manage_runtime_sessions",
@@ -58,7 +62,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Run a supplied task in AGY Antigravity and collect its result. Use when: the caller selects AGY; never a fallback for native coding.",
+      "description": "Run a supplied task in headless AGY (Antigravity, Gemini) and collect its result. Use when: AGY, Antigravity or Gemini is requested by name; never a fallback.",
       "disposition": "keep_optional_adapter",
       "effects": [
         "start_agy_session"
@@ -80,6 +84,45 @@
     {
       "canonical_status": "canonical",
       "capabilities": [
+        "claude_exec"
+      ],
+      "consumes": [
+        "claude-command-packet"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "validate"
+        },
+        {
+          "kind": "separate-ways",
+          "with": "codex-exec"
+        }
+      ],
+      "dependencies": [],
+      "description": "Run one prompt through headless Claude with scoped permissions and a time bound. Use when: scripting or automating a `claude -p` call, even a simple one.",
+      "disposition": "keep_optional_adapter",
+      "effects": [
+        "run_claude_process",
+        "permission_tiered_workspace_effects"
+      ],
+      "graph_root": false,
+      "hexagonal_role": "driving-adapter",
+      "name": "claude-exec",
+      "practices": [
+        "pragmatic-programmer",
+        "design-by-contract"
+      ],
+      "produces": [
+        "claude-run-output"
+      ],
+      "references_count": 0,
+      "tier": "orchestration",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
         "codex_exec"
       ],
       "consumes": [
@@ -92,7 +135,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Run one prompt through headless Codex and capture its result. Use when: requesting a single noninteractive Codex process. Not for worker batches or retries.",
+      "description": "Run one prompt through headless Codex and capture the result. Use when: wanting a one-shot `codex exec` run or CI step. Not for batches or retries.",
       "disposition": "keep_optional_adapter",
       "effects": [
         "run_codex_process",
@@ -107,7 +150,7 @@
       "produces": [
         "codex-run-output"
       ],
-      "references_count": 0,
+      "references_count": 1,
       "tier": "orchestration",
       "user_invocable": true
     },
@@ -126,7 +169,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Compare model perspectives for brainstorming, planning, validation, idea duels or interviews. Use when: independent proposals or judgments need optional bounded debate.",
+      "description": "Compare independent opinions from several models or contexts without inflating agreement. Use when: wanting a second opinion or debate, or summarizing several reviewers' results.",
       "disposition": "keep_strategy",
       "effects": [
         "write_advisory_council_report"
@@ -141,7 +184,7 @@
       "produces": [
         "council-report.v1"
       ],
-      "references_count": 0,
+      "references_count": 4,
       "tier": "judgment",
       "user_invocable": true
     },
@@ -162,7 +205,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Draft or lint a bounded persistent goal above a bead graph of RPI experiments. Use when: this goal workflow is explicitly selected; shaping a single change belongs to Plan.",
+      "description": "Draft or lint a bounded long-running goal prompt with a finish line and hard limits. Use when: selected by name; one change goes to Plan.",
       "disposition": "keep_strategy",
       "effects": [],
       "graph_root": false,
@@ -192,7 +235,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Write grounded docs, READMEs, repo instructions or continuity handoffs. Use when: these documents are requested; no reports as a routine completion ritual.",
+      "description": "Write or update READMEs, docs, repo instructions and handoff notes, checked against source. Use when: documenting something, writing a README or leaving a session handoff.",
       "disposition": "keep_specialist",
       "effects": [
         "write_documentation",
@@ -211,7 +254,7 @@
         "documentation",
         "session-handoff"
       ],
-      "references_count": 15,
+      "references_count": 17,
       "tier": "product",
       "user_invocable": true
     },
@@ -225,7 +268,7 @@
       "consumes": [],
       "context_rel": [],
       "dependencies": [],
-      "description": "Clarify domain terms, bounded contexts and repository conventions. Use when: naming, rule ownership or Go and other language standards are unclear; avoid a broad survey.",
+      "description": "Settle what domain terms mean per context, and which repository conventions or language standards (Go, Python) apply. Use when: names disagree or a rename is proposed.",
       "disposition": "keep_specialist",
       "effects": [
         "update_existing_domain_contracts"
@@ -266,7 +309,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Generate evidenced options or challenge an idea. Use when: deciding what to build or comparing alternatives; exploration does not authorize implementation.",
+      "description": "Brainstorm evidence-backed options for what to build, or stress-test an idea. Use when: deciding what to build next, comparing options or testing an idea.",
       "disposition": "keep_strategy",
       "effects": [
         "write_idea_portfolio"
@@ -303,7 +346,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Implement changes, repairs or waves; return per-lane evidence. Use when: coding, service operations, reliability, delivery, incident recovery, resilience or toil is authorized.",
+      "description": "Change or repair code, config or services without weakening tests; report what ran and what did not. Use when: implementing a change or fixing a defect.",
       "disposition": "keep",
       "effects": [
         "modify_declared_subject",
@@ -320,7 +363,7 @@
       "produces": [
         "subject-manifest.v1"
       ],
-      "references_count": 3,
+      "references_count": 4,
       "tier": "execution",
       "user_invocable": true
     },
@@ -343,7 +386,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Interview the caller one question at a time to settle a big outcome before agents work alone. Use when: shaping a goal or large RPI. Not for one question on one slice; use Plan.",
+      "description": "Interview you one question at a time, each with a recommendation, to settle a big outcome before agents work alone. Use when: selected by name.",
       "disposition": "keep_strategy",
       "effects": [
         "update_intent_source"
@@ -375,7 +418,7 @@
       "consumes": [],
       "context_rel": [],
       "dependencies": [],
-      "description": "Find reviewed context, capture evidence or curate maintained claims. Use when: prior evidence can change an action, or learning is requested; no mandatory recall or lesson.",
+      "description": "Write, find or curate lessons and agent rules with stated evidence and limits. Use when: asked to remember something or write a rule into agent instructions.",
       "disposition": "keep_off_path",
       "effects": [
         "write_protected_drafts",
@@ -394,7 +437,7 @@
         "reviewed-topic-pages",
         "ranked-toil-evidence"
       ],
-      "references_count": 4,
+      "references_count": 5,
       "tier": "execution",
       "user_invocable": true
     },
@@ -423,7 +466,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Pick the next wave on a bead graph and keep the graph honest toward frozen acceptance. Use when: a goal starts a wave, or you ask what is next on an epic.",
+      "description": "Pick the next work in an epic or bead graph; closed is not proven. Use when: asked what is next or whether an epic is done.",
       "disposition": "keep_strategy",
       "effects": [
         "update_native_graph"
@@ -457,7 +500,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Coordinate authorized workers, prerequisites, isolated scopes and review capacity. Use when: dispatching, recovering or routing feedback. Not for implementation or judgment.",
+      "description": "Coordinate several workers: what idle agents do next, which finished work gets checked first, how to recover a dead one. Use when: managing multiple agents.",
       "disposition": "keep",
       "effects": [
         "dispatch_authorized_workers",
@@ -489,7 +532,7 @@
       "consumes": [],
       "context_rel": [],
       "dependencies": [],
-      "description": "Define intended behavior, review write scope and assess reversible decisions. Use when: discovery needs clarification or resumption before one complete slice; stop once actionable.",
+      "description": "Shape a request into one end-to-end slice with observable behavior; review write scope and reversible decisions. Use when: planning, breaking down or scoping a change.",
       "disposition": "keep",
       "effects": [
         "update_intent_source"
@@ -503,7 +546,7 @@
         "ddd-bounded-context"
       ],
       "produces": [],
-      "references_count": 3,
+      "references_count": 4,
       "tier": "execution",
       "user_invocable": true
     },
@@ -515,7 +558,7 @@
       "consumes": [],
       "context_rel": [],
       "dependencies": [],
-      "description": "Analyze outcomes or an interim cutoff. Use when: a postmortem is explicitly requested; consumes available judgment, never gates code acceptance or requires a lesson.",
+      "description": "Explain why a change, incident or session went as it did, separating proven causes from coincidence. Use when: a postmortem or retro is selected by name.",
       "disposition": "keep_strategy",
       "effects": [
         "write_postmortem_report"
@@ -547,7 +590,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Challenge a rollout plan with one fresh judge before implementation; identify what could make it fail. Not for finished-code judgment. Triggers: \"one judge\", \"challenge this plan\".",
+      "description": "Find how a rollout plan could fail before committing to it. Use when: asked what could go wrong or to poke holes in a plan.",
       "disposition": "keep_strategy",
       "effects": [
         "write_advisory_plan_review"
@@ -562,7 +605,7 @@
       "produces": [
         "premortem-plan-review.v1"
       ],
-      "references_count": 1,
+      "references_count": 2,
       "tier": "judgment",
       "user_invocable": true
     },
@@ -584,7 +627,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Audit claimed state, goals or native status. Use when: a claim audit or snapshot is requested. Clarify advice versus acceptance for ambiguous checking or readiness requests.",
+      "description": "Audit claims that work is done or shipped against the diff or repo. Use when: asked whether something really got done, even if it looks obvious.",
       "disposition": "keep_strategy",
       "effects": [
         "write_advisory_gap_report",
@@ -603,7 +646,7 @@
         "goal-measurement-report",
         "native-status-snapshot"
       ],
-      "references_count": 0,
+      "references_count": 2,
       "tier": "judgment",
       "user_invocable": true
     },
@@ -617,7 +660,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Simplify structure, interfaces or responsibilities while preserving behavior. Use when: a focused refactor is requested; feature changes need their own intent.",
+      "description": "Restructure or clean up code with no behavior change, proved by before-and-after checks. Use when: asked to clean up, extract, dedupe or simplify, even one function.",
       "disposition": "keep_specialist",
       "effects": [
         "modify_source_files"
@@ -649,7 +692,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Trace code or test a recurring pattern to answer one cited question. Use when: uncertainty needs evidence. Not for external feature teardowns; use reverse-engineer.",
+      "description": "Answer one cited question: how code works, or whether a repeated pattern deserves a rule. Use when: asked how, why, or whether to enforce a pattern.",
       "disposition": "keep_specialist",
       "effects": [
         "write_research_report",
@@ -680,7 +723,7 @@
       "consumes": [],
       "context_rel": [],
       "dependencies": [],
-      "description": "Tear down an authorized competitor repo, binary or product into a feature inventory and adoption choices. Use when: comparing an external system; local questions go to Research.",
+      "description": "Tear down a competitor's repo or product into a feature inventory and adoption choices. Use when: comparing us to another tool or asking what to steal.",
       "disposition": "keep_specialist",
       "effects": [
         "clone_upstream_repo",
@@ -698,7 +741,7 @@
       "produces": [
         ".agents/scratch/reverse-engineer/*/"
       ],
-      "references_count": 2,
+      "references_count": 3,
       "tier": "execution",
       "user_invocable": true
     },
@@ -712,7 +755,7 @@
       "consumes": [],
       "context_rel": [],
       "dependencies": [],
-      "description": "Give advisory feedback on a plan, design or code. Use when: suggestions, tradeoffs or a second look are wanted. Not for acceptance or write scope; use Validate or Plan.",
+      "description": "Give advisory feedback on a plan, design or code change. Use when: asked for an opinion or a look-over, even informally. Not for acceptance; use Validate.",
       "disposition": "keep",
       "effects": [],
       "graph_root": true,
@@ -722,7 +765,7 @@
         "code-complete"
       ],
       "produces": [],
-      "references_count": 0,
+      "references_count": 1,
       "tier": "judgment",
       "user_invocable": true
     },
@@ -756,7 +799,7 @@
         "implement",
         "validate"
       ],
-      "description": "Apply the outcome-to-judgment charter. Use when: the caller explicitly selects RPI; ordinary coding, delegation and native goals do not require this workflow.",
+      "description": "Drive one accepted change through implementation and checks to done, with one fresh review only where a mistake is costly. Use when: selected by name.",
       "disposition": "keep_strategy",
       "effects": [
         "dispatch_core_phases"
@@ -791,7 +834,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Review code or scan for security vulnerabilities, secrets, dependencies and prompt risks. Use when: concrete exposure needs assessment; never silently change policy.",
+      "description": "Review code for security problems; scan for vulnerabilities, secrets, dependency and prompt risks. Use when: asked whether code is safe to ship, even one small handler.",
       "disposition": "keep_specialist",
       "effects": [
         "write_scan_artifacts"
@@ -809,7 +852,7 @@
         "suite-summary.json",
         "redteam-results.json"
       ],
-      "references_count": 6,
+      "references_count": 7,
       "tier": "product",
       "user_invocable": true
     },
@@ -824,7 +867,7 @@
       "consumes": [],
       "context_rel": [],
       "dependencies": [],
-      "description": "Create, adapt, consolidate or repair skill packages and projections. Use when: authoring guidance, descriptions or structure; Skill Eval measures behavioral benefit.",
+      "description": "Create, repair, audit or consolidate agent skills (SKILL.md packages). Use when: writing or fixing a skill, its description or structure. Not for one-off lessons; use Memory.",
       "disposition": "keep_specialist",
       "effects": [
         "write_skill_source",
@@ -847,7 +890,7 @@
         "converted-skill",
         "operationalization-proposal"
       ],
-      "references_count": 10,
+      "references_count": 11,
       "tier": "meta",
       "user_invocable": true
     },
@@ -868,7 +911,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Measure whether a skill helps a named task or needs revision or removal. Use when: a bounded routing or coding evaluation is requested; conformance alone cannot show benefit.",
+      "description": "Measure whether a skill helps by comparing runs with and without it. Use when: reading skill A/B results or deciding to keep, revise or remove one.",
       "disposition": "keep_specialist",
       "effects": [
         "write_probe_package",
@@ -885,7 +928,7 @@
         "probe-package",
         "probe-result.v1"
       ],
-      "references_count": 1,
+      "references_count": 3,
       "tier": "meta",
       "user_invocable": true
     },
@@ -900,7 +943,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Write behavioral tests, practice TDD or inspect important coverage gaps. Use when: test design or missing proof needs work; running an existing suite needs no skill.",
+      "description": "Write or assess tests that prove behavior and would fail without the fix. Use when: writing tests, TDD, or asked whether a green test is enough.",
       "disposition": "keep_specialist",
       "effects": [
         "write_test_files",
@@ -918,7 +961,7 @@
       "produces": [
         "test-evidence"
       ],
-      "references_count": 7,
+      "references_count": 10,
       "tier": "execution",
       "user_invocable": true
     },
@@ -940,7 +983,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Operate Gas City through its Mayor, registry packs and native run state. Use when: the caller explicitly selects Gas City; factory completion does not replace independent judgment.",
+      "description": "Operate Gas City through its own doors: Mayor, doctor and native run state. Use when: Gas City is selected or a gc run looks stuck.",
       "disposition": "keep_optional_adapter",
       "effects": [
         "operate_gas_city",
@@ -956,7 +999,7 @@
       "produces": [
         "gas-city-runtime-evidence"
       ],
-      "references_count": 0,
+      "references_count": 1,
       "tier": "execution",
       "user_invocable": true
     },
@@ -982,7 +1025,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Freshly judge a finished change and its claims against original acceptance. Use when: acceptance verdict or independent proof is sought. Clarify generic checks or readiness first.",
+      "description": "Freshly judge whether a finished change and its claims meet original acceptance: PASS, FAIL or NOT_PROVEN. Use when: asked for a go/no-go, sign-off or independent verdict.",
       "disposition": "keep",
       "effects": [
         "write_verdict_artifact"

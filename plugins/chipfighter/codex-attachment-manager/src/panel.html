@@ -29,6 +29,17 @@
   v0.1-23: the panel never scrolls as a whole; only the list does (a turn's hidden checkbox once let it).
   v0.2 (user 2026-09-29): a filter button next to 刷新 unfolds a bar of the task's sources (uploaded, PDF page, web page,
   viewed, tool result, generated); picking some shows only their images. It changes what is shown, never what is sent.
+  v0.3 (user 2026-10-06): an automatic selection switch at the end of the footer. While it is on, a tick pins an image
+  (sent every turn; kept apart from the manual ticks), the others are left out unless the model fetches them, the bar
+  lists what the model fetched in the latest turn instead of what it asked for, and those rows say so.
+  v0.4: under Claude Code, when Anthropic refused the rewritten history under its thinking and the engine sent the
+  original request, the panel says so as for any request it could not rewrite. On an account that checks thinking, it
+  also says how many thinking records the last request left out to keep the selection (user 2026-10-11).
+  v0.5 (user 2026-10-12): under Claude Code, images from before a compaction stay in the list as they were, marked
+  “压缩前”; checked ones go out again from the engine, and the last request's line says how many.
+  v0.7 (user 2026-10-13): once the engine has seen a Codex task's subagents or side chats, a block under the request
+  size lists them (folded to one line by default), each with its last request and the rule that applies to it, and
+  holds the task's switch for them (on by default).
 -->
 <style>
   /* Fallbacks follow Codex's own widget palette; inside Codex its theme variables (MCP Apps host styles) win. */
@@ -114,6 +125,27 @@
   .needs button { height: 22px; padding: 0 9px; border: 1px solid color-mix(in srgb, var(--warn) 35%, transparent); border-radius: 999px; background: var(--bg); color: var(--warn); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; transition: border-color .15s, transform .1s; }
   .needs button:hover { border-color: var(--warn); }
   .needs button:active { transform: scale(.96); }
+  /* v0.3: what the model fetched itself is news, not a request: the same bar in blue. */
+  .needs.fetched { background: var(--info-bg); color: var(--info); }
+  .needs.fetched button { border-color: color-mix(in srgb, var(--info) 35%, transparent); color: var(--info); }
+  .needs.fetched button:hover { border-color: var(--info); }
+  /* v0.7: the task's subagents and side chats; folded to its first line, which holds the switch for them. */
+  .children { margin-top: 10px; border-radius: 12px; background: var(--bg-soft); font-size: 12.5px; }
+  .children-head { display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 6px; }
+  .children-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 6px; border: 0; border-radius: 8px; background: none; color: var(--text-2); font: inherit; font-weight: 500; text-align: left; cursor: pointer; transition: background .15s; }
+  .children-toggle:hover { background: var(--bg-hover); }
+  .children-toggle svg { flex: none; width: 14px; height: 14px; color: var(--text-3); transition: transform .15s; }
+  .children-toggle[aria-expanded="true"] svg { transform: rotate(90deg); }
+  .children-toggle .label { flex: none; white-space: nowrap; }
+  .children-toggle .n { flex: none; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .children-toggle .sum { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-3); font-weight: 400; font-variant-numeric: tabular-nums; }
+  .children-list { display: flex; flex-direction: column; gap: 8px; padding: 2px 12px 10px 32px; }
+  .child-line1 { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .child-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-weight: 600; }
+  .child-kind { flex: none; color: var(--text-3); }
+  .child-rule { flex: none; margin-left: auto; padding: 0 8px; border-radius: 999px; background: var(--info-bg); color: var(--info); font-size: 11.5px; font-weight: 500; line-height: 20px; white-space: nowrap; }
+  .child-rule.off { background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--text-3); }
+  .child-meta { margin-top: 1px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
   /* v0.2: rounded source buttons, drawn unlike the rows' square send checkboxes so the two are not confused. */
   .filters { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
   .chip { height: 26px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
@@ -173,6 +205,7 @@
   .tags:empty { display: none; }
   .tag { padding: 0 8px; border-radius: 999px; background: var(--bg-soft); color: var(--text-2); font-size: 11.5px; font-weight: 500; line-height: 20px; white-space: nowrap; }
   .tag.warn { background: var(--warn-bg); color: var(--warn); }
+  .tag.fetched { background: var(--info-bg); color: var(--info); }
 
   .check input { position: absolute; opacity: 0; pointer-events: none; }
   .box {
@@ -204,8 +237,17 @@
   .empty strong { color: var(--text-2); font-weight: 500; font-size: 14px; }
   .empty span { font-size: 12.5px; max-width: 260px; }
 
-  footer { flex: none; display: flex; align-items: center; gap: 6px; padding: 12px 14px 12px 18px; border-top: 1px solid var(--border); background: var(--bg); }
+  footer { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 14px 12px 18px; border-top: 1px solid var(--border); background: var(--bg); }
   .status { flex: 1; min-width: 0; color: var(--text-3); font-size: 12.5px; }
+  /* v0.3: the automatic selection switch, at the end of the footer whose line says what a tick means. */
+  .auto { flex: none; position: relative; display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); font-size: 12.5px; font-weight: 500; cursor: pointer; user-select: none; white-space: nowrap; }
+  .auto input { position: absolute; opacity: 0; pointer-events: none; }
+  .auto .sw { position: relative; flex: none; width: 30px; height: 18px; border-radius: 999px; background: var(--border-strong); transition: background .15s; }
+  .auto .sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); box-shadow: 0 1px 2px rgb(0 0 0 / 25%); transition: left .15s; }
+  .auto input:checked + .sw { background: var(--accent); }
+  .auto input:checked + .sw::after { left: 14px; background: var(--accent-text); }
+  .auto input:disabled + .sw { opacity: .5; }
+  .auto input:focus-visible + .sw { outline: 2px solid var(--info); outline-offset: 2px; }
   [hidden] { display: none !important; }
 
   .viewer { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; background: rgb(19 19 19); color: rgb(245 245 245); }
@@ -236,11 +278,13 @@
   </div>
   <div class="last" id="last"></div>
   <div class="needs" id="needs" hidden></div>
+  <div class="children" id="children" hidden></div>
   <div class="filters" id="filters" role="group" hidden></div>
 </header>
 <main id="main"></main>
 <footer>
   <div class="status" id="status"></div>
+  <label class="auto" id="auto" hidden><span class="auto-label"></span><input type="checkbox" role="switch"><span class="sw"></span></label>
 </footer>
 <div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="图片预览">
   <div class="viewer-top">
@@ -276,10 +320,14 @@
       "plan.failed": "读取失败",
       "plan.empty": "还没有图片",
       "plan.next": "下一条消息：发送 {sent} 张",
+      "plan.nextAuto": "下一条消息：固定发送 {sent} 张",
       "plan.dropped": " · 占位 {dropped} 张",
       "plan.duplicates": "（其中重复 {duplicates} 张）",
       "plan.gone": " · {gone} 张已不在上下文",
       "meter.request": "预计请求",
+      "meter.requestAuto": "预计请求",
+      "meter.atLeast": "{bytes} 起",
+      "meter.autoNote": "模型这一轮要取回的图不算在内（事先不知道会取哪几张）",
       "meter.images": "预计图片数据",
       "meter.full": "全部发送 {full} · 省 {percent}%",
       "meter.none": "未取消任何图",
@@ -287,6 +335,7 @@
       "last.skipped": "上一次请求 {time}：没能替换，原样发出 {bytes}",
       "last.replaced": "上一次请求 {time}：替换了 {count} 张，少发 {saved}，实际发出 {after}",
       "last.none": "上一次请求 {time}：没有替换，发出 {bytes}",
+      "last.resent": "上一次请求 {time}：补回压缩前的图 {resent} 张，替换了 {count} 张，实际发出 {after}",
       "kind.upload": "用户上传",
       "kind.view": "查看的图片",
       "kind.generated": "生成的图片",
@@ -295,9 +344,12 @@
       "kind.browser": "网页截图",
       "tag.locked": "无法取消",
       "tag.gone": "已不在上下文",
+      "tag.compacted": "压缩前",
       "tag.requested": "模型需要这张",
       "needs.title": "模型需要 {count} 张没发送的图：",
       "needs.jump": "在列表里定位到 {id}",
+      "fetched.title": "最近一轮模型取回 {count} 张：",
+      "tag.fetched": "模型取回",
       "tag.replacedBy": "由 {id} 代替",
       "tag.notSent": "不发送",
       "tag.sameAs": "与 {id} 相同",
@@ -307,10 +359,15 @@
       "turn.allEarlier": "发送更早的全部图片",
       "turn.shown": "发送第 {n} 轮列出的图片",
       "turn.shownEarlier": "发送更早列出的图片",
+      "turn.pinAll": "第 {n} 轮的全部图片固定发送",
+      "turn.pinAllEarlier": "更早的全部图片固定发送",
+      "turn.pinShown": "第 {n} 轮列出的图片固定发送",
+      "turn.pinShownEarlier": "更早列出的图片固定发送",
       "row.unnamed": "未命名",
       "row.pdfPage": "PDF 第 {page} 页",
       "row.preview": "预览 {id}",
       "row.send": "发送 {id}",
+      "row.pin": "固定发送 {id}",
       "thumb.none": "无预览",
       "empty.title": "这个任务里还没有图片",
       "empty.text": "上传、查看或生成的图片会按时间顺序出现在这里。",
@@ -323,19 +380,38 @@
       "notice.engineDown": "代理没有在运行，取消勾选暂时不会生效。关掉 Codex 再打开，一般就能恢复。",
       "notice.skipped": "上一次请求（{time}）没能按勾选替换，图片原样发给了模型。原因：{reason}。",
       "notice.websocket": "取消勾选时这一轮对话还在进行，这一轮剩下的请求仍带着原图；从下一条消息起生效。",
+      "notice.thinking": "这个账号会校验思考记录：上一次请求（{time}）去掉了 {count} 段和现在的勾选对不上的思考记录，模型可能要重新思考，多用一些 token。",
       "reason.undecodable": "请求内容无法解压",
       "reason.unparsable": "请求内容无法解析",
       "reason.format": "请求的格式和预期不同",
       "reason.integer": "请求里有超大整数，改写会改变它的值",
       "reason.index": "读取这个任务的记录失败",
       "reason.other": "改写时出错",
+      "reason.thinking": "这个账号不接受改过的对话历史（思考记录的校验），引擎改发了原始请求",
       "chooser.title": "刚刚开始了好几个任务，这个面板要显示哪一个？",
       "chooser.untitled": "新任务",
       "footer.hint": "勾选的图片会随下一条消息发给模型",
+      "footer.hintAuto": "勾选的图每轮都发，其余由模型按需取回",
+      "auto.label": "自动选图",
+      "auto.title": "打开后，之前各轮的图默认不发，模型需要时自己按编号取回；勾选的图每轮都发",
+      "children.title": "子代理和旁聊",
+      "children.saved": " · 上次请求共少发 {saved}",
+      "children.auto": "也自动选图",
+      "children.autoTitle": "打开后，这个任务的子代理和旁聊也按自动选图发图：之前各轮的图默认不发，模型需要时按编号取回；关掉则原样发送",
+      "children.subagent": "子代理",
+      "children.sideAt": "旁聊 {time}",
+      "children.ruleAuto": "自动选图",
+      "children.ruleOff": "原样发送",
+      "children.images": "{count} 张图",
+      "children.noRequest": "还没有经过代理的请求",
+      "children.lastReplaced": "上次 {time}：替换了 {count} 张，少发 {saved}",
+      "children.lastNone": "上次 {time}：没有替换",
+      "children.lastSkipped": "上次 {time}：没能替换，原样发出",
       "viewer.label": "图片预览",
       "viewer.close": "关闭预览",
       "viewer.closeTitle": "关闭（Esc）",
       "viewer.send": "发送这张图",
+      "viewer.pin": "固定发送这张图",
       "viewer.loading": "正在加载…",
       "viewer.none": "这张图无法预览",
       "error.load": "读取失败：{message}",
@@ -364,12 +440,17 @@
       "plan.empty": "No images yet",
       "plan.next": "Next message sends {sent} images",
       "plan.next_one": "Next message sends {sent} image",
+      "plan.nextAuto": "Next message: {sent} pinned images",
+      "plan.nextAuto_one": "Next message: {sent} pinned image",
       "plan.dropped": " · {dropped} as placeholders",
       "plan.dropped_one": " · {dropped} as a placeholder",
       "plan.duplicates": " ({duplicates} of them duplicates)",
       "plan.duplicates_one": " ({duplicates} of them a duplicate)",
       "plan.gone": " · {gone} no longer in context",
       "meter.request": "Estimated request",
+      "meter.requestAuto": "At least",
+      "meter.atLeast": "{bytes}",
+      "meter.autoNote": "Images the model fetches this turn are not counted (they are not known beforehand)",
       "meter.images": "Estimated image data",
       "meter.full": "All images {full} · {percent}% saved",
       "meter.none": "Nothing unchecked",
@@ -378,6 +459,7 @@
       "last.replaced": "Last request {time}: {count} images replaced, {saved} less, {after} sent",
       "last.replaced_one": "Last request {time}: {count} image replaced, {saved} less, {after} sent",
       "last.none": "Last request {time}: nothing replaced, {bytes} sent",
+      "last.resent": "Last request {time}: sent again from before the compaction: {resent}; replaced: {count}; {after} sent",
       "kind.upload": "Uploaded",
       "kind.view": "Viewed",
       "kind.generated": "Generated",
@@ -386,10 +468,14 @@
       "kind.browser": "Web page",
       "tag.locked": "Can't uncheck",
       "tag.gone": "No longer in context",
+      "tag.compacted": "Before compaction",
       "tag.requested": "The model needs this",
       "needs.title": "The model needs {count} unsent images:",
       "needs.title_one": "The model needs {count} unsent image:",
       "needs.jump": "Show {id} in the list",
+      "fetched.title": "The model fetched {count} images in the latest turn:",
+      "fetched.title_one": "The model fetched {count} image in the latest turn:",
+      "tag.fetched": "Fetched by the model",
       "tag.replacedBy": "Replaced by {id}",
       "tag.notSent": "Not sent",
       "tag.sameAs": "Same as {id}",
@@ -399,10 +485,15 @@
       "turn.allEarlier": "Send all earlier images",
       "turn.shown": "Send the listed images from turn {n}",
       "turn.shownEarlier": "Send the listed earlier images",
+      "turn.pinAll": "Pin every image of turn {n}",
+      "turn.pinAllEarlier": "Pin every earlier image",
+      "turn.pinShown": "Pin the listed images of turn {n}",
+      "turn.pinShownEarlier": "Pin the listed earlier images",
       "row.unnamed": "Unnamed",
       "row.pdfPage": "PDF page {page}",
       "row.preview": "Preview {id}",
       "row.send": "Send {id}",
+      "row.pin": "Pin {id}",
       "thumb.none": "No preview",
       "empty.title": "No images in this task yet",
       "empty.text": "Images you upload, and images the model views or generates, show up here in order.",
@@ -415,19 +506,40 @@
       "notice.engineDown": "The proxy is not running, so unchecking has no effect for now. Closing and reopening Codex usually brings it back.",
       "notice.skipped": "The last request ({time}) could not be rewritten as selected; the images went to the model as they were. Reason: {reason}.",
       "notice.websocket": "This turn was still running when you unchecked images, so its remaining requests still carry the originals; the change applies from the next message.",
+      "notice.thinking": "This account checks thinking records: the last request ({time}) left out {count} thinking records that no longer match the selection, so the model may think again and use more tokens.",
+      "notice.thinking_one": "This account checks thinking records: the last request ({time}) left out {count} thinking record that no longer matches the selection, so the model may think again and use more tokens.",
       "reason.undecodable": "the request could not be decompressed",
       "reason.unparsable": "the request could not be parsed",
       "reason.format": "the request is not in the expected format",
       "reason.integer": "the request holds an integer too large to rewrite safely",
       "reason.index": "this task's records could not be read",
       "reason.other": "an error occurred while rewriting",
+      "reason.thinking": "this account does not accept edited conversation history (the thinking check), so the engine sent the original request",
       "chooser.title": "Several tasks just started. Which one should this panel show?",
       "chooser.untitled": "New task",
       "footer.hint": "Checked images go to the model with the next message",
+      "footer.hintAuto": "Checked images go every turn; the model fetches the rest as needed",
+      "auto.label": "Auto-select",
+      "auto.title": "When on, images from earlier turns are left out by default and the model fetches the ones it needs by id; checked images go every turn",
+      "children.title": "Subagents & side chats",
+      "children.saved": " · {saved} saved last time",
+      "children.auto": "Auto-select too",
+      "children.autoTitle": "When on, this task's subagents and side chats use Auto-select too: images from earlier turns are left out by default and the model fetches the ones it needs by id. When off, their requests go out as they are",
+      "children.subagent": "Subagent",
+      "children.sideAt": "Side chat {time}",
+      "children.ruleAuto": "Auto-select",
+      "children.ruleOff": "Sent as is",
+      "children.images": "{count} images",
+      "children.images_one": "{count} image",
+      "children.noRequest": "No request through the proxy yet",
+      "children.lastReplaced": "Last {time}: {count} replaced, {saved} less",
+      "children.lastNone": "Last {time}: nothing replaced",
+      "children.lastSkipped": "Last {time}: not rewritten, sent as it was",
       "viewer.label": "Image preview",
       "viewer.close": "Close preview",
       "viewer.closeTitle": "Close (Esc)",
       "viewer.send": "Send this image",
+      "viewer.pin": "Pin this image",
       "viewer.loading": "Loading…",
       "viewer.none": "This image cannot be previewed",
       "error.load": "Could not load: {message}",
@@ -493,7 +605,9 @@
   // ---- MCP Apps bridge (JSON-RPC over postMessage with Codex) ----
   let nextId = 1;
   const waiting = new Map();
-  const post = (message) => window.parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
+  // v0.4: the same page also runs on its own for a Claude Code session (served by the engine), where panel-web.js stands
+  // in for the host as window.camHost.
+  const post = (message) => (window.camHost ? window.camHost.post({ jsonrpc: "2.0", ...message }) : window.parent.postMessage({ jsonrpc: "2.0", ...message }, "*"));
   function request(method, params, timeoutMs = 30000) {
     return new Promise((resolve, reject) => {
       const id = nextId++;
@@ -575,6 +689,9 @@
     switchingTask: false,          // a cam_bind call is under way
     manual: false,                 // the running refresh was asked for with the 刷新 button
     filter: { open: false, sources: new Set() },   // v0.2: the filter bar, and the sources shown (none picked: all)
+    autoPending: null,             // v0.3: the switch's new state while it is being saved
+    childrenOpen: false,           // v0.7: the subagents and side chats unfolded
+    childrenPending: null,         // v0.7: their switch's new state while it is being saved
   };
   let lastFresh = 0;               // when the panel last received the thread's state
   // When this page was on screen (v0.1-10), sent with every read: a panel on a new chat is offered the threads started
@@ -586,6 +703,8 @@
   const images = () => S.data?.images ?? [];
   const byId = (id) => images().find((image) => image.id === id);
   const isChecked = (image) => (S.unsaved.has(image.id) ? S.unsaved.get(image.id) : image.checked);
+  // v0.3: automatic selection; a tick then pins the image (the plugin keeps the two kinds of ticks apart).
+  const autoOn = () => S.autoPending ?? S.data?.auto ?? false;
 
   function ingest(state) {
     if (!state || !Array.isArray(state.images)) return;
@@ -641,7 +760,8 @@
   const setChecked = (id, checked) => change([id], checked);
   function change(ids, checked) {
     const targets = ids.filter((id) => byId(id)?.replaceable);
-    if (!targets.length) return;
+    // While the switch is being saved, a tick could land in the wrong record.
+    if (!targets.length || S.autoPending !== null) return;
     for (const id of targets) S.unsaved.set(id, checked);
     render();
     flush();
@@ -656,6 +776,7 @@
         const result = await callTool("cam_set_selection", {
           check: batch.filter(([, checked]) => checked).map(([id]) => id),
           uncheck: batch.filter(([, checked]) => !checked).map(([id]) => id),
+          mode: autoOn() ? "auto" : "manual",
         });
         // An image clicked again meanwhile keeps its newer choice, which the next round saves.
         for (const [id, checked] of batch) if (S.unsaved.get(id) === checked) S.unsaved.delete(id);
@@ -668,6 +789,43 @@
       } finally {
         S.saving = false;
       }
+    }
+    render();
+  }
+
+  // ---- v0.3: the automatic selection switch, saved at once like a tick ----
+  // Ticks still being saved go first, in the mode they were made in; while the switch saves, no tick is taken.
+  async function setAuto(on) {
+    if (S.autoPending !== null) return;
+    S.autoPending = on;
+    render();
+    try {
+      while (S.saving || S.unsaved.size) { if (!S.saving) await flush(); else await new Promise((resolve) => setTimeout(resolve, 50)); }
+      lastSaveStarted = Date.now();
+      const result = await callTool("cam_set_selection", { auto: on });
+      S.autoPending = null;
+      ingest(result.structuredContent);
+    } catch (error) {
+      S.autoPending = null;
+      S.error = { key: "error.switch", message: error.message };
+    }
+    render();
+  }
+
+  // v0.7: the switch for the task's subagents and side chats, saved the same way.
+  async function setChildrenAuto(on) {
+    if (S.childrenPending !== null) return;
+    S.childrenPending = on;
+    render();
+    try {
+      while (S.saving || S.unsaved.size) { if (!S.saving) await flush(); else await new Promise((resolve) => setTimeout(resolve, 50)); }
+      lastSaveStarted = Date.now();
+      const result = await callTool("cam_set_selection", { childrenAuto: on });
+      S.childrenPending = null;
+      ingest(result.structuredContent);
+    } catch (error) {
+      S.childrenPending = null;
+      S.error = { key: "error.switch", message: error.message };
     }
     render();
   }
@@ -764,10 +922,20 @@
   function tagsOf(image) {
     const tags = [];
     if (!image.replaceable) tags.push([t("tag.locked"), ""]);
+    // v0.5: from before a Claude Code compaction, sent again by the engine when checked.
+    if (image.compacted) tags.push([t("tag.compacted"), ""]);
     // Compacted out of the history: it is not sent either way.
     if (!image.inNextRequest) { tags.push([t("tag.gone"), ""]); return tags; }
     const checked = isChecked(image);
     const sentCopy = sentCopyOf(image);
+    // v0.3: with automatic selection, what the model fetched in the latest turn; an image not pinned is left out by
+    // default, so that needs no word on every row.
+    if (autoOn()) {
+      if (image.fetched) tags.push([t("tag.fetched"), "fetched"]);
+      if (!checked && sentCopy) tags.push([t("tag.replacedBy", { id: sentCopy }), ""]);
+      else if (checked && image.sameAs.length) tags.push([t("tag.sameAs", { id: image.sameAs[0] }), ""]);
+      return tags;
+    }
     if (!checked && image.requested) tags.push([t("tag.requested"), "warn"]);
     if (!checked) tags.push([sentCopy ? t("tag.replacedBy", { id: sentCopy }) : t("tag.notSent"), ""]);
     else if (image.sameAs.length) tags.push([t("tag.sameAs", { id: image.sameAs[0] }), ""]);
@@ -832,7 +1000,8 @@
     const checked = targets.filter(isChecked).length;
     const box = label.querySelector(".check");
     box.hidden = targets.length < 2;
-    const all = turn === null ? t(filtering() ? "turn.shownEarlier" : "turn.allEarlier") : t(filtering() ? "turn.shown" : "turn.all", { n: turn });
+    const keys = autoOn() ? ["turn.pinShownEarlier", "turn.pinAllEarlier", "turn.pinShown", "turn.pinAll"] : ["turn.shownEarlier", "turn.allEarlier", "turn.shown", "turn.all"];
+    const all = turn === null ? t(filtering() ? keys[0] : keys[1]) : t(filtering() ? keys[2] : keys[3], { n: turn });
     box.title = all;
     const input = box.querySelector("input");
     input.setAttribute("aria-label", all);
@@ -867,7 +1036,7 @@
     const input = row.querySelector("input");
     input.checked = checked;
     input.disabled = !image.replaceable;
-    input.setAttribute("aria-label", t("row.send", { id: image.id }));
+    input.setAttribute("aria-label", t(autoOn() ? "row.pin" : "row.send", { id: image.id }));
     row.querySelector(".check").classList.toggle("locked", !image.replaceable);
     const tags = row.querySelector(".tags");
     tags.replaceChildren(...tagsOf(image).map(([text, tone]) => {
@@ -896,13 +1065,15 @@
     }
     const f = forecast();
     plan.replaceChildren(
-      ...rich("plan.next", { sent: f.sent, count: f.sent }, "sent"),
+      ...rich(autoOn() ? "plan.nextAuto" : "plan.next", { sent: f.sent, count: f.sent }, "sent"),
       f.dropped ? t("plan.dropped", { dropped: f.dropped, count: f.dropped }) + (f.duplicates ? t("plan.duplicates", { duplicates: f.duplicates, count: f.duplicates }) : "") : "",
       f.gone ? t("plan.gone", { gone: f.gone, count: f.gone }) : "",
     );
     $("meter").hidden = false;
-    $("meterLabel").textContent = t(f.whole ? "meter.request" : "meter.images");
-    $("meterValue").textContent = formatBytes(f.after);
+    // v0.3: with automatic selection, what the model will fetch comes on top, and is not known beforehand.
+    $("meterLabel").textContent = t(!f.whole ? "meter.images" : autoOn() ? "meter.requestAuto" : "meter.request");
+    $("meterValue").textContent = autoOn() ? t("meter.atLeast", { bytes: formatBytes(f.after) }) : formatBytes(f.after);
+    $("meter").title = autoOn() ? t("meter.autoNote") : "";
     const saving = f.after < f.full;
     const percent = (1 - f.after / f.full) * 100;
     $("meterFull").textContent = saving ? t("meter.full", { full: formatBytes(f.full), percent: percent < 1 ? "<1" : Math.round(percent) }) : t("meter.none");
@@ -911,6 +1082,7 @@
     const last = S.data.send?.last;
     $("last").textContent = !last ? (f.whole ? "" : t("last.noBaseline"))
       : last.skipped ? t("last.skipped", { time: timeOf(last.at), bytes: formatBytes(last.bytesBefore) })
+      : last.resent ? t("last.resent", { time: timeOf(last.at), resent: last.resent, count: last.replaced, after: formatBytes(last.bytesAfter) })
       : last.replaced ? t("last.replaced", { time: timeOf(last.at), count: last.replaced, saved: formatBytes(last.bytesBefore - last.bytesAfter), after: formatBytes(last.bytesAfter) })
       : t("last.none", { time: timeOf(last.at), bytes: formatBytes(last.bytesBefore) });
   }
@@ -994,22 +1166,92 @@
 
   // ---- v0.1-17: the images the model asked for that are not checked (the same test as the row's tag) ----
   // Rebuilt only when that list changes, so hover and focus survive the polling.
+  // v0.3: with automatic selection on, the model fetches what it needs itself; the bar lists what it fetched in the
+  // latest turn instead, in blue, and works the same way.
   let needsKey = "";
   function renderNeeds() {
-    const needed = images().filter((image) => image.requested && image.inNextRequest && image.replaceable && !isChecked(image));
+    const auto = autoOn();
+    const needed = auto
+      ? (S.data?.fetched ?? []).map(byId).filter(Boolean)
+      : images().filter((image) => image.requested && image.inNextRequest && image.replaceable && !isChecked(image));
     const box = $("needs");
-    const key = needed.length ? `${lang}|${needed.map((image) => image.id).join(",")}` : "";
+    const key = needed.length ? `${lang}|${auto}|${needed.map((image) => image.id).join(",")}` : "";
     box.hidden = !key;
     if (key === needsKey) return;
     needsKey = key;
+    box.classList.toggle("fetched", auto);
     box.replaceChildren(...(key ? [
-      Object.assign(document.createElement("span"), { textContent: t("needs.title", { count: needed.length }) }),
+      Object.assign(document.createElement("span"), { textContent: t(auto ? "fetched.title" : "needs.title", { count: needed.length }) }),
       ...needed.map((image) => {
         const button = Object.assign(document.createElement("button"), { type: "button", textContent: image.id, title: t("needs.jump", { id: image.id }) });
         button.addEventListener("click", () => jumpTo(image.id));
         return button;
       }),
     ] : []));
+  }
+
+  // ---- v0.7: the task's subagents and side chats (user 2026-10-13) ----
+  // Shown once the engine has seen one. Its first line folds the list and holds the switch; both are made once, so hover
+  // and focus survive the polling, and the rows are rebuilt only when what they say changes.
+  let childrenParts = null;
+  let childrenKey = "";
+  function childrenHead() {
+    if (childrenParts) return childrenParts;
+    const toggle = Object.assign(document.createElement("button"), { type: "button", className: "children-toggle" });
+    toggle.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg><span class="label"></span><span class="n"></span><span class="sum"></span>';
+    toggle.setAttribute("aria-controls", "childrenList");
+    toggle.addEventListener("click", () => { S.childrenOpen = !S.childrenOpen; renderChildren(); });
+    const control = Object.assign(document.createElement("label"), { className: "auto" });
+    control.innerHTML = '<span class="auto-label"></span><input type="checkbox" role="switch"><span class="sw"></span>';
+    control.querySelector("input").addEventListener("change", (event) => setChildrenAuto(event.target.checked));
+    const head = Object.assign(document.createElement("div"), { className: "children-head" });
+    head.append(toggle, control);
+    const list = Object.assign(document.createElement("div"), { className: "children-list", id: "childrenList" });
+    $("children").append(head, list);
+    childrenParts = { toggle, control, list };
+    return childrenParts;
+  }
+  function renderChildren() {
+    const children = S.data?.children ?? [];
+    $("children").hidden = !children.length;
+    if (!children.length) return;
+    const { toggle, control, list } = childrenHead();
+    toggle.setAttribute("aria-expanded", String(S.childrenOpen));
+    toggle.querySelector(".label").textContent = t("children.title");
+    toggle.querySelector(".n").textContent = String(children.length);
+    const saved = children.reduce((sum, child) => sum + (child.last && !child.last.skipped ? Math.max(0, child.last.bytesBefore - child.last.bytesAfter) : 0), 0);
+    toggle.querySelector(".sum").textContent = saved > 0 ? t("children.saved", { saved: formatBytes(saved) }) : "";
+    control.title = t("children.autoTitle");
+    control.querySelector(".auto-label").textContent = t("children.auto");
+    const input = control.querySelector("input");
+    input.checked = S.childrenPending ?? S.data?.childrenAuto ?? true;
+    input.disabled = S.childrenPending !== null;
+    input.setAttribute("aria-label", t("children.auto"));
+    list.hidden = !S.childrenOpen;
+    const key = `${lang}|${JSON.stringify(children)}`;
+    if (key === childrenKey) return;
+    childrenKey = key;
+    list.replaceChildren(...children.map(childRow));
+  }
+  // A subagent by its name in Codex, a side chat by when it started; the rule that applies to it, and its last request.
+  function childRow(child) {
+    const line = Object.assign(document.createElement("div"), { className: "child-line1" });
+    const named = child.kind === "subagent" && child.name;
+    line.append(Object.assign(document.createElement("span"), { className: "child-name", textContent: child.kind === "side" ? t("children.sideAt", { time: clockOf(child.startedAt).slice(0, 5) }) : child.name ?? t("children.subagent") }));
+    if (named) line.append(Object.assign(document.createElement("span"), { className: "child-kind", textContent: t("children.subagent") }));
+    line.append(Object.assign(document.createElement("span"), { className: `child-rule${child.auto ? "" : " off"}`, textContent: t(child.auto ? "children.ruleAuto" : "children.ruleOff") }));
+    const last = child.last;
+    const time = last ? timeOf(last.at) : "";
+    const meta = [
+      child.images === null ? null : t("children.images", { count: child.images }),
+      !last ? t("children.noRequest")
+        : last.skipped ? t("children.lastSkipped", { time })
+        : last.replaced ? t("children.lastReplaced", { time, count: last.replaced, saved: formatBytes(last.bytesBefore - last.bytesAfter) })
+        : t("children.lastNone", { time }),
+    ].filter(Boolean).join(" · ");
+    const row = Object.assign(document.createElement("div"), { className: "child" });
+    row.append(line, Object.assign(document.createElement("div"), { className: "child-meta", textContent: meta, title: meta }));
+    return row;
   }
 
   // Scrolls the row to the middle of the list, then flashes it; the keyboard focus goes to its checkbox (Space checks it).
@@ -1115,6 +1357,8 @@
     if (S.data?.engineRunning === false && S.data?.setup?.usesEngine !== false) nodes.push(notice("warn", t("notice.engineDown")));
     const sendNotice = S.data?.send?.notice;
     if (sendNotice?.kind === "skipped") nodes.push(notice("error", t("notice.skipped", { time: timeOf(sendNotice.at), reason: t(MESSAGES[lang][`reason.${sendNotice.reason}`] ? `reason.${sendNotice.reason}` : "reason.other") })));
+    if (sendNotice?.kind === "fallback") nodes.push(notice("error", t("notice.skipped", { time: timeOf(sendNotice.at), reason: t("reason.thinking") })));
+    if (sendNotice?.kind === "thinking") nodes.push(notice("info", t("notice.thinking", { time: timeOf(sendNotice.at), count: sendNotice.count })));
     if (sendNotice?.kind === "websocket") nodes.push(notice("warn", t("notice.websocket")));
     const list = images();
     if (S.data && !list.length) nodes.push(emptyState);
@@ -1141,9 +1385,19 @@
     for (const image of listed) queueThumb(image.id);
   }
 
-  // Always the same line: a check needs no word that it was saved (user 2026-09-28).
+  // Always the same line: a check needs no word that it was saved (user 2026-09-28). v0.3: the automatic selection
+  // switch sits next to it, and the line says what a tick means in each mode.
   function renderFooter() {
-    $("status").textContent = images().length ? t("footer.hint") : "";
+    const auto = autoOn();
+    $("status").textContent = images().length ? t(auto ? "footer.hintAuto" : "footer.hint") : "";
+    const control = $("auto");
+    control.hidden = !images().length && !S.data?.auto;
+    control.title = t("auto.title");
+    control.querySelector(".auto-label").textContent = t("auto.label");
+    const input = control.querySelector("input");
+    input.checked = auto;
+    input.disabled = S.autoPending !== null;
+    input.setAttribute("aria-label", t("auto.label"));
   }
 
   function renderViewer() {
@@ -1157,6 +1411,7 @@
     const input = $("viewerCheck").querySelector("input");
     input.checked = isChecked(image);
     input.disabled = !image.replaceable;
+    $("viewerCheck").querySelector(".label").textContent = t(autoOn() ? "viewer.pin" : "viewer.send");
     const stage = $("viewerStage");
     const url = S.viewer.url ?? S.thumbs.get(image.id) ?? null;
     stage.classList.toggle("loading", S.viewer.loading && !!url);
@@ -1169,7 +1424,7 @@
     }
   }
 
-  function render() { renderFilter(); renderHeader(); renderNeeds(); renderPlugin(); renderRefresh(); renderList(); renderFooter(); renderViewer(); }
+  function render() { renderFilter(); renderHeader(); renderNeeds(); renderChildren(); renderPlugin(); renderRefresh(); renderList(); renderFooter(); renderViewer(); }
 
   let focusBeforeViewer = null;
   function openViewer(id) {
@@ -1194,13 +1449,14 @@
   $("viewerStage").addEventListener("click", (event) => { if (event.target === event.currentTarget) closeViewer(); });
   $("viewerCheck").querySelector("input").addEventListener("change", (event) => { if (S.viewer) setChecked(S.viewer.id, event.target.checked); });
   document.addEventListener("keydown", (event) => { if (event.key === "Escape" && S.viewer) closeViewer(); });
+  $("auto").querySelector("input").addEventListener("change", (event) => setAuto(event.target.checked));
   $("refresh").addEventListener("click", () => refresh(true));
   $("filter").addEventListener("click", () => { S.filter.open = !S.filter.open; render(); });
 
   // ---- start: handshake, then Codex sends its own cam_panel result; poll so new images show up ----
   if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
   applyLanguage();
-  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.2.0" }, appCapabilities: {} })
+  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.7.0" }, appCapabilities: {} })
     .then((init) => { applyHost(init?.hostContext); post({ method: "ui/notifications/initialized", params: {} }); reportFrame(); })
     .catch(() => {})
     .finally(() => setTimeout(() => { if (!S.data) refresh(); }, 1200));

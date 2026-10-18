@@ -1,8 +1,17 @@
 # Care of Data — Security (s9), Retention (s10), Data Integrity (s11), Record (s44), Cross-Border (s129)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 The "operational backbone" Principles. Three of the seven sit here: Security (s9), Retention (s10), Data Integrity (s11). The 2024 Amendments (Act A1727) made two material changes in this area: data processors are now directly subject to s9 (was indirect), and the cross-border whitelist regime under s129 was deleted in favour of a controller-led safeguards approach.
+
+## Contents
+
+- s9 — Security Principle
+- s10 — Retention Principle
+- s11 — Data Integrity Principle
+- s44 — Record to be kept by the data controller
+- s129 — Transfer of personal data outside Malaysia (amended 2024)
+- What's at stake
 
 ## s9 — Security Principle
 

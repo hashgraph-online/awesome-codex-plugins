@@ -11,8 +11,17 @@
 // are logged with their duration; pixel fingerprints are shared with the engine through the data directory.
 // v0.1-14 — the panel reports Codex's interface language with its calls; it is remembered (language.ts), and the tool
 // list (the tab's title), results and refusals speak it (messages.ts). v0.1-20 — Codex's language setting counts too.
-// Input: MCP JSON-RPC over stdio. Env: CAM_ENGINE_PORT (default 17891), CAM_NO_ENGINE=1 (tests), CAM_DATA_DIR.
-// Output: tool results; <data dir>/plugin-server.jsonl (events and counts only, no conversation content).
+// v0.3 — cam_view_image, the one tool for the model: in a thread with automatic selection on, it returns the originals
+// of images by id, each after a line naming it (rewrite.ts), so the index knows them as copies. Codex's code mode does
+// not list plugin tools to the model; the model learns its name from the context note and looks it up.
+// v0.4 — the same service under Claude Code (CAM_HOST=claude, set by the Claude plugin's manifest): it keeps the same
+// engine running, and serves the Claude plugin's mod (its panel and its routing, hooks/register.js) and the model's
+// cam_view_image for a Claude Code session, read from that session's transcript (claude-index.ts). The session is the
+// one the call names (the mod passes it), else the one Claude Code started this service for (CLAUDE_CODE_SESSION_ID).
+// v0.7 — in a side chat (kept in memory only, so without a rollout) cam_view_image fetches from the task the chat was
+// forked from, which its calls name; the panel switches automatic selection for a task's subagents and side chats.
+// Input: MCP JSON-RPC over stdio. Env: CAM_ENGINE_PORT (default 17891), CAM_NO_ENGINE=1 (tests), CAM_DATA_DIR,
+// CAM_HOST. Output: tool results; <data dir>/plugin-server.jsonl (events and counts only, no conversation content).
 
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -20,15 +29,18 @@ import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import { codexHome } from "./codexconfig.ts";
 import { bindThread, isUserThread, newThreads, resolveThread } from "./binding.ts";
+import { claudeStartedAt, loadClaudeIndex } from "./claude-index.ts";
 import { DEFAULT_PORT, ensureEngine } from "./engine.ts";
 import { isEntryPoint } from "./entry.ts";
 import { currentLang, langOf, rememberLang, type Lang } from "./language.ts";
 import { say } from "./messages.ts";
 import { migrateDataOnce } from "./migrate-data.ts";
-import { applySelection, imageFor, loadPanelState, type PanelState } from "./panel-state.ts";
-import { dataDir, pixelCacheDirOf } from "./paths.ts";
+import { applySelection, claudeImageFor, imageFor, loadPanelState, type ClaudePanelOptions, type PanelState } from "./panel-state.ts";
+import { claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "./paths.ts";
+import { fetchedLabel, fetchWords } from "./rewrite.ts";
+import { claudeSelection, effectiveSelection, ensureAutoDefault, sideChatSelection } from "./selection.ts";
 import { connectDirectly, useEngine, usesEngine } from "./setup.ts";
-import { hasRollout, readThreadHistory, sessionMetaOf, setPixelCache } from "./thread-index.ts";
+import { hasRollout, loadThreadIndex, readThreadHistory, sessionMetaOf, setPixelCache, sideChatOrigin } from "./thread-index.ts";
 import { threadTitle } from "./thread-names.ts";
 
 type Json = Record<string, any>;
@@ -56,7 +68,7 @@ export function toolsFor(lang: Lang) {
       name: "cam_set_selection",
       title: say(lang, "tool.select.title"),
       description: say(lang, "tool.select.description"),
-      inputSchema: { type: "object", properties: { ...shared, uncheck: { type: "array", items: { type: "string" } }, check: { type: "array", items: { type: "string" } }, checkAll: { type: "boolean" } } },
+      inputSchema: { type: "object", properties: { ...shared, uncheck: { type: "array", items: { type: "string" } }, check: { type: "array", items: { type: "string" } }, checkAll: { type: "boolean" }, auto: { type: "boolean" }, mode: { type: "string", enum: ["manual", "auto"] }, childrenAuto: { type: "boolean" } } },
       _meta: APP_ONLY,
     },
     {
@@ -80,9 +92,23 @@ export function toolsFor(lang: Lang) {
       inputSchema: { type: "object", properties: { ...shared, target: { type: "string" } }, required: ["target"] },
       _meta: APP_ONLY,
     },
+    // For the model (no app-only visibility); its words are text for the model, so they live in rewrite.ts.
+    {
+      name: "cam_view_image",
+      title: fetchWords(lang).title,
+      description: fetchWords(lang).description,
+      inputSchema: { type: "object", properties: { ids: { type: "array", items: { type: "string" }, description: fetchWords(lang).ids } }, required: ["ids"] },
+      annotations: { readOnlyHint: true },
+    },
   ];
 }
 export const TOOLS = toolsFor("zh");
+
+// v0.4: under Claude Code only the model's fetch tool is listed. The Claude panel (the mod) reads and changes a
+// session's state through the engine (proxy.ts, claudePanelApi): a mod reaches an MCP server only through Claude Code's
+// tool permissions, a prompt for every call, and Claude Code registers no app-only tool at all.
+export const HOST: "codex" | "claude" = process.env.CAM_HOST === "claude" ? "claude" : "codex";
+export const claudeToolsFor = (lang: Lang) => toolsFor(lang).filter((tool) => tool.name === "cam_view_image");
 
 // A stack of pictures, drawn for light and dark themes (Codex takes https or data URLs only).
 const ICON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="2.5"/><path d="M7 3h10.5A3.5 3.5 0 0 1 21 6.5V16"/><circle cx="8" cy="11" r="1.5"/><path d="m3.5 18 4.5-4.5 3 3 2-2 3.5 3.5"/></svg>';
@@ -90,7 +116,7 @@ const icon = (theme: "light" | "dark", color: string) => ({
   src: `data:image/svg+xml;base64,${Buffer.from(ICON_SVG.replace("currentColor", color)).toString("base64")}`,
   mimeType: "image/svg+xml", sizes: ["any"], theme,
 });
-export const serverInfo = (lang: Lang) => ({ name: "codex-attachment-manager", title: say(lang, "server.title"), version: "0.2.0", icons: [icon("light", "#5d5d5d"), icon("dark", "#cdcdcd")] });
+export const serverInfo = (lang: Lang) => ({ name: "codex-attachment-manager", title: say(lang, "server.title"), version: "0.7.0", icons: [icon("light", "#5d5d5d"), icon("dark", "#cdcdcd")] });
 
 export function readResource(uri: string): Json {
   if (uri !== PANEL_URI) throw new Error(`unknown resource ${uri}`);
@@ -163,7 +189,7 @@ export function callTool(name: string, args: Json, meta: Json | undefined, sessi
   }
   if (name === "cam_set_selection") {
     if (fromModel(meta)) throw new Error(say(lang, "call.modelSelect"));
-    const state = applySelection(threadId, { uncheck: args.uncheck, check: args.check, checkAll: args.checkAll }, options);
+    const state = applySelection(threadId, { uncheck: args.uncheck, check: args.check, checkAll: args.checkAll, auto: typeof args.auto === "boolean" ? args.auto : undefined, mode: args.mode === "auto" ? "auto" : "manual", childrenAuto: typeof args.childrenAuto === "boolean" ? args.childrenAuto : undefined }, options);
     return { content: [{ type: "text", text: summary(lang, state) }], structuredContent: panel(state) };
   }
   if (name === "cam_bind") {
@@ -184,6 +210,34 @@ export function callTool(name: string, args: Json, meta: Json | undefined, sessi
     const state = loadPanelState(threadId, options);
     return { content: [{ type: "text", text: say(lang, args.enable === true ? "call.enabled" : "call.disabled") }], structuredContent: panel(state, { notes: plan.notes }) };
   }
+  if (name === "cam_view_image") {
+    const words = fetchWords(lang);
+    const ids: string[] = Array.isArray(args.ids) ? args.ids.map(String) : typeof args.id === "string" ? [args.id] : [];
+    // v0.7: a side chat's images are those of the task it came from.
+    const origin = sideChatOrigin(threadId, meta?.["x-codex-turn-metadata"]?.forked_from_thread_id, sessionsDir);
+    const dir = selectionDirOf(dataDir());
+    // Only where the user switched automatic selection on; otherwise images come back only when the user checks them.
+    if (origin ? !sideChatSelection(origin, sessionsDir, dir) : !effectiveSelection(threadId, sessionsDir, dir).auto) {
+      log({ event: "fetch", threadId, ...(origin ? { from: origin } : {}), ids, refused: "automatic selection is off" });
+      return { content: [{ type: "text", text: words.off }], isError: true };
+    }
+    const source = origin ?? threadId;
+    const index = loadThreadIndex(sessionsDir, source);
+    const content: Json[] = [];
+    const found: string[] = [];
+    for (const asked of ids) {
+      const id = asked.trim().toUpperCase();
+      const image = index.images.find((candidate) => candidate.id === id);
+      if (!image) { content.push({ type: "text", text: words.missing(asked) }); continue; }
+      const { dataUrl } = imageFor(source, id, Number.MAX_SAFE_INTEGER, options);
+      const parts = dataUrl ? /^data:([^;,]+);base64,(.*)$/s.exec(dataUrl) : null;
+      if (!parts) { content.push({ type: "text", text: words.unavailable(id) }); continue; }
+      content.push({ type: "text", text: fetchedLabel(image, lang) }, { type: "image", data: parts[2], mimeType: parts[1] });
+      found.push(id);
+    }
+    log({ event: "fetch", threadId, ...(origin ? { from: origin } : {}), ids, found });
+    return { content, isError: ids.length > 0 && !found.length };
+  }
   if (name === "cam_image") {
     const image = imageFor(threadId, String(args.id), Number(args.maxSide ?? 160), options);
     // The image data goes in _meta, which only the panel sees.
@@ -192,19 +246,56 @@ export function callTool(name: string, args: Json, meta: Json | undefined, sessi
   throw new Error(`unknown tool ${name}`);
 }
 
+// v0.4: the model's fetch tool under Claude Code. The session is the one the call names (the mod adds it), else the
+// one Claude Code started this service for.
+const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+export function callClaudeTool(name: string, args: Json, options: ClaudePanelOptions = {}, env: NodeJS.ProcessEnv = process.env): Json {
+  const lang = langOf(args.lang) ?? currentLang();
+  const sessionId = String(args.sessionId ?? env.CLAUDE_CODE_SESSION_ID ?? "");
+  if (!SESSION_ID.test(sessionId)) throw new Error(say(lang, "call.noThread"));
+  if (name === "cam_view_image") {
+    const words = fetchWords(lang);
+    const ids: string[] = Array.isArray(args.ids) ? args.ids.map(String) : typeof args.id === "string" ? [args.id] : [];
+    const index = loadClaudeIndex(sessionId, options.home);
+    if (!claudeSelection(sessionId, claudeSelectionDirOf(options.dataRoot ?? dataDir()), claudeStartedAt(index)).auto) {
+      log({ event: "fetch", host: "claude", sessionId, ids, refused: "automatic selection is off" });
+      return { content: [{ type: "text", text: words.off }], isError: true };
+    }
+    const content: Json[] = [];
+    const found: string[] = [];
+    for (const asked of ids) {
+      const id = asked.trim().toUpperCase();
+      const image = index.images.find((candidate) => candidate.id === id);
+      if (!image) { content.push({ type: "text", text: words.missing(asked) }); continue; }
+      const { dataUrl } = claudeImageFor(sessionId, id, Number.MAX_SAFE_INTEGER, options);
+      const parts = dataUrl ? /^data:([^;,]+);base64,(.*)$/s.exec(dataUrl) : null;
+      if (!parts) { content.push({ type: "text", text: words.unavailable(id) }); continue; }
+      content.push({ type: "text", text: fetchedLabel(image, lang) }, { type: "image", data: parts[2], mimeType: parts[1] });
+      found.push(id);
+    }
+    log({ event: "fetch", host: "claude", sessionId, ids, found });
+    return { content, isError: ids.length > 0 && !found.length };
+  }
+  throw new Error(`unknown tool ${name}`);
+}
+
 function main(): void {
   migrateDataOnce(); // v0.1-15: Windows moved the data folder
+  // v0.6: the panel may read a selection before the engine has started: the same start for both (selection.ts).
+  ensureAutoDefault(selectionDirOf());
+  ensureAutoDefault(claudeSelectionDirOf());
   const send = (message: Json) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...message })}\n`);
   let engineState = "";
   const supervise = async () => {
     if (process.env.CAM_NO_ENGINE === "1") return;
     const result = await ensureEngine({ port: enginePort });
     const replaced = result.replaced ? { replacedPid: result.replaced.pid, replacedBuild: result.replaced.build ?? null } : {};
-    if (result.state !== "running" || engineState !== "running") log({ event: "engine", state: result.state, enginePid: result.health?.pid ?? null, build: result.health?.build ?? null, ...replaced });
+    if (result.state !== "running" || engineState !== "running") log({ event: "engine", host: HOST, state: result.state, enginePid: result.health?.pid ?? null, build: result.health?.build ?? null, ...replaced });
     engineState = result.state;
     engineRunning = result.state !== "failed";
   };
-  log({ event: "start", ppid: process.ppid });
+  log({ event: "start", ppid: process.ppid, host: HOST });
   setupState(); // what Codex read when it started this session
   setPixelCache(pixelCacheDirOf());
   // Codex starts several instances at once; a little jitter keeps them from racing to start the engine.
@@ -220,7 +311,7 @@ function main(): void {
     if (method === "initialize") {
       send({ id, result: { protocolVersion: params.protocolVersion ?? "2025-06-18", capabilities: { tools: {}, resources: {} }, serverInfo: serverInfo(currentLang()) } });
     } else if (method === "tools/list") {
-      send({ id, result: { tools: toolsFor(currentLang()) } });
+      send({ id, result: { tools: HOST === "claude" ? claudeToolsFor(currentLang()) : toolsFor(currentLang()) } });
     } else if (method === "resources/list") {
       send({ id, result: { resources: [{ uri: PANEL_URI, name: say(currentLang(), "resource.name"), mimeType: PANEL_MIME }] } });
     } else if (method === "resources/templates/list") {
@@ -235,7 +326,7 @@ function main(): void {
     } else if (method === "tools/call") {
       const started = performance.now();
       try {
-        const result = callTool(params.name, params.arguments ?? {}, params._meta);
+        const result = HOST === "claude" ? callClaudeTool(params.name, params.arguments ?? {}) : callTool(params.name, params.arguments ?? {}, params._meta);
         const ms = Math.round(performance.now() - started);
         // The open panel reads its state every few seconds and loads each image once; only changes, and slow calls
         // (v0.1-11), are worth a line.

@@ -1,0 +1,48 @@
+{
+  "name": "datacircle",
+  "version": "1.0.3",
+  "description": "Datacircle is a data co-op. Query your favorite B2B data APIs through us. Same request, same price, no markup. Right now we have 3 live LinkedIn profile APIs that we trust: Up2Data, HarvestAPI and Fetchin.",
+  "author": {
+    "name": "Datacircle",
+    "email": "wayne@datacircle.dev",
+    "url": "https://datacircle.dev"
+  },
+  "homepage": "https://docs.datacircle.dev/mcp-server",
+  "repository": "https://github.com/waynehamadi/datacircle-plugin",
+  "license": "MIT",
+  "keywords": [
+    "b2b-data",
+    "data-enrichment",
+    "linkedin",
+    "data-api",
+    "sales"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Datacircle",
+    "shortDescription": "Datacircle is a data co-op.",
+    "longDescription": "Datacircle is a data co-op. Query your favorite B2B data APIs through us. Same request, same price, no markup. Every morning, you get the flat file of your data plus everyone else's.\n\nGive Codex a LinkedIn profile URL and it fetches the person's profile (name, headline, location, current company and title, positions, education, skills) from your Datacircle balance. Right now we have 3 live LinkedIn profile APIs that we trust: Up2Data, HarvestAPI and Fetchin. Each request goes to the provider and gets the profile as it is today. Every answer says what the call cost and what's left.\n\nIt can also check your balance, list your Datacircle files and give you a download link for them. Every morning, you get the flat file of your data plus everyone else's. Add $50 to your account: you get $50 of API PLUS the flat file.\n\nYou need a Datacircle account: sign in with your work email when you connect. A new account starts with a $5 credit.",
+    "developerName": "Datacircle",
+    "category": "Sales",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://datacircle.dev",
+    "privacyPolicyURL": "https://datacircle.dev/privacy",
+    "termsOfServiceURL": "https://datacircle.dev/terms",
+    "supportURL": "https://datacircle.dev/support",
+    "defaultPrompt": [
+      "What's my Datacircle balance?",
+      "Look up https://www.linkedin.com/in/williamhgates with Datacircle and summarise his career.",
+      "Look up https://www.linkedin.com/in/satyanadella with Datacircle through Fetchin."
+    ],
+    "brandColor": "#0163F5",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png",
+    "screenshots": [
+      "./assets/screenshot.jpg"
+    ]
+  }
+}

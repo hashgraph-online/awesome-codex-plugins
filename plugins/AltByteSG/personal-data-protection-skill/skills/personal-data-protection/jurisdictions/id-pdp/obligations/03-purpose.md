@@ -1,6 +1,17 @@
 # Pasal 16, 21, 27, 28 — Purpose Limitation, Processing Principles, Notification
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+
+## Contents
+
+- Pasal 16(2) — Personal Data protection principles
+- Pasal 27 — Limited, specific, lawful, transparent
+- Pasal 28 — Purpose limitation
+- Pasal 21 — Notification at consent
+- Pasal 17 — Public-area visual processing systems (CCTV-style)
+- Pasal 18 — Joint Controllers
+- What this looks like in practice
+- Penalty exposure (this Part)
 
 ## Pasal 16(2) — Personal Data protection principles
 

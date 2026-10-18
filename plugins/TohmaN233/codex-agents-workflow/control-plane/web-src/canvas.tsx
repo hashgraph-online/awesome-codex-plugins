@@ -3,6 +3,7 @@ import { ReactFlow, ReactFlowProvider, Background, Controls, MiniMap, Handle, Po
 import { toCanvas, moveNode, removeElements, connectNodes, layoutGraph } from './graph-adapter.mjs';
 import { Json, Status, uid, useLocale } from './shared';
 import { t as translate } from '../web/i18n.js';
+import { generatedNodePermissions } from '../lib/node-permissions.mjs';
 export const nodeKinds = ['agent', 'condition', 'parallel', 'join', 'skill_ref', 'subworkflow', 'tool', 'human_gate', 'start', 'end'];
 const nodeKindLabels: Record<string, [string, string]> = { agent: ['Agent', 'Agent'], condition: ['条件', 'Condition'], parallel: ['并行', 'Parallel'], join: ['汇合', 'Join'], skill_ref: ['Skill 引用', 'Skill ref'], subworkflow: ['子 Workflow', 'Subworkflow'], tool: ['工具', 'Tool'], human_gate: ['人工确认', 'Human gate'], start: ['开始', 'Start'], end: ['结束', 'End'] };
 const EMPTY_PROVIDERS: Json[] = [];
@@ -11,8 +12,9 @@ function nodeKindLabel(type: string, localize: (zh: string, en: string) => strin
 }
 export function newNode(type: string, id = uid(type)): Json {
   const base: Json = { id, type, name: nodeKindLabel(type) };
-  if (['agent', 'skill_ref', 'subworkflow', 'tool', 'human_gate'].includes(type)) Object.assign(base, { role: 'implementer', executor: { kind: 'main', mode: 'worker' }, access: 'read_only', path_scope: [], approval: { required: false }, retry: { max_attempts: 3 }, input_bindings: {}, resources: [] });
+  if (['agent', 'skill_ref', 'subworkflow', 'tool', 'human_gate'].includes(type)) Object.assign(base, { executor: { kind: 'main', mode: 'worker' }, access: 'read_only', path_scope: [], approval: { required: false }, retry: { max_attempts: 3 }, input_bindings: {}, resources: [] });
   if (type === 'agent') base.prompt_template = translate('说明该节点的任务、产物和验证要求。', 'Describe this node\'s task, artifacts, and verification requirements.');
+  if (['agent', 'skill_ref', 'subworkflow'].includes(type)) Object.assign(base, generatedNodePermissions());
   if (type === 'skill_ref') base.skill_ref = { path: '', name: '', source_hash: '', allowed_nested_skills: [] };
   if (type === 'subworkflow') { base.executor = { kind: 'subworkflow' }; base.subworkflow = { workflow_id: '', revision_pin: '', output_bindings: {} }; }
   if (type === 'tool') base.executor = { kind: 'tool', tool: '' };

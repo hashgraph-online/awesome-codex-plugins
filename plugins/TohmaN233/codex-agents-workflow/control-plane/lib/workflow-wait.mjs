@@ -1,7 +1,9 @@
 import {watch} from 'node:fs';
 import {requireValue} from './workflow-paths.mjs';
+import {WORKFLOW_WAIT_SECONDS} from './workflow-call-policy.mjs';
+import {committedTerminalOutput} from './execution/terminal-output.mjs';
 
-export const WORKFLOW_WAIT_MS=3_600_000;
+export const WORKFLOW_WAIT_MS=WORKFLOW_WAIT_SECONDS*1000;
 const terminal=new Set(['succeeded','failed','cancelled']);
 const attention=new Set(['failed','interrupted','blocked','awaiting_approval','awaiting_human_acceptance','needs_attention']);
 const childEvents=new Set(['native_agent_rejection','native_serial_result','native_parallel_result','managed_native_results']);
@@ -23,10 +25,10 @@ export function waitForWorkflow({runId,controlToken,directory,readState,readWork
     const cleanup=()=>{watcher?.close();clearTimeout(timer);clearTimeout(retry);clearInterval(health);signal?.removeEventListener('abort',abort);};
     const finish=(value,error)=>{if(settled)return;settled=true;cleanup();error?reject(error):resolve(value);};
     const abort=()=>finish(null,Object.assign(new Error('Workflow wait cancelled; the Run was not cancelled'),{code:'WORKFLOW_WAIT_CANCELLED'}));
-    const view=(reason,worker)=>{const nativeHandoff=['non_main_semantic','main_orchestration'].includes(worker?.outcome?.stop_reason);return {run_id:runId,status:record.state.status,
-      completion_satisfied:record.state.status==='succeeded',recovery_required:record.state.status==='failed',sequence:record.sequence,wake_reason:nativeHandoff?'native_handoff_required':reason,
+    const view=(reason,worker)=>{const nativeHandoff=!['host_failed','succeeded','failed','cancelled'].includes(reason)&&['non_main_semantic','main_orchestration'].includes(worker?.outcome?.stop_reason);return {run_id:runId,status:record.state.status,
+      completion_satisfied:record.state.status==='succeeded',recovery_required:record.state.status==='failed',sequence:record.sequence,wake_reason:nativeHandoff?'native_handoff_required':reason,...committedTerminalOutput(record.state),
       ...(record.state.error?{error:record.state.error}:{}),
-      ...(worker?{host_worker:{phase:worker.phase,...(worker.outcome?{outcome:structuredClone(worker.outcome)}:{}),...(worker.termination?{termination:structuredClone(worker.termination)}:{}),...(worker.error?{error:worker.error}:{})}}:{}),
+      ...(worker?{host_worker:{phase:worker.phase,...(worker.node_id?{node_id:worker.node_id}:{}),...(worker.attempt_id?{attempt_id:worker.attempt_id}:{}),...(typeof worker.cleanup_pending==='boolean'?{cleanup_pending:worker.cleanup_pending}:{}),...(worker.outcome?{outcome:structuredClone(worker.outcome)}:{}),...(worker.termination?{termination:structuredClone(worker.termination)}:{}),...(worker.error?{error:worker.error}:{})}}:{}),
       attention:Object.entries(record.state.nodes??{}).filter(([,n])=>attention.has(n.status)).map(([node_id,n])=>({node_id,status:n.status,...(n.error?{error:n.error}:{})})),
       pending_approvals:Object.entries(record.state.approvals??{}).filter(([,a])=>a.status==='pending').map(([approval_id])=>approval_id),
       ...(nativeHandoff?{next_action:'workflow_native_next',next_action_args:{run_id:runId,...(controlToken?{control_token:controlToken}:{})}}
@@ -37,7 +39,13 @@ export function waitForWorkflow({runId,controlToken,directory,readState,readWork
         while(pending&&!settled){
           pending=false;
           if(dirty||!record){dirty=false;record=await readState();tornSince=null;requireValue(record.state.run_id===runId,'RUN_IDENTITY','Wait observed a different Run');requireValue(afterSequence<=record.sequence,'WORKFLOW_WAIT_CURSOR','Wait cursor is ahead of this Run');}
-          const worker=await readWorker();
+          let worker=await readWorker(record);
+          if(typeof worker?.cleanup_pending==='boolean'){
+            record=await readState();
+            requireValue(record.state.run_id===runId,'RUN_IDENTITY','Wait observed a different Run');
+            requireValue(afterSequence<=record.sequence,'WORKFLOW_WAIT_CURSOR','Wait cursor is ahead of this Run');
+            worker=await readWorker(record);
+          }
           if(settled)return;
           const reason=wakeReason(record,worker,afterSequence);
           if(reason){finish(view(reason,worker));return;}

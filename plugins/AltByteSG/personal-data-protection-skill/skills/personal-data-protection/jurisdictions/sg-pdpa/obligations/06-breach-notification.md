@@ -1,8 +1,23 @@
 # Part 6A — Data Breach Notification (s26A–E)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 This Part is the strictest of the Act and was added by the 2020 Amendments (commenced 1 February 2021). The 3-day notification clock makes preparation in advance non-negotiable.
+
+## Contents
+
+- s26A — Definition of "data breach"
+- s26B(1)–(3) — Notifiable data breach thresholds
+- s26B(4) — Internal-only breach not notifiable
+- s26C(2) — Duty to assess reasonably and expeditiously
+- s26C(3) — Data intermediary's duty to notify the controller
+- s26D(1) — Notify PDPC within 3 calendar days [CRITICAL]
+- s26D(2) — Notify affected individuals (significant-harm breach)
+- s26D(3)–(4) — Notification content and form
+- s26D(5) — Tech-measure exception
+- s26D(6) — Suspend individual notice on law-enforcement direction
+- s26E — Data intermediary of public agency
+- What's at stake
 
 ## s26A — Definition of "data breach"
 

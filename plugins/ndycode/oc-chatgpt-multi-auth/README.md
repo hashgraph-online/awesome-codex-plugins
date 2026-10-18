@@ -91,12 +91,12 @@ opencode auth login   # OpenAI -> Codex OAuth (Add account — ChatGPT Plus/Pro)
 
 ## Command map
 
-Two surfaces: **24 `codex-*` tools** inside an OpenCode session, and a standalone CLI for everything else. The full argument reference is in [docs/tools-and-cli.md](docs/tools-and-cli.md).
+Two surfaces: **25 `codex-*` tools** inside an OpenCode session, and a standalone CLI for everything else. The full argument reference is in [docs/tools-and-cli.md](docs/tools-and-cli.md).
 
 | Group | Tools | Purpose |
 | --- | --- | --- |
 | Setup | `codex-setup`, `codex-help`, `codex-next` | guided first-run checklist, help by topic, suggested next action |
-| Accounts | `codex-status`, `codex-list`, `codex-switch`, `codex-remove` | inspect the pool, pin or switch the active account, drop entries |
+| Accounts | `codex-status`, `codex-list`, `codex-switch`, `codex-enable`, `codex-remove` | inspect the pool, pin or switch the active account, re-enable or drop entries |
 | Identity | `codex-label`, `codex-tag`, `codex-note` | name accounts, group them with tags, attach private notes |
 | Quota | `codex-limits`, `codex-warm`, `codex-reset` | per-account and pool quota, open usage windows, banked reset credits |
 | Health | `codex-health`, `codex-doctor`, `codex-diag`, `codex-dashboard`, `codex-metrics`, `codex-refresh` | health view, diagnostics plus safe repairs, redacted snapshots, counters |
@@ -172,7 +172,7 @@ Plugin settings are re-read per request — most edits need no restart. Boolean 
 | --- | --- |
 | `CODEX_AUTH_PER_PROJECT_ACCOUNTS=0` | Force the global account pool |
 | `CODEX_KEYCHAIN=1` | Store accounts in the OS keychain |
-| `CODEX_AUTH_ROTATION_STRATEGY=hybrid\|sticky\|round-robin` | Account selection strategy |
+| `CODEX_AUTH_ROTATION_STRATEGY=hybrid\|sticky\|round-robin\|custom` | Account selection strategy |
 | `CODEX_AUTH_SPEND_CREDITS=1` | Spend Codex credits once no account has plan quota left |
 | `CODEX_AUTH_QUOTA_DISPLAY=free\|used` | Quota percentages as headroom (default) or consumption |
 | `CODEX_RETRY_ALL_UNBOUNDED=1` | Let "wait as long as the backend asks" apply when every account is rate-limited; otherwise capped at 10 minutes |
@@ -180,6 +180,8 @@ Plugin settings are re-read per request — most edits need no restart. Boolean 
 | `CODEX_PLUGIN_LOG_BODIES=1` | Also log raw bodies (sensitive) |
 
 Full reference, field by field: [docs/configuration.md](docs/configuration.md).
+
+For trusted JavaScript policies and offline validation, see [Custom account rotation](docs/custom-rotation.md).
 
 ## Troubleshooting in 60 seconds
 
@@ -209,7 +211,7 @@ Most issues resolve by signing in again or running `codex-doctor fix=true` insid
 
 ## Release notes
 
-- Current stable: [v6.27.0](CHANGELOG.md) — `npx -y oc-codex-multi-auth@latest`
+- Current stable: [v6.29.0](CHANGELOG.md) — `npx -y oc-codex-multi-auth@latest`
 - Full release archive: [CHANGELOG.md](CHANGELOG.md)
 
 ## Terms and license

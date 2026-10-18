@@ -42,7 +42,7 @@ test('Build Workflow and Skill2Workflow deterministically compile equivalent rea
       const loop=result.compiled.workflow.loops[0];
       assert.equal(loop.id,'loop_001');assert.equal(loop.max_rounds,3);
       const review=result.compiled.workflow.nodes.find(node=>node.id===loop.exit_node);
-      assert.equal(review.access,'read_only');assert.equal(review.executor.kind,'provider');assert.equal(review.executor.provider_id,'native-sol');
+      assert.equal(review.access,'bounded_write');assert.equal(review.executor.kind,'provider');assert.equal(review.executor.provider_id,'native-sol');
       assert.notEqual(result.compiled.workflow.finalization.node_id,loop.exit_node);
       assert.equal(result.proposal.nodes.find(node=>node.semantic_key==='repair').input_bindings.feedback,'/loops/loop_001/feedback');
       assert.equal(sourceRepairLoopIntentFindings(result.proposal,[brief,skill][index].resources).length,0);

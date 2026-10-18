@@ -58,10 +58,17 @@ legacy flat-agent templates.
 
 A template is valid if it declares **at least one of**:
 
-- A template variable (something the importer fills in), or
-- A tool with `auth.setupRequired: true` and a non-empty `auth.secrets` array.
+- A template variable (something the importer fills in),
+- A tool with `auth.setupRequired: true` and a non-empty `auth.secrets` array,
+- A top-level `productObject.secrets[]` entry, or
+- A `{{secret:KEY}}` reference anywhere in the product.
 
-The second condition exists so a template can declare "pending secrets" without requiring any plain-text variables at import.
+The last three conditions exist so a template can declare "pending secrets" without requiring any plain-text variables at import.
+
+Other variable rules:
+
+- Host-resolved variables pass through without a declaration: `{{_identity.token}}` in a tool or MCP header, and `{{_agent.id}}`, `{{_agent.alias}}`, or `{{_organization.id}}` in a memory `profileTemplate`, including fallbacks such as `{{_agent.alias || "live"}}`.
+- A typed scalar field (a URL, number, boolean, enum, or datetime) can hold a variable. It is checked against the product schema after substitution. A variable cannot stand in for a whole array or object, such as `capabilities` or `tools`.
 
 ## Secrets: the right pattern
 

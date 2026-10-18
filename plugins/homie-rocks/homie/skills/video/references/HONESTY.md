@@ -28,8 +28,9 @@
 ## Money
 
 - A budget before the first paid call; every call priced from the provider's own pricing and
-  refused past the cap; a receipt written the moment the provider accepts the job; a resumed
-  job never paid for twice. Report spend against the cap.
+  checked against the approved cap by the owner’s AI before submitting. Record the accepted
+  request ID and poll that job instead of submitting again. Record actual cost, estimate or
+  unknown explicitly in provenance. Homie does not enforce a provider-side spending cap.
 
 ## Rights of what is made
 

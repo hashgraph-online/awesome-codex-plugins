@@ -7,24 +7,38 @@
  * @homie-rocks/studio. It writes pictures and a report, and a brief for a blind reviewer.
  *
  *   run <game> --url <site> [--only first,look,ui,sound,play,controls,round] [--seconds 20] [--out <dir>]
- *   review <run folder>      write REVIEW.md: the brief a fresh reviewer (a subagent that never saw the code) scores from
+ *   review <run folder> [--to "<who reviews>"] [--local]
+ *                            write REVIEW.md: the brief a fresh reviewer (a subagent that never saw the code) scores from,
+ *                            and say exactly which files the review step hands over, as one question to approve once.
+ *                            --local writes REVIEW-LOCAL.md instead: the same rubric for this session to score the
+ *                            pictures itself when nothing may leave it (labelled NOT independent).
+ *   reviewed <run folder> --kind independent|local|none [--by "<who>"] [--reason "<why>"] [--score <0-100>]
+ *                            record which review ran (or that none did, and why) in the run's report
  *   report <run folder>      print a finished run's report again
  *
  * Headless Chrome on the GPU through puppeteer-core from the studio's node_modules (it comes with
  * @homie-rocks/studio). At most two browsers at a time. The browsers are muted: nothing plays out loud.
- * Rows say PASS, FAIL, WARN or BLOCKED; BLOCKED means this computer could not measure it (a software
- * renderer, no Chrome), which is never the same as "fine".
+ * Rows say PASS, FAIL, WARN, BLOCKED or N/A. BLOCKED means it could not be measured (a software renderer, a stuck
+ * decoder, a round that was on its results screen for the whole wait), which is never the same as "fine". N/A means
+ * the row did not apply to what was on screen (a results card is not judged against the active-play UI bar).
+ *
+ * What the game's state is at each press and each picture (round phase, time left, whether the body is the player's
+ * to steer, control mode) comes from the port probe and the play page's shell: lib/judge.mjs lists every name read.
+ * game.json may declare the game's primary action ("playtest": { "primary": ... }) and "scoring": "together".
  */
 import { spawn } from 'node:child_process';
-import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statfsSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, statfsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { findStudio, readJson } from '../../music/scripts/lib/studio.mjs';
+import { experienceDir, experienceJson, findStudio, readJson } from '../../music/scripts/lib/studio.mjs';
 import { measure, sheetPng, warnings } from '../../sound/scripts/lib/measure.mjs';
 import { wavBytes } from '../../sound/scripts/lib/synth.mjs';
 import { GPU_FLAGS, chromePath, loadPuppeteer } from '../../video/scripts/lib/browser.mjs';
+import { finish, within } from './lib/exit.mjs';
+import { actionProfile, activePlay, connectionNote, contextOf, describeActions, describeState, judgeFirst, judgeMove, judgeScores, judgeUi, oppositeOf, shellOverlaps, EXTRA_NAMES, readPort, UI_CAVEAT, pairMismatch, readinessOf, renderCost, reportMd, reviewLine, stateOf, weakest, REVIEW_KINDS } from './lib/judge.mjs';
 import { decode, motion, stats, uiCover } from './lib/pixels.mjs';
+import { preflight } from './lib/preflight.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const TAP = readFileSync(join(HERE, '..', '..', 'video', 'scripts', 'tap.js'), 'utf8');
@@ -38,7 +52,8 @@ for (let i = 0; i < argv.length; i++) {
 const JSON_OUT = flags.has('json');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (m) => { if (!JSON_OUT) process.stderr.write(`${m}\n`); };
-const T = (p, ms, v = null) => Promise.race([p.catch(() => v), new Promise((r) => setTimeout(() => r(v), ms))]);
+// A bounded wait whose losing timer is cleared (lib/exit.mjs): a race that leaves its timer behind keeps Node alive.
+const T = (p, ms, v = null) => within(p, ms, v);
 
 const DEVICES = {
   desk: { width: 1280, height: 800, isMobile: false, hasTouch: false, deviceScaleFactor: 1 },
@@ -94,35 +109,130 @@ async function waitFrame(h, ms = 30_000) {
 }
 const shell = (h) => T(h.page.evaluate(() => { const s = window.__shell; return s ? { room: s.room, seat: s.seat, role: s.stats?.role ?? null, round: s.round, results: s.results } : null; }), 5000);
 const inFrame = async (h, fn, arg) => { const f = gameFrame(h); return f ? T(f.evaluate(fn, arg), 8000) : null; };
-const probeInfo = (h) => inFrame(h, () => { const p = window.__homiePort; if (!p) return null; const i = p.info(); return { view: p.view, size: p.size, keys: p.keys, thumb: p.thumb, world: p.world, info: i, now: p.now() }; });
+const probeInfo = (h) => inFrame(h, () => { const p = window.__homiePort; if (!p) return null; const i = p.info(); return { movement: window.__homieNet?.probe?.movement?.() ?? null, view: p.view, size: p.size, keys: p.keys, thumb: p.thumb, world: p.world, info: i, now: p.now() }; });
 const selfAt = (h, since) => inFrame(h, (s) => { const p = window.__homiePort; if (!p) return null; const rows = p.rows(s); return rows.length ? rows[rows.length - 1] : null; }, since);
 const frameNow = (h) => inFrame(h, () => performance.now());
 
+/**
+ * The game's visible DOM HUD, as rectangles in the frame's CSS pixels (run inside the game's frame): every element
+ * that shows something of its own (text, a picture, a control) and is not the world (a canvas, a video, the game's
+ * declared world element) nor the helper's own "Reconnecting" line. At most 150, the outermost of each. A HUD drawn
+ * inside the canvas has no element and is not here.
+ */
+const HUD_ELEMENTS = (worldSel) => {
+  const out = [];
+  const world = worldSel ? [...document.querySelectorAll(worldSel)] : [];
+  const press = (el) => /^(BUTTON|A|INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || el.getAttribute('role') === 'button' || el.hasAttribute('data-action');
+  const own = (el) => press(el) || /^(IMG|SVG|svg)$/.test(el.tagName) || [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+  const walk = (el) => {
+    if (out.length >= 150) return;
+    if (/^(CANVAS|VIDEO|SCRIPT|STYLE|IFRAME)$/.test(el.tagName) || world.includes(el) || el.hasAttribute('data-homie-link')) return;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) < 0.05) return;
+    if (own(el)) {
+      const b = el.getBoundingClientRect();
+      if (b.width > 0 && b.height > 0 && b.right > 0 && b.bottom > 0 && b.left < innerWidth && b.top < innerHeight) {
+        const name = `${el.tagName.toLowerCase()}${el.id ? `#${el.id}` : el.classList[0] ? `.${el.classList[0]}` : ''}`;
+        const text = (el.textContent || el.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim().slice(0, 24);
+        out.push({ label: text ? `${name} "${text}"` : name, x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height), interactive: press(el) });
+        return; // the outermost element that shows something stands for what is inside it
+      }
+    }
+    for (const c of el.children) walk(c);
+  };
+  if (document.body) walk(document.body);
+  return out;
+};
+
+/**
+ * The game's state right now, from what it exposes (lib/judge.mjs says which names): the round and time left, whether
+ * the body is the player's to steer, where it is, the control mode and loadout, and the page's loading cover.
+ * Anything the game does not expose stays null; nothing here changes the game.
+ */
+async function readState(h) {
+  const [port, sh, net] = await Promise.all([
+    inFrame(h, readPort, EXTRA_NAMES),
+    T(h.page.evaluate(() => { const s = window.__shell; if (!s) return null; const a = s.arrival; const r = s.round; return { seat: s.seat, round: r ? { n: r.n, phase: r.phase, endsAt: r.endsAt } : null, arrival: a ? { phase: a.phase, liftedMs: a.liftedMs, by: a.by } : null, link: s.link && typeof s.link === 'object' ? { state: s.link.state } : null, stale: s.stale ? { ver: s.stale.ver ?? null } : null }; }), 5000),
+    // The helper's own word on its link (revision 9), in the game's frame: a browser cut off from its room is labelled, not judged as play.
+    inFrame(h, () => { const n = window.__homieNet; return n ? { link: typeof n.link === 'string' ? n.link : null, reconnects: Number.isFinite(n.reconnects) ? n.reconnects : null, stale: typeof n.stale === 'string' ? n.stale : null } : null; }),
+  ]);
+  const st = stateOf({ at: Date.now(), port, shell: sh, net });
+  // Not part of the game's state, kept beside it: the renderer's counters at this moment (measured runtime cost).
+  Object.defineProperty(st, 'render', { enumerable: false, value: port?.extra ? { drawCalls: port.extra.drawCalls, triangles: port.extra.triangles } : null });
+  return st;
+}
+
+/** Wait (at most `ms`) for a moment that can be judged as active play: a live round, a free body, the cover gone. */
+async function waitActive(h, ms) {
+  const t0 = Date.now(); let state = null;
+  while (Date.now() - t0 < ms) {
+    state = await readState(h);
+    // true: active play. null: the game does not say, so there is nothing to wait for (the row says "unknown").
+    if (activePlay(state) !== false) return { ok: true, ms: Date.now() - t0, state };
+    await sleep(300);
+  }
+  return { ok: false, ms: Date.now() - t0, state };
+}
+
+/** The game's own frame counter (the probe's, else requestAnimationFrame in the game's frame): its render heartbeat. */
+const heartbeat = (h) => inFrame(h, () => { let n = null; try { n = window.__homiePort?.info?.().frames ?? null; } catch { /* */ } return n ?? window.__ptFrames?.() ?? null; });
+
 async function screenshot(h) { return T(h.page.screenshot({ type: 'png', captureBeyondViewport: false }), 15_000); }
 
-/** Play like a person: hold a direction for most of a second, now and then press the action, change your mind. */
-async function playFor(h, seconds, probe, { rng = Math.random } = {}) {
-  const until = Date.now() + seconds * 1000;
+/** What a session's script really pressed: counted as it goes, so a score conclusion can say what was exercised. */
+const newActions = (profile) => ({ moves: 0, primary: { declared: profile.declared, how: profile.how, pressed: 0, missed: 0 } });
+
+/**
+ * Press the game's primary action once, the way game.json declares it (lib/judge.mjs actionProfile): a key, a mouse
+ * button, the game's own touch control found by its selector, or a declared region. False when a declared control
+ * was not on screen (hidden between rounds, another loadout): counted as missed, never as pressed.
+ */
+async function pressPrimary(h, profile) {
+  try {
+    if (profile.kind === 'key') { await h.page.keyboard.press(profile.key); return true; }
+    if (profile.kind === 'mouse') { await h.page.mouse.click(Math.round(h.vp.width * profile.at[0]), Math.round(h.vp.height * profile.at[1]), { button: profile.button }); return true; }
+    if (profile.kind === 'selector') {
+      const f = gameFrame(h);
+      const el = f ? await T(f.$(profile.selector), 3000) : null;
+      // An element in the game's frame: puppeteer gives its box in the page's own coordinates.
+      const box = el ? await T(el.boundingBox(), 3000) : null;
+      try { await el?.dispose(); } catch { /* */ }
+      if (!box || box.width < 2 || box.height < 2) return false;
+      await h.page.touchscreen.tap(Math.round(box.x + box.width / 2), Math.round(box.y + box.height / 2));
+      return true;
+    }
+    const [x, y, w, hh] = profile.region;
+    await h.page.touchscreen.tap(Math.round(h.vp.width * (x + w / 2)), Math.round(h.vp.height * (y + hh / 2)));
+    return true;
+  } catch { return false; }
+}
+
+/** Hold one direction for `ms`: a key on a computer, a thumb on the game's stick on a phone. */
+async function hold(h, dir, ms, probe) {
   const keys = probe?.keys ?? { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
+  if (h.vp.hasTouch) await drag(h, dir, ms, probe);
+  else { await h.page.keyboard.down(keys[dir]).catch(() => {}); await sleep(ms); await h.page.keyboard.up(keys[dir]).catch(() => {}); }
+}
+
+/** Play like a person: hold a direction for most of a second, now and then press the primary action, change your mind. */
+async function playFor(h, seconds, probe, { rng = Math.random, profile = actionProfile(null, h.device), actions = newActions(profile) } = {}) {
+  const until = Date.now() + seconds * 1000;
   const dirs = ['up', 'right', 'down', 'left'];
   let presses = 0;
   const times = [];
   while (Date.now() < until) {
     const d = dirs[Math.floor(rng() * 4)];
-    const hold = 500 + Math.floor(rng() * 900);
+    const ms = 500 + Math.floor(rng() * 900);
     times.push(Date.now());
-    if (h.vp.hasTouch) await drag(h, d, hold, probe);
-    else { await h.page.keyboard.down(keys[d]).catch(() => {}); await sleep(hold); await h.page.keyboard.up(keys[d]).catch(() => {}); }
-    presses++;
+    await hold(h, d, ms, probe);
+    presses++; actions.moves++;
     if (rng() < 0.3) {
       times.push(Date.now());
-      if (h.vp.hasTouch) { await h.page.touchscreen.tap(Math.round(h.vp.width * 0.82), Math.round(h.vp.height * 0.78)).catch(() => {}); }
-      else { await h.page.keyboard.press('Space').catch(() => {}); }
-      presses++;
+      if (await pressPrimary(h, profile)) { actions.primary.pressed++; presses++; } else actions.primary.missed++;
     }
     await sleep(80 + Math.floor(rng() * 200));
   }
-  return { presses, times };
+  return { presses, times, actions };
 }
 
 /** A thumb lands where the game's stick lives, slides 70 px the pressed way in small steps, holds, lifts. */
@@ -147,90 +257,136 @@ const rows = [];
 const row = (name, verdict, detail = {}) => { rows.push({ name, verdict, ...detail }); log(`${verdict.padEnd(7)} ${name}${detail.why ? `: ${detail.why}` : ''}`); };
 
 /**
- * One device, one browser: the first seconds (seated, first real frame, first move), the look during play,
- * and how much of the screen the UI covers.
+ * One device, one browser: the first seconds (seated, first paint, the loading cover gone, the first picture of the
+ * game itself), the first move, the look during play, and how much of the screen the UI covers. Every press and
+ * every picture is taken with the game's state beside it (readState), and a row that needs active play waits for it.
  */
-async function deviceSession(device, base, game, out, seconds, only) {
+async function deviceSession(device, base, game, out, seconds, only, gameJson) {
   const h = await launch(device, `${base}/${game}/play`);
-  const shots = [];
+  const profile = actionProfile(gameJson, device);
+  const actions = newActions(profile);
   const save = async (name, png) => { if (!png) return null; const f = join(out, `${device}-${name}.png`); writeFileSync(f, png); return f; };
   try {
-    // First seconds: seated, a first frame that is a picture (not black, not one colour).
-    let seatedMs = null; let firstFrameMs = null; let framePng = null;
+    // First seconds. Four separate times (lib/judge.mjs readinessOf): a seat; the page's first paint, which is the
+    // loading card and not the game; the cover gone; and the first picture with the cover gone and the game's own
+    // frames advancing. A non-black loading screen at 35 ms is not "the first picture of the game".
+    const samples = []; let paintPng = null; let gamePng = null; let lastBeat = null; let beatFrom = null;
     const marks = [1000, 3000, 5000, 10000];
     const firstShots = [];
     const until = h.t0 + 30_000;
-    while (Date.now() < until && (seatedMs === null || firstFrameMs === null || marks.length)) {
+    while (Date.now() < until && (marks.length || !samples.some((x) => x.seated) || !gamePng)) {
       const s = await shell(h);
-      if (seatedMs === null && s?.room && s.seat !== null && s.seat !== undefined && s.role) seatedMs = Date.now() - h.t0;
+      const seated = Boolean(s?.room && s.seat !== null && s.seat !== undefined && s.role);
+      const st = await readState(h);
+      const beat = await heartbeat(h);
+      const moved = Number.isFinite(beat) && Number.isFinite(lastBeat) && beat > lastBeat;
+      if (Number.isFinite(beat)) { lastBeat = beat; beatFrom ??= st.source === 'probe' ? 'the port probe\'s frame counter' : 'requestAnimationFrame in the game\'s frame'; }
       const el = Date.now() - h.t0;
-      if (firstFrameMs === null || (marks.length && el >= marks[0])) {
+      let picture = false;
+      if (!gamePng || (marks.length && el >= marks[0])) {
         const png = await screenshot(h);
         if (png) {
-          const st = stats(decode(png, 320));
-          if (firstFrameMs === null && !st.black && !st.flat) { firstFrameMs = el; framePng = png; }
-          if (marks.length && el >= marks[0]) { const m = marks.shift(); firstShots.push({ at: m, file: await save(`first-${m / 1000}s`, png), ...st }); }
+          const ps = stats(decode(png, 320));
+          picture = !ps.black && !ps.flat;
+          if (picture && !paintPng) paintPng = png;
+          if (picture && moved && st.cover !== 'up' && !gamePng) gamePng = png;
+          if (marks.length && el >= marks[0]) { const m = marks.shift(); firstShots.push({ at: m, file: await save(`first-${m / 1000}s`, png), state: describeState(st), ...ps }); }
         }
       }
+      samples.push({ ms: el, seated, picture, cover: st.cover, heartbeat: moved });
       await sleep(250);
     }
+    const ready = readinessOf(samples);
     const frame = await waitFrame(h, 5000);
     const probe = await probeInfo(h);
     const fps = frame ? await T(frame.evaluate(() => new Promise((r) => { const a = window.__ptFrames?.() ?? 0; setTimeout(() => r(((window.__ptFrames?.() ?? 0) - a) / 2), 2000); })), 6000) : null;
     const renderer = frame ? await T(frame.evaluate(() => { try { const c = document.createElement('canvas'); const g = c.getContext('webgl2') || c.getContext('webgl'); if (!g) return null; const e = g.getExtension('WEBGL_debug_renderer_info'); return e ? g.getParameter(e.UNMASKED_RENDERER_WEBGL) : g.getParameter(g.RENDERER); } catch { return null; } }), 5000) : null;
-    // First move: press one way and time until my own body moves (the port probe says where it is).
-    let controlMs = null; let controlHow = 'no port probe (exposePort): not measured';
-    if (probe) {
-      const t0 = await frameNow(h);
-      const before = await selfAt(h, t0 - 500);
-      const started = Date.now();
-      const press = playFor(h, 1.6, probe, { rng: () => 0.26 });
-      while (Date.now() - started < 3000) {
-        const now = await selfAt(h, t0);
-        if (before && now && Number.isFinite(before[1]) && Math.hypot(now[1] - before[1], now[2] - before[2]) > (probe.size || 10) * 0.5) { controlMs = Date.now() - started; break; }
-        await sleep(40);
-      }
-      await press;
-      controlHow = controlMs === null ? 'a press did not move my body within 3 s' : 'from the press to my body moving half its size';
-    }
     const slow = fps !== null && fps < 20;
     const soft = /swiftshader|llvmpipe|software/i.test(String(renderer ?? ''));
+    const softWhy = `this browser renders at ${fps} fps on "${renderer}": a software renderer makes any game look stuck, so nothing here is judged (run on a computer with a GPU)`;
     if (only.has('first')) {
-      const why = seatedMs === null ? 'never got a seat in 30 s' : firstFrameMs === null ? 'no real picture (black or one colour) in 30 s' : seatedMs > 10_000 ? `seated only after ${(seatedMs / 1000).toFixed(1)} s` : firstFrameMs > 10_000 ? `the first real picture came at ${(firstFrameMs / 1000).toFixed(1)} s` : controlMs === null && probe ? controlHow : controlMs !== null && controlMs > 1500 ? `the body answered a press after ${controlMs} ms` : undefined;
-      const verdict = slow || soft ? 'BLOCKED' : why ? 'FAIL' : 'PASS';
-      row(`first ${device}`, verdict, { why: slow || soft ? `this browser renders at ${fps} fps on "${renderer}": a software renderer makes any game look stuck, so nothing here is judged (run on a computer with a GPU)` : why, seatedMs, firstFrameMs, controlMs, controlHow, fps, renderer, shots: firstShots.map((s) => rel(out, s.file)) });
+      const j = judgeFirst(ready);
+      row(`first ${device}`, slow || soft ? 'BLOCKED' : j.verdict, { why: slow || soft ? softWhy : j.why, note: j.note, ...ready, heartbeatFrom: beatFrom, fps, renderer, shots: firstShots.map((x) => rel(out, x.file)), frames: firstShots.map((x) => ({ at: x.at, state: x.state })) });
+      // First move, a row of its own: it needs a live round and a body that is the player's, and says so when it
+      // had neither. A press into a wall, a press on the results screen and a press as a spectator are not "the
+      // controls do not answer".
+      const HOLD_MS = 3000;
+      if (slow || soft) row(`move ${device}`, 'BLOCKED', { why: softWhy });
+      else if (!probe) row(`move ${device}`, 'BLOCKED', { why: 'the game has no port probe (exposePort), so the script cannot see its body: first-move latency was not measured (the controls row needs the probe too)' });
+      else if (probe.movement === 'stationary') row(`move ${device}`, 'N/A', { why: 'Rules declare stationary player anchors (maxSpeed 0). Test actual choices/taps/turns in two browsers; this does not pass their action latency.' });
+      else if (probe.view === 'board') row(`move ${device}`, 'N/A', { why: 'a board game has no body to move: the controls row checks that a press is applied' });
+      else {
+        const tryMove = async (dir) => {
+          const before = await readState(h);
+          const t0 = await frameNow(h);
+          const from = await selfAt(h, t0 - 500);
+          const started = Date.now();
+          const press = hold(h, dir, 1600, probe);
+          let ms = null;
+          while (Date.now() - started < HOLD_MS) {
+            const now = await selfAt(h, t0);
+            if (from && now && Number.isFinite(from[1]) && Number.isFinite(now[1]) && Math.hypot(now[1] - from[1], now[2] - from[2]) > (probe.size || 10) * 0.5) { ms = Date.now() - started; break; }
+            await sleep(40);
+          }
+          await press;
+          actions.moves++;
+          return { dir, moved: ms !== null, ms, before, after: await readState(h) };
+        };
+        const waited = await waitActive(h, 25_000);
+        const attempts = [];
+        if (waited.ok) {
+          attempts.push(await tryMove('right'));
+          // Nothing moved: a wall on that side looks exactly like this. Press the other way before saying anything.
+          if (!attempts[0].moved) { await waitActive(h, 10_000); attempts.push(await tryMove(oppositeOf('right'))); }
+        }
+        const j = judgeMove(attempts, { waited, holdMs: HOLD_MS });
+        const png = await screenshot(h);
+        row(`move ${device}`, j.verdict, { why: j.why, controlMs: j.controlMs, waitedForPlayMs: waited.ms, attempts: j.attempts, shot: rel(out, await save('move', png)) });
+      }
     }
-    if (framePng) await save('first-frame', framePng);
+    if (paintPng) await save('first-paint', paintPng);
+    if (gamePng) await save('first-frame', gamePng);
     // The look, while playing like a person.
     if (only.has('look')) {
       const lookShots = [];
-      const playing = playFor(h, seconds, probe);
+      const cost = [];
+      const playing = playFor(h, seconds, probe, { profile, actions });
       const every = Math.max(2500, (seconds * 1000) / 6);
       let prev = null;
       for (let t = 0; t < seconds * 1000 - 500; t += every) {
         await sleep(t === 0 ? 1500 : every);
+        const st = await readState(h);
         const png = await screenshot(h);
         if (!png) continue;
         const img = decode(png, 480);
-        const st = stats(img);
+        const ps = stats(img);
         const mv = prev ? motion(prev, img) : null;
         prev = img;
-        lookShots.push({ file: rel(out, await save(`look-${lookShots.length + 1}`, png)), motion: mv, ...st });
+        if (st.render) cost.push(st.render);
+        lookShots.push({ file: rel(out, await save(`look-${lookShots.length + 1}`, png)), motion: mv, state: describeState(st), screen: contextOf(st).kind, ...ps });
       }
       const { presses } = await playing;
-      const black = lookShots.filter((s) => s.black || s.flat).length;
-      const dead = lookShots.filter((s) => s.flatBlackShare > 0.05).length;
-      const plain = lookShots.filter((s) => s.flatDarkShare > 0.3).length;
-      const still = lookShots.filter((s) => s.motion !== null && s.motion < 0.002).length;
-      const avg = (k) => +(lookShots.reduce((a, s) => a + s[k], 0) / Math.max(1, lookShots.length)).toFixed(3);
+      const black = lookShots.filter((x) => x.black || x.flat).length;
+      const dead = lookShots.filter((x) => x.flatBlackShare > 0.05).length;
+      const plain = lookShots.filter((x) => x.flatDarkShare > 0.3).length;
+      const still = lookShots.filter((x) => x.motion !== null && x.motion < 0.002).length;
+      const avg = (k) => +(lookShots.reduce((a, x) => a + x[k], 0) / Math.max(1, lookShots.length)).toFixed(3);
       const notes = [];
       if (avg('mean') < 40) notes.push(`dark: mean brightness ${avg('mean')} of 255`);
       if (avg('sd') < 22) notes.push(`low contrast: luma spread ${avg('sd')}`);
       if (avg('edges') < 0.03) notes.push(`little visible detail (${(avg('edges') * 100).toFixed(1)}% edge pixels): flat shapes read as unfinished`);
       if (plain >= 2) notes.push(`over 30% of the screen is one flat dark colour in ${plain} shots: an empty backdrop reads as unfinished; give the floor texture, light or props`);
-      if (still >= 2) notes.push(`${still} pairs of shots barely changed while playing: is anything moving?`);
+      if (still >= 2 && probe?.movement !== 'stationary') notes.push(`${still} pairs of shots barely changed while playing: is anything moving?`);
+      const offPlay = lookShots.filter((x) => !['live', 'unknown'].includes(x.screen));
       const why = black ? `${black} of ${lookShots.length} shots were black or one colour while playing` : dead >= 2 ? `${dead} shots have pure-black holes over 5% of the screen: nothing drew there (a failed shader, a world that never loaded, the clear colour)` : undefined;
-      row(`look ${device}`, slow || soft ? 'BLOCKED' : why ? 'FAIL' : notes.length ? 'WARN' : 'PASS', { why: why ?? (notes.length ? notes.join('; ') : undefined), presses, mean: avg('mean'), contrast: avg('sd'), saturation: avg('saturation'), edges: avg('edges'), shots: lookShots });
+      // Measured runtime cost, when the game exposes its renderer's counters; "not exposed" is said, never a zero.
+      const rc = renderCost(cost);
+      row(`look ${device}`, slow || soft ? 'BLOCKED' : why ? 'FAIL' : notes.length ? 'WARN' : 'PASS', {
+        why: why ?? (notes.length ? notes.join('; ') : undefined), presses, mean: avg('mean'), contrast: avg('sd'), saturation: avg('saturation'), edges: avg('edges'),
+        qualifier: offPlay.length ? `${offPlay.length} of ${lookShots.length} shots were not active play (${[...new Set(offPlay.map((x) => x.screen))].join(', ')}): each shot carries its state` : undefined,
+        render: rc ? `draw calls median ${rc.drawCalls?.median ?? '?'} (max ${rc.drawCalls?.max ?? '?'}), triangles median ${rc.triangles?.median ?? '?'} (max ${rc.triangles?.max ?? '?'}) over ${rc.samples} samples` : 'not exposed by the game (exposePort extra: drawCalls, triangles): runtime scene cost was not measured here',
+        renderCost: rc, shots: lookShots,
+      });
     }
     // UI cover: the world hidden, the page's background black and then white; what stays is the UI.
     if (only.has('ui') && h.vp.isMobile) {
@@ -240,26 +396,52 @@ async function deviceSession(device, base, game, out, seconds, only) {
         await inFrame(h, ([c, sel]) => { let s = document.getElementById('__pt_ui'); if (!s) { s = document.createElement('style'); s.id = '__pt_ui'; (document.head || document.documentElement).appendChild(s); } s.textContent = c ? `canvas,video${sel ? `,${sel}` : ''}{visibility:hidden!important} html,body{background:${c}!important;background-image:none!important}` : ''; }, [bg, world]);
         await sleep(350);
       };
-      await playFor(h, 1.2, probe);
+      await playFor(h, 1.2, probe, { profile, actions });
       // Self-check (PLAYTEST_UI_SELFCHECK=1): a known opaque panel, a third of the width square, in the middle of the game.
       if (process.env.PLAYTEST_UI_SELFCHECK) await inFrame(h, () => { const d = document.createElement('div'); d.style.cssText = 'position:fixed;left:33.4%;top:40%;width:33.2vw;height:33.2vw;background:#345;z-index:99999'; document.body.appendChild(d); });
-      await paint('#000'); const a = await screenshot(h);
-      await paint('#fff'); const b = await screenshot(h);
-      await paint(null);
-      if (a && b) {
-        const cov = uiCover(decode(a, 390), decode(b, 390));
-        await save('ui-on-black', a);
-        const why = cov.cover > 0.12 ? `the UI covers ${Math.round(cov.cover * 100)}% of the screen during play (the bar is 12%)` : cov.centreOpaque > 0.02 ? `something opaque covers ${Math.round(cov.centreOpaque * 100)}% of the middle third` : undefined;
-        row(`ui ${device}`, why ? 'FAIL' : 'PASS', { why, ...cov, note: 'a HUD drawn inside the canvas is not counted (it is hidden with the world); DOM panels, chips, buttons and the page shell are', shot: rel(out, join(out, `${device}-ui-on-black.png`)) });
+      // Active play is what the 12% bar is about: wait for a live round and a free body. If the wait runs out, the
+      // screen that IS there (a results card, a spectator view) is measured and labelled, and not judged by that bar.
+      const waited = await waitActive(h, 25_000);
+      let pair = null;
+      for (let k = 0; k < 3; k++) {
+        // The thumb stays down on the stick for both frames: a held stick is part of what a player sees in play.
+        const [fx, fy] = probe?.thumb ?? [0.24, 0.74];
+        const tx = Math.round(h.vp.width * fx); const ty = Math.round(h.vp.height * fy);
+        let thumb = 'up';
+        try { await h.page.touchscreen.touchStart(tx, ty); for (let m = 1; m <= 6; m++) { await h.page.touchscreen.touchMove(tx + 12 * m, ty); await sleep(16); } thumb = 'held'; } catch { /* a closed page */ }
+        const before = await readState(h);
+        // The page's own controls and the game's DOM HUD, in the same pixels, at the same moment (lib/judge.mjs shellOverlaps).
+        const layout = await T(h.page.evaluate(() => { const r = window.__shell?.rects; return r ? { width: r.width, height: r.height, rects: r.rects } : null; }), 5000);
+        const hud = await inFrame(h, HUD_ELEMENTS, world);
+        await paint('#000'); const a = await screenshot(h);
+        await paint('#fff'); const b = await screenshot(h);
+        const after = await readState(h);
+        await paint(null);
+        try { await h.page.touchscreen.touchEnd(); } catch { /* */ }
+        pair = { a, b, before, after, thumb, tries: k + 1, layout, hud };
+        // A round that ended between the two frames makes them two different screens: take the pair again.
+        if (!a || !b || !pairMismatch(before, after)) break;
+        await waitActive(h, 15_000);
+      }
+      if (pair.a && pair.b) {
+        // Both frames are kept, with the state each was taken in: the pair can be checked by eye.
+        await save('ui-on-black', pair.a); await save('ui-on-white', pair.b);
+        const kept = { shot: `${device}-ui-on-black.png`, shotWhite: `${device}-ui-on-white.png`, stateBlack: describeState(pair.before), stateWhite: describeState(pair.after), thumb: pair.thumb, pairTries: pair.tries, waitedForPlayMs: waited.ms };
+        const mismatch = pairMismatch(pair.before, pair.after);
+        const cov = mismatch ? null : uiCover(decode(pair.a, 390), decode(pair.b, 390));
+        const overlaps = shellOverlaps(pair.layout, pair.hud);
+        const j = judgeUi(cov ?? { cover: 0, opaque: 0, centreOpaque: 0 }, { before: pair.before, after: pair.after, thumb: pair.thumb, overlaps });
+        row(`ui ${device}`, j.verdict, { why: j.why, ...(cov ?? {}), screen: j.screen, state: j.state, qualifier: j.qualifier, note: UI_CAVEAT, ...kept, hudUnderShell: overlaps.known ? overlaps.overlaps.length : 'not checked', shellOverlaps: overlaps.overlaps });
       } else row(`ui ${device}`, 'BLOCKED', { why: 'no screenshot' });
     }
-    return { errors: h.errors, bad: h.bad, probe: Boolean(probe) };
+    return { errors: h.errors, bad: h.bad, probe: Boolean(probe), actions };
   } finally { await close(h); }
 }
 
 /** What the game really sounds like: its own Web Audio output copied off the graph for `seconds` of play. */
-async function soundSession(base, game, out, seconds) {
+async function soundSession(base, game, out, seconds, gameJson) {
   const h = await launch('desk', `${base}/${game}/play`, { tap: true });
+  const profile = actionProfile(gameJson, 'desk');
   try {
     const frame = await waitFrame(h, 30_000);
     if (!frame) { row('sound', 'BLOCKED', { why: 'the game frame never opened' }); return; }
@@ -282,9 +464,17 @@ async function soundSession(base, game, out, seconds) {
     let i = 0;
     while (Date.now() < until) {
       const c = await inFrame(h, () => window.__homieTap?.clock?.() ?? null);
-      const k = i % 5 === 4 ? 'Space' : keys[seq[i % 4]];
-      if (c?.now !== undefined) presses.push({ ctx: c.now, key: k });
-      await h.page.keyboard.down(k).catch(() => {}); await sleep(k === 'Space' ? 90 : 700); await h.page.keyboard.up(k).catch(() => {});
+      // Every fifth press is the game's primary action (game.json playtest.primary, else the space bar), taken with
+      // the round's state: a game that ignores the action between rounds owes it no sound there.
+      if (i % 5 === 4) {
+        const st = await readState(h);
+        if (await pressPrimary(h, profile)) { if (c?.now !== undefined) presses.push({ ctx: c.now, action: true, play: activePlay(st), state: describeState(st) }); }
+        await sleep(90);
+      } else {
+        const k = keys[seq[i % 4]];
+        if (c?.now !== undefined) presses.push({ ctx: c.now, action: false });
+        await h.page.keyboard.down(k).catch(() => {}); await sleep(700); await h.page.keyboard.up(k).catch(() => {});
+      }
       i++;
       await sleep(250);
       if (i % 3 === 0) await pull();
@@ -326,20 +516,25 @@ async function soundSession(base, game, out, seconds) {
       }
       return { yes, n };
     };
-    const act = judge(presses.filter((p) => p.key === 'Space'));
-    const mov = judge(presses.filter((p) => p.key !== 'Space'));
+    // Only action presses made in active play (or where the game does not say) are owed a sound; the ones that
+    // landed on a results screen or a dead body are counted apart, with the state they landed in.
+    const act = judge(presses.filter((p) => p.action && p.play !== false));
+    const offPlay = presses.filter((p) => p.action && p.play === false);
+    const mov = judge(presses.filter((p) => !p.action));
     const answered = act.yes; const judged = act.n;
     const firstLoud = (() => { const floor = 10 ** (-50 / 20); for (let k = 0; k < L.length; k++) if (Math.abs(L[k]) > floor || Math.abs(R[k]) > floor) return k; return -1; })();
     const firstSoundMs = firstLoud < 0 || !gestureClock ? null : Math.max(0, Math.round(((f0 + firstLoud) / rate - (gestureClock.now ?? 0)) * 1000));
     const warn = warnings(m, 'capture');
     const answerShare = judged ? +(answered / judged).toFixed(2) : null;
-    if (answerShare !== null && answerShare < 0.5) warn.push(`only ${answered} of ${judged} action presses (space) were followed by a sound within 250 ms: give every action a sound`);
+    if (answerShare !== null && answerShare < 0.5) warn.push(`only ${answered} of ${judged} presses of ${profile.how} made in active play were followed by a sound within 250 ms: give every action a sound`);
     if (m.loudness.lufs !== null && m.loudness.lufs < -32) warn.push(`very quiet: ${m.loudness.lufs} LUFS while playing (a phone at half volume will hear almost nothing)`);
     if (m.silentShare > 0.5) warn.push(`${Math.round(m.silentShare * 100)}% of the time was silent while someone played: no music bed?`);
     const verdict = m.samplePeakDb !== null && m.samplePeakDb < -60 ? 'FAIL' : m.clippedSamples > 0 ? 'FAIL' : warn.length ? 'WARN' : 'PASS';
     row('sound', verdict, {
       why: verdict === 'FAIL' ? (m.clippedSamples > 0 ? `${m.clippedSamples} clipped samples: it distorts` : 'the capture is silent after the first click') : warn.join('; ') || undefined,
-      contexts: ctxs, before: pre?.state ?? null, runningAfterGestureMs: runningMs, firstSoundMs, seconds: m.seconds, actionPresses: judged, answered, answerShare, movesWithSound: `${mov.yes} of ${mov.n}`,
+      contexts: ctxs, before: pre?.state ?? null, runningAfterGestureMs: runningMs, firstSoundMs, seconds: m.seconds, actionPresses: judged, answered, answerShare, action: profile.how, actionDeclared: profile.declared, actionPressesOutsidePlay: offPlay.length,
+      qualifier: [offPlay.length ? `${offPlay.length} action press(es) landed outside active play (${[...new Set(offPlay.map((p) => p.state))].slice(0, 2).join(' | ')}) and were not judged for sound` : null, !judged ? 'no action press was judged for sound in this capture' : null, profile.declared ? null : 'the action pressed was a guess (game.json declares no playtest.primary): a game whose action is another input was not asked for its sound'].filter(Boolean).join('; ') || undefined,
+      movesWithSound: `${mov.yes} of ${mov.n}`,
       loudness: m.loudness, samplePeakDb: m.samplePeakDb, clippedSamples: m.clippedSamples, silentShare: m.silentShare, gaps: m.gaps.slice(0, 5), bands: m.bands, under300Share: m.under300Share, onsetsPerSecond: m.onsetsPerSecond,
       soundJs: post?.sound ? { plays: post.sound.plays?.length ?? 0, names: [...new Set((post.sound.plays ?? []).map((p) => p.name))], missing: post.sound.missing, music: post.sound.music, errors: post.sound.errors } : null,
       capture: rel(out, wav), sheet,
@@ -347,15 +542,19 @@ async function soundSession(base, game, out, seconds) {
   } finally { await close(h); }
 }
 
-/** A round with one person playing hard (a computer) and one doing nothing (a phone), both strangers in the public room. */
-async function playSession(base, game, out, roundSeconds) {
+/** A round with one person playing hard (a computer) and one doing nothing (a phone), in the same public room. */
+async function playSession(base, game, out, roundSeconds, gameJson) {
+  const profile = actionProfile(gameJson, 'desk');
+  const actions = newActions(profile);
   const active = await launch('desk', `${base}/${game}/play`);
-  const idle = await launch('phone', `${base}/${game}/play`);
+  let idle;
   try {
     const seat = async (h) => { const until = Date.now() + 45_000; while (Date.now() < until) { const s = await shell(h); if (s?.room && s.seat !== null && s.seat !== undefined && s.role) return s; await sleep(300); } return null; };
-    const [sa, si] = await Promise.all([seat(active), seat(idle)]);
+    const sa = await seat(active);
+    idle = await launch('phone', `${base}/${game}/play${sa?.room ? `?room=${encodeURIComponent(sa.room)}` : ''}`);
+    const si = await seat(idle);
     if (!sa || !si) { row('play', 'FAIL', { why: 'a browser never got a seat in 45 s' }); return; }
-    if (sa.room !== si.room) { row('play', 'FAIL', { why: `the two browsers landed in different rooms (${sa.room}, ${si.room}): two strangers who press Play must meet` }); return; }
+    if (sa.room !== si.room) { row('play', 'FAIL', { why: `the two browsers landed in different rooms (${sa.room}, ${si.room}): the invitation must join the same room` }); return; }
     const since = Date.now();
     // Only a round that STARTS after both are seated counts: a newcomer takes a bot's place mid-round and inherits
     // its body and score, so the round already running says nothing about how these two played.
@@ -366,7 +565,7 @@ async function playSession(base, game, out, roundSeconds) {
     const scores = [];
     let lastLive = null; let liveSeenAt = null; let overAt = null; let result = null;
     const budget = (roundSeconds * 2 + 60) * 1000;
-    const playing = (async () => { while (!result && Date.now() - since < budget) await playFor(active, 4, probe); })();
+    const playing = (async () => { while (!result && Date.now() - since < budget) await playFor(active, 4, probe, { profile, actions }); })();
     while (!result && Date.now() - since < budget) {
       const [a, b] = await Promise.all([shell(active), shell(idle)]);
       const pa = await inFrame(active, () => window.__homiePort?.info?.().score ?? null);
@@ -389,21 +588,18 @@ async function playSession(base, game, out, roundSeconds) {
     const watched = liveSeenAt && overAt ? Math.round((overAt - liveSeenAt) / 1000) : null;
     let changes = 0; let lead = null;
     for (const s of scores) { if (s.active === null || s.idle === null) continue; const l = s.active > s.idle ? 'active' : s.idle > s.active ? 'idle' : lead; if (lead && l !== lead) changes++; lead = l; }
-    const notes = [];
-    if (me && them && them.score >= me.score) notes.push(`the player who pressed nothing scored ${them.score}, the one who played ${me.score}: input barely matters to the score`);
-    if (me && me.score === 0) notes.push('a person playing hard for a whole round scored 0');
-    if (planned && roundSeconds && Math.abs(planned - roundSeconds) > roundSeconds * 0.2) notes.push(`the round was set to ${planned} s but game.json says ${roundSeconds} s`);
-    if (rowsR.length && rowsR.every((x) => x.score === rowsR[0].score)) notes.push('every player finished on the same score');
-    const bestBot = Math.max(-Infinity, ...rowsR.filter((x) => x.bot).map((x) => x.score));
-    const bestHuman = Math.max(-Infinity, ...rowsR.filter((x) => !x.bot).map((x) => x.score));
-    if (Number.isFinite(bestBot) && Number.isFinite(bestHuman) && bestBot > Math.max(3 * bestHuman, bestHuman + 10)) notes.push(`a bot outscored every person ${bestBot} to ${bestHuman}: people cannot win against the bots (tune the bots to a person's pace, or rubber-band them against the leading person)`);
+    // What the scores of this one round say, and no more (lib/judge.mjs judgeScores): a cooperative game's shared
+    // total is not a ranking, a bot's win is a measured gap, and a conclusion says which inputs the script used.
+    const j = judgeScores({ me, them, rows: rowsR, scoring: gameJson?.scoring ?? null, planned, roundSeconds: gameJson?.roundSeconds ?? null, actions });
+    const notes = j.notes;
     row('play', notes.length ? 'WARN' : 'PASS', {
       why: notes.join('; ') || undefined, room: sa.room, round: result.n, plannedSeconds: planned, watchedSeconds: watched, players: rowsR.length, bots: rowsR.filter((x) => x.bot).length,
+      scoring: j.scoring, comparison: j.comparison, actions: describeActions(actions), primaryDeclared: profile.declared, primaryPresses: actions.primary.pressed, primaryMissed: actions.primary.missed, directionHolds: actions.moves,
       active: me ? { place: me.place, score: me.score } : null, idle: them ? { place: them.place, score: them.score } : null, leadChanges: changes,
       results: rowsR.map((x) => ({ place: x.place, score: x.score, bot: x.bot, who: x.seat === sa.seat ? 'the active player' : x.seat === si.seat ? 'the idle player' : x.bot ? 'a bot' : 'another person' })),
       scoreSamples: scores.filter((_, k) => k % 5 === 0).slice(0, 40), shot: 'play-round-over.png',
     });
-  } finally { await close(active); await close(idle); }
+  } finally { await close(active); if (idle) await close(idle); }
 }
 
 /** The studio's own checks, run as the creator would: the owner tests (port check) and the two-stranger round. */
@@ -415,13 +611,21 @@ function studioCheck(root, args, name, timeoutMs) {
     let outText = '';
     child.stdout.on('data', (d) => { outText += d; });
     child.stderr.on('data', () => {});
-    const timer = setTimeout(() => { try { child.kill('SIGTERM'); } catch { /* */ } }, timeoutMs);
-    child.on('close', () => {
-      clearTimeout(timer);
+    // Bounded all the way down: asked to stop at the timeout, killed 5 s later, and answered 5 s after that even if
+    // `close` never comes (a helper that inherited the child's pipes keeps them open after the child is gone).
+    let settled = false; let timedOut = false;
+    const timers = [];
+    const done = () => {
+      if (settled) return; settled = true;
+      for (const t of timers) clearTimeout(t);
       let j = null; try { j = JSON.parse(outText); } catch { /* */ }
-      if (!j) { row(name, 'BLOCKED', { why: `homie-studio ${args.join(' ')} gave no result (timed out after ${Math.round(timeoutMs / 1000)} s?)` }); ok(null); return; }
+      if (!j) { row(name, 'BLOCKED', { why: timedOut ? `homie-studio ${args.join(' ')} did not finish in ${Math.round(timeoutMs / 1000)} s and was stopped: nothing was measured` : `homie-studio ${args.join(' ')} gave no result`, instrument: timedOut }); ok(null); return; }
       ok(j);
-    });
+    };
+    timers.push(setTimeout(() => { timedOut = true; try { child.kill('SIGTERM'); } catch { /* */ } }, timeoutMs));
+    timers.push(setTimeout(() => { try { child.kill('SIGKILL'); } catch { /* */ } }, timeoutMs + 5000));
+    timers.push(setTimeout(() => { try { child.stdout.destroy(); child.stderr.destroy(); } catch { /* */ } done(); }, timeoutMs + 10_000));
+    child.on('close', done);
   });
 }
 
@@ -436,6 +640,10 @@ async function run() {
   const seconds = Math.max(8, Math.min(120, Number(flags.get('seconds') ?? 20)));
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\..*/, '');
   const out = resolve(String(flags.get('out') ?? (root ? join(root, '.playtest', game, stamp) : join(process.cwd(), '.playtest', game, stamp))));
+  // First of all, before a folder is made or the disk is looked at: can this process reach the site at all? A name Node cannot resolve (while a browser can) is a network preflight
+  // failure of the instrument, BLOCKED, never a game failure (lib/preflight.mjs).
+  const pre = await preflight(`${url}/${game}/play`);
+  if (!pre.ok) { const e = new Error(pre.why); e.verdict = pre.verdict; e.kind = pre.kind; throw e; }
   mkdirSync(out, { recursive: true });
   if (root) {
     const gi = join(root, '.gitignore');
@@ -443,25 +651,37 @@ async function run() {
     if (!/^\.playtest\/?$/m.test(text)) appendFileSync(gi, `${text.endsWith('\n') || !text ? '' : '\n'}.playtest/\n`);
   }
   try { const f = statfsSync(out); if ((f.bavail * f.bsize) / 1e9 < 10) throw new Error('under 10 GB free on this disk: free some space before a playtest'); } catch (e) { if (/GB free/.test(e.message)) throw e; }
-  const alive = await fetch(`${url}/${game}/play`, { signal: AbortSignal.timeout(10_000) }).then((r) => r.ok).catch(() => false);
-  if (!alive) throw new Error(`${url}/${game}/play does not answer: start the site (npm run dev, as a background task that outlives this command) or check the address`);
   EXE = chromePath();
   puppeteer = loadPuppeteer(root);
   if (!EXE || !puppeteer) throw new Error(!EXE ? 'no Chrome found (set CHROME_PATH to a Chrome or Chromium)' : 'puppeteer-core is not installed (it comes with @homie-rocks/studio: npm install in the studio)');
-  const gameJson = root ? readJson(join(root, 'games', game, 'game.json'), {}) : {};
+  const gameJson = root ? readJson(experienceJson(experienceDir(root, game)), {}) : {};
+  const isApp = root && experienceJson(experienceDir(root, game)).endsWith('/app.json');
   const started = Date.now();
   const errors = [];
   const bad = [];
   let probed = false;
+  const instrumentFaults = [];
   for (const device of ['desk', 'phone', 'phone-landscape']) {
     if (!['first', 'look', 'ui'].some((k) => only.has(k))) break;
     log(`… ${device}: first seconds, the look while playing, the UI`);
-    const r = await deviceSession(device, url, game, out, seconds, only);
+    let r;
+    try { r = await deviceSession(device, url, game, out, seconds, only, gameJson); } catch (e) {
+      // The instrument could not read its own pictures (a stuck or missing decoder). The browser is closed already
+      // (deviceSession's finally); every row of this device that was not written yet is BLOCKED, never failed, and
+      // the run ends non-zero because it did not measure what it was asked to.
+      if (!e?.blocked) throw e;
+      instrumentFaults.push(`${device}: ${e.message}`);
+      for (const kind of ['first', 'move', 'look', 'ui']) {
+        const wanted = kind === 'move' ? only.has('first') : kind === 'ui' ? only.has('ui') && DEVICES[device].isMobile : only.has(kind);
+        if (wanted && !rows.some((x) => x.name === `${kind} ${device}`)) row(`${kind} ${device}`, 'BLOCKED', { why: e.message, instrument: true });
+      }
+      continue;
+    }
     errors.push(...r.errors.map((e) => `${device}: ${e}`)); bad.push(...r.bad.map((e) => `${device}: ${e}`)); probed ||= r.probe;
   }
-  if (only.has('sound')) { log('… sound: the game\'s own audio while someone plays'); await soundSession(url, game, out, Math.max(15, seconds)); }
-  if (only.has('play')) { log('… play: a round with one person playing hard and one doing nothing'); await playSession(url, game, out, Number(gameJson.roundSeconds ?? 90)); }
-  if (only.has('controls') && root) {
+  if (only.has('sound')) { log('… sound: the game\'s own audio while someone plays'); await soundSession(url, game, out, Math.max(15, seconds), gameJson); }
+  if (only.has('play') && !isApp) { log('… play: a round with one person playing hard and one doing nothing'); await playSession(url, game, out, Number(gameJson.roundSeconds ?? 90), gameJson); }
+  if (only.has('controls') && root && !isApp) {
     log('… controls: the owner tests (homie-studio port check)');
     const pc = await studioCheck(root, ['port', 'check', game, '--url', url, '--only', 'owner-desk,owner-phone,owner-iphone,ui-cover,life,tv,audio,errors', '--shots', join(out, 'port-check')], 'controls', 9 * 60_000);
     if (pc) {
@@ -470,41 +690,30 @@ async function run() {
       const skipped = (pc.rows ?? []).filter((x) => x.ok === null || x.ok === undefined);
       const verdict = failed.length ? 'FAIL' : !pc.rows?.length ? 'BLOCKED' : skipped.length ? 'WARN' : 'PASS';
       const why = failed.length ? failed.map((x) => `${x.name}: ${x.why ?? 'failed'}`).join('; ') : !pc.rows?.length ? pc.why : skipped.length ? `not tested: ${skipped.map((x) => `${x.name} (${x.why ?? 'skipped'})`).join('; ')}` : undefined;
-      row('controls', verdict, { why, rows: (pc.rows ?? []).map((x) => ({ name: x.name, ok: x.ok, why: x.why ?? null })), receipt: 'port-check/receipt.json' });
+      // What a row did not check rides with it (the big screen's join QR on a loopback preview is not applicable, and
+      // a pass there says nothing about the live QR).
+      const unchecked = (pc.rows ?? []).filter((x) => x.qrNote).map((x) => `${x.name}: ${x.qrNote}`);
+      row('controls', verdict, { why, qualifier: unchecked.join('; ') || undefined, rows: (pc.rows ?? []).map((x) => ({ name: x.name, ok: x.ok, why: x.why ?? null, ...(x.qrNote ? { note: x.qrNote } : {}) })), receipt: 'port-check/receipt.json' });
     }
   }
-  if (only.has('round') && root) {
-    log('… round: two fresh browsers press Play and finish a round together (homie-studio check)');
+  if ((only.has('round') || (isApp && only.has('play'))) && root) {
+    log(isApp ? '… sync: a wall and two phones share an action and reconnect' : '… round: two fresh browsers press Play and finish a round together (homie-studio check)');
     const ck = await studioCheck(root, ['check', game, '--url', url, '--shots', join(out, 'round')], 'round', 5 * 60_000);
-    if (ck) row('round', ck.ok ? 'PASS' : 'FAIL', { why: ck.ok ? undefined : ck.why, room: ck.room, seats: ck.seats, round: ck.round ? { n: ck.round.n, humans: ck.round.humans, bots: ck.round.bots } : null, seconds: ck.totalMs ? Math.round(ck.totalMs / 1000) : null });
+    if (ck) {
+      // A round that finished is not a connection that held: reconnects are said beside completion, and a round
+      // completed across a reconnect is WARN (measured, worth a look), not a quiet pass.
+      const conn = connectionNote(ck.connection);
+      if (isApp) row('sync', ck.ok ? 'PASS' : 'FAIL', { why: ck.why, room: ck.room, surfaces: ck.surfaces, reconnect: ck.reconnect });
+      else row('round', !ck.ok ? 'FAIL' : conn.uninterrupted === false ? 'WARN' : 'PASS', { why: !ck.ok ? ck.why : conn.uninterrupted === false ? conn.note : undefined, completed: Boolean(ck.ok), reconnects: conn.reconnects ?? 'not reported', uninterrupted: conn.uninterrupted ?? 'unknown', connection: conn.note, readiness: ck.readiness ?? null, room: ck.room, seats: ck.seats, round: ck.round ? { n: ck.round.n, humans: ck.round.humans, bots: ck.round.bots } : null, seconds: ck.totalMs ? Math.round(ck.totalMs / 1000) : null });
+    }
   }
   const uniq = (xs) => [...new Set(xs)].slice(0, 30);
   row('errors', errors.length ? 'FAIL' : bad.length ? 'WARN' : 'PASS', { why: errors.length ? `${errors.length} uncaught error(s) or console errors, first: ${errors[0]}` : bad.length ? `${bad.length} failed request(s), first: ${bad[0]}` : undefined, errors: uniq(errors), requests: uniq(bad) });
   const report = { v: 1, game, url, at: new Date().toISOString(), seconds: Math.round((Date.now() - started) / 1000), probe: probed, rows, weak: weakest(rows) };
   writeFileSync(join(out, 'report.json'), `${JSON.stringify(report, null, 1)}\n`);
-  writeFileSync(join(out, 'REPORT.md'), reportMd(report, out));
+  writeFileSync(join(out, 'REPORT.md'), reportMd(report, readJson(join(out, 'review.json'), null)));
   await sheets(out, root);
-  return { ok: !rows.some((r) => r.verdict === 'FAIL'), command: 'run', game, out, report: join(out, 'REPORT.md'), seconds: report.seconds, rows: rows.map((r) => `${r.verdict.padEnd(7)} ${r.name}${r.why ? `: ${r.why}` : ''}`), weak: report.weak, next: `node playtest.mjs review ${relative(process.cwd(), out) || '.'} (then hand REVIEW.md to a fresh reviewer)` };
-}
-
-/** What is weakest, most important first: failures, then warnings, each in one line with its evidence. */
-function weakest(rs) {
-  const order = { FAIL: 0, BLOCKED: 1, WARN: 2 };
-  const weight = { round: 0, play: 1, controls: 2, first: 3, sound: 4, look: 5, ui: 6, errors: 7 };
-  return rs.filter((r) => r.verdict !== 'PASS').sort((a, b) => order[a.verdict] - order[b.verdict] || (weight[a.name.split(' ')[0]] ?? 9) - (weight[b.name.split(' ')[0]] ?? 9)).map((r) => `${r.verdict} ${r.name}: ${r.why ?? 'see the report'}`);
-}
-
-function reportMd(rep, out) {
-  const L = [`# Playtest: ${rep.game}`, '', `${rep.url} · ${rep.at} · ${rep.seconds} s · port probe: ${rep.probe ? 'yes' : 'no (owner tests cannot see the body; see the port skill)'}`, ''];
-  L.push('## What is weak', '', ...(rep.weak.length ? rep.weak.map((w) => `- ${w}`) : ['- Nothing the instruments can see. That is not the same as fun: read the review.']), '');
-  L.push('## Rows', '', '| row | verdict | numbers |', '| --- | --- | --- |');
-  for (const r of rep.rows) {
-    const nums = Object.entries(r).filter(([k, v]) => !['name', 'verdict', 'why', 'shots', 'rows', 'results', 'scoreSamples', 'errors', 'requests', 'note', 'soundJs', 'gaps', 'seats'].includes(k) && v !== null && v !== undefined && typeof v !== 'object').map(([k, v]) => `${k} ${v}`).join(', ');
-    L.push(`| ${r.name} | ${r.verdict} | ${nums.replace(/\|/g, '/')} |`);
-  }
-  L.push('', 'Pictures: `sheet-*.png` (contact sheets), `*-first-*.png`, `*-look-*.png`, `*-ui-on-black.png`, `sound-capture.png`, `play-round-over.png`. Look at them before believing any number here.', '');
-  void out;
-  return `${L.join('\n')}\n`;
+  return { ok: !rows.some((r) => r.verdict === 'FAIL') && !instrumentFaults.length, ...(instrumentFaults.length ? { blocked: instrumentFaults } : {}), command: 'run', game, out, report: join(out, 'REPORT.md'), seconds: report.seconds, rows: rows.map((r) => `${r.verdict.padEnd(7)} ${r.name}${r.why ? `: ${r.why}` : ''}`), weak: report.weak, review: reviewLine(null).line, next: `node playtest.mjs review ${relative(process.cwd(), out) || '.'} --local (read the pictures and rubric, save VERDICT.json, then record the local review; outside review only when requested)` };
 }
 
 /** Contact sheets of a run's pictures, labelled (drawn in Chrome, so no font setup). */
@@ -533,12 +742,24 @@ async function sheets(out, root) {
 
 /* ---------------------------------------------------------------- review */
 
+/** The pictures a review is given, in the order a reviewer should open them. */
+const REVIEW_PICTURES = ['sheet-desk.png', 'sheet-phone.png', 'sheet-phone-landscape.png', 'desk-first-frame.png', 'phone-ui-on-black.png', 'phone-ui-on-white.png', 'phone-landscape-ui-on-black.png', 'phone-landscape-ui-on-white.png', 'sound-capture.png', 'play-round-over.png'];
+
+/**
+ * THE REVIEW STEP, AND WHAT IT HANDS OVER. A blind review means giving a game's screenshots to a reviewer outside
+ * this session, and a host that reviews what an agent sends (an approval reviewer in front of a second coding agent's
+ * command line, say) may refuse that transfer; Homie cannot and must not get round it. So this command says, before
+ * anything is sent, exactly which files go and to whom, as ONE question a person answers once per report folder
+ * (review-request.json keeps the same list, so an approval can be tied to that exact payload and destination). When
+ * the answer is no, or the host refuses anyway, `review --local` is the fallback that sends nothing, and `reviewed`
+ * records which review ran, or that none did: a missing review is BLOCKED in the report, never a quiet pass.
+ */
 function review() {
   const out = resolve(String(pos[1] ?? ''));
   const rep = readJson(join(out, 'report.json'), null);
   if (!rep) throw new Error('usage: review <run folder> (the folder a run wrote, with report.json)');
   const brief = readFileSync(join(HERE, '..', 'references', 'REVIEWER.md'), 'utf8');
-  const pics = ['sheet-desk.png', 'sheet-phone.png', 'sheet-phone-landscape.png', 'desk-first-frame.png', 'phone-ui-on-black.png', 'phone-landscape-ui-on-black.png', 'sound-capture.png', 'play-round-over.png'].filter((f) => existsSync(join(out, f)));
+  const pics = REVIEW_PICTURES.filter((f) => existsSync(join(out, f)));
   const numbers = rep.rows.map((r) => `- ${r.verdict} ${r.name}${r.why ? `: ${r.why}` : ''}`).join('\n');
   const text = brief
     .replaceAll('{{GAME}}', rep.game)
@@ -546,15 +767,70 @@ function review() {
     .replaceAll('{{FOLDER}}', out)
     .replaceAll('{{PICTURES}}', pics.map((p) => `- \`${join(out, p)}\``).join('\n') || '- (none: the run made no pictures)')
     .replaceAll('{{NUMBERS}}', numbers);
+  if (flags.has('local')) {
+    // The fallback that sends nothing anywhere: this session scores the same pictures with the same rubric. It is
+    // the builder grading its own build, and every line of it says so.
+    const rubric = text.slice(text.indexOf('## Look at these yourself'));
+    const local = [`# Local review (NOT independent): ${rep.game}`, '',
+      'This is the fallback for when the blind review could not run: the reviewer could not be reached, or the person or the host did not approve handing the screenshots to one. Nothing leaves this session.',
+      '',
+      'You are the session that made this game, so this is NOT a blind review and must never be reported as one. Score only what the pictures and the numbers below show, not what you know the code does or meant to do. Where you catch yourself explaining a weakness away, write the weakness down instead.',
+      '',
+      `The game: ${rep.url}/${rep.game}/play. The run folder: \`${out}\`.`, '',
+      rubric.trimEnd(), '',
+      'Add `"review": "local"` to the JSON, save it as VERDICT.json in the run folder, then record it. Parts use 0–10; the overall JSON score and --score use 0–100 (seven out of ten means 70):', '',
+      `    node playtest.mjs reviewed ${relative(process.cwd(), out) || '.'} --kind local --reason "<why no independent review ran>" --score <overall-0-100>`, '',
+      'When you report to the person, say in the first sentence that this was a local review and not an independent one, and offer the independent review again.', ''].join('\n');
+    writeFileSync(join(out, 'REVIEW-LOCAL.md'), local);
+    return { ok: true, command: 'review', kind: 'local', brief: join(out, 'REVIEW-LOCAL.md'), pictures: pics.length, sends: 'nothing: the pictures stay in this session', how: 'Read REVIEW-LOCAL.md and every picture it lists yourself, score with its rubric (parts 0–10, overall 0–100), save VERDICT.json (with "review": "local"), then run `reviewed <run folder> --kind local --reason "<why>" --score <overall-0-100>`. This is NOT independent: say so wherever you report it.' };
+  }
   writeFileSync(join(out, 'REVIEW.md'), text);
-  return { ok: true, command: 'review', brief: join(out, 'REVIEW.md'), pictures: pics.length, how: 'Give the WHOLE TEXT of REVIEW.md, as it is, to a FRESH reviewer that has not seen the code, the plan or your summary (Claude Code: the Agent tool, with the file\'s full contents as the prompt, not its path or a summary of it; Codex: a new session). Add nothing about the code or what you changed. It plays the game itself and saves VERDICT.json in the run folder.' };
+  // Exactly what the review step hands over: the brief, the numbers and these pictures, all from this one folder.
+  const files = ['REVIEW.md', 'report.json', ...pics].filter((f) => existsSync(join(out, f))).map((f) => ({ file: f, bytes: statSync(join(out, f)).size }));
+  const to = typeof flags.get('to') === 'string' ? flags.get('to') : 'a fresh reviewer that has not seen the code (say which: a subagent inside this session, or an external command such as a second coding agent)';
+  const question = [
+    `Approve the blind review of "${rep.game}" from the report folder ${out}?`,
+    `It hands ${files.length} files from that folder to ${to}:`,
+    ...files.map((f) => `  - ${f.file} (${Math.max(1, Math.round(f.bytes / 1024))} KB)`),
+    'They are screenshots of the game (private while it is unreleased), the instruments\' numbers and the review brief. The reviewer is told the folder and may open the other screenshots in it; nothing outside that folder is sent, and the reviewer also plays the game at the address in the brief.',
+    'One yes covers this report folder and this reviewer. Another folder or another reviewer is a new question.',
+    'Say "local" instead and nothing leaves this session: the session scores the same pictures itself with the same rubric, and the report says that review was not independent.',
+  ].join('\n');
+  writeFileSync(join(out, 'review-request.json'), `${JSON.stringify({ v: 1, game: rep.game, folder: out, destination: to, files, question, at: new Date().toISOString() }, null, 1)}\n`);
+  return {
+    ok: true, command: 'review', brief: join(out, 'REVIEW.md'), pictures: pics.length,
+    sends: files.map((f) => f.file), folder: out, destination: to,
+    approval: question,
+    how: 'FIRST ask the person the approval question above, once, word for word (it names every file and the destination; pass --to "<the reviewer>" to name it). After a yes: give the WHOLE TEXT of REVIEW.md, as it is, to a FRESH reviewer that has not seen the code, the plan or your summary (Claude Code: the Agent tool, with the file\'s full contents as the prompt, not its path or a summary of it; Codex: a new session). Add nothing about the code or what you changed. It plays the game itself and saves VERDICT.json in the run folder; then run `reviewed <run folder> --kind independent --by "<the reviewer>"`.',
+    ifRefused: 'If the person says no, or the host refuses the transfer (an approval reviewer rejecting the command is the host\'s decision: do not retry it in other words, and do not send the pictures another way): run `review <run folder> --local` for a review that sends nothing, or record that none ran with `reviewed <run folder> --kind none --reason "<why>"`. Either way the report then says which review this run had.',
+  };
+}
+
+/** `reviewed <run folder> --kind ...`: write review.json and put the review's line into REPORT.md. */
+function reviewed() {
+  const out = resolve(String(pos[1] ?? ''));
+  const rep = readJson(join(out, 'report.json'), null);
+  const kind = String(flags.get('kind') ?? '');
+  if (!rep || !REVIEW_KINDS.includes(kind)) throw new Error(`usage: reviewed <run folder> --kind ${REVIEW_KINDS.join('|')} [--by "<who>"] [--reason "<why>"] [--score <0-100>]`);
+  const text = (k) => (typeof flags.get(k) === 'string' ? flags.get(k).slice(0, 300) : null);
+  if (kind !== 'independent' && !text('reason')) throw new Error(`--reason "<why>" is needed with --kind ${kind}: a report that says no independent review ran must say why`);
+  const verdict = readJson(join(out, 'VERDICT.json'), null);
+  if (kind !== 'none' && !verdict) throw new Error(`no VERDICT.json in ${out}: a review that ran saves its verdict there first (for a review that did not run: --kind none --reason "<why>")`);
+  const score = Number.isFinite(Number(flags.get('score'))) && flags.get('score') !== true ? Number(flags.get('score')) : Number.isFinite(verdict?.score) ? verdict.score : null;
+  const record = { v: 1, kind, by: text('by'), reason: text('reason'), score: kind === 'none' ? null : score, at: new Date().toISOString() };
+  writeFileSync(join(out, 'review.json'), `${JSON.stringify(record, null, 1)}\n`);
+  writeFileSync(join(out, 'REPORT.md'), reportMd(rep, record));
+  const line = reviewLine(record);
+  return { ok: true, command: 'reviewed', kind, review: line.line, report: join(out, 'REPORT.md') };
 }
 
 function showReport() {
   const out = resolve(String(pos[1] ?? ''));
   const rep = readJson(join(out, 'report.json'), null);
   if (!rep) throw new Error('usage: report <run folder>');
-  return { ok: !rep.rows.some((r) => r.verdict === 'FAIL'), command: 'report', game: rep.game, rows: rep.rows.map((r) => `${r.verdict.padEnd(7)} ${r.name}${r.why ? `: ${r.why}` : ''}`), weak: rep.weak, report: join(out, 'REPORT.md') };
+  // The review is part of what a report says: which kind ran, or BLOCKED when none did.
+  const line = reviewLine(readJson(join(out, 'review.json'), null));
+  return { ok: !rep.rows.some((r) => r.verdict === 'FAIL'), command: 'report', game: rep.game, rows: rep.rows.map((r) => `${r.verdict.padEnd(7)} ${r.name}${r.why ? `: ${r.why}` : ''}`), weak: rep.weak, review: line.line, reviewKind: line.kind, report: join(out, 'REPORT.md') };
 }
 
 const rel = (out, f) => (f ? relative(out, f) : null);
@@ -567,6 +843,7 @@ async function main() {
   }
   if (cmd === 'run') return run();
   if (cmd === 'review') return review();
+  if (cmd === 'reviewed') return reviewed();
   if (cmd === 'report') return showReport();
   return { ok: false, command: cmd, why: `unknown command "${cmd}" (playtest.mjs help)` };
 }
@@ -584,8 +861,12 @@ try {
   if (r) { print(r); if (r.ok === false) process.exitCode = 1; }
 } catch (error) {
   const msg = error instanceof Error ? error.message : String(error);
-  print({ ok: false, why: /ERR_CONNECTION_REFUSED|ECONNREFUSED/.test(msg) ? `the site stopped answering during the playtest (${msg}): is the dev server still running? Restart it as a background task (a rebuild while \`npm run dev\` runs can kill it) and run again` : msg });
+  // A preflight that could not reach the site measured nothing: BLOCKED, said as such, and still a non-zero exit.
+  const blocked = error?.verdict === 'BLOCKED';
+  print({ ok: false, ...(blocked ? { verdict: 'BLOCKED', kind: error.kind } : {}), why: /ERR_CONNECTION_REFUSED|ECONNREFUSED/.test(msg) && !error?.verdict ? `the site stopped answering during the playtest (${msg}): is the dev server still running? Restart it as a background task (a rebuild while \`npm run dev\` runs can kill it) and run again` : `${blocked ? 'BLOCKED ' : ''}${msg}` });
   process.exitCode = 1;
-} finally {
-  for (const h of [...open]) await close(h);
 }
+// The report is written and printed: close whatever browser is still open (bounded), then leave. A controller once
+// stayed alive after its report with every browser and decoder it owned already gone; whatever handle held it was
+// never isolated, so the end does not wait for the event loop to empty (lib/exit.mjs). The exit code set above stays.
+await finish({ cleanup: async () => { for (const h of [...open]) await close(h); } });

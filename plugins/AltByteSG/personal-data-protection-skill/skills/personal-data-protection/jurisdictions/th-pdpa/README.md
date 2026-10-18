@@ -1,6 +1,6 @@
 # Thailand PDPA — Jurisdiction Notes
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 | | |
 |---|---|
@@ -14,7 +14,7 @@
 
 > **Translation caveat:** the binding text of the Thailand PDPA is the original Thai-language version published in the Royal Thai Government Gazette. PDPC Thailand publishes an English translation explicitly labelled "unofficial." The content here is based on that unofficial translation. **In any conflict, the Thai original wins.** Use this skill as a starting framework; verify specific provisions against the Thai original and consult a qualified Thai privacy lawyer for binding interpretation.
 
-> **Source copyright:** the Thai original is published by the Royal Thai Government Gazette; the unofficial English translation is published by PDPC Thailand under PDPC Thailand's own terms. Verbatim quotations in this skill are short operative phrases reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence. See [DISCLAIMER.md § Copyright in source materials](../../../../DISCLAIMER.md#copyright-in-source-materials).
+> **Source copyright:** the Thai original is published by the Royal Thai Government Gazette; the unofficial English translation is published by PDPC Thailand under PDPC Thailand's own terms. Verbatim quotations in this skill are short operative phrases reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence. See [DISCLAIMER.md § Copyright in source materials](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md#copyright-in-source-materials).
 
 ## Critical thresholds
 

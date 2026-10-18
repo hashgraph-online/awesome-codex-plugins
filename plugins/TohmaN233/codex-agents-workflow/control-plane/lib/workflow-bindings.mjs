@@ -83,10 +83,14 @@ export function pathBoundaries(values) {
   }))].sort();
 }
 
+export function pathBoundaryContains(base, value, { caseInsensitive = process.platform === 'win32' } = {}) {
+  const key = value => caseInsensitive ? value.toLowerCase() : value;
+  return base === '.' || key(base) === key(value) || key(value).startsWith(key(base) + '/');
+}
+
 export function intersectBoundaries(parent, child, { caseInsensitive = process.platform === 'win32' } = {}) {
   const left = pathBoundaries(parent); const right = pathBoundaries(child);
-  const key = value => caseInsensitive ? value.toLowerCase() : value;
-  const within = (base, value) => base==='.' || key(base) === key(value) || key(value).startsWith(key(base) + '/');
+  const within = (base, value) => pathBoundaryContains(base, value, { caseInsensitive });
   return pathBoundaries(left.flatMap(a => right.flatMap(b => within(a, b) ? [b] : within(b, a) ? [a] : [])));
 }
 

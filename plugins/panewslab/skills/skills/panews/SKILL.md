@@ -9,7 +9,7 @@ description: >
   latest smart money boards, board highlights, and board comparisons.
 metadata:
   author: Seven Du
-  version: "2026.09.23"
+  version: "2026.10.11"
 ---
 
 This is the core PANews reading skill for users who want to follow cryptocurrency and blockchain news through PANews coverage and public Polymarket smart money leaderboard snapshots. Use it for market-moving headlines, project and token updates, rankings, deep dives, topics, columns, series, events, editorial picks, and structured leaderboard discovery.
@@ -58,6 +58,7 @@ It is best suited for structured news discovery, explanation, and leaderboard re
 - Be more specific for fragile tasks:
   - Article URL or ID provided: resolve the article directly instead of broadening into generic search.
   - Rankings, events, calendar items, and platform picks: use the most direct matching workflow instead of combining unrelated workflows first.
+  - Events: read one page at a time with `--limit` / `--cursor`; `list-events` rejects the removed `--take` / `--skip` options. The [events workflow](./references/workflow-events.md) explains status ordering and how to continue with the same filters and language when more results are needed. Other commands keep their documented parameters.
   - Weak or missing PANews coverage: say so directly rather than filling gaps with outside knowledge.
   - Polymarket smart money board tasks: use the dedicated leaderboard workflows instead of article search.
   - Board requests: stay grounded in returned leaderboard fields and highlights; do not infer unsupported market or trader behavior.
@@ -67,6 +68,8 @@ It is best suited for structured news discovery, explanation, and leaderboard re
 PANews article, ranking, topic, series, column, event, and calendar commands support `--lang`, accepting standard locale strings (e.g. `zh`, `en`, `zh-TW`, `en-US`, `ja-JP`), automatically mapped to the nearest supported language. If omitted, the system locale is auto-detected. Match `--lang` to the user's question language.
 
 Polymarket smart money leaderboard endpoints currently expose fixed public fields and should not be assumed to localize with `--lang`. If the returned board data is in Chinese, translate or summarize it for the user rather than claiming the API itself localized it.
+
+Article bodies are read directly as Markdown, including supported media and tables.
 
 ## Scripts
 

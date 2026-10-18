@@ -2,7 +2,7 @@
 
 **The internet has APIs. The real world has phone numbers.**
 
-Give your agent a voice to call any US business, handle reservations, gather
+Give your agent a voice to call US businesses, handle reservations, gather
 information, get quotes. Handles IVRs & hold. Returns outcome + transcript.
 First 250 calls free.
 
@@ -14,8 +14,10 @@ curl -s -X POST https://api.voygr.tech/calls \
   -d '{"target_phone":"+1XXXXXXXXXX","brief":"Call this restaurant and ask what time the kitchen closes tonight.","language":"en"}'
 ```
 
-**Authentication:** every request carries your key in the `X-API-Key` header.
-Get one at <https://api.voygr.tech/checkout> - it arrives by email.
+**Authentication:** the plugins and MCP connectors below sign you in in a
+browser, so there is no key to copy. The raw API, as above, takes your key in
+the `X-API-Key` header. Get one at <https://api.voygr.tech/checkout> - it
+arrives by email.
 
 ## What PlaceCall does
 
@@ -56,8 +58,18 @@ mapped the world - ex-Google Maps & Search team.
 If PlaceCall is useful, drop us a ⭐ - it helps a lot.
 
 ## Install
-Installing the skill needs **no key** - it just teaches your agent how to call the
-API. You add your key separately (next section) before placing real calls.
+The Claude Code, Codex and Cursor plugins carry the skill **and** the PlaceCall
+MCP server (`https://api.voygr.tech/mcp`). You sign in once in a browser, and
+your first sign-in creates a PlaceCall account with free credits, so **no key to
+copy**. The claude.ai and ChatGPT connectors work the same way. The skill-only
+routes (a copied skill, the Codex skill installer, OpenClaw) call the API with a
+key instead, see [Get a key](#get-a-key-self-serve-and-set-it). The Gemini CLI
+extension carries the MCP server too, but sends it your key rather than signing
+you in.
+
+Signing in covers finding places, placing calls and following them. A few API
+options need a key on every route: switching off recording or changing the
+opening notice, cancelling a call, and listing your calls.
 
 ### Claude Code (recommended)
 Two commands, no shell, no git - and it **auto-updates** from this repo:
@@ -66,9 +78,15 @@ Two commands, no shell, no git - and it **auto-updates** from this repo:
 /plugin install placecall@placecall
 ```
 Claude Code asks where to install it - choose **user scope** ("Install for you")
-unless you specifically want it confined to one repository. The skill then answers
-to `/placecall:placecall`, and Claude reaches for it on its
-own whenever you ask to call someone.
+unless you specifically want it confined to one repository. Then run `/mcp`,
+pick the `placecall` server and sign in. The skill answers to
+`/placecall:placecall`, and Claude reaches for it on its own whenever you ask to
+call someone.
+
+Installed the plugin before 6.1.0? Run `/plugin marketplace update placecall`
+and restart Claude Code. If you already exported a key, you don't need to sign
+in: the skill keeps using your key, and your existing account and credits, for
+every call. Without a key, sign in with `/mcp`.
 
 ### Claude Code, without the plugin
 ```sh
@@ -82,17 +100,21 @@ effects); you can also copy it by hand. Then start a **fresh** Claude Code sessi
 skills and fixes as we ship them, prefer the plugin above.
 
 ### Cowork
-Same package as the Claude Code plugin, no terminal at all:
+Use the Claude connector. Add it once as in [claude.ai chat](#claudeai-chat)
+below, and it is there in Claude chat, Cowork and Claude Desktop. No key, no
+terminal.
 
-1. **Customize** > **Plugins** > **Add marketplace**
-2. Paste `voygr-tech/placecall`
-3. Click **Install** on the PlaceCall card
+The plugin also installs in Cowork (**Customize** > **Plugins** > **Add
+marketplace**, paste `voygr-tech/placecall`, **Install**). It adds the skill's
+guidance on writing briefs and following calls, and it connects the same
+PlaceCall server. Install one or the other, not both: with both, your agent
+sees two PlaceCall servers offering the same tools.
 
-Auto-updates from this repo, like the Code plugin.
-
-**Then do both of these, in `~/.claude/settings.json`.** Cowork has no terminal,
-so the `export` in the next section has nothing to run in, and the Bash sandbox
-blocks our API until you allow it:
+**Need an option only the API has** (switching off recording, a custom opening
+notice, cancelling a call)? Install the plugin rather than the connector, and
+give the skill a key. Do both of these in `~/.claude/settings.json`: Cowork
+has no terminal, so the `export` in [Get a key](#get-a-key-self-serve-and-set-it)
+has nothing to run in, and the Bash sandbox blocks our API until you allow it:
 
 ```json
 {
@@ -112,8 +134,8 @@ Restart Cowork afterwards. Why each half matters:
   hit.
 
 Your key sits in plaintext in that file, same trust level as the `600` env file
-in the next section. `chmod 600 ~/.claude/settings.json` if you want the file
-permissions to match.
+in [Get a key](#get-a-key-self-serve-and-set-it).
+`chmod 600 ~/.claude/settings.json` if you want the file permissions to match.
 
 ### claude.ai chat
 Works on every plan via a **custom connector** with sign-in. No key to copy.
@@ -163,17 +185,30 @@ Claude Code keeps its own MCP config (it does not pick up claude.ai
 connectors), so add it there with one command:
 
 ```sh
-claude mcp add --transport http --scope user placecall https://api.voygr.tech/mcp \
-  --header "X-API-Key: <your key>"
+claude mcp add --transport http --scope user placecall https://api.voygr.tech/mcp
 ```
 
-`--scope user` makes it available in every project. The plugin at the top of
-this page is still the richer path for Claude Code - it carries the full skill,
-not just the three tools.
+Then run `/mcp` in Claude Code, pick `placecall` and sign in. To use a key
+instead, add `--header "X-API-Key: <your key>"`. `--scope user` makes it
+available in every project. The plugin at the top of this page is still the
+richer path for Claude Code - it carries the full skill, not just the four
+tools.
 
 ### Codex
-**Type this inside Codex, not in your shell.** `$skill-installer` is a system
-skill bundled with Codex, so there is nothing to set up first:
+The same plugin as Claude Code. Run these in your shell:
+
+```sh
+codex plugin marketplace add voygr-tech/placecall
+codex plugin add placecall@placecall
+codex mcp login placecall
+```
+
+The last command opens the browser sign-in. No key needed. If your Codex has no
+`plugin` command, update Codex or use the skill installer below.
+
+**Skill only, with a key.** Type this inside Codex, not in your shell.
+`$skill-installer` is a system skill bundled with Codex, so there is nothing to
+set up first:
 
 ```
 $skill-installer install the skill at https://github.com/voygr-tech/placecall/tree/main/skills/placecall and name it placecall
@@ -290,8 +325,11 @@ a paid Apify plan is needed. Agents connected to the
 [Apify MCP server](https://mcp.apify.com) can find and run it too.
 
 ## Get a key (self-serve) and set it
-Installing the skill does **not** need a key; **placing calls does.** Keys are
-**self-serve** - no need to contact anyone:
+Signed in through a plugin or connector? You need a key only for the options
+the MCP tools lack: switching off recording or changing the opening notice,
+cancelling a call, and listing your calls. The skill-only routes and the raw
+API need a key to place calls at all. Keys are **self-serve** - no need to
+contact anyone:
 
 1. Open <https://api.voygr.tech/checkout?src=gh-repo> and click **"Get free API key"**
    (name + email).
@@ -360,30 +398,43 @@ in it (what to ask, who you're calling for, names/dates/party size/callback numb
 how to wrap up). One endpoint, describe the task, done.
 
 ## Good to know
-- **Two things draw on one credit balance: answered calls and answered place
-  suggestions.** Calls: only successful ones are billed — voicemails, hangups
-  and no-answers cost nothing. Suggestions: 5 credits per answered
-  `POST /v1/places/suggest`, nothing when it returns no cards or is refused.
-  Both take a refundable hold at request time that is larger than the charge,
-  so either can return `402` while your balance still looks sufficient for the
-  charge alone (`GET /users/me` for your balance; rates and top-ups are
-  self-serve at <https://api.voygr.tech/checkout?src=gh-repo>). The free tier
-  is one shared pot: 250 free calls means 2,500 credits, and suggestions spend
-  from the same 2,500.
+- **A call costs 10 credits when it obtains something (an answer, a refusal
+  or a booking). Each call holds 30 credits while it runs, and the unused part
+  is released when it ends. A call that obtains nothing is free, and so is a
+  cancel within 30 seconds of the callee answering; a cancel 30 seconds or
+  more after they answered is charged.** Place suggestions draw on the same
+  balance: 5 credits per answered `POST /v1/places/suggest` (15 held while it
+  runs), nothing when it returns no cards or is refused. Because each hold is
+  larger than the charge, either can return `402` while your balance still
+  looks sufficient for the charge alone (`GET /users/me` for your balance;
+  rates and top-ups are self-serve at
+  <https://api.voygr.tech/checkout?src=gh-repo>). The free tier is one shared
+  pot: 250 free calls means 2,500 credits, and suggestions spend from the same
+  2,500.
 - After a call `completed`, the outcome/transcript can populate a moment
   *after* the status flips - poll `GET /calls/{id}` until `outcome_type` is
   non-null.
 - 13 language codes accepted (`en`, `es`, `fr`, `de`, `hi`, `ru`, `pt`, `ja`,
-  `it`, `nl`, `sr`, `tr`, `pl`) plus `auto` (the default, resolves to `en`).
+  `it`, `nl`, `sr`, `tr`, `pl`) plus `auto` (the default: the call runs in
+  English and does not switch mid-call; send `es` for a call in Spanish).
   `en` is the most reliable; non-English is best-effort.
 - Only call numbers you're authorized to - real calls ring real phones.
-  US destinations only; every call opens by identifying PlaceCall and stating
-  that the line is recorded.
+  US destinations only, except IN, LA, MN, MT, NE; by default every call opens
+  with a notice that the line is recorded (in English and Spanish it also names
+  PlaceCall). The optional `disclosure` and `record_call` fields change or
+  switch off that opening; see the skill's "Opening notice" section.
 
 ## Network access
 The skill ships nothing that runs on its own. It is instructions your agent
-follows with its own shell, using `curl`, and every request goes over HTTPS to
-one host: `api.voygr.tech`. Nothing is sent anywhere else.
+follows, either with the PlaceCall MCP tools a plugin connected or with `curl`
+in its own shell. Every request goes over HTTPS to one host: `api.voygr.tech`.
+Nothing is sent anywhere else.
+
+- **MCP server:** the Claude Code, Codex and Cursor plugins and the Gemini CLI
+  extension register `https://api.voygr.tech/mcp`. `suggest_places` sends your
+  request in plain words and an optional location; `place_call` sends the
+  number to dial, your brief and the language; `get_call_result` sends a call
+  id; `answer_question` sends a call id, a question id and your answer.
 
 - **Calls:** `POST /calls` sends the number to dial, your brief and the
   language. `GET /calls`, `GET /calls/{id}`, `GET /calls/{id}/events` (polled
@@ -396,8 +447,12 @@ one host: `api.voygr.tech`. Nothing is sent anywhere else.
 - **Account:** `GET /users/me`, `GET /v1/usage`, `GET /checkout/packs`,
   `GET /skills/{id}/manifest` and `PUT /users/me/limits`.
 
-Every request carries your key in the `X-API-Key` header, so
-`PLACECALL_API_KEY` goes to `api.voygr.tech` and nowhere else. `POST /calls`
+**What authenticates each request.** On the MCP server, the Claude Code, Codex
+and Cursor plugins sign you in with OAuth, and your client sends the resulting
+access token, not a key. The Gemini CLI extension sends your key in the
+`X-API-Key` header instead. Every `curl` request carries your key in the
+`X-API-Key` header. Either way `PLACECALL_API_KEY` goes to `api.voygr.tech`
+and nowhere else. `POST /calls`
 also sends three headers that never affect auth or billing: an
 `Idempotency-Key` so a retry cannot dial twice, `X-Client-Surface` naming the
 listing these instructions came from, and `X-Client-Agent` naming the tool that
@@ -407,10 +462,8 @@ set; only the name is sent, never a variable's value).
 
 The only local file the skill reads is `~/.codex/placecall.env`, your saved
 key, and only when `PLACECALL_API_KEY` is unset. `install.sh` makes no network
-calls. The Cursor plugin and the Gemini CLI extension also connect to the
-PlaceCall MCP server at `https://api.voygr.tech/mcp`, the same host. The
-checkout, recovery and docs links in this README are pages for you to open; the
-skill does not fetch them.
+calls. The checkout, recovery and docs links in this README are pages for you
+to open; the skill does not fetch them.
 
 On our side, a call rings a real phone and is recorded. Recordings and
 transcripts are kept for 90 days. Security reports: [SECURITY.md](./SECURITY.md).

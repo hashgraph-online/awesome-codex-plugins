@@ -217,6 +217,10 @@
           "minimum": 1,
           "description": "Remembered time budget for a composed shift, in whole hours, or null to leave composition to ask. A finite punch list may still end at its last tick with no clock at all."
         },
+        "itemBudget": {
+          "type": "string",
+          "description": "The budget every punch-list item gets when it names none of its own, in the same words as an item's Budget line, for example \"soft 30m / 1M tokens, hard 45m / 2M tokens\". A soft limit tells the agent once to start finishing the item; a hard limit allows only wrap-up from the next tool call and closes the item as stopped, never ticked. Tokens are input plus output. Empty means no limit."
+        },
         "execution": {
           "type": "string",
           "enum": [

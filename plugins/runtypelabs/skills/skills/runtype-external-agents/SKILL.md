@@ -173,7 +173,10 @@ The app owns the OTel SDK: `NodeTracerProvider`, `BatchSpanProcessor`, and
 `OTLPTraceExporter({ url: 'https://api.runtype.com/v1/otel/v1/traces', headers: { Authorization: 'Bearer ' + key } })`.
 Call `provider.register()`, or every span becomes its own trace. Attribute runs with
 `runtypeFlueResourceAttributes({ agentId })` or the `x-runtype-agent-id` header. Call
-`await provider.forceFlush()` before a serverless handler returns. The app also installs
+`await provider.forceFlush()` before a serverless handler returns. `forceFlush()` rejects
+when the export fails or times out, so catch it:
+`await provider.forceFlush().catch(console.error)`. An uncaught rejection in a `finally`
+block fails the handler after the agent's own work succeeded. The app also installs
 `@flue/runtime` itself, which needs Node 22.19 or later.
 
 **Frameworks with OpenTelemetry instrumentation.** Each framework in this table

@@ -2,14 +2,16 @@ import { compileSemanticLoops, sourceRepairLoopIntentFindings } from './semantic
 import { requireValue } from '../workflow-paths.mjs';
 import { compileExpansion } from '../skill-import/semantic-expander.mjs';
 import { sourceSectionInventory } from '../skill-import/source-dispositions.mjs';
-import { hostPreparationObservationEvidence, observedSourceRequirements } from '../skill-import/source-requirements.mjs';
+import { sourceResourceMentions } from '../skill-import/source-resource-mentions.mjs';
+import { callableSourceRequirements, hostPreparationObservationEvidence, observedSourceRequirements } from '../skill-import/source-requirements.mjs';
 import { sourceContractMap } from '../skill-import/source-contracts.mjs';
 import { authoringSourcePath } from '../skill-import/authoring-source.mjs';
 import { bindingPointers } from '../workflow-bindings.mjs';
 import { WORKSPACE_SOURCE_LOCATIONS, WORKSPACE_SOURCE_LOCATIONS_SCHEMA } from '../workspace-source-locations.mjs';
 import { isPythonRequirement, normalizeExecutableRequirements } from '../runtime-requirements.mjs';
 import { validateHostToolContract } from '../execution/host-tool-runner.mjs';
-import { assertSemanticBlueprint, normalizeSemanticBlueprint, PREVIOUS_SEMANTIC_BLUEPRINT_CONTRACT, SEMANTIC_BLUEPRINT_CONTRACT, AUTHORING_NODE_PROMPT_MAX_LENGTH } from './blueprint-contract.mjs';
+import { normalizeGeneratedSemanticBlueprint, normalizeSemanticBlueprint, PREVIOUS_SEMANTIC_BLUEPRINT_CONTRACT, SEMANTIC_BLUEPRINT_CONTRACT, AUTHORING_NODE_PROMPT_MAX_LENGTH } from './blueprint-contract.mjs';
+import { generatedActivityTaskType, GENERATION_EXECUTOR_POLICY } from './generation-executor-policy.mjs';
 export { SEMANTIC_BLUEPRINT_CONTRACT } from './blueprint-contract.mjs';
 
 const object=value=>value!==null && typeof value==='object' && !Array.isArray(value);
@@ -178,7 +180,7 @@ function inflateBlueprint(raw){
     visiting.add(key);
     let block;
     if(sequences.has(key)){const item=sequences.get(key);block={kind:'sequence',key,steps:item.members.map(resolve)};}
-    else if(parallels.has(key)){const item=parallels.get(key);requireValue(item.members.length>=2,'AUTHORING_SEMANTIC','Parallel groups need at least two members');block={kind:'parallel',key,failure_meaning:item.failure_meaning,branches:item.members.map(resolve)};}
+    else if(parallels.has(key)){const item=parallels.get(key);requireValue(item.members.length>=2,'AUTHORING_SEMANTIC','Parallel groups need at least two members');block={kind:'parallel',key,failure_meaning:item.failure_meaning,branches:item.members.map(resolve),...(item.workspace_policy?{workspace_policy:structuredClone(item.workspace_policy)}:{})};}
     else if(choices.has(key)){
       const item=choices.get(key),decision=resolve(item.decision_activity);
       requireValue(decision.kind==='activity','AUTHORING_SEMANTIC',`Choice ${key} must reference an activity with a scalar decision output`);
@@ -195,13 +197,18 @@ export function lowerSemanticBlueprint(pack,resources,rawBlueprint,context={}){
   const sectionInventory=sourceSectionInventory(resources),sectionIds=new Set(sectionInventory.map(item=>item.section_id)),sourceContracts=sourceContractMap(resources);
   const availableHostToolContracts=[...(pack.workflow.host_tools??[]),...(context.host_tool_contracts??[])];
   const blueprintOptions={sectionIds,sectionInventory,contractIds:new Set(sourceContracts.keys()),hostToolContracts:availableHostToolContracts};
-  if(rawBlueprint?.contract===SEMANTIC_BLUEPRINT_CONTRACT)rawBlueprint=assertSemanticBlueprint(rawBlueprint,blueprintOptions);
-  const blueprint=validateBlueprint(inflateBlueprint(normalizeSemanticBlueprint(rawBlueprint,blueprintOptions)),resources),resolveType=dataTypeResolver(blueprint.data_types ?? []);
+  const normalize=context.generation_executor_policy===false?normalizeSemanticBlueprint:normalizeGeneratedSemanticBlueprint;
+  const blueprint=validateBlueprint(inflateBlueprint(normalize(rawBlueprint,blueprintOptions)),resources),resolveType=dataTypeResolver(blueprint.data_types ?? []);
   const inventory=new Map(sourceSectionInventory(resources).map(item=>[item.section_id,item]));
-  const observed=new Map(observedSourceRequirements(resources).map(item=>[item.requirement_id,item]));
+  const callableRequirements=context.callable_inventory_policy===false?[]:(context.host_callable_requirements??callableSourceRequirements(resources));
+  const observed=new Map([...observedSourceRequirements(resources,{source_resource_policy:context.callable_inventory_policy!==false}),...callableRequirements].map(item=>[item.requirement_id,item]));
   const entrypoint=authoringSourcePath(resources),entryLines=Buffer.from(resources[entrypoint] ?? '').toString('utf8').split('\n');
   const supporting=Object.keys(resources).filter(path=>path!==entrypoint);
-  const resourceRefsForSections=ids=>[...new Set(ids.flatMap(id=>{const section=inventory.get(id);if(!section||section.source_span.resource!==entrypoint)return [];const text=entryLines.slice(section.source_span.start_line-1,section.source_span.end_line).join('\n').replaceAll('\\','/');return supporting.filter(path=>{const relative=path.startsWith('source/')?path.slice(7):path;return text.includes(path)||text.includes(relative);});}))];
+  const resourceRefsForSections=ids=>[...new Set(ids.flatMap(id=>{
+    const section=inventory.get(id);if(!section||section.source_span.resource!==entrypoint)return [];
+    const text=entryLines.slice(section.source_span.start_line-1,section.source_span.end_line).join('\n');
+    return sourceResourceMentions(text,supporting).filter(item=>item.retained).map(item=>item.resource);
+  }))];
   const routing=context.routing_rules;
   const loopIds=new Map((blueprint.loops??[]).map((item,index)=>[item.key,`loop_${String(index+1).padStart(3,'0')}`]));
   const nodes=[],edges=[],stageIds=new Map(),activityIds=new Map(),activityOutputs=new Map(),compiledBlocks=new Map(),compilingBlocks=new Set(),edgeKeys=new Set(),approvalBindings=[];
@@ -260,7 +267,18 @@ export function lowerSemanticBlueprint(pack,resources,rawBlueprint,context={}){
     requireValue(Array.isArray(produces)&&new Set(produces.map(item=>item.name)).size===produces.length&&produces.every(item=>object(item)&&localKey(item.name)),'AUTHORING_FORMAT','Activity outputs need unique local names');
     for(const item of produces)if(item.host_validation!==undefined)requireValue(item.host_validation===WORKSPACE_SOURCE_LOCATIONS&&item.shape?.kind==='list'&&!item.shape.type_ref&&!item.shape.values?.length&&!item.contract_ref&&activity.capability?.kind!=='registered_tool'&&(!activity.fanout||activity.fanout.result_output===item.name),'AUTHORING_SEMANTIC',`Activity ${activity.key} output ${item.name} host_validation needs an Agent-produced plain list retained as the joined output`,{findings:[{kind:'semantic',code:'workspace_source_locations_shape',message:`Output ${item.name} must be an Agent-produced plain source-location list retained as the joined output`,semantic_keys:[activity.key],affected_semantic_fields:[`activities.${activity.key}.outputs.${item.name}.host_validation`],source_refs:[],blocked_by:[],minimal_change:'Use kind list, empty type_ref and values, no contract_ref or tool, and the fanout result output if applicable; or remove host_validation.'}]});
     const selectedContracts=[...new Set([...(activity.contract_refs??[]),...produces.map(item=>item.contract_ref).filter(Boolean)])].map(ref=>{const contract=sourceContracts.get(ref);requireValue(contract,'AUTHORING_SEMANTIC',`Activity ${activity.key} selects unknown source contract ${ref}`);return contract;});
-    const resource_refs=[...new Set([...resourceRefsForSections(activity.source_sections),...selectedContracts.map(contract=>contract.resource),...produces.map(item=>item.contract_ref&&sourceContracts.get(item.contract_ref)?.resource).filter(Boolean)])];
+    const sectionResources=resourceRefsForSections(activity.source_sections);
+    // Source coverage is not a request to inline every chapter's references.
+    // Current-Main decisions already receive the producer's evidence. Retain
+    // explicitly needed guides, interface contracts and all executable bytes;
+    // keep v1 accepted-artifact replay unchanged.
+    const scopedMain=context.generation_routing_policy===GENERATION_EXECUTOR_POLICY
+      &&activity.ownership==='main'&&activity.main_mode==='orchestration';
+    const explicitResources=scopedMain?new Set(sourceResourceMentions(activity.instructions,supporting).filter(item=>item.retained).map(item=>item.resource)):null;
+    const requiredResources=scopedMain?[...(blueprint.requirement_assignments??[]).filter(item=>item.activity_keys.includes(activity.key)).flatMap(item=>observed.get(item.requirement_id)?.resource_refs??[]),
+      ...(blueprint.semantic_rules??[]).filter(item=>item.activity_keys.includes(activity.key)).flatMap(item=>resourceRefsForSections([item.section_id]))]:[];
+    const operationalResources=scopedMain?sectionResources.filter(path=>!/\.(?:md|txt|rst)$/i.test(path)||explicitResources.has(path)):sectionResources;
+    const resource_refs=[...new Set([...operationalResources,...requiredResources.filter(path=>supporting.includes(path)),...selectedContracts.map(contract=>contract.resource),...produces.map(item=>item.contract_ref&&sourceContracts.get(item.contract_ref)?.resource).filter(Boolean)])];
     const properties=Object.fromEntries(produces.map(item=>{
       if(item.contract_ref){
         const contract=sourceContracts.get(item.contract_ref);
@@ -288,17 +306,19 @@ export function lowerSemanticBlueprint(pack,resources,rawBlueprint,context={}){
     let fanoutContract=null;
     if(activity.fanout){
       const spec=activity.fanout,consume=(activity.consumes??[]).find(item=>item.name===spec.input),resultSchema=properties[spec.result_output];
-      requireValue(activity.ownership==='isolated_worker'&&activity.kind==='work'&&activity.capability?.kind!=='registered_tool','AUTHORING_SEMANTIC',`Activity ${activity.key} sub-Agent count is available only for isolated Agent work; Main activities cannot configure it`);
+      requireValue((activity.ownership==='isolated_worker'||activity.ownership==='main'&&activity.main_mode!=='orchestration')&&['work','planning'].includes(activity.kind)&&activity.capability?.kind!=='registered_tool','AUTHORING_SEMANTIC',`Activity ${activity.key} quantity is available only for isolated Agent work or Main worker fan-out`);
       requireValue(consume&&object(resultSchema)&&resultSchema.type==='array','AUTHORING_SEMANTIC',`Activity ${activity.key} fan-out needs one declared list input and one declared list result output`);
       requireValue(spec.count_mode==='auto'&&spec.fixed_count===0||spec.count_mode==='fixed'&&Number.isInteger(spec.fixed_count)&&spec.fixed_count>=1&&spec.fixed_count<=32,'AUTHORING_SEMANTIC',`Activity ${activity.key} fan-out count must be auto or a fixed integer from 1 to 32`);
       requireValue(spec.batch_size===undefined||(Number.isInteger(spec.batch_size)&&spec.batch_size>=1&&spec.batch_size<=32&&spec.count_mode==='auto'&&spec.fixed_count===0),'AUTHORING_SEMANTIC',`Activity ${activity.key} batch_size must be 1 to 32 with automatic count and fixed_count 0`);
       requireValue(spec.max_concurrency===undefined||(Number.isInteger(spec.max_concurrency)&&spec.max_concurrency>=1&&spec.max_concurrency<=32),'AUTHORING_SEMANTIC',`Activity ${activity.key} max_concurrency must be 1 to 32`);
-      requireValue(spec.write_paths_field===undefined||activity.operation==='write'&&localKey(spec.write_paths_field),'AUTHORING_SEMANTIC',`Activity ${activity.key} write_paths_field needs a write activity and a portable Host item field name`);
+      requireValue(spec.write_paths_field===undefined||localKey(spec.write_paths_field),'AUTHORING_SEMANTIC',`Activity ${activity.key} write_paths_field needs a portable Host item field name`);
+      requireValue(spec.workspace_field===undefined||activity.ownership==='main'&&localKey(spec.workspace_field),'AUTHORING_SEMANTIC',`Activity ${activity.key} workspace_field requires Main worker execution and a portable Host field`);
+      requireValue(activity.ownership!=='main'||spec.workspace_field&&spec.write_paths_field,'AUTHORING_SEMANTIC',`Activity ${activity.key} Main fan-out requires Host-owned workspace and write path directory fields`);
       if(spec.write_paths_field!==undefined){
         const producerKey=consume?.from?.activity,producer=producerKey?activityByKey.get(producerKey):null;
         const loop=(blueprint.loops??[]).find(item=>item.key===consume?.from?.loop),original=loop?.item_scope?.items;
-        const loopOwned=loop&&['repair_items','review_items'].includes(consume.from.output)&&loop.item_scope.paths_field===spec.write_paths_field&&typeof original==='string'&&(original.startsWith('input:')||hostOwnedPacketProducer(original.split('.')[0],original.slice(original.indexOf('.')+1),[spec.write_paths_field]));
-        const hostOwnedSource=loopOwned||typeof consume?.from?.input==='string'||producerKey&&hostOwnedPacketProducer(producerKey,consume?.from?.output,[spec.write_paths_field]);
+        const loopOwned=loop&&['repair_items','review_items'].includes(consume.from.output)&&loop.item_scope.paths_field===spec.write_paths_field&&typeof original==='string'&&(original.startsWith('input:')||hostOwnedPacketProducer(original.split('.')[0],original.slice(original.indexOf('.')+1),[spec.write_paths_field,...(spec.workspace_field?[spec.workspace_field]:[])]));
+        const hostOwnedSource=loopOwned||typeof consume?.from?.input==='string'||producerKey&&hostOwnedPacketProducer(producerKey,consume?.from?.output,[spec.write_paths_field,...(spec.workspace_field?[spec.workspace_field]:[])]);
         requireValue(hostOwnedSource,'AUTHORING_SEMANTIC',`Activity ${activity.key} per-item write packet must come from Host-owned data`,{findings:[{kind:'semantic',code:'fanout_host_item_source',message:`Activity ${activity.key} uses Host-owned per-item write paths, but ${producerKey||consume?.name||spec.input} depends on Agent output. Bind the fan-out list directly from a Workflow input or from Host tools whose inputs are themselves Host-owned.`,source_refs:spansFor(activity.source_sections),semantic_keys:[activity.key,...(producer?.key?[producer.key]:[])],affected_semantic_fields:[`activities.${activity.key}.inputs.${spec.input}`,`activities.${activity.key}.fanout.write_paths_field`],blocked_by:[],minimal_change:'Use the original Workflow input or a transitively Host-owned tool output as the fan-out input; keep Agent-produced semantic findings separate.'}]});
       }
       requireValue(spec.item_delivery===undefined||spec.item_delivery==='incremental'&&spec.result_mode==='per_item'&&Number.isInteger(spec.batch_size)&&spec.batch_size>=2,
@@ -306,7 +326,7 @@ export function lowerSemanticBlueprint(pack,resources,rawBlueprint,context={}){
       // Batch ownership is a semantic execution choice. Never invent a batch
       // size from per-item result admission; the source/planner must declare it.
       const batchSize=spec.batch_size;
-      fanoutContract={input:spec.input,item_name:spec.item_name,result_output:spec.result_output,distribution:spec.count_mode==='auto'&&batchSize===undefined?'one_per_item':'partition',scheduling:'parallel',join:'all_required',...(batchSize!==undefined?{batch_size:batchSize}:{}),...(spec.max_concurrency!==undefined?{max_concurrency:spec.max_concurrency}:{}),...(spec.result_mode?{result_mode:spec.result_mode}:{}),...(spec.item_delivery?{item_delivery:spec.item_delivery}:{}),...(spec.write_paths_field?{write_paths_field:spec.write_paths_field}:{}),...(spec.shared_change_field?{shared_change_field:spec.shared_change_field}:{})};
+      fanoutContract={input:spec.input,item_name:spec.item_name,result_output:spec.result_output,distribution:spec.count_mode==='auto'&&batchSize===undefined?'one_per_item':'partition',scheduling:'parallel',join:'all_required',...(batchSize!==undefined?{batch_size:batchSize}:{}),...(spec.max_concurrency!==undefined?{max_concurrency:spec.max_concurrency}:{}),...(activity.ownership==='main'?{result_mode:'per_item'}:spec.result_mode?{result_mode:spec.result_mode}:{}),...(spec.item_delivery?{item_delivery:spec.item_delivery}:{}),...(spec.write_paths_field?{write_paths_field:spec.write_paths_field}:{}),...(spec.workspace_field?{workspace_field:spec.workspace_field}:{}),...(spec.shared_change_field?{shared_change_field:spec.shared_change_field}:{}),...(spec.shared_prefix?{shared_prefix:structuredClone(spec.shared_prefix)}:{})};
     }
     const review=activity.kind==='review';
     const semanticOutcome=activity.outcome ?? (activity.kind==='decision'?'decision':review?'review':produces.length?'artifact':'none');
@@ -319,11 +339,11 @@ export function lowerSemanticBlueprint(pack,resources,rawBlueprint,context={}){
     const failOnFalse=activity.fail_on_false??[];
     requireValue(new Set(failOnFalse).size===failOnFalse.length&&failOnFalse.every(name=>joinedProperties[name]?.type==='boolean'),'AUTHORING_SEMANTIC',`Activity ${activity.key} false-result guards must name unique declared boolean outputs`);
     const completion_contract={on_missing:onMissing,outcome:semanticOutcome,...(failOnFalse.length?{fail_on_false:failOnFalse}:{})};
-    const task_type=review?'review':activity.complexity==='complex'?'complex_implementation':activity.operation==='write'?'implementation':'planning';
+    const task_type=generatedActivityTaskType(activity,{historical:context.generation_executor_policy===false||context.generation_routing_policy==='provider-subagents/v1'});
     const tool=activity.capability?.kind==='registered_tool';
     requireValue(activity.main_mode === undefined || activity.ownership === 'main' && !tool, 'MAIN_EXECUTION_MODE', 'Main context modes belong only to semantic Main activities');
     requireValue(!tool || localKey(activity.capability.semantic_name),'AUTHORING_FORMAT','Registered-tool activities need one exact semantic tool name');
-    const fanoutAppendix=fanoutContract?(fanoutContract.result_mode==='per_item'
+    const fanoutAppendix=fanoutContract&&activity.ownership==='main'?'\n\nProcess only the supplied assigned items and return the semantic result requested for the current item.':fanoutContract?(fanoutContract.result_mode==='per_item'
       ?`\n\nProcess only the supplied batch. Return one completed${fanoutContract.shared_change_field?', delegated':''} or blocked entry per supplied item in Host order as the Host packet specifies. Preserve accepted item work during targeted repair.`
       :'\n\nProcess only the supplied batch. Return one batch result matching the supplied schema, with per-item evidence in input order or artifact references.') : '';
     const retryAppendix=activity.repeat_until?`\n\nHost-bounded correction contract: validate "${activity.repeat_until.condition}". If it is unmet, fail this Workflow node visibly so the runtime can retry; never report a blocker as successful delivery. Maximum attempts: ${activity.repeat_until.max_attempts}.`:'';
@@ -331,8 +351,8 @@ export function lowerSemanticBlueprint(pack,resources,rawBlueprint,context={}){
     requireValue(tool || prompt.length<=AUTHORING_NODE_PROMPT_MAX_LENGTH,'AUTHORING_PROMPT_LIMIT',`Activity ${activity.key} prompt exceeds the ${AUTHORING_NODE_PROMPT_MAX_LENGTH}-character node limit after Host appendices`,{activity_key:activity.key,instructions_chars:activity.instructions.length,appendix_chars:prompt.length-activity.instructions.length,prompt_chars:prompt.length});
     const node=tool
       ? {id,type:'tool',semantic_key:activity.key,name:activity.purpose ?? activity.key,tool:activity.capability.semantic_name,...(outputs_schema?{outputs_schema}:{}),completion_contract,resource_refs,confidence:1,...evidence(activity.source_sections,selectedContracts)}
-      : {id,type:'agent',semantic_key:activity.key,name:activity.purpose ?? activity.key,operation_mode:activity.operation,task_type,routing_reason:`Host classified ${activity.key} from semantic kind, operation and complexity.`,prompt_template:prompt,...(outputs_schema?{outputs_schema}:{}),...(Object.keys(output_validators).length?{output_validators}:{}),completion_contract,...(activity.ownership==='isolated_worker'?{subagent_count:activity.fanout?.count_mode==='fixed'?activity.fanout.fixed_count:'auto'}:{}),...(fanoutContract?{fanout:fanoutContract}:{}),...(activity.repeat_until?{retry_max_attempts:activity.repeat_until.max_attempts}:{}),resource_refs,confidence:1,...evidence(activity.source_sections,selectedContracts)};
-    if(!tool && activity.ownership === 'main' && (activity.main_mode !== undefined || routing?.selection_mode !== 'automatic')) node.main_mode=activity.main_mode ?? 'worker';
+      : {id,type:'agent',semantic_key:activity.key,name:activity.purpose ?? activity.key,operation_mode:activity.operation,task_type,routing_reason:`Host classified ${activity.key} from semantic kind, operation and complexity.`,prompt_template:prompt,...(outputs_schema?{outputs_schema}:{}),...(Object.keys(output_validators).length?{output_validators}:{}),completion_contract,...(activity.ownership==='isolated_worker'||fanoutContract?{subagent_count:activity.fanout?.count_mode==='fixed'?activity.fanout.fixed_count:'auto'}:{}),...(fanoutContract?{fanout:fanoutContract}:{}),...(activity.repeat_until?{retry_max_attempts:activity.repeat_until.max_attempts}:{}),resource_refs,confidence:1,...evidence(activity.source_sections,selectedContracts)};
+    if(!tool && activity.ownership === 'main' && (activity.main_mode !== undefined || fanoutContract || routing?.selection_mode !== 'automatic')) node.main_mode=activity.main_mode ?? 'worker';
     if(!tool && routing?.selection_mode==='automatic'){
       node.execution_target=activity.ownership==='main'?'main':'subagent';
       if(node.execution_target==='subagent')node.provider_choice=providerFor(task_type);
@@ -363,7 +383,13 @@ export function lowerSemanticBlueprint(pack,resources,rawBlueprint,context={}){
       ++parallelOrdinal;
       const fork=nodeId('parallel'),join=nodeId('join');
       const parts=block.branches.map(compileBlock),sections=[...new Set(parts.flatMap(item=>item.sections))];
-      nodes.push({id:fork,type:'parallel',semantic_key:block.key,join_id:join,failure_policy:block.failure_meaning==='partial_evidence_allowed'?'collect':'fail_fast',confidence:1,...evidence(sections)});
+      let workspace_policy;
+      if(block.workspace_policy){
+        const {tool_activity,main_activity,read_inputs}=block.workspace_policy,tool_node_id=activityIds.get(tool_activity),main_node_id=activityIds.get(main_activity);
+        requireValue(tool_node_id&&main_node_id,'SHARED_HOST_POLICY','Overlap policy must identify existing direct activity branches');
+        workspace_policy={kind:block.workspace_policy.kind,tool_node_id,main_node_id,read_inputs:structuredClone(read_inputs),...(block.workspace_policy.semantic_rejection?{semantic_rejection:block.workspace_policy.semantic_rejection}:{})};
+      }
+      nodes.push({id:fork,type:'parallel',semantic_key:block.key,join_id:join,failure_policy:block.failure_meaning==='partial_evidence_allowed'?'collect':'fail_fast',...(workspace_policy?{workspace_policy}:{}),confidence:1,...evidence(sections)});
       nodes.push({id:join,type:'join',semantic_key:block.key,parallel_id:fork,confidence:1,...evidence(sections)});
       parts.forEach((part,index)=>{for(const target of part.entries)addEdge(fork,target,{label:`branch_${index+1}`,section_ids:part.sections});for(const source of part.exits)addEdge(source,join,{section_ids:part.sections});});
       result={entries:[fork],exits:[join],sections};
@@ -497,7 +523,7 @@ export function lowerSemanticBlueprint(pack,resources,rawBlueprint,context={}){
     const disposition=source_dispositions.find(entry=>entry.section_id===item.source_section);
     if(disposition)disposition.requirement_ids=[...new Set([...disposition.requirement_ids,runtimeDependencies.requirements[index].requirement_id])];
   }
-  const proposal={source_revision:pack.revision_hash,source_requirements:[...rules,...runtimeDependencies.requirements],requirement_mappings:[...mappings,...runtimeDependencies.mappings],source_dispositions,required_executables:[],planning_analysis:{parallelism:'Host-derived from nested semantic blocks.',main_responsibilities:'Host-derived from activity ownership.',human_intervention:'Host-derived from approval blocks.'},nodes,edges,...(loops.length?{loops}:{})};
+  const proposal={source_revision:pack.revision_hash,source_requirements:[...rules,...runtimeDependencies.requirements,...callableRequirements],requirement_mappings:[...mappings,...runtimeDependencies.mappings],source_dispositions,required_executables:[],planning_analysis:{parallelism:'Host-derived from nested semantic blocks.',main_responsibilities:'Host-derived from activity ownership.',human_intervention:'Host-derived from approval blocks.'},nodes,edges,...(loops.length?{loops}:{})};
   const loopIntentFindings=sourceRepairLoopIntentFindings(proposal,resources);
   requireValue(loopIntentFindings.length===0,'AUTHORING_SEMANTIC','The graph does not preserve the explicit source repair-loop contract',{findings:loopIntentFindings});
   return proposal;
@@ -523,8 +549,9 @@ export function actionableSemanticError(error,_blueprint){
 export class WorkflowForge{
   compile({pack,resources,blueprint,context={}}){
     try{
+      context={...context,generation_executor_policy:true,generation_routing_policy:GENERATION_EXECUTOR_POLICY,callable_inventory_policy:true,host_callable_requirements:callableSourceRequirements(resources)};
       const proposal=lowerSemanticBlueprint(pack,resources,blueprint,context);
-      const compiled=compileExpansion(pack,resources,proposal,context);
+      const compiled=compileExpansion(pack,resources,proposal,{...context,generation_executor_policy:true});
       return {proposal:compiled.canonical_proposal,compiled};
     }catch(error){throw actionableSemanticError(error,blueprint);}
   }

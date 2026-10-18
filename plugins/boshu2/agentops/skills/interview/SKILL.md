@@ -1,6 +1,6 @@
 ---
 name: interview
-description: 'Interview the caller one question at a time to settle a big outcome before agents work alone. Use when: shaping a goal or large RPI. Not for one question on one slice; use Plan.'
+description: 'Interview you one question at a time, each with a recommendation, to settle a big outcome before agents work alone. Use when: selected by name.'
 practices: [bdd-gherkin, ddd-bounded-context, design-by-contract]
 hexagonal_role: domain
 consumes: [repo-context, native-work-state]
@@ -27,7 +27,9 @@ output_contract: 'one question per turn with a labeled recommendation and tradeo
 Shape a big outcome with the caller, one question per turn, before agents run
 alone. You look up facts; the caller makes choices. **Why:** answering shapes
 the caller's thinking, and control is highest before launch. Interview creates
-no goal, bead or file and changes no status, claim or closure.
+nothing new (no goal, bead or file) and changes no status, claim or closure;
+within authority it only appends settled notes to an existing intent source
+(see [Show the state](#show-the-state)).
 
 ## Each turn
 
@@ -50,8 +52,8 @@ Tradeoff: <the one cost that matters>
 
 The caller answers by default. On request ("let a council answer my
 interview"), a council answers through [Council](../council/SKILL.md)'s
-interview-panel mode. The caller still accepts or amends those answers in one
-pass before anything is recorded; authority, budgets and acceptance changes
+interview-panel mode; the caller accepts or amends its answers in one pass
+before anything is recorded, and authority, budgets and acceptance changes
 stay the caller's.
 
 ## BDD: acceptance as examples
@@ -102,7 +104,9 @@ answer, the work proves to be one slice, or Craft Goal admission is decided:
 1. outcome and non-goals;
 2. terminal acceptance, each criterion with its proving evidence;
 3. authority: reads, writes, external effects, Git, and when agents must ask;
-4. numeric wave and hard budgets, and the no-ratchet count that triggers HOLD;
+4. budgets: numeric limits per wave of work and for the whole goal, which
+   nothing renews, and how many results that change no decision trigger HOLD
+   (implementation stops for causal review);
 5. the first falsifiable question.
 
 Hand over the lists; the caller starts the next step: Craft Goal for several

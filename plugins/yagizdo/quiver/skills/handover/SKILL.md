@@ -180,7 +180,7 @@ After writing the handover above, do all of the following:
 
 ### 1. Write handover file
 Get a timestamp: run `date '+%Y-%m-%d_%H-%M-%S'` via Bash.
-Create directory: `.claude/handovers/` in the project root (if it doesn't exist).
+Create directory: `.claude/handovers/` in the project root (if it doesn't exist). Before the first write, apply the keep-local rule in `skills/local-files/SKILL.md`.
 Write the full 8-section handover to: `.claude/handovers/{timestamp}.md`
 **Verify:** Read back the file to confirm it was written correctly.
 

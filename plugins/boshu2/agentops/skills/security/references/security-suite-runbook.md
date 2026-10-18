@@ -9,7 +9,7 @@ Use this reference for authorized binary assurance, baseline comparison, policy 
 3. `collect-contract` captures the binary's machine-readable command/help contract.
 4. `compare-baseline` reports added, removed, and changed commands.
 5. `enforce-policy` evaluates allow/deny rules and a severity verdict.
-6. `collect-redteam` scans repo-owned control surfaces with the offline attack pack.
+6. `prompt_redteam.py scan`, a separate script, scans repo-owned control surfaces with the offline attack pack.
 7. `run` composes the binary primitives and writes the suite summary.
 
 ## Commands

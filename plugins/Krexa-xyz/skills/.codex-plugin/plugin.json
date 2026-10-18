@@ -1,0 +1,42 @@
+{
+  "name": "krexa",
+  "version": "1.3.2",
+  "description": "Turn a trading idea, post or video into fixed rules, backtest and paper-trade them, and request a live trading agent that you approve and sign. Connects to Krexa's hosted MCP server; the key cannot move or withdraw funds.",
+  "author": {
+    "name": "Krexa",
+    "url": "https://www.krexa.xyz"
+  },
+  "homepage": "https://www.krexa.xyz",
+  "repository": "https://github.com/Krexa-xyz/skills",
+  "license": "MIT-0",
+  "keywords": [
+    "trading",
+    "crypto",
+    "backtesting",
+    "paper-trading",
+    "mcp",
+    "solana",
+    "hyperliquid",
+    "polymarket",
+    "jupiter"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Krexa",
+    "shortDescription": "Backtest, paper-trade and run trading agents from your AI agent.",
+    "longDescription": "Paste a post, reel or idea, or bring your own strategy. Krexa pins it into fixed rules, backtests it, deep-tests it with real fees and slippage, and paper-trades it. When you ask, it requests a live agent on Solana DEXs, Jupiter perps, Hyperliquid or Polymarket, which you approve and sign in the Krexa app. Limits are checked in code on every order, and the agent's key cannot move or withdraw money.",
+    "developerName": "Krexa",
+    "category": "Finance",
+    "websiteURL": "https://www.krexa.xyz",
+    "privacyPolicyURL": "https://www.krexa.xyz/privacy",
+    "termsOfServiceURL": "https://www.krexa.xyz/terms",
+    "defaultPrompt": [
+      "Here is a post: <link>. What is the rule, and does it hold up?",
+      "Backtest it, then run the deep test with real fees.",
+      "How is my Krexa agent doing?"
+    ],
+    "brandColor": "#5020D0",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
+  }
+}

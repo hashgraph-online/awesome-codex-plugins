@@ -10,15 +10,15 @@ export const BUILTIN_NATIVE_AGENT_PROFILES = Object.freeze({
 export const BUILTIN_NATIVE_PROVIDER_METADATA = Object.freeze({
   'native-luna': Object.freeze({
     name: 'GPT-6 Luna / Max',
-    description: 'Native Codex model connection for routine bounded implementation Roles.',
+    description: 'Use for routine bounded inspection, documentation and implementation with explicit inputs and clear checks. Suitable for ordinary repository scanning and evidence-based audits; a read-only task does not require a stronger model.',
   }),
   'native-sol': Object.freeze({
     name: 'GPT-6.1 Sol / High',
-    description: 'Native Codex model connection for complex implementation, repository analysis, and independent review Roles.',
+    description: 'Use for complex implementation, cross-module repository analysis and independent review. Select when the work needs difficult integration or a fresh critical judgment beyond routine bounded inspection.',
   }),
   'native-astra': Object.freeze({
     name: 'GPT-6 Astra / Medium',
-    description: 'Native Codex model connection for planning, brainstorming, and focused problem-solving Roles.',
+    description: 'Use only for difficult planning, novel causal diagnosis and unresolved design tradeoffs. Ordinary scanning, documentation, checklist audits and straightforward route decisions do not justify this model. Main conversation decisions belong to Main orchestration.',
   }),
 });
 

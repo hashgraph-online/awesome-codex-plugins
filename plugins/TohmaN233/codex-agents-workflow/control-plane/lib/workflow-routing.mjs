@@ -27,7 +27,8 @@ function accessSummary(workflow) {
 function compact(pack,score,reasons) {
   const workflow=pack.workflow;
   return {id:workflow.id,name:workflow.name,revision_hash:pack.revision_hash,purpose:workflow.description,tags:[...(workflow.tags ?? [])],
-    required_inputs:[...(workflow.inputs_schema?.required ?? [])],effects:accessSummary(workflow),score,reasons};
+    required_inputs:[...(workflow.inputs_schema?.required ?? [])],inputs_schema:structuredClone(workflow.inputs_schema ?? {}),
+    effects:accessSummary(workflow),score,reasons};
 }
 
 function escaped(value){return value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}

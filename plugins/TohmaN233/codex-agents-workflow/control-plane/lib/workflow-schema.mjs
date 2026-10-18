@@ -2,12 +2,13 @@ import { requireValue, workflowId } from './workflow-paths.mjs';
 import { canonicalJSON, LIMITS } from './workflow-revisions.mjs';
 import { HOST_AUTOMATION_CONTRACT, validateHostAutomationContract } from './execution/host-main-automation.mjs';
 import { WORKSPACE_SOURCE_LOCATIONS, WORKSPACE_SOURCE_LOCATIONS_SCHEMA } from './workspace-source-locations.mjs';
+import { normalizeNodeRuntimeRequirements, normalizeExecutableRequirements } from './runtime-requirements.mjs';
 
 export const NODE_TYPES = new Set(['start', 'end', 'agent', 'condition', 'parallel', 'join', 'skill_ref', 'subworkflow', 'tool', 'human_gate']);
 export const HUMAN_GATE_OUTPUT = Object.freeze({ approved: true });
 export const LOOP_REGION_SCHEMA = {
   type:'object',required:['id','entry_node','exit_node','node_ids','max_rounds','until'],additionalProperties:false,
-  properties:{id:{type:'string'},entry_node:{type:'string'},exit_node:{type:'string'},node_ids:{type:'array',minItems:1,maxItems:512,items:{type:'string'}},max_rounds:{type:'integer',minimum:1,maximum:Number.MAX_SAFE_INTEGER},until:{type:'object'},feedback_bindings:{type:'object'},item_scope:{type:'object',required:['items','verdicts','paths_field'],additionalProperties:false,properties:{items:{},verdicts:{},paths_field:{type:'string'},dependencies_field:{type:'string'}}}}
+  properties:{id:{type:'string'},entry_node:{type:'string'},exit_node:{type:'string'},node_ids:{type:'array',minItems:1,maxItems:512,items:{type:'string'}},max_rounds:{description:'A positive safe integer for finite loops; null only when review_context is current_main.'},review_context:{type:'string',const:'current_main'},until:{type:'object'},feedback_bindings:{type:'object'},item_scope:{type:'object',required:['items','verdicts','paths_field'],additionalProperties:false,properties:{items:{},verdicts:{},paths_field:{type:'string'},dependencies_field:{type:'string'}}}}
 };
 
 export function validateWorkflowShape(workflow) {
@@ -25,6 +26,12 @@ export function validateWorkflowShape(workflow) {
   requireValue(workflow.role_prompt_mode===undefined || workflow.template_kind==='role'&&workflow.role_prompt_mode==='append_context','ROLE_PROMPT_MODE','Role prompt mode must be append_context on a Role template');
   if (workflow.host_automation !== undefined) validateHostAutomationContract(workflow.host_automation);
   for (const node of workflow.nodes) {
+    requireValue(node.workspace_policy===undefined||node.type==='parallel','SHARED_HOST_POLICY','Workspace policy belongs to a parallel node');
+    if(node.runtime_requirements!==undefined){
+      requireValue(['agent','skill_ref','tool','subworkflow'].includes(node.type),'NODE_RUNTIME_REQUIREMENTS','Runtime dependencies need an executable node',{node_id:node.id});
+      const scoped=normalizeNodeRuntimeRequirements(node.runtime_requirements);
+      normalizeExecutableRequirements([...(workflow.requirements?.executables??[]),...scoped.executables]);
+    }
     if (node.output_validators === undefined) continue;
     requireValue(node.output_validators && typeof node.output_validators === 'object' && !Array.isArray(node.output_validators)
       && ['agent', 'tool'].includes(node.type) && Object.keys(node.output_validators).length > 0,

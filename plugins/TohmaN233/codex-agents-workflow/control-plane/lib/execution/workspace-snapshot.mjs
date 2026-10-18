@@ -1,6 +1,6 @@
 import {join, relative} from 'node:path';
 import * as fs from 'node:fs/promises';
-import {digest} from '../workflow-revisions.mjs';
+import {canonicalJSON,digest} from '../workflow-revisions.mjs';
 import {requireValue} from '../workflow-paths.mjs';
 
 const key = path => process.platform === 'win32' ? path.toLowerCase() : path;
@@ -13,8 +13,13 @@ const within = (path, boundary) => {
 // not permission to read all of its contents. Required artifacts still need
 // readable bytes; unreadable paths outside the authorized subtree fail closed.
 export async function snapshotWorkspace(root, {access='read_only', allowedPaths=[], requiredPaths=[], onUnreadable,
-  codePrefix='HOST_MAIN', fileSystem=fs}={}) {
+  codePrefix='HOST_MAIN', fileSystem=fs,hashPaths=null}={}) {
+  requireValue(hashPaths===null||Array.isArray(hashPaths)&&hashPaths.every(path=>typeof path==='string'&&path.length>0),
+    codePrefix+'_WORKSPACE_HASH_PATHS','Content observation requires explicit path boundaries');
   const result=new Map(); result.unreadablePaths=new Map();
+  result.hashPaths=hashPaths===null?null:[...hashPaths];
+  const needsContent=path=>hashPaths===null||hashPaths.some(boundary=>within(path,boundary));
+  const metadata=info=>'metadata:'+digest(canonicalJSON(['dev','ino','mode','nlink','size','mtimeNs','ctimeNs','birthtimeNs'].map(field=>String(info[field]))));
   let files=0, bytes=0;
   async function observeUnreadable(error, path, stat) {
     if(!['EACCES','EPERM'].includes(error.code))throw error;
@@ -36,11 +41,15 @@ export async function snapshotWorkspace(root, {access='read_only', allowedPaths=
     for(const entry of entries) {
       if(entry.name==='.git')continue;
       const absolute=join(directory,entry.name), path=relative(root,absolute).replaceAll('\\','/');
-      const stat=await fileSystem.lstat(absolute);
+      const stat=await fileSystem.lstat(absolute,{bigint:true});
+      if(stat.isSymbolicLink()&&!needsContent(path)){result.set(path,metadata(stat));continue;}
       requireValue(!stat.isSymbolicLink(),codePrefix+'_WORKSPACE_SYMLINK',`Workspace contains a symbolic link: ${path}`);
       if(stat.isDirectory()){await walk(absolute,stat);continue;}
       if(!stat.isFile())continue;
-      files++;bytes+=stat.size;
+      // Cooperative scope observation needs file identities and timestamps.
+      // Only explicitly declared immutable inputs require content reads.
+      if(!needsContent(path)){result.set(path,metadata(stat));continue;}
+      files++;bytes+=Number(stat.size);
       requireValue(files<=20000 && bytes<=2*1024*1024*1024,codePrefix+'_WORKSPACE_LIMIT','Workspace exceeds the bounded audit snapshot');
       let contents;
       try{contents=await fileSystem.readFile(absolute);}

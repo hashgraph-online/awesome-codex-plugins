@@ -36,7 +36,8 @@ from kicad_utils import (is_ground_name, is_power_net_name,
                          load_kicad_pro, extract_pro_net_classes,
                          extract_pro_design_rules, extract_pro_text_variables,
                          load_kicad_dru, load_lib_tables,
-                         find_project_settings_file)
+                         find_project_settings_file,
+                         get_mpn_property)
 from pcb_connectivity import build_connectivity_graph
 from finding_schema import compute_trust_summary, sort_findings, assign_finding_ids
 from envelopes.pcb import PCBEnvelope
@@ -121,6 +122,10 @@ class ZoneFills:
 
     Requires that zones have been filled in KiCad (Edit → Fill All Zones)
     before the PCB file was saved. Stale fills will produce incorrect results.
+
+    `min_edge_distance` additionally maintains a lazily built per-fill
+    segment grid (KH-420) so nearest-edge queries don't need to walk every
+    vertex of every fill.
     """
 
     def __init__(self) -> None:
@@ -129,6 +134,7 @@ class ZoneFills:
                   tuple[float, float, float, float]]
         ] = []
         self._next_fill_id = 0
+        self._grids: dict[int, tuple] = {}
 
     def add(self, zone_idx: int, layer: str,
             coords: list[tuple[float, float]]) -> None:
@@ -137,6 +143,35 @@ class ZoneFills:
         fill_id = self._next_fill_id
         self._next_fill_id += 1
         self._fills.append((fill_id, zone_idx, layer, coords, bbox))
+
+    def _segment_grid(self, fill_id: int):
+        """Lazily built uniform grid: cell -> indices of polygon segments whose
+        bbox overlaps that cell. (cell_size, ncx, ncy, cells). KH-420."""
+        g = self._grids.get(fill_id)
+        if g is not None:
+            return g
+        _fid, _zidx, _layer, coords, bbox = self._fills[fill_id]
+        assert _fid == fill_id
+        w = max(bbox[2] - bbox[0], 0.0)
+        h = max(bbox[3] - bbox[1], 0.0)
+        cell = max(0.5, max(w, h) / 64.0)
+        ncx = int(w // cell) + 1
+        ncy = int(h // cell) + 1
+        cells: dict = {}
+        n = len(coords)
+        for i in range(n):
+            x1, y1 = coords[i]
+            x2, y2 = coords[(i + 1) % n]
+            cx0 = int((min(x1, x2) - bbox[0]) // cell)
+            cx1 = int((max(x1, x2) - bbox[0]) // cell)
+            cy0 = int((min(y1, y2) - bbox[1]) // cell)
+            cy1 = int((max(y1, y2) - bbox[1]) // cell)
+            for cx in range(cx0, cx1 + 1):
+                for cy in range(cy0, cy1 + 1):
+                    cells.setdefault((cx, cy), []).append(i)
+        g = (cell, ncx, ncy, cells)
+        self._grids[fill_id] = g
+        return g
 
     @property
     def has_data(self) -> bool:
@@ -197,22 +232,74 @@ class ZoneFills:
     def min_edge_distance(self, x: float, y: float, layer: str,
                           zone_idxs: set | None = None) -> float:
         """Distance from (x, y) to the nearest edge of any filled polygon on
-        `layer` (optionally only zones in zone_idxs). inf when none."""
+        `layer` (optionally only zones in zone_idxs). inf when none.
+
+        Uses a lazily built per-fill segment grid (KH-420); results are
+        identical to the full walk. The ring search is centered on the
+        query point's projection onto the fill's bbox (not the point
+        itself) so a point far outside a small/distant fill's bbox still
+        bounds the search to the fill's own grid extent; the cutoff folds
+        in that projection offset via math.hypot so it stays exact.
+        Cutoff is exact: for C = clamp(Q, bbox) and any S inside the
+        bbox, |Q-S| >= hypot(|Q-C|, |C-S|) (projection onto a convex
+        set), and every unvisited segment has |C-S| >= (r-1)*cell.
+        Fills are visited nearest-bbox-first so `best` tightens early and
+        farther fills short-circuit before any grid is even built.
+        """
         best = float("inf")
-        for _fid, zidx, fl, coords, bbox in self._fills:
+        candidates = []
+        for fid, zidx, fl, coords, bbox in self._fills:
             if fl != layer or (zone_idxs is not None and zidx not in zone_idxs):
                 continue
             dx = max(bbox[0] - x, 0.0, x - bbox[2])
             dy = max(bbox[1] - y, 0.0, y - bbox[3])
-            if math.hypot(dx, dy) >= best:
-                continue
+            candidates.append((math.hypot(dx, dy), fid, coords, bbox))
+        candidates.sort(key=lambda c: c[0])
+        for offset, fid, coords, bbox in candidates:
+            if offset >= best:
+                break  # sorted ascending: every remaining candidate is >= offset >= best
+            cell, ncx, ncy, cells = self._segment_grid(fid)
+            # Project (x, y) onto the bbox; this point's cell is always
+            # inside [0, ncx-1] x [0, ncy-1], so max_ring below is bounded
+            # by the fill's own grid size regardless of how far outside
+            # the bbox (x, y) actually is.
+            cx = min(max(x, bbox[0]), bbox[2])
+            cy = min(max(y, bbox[1]), bbox[3])
+            px = min(max(int((cx - bbox[0]) // cell), 0), ncx - 1)
+            py = min(max(int((cy - bbox[1]) // cell), 0), ncy - 1)
+            # Farthest ring that can still hold a grid cell from this point.
+            max_ring = max(px, (ncx - 1) - px, py, (ncy - 1) - py)
+            seen: set = set()
             n = len(coords)
-            for i in range(n):
-                x1, y1 = coords[i]
-                x2, y2 = coords[(i + 1) % n]
-                d = _dist_point_to_segment(x, y, x1, y1, x2, y2)
-                if d < best:
-                    best = d
+            r = 0
+            while r <= max_ring:
+                if r > 0 and math.hypot(offset, (r - 1) * cell) >= best:
+                    break  # exact: every unvisited segment is >= hypot(offset, (r-1)*cell) away
+                # Walk only the O(r) boundary cells of this ring (not the
+                # full (2r+1)^2 square): ring 0 is just the own cell; ring
+                # r>0 is the top/bottom rows and left/right columns of the
+                # (2r+1)x(2r+1) square centered on (px, py).
+                if r == 0:
+                    ring_cells = ((px, py),)
+                else:
+                    ring_cells = [(px + ddx, py - r) for ddx in range(-r, r + 1)]
+                    ring_cells += [(px + ddx, py + r) for ddx in range(-r, r + 1)]
+                    ring_cells += [(px - r, py + ddy) for ddy in range(-r + 1, r)]
+                    ring_cells += [(px + r, py + ddy) for ddy in range(-r + 1, r)]
+                for cell_key in ring_cells:
+                    segs = cells.get(cell_key)
+                    if not segs:
+                        continue
+                    for i in segs:
+                        if i in seen:
+                            continue
+                        seen.add(i)
+                        x1, y1 = coords[i]
+                        x2, y2 = coords[(i + 1) % n]
+                        d = _dist_point_to_segment(x, y, x1, y1, x2, y2)
+                        if d < best:
+                            best = d
+                r += 1
         return best
 
 
@@ -645,7 +732,9 @@ def extract_footprints(root: list) -> list[dict]:
                     elif ft[1] == "value":
                         value = ft[2] if isinstance(ft[2], str) else ""
 
-        mpn = get_property(fp, "MPN") or get_property(fp, "Mfg Part") or ""
+        # KH-414: any known MPN alias, case/whitespace-insensitive (was an
+        # exact-case lookup of "MPN" / "Mfg Part" only).
+        mpn = get_mpn_property(fp) or ""
 
         # Determine SMD vs through-hole + extended attributes
         attr_node = find_first(fp, "attr")
@@ -3027,7 +3116,18 @@ def analyze_vias(vias: dict, footprints: list[dict],
     # EQ-058: area = π(d/2)² (via annular ring)
     all_vias = vias.get("vias", [])
     if not all_vias:
-        return {}
+        # KH-412: a via-less board can still have footprint pad drills
+        # (including degenerate ones, e.g. HamedMasafi/MeloCar remote_3's
+        # `(drill 0.00001)` pads) worth surfacing — don't drop them just
+        # because there are no vias to analyze.
+        novia_result: dict = {}
+        pad_drills = _pad_drills(footprints)
+        if pad_drills:
+            novia_result["current_capacity"] = {"min_pad_drill_mm": min(pad_drills)}
+        dd = _degenerate_drills(footprints, [])
+        if dd:
+            novia_result["degenerate_drills"] = dd
+        return novia_result
 
     # --- Type breakdown ---
     type_counts: dict[str, int] = {"through": 0, "blind": 0, "buried": 0, "micro": 0}
@@ -3102,6 +3202,8 @@ def analyze_vias(vias: dict, footprints: list[dict],
                 "hw": pw / 2.0, "hh": ph / 2.0,
                 "net": pad.get("net_number", -1),
                 "layer": fp_layer,
+                "shape": pad.get("shape", ""),
+                "angle": pad.get("angle", 0) or 0,
             })
 
     for v in all_vias:
@@ -3112,8 +3214,7 @@ def analyze_vias(vias: dict, footprints: list[dict],
             # Via must be on the same copper layer as the pad
             if pb["layer"] not in v_layers:
                 continue
-            if (abs(vx - pb["cx"]) <= pb["hw"] and
-                    abs(vy - pb["cy"]) <= pb["hh"]):
+            if _point_in_pad(vx, vy, pb["cx"], pb["cy"], pb["hw"] * 2, pb["hh"] * 2, pb["shape"], pb["angle"]):
                 same_net = v_net == pb["net"]
                 via_in_pad.append({
                     "component": pb["ref"],
@@ -3195,7 +3296,10 @@ def analyze_vias(vias: dict, footprints: list[dict],
     drill_sizes: dict[float, int] = {}
     for v in all_vias:
         d = v.get("drill", 0)
-        if d > 0:
+        # KH-412: degenerate drills (file artefacts) are excluded from
+        # every minimum/rating, not just the DFM and design-rule checks —
+        # they're reported separately via `degenerate_drills` instead.
+        if _is_real_drill(d):
             drill_sizes[d] = drill_sizes.get(d, 0) + 1
 
     current_facts: dict = {}
@@ -3233,8 +3337,13 @@ def analyze_vias(vias: dict, footprints: list[dict],
     if pad_drills:
         current_facts["min_pad_drill_mm"] = min(pad_drills)
 
+    # KH-412: sub-0.05mm pad/via drills are file artefacts, not real holes —
+    # list them separately instead of silently dropping them.
+    degenerate = _degenerate_drills(footprints, all_vias)
+
     result: dict = {
         "type_breakdown": type_breakdown,
+        **({"degenerate_drills": degenerate} if degenerate else {}),
     }
     if annular_ring:
         result["annular_ring"] = annular_ring
@@ -4165,6 +4274,37 @@ def _extract_package_code(footprint_name: str) -> str:
     return ""
 
 
+# KH-412: drills below this are file artefacts (e.g. `(drill 0.00001)` pads
+# in HamedMasafi/MeloCar remote_3.kicad_pcb), not holes a fab will drill.
+# They are excluded from every minimum and listed in
+# via_analysis.degenerate_drills so nothing is silently dropped.
+MIN_REAL_DRILL_MM = 0.05
+
+
+def _is_real_drill(d) -> bool:
+    return isinstance(d, (int, float)) and d >= MIN_REAL_DRILL_MM
+
+
+def _degenerate_drills(footprints: list[dict], all_vias: list[dict]) -> list[dict]:
+    """Pad and via drills in (0, MIN_REAL_DRILL_MM), sorted by (kind, ref, pad)."""
+    out: list[dict] = []
+    for fp in footprints or []:
+        for pad in fp.get("pads", []):
+            if pad.get("type") not in ("thru_hole", "np_thru_hole"):
+                continue
+            d = _pad_effective_drill(pad)
+            if d and 0 < d < MIN_REAL_DRILL_MM:
+                out.append({"kind": "pad", "ref": fp.get("reference", ""),
+                            "pad": str(pad.get("number", "")), "drill_mm": d})
+    for via in all_vias or []:
+        d = via.get("drill", 0) or 0
+        if 0 < d < MIN_REAL_DRILL_MM:
+            out.append({"kind": "via", "ref": None, "pad": None, "drill_mm": d,
+                        "x": via.get("x"), "y": via.get("y")})
+    return sorted(out, key=lambda e: (e["kind"], e["ref"] or "", e["pad"] or "",
+                                      e.get("x") or 0, e.get("y") or 0))
+
+
 def _pad_effective_drill(pad: dict) -> float:
     """Effective drill diameter (mm) for one pad, oval-drill aware.
 
@@ -4194,7 +4334,7 @@ def _pad_drills(footprints: list[dict]) -> list[float]:
             if pad.get("type") not in ("thru_hole", "np_thru_hole"):
                 continue
             d = _pad_effective_drill(pad)
-            if d and d > 0:
+            if _is_real_drill(d):
                 drills.append(d)
     return drills
 
@@ -4211,7 +4351,8 @@ def _min_drill_with_source(
     (min, "via") when the minimum comes from a via, or (min, "pad <ref>")
     when a footprint pad drill is the smallest.
     """
-    min_via = min(via_drills) if via_drills else None
+    min_via = (min(v for v in via_drills if _is_real_drill(v))
+               if any(_is_real_drill(v) for v in via_drills) else None)
 
     min_pad = None
     min_pad_ref = ""
@@ -4221,7 +4362,7 @@ def _min_drill_with_source(
             if pad.get("type") not in ("thru_hole", "np_thru_hole"):
                 continue
             d = _pad_effective_drill(pad)
-            if d and d > 0 and (min_pad is None or d < min_pad):
+            if _is_real_drill(d) and (min_pad is None or d < min_pad):
                 min_pad = d
                 min_pad_ref = ref
 
@@ -4487,21 +4628,25 @@ def analyze_dfm(footprints: list[dict], tracks: dict, vias: dict,
 
     # --- Drill analysis (via drills + footprint pad drills, KH-383) ---
     all_vias = vias.get("vias", [])
-    via_drills = [v["drill"] for v in all_vias if v.get("drill", 0) > 0]
+    via_drills = [v["drill"] for v in all_vias if _is_real_drill(v.get("drill", 0))]
     min_drill, drill_source = _min_drill_with_source(via_drills, footprints)
     if min_drill is not None:
         metrics["min_drill_mm"] = min_drill
         # A pad-sourced minimum is reported generically ("Drill") rather than
         # "Via drill" — the smallest drilled hole isn't necessarily a via.
         label = "Via drill" if drill_source == "via" else "Drill"
+        # KH-412: attribute pad-sourced violations to their pad (parameter +
+        # the ref in the message) instead of mislabeling them "via_drill".
+        pad_ref = drill_source[4:] if drill_source.startswith("pad ") else ""
+        ref_suffix = f" on {pad_ref}" if pad_ref else ""
         if min_drill < LIMITS_ADV["min_drill"]:
             violations.append({
-                "parameter": "via_drill",
+                "parameter": "via_drill" if drill_source == "via" else "pad_drill",
                 "actual_mm": min_drill,
                 "standard_limit_mm": LIMITS_STD["min_drill"],
                 "advanced_limit_mm": LIMITS_ADV["min_drill"],
                 "tier_required": "challenging",
-                "message": f"{label} {min_drill}mm is below advanced process "
+                "message": f"{label} {min_drill}mm{ref_suffix} is below advanced process "
                            f"minimum ({LIMITS_ADV['min_drill']}mm)",
                 "detector": "analyze_dfm",
                 "rule_id": "DFM-001",
@@ -4510,7 +4655,7 @@ def analyze_dfm(footprints: list[dict], tracks: dict, vias: dict,
                 "confidence": "deterministic",
                 "evidence_source": "topology",
                 "summary": f"{label} {min_drill}mm below advanced minimum ({LIMITS_ADV['min_drill']}mm)",
-                "description": f"{label} {min_drill}mm is below the advanced process minimum of {LIMITS_ADV['min_drill']}mm, requiring a challenging fab tier.",
+                "description": f"{label} {min_drill}mm{ref_suffix} is below the advanced process minimum of {LIMITS_ADV['min_drill']}mm, requiring a challenging fab tier.",
                 "components": [],
                 "nets": [],
                 "pins": [],
@@ -4519,12 +4664,12 @@ def analyze_dfm(footprints: list[dict], tracks: dict, vias: dict,
             })
         elif min_drill < LIMITS_STD["min_drill"]:
             violations.append({
-                "parameter": "via_drill",
+                "parameter": "via_drill" if drill_source == "via" else "pad_drill",
                 "actual_mm": min_drill,
                 "standard_limit_mm": LIMITS_STD["min_drill"],
                 "advanced_limit_mm": LIMITS_ADV["min_drill"],
                 "tier_required": "advanced",
-                "message": f"{label} {min_drill}mm requires advanced process "
+                "message": f"{label} {min_drill}mm{ref_suffix} requires advanced process "
                            f"(standard: {LIMITS_STD['min_drill']}mm)",
                 "detector": "analyze_dfm",
                 "rule_id": "DFM-001",
@@ -4533,7 +4678,7 @@ def analyze_dfm(footprints: list[dict], tracks: dict, vias: dict,
                 "confidence": "deterministic",
                 "evidence_source": "topology",
                 "summary": f"{label} {min_drill}mm requires advanced process (standard: {LIMITS_STD['min_drill']}mm)",
-                "description": f"{label} {min_drill}mm is below the standard process minimum of {LIMITS_STD['min_drill']}mm, requiring an advanced fab tier.",
+                "description": f"{label} {min_drill}mm{ref_suffix} is below the standard process minimum of {LIMITS_STD['min_drill']}mm, requiring an advanced fab tier.",
                 "components": [],
                 "nets": [],
                 "pins": [],
@@ -4811,7 +4956,7 @@ def analyze_design_rule_compliance(
 
     all_vias = vias.get("vias", [])
     via_diameters = [v["size"] for v in all_vias if v.get("size", 0) > 0]
-    via_drills = [v["drill"] for v in all_vias if v.get("drill", 0) > 0]
+    via_drills = [v["drill"] for v in all_vias if _is_real_drill(v.get("drill", 0))]
     min_via_diameter = min(via_diameters) if via_diameters else None
     # KH-383: the smallest drilled hole may be a footprint pad, not a via.
     min_drill, drill_source = _min_drill_with_source(via_drills, footprints)
@@ -4835,13 +4980,21 @@ def analyze_design_rule_compliance(
             if rule_name == 'min_via_drill' and drill_source.startswith('pad '):
                 message += (f" (smallest: pad drill {actual:.3f}mm on "
                             f"{drill_source[4:]})")
-            violations.append({
+            v = {
                 'rule': rule_name,
                 'source': 'project',
                 'required_mm': round(required, 4),
                 'actual_mm': round(actual, 4),
                 'message': message,
-            })
+                # KH-412: attribute a pad-sourced min_via_drill minimum to its pad.
+                'drill_source': ('pad' if rule_name == 'min_via_drill' and drill_source.startswith('pad ')
+                                 else 'via') if rule_name == 'min_via_drill' else None,
+            }
+            if v['drill_source'] is None:
+                del v['drill_source']
+            elif v['drill_source'] == 'pad':
+                v['source_ref'] = drill_source[4:]
+            violations.append(v)
 
     # --- Net class summary (informational) ---
     net_class_summary = []
@@ -4975,7 +5128,7 @@ def analyze_design_rule_compliance(
                 if actual is not None:
                     rules_checked += 1
                     if actual < cmin - 0.001:
-                        violations.append({
+                        v = {
                             'rule': f"custom:{rule.get('name', ctype)}",
                             'source': 'kicad_dru',
                             'required_mm': round(cmin, 4),
@@ -4984,7 +5137,15 @@ def analyze_design_rule_compliance(
                             'message': (f"Custom rule \"{rule.get('name', '')}\" "
                                         f"requires {ctype} >= {cmin:.3f}mm, "
                                         f"actual {actual:.3f}mm"),
-                        })
+                            # KH-412: attribute a pad-sourced hole_size minimum to its pad.
+                            'drill_source': ('pad' if ctype == 'hole_size' and drill_source.startswith('pad ')
+                                             else 'via') if ctype == 'hole_size' else None,
+                        }
+                        if v['drill_source'] is None:
+                            del v['drill_source']
+                        elif v['drill_source'] == 'pad':
+                            v['source_ref'] = drill_source[4:]
+                        violations.append(v)
 
     result: dict = {
         'compliant': len(violations) == 0,
@@ -5286,15 +5447,19 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
             ay = pad.get("abs_y", fp["y"])
             net_num = pad.get("net_number", -1)
 
-            # Count vias within the thermal pad area
-            # Account for footprint + pad rotation: the pad's width/height are
-            # in the footprint's local coordinate frame, but the via positions
-            # are in board space.  Rotate the via-to-pad offset back into the
-            # pad's local frame for the rectangular containment check.
-            fp_angle = fp.get("angle", 0)
-            pad_angle = pad.get("angle", 0)
-            total_angle = fp_angle + pad_angle
-            total_rad = math.radians(-total_angle) if total_angle != 0 else 0.0
+            # Rotate the via-to-pad offset back into the pad's local frame
+            # for the rectangular containment check. KiCad writes a pad's
+            # (at x y angle) orientation as the ABSOLUTE board orientation
+            # -- it already includes the footprint's own rotation, so the
+            # footprint angle must NOT be added again (KH-408; same fix as
+            # CP-003's _pad_sample_points in v2.3.0). This check must undo
+            # (not repeat) the local->board placement rotation that pad
+            # corners/vias are given elsewhere (board placement uses -angle,
+            # e.g. _pad_sample_points), so total_rad is NOT negated here --
+            # see _point_in_pad's transposed-matrix form of the same inverse
+            # (VP-001, KH-340) for the equivalent established precedent.
+            total_angle = pad.get("angle", 0) or 0
+            total_rad = math.radians(total_angle) if total_angle != 0 else 0.0
             cos_a = math.cos(total_rad) if total_angle != 0 else 1.0
             sin_a = math.sin(total_rad) if total_angle != 0 else 0.0
 
@@ -5555,13 +5720,65 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
 _PASSIVE_REF_RE = re.compile(r"^([A-Za-z0-9_]+/)?(C|R|L|FB)\d+$")
 
 
+def _pad_on_layer(pad: dict, layer: str, default_layer: str) -> bool:
+    """True when `pad` has copper on `layer`.
+
+    Pad `layers` may name layers explicitly ("F.Cu" "B.Cu"), use KiCad's
+    wildcards ("*.Cu" = every copper layer; "F&B.Cu" = outer copper), or be
+    absent (legacy/minimal footprints -> assume the footprint's own layer).
+    Through-hole pads always carry "*.Cu", which is why they were skipped by
+    a literal membership test (KH-413).
+    """
+    layers = pad.get("layers")
+    if not layers:
+        return layer == default_layer
+    if layer in layers:
+        return True
+    if not layer.endswith(".Cu"):
+        return False
+    if "*.Cu" in layers:
+        return True
+    if "F&B.Cu" in layers and layer in ("F.Cu", "B.Cu"):
+        return True
+    return False
+
+
+def _pad_outline_points(shape: str, hw: float, hh: float) -> list[tuple[float, float]]:
+    """8 points on a pad's outline in the pad's local frame (unrotated).
+
+    circle: on the circumference at 45° steps (r = max(hw, hh)).
+    oval:   on the stadium boundary at 45° steps — a stadium is the Minkowski
+            sum of a segment and a circle of radius r = min(hw, hh), so the
+            boundary point in direction θ is the segment end on that side
+            plus r·(cos θ, sin θ).
+    other:  the box corners + edge midpoints (unchanged behaviour).
+    KH-419 (SacMap TP1: bbox corners of a Ø15 mm pad sat 3.1 mm outside the
+    copper and read an unrelated fill cutout as the clearance).
+    """
+    if shape == "circle":
+        r = max(hw, hh)
+        return [(r * math.cos(math.radians(a)), r * math.sin(math.radians(a))) for a in range(0, 360, 45)]
+    if shape == "oval":
+        r = min(hw, hh)
+        pts = []
+        for a in range(0, 360, 45):
+            c, s = math.cos(math.radians(a)), math.sin(math.radians(a))
+            if hw >= hh:
+                pts.append((math.copysign(hw - r, c) * (1 if abs(c) > 1e-12 else 0) + r * c, r * s))
+            else:
+                pts.append((r * c, math.copysign(hh - r, s) * (1 if abs(s) > 1e-12 else 0) + r * s))
+        return pts
+    return [(-hw, -hh), (0, -hh), (hw, -hh), (hw, 0), (hw, hh), (0, hh), (-hw, hh), (-hw, 0)]
+
+
 def _pad_sample_points(fp: dict, fp_layer: str) -> list[tuple[float, float]]:
-    """Corners + edge midpoints of every pad of `fp` on `fp_layer` (8 per pad,
-    rotated by the pad angle); footprint origin when no pad has geometry."""
+    """Points on the outline of every pad of `fp` on `fp_layer` (8 per pad,
+    rotated by the pad angle; THT pads via their "*.Cu" wildcard, KH-413;
+    circle/oval pads sampled on their true outline, KH-419);
+    footprint origin when no pad has geometry."""
     pts: list[tuple[float, float]] = []
     for pad in fp.get("pads", []):
-        layers = pad.get("layers") or [fp_layer]
-        if fp_layer not in layers or "abs_x" not in pad:
+        if not _pad_on_layer(pad, fp_layer, fp_layer) or "abs_x" not in pad:
             continue
         cx, cy = pad["abs_x"], pad["abs_y"]
         hw, hh = pad.get("width", 0) / 2.0, pad.get("height", 0) / 2.0
@@ -5570,7 +5787,7 @@ def _pad_sample_points(fp: dict, fp_layer: str) -> list[tuple[float, float]]:
         # rotation, so it must not be added again here.
         pad_abs_angle = pad.get("angle") or 0
         ang = math.radians(-pad_abs_angle)
-        for ox, oy in ((-hw, -hh), (0, -hh), (hw, -hh), (hw, 0), (hw, hh), (0, hh), (-hw, hh), (-hw, 0)):
+        for ox, oy in _pad_outline_points(pad.get("shape", ""), hw, hh):
             pts.append((cx + ox * math.cos(ang) - oy * math.sin(ang),
                         cy + ox * math.sin(ang) + oy * math.cos(ang)))
     return pts or [(fp.get("x", 0), fp.get("y", 0))]

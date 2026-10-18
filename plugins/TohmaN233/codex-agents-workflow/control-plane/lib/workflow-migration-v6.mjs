@@ -146,7 +146,15 @@ export async function migrateV6OnDisk({ configPath, onProgress = async () => {} 
     await recoverJournalTail(journal);
     const events = await readJournal(journal);
     if (raw.version === 7) {
-      const source = raw.workflow_store?.migration_source_sha256;
+      const current = validateConfig(raw);
+      const source = current.workflow_store.migration_source_sha256;
+      if (!Object.hasOwn(current.workflow_store, 'migration_source_sha256')) {
+        requireValue(!events.some(event => ['prepared', 'committed', 'committed_recovered'].includes(event.phase)), 'MIGRATION_STATE', 'Native v7 configuration conflicts with a retained migration identity');
+        const storeRoot = insideRoot(root, join(root, current.workflow_store.relative_path));
+        await noSymlinks(storeRoot);
+        await new WorkflowStore(storeRoot).list();
+        return { migrated: false, version: 7, store_root: storeRoot };
+      }
       requireValue(/^[a-f0-9]{64}$/.test(source), 'MIGRATION_STATE', 'Missing migration source identity');
       requireValue(typeof raw.workflow_store.relative_path === 'string' && !isAbsolute(raw.workflow_store.relative_path), 'MIGRATION_STATE', 'Store pointer must be relative to configuration root');
       const storeRoot = insideRoot(root, join(root, raw.workflow_store.relative_path));

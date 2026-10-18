@@ -4,54 +4,56 @@ Plugin runtime asset. Loaded by the `plan` skill (`/archcore:plan`) when routing
 resolves to the `requirements-cascade` track. Gate records follow `skills/_shared/gate-contract.md`;
 interview mechanics live in `skills/_shared/elicitation-contract.md`.
 
-## Modes
+## Instruments
 
-The track runs in one of two modes. The gate name identifies the stage and
-therefore the mode; the state block carries no mode field.
+The track hosts two instruments. The gate name identifies the instrument; the
+state block carries no instrument field.
 
-- `mode: sources` — the acquisition instrument; peer documents in recommended
-  order: `requirements-cascade.mrd` → `requirements-cascade.brd` →
-  `requirements-cascade.urd`. The conductor engages it on a product-scale
-  `intent_gap` per `skills/_shared/delta-routing.md`; the user engages it with
-  the `plan sources` mode.
-- `mode: iso` — iso links, ISO 29148 decomposition with traceability:
+- acquisition — peer documents in recommended order:
+  `requirements-cascade.mrd` → `requirements-cascade.brd` →
+  `requirements-cascade.urd`. The conductor engages it only for a market,
+  business, or user source question that the request or a gate names, per the
+  owner table of `skills/_shared/delta-routing.md`.
+- iso links — ISO 29148 decomposition with traceability:
   `requirements-cascade.brs` → `requirements-cascade.strs` →
   `requirements-cascade.syrs` → `requirements-cascade.srs`. The conductor
-  engages the links per `security-compliance`-flagged capability, and the
-  chain then scopes to the flagged capabilities only — partial formality; the
-  user invokes the full chain with the `plan iso` mode.
+  engages only the requirement levels that a formal traceability obligation
+  names in the request or accepted canon, and scopes them to the claims under
+  that obligation. A security hazard alone engages no level.
 
-### Mode selection
+### Entry selection
 
-Entry comes from the conductor (`skills/_shared/delta-routing.md`) or from an
-expert invocation. The `plan` skill resolves a direct entry from routing
-signals — never by asking the user — in this order: explicit expert
-invocation, document-graph state. Branch state contributes no mode signal in
-this track.
+Entry comes from the conductor (`skills/_shared/delta-routing.md`); the user
+never chooses an instrument. The `plan` skill resolves the entry gate — never by
+asking the user — in this order:
 
-1. Explicit expert invocation: the `plan sources` mode selects sources; the `plan iso` mode selects iso. A document type name is not a mode.
-2. Document-graph state: a `brs`, `strs`, `syrs`, or `srs` on the topic selects
-   iso; an incomplete `mrd`/`brd`/`urd` set on the topic with no iso-mode document
-   selects sources; a complete `mrd`, `brd`, and `urd` set on the topic with no
-   iso-mode document selects iso.
-3. Request wording: contributes no mode signal — WHEN neither signal above
-   resolves the entry, the conductor's route computation decides per
-   `skills/_shared/delta-routing.md`.
+1. The named source question or obligation: a market question enters at
+   `requirements-cascade.mrd`, a business question at `requirements-cascade.brd`,
+   a user question at `requirements-cascade.urd` — the three source documents are
+   peers; an obligation enters at the highest level it names.
+2. Document-graph state: a `brs`, `strs`, `syrs`, or `srs` on the topic resumes
+   iso links at the first missing level the obligation names; an incomplete
+   `mrd`/`brd`/`urd` set on the topic resumes acquisition at its first missing
+   document the source question needs.
+3. Request wording contributes no entry signal. A document type name in the
+   request is a type request per `skills/_shared/gate-contract.md`, Entry terms.
 
-Sources mode enters at `requirements-cascade.mrd`; iso mode enters at
-`requirements-cascade.brs`. WHEN the topic text of the `plan sources` mode names `brd` or
-`urd`, sources mode enters at that document's gate instead — the three source
-documents are peers (the source flow fixed no order among them). Before the first gate, the `plan` skill calls
-`list_documents` for this track's document types plus `prd` and checks the topic for duplicates.
+Before the first gate, the `plan` skill calls `list_documents` for this track's
+document types plus `prd` and checks the topic for duplicates.
 
-WHEN the first gate closes, the `plan` skill MUST record the chosen mode and its
-selecting signal as one line under `## Clarifications` in the draft artifact —
-for example `mode: iso — request names a regulated system` [assumption: the wording of this record].
+WHEN the first gate closes, the `plan` skill MUST record the engaged instrument
+and its selecting source question or obligation as one line under
+`## Clarifications` in the draft artifact — for example
+`iso links: srs only — the request names IEC 62304 software requirements`
+[assumption: the wording of this record].
 
 ## Track-wide knob values
 
-- Per-gate question maximum: 2. Each budget knob states this value. In auto mode
-  every question draws down the per-invocation ceiling in `skills/_shared/elicitation-contract.md`.
+- Per-gate budget: 2. Each budget knob states this value and caps its gate
+  inside the 5-question per-invocation ceiling of `skills/_shared/elicitation-contract.md`.
+- Vision exits: an `mrd`, `brd`, or `urd` closes when the `prd` or `srs` that
+  consumes it is accepted; the closing report of each acquisition gate names
+  that exit.
 - Taxonomy knob values map each ported stage's content list onto coverage
   categories; these mappings are new in this track file [assumption].
 - The most recently produced draft carries the `archcore:track` state block;
@@ -113,7 +115,7 @@ for example `mode: iso — request names a regulated system` [assumption: the wo
 - Exit checks:
   - blocking: the draft carries the sections User Personas, User Journeys, User Requirements, Usability Requirements, Acceptance Criteria.
   - advisory: each acceptance criterion is testable.
-- Next: exit. Report follow-ups through `/archcore:plan`: a `prd` via the intent instrument (`skills/_shared/tracks/sdd.md`), or a `brs` via this track's iso mode; WHEN a `prd` on the topic already exists, link the source documents to it with `related` via `add_relation`.
+- Next: exit. Report follow-ups through `/archcore:plan`: a `prd` via the intent instrument (`skills/_shared/tracks/sdd.md`), or the iso links when a traceability obligation is named; WHEN a `prd` on the topic already exists, link the source documents to it with `related` via `add_relation`.
 
 ### gate: requirements-cascade.brs
 

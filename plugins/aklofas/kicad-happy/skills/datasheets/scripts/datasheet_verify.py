@@ -43,7 +43,7 @@ def _load_extraction(extract_dir: str, mpn: str) -> dict:
     path = os.path.join(extract_dir, f"{sanitized}.json")
     if os.path.isfile(path):
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 extraction = json.load(f)
             return extraction
         except (json.JSONDecodeError, OSError):
@@ -56,14 +56,14 @@ def _load_extraction(extract_dir: str, mpn: str) -> dict:
         idx_path = os.path.join(extract_dir, "index.json")
     if os.path.isfile(idx_path):
         try:
-            with open(idx_path) as f:
+            with open(idx_path, encoding="utf-8") as f:
                 idx = json.load(f)
             for k, v in idx.get("extractions", {}).items():
                 if k.upper() == sanitized.upper():
                     fname = v.get("file", "")
                     fpath = os.path.join(extract_dir, fname)
                     if os.path.isfile(fpath):
-                        with open(fpath) as f:
+                        with open(fpath, encoding="utf-8") as f:
                             extraction = json.load(f)
                         return extraction
         except (json.JSONDecodeError, OSError):
@@ -1036,7 +1036,7 @@ def _cli_v14(argv: list[str] | None = None) -> int:
         print(f"error: extraction file not found: {path}", file=_sys.stderr)
         return 2
     try:
-        extraction = _json.loads(path.read_text())
+        extraction = _json.loads(path.read_text(encoding="utf-8"))
     except _json.JSONDecodeError as exc:
         print(f"error: extraction file is not valid JSON: {exc}", file=_sys.stderr)
         return 2

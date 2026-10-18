@@ -12,11 +12,27 @@ const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;})
 
 test('managed preparation accepts exact pinned Skill allowances for native session policy',async()=>{
   const manager=new ManagedNativeManager({configPath:'C:\\fixture\\managed-skills.json',env:{},getConfig:async()=>({}),
+    register:async({config})=>config,
     qualify:async()=>({binary_sha256:'a'.repeat(64)})});
   const envelope={skill_policy:{mode:'cooperative'},provider:{kind:'native_agent',config:{model:'gpt-test',reasoning_effort:'low'}},
     skill_ref:{path:'skills/exact/SKILL.md'},allowed_skills:[{path:'skills/exact/SKILL.md',resources:[]}]};
   const prepared=await manager.prepare(null,null,null,envelope);
   assert.equal(prepared.execution,'managed_native_codex');
+});
+
+test('managed preparation captures one qualifier before config await and preserves its receiver through registration',async()=>{
+  const order=[],config={},env={},settings={binary_sha256:'a'.repeat(64)};
+  let manager;
+  const qualifier=function(candidate,selectedEnv,options){
+    order.push('qualify');assert.equal(this,manager);assert.equal(candidate,config);assert.equal(selectedEnv,env);
+    assert.equal(options.scope,'managed_native');return settings;
+  };
+  manager=new ManagedNativeManager({configPath:'C:\\fixture\\managed-qualifier-receiver.json',env,qualify:qualifier,
+    getConfig:async()=>{order.push('config');Object.defineProperty(manager,'qualify',{value:()=>assert.fail('Must retain the original qualifier across config await'),configurable:true});return config;},
+    register:async options=>{order.push('register');await options.qualify(options.config,options.env,{scope:'managed_native'});return options.config;}});
+  Object.defineProperty(manager,'qualify',{get(){order.push('qualifier_lookup');return qualifier;},configurable:true});
+  const prepared=await manager.prepare(null,null,null,{skill_policy:{mode:'cooperative'},provider:{kind:'native_agent',config:{model:'fixture-model',reasoning_effort:'high'}}});
+  assert.equal(prepared.settings,settings);assert.deepEqual(order,['qualifier_lookup','config','register','qualify','qualify']);
 });
 
 test('managed fan-out respects the declared concurrency and preserves dispatch order', async () => {
@@ -68,12 +84,19 @@ test('managed native fan-out launches independent sub-Agents concurrently and jo
     saveExecutorResult:async(_run,_attempt,completion)=>{assert(Buffer.byteLength(canonicalJSON(completion))<256*1024);return {sha256:'a'.repeat(64)};}},
     execution:async()=>envelope,recordDispatchReceipt:async(_run,args)=>{receipts.push(args.receipt);},recordManagedNativeResults:async(_run,args)=>{trustedResults.push(args.results);},recordExecutorEvent:async(_run,args)=>{events.push(args.event);},recordUsage:async(_run,args)=>{usage.push(args.usage);},completeNode:async(_run,args)=>{completions.push(args.completion);return {nodes:{render:{status:'succeeded'}}};},failNode:async()=>{throw new Error('pool test should not fail');},get:async()=>({nodes:{render:{active_attempt_id:'attempt-1',status:'running'}}})};
   const bothStarted=deferred();let started=0;
-  const manager=new ManagedNativeManager({configPath:join(root,'control-plane.json'),env:{},getConfig:async()=>({global:{enabled:true},providers:[provider]}),qualify:async()=>({}),sessionFactory:async settings=>({
+  const rawObservation={supported:true,diagnostic:'qualified standalone fixture schemas'};
+  const manager=new ManagedNativeManager({configPath:join(root,'control-plane.json'),env:{},getConfig:async()=>({global:{enabled:true},providers:[provider]}),qualify:async()=>({}),sessionFactory:async settings=>{
+    assert.deepEqual(settings.rawObservation,rawObservation);
+    await settings.onEvent({method:'workflow/rawObservation',status:'supported',diagnostic:rawObservation.diagnostic});
+    await settings.onEvent({method:'workflow/toolSearch',thread_id:settings.owner.attempt_id,turn_id:'turn-search',
+      item_type:'tool_search_call',item_id:'search',status:'completed',diagnostic:'execution=server'});
+    return {
     async turn(prompt){started++;if(started===2)bothStarted.resolve();await bothStarted.promise;const index=settings.owner.attempt_id.endsWith('001')?1:2;const refs=JSON.parse(prompt.match(/\nInputs:\n([^\n]+)/)[1]);const slots=JSON.parse(await readFile(refs.items_json.path,'utf8'));const background=JSON.parse(await readFile(refs.background_json.path,'utf8'));assert.deepEqual(slots,[`slot-${index===1?'a':'b'}`]);assert.equal(background.api,'stable shared API');assert.doesNotMatch(prompt,/stable shared API|slot-a|slot-b/);return {output:JSON.stringify({outcome:'completed',result:{result:`render-${index}`},block_reason:''}),thread_id:`thread-${index}`,turn_id:`turn-${index}`,usage:{unknown:true,input_tokens:index,output_tokens:1},audit:{index},item_types:['agentMessage'],command_audit:[{status:'completed',output:'x'.repeat(140000)}]};},
     async close(){settings.toolBroker.revoke();},async interrupt(){},
-  })});
+  };}});
   const args={node_id:'render',attempt_id:'attempt-1',lease_token:'lease-1',control_token:'example-control-1'};
-  const prepared={envelope,adapter:{model:'gpt-test',effort:'low',executable_sha256:'b'.repeat(64),settings:{authentication:{mode:'environment_api_key'},codex_binary:'unused'}},prompt:'Render the assigned animation slot.'};
+  const prepared={envelope,adapter:{model:'gpt-test',effort:'low',executable_sha256:'b'.repeat(64),qualification:{raw_observation:rawObservation},
+    settings:{authentication:{mode:'environment_api_key'},codex_binary:'unused'}},prompt:'Render the assigned animation slot.'};
   const launched=await manager.launch(runtime,'run-1',args,prepared);assert.equal(launched.dispatched,true);await manager.wait('run-1','attempt-1');
   assert.equal(started,2);assert.deepEqual(receipts[0].subagent_dispatch_ids,['managed-attempt-1-001','managed-attempt-1-002']);
   assert.equal(receipts[0].subagent_plan.resolved_count,2);assert.equal(receipts[0].subagent_plan.assignments.length,2);
@@ -86,6 +109,7 @@ test('managed native fan-out launches independent sub-Agents concurrently and jo
   assert.equal(completions[0].evidence.some(item=>Object.hasOwn(item,'command_audit')),false);
   assert.equal(completions[0].evidence.at(-1).kind,'command_audit_artifact');
   assert(events.some(event=>event.kind==='session_state'&&event.metadata.status==='closed'));
+  assert.equal(events.filter(event=>event.kind==='codex_event'&&event.metadata.method==='workflow/toolSearch').length,2);
   await manager.close();assert(resolve(root).startsWith(resolve(tmpdir())));
 });
 
@@ -448,7 +472,7 @@ async function perItemFixture(t,{blockedIndex=null,pauseRepair=false,inheritedIn
     prompt_template:'Implement the assigned cards.',inputs:{items_json:JSON.stringify(items)},
     subagents:{configured_count:'auto',resolved_count:plan.count,fanout,items}};
   const events=[],trusted=[],completions=[],turns=new Map(),settingsSeen=[],repairEntered=deferred(),repairReleased=deferred();
-  const runtime={workflows:{root:join(root,'workflows')},runs:{root:join(root,'runs'),read:async()=>record,
+  let runtime={workflows:{root:join(root,'workflows')},runs:{root:join(root,'runs'),read:async()=>record,
     directory:()=>join(root,'runs',runId),saveExecutorResult:async()=>({sha256:'a'.repeat(64)})},
     execution:async()=>envelope,get:async()=>state,recordExecutorEvent:async(_run,args)=>{events.push(args.event);},
     recordDispatchReceipt:async(_run,args)=>{attempt.dispatch={receipt:args.receipt};},
@@ -476,7 +500,12 @@ async function perItemFixture(t,{blockedIndex=null,pauseRepair=false,inheritedIn
     completeNode:async(_run,args)=>{completions.push(args.completion);return {nodes:{work:{status:'succeeded'}}};},
     failAttemptAfterQuiescence:async()=>{state.nodes.work.status='failed';}};
   if(realItemValidator){
+    runtime=Object.assign(new WorkflowRuntime({runRoot:join(root,'runs')}),runtime);
+    definition.access='read_only';state.status='running';state.permissions={workspace,access:'read_only',allowed_paths:[]};
+    record.pins.providers=[provider];record.pins.root.workflow.finalization={node_id:'outside-this-fixture'};
+    record.pins.root.workflow.skill_policy={mode:'cooperative',implicit:'deny',ambient_allow:[],shadowed_skill_paths:[]};
     runtime.runs.mutate=async(_run,_kind,change)=>({result:await change(state,record.pins,{state,events:[]})});
+    runtime.runs.mutateNativeJournal=runtime.runs.mutate;
     runtime.recordNativeItemResults=(run,args)=>WorkflowRuntime.prototype.recordNativeItemResults.call(runtime,run,args);
     runtime.recordNativeRejectedTurn=(run,args)=>WorkflowRuntime.prototype.recordNativeRejectedTurn.call(runtime,run,args);
     runtime.recordManagedNativeResults=async(run,args)=>{trusted.push(args.results);return WorkflowRuntime.prototype.recordManagedNativeResults.call(runtime,run,args);};
@@ -593,9 +622,9 @@ test('managed per-item retry reuses every inherited success without launching a 
     access:'read_only',workspace,inputs:{items_json:JSON.stringify(['a','b','c'])},resources:[],effective_allowed_paths:[],skill_policy:{mode:'cooperative'},allowed_skills:[],
     subagents:{configured_count:'auto',resolved_count:3,fanout,items:['a','b','c']}};
   let receipt,completion,managedResults,usage,completionError;
-  const runtime={workflows:{root:join(root,'workflows')},runs:{root:join(root,'runs'),read:async()=>record,directory:()=>join(root,'runs','run-retry'),saveExecutorResult:async()=>({sha256:'a'.repeat(64)})},
+  const runtime=Object.assign(new WorkflowRuntime({runRoot:join(root,'runs')}),{workflows:{root:join(root,'workflows')},runs:{root:join(root,'runs'),read:async()=>record,directory:()=>join(root,'runs','run-retry'),saveExecutorResult:async()=>({sha256:'a'.repeat(64)})},
     execution:async()=>envelope,recordDispatchReceipt:async(_run,args)=>{receipt=args.receipt;attempt.dispatch={receipt,request_id:args.request_id};},recordManagedNativeResults:async(_run,args)=>{managedResults=args.results;},
-    recordExecutorEvent:async()=>{},recordUsage:async(_run,args)=>{usage=args.usage;}};
+    recordExecutorEvent:async()=>{},recordUsage:async(_run,args)=>{usage=args.usage;}});
   runtime.runs.mutate=async(_run,_kind,change)=>({result:await change(record.state,record.pins,{state:record.state,events:[]})});
   runtime.transition=async(_run,_kind,change)=>{await change(record.state,record.pins);return record;};
   runtime.recordManagedNativeResults=async(run,args)=>{managedResults=args.results;return WorkflowRuntime.prototype.recordManagedNativeResults.call(runtime,run,args);};

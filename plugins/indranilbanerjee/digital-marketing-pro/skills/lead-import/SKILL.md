@@ -1,11 +1,13 @@
 ---
 name: lead-import
-description: "Import leads into Salesforce, HubSpot, Zoho, or Pipedrive with validation, deduplication against existing CRM records, lead scoring, consent and compliance checks, and source attribution — then push via the CRM MCP and return a full import report with an audit log. Triggers on \"/digital-marketing-pro:lead-import\", \"import these leads\", \"load this CSV into the CRM\", \"add the webinar signups to HubSpot\", \"dedupe and score this lead list\". Nothing touches the live CRM until the Execution Summary is approved with a typed yes — the approval gate is mandatory. Scores leads with the marketing-automation lead-scoring framework and reads the brand profile; for general CRM syncing without scoring use /digital-marketing-pro:crm-sync."
+description: "Import leads into a CRM with dedup, scoring and consent checks, approval-gated. \"dedupe and score this lead list\""
 disable-model-invocation: false
 argument-hint: "[source-file or URL]"
 ---
 
 # /digital-marketing-pro:lead-import
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## Purpose
 
@@ -18,7 +20,8 @@ Use this command for leads specifically — it applies scoring, lifecycle stagin
 1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"lead-import","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 
@@ -49,7 +52,7 @@ The user must provide (or will be prompted for):
 6. **Validate consent and compliance**: Check each lead's consent status against compliance rules for the brand's target markets. Verify opt-in mechanism is documented, timestamp consent records, flag leads missing required consent fields, and ensure lawful data processing basis is recorded per applicable regulation (GDPR Article 6, CCPA, CASL).
 7. **Prepare CRM-ready payloads with source attribution**: Transform validated leads into platform-specific payloads — map fields to CRM schema, attach source attribution (utm_source, utm_medium, utm_campaign), apply assignment rules, set lead status and lifecycle stage, add tags and list memberships, and include lead score as a custom field.
 8. **Create approval gate**: Assess risk level — medium for fewer than 50 leads, high for 50 or more. Present import preview showing total lead count, valid vs. invalid breakdown, top 5 sample records with scores, scoring distribution (MQL/raw/nurture counts), duplicate summary, compliance status, and any validation warnings.
-9. **On approval, import via CRM MCP**: Push lead payloads to the target CRM through the platform MCP in batched requests. Handle rate limits with exponential backoff, retry transient failures, apply assignment rules, trigger any CRM-side automation (welcome workflows, rep notifications), and log each lead's import outcome.
+9. **On approval, import via CRM MCP**: Push lead payloads to the target CRM through the platform MCP in batched requests. Handle rate limits with exponential backoff and retry only a write that provably never reached the platform (connection refused, DNS failure, or a 429 rate-limit rejection); after a timeout or a lost reply, look the record up on the platform first (by email or external ID) and resend only what is missing. Apply assignment rules, trigger any CRM-side automation (welcome workflows, rep notifications), and log each lead's import outcome.
 10. **Trigger notifications and nurture enrollment**: For high-scoring MQLs, send immediate notifications to assigned reps with lead details and recommended next actions. For nurture-qualified leads, enroll in the specified nurture sequence via the email platform MCP. Log all triggered automations.
 11. **Verify import integrity**: Query the CRM post-import to confirm record counts match expectations. Spot-check 5 randomly selected imported leads to verify field values, scoring data, source attribution, and assignment all transferred correctly.
 12. **Return import summary and log results**: Compile final results and log the complete import — timestamp, source attribution, record counts, scoring distribution, assignment breakdown, nurture enrollments, notifications sent, errors, and duration — to `~/.claude-marketing/brands/{slug}/logs/lead-import-log.json`.
@@ -66,8 +69,8 @@ A structured lead import report containing:
 - **Compliance audit trail**: Consent status for every imported lead — opt-in mechanism, consent timestamp, applicable regulation, lawful basis, and any leads flagged for missing or insufficient consent with remediation steps
 - **Assignment summary**: How leads were distributed across sales reps — by owner, territory, product line, or score tier — with counts per assignee and any unassigned leads requiring manual routing
 - **Nurture enrollment summary**: Leads enrolled in nurture sequences — sequence name, enrollment count, expected first touchpoint date, and leads excluded from nurture (already in active sequences or opted out)
-- **Notification delivery report**: Notifications sent to sales reps — rep name, lead count assigned, delivery channel, delivery status, and any failed notifications with retry recommendations
-- **Execution log**: Timestamped record of the import process — batch sizes, API responses, retry attempts, rate limit pauses, processing duration, and CRM confirmation IDs for created records
+- **Notification delivery report**: Notifications sent to sales reps — rep name, lead count assigned, delivery channel, delivery status, and any failed notifications, with a resend recommended only where the notification provably never reached the platform
+- **Execution log**: Timestamped record of the import process — batch sizes, API responses, retries (each for a write that provably never reached the platform), rate limit pauses, processing duration, and CRM confirmation IDs for created records
 - **Data quality baseline**: Field completeness rates across the imported batch — percentage of leads with company, phone, job title, and other optional fields populated, establishing a quality baseline for this source
 - **Source quality comparison**: If prior imports from this source exist, compare current batch quality against historical averages — validation error rate trend, scoring distribution shift, duplicate rate trend, and field completeness changes over time
 - **CRM automation triggers**: Any CRM-side workflows triggered by the import — welcome email sends, task creation for reps, lead routing rule execution, and workflow enrollment confirmations

@@ -158,8 +158,12 @@ Use configured Aegis workspace support; commands live in the expanded owner.
 
 ## Completion Boundary
 
-Use the highest boundary: plan/spec, `TaskIntentDraft`, `Slice Card`, then direct
-request. Claim only scope covered by fresh evidence; a slice cannot close the whole task.
+Reconcile the current authorized request and its conversation context with the
+plan/spec, `TaskIntentDraft`, or `Slice Card`; stale plans cannot override it.
+Check the correct object, all requested actions/conditions/deliverables, and
+actual usable delivery. Tests of those criteria count; unrelated green checks
+or intermediate output do not. Report remaining work and cause explicitly.
+A slice cannot close the whole task or prove project-wide reliability.
 
 Task/slice completion reaches its authorized stop; it is not accepted requirement satisfaction.
 `Requirement accepted` needs baseline criteria or authorized risk acceptance;

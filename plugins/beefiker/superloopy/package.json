@@ -1,12 +1,37 @@
 {
   "name": "superloopy",
-  "version": "0.22.3",
+  "version": "0.27.0",
   "description": "A lightweight loop harness for Codex, Claude Code, and Google Antigravity with strict evidence gates.",
   "type": "module",
   "bin": {
     "superloopy": "src/cli.js"
   },
+  "files": [
+    "src/",
+    "agents/",
+    ".codex/agents/",
+    "hooks/",
+    "hooks.json",
+    "skills/",
+    "assets/",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    ".gemini-plugin/",
+    "plugin.json",
+    "gemini-extension.json",
+    "model-policy.json",
+    "legacy-agent-manifests.json",
+    "docs/superloopy-model-policy.md",
+    "docs/superloopy-model-policy-claude.md",
+    "docs/superloopy-host-contract.md",
+    "docs/superloopy-file-audit.md",
+    "docs/superloopy-loop-golden-set.md",
+    "docs/superloopy-gate-notes.md",
+    "docs/superloopy-design-audit.md",
+    "installation.md"
+  ],
   "scripts": {
+    "pretest": "node scripts/check-node-version.mjs",
     "test": "node --test \"test/**/*.test.js\" \"test/**/*.test.mjs\" \"examples/**/*.test.js\" \"examples/**/*.test.mjs\"",
     "check": "npm test",
     "sync-version": "node scripts/sync-version.mjs"
@@ -26,6 +51,14 @@
   ],
   "author": "beefiker",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beefiker/superloopy.git"
+  },
+  "homepage": "https://github.com/beefiker/superloopy#readme",
+  "bugs": {
+    "url": "https://github.com/beefiker/superloopy/issues"
+  },
   "engines": {
     "node": ">=22.0.0"
   }

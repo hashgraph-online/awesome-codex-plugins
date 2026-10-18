@@ -524,6 +524,9 @@ local-execution lane above; it does not transfer a cloud Maildir.
 - HTTPS courier remains for an operator-provided rendezvous. AMQ does not
   ship a hosted relay. Do not treat a missing rendezvous as a reason to
   remote-drain or copy Maildirs.
+- Agents never run `amq peer pair`, `amq-bridge peer add`, or
+  `amq-bridge peer remove`. Pin writes are operator-only after a
+  fingerprint compare.
 
 See [amq-bridge](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-bridge/README.md).
 
@@ -580,7 +583,9 @@ Note: The `agent@name` inline syntax (e.g., `codex@infra`) is for cross-project 
 
 ```bash
 amq send --to codex --body "Message"              # Send (uses AM_ROOT/AM_ME from env)
-amq drain --include-body                          # Receive (one-shot, silent when empty)
+amq drain --include-body                          # Receive up to 20 messages; silent when empty
+amq drain --include-body --limit 20               # Continue with another bounded batch
+amq drain --include-body --limit 0                # All pending mail, only for a manageable batch
 amq drain --session auth --include-body           # Deliberate sibling-session receive
 amq reply --id "<msg_id>" --body "Response"          # Reply in thread
 amq watch --timeout 60s                           # Block until message arrives (only when no wake is live for you)
@@ -590,6 +595,15 @@ amq send --to grok --body "hello"                 # Grok is a normal peer handle
 
 For the live-wake receive rule and notify-only supervisor exception, see
 [Receive under a live wake](../SKILL.md#receive-under-a-live-wake).
+
+Drains select messages in filename order, not priority order. Check `amq list
+--new --limit 1` for remaining mail after a full batch, and handle any drain error before
+continuing. A full batch is not proof that the inbox is empty; `urgent` bypasses
+the wake hold, not the drain limit or ordering. Keep continuation bounded rather
+than accumulating an unlimited backlog in the model context.
+
+For completion batches, partial results, and changed-state notices, see
+[Send useful handoffs](../SKILL.md#send-useful-handoffs).
 
 ### Send with metadata
 ```bash

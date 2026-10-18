@@ -1,6 +1,6 @@
 ---
 name: refunds-and-disputes
-description: Guide for issuing refunds, handling disputes and chargebacks, and reconciling customer access with Dodo Payments
+description: Dodo Payments refunds and disputes, covering full and partial refunds, refund statuses, dispute and chargeback lifecycle events, evidence, and revoking or restoring customer access. Use when issuing a refund, handling refund or dispute webhooks, responding to a chargeback, or reconciling entitlements after a payment reversal.
 ---
 
 # Refunds and Disputes
@@ -23,7 +23,7 @@ This skill covers issuing refunds (full and partial), handling the dispute lifec
 
 **Amounts** are always in the smallest currency unit (cents for USD, paise for INR, etc.).
 
-**Access revocation** means removing the customer's ability to use the product or service. On a dispute, you typically revoke access while it's open. Restore it only on `dispute.won`; all other outcomes keep access revoked until you reconcile them separately.
+**Access revocation** means removing the customer's ability to use the product or service. On a dispute, you typically revoke access while it's open. Restore it on `dispute.won` or `dispute.cancelled` (withdrawn, no further action needed); the losing outcomes (`dispute.accepted`, `dispute.lost`, `dispute.expired`) keep access revoked.
 
 ## Refunds
 
@@ -54,7 +54,7 @@ To refund only specific items from a payment, pass the `items` array with each i
 const partialRefund = await client.refunds.create({
   payment_id: 'pay_abc123',
   items: [
-    { item_id: 'item_1', amount: 1000 },
+    { item_id: 'item_1' }, // no amount: the whole item is refunded
     { item_id: 'item_2', amount: 2500 },
   ],
 });
@@ -104,34 +104,63 @@ const client = new DodoPayments({
   webhookKey: process.env.DODO_PAYMENTS_WEBHOOK_KEY,
 });
 
+type WebhookEvent = ReturnType<typeof client.webhooks.unwrap>;
+
+// Register ONE endpoint for every Dodo event. A second app.post('/webhook')
+// would never run, because the first handler answers every request.
 app.post('/webhook', async (req, res) => {
+  let event: WebhookEvent;
   try {
-    const event = client.webhooks.unwrap(req.body.toString(), {
+    event = client.webhooks.unwrap(req.body.toString(), {
       headers: {
         'webhook-id': req.headers['webhook-id'] as string,
         'webhook-signature': req.headers['webhook-signature'] as string,
         'webhook-timestamp': req.headers['webhook-timestamp'] as string,
       },
     });
+  } catch {
+    // Only signature verification failures reach this branch
+    res.status(401).json({ error: 'Invalid signature' });
+    return;
+  }
 
-    if (event.type === 'refund.succeeded') {
-      const refund = event.data;
-      // Refund succeeded; revoke access if needed
-      await revokeCustomerAccess(refund.customer.customer_id);
-      await updateRefundRecord(refund.refund_id, 'succeeded');
-    }
-
-    if (event.type === 'refund.failed') {
-      const refund = event.data;
-      // Refund failed; keep access active, alert support
-      await logRefundFailure(refund.refund_id, refund.reason);
-    }
-
+  try {
+    await handleRefundEvent(event);
+    await handleDisputeEvent(event); // defined under "Handle dispute webhooks"
     res.json({ received: true });
   } catch (error) {
-    res.status(401).json({ error: 'Invalid signature' });
+    // Any non-2xx response makes Dodo retry the delivery
+    console.error('Webhook handler failed:', error);
+    res.status(500).json({ error: 'Webhook handler failed' });
   }
 });
+
+async function handleRefundEvent(event: WebhookEvent) {
+  if (event.type === 'refund.succeeded') {
+    const refund = event.data;
+    if (!refund.is_partial) {
+      // Full refund: nothing in the payment is still paid for
+      await revokeCustomerAccess(refund.customer.customer_id);
+    } else {
+      // Partial refund: keep access to items that are still paid for, and
+      // remove it for any item with nothing left to refund. Reading the line
+      // items covers every case - an omitted amount, an explicit amount equal
+      // to the item price, or several partial refunds that add up to it.
+      const { items } = await client.payments.retrieveLineItems(refund.payment_id);
+      const fullyRefundedItemIds = items
+        .filter((item) => item.refundable_amount === 0)
+        .map((item) => item.items_id);
+      await revokeItemAccess(refund.customer.customer_id, fullyRefundedItemIds);
+    }
+    await updateRefundRecord(refund.refund_id, 'succeeded');
+  }
+
+  if (event.type === 'refund.failed') {
+    const refund = event.data;
+    // Refund failed; keep access active, alert support
+    await logRefundFailure(refund.refund_id, refund.reason);
+  }
+}
 ```
 
 ## Disputes
@@ -159,7 +188,7 @@ A dispute moves through seven events. Each event requires a different action fro
 | `dispute.opened` | Customer initiated a chargeback | Record the dispute; consider revoking access immediately; gather evidence from your logs |
 | `dispute.challenged` | You submitted evidence | Wait for the card network to review |
 | `dispute.accepted` | You accepted (conceded) the dispute; funds go to the cardholder | Keep access revoked; mark the dispute as accepted in your records |
-| `dispute.cancelled` | Customer or system cancelled the dispute | Keep access revoked; reconcile the payment separately |
+| `dispute.cancelled` | The dispute was withdrawn or cancelled | No further action needed; restore access you revoked on `dispute.opened` |
 | `dispute.expired` | Dispute window closed without resolution | Treat as lost; keep access revoked |
 | `dispute.won` | You won the dispute | Funds are retained; restore access; update customer records |
 | `dispute.lost` | You lost the dispute | Funds returned to cardholder; keep access revoked; reconcile your records |
@@ -174,66 +203,56 @@ async function resolveDisputeCustomerId(disputeId: string) {
   return dispute.customer.customer_id;
 }
 
-app.post('/webhook', async (req, res) => {
-  try {
-    const event = client.webhooks.unwrap(req.body.toString(), {
-      headers: {
-        'webhook-id': req.headers['webhook-id'] as string,
-        'webhook-signature': req.headers['webhook-signature'] as string,
-        'webhook-timestamp': req.headers['webhook-timestamp'] as string,
-      },
-    });
-
-    if (event.type === 'dispute.opened') {
-      const dispute = event.data;
-      // Record the dispute and revoke access
-      await recordDispute(dispute.dispute_id, dispute.payment_id, dispute.amount);
-      const customerId = await resolveDisputeCustomerId(dispute.dispute_id);
-      await revokeCustomerAccess(customerId);
-      // Gather evidence from your system and submit via dashboard
-      // (no evidence-submission API exists; use the Dodo dashboard)
-    }
-
-    if (event.type === 'dispute.won') {
-      const dispute = event.data;
-      // Funds retained; restore normal state
-      await markDisputeResolved(dispute.dispute_id, 'won');
-      const customerId = await resolveDisputeCustomerId(dispute.dispute_id);
-      await restoreCustomerAccess(customerId);
-    }
-
-    if (event.type === 'dispute.lost') {
-      const dispute = event.data;
-      // Funds returned to cardholder; keep access revoked
-      await markDisputeResolved(dispute.dispute_id, 'lost');
-      // Do NOT restore access
-    }
-
-    if (event.type === 'dispute.accepted') {
-      const dispute = event.data;
-      // Merchant conceded; funds go to the cardholder and access stays revoked
-      await markDisputeResolved(dispute.dispute_id, 'accepted');
-      // Do NOT restore access
-    }
-
-    if (event.type === 'dispute.cancelled') {
-      const dispute = event.data;
-      // Cancellation is not a win; keep access revoked and reconcile separately
-      await markDisputeResolved(dispute.dispute_id, 'cancelled');
-    }
-
-    res.json({ received: true });
-  } catch (error) {
-    res.status(401).json({ error: 'Invalid signature' });
+// Called from the single /webhook handler above, after signature verification
+async function handleDisputeEvent(event: WebhookEvent) {
+  if (event.type === 'dispute.opened') {
+    const dispute = event.data;
+    // Record the dispute and revoke access
+    await recordDispute(dispute.dispute_id, dispute.payment_id, dispute.amount);
+    const customerId = await resolveDisputeCustomerId(dispute.dispute_id);
+    await revokeCustomerAccess(customerId);
+    // Gather evidence from your system and submit via dashboard
+    // (no evidence-submission API exists; use the Dodo dashboard)
   }
-});
+
+  if (event.type === 'dispute.won') {
+    const dispute = event.data;
+    // Funds retained; restore normal state
+    await markDisputeResolved(dispute.dispute_id, 'won');
+    const customerId = await resolveDisputeCustomerId(dispute.dispute_id);
+    await restoreCustomerAccess(customerId);
+  }
+
+  if (event.type === 'dispute.lost') {
+    const dispute = event.data;
+    // Funds returned to cardholder; keep access revoked
+    await markDisputeResolved(dispute.dispute_id, 'lost');
+    // Do NOT restore access
+  }
+
+  if (event.type === 'dispute.accepted') {
+    const dispute = event.data;
+    // Merchant conceded; funds go to the cardholder and access stays revoked
+    await markDisputeResolved(dispute.dispute_id, 'accepted');
+    // Do NOT restore access
+  }
+
+  if (event.type === 'dispute.cancelled') {
+    const dispute = event.data;
+    // The dispute was withdrawn; no further action is needed, so undo the
+    // revocation from dispute.opened
+    await markDisputeResolved(dispute.dispute_id, 'cancelled');
+    const customerId = await resolveDisputeCustomerId(dispute.dispute_id);
+    await restoreCustomerAccess(customerId);
+  }
+}
 ```
 
 ### Evidence submission
 
 Dodo handles the card-network dispute process as Merchant of Record. You submit evidence through the Dodo dashboard, not via API. No evidence-submission API exists.
 
-When a dispute opens, gather your evidence (order confirmation, delivery proof, customer communication, etc.) and upload it to the dashboard within the dispute window (typically 4 days). The card network reviews your evidence and makes a final decision.
+When a dispute opens, gather your evidence (order confirmation, delivery proof, customer communication, etc.) and upload it to the dashboard within the dispute window (10 days from when the dispute is created). The card network reviews your evidence and makes a final decision.
 
 ## Access revocation pattern
 
@@ -266,7 +285,8 @@ async function handleDisputeLifecycle(
       break;
 
     case 'dispute_cancelled':
-      // Cancellation is not a win; reconcile separately and keep access revoked
+      // Withdrawn; no further action needed, so restore access
+      await restoreCustomerAccess(customerId);
       break;
 
     case 'dispute_expired':
@@ -319,9 +339,9 @@ async function reconcileRefund(refund) {
 
 **Ignoring partial refunds when computing entitlements.** If a customer refunds only one item from a multi-item purchase, their entitlement to the other items remains valid. Track refunds by item, not just by payment.
 
-**Restoring access on any outcome except `dispute.won`.** `dispute.accepted` means you conceded and the cardholder receives the funds. A cancelled dispute is also not a win. Keep access revoked and reconcile separately unless you receive `dispute.won`.
+**Restoring access on a losing outcome.** `dispute.accepted`, `dispute.lost`, and `dispute.expired` resolve (or typically resolve) in the cardholder's favor; keep access revoked. Restore access only on `dispute.won` or `dispute.cancelled` (the dispute was withdrawn and needs no further action).
 
-**Submitting evidence after the dispute window closes.** The card network typically gives you 4 days to respond. Set a calendar reminder and gather evidence immediately when a dispute opens.
+**Submitting evidence after the dispute window closes.** You have 10 days from when the dispute is created to respond. Set a calendar reminder and gather evidence immediately when a dispute opens.
 
 **Assuming Dodo will handle access revocation.** Dodo handles the card-network process; you handle application access. Dodo won't revoke your customer's subscription or file access automatically.
 
@@ -330,4 +350,4 @@ async function reconcileRefund(refund) {
 - [Refunds API](https://docs.dodopayments.com/api-reference/refunds/post-refunds)
 - [Refunds feature guide](https://docs.dodopayments.com/features/transactions/refunds)
 - [Dispute webhooks](https://docs.dodopayments.com/developer-resources/webhooks/intents/dispute)
-- [Webhook integration skill](../webhook-integration/) for signature verification
+- The `webhook-integration` skill for signature verification

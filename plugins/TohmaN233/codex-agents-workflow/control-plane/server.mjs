@@ -3,16 +3,23 @@ import { randomBytes } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import readline from 'node:readline';
-import { WorkflowService } from './lib/workflow-service.mjs';
-import {waitForOwnedWorkflow} from './lib/execution/owned-workflow-wait.mjs';
+import { WorkflowService, loadWorkflowInputsFile, withWorkflowExecutionRequest } from './lib/workflow-service.mjs';
+import { canonicalJSON, digest } from './lib/workflow-revisions.mjs';
+import { withForegroundOperationObservation } from './lib/foreground-operation-observation.mjs';
+import { withForegroundActivity, stopForegroundPriorityRetains, releaseForegroundPriorities } from './lib/foreground-activity.mjs';
+import {validateStartupSemanticSubmission} from './lib/execution/workflow-startup-semantic.mjs';
+import {resolvePreparedStartup} from './lib/execution/prepared-startup-record.mjs';
+import {waitForOwnedWorkflow,resolveOwnedWorkflowHandoff} from './lib/execution/owned-workflow-wait.mjs';
 import { closeStrictManagers } from './lib/execution/strict-session-manager.mjs';
 import { closeManagedNativeManagers } from './lib/execution/managed-native-manager.mjs';
 import { closeHostMainManagers } from './lib/execution/host-main-manager.mjs';
+import { closeRunHistoryMaintenances, stopRunHistoryMaintenanceAdmission } from './lib/run-history-maintenance.mjs';
 import { fenceAllAttemptAdmissions, closeAttemptAdmissions } from './lib/execution/attempt-admission.mjs';
 import { workflowToolDefinitions, WORKFLOW_TOOL_OPERATIONS, HOST_ONLY_WORKFLOW_OPERATIONS } from './lib/workflow-tools.mjs';
+import { workflowMcpTransport } from './lib/workflow-call-policy.mjs';
 import { validateData } from './lib/workflow-data-schema.mjs';
 import { WorkbenchApi, workbenchStorage, workbenchErrorPayload as errorToolPayload, MAX_WORKBENCH_BODY, MAX_PACKAGE_BODY } from './lib/workbench-api.mjs';
 import { appIcons, appToolDefinitions, appResourceDefinitions, readAppResource, readMentionResource, callAppTool } from './lib/mcp-app.mjs';
@@ -39,6 +46,9 @@ const SERVER_VERSION = JSON.parse(await readFile(new URL('./package.json', impor
 const DEFAULT_CONSOLE_PORT = 58712;
 const MAX_HTTP_BODY = MAX_WORKBENCH_BODY;
 const MODERN_PROTOCOL_VERSION = '2026-07-28';
+const MODEL_EXECUTION_ENTRYPOINTS = new Set(['workflow_start', 'workflow_start_prepared', 'workflow_native_next', 'workflow_native_spawned_batch',
+  'workflow_native_followed_up', 'workflow_orchestration_complete']);
+const MODEL_THREAD_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SUPPORTED_PROTOCOL_VERSIONS = new Set([MODERN_PROTOCOL_VERSION, '2025-11-25', '2025-06-18', '2025-03-26', '2024-11-05']);
 
 let consoleState = null;
@@ -246,7 +256,8 @@ export async function stopConsole() {
   await new Promise((resolve) => state.server.close(resolve));
 }
 
-export function buildToolDefinitions() {
+export function buildToolDefinitions(env = process.env) {
+  const invocationTransport=workflowMcpTransport(env);
   const sharedResolveProperties = {
     task_type_id: { type: 'string', description: 'Exact enabled Task Type id returned by codex_agents_workflow_status.' },
     task: { type: 'string', description: 'Task objective for the selected Task Type.' },
@@ -256,7 +267,7 @@ export function buildToolDefinitions() {
     user_approved: { type: 'boolean', default: false, description: 'Set true only after explicit current-task approval when the selected Provider or Stage approval gate is enabled.' },
   };
   return [
-    ...workflowToolDefinitions(),
+    ...workflowToolDefinitions(invocationTransport),
     ...appToolDefinitions(),
     {
       name: 'codex_agents_workflow_status',
@@ -378,6 +389,26 @@ function serverIdentity() {
 }
 
 export async function handleRpc(request, options = {}) {
+  workflowMcpTransport(options.env??process.env);
+  const name = request?.params?.name;
+  const action = () => handleRpcResponse(request, options);
+  if (request?.method !== 'tools/call' || !MODEL_EXECUTION_ENTRYPOINTS.has(name)) return action();
+  const operation = name.slice('workflow_'.length);
+  const threadId = request.params?._meta?.threadId;
+  // Only the already-required caller identity is observational correlation.
+  // Missing/invalid metadata stays unbound; original validation still decides.
+  const caller = typeof threadId === 'string' && MODEL_THREAD_ID_PATTERN.test(threadId) ? threadId : null;
+  const configPath=options.configPath===undefined?resolveConfigPath():options.configPath;
+  return withForegroundActivity(join(dirname(resolve(configPath)),'workflow-runs'),()=>withForegroundOperationObservation(
+    ()=>withWorkflowExecutionRequest(action), report => appendAuditEvent(
+    configPath,
+    { event: 'workflow-foreground-operation', outcome: 'observed', action: operation, detail: canonicalJSON({ ...report, caller }) },
+    // The original request may already have committed effects. A diagnostic
+    // persistence fault is visible and must never invite replay as uncommitted.
+    { effectCommitted: true })));
+}
+
+async function handleRpcResponse(request, options) {
   const response = await handleRpcRequest(request, options);
   // node-v0.1.0/docs/spec.md discovery example uses the modern MCP result
   // envelope and reserved identity metadata. Keep the legacy initialize
@@ -399,6 +430,7 @@ async function handleRpcRequest(request, {
   serviceCapabilities = {},
   signal,
 } = {}) {
+  const invocationTransport=workflowMcpTransport(env);
   const method = String(request?.method || '');
   const id = request?.id;
   if (method === 'server/discover') {
@@ -444,7 +476,7 @@ async function handleRpcRequest(request, {
     }
   }
   if (method === 'tools/list') {
-    return { jsonrpc: '2.0', id, result: { tools: buildToolDefinitions() } };
+    return { jsonrpc: '2.0', id, result: { tools: buildToolDefinitions(env) } };
   }
   if (method === 'tools/call') {
     const params = request.params && typeof request.params === 'object' ? request.params : {};
@@ -463,25 +495,43 @@ async function handleRpcRequest(request, {
         throw Object.assign(new Error('Host-only Workflow operations are unavailable through the model MCP boundary'), { code: 'HOST_OPERATION_REQUIRED' });
       }
       if (name.startsWith('workflow_') && WORKFLOW_TOOL_OPERATIONS.has(name.slice('workflow_'.length))) {
-        const operation = name.slice('workflow_'.length);
+        const operation = name==='workflow_start_prepared'?'start':name.slice('workflow_'.length);
         const definition = workflowToolDefinitions().find(tool => tool.name === name);
         validateData(suppliedArgs, definition.inputSchema);
         const modelThreadId=typeof params._meta?.threadId==='string'?params._meta.threadId:'';
-        const needsModelThread=name==='workflow_start'||['workflow_native_next','workflow_native_spawned_batch','workflow_native_followed_up','workflow_orchestration_complete'].includes(name);
-        if(needsModelThread&& !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(modelThreadId))
+        const needsModelThread=MODEL_EXECUTION_ENTRYPOINTS.has(name);
+        if(needsModelThread&& !MODEL_THREAD_ID_PATTERN.test(modelThreadId))
           throw Object.assign(new Error('Workflow execution requires authenticated Codex thread metadata'),{code:'MODEL_THREAD_ID'});
-        const workflowArgs=name==='workflow_start'?{...suppliedArgs,main_actor:'codex',native_parent_thread_id:modelThreadId}:suppliedArgs;
+        const starting=name==='workflow_start'||name==='workflow_start_prepared';
+        const recoveredArgs=name==='workflow_start_prepared'?await resolvePreparedStartup(configPath,suppliedArgs,{invocationTransport}):suppliedArgs;
+        if(name==='workflow_start_prepared')validateData(recoveredArgs,workflowToolDefinitions().find(tool=>tool.name==='workflow_start').inputSchema);
+        const workflowArgs=starting?{...recoveredArgs,main_actor:'codex',native_parent_thread_id:modelThreadId}:recoveredArgs;
         const service = new WorkflowService({ configPath, defaultConfigPath, env, fetchImpl, capabilities: serviceCapabilities });
-        if (name === 'workflow_start') {
+        if (starting) {
           const pack = await service.call('read', { workflow_id: workflowArgs.workflow_id });
+          if(workflowArgs.revision_hash!==undefined&&workflowArgs.revision_hash!==pack.revision_hash)
+            throw Object.assign(new Error('Selected startup revision changed before launch'),{code:'WORKFLOW_STARTUP_REVISION'});
+          const initial=Object.hasOwn(workflowArgs,'initial_output')?validateStartupSemanticSubmission(pack,workflowArgs):null;
+          const {initial_output,startup_inputs_sha256,...businessArgs}=workflowArgs;
+          const launchArgs=await loadWorkflowInputsFile(businessArgs,{model:true});
+          if(initial&&startup_inputs_sha256!==digest(canonicalJSON(launchArgs.inputs??{})))
+            throw Object.assign(new Error('Startup inputs differ from the exact Host-prepared semantic contract'),{code:'WORKFLOW_STARTUP_INPUTS'});
+          if(!initial&&startup_inputs_sha256!==undefined)
+            throw Object.assign(new Error('A startup input pin requires an initial semantic result'),{code:'WORKFLOW_STARTUP_INPUTS'});
           const configuration = await service.config();
           const nativeIds = new Set(configuration.providers.filter(provider => provider.enabled && provider.kind === 'native_agent').map(provider => provider.id));
           const hasNativeNodes = pack.workflow.skill_policy?.mode === 'cooperative' && pack.workflow.nodes.some(node =>
             node.executor?.kind === 'provider' && nativeIds.has(node.executor.provider_id) && node.skill_policy?.mode !== 'strict');
           if (pack.provenance?.kind !== 'bundled_authoring_workflow' && (hasNativeNodes || pack.workflow.nodes.some(node => node.executor?.kind === 'main'))) {
-            const started = await service.call('run_main', { ...workflowArgs, revision_hash: pack.revision_hash, return_after_start: true, detached_host: true });
-            const result=await (serviceCapabilities.waitForOwnedWorkflow??waitForOwnedWorkflow)(service,started,{signal});
-            return { jsonrpc: '2.0', id, result: textToolResult(service.modelResult(result)) };
+            const started = await service.withModelStartup(modelThreadId,
+              {args:{...launchArgs,revision_hash:pack.revision_hash},initial_output:initial?initial_output:null},
+              (identity,runId,key) => service.call('run_main', { ...launchArgs, ...(runId?{run_id:runId}:{}),
+                constraints:{...launchArgs.constraints,host_startup_sha256:identity,...(key?{host_startup_key:key}:{})},
+                revision_hash: pack.revision_hash, return_after_start: true, detached_host: true }));
+            const result=started.startup_rejoined?started:await (serviceCapabilities.waitForOwnedWorkflow??waitForOwnedWorkflow)(service,started,{signal});
+            const resolved=await resolveOwnedWorkflowHandoff(service,started,()=>service.modelStartedResult(result,{modelThreadId,signal,
+              ...(initial?{initialSemantic:{...initial,output:initial_output}}:{})}),{signal});
+            return { jsonrpc: '2.0', id, result: textToolResult(resolved) };
           }
         }
         const result = await service.call(operation, workflowArgs, { model: true, modelThreadId, signal });
@@ -668,6 +718,7 @@ export function createStdioRequestScheduler({
 }
 
 async function main() {
+  workflowMcpTransport(process.env);
   const configPath = resolveConfigPath();
   const reader = readline.createInterface({ input: process.stdin, crlfDelay: Infinity });
   const requestAborts=new Map();
@@ -690,6 +741,11 @@ async function main() {
   let scheduler;
   const requestShutdown = () => {
     if (shutdownPromise) return shutdownPromise;
+    stopForegroundPriorityRetains();
+    stopRunHistoryMaintenanceAdmission();
+    // close() synchronously cancels deferred scheduling before request/attempt
+    // fences can release a handoff. Retain every original shutdown error.
+    const historyStopped=Promise.allSettled([closeRunHistoryMaintenances()]);
     fenceAllAttemptAdmissions();
     reader.close();
     for(const abort of requestAborts.values())abort.abort();
@@ -697,9 +753,10 @@ async function main() {
       await scheduler.shutdown();
       await Promise.allSettled([...pendingWrites]);
       await stopConsole();
-      const stopped = await Promise.allSettled([closeStrictManagers(), closeManagedNativeManagers(), closeHostMainManagers()]);
+      const stopped = [...await Promise.allSettled([closeStrictManagers(), closeManagedNativeManagers(), closeHostMainManagers()]),...await historyStopped];
+      const foregroundStopped=await Promise.allSettled([Promise.resolve().then(()=>releaseForegroundPriorities())]);
       const admission = await Promise.allSettled([closeAttemptAdmissions()]);
-      const cleanupErrors = [...stopped, ...admission].filter(item => item.status === 'rejected').map(item => item.reason);
+      const cleanupErrors = [...stopped, ...foregroundStopped, ...admission].filter(item => item.status === 'rejected').map(item => item.reason);
       if (cleanupErrors.length) throw new AggregateError(cleanupErrors, 'Workflow shutdown retained unconfirmed execution ownership');
       if (outputFailure) throw outputFailure;
       if (failures.length) throw failures[0];
@@ -752,9 +809,13 @@ if (isMain) {
     fenceAllAttemptAdmissions();
     const cleanup = activeStdioLifecycle?.requestShutdown?.()
       || (async () => {
-        const owners = await Promise.allSettled([stopConsole(), closeStrictManagers(), closeManagedNativeManagers(), closeHostMainManagers()]);
+        stopForegroundPriorityRetains();
+        stopRunHistoryMaintenanceAdmission();
+        const historyStopped=Promise.allSettled([closeRunHistoryMaintenances()]);
+        const owners = [...await Promise.allSettled([stopConsole(), closeStrictManagers(), closeManagedNativeManagers(), closeHostMainManagers()]),...await historyStopped];
+        const foregroundStopped=await Promise.allSettled([Promise.resolve().then(()=>releaseForegroundPriorities())]);
         const admission = await Promise.allSettled([closeAttemptAdmissions()]);
-        return [...owners, ...admission];
+        return [...owners, ...foregroundStopped, ...admission];
       })();
     cleanup.then((result) => {
       const failures = Array.isArray(result)
@@ -770,7 +831,7 @@ if (isMain) {
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
   main().catch((error) => {
-      process.stderr.write(`codex-agents-workflow fatal error: ${error.stack || error.message}\n`);
+    process.stderr.write(`codex-agents-workflow fatal error: ${error.code ? `[${error.code}] ` : ''}${error.stack || error.message}\n`);
     process.exit(1);
   });
 }

@@ -4,7 +4,7 @@ import { canonicalJSON, digest } from '../workflow-revisions.mjs';
 import { ensureDirectory, requireValue } from '../workflow-paths.mjs';
 import { writeDurableJSON } from '../workflow-events.mjs';
 
-export async function prepareDirectToolCatalog({ metadata, model, directory }) {
+export async function prepareInheritedToolCatalog({ metadata, model, directory }) {
   requireValue(metadata && typeof metadata === 'object' && !Array.isArray(metadata),
     'DIRECT_TOOL_CATALOG_METADATA', 'Authenticated model metadata must be an object');
   requireValue(typeof model === 'string' && model.length > 0 && metadata.slug === model,
@@ -16,6 +16,10 @@ export async function prepareDirectToolCatalog({ metadata, model, directory }) {
   const catalogModel = structuredClone(metadata);
   const changed_fields = [];
   const added_fields = [];
+  const javascriptAggregation=metadata.tool_mode==null?null:['code_mode','code_mode_only','codemode'].includes(metadata.tool_mode);
+  // Match upstream Lite's client-executed search selection without changing
+  // authenticated metadata or the user's web-search mode.
+  const standaloneWebSearch=metadata.use_responses_lite===true&&javascriptAggregation===true;
 
   if (!Object.hasOwn(catalogModel, 'base_instructions')) {
     const instructions = catalogModel.model_messages?.instructions_template;
@@ -28,25 +32,29 @@ export async function prepareDirectToolCatalog({ metadata, model, directory }) {
     catalogModel.supports_parallel_tool_calls = true;
     added_fields.push('supports_parallel_tool_calls');
   }
-  if (!Object.hasOwn(catalogModel, 'tool_mode')) added_fields.push('tool_mode');
-  else if (catalogModel.tool_mode !== 'direct') changed_fields.push('tool_mode');
-  catalogModel.tool_mode = 'direct';
-
-  if (!Object.hasOwn(catalogModel, 'shell_type')) added_fields.push('shell_type');
-  else if (catalogModel.shell_type !== 'disabled') changed_fields.push('shell_type');
-  catalogModel.shell_type = 'disabled';
-
-  const truncation = catalogModel.truncation_policy;
-  if (!Object.hasOwn(catalogModel, 'truncation_policy')) added_fields.push('truncation_policy');
-  else if (truncation?.mode !== 'tokens' || !Number.isSafeInteger(truncation.limit) || truncation.limit < 64000)
-    changed_fields.push('truncation_policy');
-  if (truncation?.mode !== 'tokens' || !Number.isSafeInteger(truncation.limit) || truncation.limit < 64000)
-    catalogModel.truncation_policy = { mode: 'tokens', limit: 64000 };
+  // Ordinary Cooperative workers inherit the authenticated native shell, just
+  // as they inherit code mode and search. Owned Workflow program tools are
+  // additional resource interfaces, not replacements for ordinary commands.
+  // Legacy metadata without this required catalog field retains its existing
+  // disabled-shell adapter; do not invent an observed native capability.
+  if (!Object.hasOwn(catalogModel, 'shell_type')) {
+    added_fields.push('shell_type');
+    catalogModel.shell_type = 'disabled';
+  }
 
   const catalog = { models: [catalogModel] };
   const directoryPath = await ensureDirectory(directory);
   const path = join(directoryPath, 'models-direct.json');
   await writeDurableJSON(path, catalog);
   const sha256 = digest(await readFile(path));
-  return { path, sha256, source_sha256, changed_fields, added_fields };
+  return { path, sha256, source_sha256, changed_fields, added_fields,
+    execution_overrides:standaloneWebSearch?['features.standalone_web_search=true']:[],
+    interface: { source_tool_mode: metadata.tool_mode ?? null, execution_tool_mode: metadata.tool_mode ?? null,
+      javascript_aggregation:javascriptAggregation, changed_fields, added_fields,
+      native_shell: { source: metadata.shell_type ?? null, execution: catalogModel.shell_type },
+      ...(standaloneWebSearch?{standalone_web_search:{source:'authenticated_model_metadata',
+        basis:'use_responses_lite_and_javascript_aggregation',source_use_responses_lite:true,execution_override:true}}:{}) } };
 }
+
+// Keep the exported API for existing callers; routing is inherited, never forced.
+export const prepareDirectToolCatalog = prepareInheritedToolCatalog;

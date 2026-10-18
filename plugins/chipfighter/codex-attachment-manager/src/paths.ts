@@ -23,7 +23,14 @@ export function dataDir(env: NodeJS.ProcessEnv = process.env, platform: NodeJS.P
 }
 
 export const selectionDirOf = (root = dataDir()) => join(root, "selection");
+// v0.4: Claude Code sessions keep their own selections and request statistics, apart from Codex's.
+export const claudeSelectionDirOf = (root = dataDir()) => join(root, "claude", "selection");
+export const claudeRequestStatsDirOf = (root = dataDir()) => join(root, "claude", "requests");
+// What the engine sent for each history it changed, so the thinking that still fits can stay (claude-thinking.ts).
+export const claudeThinkingDirOf = (root = dataDir()) => join(root, "claude", "thinking");
 export const requestStatsDirOf = (root = dataDir()) => join(root, "state", "requests");
+// v0.7: each task's subagents and side chats, as the engine saw their requests (children.ts).
+export const childrenDirOf = (root = dataDir()) => join(root, "state", "children");
 export const proxyLogDirOf = (root = dataDir()) => join(root, "proxy");
 export const bindingsDirOf = (root = dataDir()) => join(root, "bindings");
 export const pixelCacheDirOf = (root = dataDir()) => join(root, "cache", "pixels");

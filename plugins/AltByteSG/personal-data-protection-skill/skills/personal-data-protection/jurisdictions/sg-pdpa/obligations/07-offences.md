@@ -1,10 +1,20 @@
 # Part 9B — Personal Offences (s48D–F) + Penalties (s48J)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 This Part imposes **personal criminal liability** on individuals — not just civil penalties on the organisation. It was added by the 2020 Amendments (commenced 1 February 2021).
 
 The organisation cannot indemnify a criminal sanction. Reflect this prominently in the staff AUP (see [layer 01](../../../layers/01-non-technical.md)).
+
+## Contents
+
+- s48D — Unauthorised disclosure (individual offence)
+- s48E — Improper use (individual offence)
+- s48F — Unauthorised re-identification (individual offence)
+- s48C(2) — Public-sector exclusion (informational)
+- Penalty cap on the organisation — s48J(3)
+- Penalty cap calculation factors — s48J(6)
+- Mental model
 
 ## s48D — Unauthorised disclosure (individual offence)
 

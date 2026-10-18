@@ -57,12 +57,12 @@ Use Superloopy actively when the clone has independent extraction, build, QA, or
 
 - Treat `loopy team ... loopy clone`, `loopy team <url> clone`, `loopy crew ... clone`, `loopycrew ... clone`, and `ultrawork ... clone` as full-crew clone requests. Start with the crew plan, split extraction/build/QA/review lanes early, and record handoffs from the first dispatched lane.
 - A plain `loopy clone` may stay solo only for a small static page or one clearly bounded component. The moment there are multiple sections, responsive states, animations, unknown assets, or parallelizable QA/review work, escalate to crew dispatch instead of continuing solo.
-- `nami`: read-only navigator for target app structure, candidate selectors, route layout, existing component patterns, and asset paths. Use before broad repo searches or when multiple search angles are needed.
-- `franky`: builder for exactly one bounded component, wrapper, or asset integration slice. Give the full spec inline, allowed files, validation command, artifact target, and `SUPERLOOPY_EVIDENCE` requirement.
-- `usopp`: QA lane for build/typecheck/browser checks, screenshot capture, interaction sweep replay, and evidence reports.
-- `zoro`: drift reviewer. Ask it to compare implementation against the component spec and call out simplified lookalikes, missing states, missing assets, and wrong interaction models.
-- `robin`: audit lane for high-risk evidence, source attribution, suspicious extraction gaps, and final claim review. It ends with `SUPERLOOPY_AUDIT: <artifact>`.
-- `jinbe`: final gate lane for fleet status, accepted evidence, outstanding blockers, and release readiness.
+- `pathfinder`: read-only navigator for target app structure, candidate selectors, route layout, existing component patterns, and asset paths. Use before broad repo searches or when multiple search angles are needed.
+- `forge`: builder for exactly one bounded component, wrapper, or asset integration slice. Give the full spec inline, allowed files, validation command, artifact target, and `SUPERLOOPY_EVIDENCE` requirement.
+- `probe`: QA lane for build/typecheck/browser checks, screenshot capture, interaction sweep replay, and evidence reports.
+- `sentinel`: drift reviewer. Ask it to compare implementation against the component spec and call out simplified lookalikes, missing states, missing assets, and wrong interaction models.
+- `assayer`: audit lane for high-risk evidence, source attribution, suspicious extraction gaps, and final claim review. It ends with `SUPERLOOPY_AUDIT: <artifact>`.
+- `arbiter`: final gate lane for fleet status, accepted evidence, outstanding blockers, and release readiness.
 
 Record every dispatch with `superloopy loop handoff --agent <name> --assignment <self-contained task>`. When a worker returns, update that handoff with `--verdict <PASS|REJECT|NEEDS_CONTEXT>` and `--artifact <path>` when accepted. Run `superloopy loop fleet --json` before any final completion claim. Accepted handoffs require artifacts under the active evidence root; an ack-only worker is inconclusive, never a pass.
 

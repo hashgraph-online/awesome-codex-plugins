@@ -1,6 +1,6 @@
 ---
 name: security
-description: 'Review code or scan for security vulnerabilities, secrets, dependencies and prompt risks. Use when: concrete exposure needs assessment; never silently change policy.'
+description: 'Review code for security problems; scan for vulnerabilities, secrets, dependency and prompt risks. Use when: asked whether code is safe to ship, even one small handler.'
 practices:
 - supply-chain-integrity
 - design-by-contract
@@ -36,9 +36,9 @@ output_contract: 'stdout: security scan report'
 ---
 # Security Skill
 
-> **Purpose:** Run repeatable security checks across code, scripts, authorized binaries, and repo-managed prompt surfaces.
+> **Purpose:** Find and report security weaknesses in code, scripts, authorized binaries, and repo-managed prompt surfaces, with honest coverage.
 
-Use this skill for a caller-requested repository scan, authorized binary assurance, dependency risk, secrets, or offline prompt-surface redteam.
+Use this skill for a caller-requested security review of code, a repository scan, authorized binary assurance, dependency risk, secrets, or offline prompt-surface redteam.
 
 ## Critical Constraints
 
@@ -46,90 +46,99 @@ Use this skill for a caller-requested repository scan, authorized binary assuran
 - Keep collection read-only by default; do not exfiltrate secrets, execute destructive payloads, or mutate policy/baselines to manufacture green. **Why:** the assessment must not become the incident or erase its evidence.
 - Treat missing/error scanners as a coverage gap, never a clean finding; use `--require-tools` when complete tool coverage is required. **Why:** absent evidence is not evidence of absence.
 - Use the current agent and local shell; do not start another runtime or orchestration substrate unless explicitly requested. **Why:** repository scanning is a bounded operation, not permission to fan out.
-- Run the selected scan once and report findings plus coverage gaps. Remediation,
-  risk acceptance, reruns, and promotion are caller decisions.
+- Report findings and coverage gaps, then stop. Remediation, risk acceptance,
+  reruns, promotion, and any ship or merge call are caller decisions. Name each
+  finding's remediation class in a few words; do not write the patch, a plan,
+  an owner, or a priority.
 
-## Prompt
+## What every review reports
+
+Apply these to every review, scripted or manual. They are the rules most often skipped:
+
+1. **Fail-open paths.** For every guard, check, timeout, and exception handler
+   on the surface, ask what happens when it errors or hangs. A control that
+   grants access, skips a check, or continues as success on error is a finding
+   even when its happy path is correct.
+2. **Borrowed identity.** Trace the effective identity at each hop (user,
+   service, token, default, hook). A hop where identity is assumed, defaulted,
+   or inherited instead of verified is the **borrowed identity** failure mode
+   and a finding.
+3. **Per-class coverage ledger.** Walk every applicable class in
+   [the OWASP checklist](references/owasp-checklist.md) (the attack pack for
+   prompt surfaces), plus fail-open and identity, and give each a result:
+   finding, clean, or not assessed. An unvisited class is a gap, never a clean.
+   Chasing one lead to the exclusion of the taxonomy is the **first-scent
+   fixation** failure mode.
+4. **Proven versus suspected.** A finding is proven only when you ran a
+   concrete input, request, or command and observed the behavior; capture it.
+   A finding reasoned from the code is suspected, even with a candidate input;
+   give that input and rank it below proven findings.
+
+For each finding, explain the attacker path and relevant protective control in
+the fields below. Read [attacker-path evidence](references/attacker-path-evidence.md)
+only when reachability, control effectiveness, or claimed test completion needs
+closer support for that finding.
 
 ```text
-Run a full security scan on cli/ in the fleet-router repo: dependency risk, secrets, and static analysis. Keep collection read-only, treat any missing scanner as a coverage gap, and report findings plus coverage gaps rather than remediating them.
+target:   <paths, endpoints, or binary>; authorization: <boundary>
+findings: <id> <severity> <file:line> <class>: <what>
+          proven: <input run> | suspected: <candidate input, why not run>
+          path: <attacker input> -> <reachable behavior> -> <trust boundary> -> <impact>
+          control: <relevant protection challenged and outcome, or none identified>
+          fix class: <a few words>
+coverage: <class> -> finding <ids> | clean | not assessed (<why>)
+tools:    <scanner or command> -> ran | missing | error
+hunt:     converged after <n> passes | unconverged | not run
 ```
 
-## It's working if
+## Manual hunt
 
-- The report lists which scanners ran, e.g. `gosec ./...`, and marks any missing tool as a coverage gap, never a clean pass.
-- Collection stays read-only throughout: no `curl`, `rm`, or credential read appears in the transcript.
-- Findings cite a file and line, such as `cli/internal/auth/token.go:42`, never a vague category.
-- The response's `findings` and `coverage gaps` stay separate from any remediation step, left as caller decisions.
+Code-level review and redteam passes work in any repository, with or without
+AgentOps tooling. Walk the ledger against the full surface and probe fail-open
+behavior where that is safe. Repeat full passes until one complete pass adds no
+new finding and no new coverage gap; that quiet round is the stop condition. If
+the budget ends first, report the hunt as unconverged. The quiet-round rule
+applies only to the manual hunt.
 
-## Security Surfaces
+## Scripted scans
 
-1. **Repository gate:** `scripts/security-gate.sh` composes available scanners for quick/full/release checks.
-2. **Composable suite:** `scripts/security_suite.py` provides static, dynamic, contract, baseline, and policy primitives for authorized binaries.
-3. **Offline redteam:** `scripts/prompt_redteam.py` checks repo-owned prompt and tool-control surfaces against the attack pack.
+Each selected scan runs once per request; a rerun is a new caller decision.
+
+| Surface | Entry point | Location |
+|---|---|---|
+| Repository gate (quick or full) | `scripts/security-gate.sh` | AgentOps repository root only |
+| Composable suite for authorized binaries | `skills/security/scripts/security_suite.py` | this skill's `scripts/` |
+| Offline prompt-surface redteam | `skills/security/scripts/prompt_redteam.py` | this skill's `scripts/` |
+
+- **No gate script** (any other repository): run the scanners the project
+  already uses, such as a dependency audit, secret scan, or static analyzer,
+  record each one that is absent as a coverage gap, and do the manual hunt.
+- **Redteam pack:** the bundled [attack pack](references/agentops-redteam-pack.json)
+  targets AgentOps control surfaces. In another repository its cases fail with
+  "no files matched target globs"; that is a pack mismatch, not a finding.
+- Read [the suite runbook](references/security-suite-runbook.md) before binary,
+  policy, baseline, or redteam work.
 
 This is the canonical security runbook. Suite policy gating produces machine-consumable outputs, including `policy/policy-verdict.json` when a policy file is supplied.
 
-Read [the suite runbook](references/security-suite-runbook.md) before binary, policy, baseline, or redteam work. Use [the OWASP checklist](references/owasp-checklist.md) for code-level review.
-
-## Execution Workflow
-
-### 1) Quick gate
-
-Run:
+### Repository gate
 
 ```bash
-scripts/security-gate.sh --mode quick
+scripts/security-gate.sh --mode quick   # changed scope
+scripts/security-gate.sh --mode full    # repository-wide
 ```
 
-**Checkpoint:** preserve the exit code and verify the reported `security-gate-summary.json` exists and parses before triage.
-
-### 2) Full scan
-
-Run:
-
-```bash
-scripts/security-gate.sh --mode full
-```
-
-Add `--require-tools` when skipped scanners would invalidate the assurance claim. **Checkpoint:** report the result as incomplete unless the selected artifact validator and process both succeed.
-
-### 3) Scheduled gate
+Add `--require-tools` when skipped scanners would invalidate the assurance
+claim. **Checkpoint:** preserve the exit code and verify the reported
+`security-gate-summary.json` exists and parses before triage; report the result
+as incomplete unless the selected artifact validator and process both succeed.
 
 Scheduled automation runs the full gate against the intended branch and retains its artifact directory. A failing scheduled run creates actionable tracked work; AgentOps itself does not supply the scheduler.
 
-### 4) Hunt discipline
-
-For review work beyond the scripted gates (code-level or redteam passes), hunt
-against the full taxonomy, not your first hunch:
-
-- **Full-taxonomy hunt.** Walk every applicable class in
-  [the OWASP checklist](references/owasp-checklist.md) (or the attack pack for
-  prompt surfaces) and record a per-class result: finding, clean, or
-  not-assessed. An unvisited class is a coverage gap, not a clean. Chasing one
-  suspicious lead to the exclusion of the taxonomy is the **first-scent
-  fixation** failure mode.
-- **Empirical proof per finding.** A finding is real when it reproduces: a
-  concrete input, request, or command demonstrating the behavior, captured in
-  the artifact. Pattern-match-only findings are reported as suspicions, ranked
-  below proven ones.
-- **Fail-open probes.** For every guard, gate, or timeout on the surface, ask
-  what happens when it errors or hangs — then probe it where safe. A control
-  that fails open under error is a finding even when its happy path is correct.
-- **Identity-chain traces.** For authenticated or delegated flows, trace who
-  the effective identity is at each hop (user, service, token, hook). A hop
-  where identity is assumed rather than verified — the **borrowed identity**
-  failure mode — is a finding.
-- **Quiet-round convergence.** Iterate full passes until one complete pass
-  yields nothing new: no new finding, no new coverage gap. That quiet round is
-  the stop condition. Stopping after a loud round (findings still arriving) is
-  premature; report the hunt as unconverged if the budget ends before a quiet
-  round.
-
-### 5) Triage
+### Triage
 
 1. Open the latest artifact and identify scanner, severity, file, and coverage gaps.
-2. Reproduce the finding with the narrowest safe command.
+2. Reproduce the finding with the narrowest safe command; an unreproduced hit stays suspected.
 3. Rank concrete findings and preserve coverage gaps.
 4. Stop. Remediation, risk acceptance, and any later scan are new caller decisions. Do not downgrade, suppress, or update a baseline merely to pass.
 
@@ -143,17 +152,18 @@ against the full taxonomy, not your first hunch:
 
 **Validator command:** with `OUT=<security-gate-run-dir>`, run `jq -e '(.mode|type)=="string" and (.mode|length)>0 and (.run_id|type)=="string" and (.run_id|length)>0 and (.output_dir|type)=="string" and (.output_dir|length)>0 and .gate_status=="PASS" and (.missing_tool_count|type)=="number" and (.require_tools|type)=="boolean" and (.toolchain|type)=="object"' "$OUT/security-gate-summary.json" >/dev/null`.
 
-**Output:** report the artifact path, command/exit code, mode, gate status,
-missing-tool coverage, ranked findings, and authorization boundary. Do not add
-an owner, next action, approval, release, or retry decision.
+**Output:** the review report above; for scripted scans also the artifact
+path, command/exit code, mode, and gate status. Do not add an owner, next
+action, approval, release, ship, or retry decision.
 
 ## Quality Checklist
 
 - [ ] Target and authorization boundary are explicit; collection stayed within them.
+- [ ] Every applicable class has a result; unvisited classes are listed as not assessed.
 - [ ] Scanner availability and skipped/error coverage are visible in the report.
-- [ ] Findings include severity, location, reproducible evidence, and bounded remediation guidance.
+- [ ] Findings include severity, location, proven-or-suspected evidence, attacker path, relevant control outcome, and a remediation class, with no patch, plan, owner, or priority.
 - [ ] Artifacts contain no newly exposed secrets or unredacted sensitive payloads.
-- [ ] The report distinguishes a passing scan from permission to promote or release.
+- [ ] The report distinguishes a passing scan from permission to promote, ship, or release.
 - [ ] Suppressions, policy changes, baselines, and risk acceptance require explicit judgment.
 - [ ] The report stops after evidence and contains no continuation decision.
 
@@ -168,13 +178,6 @@ bash tests/scripts/test-security-suite-redteam.sh
 
 For a bounded suite smoke test, use an owned binary and a temporary output directory as shown in [the suite runbook](references/security-suite-runbook.md).
 
-## Examples
-
-- A quick Security request runs the repository gate once and reports coverage and findings.
-- A full Security request runs the full scan once and preserves its artifacts.
-- An authorized binary request may capture a baseline in an explicit temporary output directory.
-- A red-team request may run the offline attack pack over repo-owned surfaces.
-
 ## Troubleshooting
 
 | Problem | Response |
@@ -187,6 +190,7 @@ For a bounded suite smoke test, use an owned binary and a temporary output direc
 
 ## Reference Documents
 
+- [references/attacker-path-evidence.md](references/attacker-path-evidence.md) — finding reachability, controls, and evidence limits
 - [references/security-suite-runbook.md](references/security-suite-runbook.md) — binary/policy/baseline/redteam commands and artifacts
 - [references/security.feature](references/security.feature) — repository-gate executable spec
 - [references/security-suite.feature](references/security-suite.feature) — composable-suite executable spec

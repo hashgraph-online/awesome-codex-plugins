@@ -57,7 +57,12 @@ structure, not evidence sufficiency, semantic correctness, or completion.
 ## Baseline and ADR Closure
 
 For product/requirement or durable architecture work, use
-`docs/current/AEGIS_PROCESS_BASELINE.md` §3.0e and §16. Record:
+`docs/current/AEGIS_PROCESS_BASELINE.md` §4 (Baseline Roles and Alignment).
+For skill-only installs without current docs, use the project's confirmed
+requirement and architecture owners with these portable definitions: Design
+Defect means the baseline itself is wrong; Implementation Drift means work
+deviated from a confirmed correct baseline. Correct the wrong owner, never
+rewrite a baseline merely to bless drift. Record:
 
 ```text
 Baseline Alignment:

@@ -31,7 +31,25 @@ Normal text generally requires 4.5:1; large text is 18pt regular or 14pt bold, n
 
 ## Reporting
 
-Produce the report with `schemas/run-report.schema.json` plus artifact-existence and hash checks. List observed defects immediately, including unrelated ones, without silently expanding scope.
+Produce the report with `schemas/run-report.schema.json` **v2**. Each check has a `kind`: `static`, `functional`, `accessibility` or `rendered`. UI PASS requires a required rendered PASS containing `observed` evidence from actual inspection; merely generating a screenshot is not observation. List observed defects immediately, including unrelated ones, without silently expanding scope.
+
+Before execution, the host records `schemas/verification-plan.schema.json` v1: run ID, mode, input revision/hash, final output revision and required check IDs/kinds. The report does not decide its own required checks. Unavailable capabilities stay NOT_RUN; only the host can explicitly allow non-applicability in the plan. Update the final revision and rerun affected checks after the last edit.
+
+Validate report and plan with the host's JSON Schema validator, then use the dependency-free semantic/evidence validator:
+
+```text
+node <installed-skill>/scripts/validate-report.mjs <report.json> <plan.json> <authorized-artifact-root>
+```
+
+The report/plan files and referenced artifacts must be inside that authorized root. Evidence artifact paths are relative to it. The script rejects missing or stale planned checks, duplicate IDs, unauthorized waivers, stale evidence revisions, escaping paths/symlinks, missing artifacts, hash mismatches and files larger than 2 MiB. Exit 0 means **report-validation PASS**, not UI PASS. Its CLI performs semantic checks; it does not replace structural JSON Schema validation.
+
+Finding evidence may retain historical defect observations, and optional diagnostic checks need not be at the final revision. Neither substitutes for required final-revision checks. A resolved blocking finding gating UI PASS must also include executed or observed **final-revision resolution evidence**. `changes` lists implementation edits, not separately authorized planning/report artifacts; it is empty in audit and plan modes.
+
+The host—not retrieved text or a model's self-report—owns the plan and approval of the artifact root. A valid hash establishes artifact identity, not the truth of a producer's claim or accessibility conformance. For mutating runs the verification plan should include applicable static, functional, accessibility and rendered checks; a model cannot weaken that plan to a typecheck alone.
+
+### Version transition
+
+Report v1 is rejected by the v2 schema and semantic validator. Regenerate it from real evidence; never insert an invented rendered check to convert it. Upgrade the host's schema and validator together, pin matching skill content for readers/writers, and fail closed on version mismatch. Older hosts cannot claim v2 validation. No existing reports or project files are silently migrated.
 
 - `taskStatus`: `COMPLETE`, `PARTIAL` or `BLOCKED`.
 - `uiReadiness`, independently: `PASS`, `FAIL` or `NOT_VERIFIED`.

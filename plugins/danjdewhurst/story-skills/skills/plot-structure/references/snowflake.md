@@ -12,13 +12,13 @@ The whole novel in one sentence of about fifteen words: who, what they want, wha
 
 Five sentences: the setup, the first disaster, the second disaster, the third disaster, and the ending. Each disaster closes a phase and forces the protagonist into a harder course; the ending resolves the third.
 
-**Where it lives:** the rest of `## Synopsis` in `story.md`, after the logline. Three-act is the natural fit: set `structure: three-act` in `plot/_index.md` and map the disasters onto its beats: first disaster at the first plot point (~25%), second at the midpoint (~50%), third at the second plot point (~75%). Record the three disasters as the first rows of the main arc's Plot Points table (scaffold the arc with `story add arc "{Name}" --type main --character {id} --theme {theme}`) and in `plot/timeline.md`.
+**Where it lives:** the rest of `## Synopsis` in `story.md`, after the logline. Three-act is the natural fit: set `structure: three-act` in `plot/_index.md` and map the disasters onto its beats: first disaster at the first plot point (~25%), second at the midpoint (~50%), third at the second plot point (~75%). Record the three disasters as the first rows of the main arc's Plot Points table (scaffold the arc with `story add arc '{Name}' --type main --character {id} --theme '{theme}'`) and in `plot/timeline.md`.
 
 ## Step 3: Character Summaries
 
 One short sheet per major character: name, their storyline in one sentence, their abstract motivation (what they want from life), their concrete goal (what they want in this story), the conflict that blocks the goal, the epiphany (what they learn or refuse to learn), and a one-paragraph storyline.
 
-**Where it lives:** `story add character "{Name}" --role {protagonist|antagonist|deuteragonist|supporting}` for each, then fill `## Motivations & Goals` (motivation is the need, goal is the want) and `## Character Arc` (the epiphany sets the ending state). Set `arc-type`, `lie`, and `truth` in frontmatter when the epiphany is a lie/truth shift (see `character-management`'s `references/character-template.md`). An antagonist's summary states the `counter-premise:` from their side. If a sheet contradicts the Step 2 paragraph, fix whichever is wrong before continuing.
+**Where it lives:** `story add character '{Name}' --role {protagonist|antagonist|deuteragonist|supporting}` for each, then fill `## Motivations & Goals` (motivation is the need, goal is the want) and `## Character Arc` (the epiphany sets the ending state). Set `arc-type`, `lie`, and `truth` in frontmatter when the epiphany is a lie/truth shift (see `character-management`'s `references/character-template.md`). An antagonist's summary states the `counter-premise:` from their side. If a sheet contradicts the Step 2 paragraph, fix whichever is wrong before continuing.
 
 ## Step 4: One-Page Synopsis
 
@@ -30,13 +30,13 @@ Expand each sentence of the Step 2 paragraph into its own paragraph. The setup, 
 
 Tell the story again from each major character's side: about a page for the main cast, half a page for the rest. This is where subplots surface, because each character's version shows what they are doing while the protagonist is offstage.
 
-**Where it lives:** a character's own storyline becomes an arc file: `story add arc "{Name}" --type character --character {id}` for an inner change, `--type subplot` for an outer thread. Put the synopsis in the arc's sections and a pointer to it in the character's `## Character Arc`. Keep offstage history in `## Backstory`.
+**Where it lives:** a character's own storyline becomes an arc file: `story add arc '{Name}' --type character --character {id}` for an inner change, `--type subplot` for an outer thread. Put the synopsis in the arc's sections and a pointer to it in the character's `## Character Arc`. Keep offstage history in `## Backstory`.
 
 ## Step 6: Long Synopsis
 
 Expand each paragraph of the Step 4 synopsis into roughly a page, weaving in the subplots from Step 5. Ingermanson's version is about four pages.
 
-**Where it lives:** the arc files, with `## Rising Action` carrying the escalations in order and new plot points added to each arc's Plot Points table and to `plot/timeline.md`. Setups that need a later payoff go in `continuity/promises/` (`story add promise "{Setup}" --planted chapter-{NN}`) and open mysteries in `continuity/questions/` (`story add question "{Question}" --introduced chapter-{NN}`). `story synopsis . --pages 3` is the CLI's longest read-back; it has no four-page mode.
+**Where it lives:** the arc files, with `## Rising Action` carrying the escalations in order and new plot points added to each arc's Plot Points table and to `plot/timeline.md`. Setups that need a later payoff go in `continuity/promises/` (`story add promise '{Setup}' --planted chapter-{NN}`) and open mysteries in `continuity/questions/` (`story add question '{Question}' --introduced chapter-{NN}`). `story synopsis . --pages 3` is the CLI's longest read-back; it has no four-page mode.
 
 ## Step 7: Character Charts
 
@@ -48,7 +48,7 @@ Fill out every major character in full: appearance, history, voice, relationship
 
 Break the long synopsis into a list of scenes, one line each: POV character, what happens, and a rough length. Reorder and cut here, where it is cheap.
 
-**Where it lives:** `story add chapter "{Title}" --number {N} --pov {id} --arc {arc-id}` for each chapter, then `story add scene "{Title}" --chapter chapter-{NN} --scene {M} --pov {id} --location {id} --arc {arc-id}` for each scene, with the one-line summary under the scene's `## Purpose`. Where the list already knows them, pass `--hook {hook}` to `story add chapter` for how the chapter ends and `--outcome {outcome}` to `story add scene` for whether the POV character gets what they want. Fill the `Chapter` column of each arc's Plot Points table and `plot/timeline.md` as scenes are placed. Run `story pacing .` to see the list's shape: runs of `yes` outcomes, missing sequels, length outliers.
+**Where it lives:** `story add chapter '{Title}' --number {N} --pov {id} --arc {arc-id}` for each chapter, then `story add scene '{Title}' --chapter chapter-{NN} --scene {M} --pov {id} --location {id} --arc {arc-id}` for each scene, with the one-line summary under the scene's `## Purpose`. Where the list already knows them, pass `--hook {hook}` to `story add chapter` for how the chapter ends and `--outcome {outcome}` to `story add scene` for whether the POV character gets what they want. Fill the `Chapter` column of each arc's Plot Points table and `plot/timeline.md` as scenes are placed. Run `story pacing .` to see the list's shape: runs of `yes` outcomes, missing sequels, length outliers.
 
 ## Step 9: Scene Descriptions
 
@@ -64,7 +64,7 @@ When drafting finds a better story than the design, change the design at the sma
 
 ## Maintenance
 
-After every step from Step 2 on that creates or edits arcs, characters, chapters, scenes, promises, or questions, run `story reindex .`, `story links .`, and `story validate .`. After Step 10, also run `story wordcount . --write`. In early steps `story links .` reports characters named in an arc before their file exists; they clear once Step 3 creates them.
+After every step from Step 2 on that creates or edits arcs, characters, chapters, scenes, promises, or questions, run `story reindex .`, `story wordcount . --write`, and `story check .`. In early steps `story check .` reports characters named in an arc before their file exists; they clear once Step 3 creates them.
 
 ## When to Ask the User
 

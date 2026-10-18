@@ -1,6 +1,6 @@
 ---
 name: reality-check
-description: 'Audit claimed state, goals or native status. Use when: a claim audit or snapshot is requested. Clarify advice versus acceptance for ambiguous checking or readiness requests.'
+description: 'Audit claims that work is done or shipped against the diff or repo. Use when: asked whether something really got done, even if it looks obvious.'
 practices: [design-by-contract, evidence-based-engineering]
 hexagonal_role: domain
 consumes: [caller-question, native-source-evidence]
@@ -24,84 +24,75 @@ output_contract: cited claim comparison; validated reality-check-report.v1 for d
 Compare an expected state with observable evidence, measure declared goals, or
 report native status. Select the requested question; a snapshot needs no
 invented completion claim. Return facts and gaps without selecting work.
-
-## Establish the requested outcome
-
-Use the caller's request and already settled context. A clear request to compare
-a stated claim with evidence, measure declared goals or report native status
-selects the corresponding procedure below without another intent question.
-Requested engineering advice belongs to [Review](../review/SKILL.md); its
-findings remain advisory.
-
-Generic checking or readiness language does not select a claim audit, advice or
-acceptance. A subject and supplied criteria identify what to inspect, not the
-kind of judgment requested. When context has not settled that purpose, ask one
-question: does the caller want advisory findings or an acceptance judgment?
-Wait for the answer before choosing or completing either interpretation. Do not
-return a gap report, verdict or readiness conclusion while intent is unresolved.
-
-Explicitly selecting [Validate](../validate/SKILL.md), asking to establish that
-original acceptance is met, or requesting independent proof of completion needs
-fresh, author-distinct exact-subject judgment under Validate's contract. Hand
-off the original acceptance, exact subject, complete changed scope and relevant
-evidence; a claim audit cannot substitute for that judgment. Missing fresh
-reviewer capability stays an explicit gap, never a claim that validation occurred.
-Clear native work still needs zero mandatory skills or skill chain.
+Neighbours: advice on a plan or change is [Review](../review/SKILL.md); an
+acceptance verdict on a finished change is [Validate](../validate/SKILL.md).
 
 ## Claim comparison
 
-1. Read the exact claim and its source. For a completion claim, enumerate every
-   stated goal, including work that was never started. Give each a disposition:
-   confirmed with evidence, concrete gap or unverifiable.
-2. Inspect relevant files, command outcomes and artifacts. Separate confirmed
-   behavior, concrete gaps, incomplete evidence and changed assumptions. Name the
-   missing evidence instead of resolving an untestable claim by assertion.
-3. Compare proposed scope with the original goal when asked about a plan. Report
-   additions that lack authority as scope escalation; the report cannot approve
-   them. Repeated measurements use the same question and criteria; a changed
-   question starts a different comparison.
-4. Return the cited findings with checked and not-checked scope. Keep native
-   tracker, Git, runtime, deterministic checks and semantic judgments distinct.
+Enumerate every stated claim, including work that was never started, and give
+each its own disposition: **confirmed** (cite the evidence), **gap** (cite what
+is missing or contradicts it) or **unverifiable** (name the evidence that would
+settle it). The named failure mode is auditing only what the diff touched: a
+claimed item with no trace in the evidence is a gap, not something to leave out
+of the report.
 
-A quick answer can be inline. A selected durable gap report retains
+1. Read the exact claim and its source, and split it into its separate items.
+2. Inspect the relevant files, command outcomes and artifacts, separating
+   confirmed behavior, concrete gaps, incomplete evidence and changed
+   assumptions. Credit only what the evidence shows: a reported run without its
+   output, behavior left to a default or another component, and a test that
+   exercises code without asserting the claimed outcome are unverifiable, not
+   confirmed. Name the missing evidence instead of resolving an untestable
+   claim by assertion.
+3. When asked about a plan, compare proposed scope with the original goal;
+   additions that lack authority are scope escalation the report cannot approve.
+   Repeated measurements reuse the same question and criteria; a changed
+   question starts a different comparison.
+4. Return the ledger with checked and not-checked scope. Keep native tracker,
+   Git, runtime, deterministic-check and semantic-judgment facts distinct.
+
+```text
+Claim: <the claim as stated, and where it came from>
+| # | Stated item | Disposition | Evidence, or what would settle it |
+|---|---|---|---|
+| 1 | <item> | confirmed / gap / unverifiable | <file:line, command output, artifact> |
+Checked: <what was inspected>. Not checked: <what was not>.
+```
+
+The ledger reports evidence; it carries no verdict, readiness call or PASS.
+
+A quick answer is inline. A selected durable gap report uses
 `reality-check-report.v1`: write `reality-check-report.json` under the caller's
-chosen destination, default `.agents/scratch/reality-check/<run-id>/`, and run
-`skills/reality-check/scripts/validate-output.sh <report.json>`. Include the
-checked claim, evidence-backed finding kinds and goal-by-goal dispositions for
-completion/status claims. This format permits no `verdict`, `readiness` or
-`PASS` field; observations are not independent semantic judgment.
+chosen destination, default `.agents/scratch/reality-check/<run-id>/`, and check
+it with this skill's `scripts/validate-output.sh <report.json>`. Record the
+claim, evidence-backed finding kinds and the per-item dispositions in
+`coverage`. The format permits no `verdict`, `readiness` or `PASS` field;
+observations are not independent semantic judgment.
+
+## Establish the requested outcome
+
+A request to check a stated claim (done, shipped, fixed, every item complete)
+against the evidence selects the claim comparison above without another
+question; so do explicit requests to measure declared goals or report native
+status. A bare readiness question with no claim and no settled purpose is
+ambiguous: ask once whether the caller wants advisory findings or an acceptance
+judgment, and wait. A claim audit is not acceptance and cannot substitute for
+Validate's fresh, author-distinct judgment. If acceptance is wanted, hand off and
+report a missing fresh reviewer as a gap, never as validation that occurred.
+Shared routing and handoff detail:
+[advice or acceptance](../review/references/advice-or-acceptance.md).
 
 ## Goal measurement
 
-Inspect the declared goals source; prefer `GOALS.md` when it and legacy YAML
-both exist. Preserve directive and gate identities and report each executable
-check with its actual outcome. Run the requested `ao goals` command once:
-`measure --json`, `validate --json`, `drift`, `history`, `export`, `meta --json`,
-`scenarios` or `render`.
-
-These commands do not edit the goals source, but `measure`, `drift` and `export`
-may write best-effort derived snapshots under `.agents/ao/goals/baselines/`.
-`render --out <file>` writes a caller-selected spec; never target the goals
-source or another non-derived file. Use stdout when no output file is requested.
-Return command, exit code, goal-level results, aggregate measurement, missing
-evidence and checked/not-checked scope. Do not add, remove, prioritize, migrate
-or repair goals, or turn a measurement gap into assigned work.
+Running `ao goals` against the declared goals source, its derived snapshots and
+what to return are in [goals](references/goals.md). Do not add, remove,
+prioritize, migrate or repair goals, or turn a measurement gap into assigned work.
 
 ## Native status
 
-Use `ao status` for the local evidence-store view. It validates content-addressed
-intent and verdict artifacts before counting them, reports corruption or
-unavailable sources, and shows evidence recency. Its durable stores are
-`.agents/ao/intents/sha256` and `.agents/ao/verdicts/sha256`; a count is not a
-per-artifact digest inventory. Inspect a specific digest or timestamp only when
-that artifact is part of the requested question.
-
-Report caller-supplied subject manifests from their named location. Otherwise
-mark manifests, runtime phase, elapsed execution, tool-call activity and remaining
-work as not checked. An artifact's recent timestamp proves evidence recency,
-not an active worker. Read other tracker, Git or factory facts only from their
-own authorized source; do not blend factory completion, green checks and a
-fresh verdict into one health judgment. Report unavailable evidence explicitly.
+Reading the evidence store with `ao status`, and what a snapshot cannot show,
+are in [status](references/status.md). A recent artifact timestamp proves
+evidence recency, not an active worker.
 
 ## Boundary
 

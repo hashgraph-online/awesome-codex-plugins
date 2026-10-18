@@ -86,14 +86,23 @@ tunables.json, one line a value), or tells you, and you run `npx --no-install ho
 
 ## 4. Multiplayer: every screen, the host's rules
 
+For a rules game (`src/rules.ts` plus `view.ts`), the Lab runs the same host runtime locally in each pane,
+including when the published game keeps `room.offline: false`. No Lab state reaches a room. Put gameplay
+numbers in tunables.json; the runtime reads the sliders automatically, including `public.speed` for a value
+under `public`. Keep them with `homie-studio lab set <game> public.speed=7`. The take's stage reaches
+`world.stage` in the rules; use that for a target or a ledge, without importing the Lab into guarded rules.
+Keep `lab.phase`, `lab.track`, poses and overlays in the view. Both panes get the same seed and fixed clock.
+`lab check` must show actual gameplay tracks changing and the repeated take matching, not just an empty page.
+
+
 A studio game is played in a room. A feel change must look the same on every screen and keep the two-browser check
 green:
 
-- **Presentation from what every screen already has**: an event the host sends (`net.send('knock', { slot, dx, dy })`)
+- **Presentation from what every screen already has**: a declared rules effect (`world.emit` in rules, `room.on` in the view; `net.send` only in an unchanged older game)
   or a change in the snapshot (a slime's hit points dropping). Flashes, squash, sparks and numbers are drawn locally.
 - **Gameplay on the host**: a hit-stop that holds a body, a push, a slide's curve. Make motion frame-rate independent
   (a curve of time, not a per-frame multiply), so a 30 fps phone moves the same distance.
-- **Juice dice**: `lab.random()` for particles and shake, never Math.random(): the world's dice must be the same in
+- **Juice dice**: `lab.random()` for particles and shake, never Math.random() for lab presentation: the world's dice must be the same in
   both builds for the lab to compare them, and lab.random() is Math.random() outside the lab.
 - A change that moves gameplay (a push that puts a target out of reach) shows in the lab's numbers: read them. One
   push in this skill's own proof took a slime out of reach and the next two strikes missed; a lunge fixed it.
@@ -139,6 +148,6 @@ Record a side-by-side clip the person can share with the `video` skill's `record
 - Never say it feels better from the code. Show the take; the person feels it.
 - Never change Today: instrumenting changes nothing a player feels, and is committed on its own first.
 - Never put a lab call where it allocates every frame outside the lab (`if (lab.on)` around reporting).
-- Never use Math.random() for juice, or read a clock other than requestAnimationFrame's time and net.now().
+- For view juice use lab.random() and the Lab clock. Rules use world.random and world.tick/dt; movement uses ctx.tick/dt/math. Never import the Lab into rules.
 - Never edit a take to make New look better; record a new one and say why.
 - Never leave the lab running when the work is done (`lab --stop`), or open a browser for the person.

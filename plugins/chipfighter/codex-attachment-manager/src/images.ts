@@ -2,6 +2,7 @@
 // and describe it: a key that names the same occurrence in both places, its kind and name, and a content digest.
 // v0.2 — the source the panel filters by: the kind, except for the screenshots Codex desktop attaches to a comment on a
 // PDF page or a web page, told apart by the caption Codex writes before them. The text for the model does not use it.
+// v0.3 — an image our fetch tool returned carries, in the line before it, the id it is a copy of (thread-index.ts).
 // Input: items as parsed JSON. Output: ImageRef[] in item order (pure, no I/O).
 
 import { createHash } from "node:crypto";
@@ -30,7 +31,14 @@ export type ImageRef = ImageDigest & {
   // name only one PDF.
   pdfPage: number | null;
   pdfName: string | null;
+  // v0.3: in a tool output, the id named by our fetch tool's line right before the image ("[图片 IMG-001 取回的原图｜…]").
+  fetchedId: string | null;
 };
+
+// v0.3 — the state our fetch tool (cam_view_image) writes in the line before each image it returns, in either
+// language, so the image is known as a copy of that id. The rest of the line is the usual heading (rewrite.ts).
+export const FETCHED_STATE = { zh: "取回的原图", en: "fetched original" } as const;
+const FETCHED_LINE = new RegExp(`^\\[(?:图片|Image) (IMG-\\d{3,}) (?:${FETCHED_STATE.zh}|${FETCHED_STATE.en})(?:｜| \\|)`);
 
 const OPEN_TAG = /^<image name=(\[Image #\d+\]) path="(.*)">$/s;
 // Codex desktop 26.924's own wording: the caption right before a comment's screenshot, and the line naming the PDF in
@@ -80,6 +88,11 @@ function digest(owner: object, value: string, mime: string | null): ImageDigest 
   const result = { contentId: createHash("sha256").update(value).digest("hex"), mime, base64Chars: value.length, width: size?.width ?? null, height: size?.height ?? null };
   digests.set(owner, result);
   return result;
+}
+
+// v0.4: the same digest for an image block of a Claude Code transcript or request (raw base64, not a data URL).
+export function imageDigest(owner: object, value: string, mime: string | null): ImageDigest {
+  return digest(owner, value, mime);
 }
 
 function partDigest(part: Json): ImageDigest | null {
@@ -133,7 +146,7 @@ export function findImages(items: Json[]): ImageRef[] {
 
     if (item.type === "image_generation_call" && typeof item.result === "string" && item.result) {
       const found = digest(item, item.result, "image/png");
-      refs.push({ ...found, key: keyFor(0, found.contentId), item: index, part: null, openTag: null, closeTag: null, kind: "generated", replaceable: false, name: null, label: null, turnId, source: "generated", pdfPage: null, pdfName: null });
+      refs.push({ ...found, key: keyFor(0, found.contentId), item: index, part: null, openTag: null, closeTag: null, kind: "generated", replaceable: false, name: null, label: null, turnId, source: "generated", pdfPage: null, pdfName: null, fetchedId: null });
       return;
     }
     const field = item.type === "message" ? item.content : item.type === "function_call_output" || item.type === "custom_tool_call_output" ? item.output : null;
@@ -170,6 +183,7 @@ export function findImages(items: Json[]): ImageRef[] {
         source,
         pdfPage: pdf?.[1] ? Number(pdf[1]) : null,
         pdfName: pdf ? pdfName ?? null : null,
+        fetchedId: context && before !== null ? FETCHED_LINE.exec(before)?.[1] ?? null : null,
       });
       n++;
     });

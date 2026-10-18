@@ -1,6 +1,6 @@
 ---
 name: validate
-description: 'Freshly judge a finished change and its claims against original acceptance. Use when: acceptance verdict or independent proof is sought. Clarify generic checks or readiness first.'
+description: 'Freshly judge whether a finished change and its claims meet original acceptance: PASS, FAIL or NOT_PROVEN. Use when: asked for a go/no-go, sign-off or independent verdict.'
 practices:
 - design-by-contract
 - llm-eval-harness
@@ -32,20 +32,49 @@ output_contract: 'PASS | FAIL | NOT_PROVEN with criteria, evidence, checked/not_
 
 # Validate
 
-## Establish intent before judgment
+Freshly judge one finished candidate against its original acceptance, return
+`PASS`, `FAIL`, or `NOT_PROVEN` with criterion-level evidence, and stop.
+Neighbours: advice or a second look is [Review](../review/SKILL.md); whether a
+stated claim holds is [Reality Check](../reality-check/SKILL.md). This file
+carries every rule the judgment needs. Linked files, including
+[RPI boundaries](../rpi/references/boundaries.md) and
+[mechanics](references/mechanics.md), add depth only: if one cannot be read,
+judge from this file and say which was unavailable.
 
-Resolve advice versus acceptance from the caller's request and already settled
-context first. Explicitly selecting Validate, asking to establish that original
-acceptance is met, or requesting an acceptance verdict or independent proof of
-completion selects this route, even when phrased as "review this". Suggestions
-or a second look belong to [Review](../review/SKILL.md).
+## Rules that decide the verdict
 
-Generic checking or readiness questions do not by themselves select acceptance.
-Supplying acceptance criteria identifies what to inspect, not which kind of
-judgment the caller wants. If the purpose remains ambiguous, ask whether the
-caller wants advice or an acceptance judgment and wait for the answer. Do not
-issue a verdict, acceptance conclusion or readiness approval while intent is
-unresolved; missing intent is not a `NOT_PROVEN` verdict.
+- The author cannot issue a binding PASS, and advisory findings cannot stand in
+  for this judgment. An author's summary, confidence or assurance is a claim to
+  check, not evidence; explanation alone is not proof.
+- Each criterion needs its own evidence on the exact candidate. A criterion
+  nobody demonstrated goes in `not_checked` and never counts toward PASS.
+- A changed test, tolerance, golden, suppression or acceptance text must still
+  satisfy the original intent. Green obtained by weakening the oracle is FAIL
+  for the criterion it was meant to prove, and that green is not evidence.
+- Read receipts; do not re-run checks the author ran on this exact subject or
+  that CI will run. Re-execute only a risk-critical claim that has no receipt.
+- A necessary finding never becomes an optional caveat or non-goal.
+
+Decide in this order:
+
+1. The subject changed during judgment, changed-path coverage is incomplete,
+   or author and validator identity or freshness is missing, colliding or
+   unattested: NOT_PROVEN.
+2. A criterion is proven failed, or a change is proven out of scope: FAIL, even
+   when other criteria are unverified.
+3. Any in-scope criterion lacks evidence: NOT_PROVEN.
+4. Every criterion is verified with evidence, checked scope is nonempty and
+   `not_checked` is empty: PASS.
+
+## Establish intent first
+
+An explicit request for Validate, an acceptance verdict or independent proof
+that original acceptance is met selects this skill, even when phrased as
+"review this". Generic checking or readiness questions, even with criteria
+supplied, do not: ask once whether the caller wants advice or an acceptance
+judgment, and wait. Issue no verdict or readiness approval meanwhile; missing
+intent is not a `NOT_PROVEN` verdict. Shared routing:
+[advice or acceptance](../review/references/advice-or-acceptance.md).
 
 ## When a fresh judgment is worth it
 
@@ -58,136 +87,127 @@ checks and CI are the gate, and no fresh judgment is owed. Use Validate when:
   tracker state, deleting a check that protects the product; or
 - no deterministic check covers the behavior that changed.
 
-Judge once. After the author repairs findings, the affected checks confirm the
-repair; a second judgment happens only when the caller asks for one. Keep the
-judgment's cost a fraction of the cost of the work: when it approaches that
-cost, stop and return what is unchecked.
+Judge once. Report NOT_PROVEN with its gaps and stop; do not request or wait
+for another round. After the author repairs findings, the affected checks
+confirm the repair; a second judgment happens only when the caller asks for
+one. Keep the judgment's cost a fraction of the cost of the work: when it
+approaches that cost, stop and return what is unchecked.
 
-After acceptance intent is established, freshly judge the exact candidate
-against accepted intent, return `PASS`, `FAIL`, or `NOT_PROVEN`, and stop. The
-author cannot provide binding PASS. Advisory findings cannot substitute for
-this fresh exact-subject judgment. Read RPI [boundaries](../rpi/references/boundaries.md)
-before judgment; load helper flags and storage details from
-[mechanics](references/mechanics.md) when needed. If the required boundary
-resource is missing or unreadable, name the path and report that judgment is
-blocked; do not issue a verdict from remembered or inferred boundary rules.
-Unrelated authorized inspection may continue. Restore access to that resource
-before resuming judgment. Optional mechanics need loading only for the selected
-helper or persistence operation; a missing optional resource blocks that
-operation, not every inspection.
+## Subject
 
-## Preconditions and freshness
+The subject is a nonempty implementation candidate, held unchanged after
+required checks and known repairs; plans, audits and reviews are subjects only
+when the caller requested document review. Supplied failed-acceptance evidence
+means FAIL on that subject; do not review a moving repair. Bind its identity at
+the start and again at the end of judgment:
 
-Final review starts after required checks and known repairs, with the candidate
-held unchanged. Supplied failed-acceptance evidence means FAIL on that subject;
-do not review a moving repair. The subject is a nonempty implementation candidate; plans, audits
-and reviews are subjects only when the caller requested document review.
+- With AgentOps installed: `ao provenance manifest --root "$REPO_ROOT" --include "$CHANGED_PATH"`,
+  one `--include` per changed path.
+- In any Git repository: the commit SHA (`git rev-parse HEAD`) and the changed
+  paths (`git diff --name-only <base>...HEAD`); for uncommitted work, the
+  `git status --porcelain` listing and a `shasum -a 256` of each changed file.
+- A subject supplied only in the conversation, such as a pasted diff or a
+  described change, is exactly what was supplied; anything it does not show is
+  unverified.
 
-A requested retrospective normally follows the code judgment; do not demand
-a provisional postmortem as evidence for code acceptance. If supplied intent
-bundles both, identify the code criteria and report their judgment separately
-while keeping the overall request incomplete until its other deliverables
-exist. Do not drop criteria or issue an overall PASS early. An explicitly
-requested review of the retrospective judges that document on its own scope.
+A requested retrospective follows the code judgment and is not evidence for it.
+When intent bundles both, judge the code criteria separately and keep the
+overall request incomplete until the retrospective exists; issue no overall
+PASS early. An explicitly requested review of the retrospective judges that
+document on its own scope.
 
-Use exact caller/runtime-owned intent bytes and derived acceptance identity.
-Author and validator context IDs must be explicit and distinct; freshness is
-attested by runtime or caller with the attester's identity. Missing, colliding
-or unattested identity means NOT_PROVEN, not proof of isolation by role name.
+## Identity and freshness
+
+Author and validator identities must be explicit and distinct, and freshness
+must be attested by the runtime or the caller, naming the attester. An
+attestation is a declared trust fact, not cryptographic isolation. In ordinary
+use these count:
+
+- **Author:** the identity the caller gives for whoever produced the candidate:
+  a person, a session or agent ID, or the commit author.
+- **Validator:** this context's runtime ID when the runtime exposes one, such
+  as a subagent or session ID; otherwise the handle the dispatcher holds for
+  it, such as the agent ID returned at launch, or "this conversation" when the
+  caller opened it for the judgment.
+- **Freshness:** a statement from the runtime, the dispatcher or the caller,
+  naming who makes it, that this context did not produce the candidate and was
+  given intent, subject and evidence rather than the author's working history.
+  When the caller opened this conversation for the judgment and supplied the
+  candidate, the caller is the attester.
+
+A role name, a persona switch inside the author's conversation, or the
+validator vouching for itself does not count. Never invent an identity. An
+identity gap makes the result NOT_PROVEN; keep every finding in the report.
+
+## Reviewers
 
 Default to one fresh reviewer in the author's model family: Codex/OpenAI for
-Codex/OpenAI, Claude/Anthropic for Claude/Anthropic. Use the runtime's configured
-capable model unless pinned. A new role in the author's context is not fresh.
-Supply task-specific intent, scope, exact subject and relevant evidence, without
-full author history, desired verdict or peer conclusions. Retrieve more source
-when a criterion requires it; concise input must not omit necessary evidence.
+Codex/OpenAI, Claude/Anthropic for Claude/Anthropic, on the runtime's
+configured capable model unless pinned. Supply task-specific intent, scope,
+exact subject and relevant evidence, without full author history, desired
+verdict or peer conclusions. Concise input must not omit necessary evidence;
+retrieve more source when a criterion requires it.
 
-Cross-model review is opt-in. `--cross-model [model]` is a skill prompt selection,
-not an AO flag; it adds a fresh other-family reviewer. Required legs remain
-required: unavailable diversity yields `diversity_unsatisfied` and NOT_PROVEN
-for the combined request, even if another leg passed. Preserve delivered FAILs
-and dissent; neither voting nor model preference makes a split PASS. Optional
-unavailable diversity stays disclosed without erasing findings. Exact invocation,
-authorization, runtime identity and independent-input rules live in
-[model-dispatch](../agent-native/references/model-dispatch.md). No fixed
-ten-minute cap applies; respect real caller/native bounds without renewing them.
-A timeout is missing judgment, not FAIL. Shared-family or cross-family agreement
-alone is not truth or proof of freedom from training bias.
+Cross-model review is opt-in: `--cross-model [model]` is a skill prompt
+selection, not an AO flag, adding a fresh other-family reviewer through
+[model-dispatch](../agent-native/references/model-dispatch.md). A required leg
+that cannot run yields `diversity_unsatisfied` and NOT_PROVEN for the combined
+request, even if another leg passed; optional diversity that is unavailable is
+disclosed without erasing findings. Delivered FAILs and dissent stand; neither
+voting nor model preference makes a split PASS, and agreement is not proof of
+truth. No fixed ten-minute cap applies; respect real caller/native bounds
+without renewing them. A timeout is missing judgment, not FAIL.
 
 ## Judgment
 
-Use the helper for each changed path (repeat `--include` for complete scope):
+1. Bind the subject. Verify continuity with the exact caller-owned intent,
+   cited evidence and complete changed-path coverage; missing integrity is
+   NOT_PROVEN.
+2. Revisit the original accepted behavior examples, including those in the
+   conversation or bead, and check each observable result and its domain
+   meaning on the exact candidate. A new test or renamed concept cannot replace
+   an unfulfilled scenario. Inspect the actual diff against every criterion;
+   publication or provenance claims in docs need verifiable evidence too. Risk
+   sets depth: acceptance, permissions, tests and gates, stopping, disclosure,
+   hooks and executable controls warrant deeper reading, including prose
+   policy. Unknown risk merits examination, not extra reviewers.
+3. Classify commands before running any. Regeneration, synchronization,
+   formatting and `--force` mutate the subject until proven otherwise; run them
+   only on a disposable copy or a committed subject, never the judged tree.
+4. Bind the subject again; a mismatch is NOT_PROVEN.
+5. Return one result in the shape below, promptly, and stop.
 
-```sh
-ao provenance manifest --root "$REPO_ROOT" --include "$CHANGED_PATH"
+## Report
+
+```text
+Verdict: PASS | FAIL | NOT_PROVEN
+Subject: <manifest digest, or commit SHA and changed paths>; unchanged start to end: yes | no
+Criteria:
+  1. <criterion> - verified | failed | not verified - <evidence: file:line, receipt, observed output>
+Findings: <class> - <what and where> - <consequence>   (or "none")
+Notes (optional, do not change the verdict): <...>
+Checked: <what was inspected, and how>
+Not checked: <in-scope acceptance not verified>   (empty only for PASS)
+Identity: author <id>; validator <id>; freshness attested by <runtime | caller>: <attester>
 ```
 
-1. Derive `subject-manifest.v1` using the existing helper at start and end.
-   A mismatch means mutation and NOT_PROVEN. Verify exact intent continuity,
-   cited evidence digests and complete changed-path coverage; missing integrity
-   is NOT_PROVEN. Proven out-of-scope change is FAIL.
-2. Revisit the original accepted behavior examples, including those in the
-   conversation or bead. Check the observable result and its established
-   domain meaning on the exact candidate. A new test or renamed concept cannot
-   replace an unfulfilled scenario; missing scenario evidence is NOT_PROVEN.
-   Inspect the actual diff against every acceptance criterion. Risk determines
-   depth: acceptance, permissions, tests/gates, stopping, disclosure, hooks and
-   executable controls warrant deeper inspection, including prose policy.
-   Unknown risk merits examination, not automatic extra reviewers.
-3. Read and reason; do not re-run checks the author ran on this exact subject
-   or that CI will run. Their receipts establish those facts. Re-execute a
-   proof only for a risk-critical claim that has no receipt. A changed subject
-   needs its affected checks rerun by the author; it needs a new judgment only
-   when the caller asks for one.
-4. Classify commands before executing them. Regeneration, synchronization,
-   formatting and `--force` are subject-mutating until proven otherwise; run
-   them only on a disposable copy or a committed subject, never an uncommitted
-   judged tree. Do not overwrite the candidate while validating it.
-5. Reject green obtained through weaker assertions, tolerances, goldens,
-   suppressions or acceptance edits. Each criterion needs supporting evidence;
-   explanation alone is not proof. A necessary finding cannot become an
-   optional caveat or non-goal. Publication/provenance claims in docs also need
-   verifiable evidence.
-6. Return one result with criterion-level evidence, findings, checked scope,
-   `not_checked`, author/judge identities and contexts, and the freshness
-   attestation. PASS requires all criteria verified, nonempty checked scope and
-   top-level evidence, and empty `not_checked`. An unverified criterion means
-   NOT_PROVEN; proven failed acceptance or scope violation means FAIL.
-
-## Findings and report
-
-A finding is something that fails an acceptance criterion or would mislead a
-user, break install or the CLI, or remove protection for the product. Report
-anything else as an optional note; notes do not change the verdict and the
-author may ignore them. Report `NOT_PROVEN` with its gaps and stop; do not
-request or wait for another round.
-
-`not_checked` means in-scope acceptance that was not verified. Other limits
-remain in criterion reasoning, declared non-goals or residual-risk prose; never
-hide or delete them to obtain PASS. Keep prior findings visible. For each new
-finding, name a short stable nonempty `class` describing the defect, reused on
-recurrence, and distinguish pre-existing, introduced or unknown cause using
-before/after or equivalent causal evidence. Counts and timestamps alone do not
-establish cause. Known findings return to direct repair; causal stalls use the
-RPI single-helper rule, not repairs delegated to this validator.
-
-Keep the report proportional: cite the exact subject, complete bound manifest
-and existing receipts instead of copying path or digest inventories. Group
-generated companions by source owner and verified equivalence; still verify
-every changed path and cited binding. Include excerpts only to assess a finding.
-Retain every criterion, necessary finding, identity, freshness fact and unchecked
-surface. Complete coverage does not require a second copy of the evidence.
-
-Return the candidate verdict promptly when the judgment is complete. When
-delivery is outside the accepted review scope, the caller checks its native facts without
-another semantic review of unchanged content. Delivery inside acceptance stays
-unverified until its evidence exists: do not issue complete PASS early or remove
-the criterion. Use the existing result for any pending delivery update, without
-repeating the investigation or creating another report.
+A finding fails an acceptance criterion or would mislead a user, break install
+or the CLI, or remove protection for the product; anything else is an optional
+note the author may ignore. Give each new finding a short stable `class`,
+reused on recurrence, and say whether it is pre-existing, introduced or unknown
+from before/after evidence; counts and timestamps alone do not establish cause.
+Keep prior findings visible. `not_checked` holds in-scope acceptance that was
+not verified; other limits stay in criterion reasoning, declared non-goals or
+residual-risk prose, never hidden to obtain PASS. Delivery inside acceptance
+stays unverified until its evidence exists; never remove that criterion to
+reach PASS. [Mechanics](references/mechanics.md) covers report proportion and
+where each scope limit lives.
 
 Validate is the sole semantic author of `verdict.v2`.
 Only when the caller requests machine-readable evidence or a declared consumer
-requires it, persist through `ao provenance store-verdict`. Validate supplies judgment;
-Go verifies structure and storage, not truth. Otherwise return the result
-through the existing caller channel without hidden machine artifacts.
-Validate owns no repair, retry, delivery or tracker transition.
+requires it, persist through `ao provenance store-verdict`
+([mechanics](references/mechanics.md)); Go verifies structure and storage, not
+truth. Otherwise return the result through the caller's existing channel,
+without hidden machine artifacts. Validate owns no repair, retry, delivery or tracker transition:
+known findings go back to the author for direct repair, and a causal stall uses
+the RPI single-helper rule.

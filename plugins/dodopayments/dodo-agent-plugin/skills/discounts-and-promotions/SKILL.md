@@ -1,6 +1,6 @@
 ---
 name: discounts-and-promotions
-description: Guide for implementing discount codes and promotional pricing with Dodo Payments, including CRUD operations, eligibility rules, stacking, subscription-cycle limits, and plan-change preservation.
+description: Dodo Payments discount codes and promotional pricing, covering discount CRUD, percentage and flat amounts, eligibility rules, usage limits, stacking via discount_codes, subscription-cycle limits, and preservation on plan changes. Use when creating coupons or promo codes, applying or validating a code at checkout, or debugging a discount that won't apply.
 ---
 
 # Discounts and Promotions
@@ -20,7 +20,7 @@ This skill covers discount codes, coupons, and promotional pricing in Dodo Payme
 
 **Discount types:** Dodo supports both percentage and flat-amount discounts. Percentage amounts are expressed as integers where 1500 means 15% (100 = 1%). Flat amounts are in the smallest currency unit (cents for USD).
 
-**Discount code:** A human-readable string (e.g., `SUMMER2025`) that customers enter at checkout. Codes are case-sensitive.
+**Discount code:** A human-readable string (e.g., `SUMMER2025`) that customers enter at checkout. The API uppercases codes on create (`summer2025` is stored as `SUMMER2025`); codes must be at least 3 characters, and omitting `code` generates a random 16-character uppercase code.
 
 **Eligibility:** Discounts can be restricted to specific products, customers, or date ranges. A discount without restrictions applies to any product and any customer.
 
@@ -119,7 +119,7 @@ await client.discounts.delete('discount_id');
 
 ## Discount types and configuration
 
-**Important:** The feature documentation states that only percentage discounts are currently supported. However, the current OpenAPI schema defines both `flat` and `percentage` types with currency options. Follow the API reference when implementing. If you encounter unexpected behavior with flat discounts, verify with Dodo support whether flat discounts are fully enabled in your account.
+Two types are supported: `percentage` and `flat` (shown as **Amount** in the dashboard). A `flat` discount requires `currency_options` with at least one resolvable default currency; for a `percentage` discount, `currency_options` is optional and caps the discount per currency. A flat deduction is pooled across the whole cart rather than applied per line item.
 
 ### Percentage discounts
 
@@ -177,19 +177,12 @@ const discount = await client.discounts.create({
   customer_eligibility: 'specific',
 });
 
-await fetch(
-  `https://test.dodopayments.com/discounts/${discount.discount_id}/customers`,
-  {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.DODO_PAYMENTS_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      customer_ids: ['cus_vip_001', 'cus_vip_002'],
-    }),
-  },
-);
+// The SDK has no named method for this endpoint yet. `client.post` reuses the
+// client's auth and base URL (test.dodopayments.com for `test_mode`,
+// live.dodopayments.com for `live_mode`), so nothing is hardcoded.
+await client.post(`/discounts/${discount.discount_id}/customers`, {
+  body: { customer_ids: ['cus_vip_001', 'cus_vip_002'] },
+});
 ```
 
 ### Date range
@@ -236,7 +229,10 @@ const discount = await client.discounts.create({
 
 ### Single code
 
+Never call the SDK from the browser: it uses your secret API key. Create the session in a server route and return only the URL.
+
 ```typescript
+// Server route
 const session = await client.checkoutSessions.create({
   product_cart: [{ product_id: 'pdt_abc', quantity: 1 }],
   discount_codes: ['SUMMER2025'],
@@ -244,7 +240,14 @@ const session = await client.checkoutSessions.create({
   return_url: 'https://yoursite.com/return'
 });
 
-window.location.href = session.checkout_url;
+return Response.json({ checkout_url: session.checkout_url });
+```
+
+```typescript
+// Browser
+const res = await fetch('/api/checkout', { method: 'POST' });
+const { checkout_url } = await res.json();
+window.location.href = checkout_url;
 ```
 
 ### Multiple codes (stacking)

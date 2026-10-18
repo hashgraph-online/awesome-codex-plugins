@@ -9,7 +9,10 @@
  *                     interpolation, no blending.
  *   TapReader         tap.js's copy of what a frame sends to its speaker (WebAudio), stamped with the audio clock.
  *   fitAudio          that sound laid onto the picture's clock (a straight-line fit of the audio clock to the page's).
- *   encodeMp4         H.264 (+ AAC when there was sound), BT.709 tags, faststart.
+ *   encodeMp4         H.264 (+ AAC when there was sound), limited-range BT.709 (converted and tagged), faststart.
+ *   BT709_TAIL        the end of a filter chain that makes a picture limited-range BT.709 yuv420p, and says so
+ *   BT709_FLAGS       the encoder flags that carry those tags into the file
+ *   frameSegments     an edit's segments as whole frames, each cut on the frame nearest its time
  */
 import { spawnSync } from 'node:child_process';
 import { closeSync, openSync, readFileSync, rmSync, writeFileSync, writeSync } from 'node:fs';
@@ -121,14 +124,46 @@ export function fitAudio(tap, { t0, total, fps, out }) {
   return audio;
 }
 
+/**
+ * The last filters of every picture this skill encodes: limited-range ("tv") BT.709 in yuv420p, with the frames
+ * tagged so. A frame that comes from a JPEG (every captured frame does) is FULL range with BT.601 coefficients.
+ * `format=yuv420p` alone changes neither: the encoder then writes a full-range file that ffprobe calls yuvj420p,
+ * with no primaries and no transfer tag, and a phone that assumes limited range shows it washed out or crushed.
+ * `-colorspace bt709` on the encoder only relabels the matrix without converting it. So: scale converts the
+ * range and the matrix from what the frame says it is, format picks the layout, setparams writes the tags.
+ */
+export const BT709_TAIL = 'scale=out_range=tv:out_color_matrix=bt709,format=yuv420p,setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709';
+export const BT709_FLAGS = ['-pix_fmt', 'yuv420p', '-color_range', 'tv', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709'];
+
+/**
+ * An edit's segments as whole frames. Each cut is put on the frame nearest its time in the music, and a segment
+ * is the frames between two cuts: 1.875 s at 30 fps is 56.25 frames, so the segments run 56, 56, 57, 56 … and
+ * no cut is ever more than half a frame from its beat.
+ *
+ * Trimming each segment by its duration instead (what this did before) rounds every segment by itself: nine
+ * 1.875 s segments came out a quarter of a frame short each, and the cuts walked away from a bed that plays at
+ * its own speed, up to five frames by the end of a trailer.
+ */
+export function frameSegments(segments, fps) {
+  let t = 0; let done = 0;
+  return segments.map((s) => {
+    t += s.dur;
+    const end = Math.round(t * fps + 1e-6);
+    const frames = Math.max(1, end - done);
+    const out = { startFrame: done, frames, at: t - s.dur };
+    done += frames;
+    return out;
+  });
+}
+
 /** The film: the concat list's frames at `fps`, scaled to w x h, with the fitted sound when it had any. */
 export function encodeMp4({ concat, audio, fps, width, height, seconds, out, crf = 16 }) {
   const sound = audio?.peakDb != null;
   const args = ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', concat];
   if (sound) args.push('-f', 's16le', '-ar', String(audio.rate), '-ac', '2', '-i', audio.raw);
   args.push('-map', '0:v', ...(sound ? ['-map', '1:a', '-c:a', 'aac', '-b:a', '256k', '-ar', '48000'] : []),
-    '-vf', `fps=${fps},scale=${width}:${height}:flags=lanczos,format=yuv420p`, '-c:v', 'libx264', '-preset', 'medium', '-crf', String(crf), '-r', String(fps),
-    '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-movflags', '+faststart', '-t', seconds.toFixed(3), out);
+    '-vf', `fps=${fps},scale=${width}:${height}:flags=lanczos,${BT709_TAIL}`, '-c:v', 'libx264', '-preset', 'medium', '-crf', String(crf), '-r', String(fps),
+    ...BT709_FLAGS, '-movflags', '+faststart', '-t', seconds.toFixed(3), out);
   const r = spawnSync('ffmpeg', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
   if (audio?.raw) rmSync(audio.raw, { force: true });
   return { ok: r.status === 0, why: r.status === 0 ? null : (r.stderr ?? '').trim().split('\n').pop() };

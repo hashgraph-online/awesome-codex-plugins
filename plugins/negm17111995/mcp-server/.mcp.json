@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "maqami-travel": {
+      "type": "http",
+      "url": "https://mcp.maqami.co/"
+    }
+  }
+}

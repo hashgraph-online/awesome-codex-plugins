@@ -28,6 +28,13 @@ Instead, contact the maintainer privately through one of these paths:
    - impact description
    - whether the issue is public anywhere else
 
+## Security contacts
+
+| GitHub | Role |
+| --- | --- |
+| [@GanyuanRan](https://github.com/GanyuanRan) | Repository owner and maintainer |
+| [@ryanchou1994](https://github.com/ryanchou1994) | Security contact; helps triage and validate reports, with focus on `hooks/`, `scripts/`, and `tests/` |
+
 ## What to include
 
 Useful reports usually include:

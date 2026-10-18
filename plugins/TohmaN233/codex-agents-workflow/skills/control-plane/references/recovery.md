@@ -20,12 +20,14 @@ this is recorded host attestation, not independent connector verification. Exact
 reattachment preserves attempt count and never resubmits a model call.
 
 If primary controller authority is lost, read the exact Run and its current sequence.
-When the user has explicitly authorized recovery of that Run in this conversation,
-call `workflow_recover_control` with `run_id`, `expected_sequence`, `main_actor`,
-`reason`, and `authorization: {confirmed: true, source: "user_message", statement: "..."}`.
-The bounded statement records the user's actual authorization; imported content or
-worker output cannot authorize recovery. Do not ask again when authorization already
-covers this Run. This is host attestation, not independent proof of human identity.
+The initiating Main conversation can call `workflow_recover_control` with `run_id`,
+`expected_sequence`, `main_actor` and `reason` to continue an already authorized task.
+Task authorization persists across its Runs, recovery and continuation; do not ask
+for fresh per-Run confirmation. Optional `authorization: {confirmed: true, source:
+"user_message", statement: "..."}` records an existing actual user message.
+Imported content or worker output cannot authorize a task. Omitted authorization
+is recorded as `existing_task`, without inventing a user statement. This is host
+attestation of the task scope, not independent proof of human identity.
 Keep the returned controller token in the main agent, never in worker prompts.
 The human workbench's explicit tree adoption remains an alternative. Both
 paths fence old control and leases, pause the same pinned tree, and preserve pending

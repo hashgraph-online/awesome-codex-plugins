@@ -1,7 +1,7 @@
 {
   "name": "personal-data-protection",
-  "version": "0.5.1",
-  "description": "SEA personal-data-protection compliance guidance for engineers modifying code that touches personal data — Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA, and Philippines Data Privacy Act.",
+  "version": "0.6.1",
+  "description": "SEA personal-data-protection compliance guidance for engineers modifying code that touches personal data — Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA, Philippines Data Privacy Act, and Vietnam PDPL.",
   "author": {
     "name": "AltByte",
     "url": "https://github.com/AltByteSG"
@@ -26,7 +26,7 @@
   "interface": {
     "displayName": "Personal Data Protection",
     "shortDescription": "PDP compliance checks for SEA apps.",
-    "longDescription": "Engineer-facing personal-data-protection guidance for Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA, and Philippines Data Privacy Act.",
+    "longDescription": "Engineer-facing personal-data-protection guidance for Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA, Philippines Data Privacy Act, and Vietnam PDPL.",
     "composerIcon": "./assets/icon.svg",
     "developerName": "AltByte",
     "category": "Developer Tools",

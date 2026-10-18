@@ -23,6 +23,8 @@ If the user references a video, inspect it before promising to recreate it. Extr
 
 The tools and lifecycle are listed in `SKILL.md`; each installed focused skill adds its own quality decisions. These routes are instructions, not a claim that every combination has passed output validation.
 
+For concrete request bodies and reusable demo inputs, use the [four creative MCP recipes](https://github.com/magichourhq/skills/blob/main/examples/midnight-remix/recipes.md). They cover edited portrait → motion, accepted performance → face swap, portrait + recording → talking photo, and footage + recording → lip sync, with second-edit instructions and honest output limits.
+
 ## Make the payoff visible
 
 Keep the recognizable subject readable in the opening and let the transformation resolve. A short clip can use one strong reveal. A longer story needs deliberate beats; extend only when there is another useful beat, not to pad runtime. Choose motion for the brief: stillness, a reaction, a physical performance and a camera reveal solve different jobs.

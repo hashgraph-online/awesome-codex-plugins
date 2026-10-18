@@ -27,6 +27,7 @@ README = Path(__file__).parent.parent / "README.md"
 OUTPUT = Path(__file__).parent.parent / "plugins.json"
 MARKETPLACE_OUTPUT = Path(__file__).parent.parent / ".agents" / "plugins" / "marketplace.json"
 PLUGINS_ROOT = Path(__file__).parent.parent / "plugins"
+RETIRED_BUNDLE_IDENTITIES = {("samuelbushi", "uizze")}
 REQUEST_TIMEOUT_SECONDS = 60
 MAX_RETRIES = 3
 USER_AGENT = "awesome-codex-plugins-generator"
@@ -116,6 +117,7 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
 
     section = lines[start:end]
     plugins: list[dict[str, str]] = []
+    local_plugins: list[dict[str, str]] = []
     current_category = "Uncategorized"
     seen: set[str] = set()
 
@@ -130,6 +132,18 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
             line.strip(),
         )
         if not plugin_match:
+            local_match = re.fullmatch(
+                r"- \[([^\]]+)\]\(\./plugins/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/?\)\s*[-–]\s*(.+)",
+                line.strip(),
+            )
+            if local_match:
+                local_plugins.append({
+                    "owner": local_match.group(2),
+                    "repo": local_match.group(3),
+                    "_local_bundle": "true",
+                })
+            elif line.strip().startswith("- "):
+                raise ValueError(f"Unrecognized Community Plugins entry: {line.strip()}")
             continue
 
         owner, repo = plugin_match.group(3), plugin_match.group(4)
@@ -161,7 +175,7 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
         if repo_counts[owner_repo] > 1:
             plugin["_mirror_subpath"] = "true"
 
-    return plugins
+    return plugins + local_plugins
 
 
 def fetch_repo_archive(owner: str, repo: str) -> zipfile.ZipFile:
@@ -443,8 +457,47 @@ def write_json(path: Path, data: dict[str, object]) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def prune_unlisted_bundles(root: Path, plugins: list[dict[str, str]]) -> list[str]:
+    """Remove only explicitly reviewed retirements that are absent from README.
+
+    Omission from the parsed catalog never authorizes another retirement.
+    Keep listed repositories even if this run cannot fetch them, and preflight
+    the two-level tree for symlinks before deleting any approved bundle.
+    """
+    if not plugins:
+        raise ValueError("Refusing bundle cleanup from an empty parsed README; explicit maintainer retirement is required")
+    retained = {(plugin["owner"].casefold(), plugin["repo"].casefold()) for plugin in plugins}
+    removed: list[str] = []
+    if root.is_symlink():
+        raise ValueError("Generated plugins root must not be a symlink")
+    if not root.exists():
+        return removed
+    # Preflight the entire tree before retiring anything. A later invalid
+    # directory must not leave an earlier bundle partially retired.
+    retired: list[Path] = []
+    for owner in sorted(root.iterdir()):
+        if owner.is_symlink():
+            raise ValueError(f"Generated owner directory must not be a symlink: {owner}")
+        if not owner.is_dir():
+            continue
+        for repo in sorted(owner.iterdir()):
+            if repo.is_symlink():
+                raise ValueError(f"Generated repo directory must not be a symlink: {repo}")
+            identity = (owner.name.casefold(), repo.name.casefold())
+            if repo.is_dir() and identity in RETIRED_BUNDLE_IDENTITIES and identity not in retained:
+                retired.append(repo)
+    for repo in retired:
+        shutil.rmtree(repo)
+        removed.append(f"{repo.parent.name}/{repo.name}")
+    return removed
+
+
 def main() -> None:
     plugins = parse_plugins(README)
+    for owner_repo in prune_unlisted_bundles(PLUGINS_ROOT, plugins):
+        print(f"Removed reviewed retired bundle {owner_repo}")
+    # Local README links are retention-only; never fetch them from GitHub.
+    plugins = [plugin for plugin in plugins if plugin.get("_local_bundle") != "true"]
     mirrored_entries: list[dict[str, object]] = []
     skipped: list[str] = []
     for plugin in plugins:

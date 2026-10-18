@@ -1,6 +1,6 @@
 {
   "name": "codex-goal-progress",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "private": true,
   "license": "MIT",
   "type": "module",
@@ -25,7 +25,7 @@
   },
   "dependencies": {
     "@lucide/icons": "^1.37.0",
-    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "lit": "^3.3.3",
     "zod": "^4.4.3"
   },

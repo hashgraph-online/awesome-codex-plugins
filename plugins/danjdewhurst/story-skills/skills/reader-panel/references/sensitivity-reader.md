@@ -24,8 +24,9 @@ passages to brief a paid reader on, through the `editorial-review` skill.
   at. It never decides the portrayal is harmful or harmless.
 - Write the **What the reader said** line as a question for the human
   reader ("How would a Deaf reader read Mara's lip-reading here?").
-- Record the note's **Canon check** as usual, and add "needs a human
-  sensitivity read" to its suggested changes.
+- Record the note's **Canon check** as `not checked (simulated read)`, the
+  value the reader-panel skill sets for every simulated read, and add
+  "needs a human sensitivity read" to its suggested changes.
 
 ## Do not
 

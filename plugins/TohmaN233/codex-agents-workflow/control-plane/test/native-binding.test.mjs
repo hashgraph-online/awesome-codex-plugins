@@ -1,3 +1,4 @@
+import { loadLegacyConfig } from './legacy-config.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
@@ -5,7 +6,10 @@ import { join } from 'node:path';
 import { tmpdir } from './physical-tempdir.mjs';
 import { buildProviderAdapter } from '../lib/providers.mjs';
 import { WorkflowService } from '../lib/workflow-service.mjs';
-import { loadConfig, saveConfig, configRevision } from '../lib/config.mjs';
+import { WorkflowExecutor } from '../lib/workflow-executor.mjs';
+import { saveConfig, configRevision, migrateBuiltinNativeAgentRoles } from '../lib/config.mjs';
+import { nativeBindingIssue, nativeSpawnConfig } from '../lib/native-binding.mjs';
+import { NATIVE_BUILTINS_PROFILE_NAME } from '../../scripts/native-context-profile.mjs';
 import { DEFAULT_CONFIG_PATH } from '../server.mjs';
 
 const provider = (agent_type, reasoning_effort, model='gpt-6-luna') => ({ id:'native-luna',kind:'native_agent',enabled:true,capabilities:{read:true,write:true},config:{agent_type,model,reasoning_effort,role:'advisor',fresh_context:true} });
@@ -15,12 +19,58 @@ test('native dispatch uses the generic Agent and preserves the configured model 
   assert.throws(()=>buildProviderAdapter(provider('duplicate-fixed-role','high','gpt-6-sol'),{access:'bounded_write'}),{code:'NATIVE_PROVIDER_AGENT_TYPE'});
 });
 
+test('the installed tool context profile preserves explicit model/effort and does not become a behavioral Role',()=>{
+  const verifyProfile=name=>assert.equal(name,NATIVE_BUILTINS_PROFILE_NAME);
+  for(const [model,effort]of [['gpt-6.1-sol','high'],['gpt-6-astra','xhigh']]){
+    const selected=provider(NATIVE_BUILTINS_PROFILE_NAME,effort,model);
+    assert.deepEqual(nativeSpawnConfig(selected,{verifyProfile}),
+      {agent_type:NATIVE_BUILTINS_PROFILE_NAME,fork_turns:'none',model,reasoning_effort:effort});
+  }
+  const unavailable=Object.assign(new Error('Owned profile bytes changed'),{code:'NATIVE_CONTEXT_PROFILE_CHANGED'});
+  assert.throws(()=>nativeSpawnConfig(provider(NATIVE_BUILTINS_PROFILE_NAME,'high'),
+    {verifyProfile:()=>{throw unavailable;}}),{code:unavailable.code,message:unavailable.message});
+  let reads=0;
+  assert.equal(nativeBindingIssue(provider('default','high'),{verifyProfile:()=>{reads++;}}),null);
+  assert.equal(nativeBindingIssue(provider('arbitrary-custom-role','high'),{verifyProfile:()=>{reads++;}}).code,'NATIVE_PROVIDER_AGENT_TYPE');
+  assert.equal(reads,0,'Default and unsupported behavior roles must not probe a profile');
+});
+
+test('a narrowed tool context cannot silently inherit the parent transcript',()=>{
+  const selected=provider(NATIVE_BUILTINS_PROFILE_NAME,'high');selected.config.fresh_context=false;
+  assert.throws(()=>nativeSpawnConfig(selected,{verifyProfile:()=>assert.fail('History rejects before any profile read')}),
+    {code:'NATIVE_CONTEXT_PROFILE_HISTORY'});
+});
+
+test('native migration preserves an explicit tool context profile and still retires duplicated behavior roles',()=>{
+  const profiles=[provider(NATIVE_BUILTINS_PROFILE_NAME,'high','gpt-6.1-sol'),provider('arbitrary-custom-role','xhigh')];
+  profiles[0].id='custom-builtin-context';profiles[1].id='custom-behavior';
+  const {config:migrated}=migrateBuiltinNativeAgentRoles({providers:profiles});
+  assert.equal(migrated.providers.find(p=>p.id===profiles[0].id).config.agent_type,NATIVE_BUILTINS_PROFILE_NAME);
+  assert.equal(migrated.providers.find(p=>p.id===profiles[0].id).config.model,'gpt-6.1-sol');
+  assert.equal(migrated.providers.find(p=>p.id===profiles[1].id).config.agent_type,'default');
+  assert.equal(profiles[1].config.agent_type,'arbitrary-custom-role','Migration cannot mutate source config');
+});
+
+test('unsupported native context routes fail before any Strict, managed or task dispatch',async()=>{
+  const selected=provider(NATIVE_BUILTINS_PROFILE_NAME,'high','gpt-6.1-sol');
+  for(const route of [
+    {executor:{kind:'provider',provider_id:selected.id},skill_policy:{mode:'strict'},args:{}},
+    {executor:{kind:'provider',provider_id:selected.id},skill_policy:{mode:'cooperative'},args:{host_managed_native:true}},
+    {executor:{kind:'thread',provider_id:selected.id},skill_policy:{mode:'cooperative'},args:{}}
+  ]){
+    const envelope={...route,provider:selected},runtime={authorizedExecution:async()=>({record:{},envelope})};
+    const unavailable={prepare:async()=>assert.fail('Unsupported profile must reject before starting another executor')};
+    const executor=new WorkflowExecutor({runtime,getConfig:async()=>({global:{enabled:true},providers:[selected]}),strictManager:unavailable,managedNativeManager:unavailable,env:{}});
+    await assert.rejects(executor.prepare('fixture',route.args),{code:'NATIVE_CONTEXT_PROFILE_EXECUTION_UNSUPPORTED'});
+  }
+});
+
 test('registry model edits update dependent Workflows and deletion blocks new Runs while snapshots stay fixed',async t=>{
   const root=await mkdtemp(join(tmpdir(),'provider-binding-'));
   t.after(()=>rm(root,{recursive:true,maxRetries:3,retryDelay:100}));
   const workspace=join(root,'workspace');await mkdir(workspace);
   const configPath=join(root,'control-plane.json');
-  await loadConfig({configPath,defaultConfigPath:DEFAULT_CONFIG_PATH});
+  await loadLegacyConfig({configPath,defaultConfigPath:DEFAULT_CONFIG_PATH});
   const service=new WorkflowService({configPath,defaultConfigPath:DEFAULT_CONFIG_PATH,env:{}});
   await service.call('migrate_v6',{}, {human:true});
   const edit=async change=>{const config=await service.config();const revision=configRevision(config);change(config);await saveConfig(config,{configPath,expectedRevision:revision});};

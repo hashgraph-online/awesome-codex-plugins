@@ -4,7 +4,7 @@ description: Replace a subject in an existing video or transfer its performance 
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.1.0"
+  version: "1.2.0"
 ---
 
 # Magic Hour character replace
@@ -26,6 +26,8 @@ Do not use a text prompt to invent a source performance that was already supplie
 
 Inspect the actual video interval, dimensions, cuts, subject count, visible limbs, occlusions and motion speed. Match the character reference to the visible body and framing when possible. A portrait cannot establish faithful unseen legs; complicated hand contacts and fast turns need a representative output check. Keep the original, rather than repeatedly feeding generated revisions back into the model.
 
+For a named saved character, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with `type: character`, match the name and follow `next_cursor` as needed. Disambiguate multiple matches, inspect the primary `IMAGE` asset for performance-compatible framing, and pass its durable `file_path` as `assets.image_file_path`. Do not upload it again or pass the item ID. Preserve an explicitly supplied reference.
+
 Use authorized footage and reference images. For a difficult or long source, generate a short representative interval before committing the remaining budget. Select the difficult action, not only the easiest stationary moment. Preserve any user-requested duration and review point.
 
 For one unambiguous subject, use `style.selection_mode: auto`. For a specific subject in a crowd, use `point` and inspect a source frame to obtain `position_x`, `position_y` in original video pixels plus `time_seconds`. Coordinates from a resized preview must be scaled back. Time uses the source clock, including when `start_seconds` is nonzero. Never guess coordinates or add a cropped-clip offset twice. Ask only when the target person is ambiguous.
@@ -44,4 +46,4 @@ The [animate-mode example](https://github.com/magichourhq/skills/tree/main/examp
 
 If the wrong person changes, fix subject selection. If body shape fails, improve framing/reference compatibility or simplify the source interval. If the scene changes unexpectedly, verify the mode before spending again. Repair only the failed shot within budget. Do not describe all motion as faithfully transferred merely because the job completed.
 
-Deliver the finished clip, source/reference/mode retained in the existing project brief, and unresolved defects. Reuse the same reference for the next performance; reuse the accepted performance when only the character changes. Saved web-app Characters are not automatically addressable through MCP—use actual accessible images or supported account-library tools if they become available.
+Deliver the finished clip, source/reference/mode retained in the existing project brief, and unresolved defects. Reuse the same reference for the next performance; reuse the accepted performance when only the character changes. Retain the selected saved-item ID and durable asset path privately for the next performance; refresh previews through the library rather than regenerating the character.

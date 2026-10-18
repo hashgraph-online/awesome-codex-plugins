@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, readFile, writeFile, rm, link, symlink } from 'node:fs/promises';
+import { mkdtemp, mkdir, readFile, writeFile, rm, link, symlink, copyFile, chmod } from 'node:fs/promises';
 import { writeFileSync } from 'node:fs';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
@@ -21,6 +21,21 @@ async function fixture(t) {
 }
 const output = result => JSON.parse(result.contentItems[0].text);
 const delay=milliseconds=>new Promise(resolveDelay=>setTimeout(resolveDelay,milliseconds));
+test('native broker descendants consume the qualified path despite helper shadow',async t=>{
+  const f=await fixture(t),tools=[];
+  for(const dir of ['helper','qualified'])await mkdir(join(f.root,dir));
+  for(const [dir,name,bound] of [['helper','helper',true],['helper','alpha',false],['qualified','alpha',true]]){const path=join(f.root,dir,name+(process.platform==='win32'?'.exe':''));await copyFile(process.execPath,path);if(process.platform!=='win32')await chmod(path,0o755);if(bound)tools.push({name,status:'found',path});}
+  const broker=await createCodexToolBroker({...f.options,runtimeEnvironment:{status:'ready',tools}});
+  const result=output(await broker.call('run_task_program',{program:'helper',args:['-e',"const r=require('node:child_process').spawnSync('alpha',['-p','process.execPath'],{encoding:'utf8'});if(r.status!==0)throw new Error(r.stderr);console.log(r.stdout.trim());"],cwd:'workspace'},'path-shadow'));
+  assert.equal(result.exit_code,0,result.stderr);assert.equal(result.stdout.trim(),tools.find(tool=>tool.name==='alpha').path);
+});
+test('native broker rejects incompatible paths without starting its task program',async t=>{
+  const f=await fixture(t),tools=[];
+  for(const dir of ['first','second']){await mkdir(join(f.root,dir));for(const name of ['alpha','beta']){const path=join(f.root,dir,name+(process.platform==='win32'?'.exe':''));await copyFile(process.execPath,path);if(process.platform!=='win32')await chmod(path,0o755);if((dir==='first'&&name==='alpha')||(dir==='second'&&name==='beta'))tools.push({name,status:'found',path});}}
+  const broker=await createCodexToolBroker({...f.options,runtimeEnvironment:{status:'ready',tools}});
+  await assert.rejects(broker.call('run_task_program',{program:'alpha',args:['-e',"require('node:fs').writeFileSync('src/should-not-exist','effect')"],cwd:'workspace'},'cycle'),{code:'ENVIRONMENT_BINDING_STALE'});
+  await assert.rejects(readFile(join(f.root,'src/should-not-exist')),{code:'ENOENT'});
+});
 const executionBinding=()=>qualifiedExecutionBinding({kind:'wsl',launcher:'C:\\Windows\\System32\\wsl.exe',distribution:process.env.WORKFLOW_TEST_WSL_DISTRIBUTION??'Ubuntu',sandbox:'/usr/bin/bwrap',programs:{python:'/usr/bin/python3'},runtime_roots:['/lib','/lib64','/usr'],command_timeout_ms:300000});
 async function waitForFile(path){for(let attempt=0;attempt<1000;attempt++){try{return await readFile(path,'utf8');}catch(error){if(error.code!=='ENOENT')throw error;}await delay(10);}throw new Error(`Timed out waiting for ${path}`);}
 
@@ -351,6 +366,55 @@ test('transport-safe resource chunks cover exact UTF-8 bytes without gaps or tru
   await assert.rejects(broker.call('read_workflow_resource_chunk',{path:'analysis/request.txt',start_byte:7,max_bytes:12000},'bad-boundary'),{code:'CODEX_RESOURCE_CHUNK'});
 });
 
+test('whole-file pinned resource reads reject large content with bounded audit while materialize, range and chunk remain available',async t=>{
+  const f=await fixture(t);const operations=[];
+  const bytes='first 🙂\n'+('x'.repeat(25000))+'\nthird\n';
+  const small='small pinned text';
+  const atLimit='b'.repeat(12000);
+  const broker=await createCodexToolBroker({...f.options,recoverToolErrors:true,onOperation:async event=>operations.push(event),resources:[
+    {path:'scripts/runner.py',bytes,sha256:digest(bytes)},
+    {path:'references/short.txt',bytes:small,sha256:digest(small)},
+    {path:'references/limit.txt',bytes:atLimit,sha256:digest(atLimit)},
+  ]});
+  const readTool=broker.tools().find(tool=>tool.name==='read_workflow_resource');
+  assert.match(readTool.description,/at most 12000 bytes/);
+  assert.match(readTool.description,/materialize_workflow_resource/);
+  const rejected=await broker.call('read_workflow_resource',{path:'scripts/runner.py'},'oversized-read');
+  assert.equal(rejected.success,false);
+  const failure=output(rejected).error;
+  assert.equal(failure.code,'CODEX_RESOURCE_READ_LIMIT');
+  assert.match(failure.message,/exceeds the 12000-byte whole-file read limit/);
+  assert.match(failure.message,/materialize_workflow_resource for execution/);
+  assert.match(failure.message,/read_workflow_resource_range\/read_workflow_resource_chunk for inspection/);
+  assert.deepEqual(operations[0],{
+    call_id:'oversized-read',tool:'read_workflow_resource',path:'scripts/runner.py',phase:'rejected',
+    code:'CODEX_RESOURCE_READ_LIMIT',diagnostic:failure.message,sha256:digest(bytes),bytes:Buffer.byteLength(bytes),
+  });
+  assert.equal(Object.hasOwn(operations[0],'text'),false);
+
+  const materialized=output(await broker.call('materialize_workflow_resource',
+    {path:'scripts/runner.py',destination:'src/runner.py',expected_sha256:null},'materialize-large'));
+  assert.equal(materialized.sha256,digest(bytes));
+  assert.equal(await readFile(join(f.root,'src','runner.py'),'utf8'),bytes);
+
+  const pieces=[];let start=0,complete=false;
+  while(!complete){
+    const part=output(await broker.call('read_workflow_resource_chunk',
+      {path:'scripts/runner.py',start_byte:start,max_bytes:12000},`chunk-${start}`));
+    pieces.push(part.text);start=part.next_byte;complete=part.complete;
+  }
+  assert.equal(pieces.join(''),bytes);
+  assert.equal(start,Buffer.byteLength(bytes));
+  const range=output(await broker.call('read_workflow_resource_range',
+    {path:'scripts/runner.py',start_line:1,end_line:3},'inspect-range'));
+  assert.equal(range.text,`1: first 🙂\n2: ${'x'.repeat(25000)}\n3: third`);
+
+  const compatible=output(await broker.call('read_workflow_resource',{path:'references/short.txt'},'small-read'));
+  assert.equal(compatible.text,small);
+  assert.equal(compatible.sha256,digest(small));
+  assert.equal(output(await broker.call('read_workflow_resource',{path:'references/limit.txt'},'at-limit')).text,atLimit);
+});
+
 test('managed broker returns audited recoverable tool errors so the model can correct its request', async t => {
   const f = await fixture(t); const operations = [];
   const broker = await createCodexToolBroker({ ...f.options, recoverToolErrors: true, onOperation: async event => operations.push(event) });
@@ -372,8 +436,12 @@ test('output limit is an explicit audited tool failure after termination and per
   const failed=await broker.call('run_task_program',{program:'node',args:['-e',"process.stdout.write('x'.repeat(2*1024*1024));setTimeout(()=>{},10000)"],cwd:'workspace'},'too-large');
   assert.equal(failed.success,false);
   assert.equal(JSON.parse(failed.contentItems[0].text).error.code,'CODEX_EXECUTION_OUTPUT');
+  const warning=JSON.parse(failed.contentItems[0].text).error.message;
+  assert.match(warning,/effects may be partial/);
+  assert.match(warning,/do not blindly repeat the command/);
   assert.equal(broker.isQuiescent(),true);
   assert.equal(operations.at(-1).phase,'rejected');
+  assert.equal(operations.at(-1).diagnostic,warning);
   assert.equal(output(await broker.call('run_task_program',{program:'node',args:['-p','1+1'],cwd:'workspace'},'narrow')).stdout.trim(),'2');
   assert.deepEqual(await broker.quiesce(),{quiescent:true,error:null});
 });

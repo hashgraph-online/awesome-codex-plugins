@@ -277,8 +277,9 @@ Rules:
 - Allow-list patterns match bare tool names. Use exact names, `*`, or one
   trailing wildcard such as `search_*`.
 - The HTTP `Origin` header is canonical. `pageOrigin` is diagnostic only.
-- `requireConfirmFor` is a Persona-side confirmation hint, not server-side
-  enforcement.
+- `requireConfirmFor` forces Persona's confirmation and is not a security
+  boundary. Chat dispatch does not enforce it; the voice direct route never
+  picks a listed tool.
 - The dashboard WebMCP tab shows discovered tools and observed origins from the
   trailing 7 days and can promote tools into allow-list rules. It shows an
   "Allow all tools" mode for the empty-allowlist case and reveals the rule

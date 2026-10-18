@@ -1,6 +1,6 @@
 ---
 name: plan
-description: 'Define intended behavior, review write scope and assess reversible decisions. Use when: discovery needs clarification or resumption before one complete slice; stop once actionable.'
+description: 'Shape a request into one end-to-end slice with observable behavior; review write scope and reversible decisions. Use when: planning, breaking down or scoping a change.'
 practices:
 - bdd-gherkin
 - design-by-contract
@@ -24,159 +24,120 @@ metadata:
 
 # Plan
 
-Own discovery from the caller's question to one actionable slice. Shape only
-missing intent. Prefer the caller's tracker, if any; otherwise use
-the conversation or supplied text. Planning produces no AgentOps packet.
-A clear change can proceed directly. Use established domain names throughout
-intent, examples, code and validation. Load a specialist only for the question
-it can answer; none is a required planning stage.
+Shape missing intent into one actionable slice, then stop. A clear change can
+proceed directly; load a specialist only for the question it answers.
+Prefer the caller's tracker, if any; otherwise use the conversation or
+supplied text. Planning produces no AgentOps packet.
+
+## A plan meets these rules
+
+1. **One slice, not a roadmap.** Shape the narrowest change that produces an
+   observable result end to end, through every layer it touches. No phases,
+   no layer-by-layer breakdown, no backlog: later work stays one coarse line
+   each until new evidence makes it the next slice.
+2. **An example before any design.** Write at least one Given/When/Then with
+   an observable result. Cover the boundary where a mistake is costly to
+   undo, such as a repeated or external side effect, lost data or widened
+   access, not only the happy path.
+3. **Look up facts; ask only for choices.** Read code, docs and the tracker
+   instead of asking. Ask the caller at most one question, only for a choice
+   no source can answer, with your recommendation and its tradeoff.
+4. **The repository's words.** Reuse the term its code, glossary or tracker
+   defines; never coin a parallel name.
+5. **Scope by consumer.** Name the owners to edit, every live caller and test
+   of the changed behavior, and generated companions as a class. Scope is
+   authority, not a predicted file count.
+6. **A discriminating check:** what fails today and passes after the slice.
+
+## Output
+
+Write this block into the caller's existing intent (tracker item or
+conversation). It is the whole plan.
+
+```text
+Outcome:  <who observes what, in the repository's terms>
+Example:  Given <state>, when <event>, then <observable result>
+Slice:    <the one end-to-end change that makes the example true>
+Scope:    <owners>; consumers: <live callers and tests>; generated: <class> | none
+Check:    <the test or observation that fails now and passes after the slice>
+Question: <one caller choice, your recommendation, its tradeoff> | none
+Later:    <deferred item and the evidence that would make it next> | none
+```
+
+Add an Example line only for another consequential boundary, and a non-goal
+only where it prevents a plausible scope mistake.
 
 ## Workflow
 
-1. Read accepted intent, the compact existing plan or native handoff, and the
-   relevant source owners and active constraints. On replacement or resumption,
-   use [Resume discovery](#resume-discovery) before choosing a next action.
-   Identify the caller-visible outcome and classify only uncertainty that could
-   change the next slice using [Route uncertainty](#route-uncertainty).
-2. Describe the intended observable behavior before implementation. Reuse
+1. Read the accepted intent, any existing plan or native handoff, and the
+   relevant source owners and active constraints. Reuse the
    acceptance already supplied in the conversation or bead; clarify only what
-   prevents action or judgment. Name the actor or caller, the event and the
-   observable result. One example often suffices; use Given/When/Then for
-   branching behavior and consequential boundaries. Include non-goals only
-   where they prevent a plausible scope mistake in that existing source.
-   If the caller requests both code and a retrospective, distinguish code
-   acceptance, delivery facts and the later analysis in that same intent.
-   Code judgment consumes acceptance and checks; the retrospective consumes
-   the known outcome and judgment. Keep both requested deliverables required
-   for the overall goal without making either depend on its own conclusion.
-   Scope includes the hand-edited owners, affected tests/live consumers and
-   generator-owned companions as a class; it is authority, not a predicted
-   file count. A consequential assumption deserves an early discriminating
-   check, not a general checklist or exhaustive survey.
-3. Refine one narrow but complete vertical slice, including its affected layers,
-   live consumers and useful check. It must produce an independently observable
-   result, not just a schema, interface or plan for another layer. Keep later
-   work coarse in the existing intent; sharpen it only when new evidence makes
-   the next slice actionable. For a mechanical cross-cutting migration that
-   cannot stay working slice by slice, preserve compatibility with an
-   expand/migrate/contract approach and state where integration is required.
-   Include recapture of affected bound evidence where necessary; use
-   `ao provenance evidence-orphans` when applicable, not a mandatory ledger.
-   Across an epic, [Navigate](../navigate/SKILL.md) picks which bead comes
-   next; Plan shapes that bead.
-4. When evidence disproves an approach, briefly retain the failed assumption,
-   evidence and revised check in the existing intent or handoff. Approach
-   changes within accepted outcome and scope need no new permission; acceptance
-   or scope expansion requires caller authority. Never relabel a failed
-   acceptance condition as a caveat to obtain green.
-5. Give another context exact intent references and the evidence it needs to
-   act, its write scope and who owns integration and final review. Keep approach
-   notes separate from frozen acceptance. Pass the next decision and relevant
-   source references, not the entire research history. A new goal does not
-   clear an existing conversation, and a fresh context can still have large
-   startup instructions, tool catalogs and retrieved inputs.
+   prevents action or judgment. To resume or replace another context, hand a
+   slice on, plan code together with a requested retrospective, or keep an
+   exact snapshot of conversation intent, follow
+   [resume and handoff](references/resume-and-handoff.md).
+2. Route only the uncertainty that could change the slice (table below).
+3. Fill the block. A mechanical cross-cutting migration that cannot stay
+   working slice by slice uses expand, migrate, contract and states where
+   integration is required. Include recapture of affected bound evidence where
+   necessary; in repositories with AgentOps provenance bindings,
+   `ao provenance evidence-orphans` finds it. Across an epic,
+   [Navigate](../navigate/SKILL.md) picks the next bead; Plan shapes that bead.
+4. When evidence disproves an approach, keep the failed assumption, its
+   evidence and the revised check in the existing intent. An approach change
+   within accepted outcome and scope needs no new permission; acceptance or
+   scope expansion needs the caller. Never relabel a failed acceptance
+   condition as a caveat to obtain green.
 
 Stop planning once the implementer can act and the validator can judge. More
-research, decomposition or review must resolve a named remaining uncertainty.
-An optional [probe or prototype](references/ground-truth-routing.md) can test a
-named assumption. An optional [challenge](references/challenge.md) can examine
-consequential uncertainty that survives source checks and relevant observations.
-[Memory recall](../memory/references/recall.md) is useful only when
-prior evidence could change the next action.
+research, decomposition or review must resolve a named remaining uncertainty;
+reserve capacity for implementation, integration and repair.
 
 ## Route uncertainty
 
-Keep these distinctions in the existing intent only where they affect action;
-they are not four required worksheets or successive stages.
-
 | Uncertainty | Next action |
 |---|---|
-| Source-answerable fact | Inspect the smallest authoritative source and cite it. [Research](../research/SKILL.md) owns deeper tracing and evidence synthesis; [Domain](../domain/SKILL.md) owns ambiguous vocabulary and rule boundaries. Do not ask the caller to recite a retrievable fact. |
-| Consequential caller choice | Recover existing authorization first. Ask one focused question only when goal, behavior, preference or authority still needs the caller. Include the concrete tradeoff; an agent cannot supply the caller's answer. |
-| Assumption requiring a probe | State the competing predictions and smallest observation that distinguishes them. Use the optional probe method; a persuasive design or agent vote cannot settle unobserved behavior. |
-| Safely deferred decision | State why it does not block this slice and the event or evidence that would make it relevant. Keep it coarse; deferral cannot hide an unanswered acceptance condition. |
+| Fact a source can answer | Inspect the smallest authoritative source and cite it. [Research](../research/SKILL.md) owns deeper tracing; [Domain](../domain/SKILL.md) owns disputed vocabulary. Never ask the caller to recite it. |
+| Caller choice | Recover existing authorization first. What remains is the one question, with its concrete tradeoff; an agent cannot supply the caller's answer. |
+| Assumption only an observation can settle | State the competing predictions and the smallest observation that separates them, using an optional [probe or prototype](references/ground-truth-routing.md). A persuasive design or an agent vote cannot settle unobserved behavior. |
+| Safely deferred | Put it under Later with the event or evidence that would make it relevant. Deferral cannot hide an unanswered acceptance condition. |
 
-Resolve reversible implementation details within accepted scope. Mark inference
-and missing evidence explicitly; do not promote either into a source fact or a
-settled caller choice. An optional challenge returns advice or a next
-discriminator, never permission or acceptance.
+Resolve reversible implementation details within accepted scope. Mark
+inference and missing evidence; never promote either into a source fact or a
+settled caller choice. For consequential uncertainty that survives source
+checks and observation, an optional [challenge](references/challenge.md)
+returns advice or a next discriminator, never permission or acceptance.
+[Memory recall](../memory/references/recall.md) helps only when prior
+evidence could change the next action.
 
-## Resume discovery
+## Who decides
 
-Recover the current outcome, accepted examples and source identity from the
-existing plan or native handoff. Reuse settled domain terms and caller choices
-with their source pointers; do not repeat an interview or load the full transcript.
-Read details on demand only if a missing fact or new contradiction can change
-the next decision.
-Before reusing inherited prototype evidence, follow
-[Reuse after source drift](references/ground-truth-routing.md#reuse-after-source-drift).
+Use real undo cost, affected users and existing authority. A material
+irreversible choice outside that authority goes to the caller; prior
+authorization stays valid. Reviewer agreement is evidence, not permission to
+replace the caller's intent: explain a consequential disagreement and its
+support instead of silently changing acceptance. A proposed process artifact
+needs a concrete consumer, the decision it gates, an observed defect and a
+retirement condition; otherwise omit it.
 
-Check active assignments, write scopes and integration/review ownership against
-the native tracker or runtime before suggesting more work. Handoff facts are
-recovery pointers, not a second authoritative assignment or status ledger. If
-the native source is unavailable or contradicts the handoff, report that gap
-and resolve it before dependent dispatch or overlapping writes; independently
-safe discovery can continue.
+## Examples and naming
 
-Leave a compact update in that same source when interruption or replacement
-would otherwise lose a decision: accepted outcome/reference; settled choices
-and evidence; active assignment references and scopes; the one open question
-and next discriminator; deferred decisions and their revisit triggers. Include
-known failed assumptions and relevant contrary evidence. An unchanged recovery
-needs no duplicate artifact. Preserve native ownership and original evidence;
-new observations amend the approach within scope, while changed acceptance
-still needs the caller.
-
-## Behavior and naming
-
-An example can be plain text; BDD does not require a `.feature` file or an
-interview. For example, in a repository that calls queued work a **Job**:
+An example can be plain text; BDD needs no `.feature` file or interview. In a
+repository that calls queued work a **Job**:
 
 > Given a Job has already completed, when the worker receives it again,
 > then its completed result is returned and its side effect is not repeated.
 
-Use the actual domain term instead of inventing a parallel label such as
-"task item." Identify what the caller can observe and the smallest check that
-distinguishes the desired behavior from the current failure. Keep the accepted
-example available to Implement and Validate. Tests added after coding may
-supplement it; they cannot redefine what was promised.
+Write "Job", not a parallel label such as "task item". Keep the accepted
+example available to Implement and Validate; tests added after coding may
+supplement it but cannot redefine what was promised. For product planning,
+separate demonstrated behavior from aspiration; an ordinary feature needs no
+product document.
 
-For uncertain designs, probe the assumption that could change the approach.
-For product planning, distinguish demonstrated behavior from aspiration and
-refine the existing product owner only within the request. A product document
-is not required for an ordinary feature.
-
-## Decision cost and stopping
-
-Use real undo cost, affected users and existing authority when choosing who
-must decide. Resolve reversible implementation details within accepted scope.
-A material irreversible choice outside that authority needs the caller; prior
-authorization remains valid. Reviewer agreement is evidence, not permission
-to replace the caller's intent. Explain a consequential disagreement and its
-support rather than silently changing acceptance.
-
-A proposed process artifact earns its cost only with a concrete consumer,
-subject or release decision, observed defect and retirement condition. If the
-next action adds only ceremony or repeats settled evidence, omit it. Stop when
-the implementer can act and the validator can judge, reserving capacity for
-implementation, integration and repair.
-
-Decision pointers and coarse future work adapt ideas from Matt Pocock's
-[Wayfinder](https://github.com/mattpocock/skills/blob/main/skills/engineering/wayfinder/SKILL.md);
-complete slices and compatibility migrations adapt
-[To Tickets](https://github.com/mattpocock/skills/blob/main/skills/engineering/to-tickets/SKILL.md).
-AgentOps keeps the caller's existing intent and native work authority.
-
-## Identity and scope
-
-Use runtime-derived source identity and digest. If conversation intent needs
-an exact snapshot, existing `ao provenance snapshot-intent --source -
---evidence-root <explicit-root>` uses caller-selected protected external
-non-Git storage. Missing routing permits neither workspace fallback nor a
-second planning artifact. Preserve legacy proof.
+## Scope
 
 Use normalized repository-relative scope patterns. An uncovered live consumer
 needs a concise exact-file amendment to the caller; continue independent
 in-scope work meanwhile. Generated companions already in scope need no extra
-permission. [Boundaries](../rpi/references/boundaries.md) keep work/status in
-the caller's tracker and delivery under repository policy.
+permission. [Boundaries](../rpi/references/boundaries.md) keep work and status
+in the caller's tracker and delivery under repository policy.

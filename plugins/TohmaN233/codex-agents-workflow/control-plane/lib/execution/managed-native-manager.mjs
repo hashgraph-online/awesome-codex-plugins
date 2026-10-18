@@ -1,11 +1,13 @@
-import { delimiter, dirname, isAbsolute, join, relative, resolve } from 'node:path';
-import { readFile } from 'node:fs/promises';
+import {readPinnedObject} from '../pinned-object-reader.mjs';
+import { dirname, join, relative, resolve } from 'node:path';
+import { augmentedRuntimeEnvironment } from '../runtime-environment-state.mjs';
 import { createManagedNativeSession } from './managed-native-session.mjs';
 import { createHostAuthBroker } from './codex-host-auth.mjs';
 import { createWorkflowResourceBroker, loadNodeSkillSnapshots } from './workflow-resource-broker.mjs';
 import {rejectWorkspaceScope} from './workspace-scope-evidence.mjs';
 import {snapshotWorkspace, changedWorkspacePaths as changedPaths} from './workspace-snapshot.mjs';
-import { qualifiedStrictSettings, codexQualification } from './strict-config.mjs';
+import { qualifiedCooperativeSettings, codexQualification } from './strict-config.mjs';
+import { refreshCodexRegistration } from './codex-runtime-registration.mjs';
 import { managedNativeResultSchema, hostCompletionEnvelope, strictAgentOutputSchema, hostNodeTurnSchema, hostNodeTurnResult } from './host-main-automation.mjs';
 import { canonicalJSON, digest } from '../workflow-revisions.mjs';
 import { requireValue } from '../workflow-paths.mjs';
@@ -36,11 +38,7 @@ const diagnosticOf = error => {
 };
 
 function within(path, boundary) { return boundary === '.' || path === boundary || path.startsWith(boundary.replaceAll('\\', '/').replace(/\/$/, '') + '/'); }
-function augmentedEnvironment(env, runtimeEnvironment) {
-  const directories = (runtimeEnvironment?.tools ?? []).filter(tool => tool.status === 'found' && typeof tool.path === 'string' && isAbsolute(tool.path)).map(tool => dirname(tool.path));
-  const inherited = env.PATH ?? env.Path ?? '';
-  return { ...env, PATH: [...new Set([...directories, ...inherited.split(delimiter).filter(Boolean)])].join(delimiter) };
-}
+
 function poolAssignments(subagents, accepted = {}) {
   if (!subagents?.fanout) return null;
   const { resolved_count: count, items, fanout } = subagents;
@@ -117,7 +115,7 @@ async function resourceItems(runtime, runId, envelope) {
   for (const path of envelope.resources) {
     const pin = record.pins.root.resources.find(item => item.path === path);
     requireValue(pin && pin.bytes <= 1024 * 1024, 'MANAGED_NATIVE_RESOURCE', `Pinned resource is unavailable or too large: ${path}`);
-    resources.push({ path, sha256: pin.sha256, bytes: await readFile(join(root, pin.sha256)) });
+    resources.push({ path, sha256: pin.sha256, bytes: await readPinnedObject(root,pin) });
   }
   return resources;
 }
@@ -162,14 +160,20 @@ async function quiesceBrokerForRecovery(broker) {
 }
 
 export class ManagedNativeManager {
-  constructor({ configPath, getConfig, env = process.env, sessionFactory = createManagedNativeSession, qualify = qualifiedStrictSettings }) {
+  constructor({ configPath, getConfig, env = process.env, sessionFactory = createManagedNativeSession, qualify = qualifiedCooperativeSettings, register = refreshCodexRegistration }) {
     this.configPath = resolve(configPath); this.getConfig = getConfig; this.env = env; this.sessionFactory = sessionFactory; this.qualify = qualify;
+    this.register = register;
     this.parent = join(dirname(this.configPath), 'managed-native-profiles'); this.entries = new Map(); this.hostAuth = null; this.hostAuthBinary = null; this.accepting = executionAdmissionOpen(this.configPath);
   }
   async prepare(_runtime, _runId, _args, envelope) {
     requireValue(this.accepting && executionAdmissionOpen(this.configPath), 'MANAGED_NATIVE_STOPPED', 'Managed native manager is closed to new work');
     requireValue(envelope.skill_policy.mode === 'cooperative' && envelope.provider?.kind === 'native_agent', 'MANAGED_NATIVE_NODE', 'Managed native execution requires a cooperative native Provider node');
-    const settings = await this.qualify(await this.getConfig(), this.env, { scope: 'managed_native' });
+    // This authenticated execution route owns an SDK session. Native model-side
+    // handoffs never enter this manager and must not acquire this prerequisite.
+    const qualify = this.qualify;
+    const config = await this.register({configPath:this.configPath,config:await this.getConfig(),env:this.env,
+      strict:false,scope:'managed_native',qualify:(candidate,env,options)=>Reflect.apply(qualify,this,[candidate,env,options])});
+    const settings = await Reflect.apply(qualify,this,[config,this.env,{scope:'managed_native'}]);
     requireValue(this.accepting && executionAdmissionOpen(this.configPath), 'MANAGED_NATIVE_STOPPED', 'Managed native manager is closed to new work');
     return { execution: 'managed_native_codex', model: envelope.provider.config.model, effort: envelope.provider.config.reasoning_effort,
       executable_sha256: settings.binary_sha256, settings, qualification: codexQualification(settings), final_acceptance_required: false };
@@ -266,7 +270,7 @@ export class ManagedNativeManager {
     if (adapter.settings.authentication.mode === 'host_chatgpt' && this.hostAuthBinary !== adapter.settings.codex_binary) {
       this.hostAuth?.clear(); this.hostAuth = createHostAuthBroker({ binary: adapter.settings.codex_binary, cwd: this.parent, env: this.env }); this.hostAuthBinary = adapter.settings.codex_binary;
     }
-    const env = augmentedEnvironment(this.env, record.state.runtime_environment ?? record.state.constraints?.runtime_environment);
+    const env = augmentedRuntimeEnvironment(this.env,envelope.constraints?.runtime_environment??record.state.runtime_environment??record.state.constraints?.runtime_environment,{workspace:envelope.workspace});
     entry.status = 'running'; await event('session_state', { status: 'running' });
     const sessionFor = async (index, dispatchId) => {
       const broker = await brokerFor(index);
@@ -275,6 +279,7 @@ export class ManagedNativeManager {
         hostAuth: adapter.settings.authentication.mode === 'host_chatgpt' ? this.hostAuth : undefined,
         binary: adapter.settings.codex_binary, expectedBinaryHash: adapter.settings.binary_sha256, expectedBinaryPath: adapter.qualification?.resolved_path,
         dynamicToolFormat: adapter.qualification?.dynamic_tool_format, authentication: adapter.settings.authentication,
+        rawObservation: adapter.qualification?.raw_observation,
         model: adapter.model, effort: adapter.effort, cwd: envelope.workspace, access: envelope.access, allowedPaths:assignmentWritePaths.get(index), env, toolBroker: broker, authorize: entry.authorize, assertActive: entry.assertActive,
         maxTurns: definition.fanout?.result_mode==='per_item'
           ? definition.retry.max_attempts+(definition.fanout.item_delivery==='incremental'
@@ -284,7 +289,7 @@ export class ManagedNativeManager {
         onProfilePrepared: profile => event('profile_owned', { home: profile.home, ...(profile.receipt_home ? {receipt_home:profile.receipt_home} : {}), executable_sha256: profile.binary_sha256 }),
         onModelCatalog: metadata => event('model_catalog', metadata),
         onEvent: metadata => {
-          if (!['thread/started', 'turn/started', 'turn/completed', 'thread/tokenUsage/updated', 'item/started', 'item/completed', 'error'].includes(metadata.method)) return;
+          if (!['thread/started', 'turn/started', 'turn/completed', 'thread/tokenUsage/updated', 'workflow/turnUsage', 'workflow/toolInterface', 'workflow/rawObservation', 'workflow/toolSearch', 'item/started', 'item/completed', 'error'].includes(metadata.method)) return;
           return event('codex_event', metadata);
         },
       });

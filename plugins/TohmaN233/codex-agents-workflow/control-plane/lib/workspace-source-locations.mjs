@@ -117,7 +117,8 @@ export async function validateWorkspaceSourceLocations(locations, workspace, {
 
 /** Recheck only marked upstream outputs actually selected by this node's bindings. */
 export async function revalidateBoundSourceLocations(node, state, pins) {
-  if (!node?.input_bindings || !Object.keys(node.input_bindings).length) return { verified: 0 };
+  const bindings=[...Object.values(node?.input_bindings??{}),...Object.values(node?.completion_contract?.host_check?.input_bindings??{})];
+  if (!bindings.length) return { verified: 0 };
   const definitions = new Map((pins.root.workflow.nodes ?? []).map(item => [item.id, item]));
   const context = {
     inputs: state.inputs,
@@ -125,7 +126,7 @@ export async function revalidateBoundSourceLocations(node, state, pins) {
     nodes: Object.fromEntries(Object.entries(state.nodes).map(([id, item]) => [id, { output: item.output }])),
   };
   const selected = new Set();
-  for (const binding of Object.values(node.input_bindings)) {
+  for (const binding of bindings) {
     const pointers = bindingPointers(binding);
     const candidates = typeof binding === 'object' && binding.zip ? pointers.slice(0, -1) : pointers;
     const chosen = candidates.find(pointer => {

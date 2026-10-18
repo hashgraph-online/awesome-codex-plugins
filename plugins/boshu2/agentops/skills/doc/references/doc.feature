@@ -20,3 +20,19 @@ Feature: Doc generates and validates project documentation
   Scenario: validation checks docs against the repo
     When /doc validates existing documentation
     Then it reports gaps or staleness measured against the current source
+
+  Scenario: mixed-language coverage follows the selected entities
+    Given the caller selects a Python public function and an exported Go function for a coverage check
+    And the Python module contains quoted data unrelated to the function's documentation
+    When /doc checks whether the selected APIs are documented
+    Then it inspects each declaration and its associated docstring, comment or reference page
+    And the unrelated quoted data contributes no documented entity
+    And any ratio uses the same explicitly enumerated entity set for numerator and denominator
+    And unknown or unexamined status is disclosed without a percentage
+
+  Scenario: documenting one API creates only the requested document
+    Given the caller requests an authentication API update in an existing reference page
+    When /doc reads the implementation and callers and updates that page
+    Then it verifies the documented inputs, outputs, errors and examples against the source
+    And it returns the changed page, check results and unresolved gaps
+    And it creates no coverage ledger, repository-wide audit or separate report

@@ -1,6 +1,6 @@
 # Singapore PDPA — Jurisdiction Notes
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 | | |
 |---|---|
@@ -12,7 +12,7 @@
 | **Statute on Singapore Statutes Online** | [sso.agc.gov.sg/Act/PDPA2012](https://sso.agc.gov.sg/Act/PDPA2012) |
 | **Pending amendments** | None known as at last verification date |
 
-> **Source copyright:** the statute text is Crown copyright held by the Attorney-General's Chambers and published on Singapore Statutes Online subject to the [SSO Terms of Use](https://sso.agc.gov.sg/Help/TermsOfUse). Verbatim quotations in this skill are short operative phrases reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence. See [DISCLAIMER.md § Copyright in source materials](../../../../DISCLAIMER.md#copyright-in-source-materials).
+> **Source copyright:** the statute text is Crown copyright held by the Attorney-General's Chambers and published on Singapore Statutes Online subject to the [SSO Terms of Use](https://sso.agc.gov.sg/Help/TermsOfUse). Verbatim quotations in this skill are short operative phrases reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence. See [DISCLAIMER.md § Copyright in source materials](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md#copyright-in-source-materials).
 
 ## Critical thresholds
 

@@ -9,20 +9,26 @@ that rate. Current plan prices are in the dashboard.
 
 | Work | Credits |
 | --- | --- |
-| Tweet search, timelines, replies, quotes, threads, mentions, list and community posts, and tweet extractions | 1 per returned tweet |
-| Followers, following, likers, retweeters, and people extractions | 1 per returned profile |
+| Tweet search, timelines, replies, quotes, threads, mentions, top tweets, list and community posts, and tweet extractions | 1 per returned tweet |
+| Followers, following, likers, retweeters, similar accounts, affiliates, subscriptions, and people extractions | 1 per returned profile |
+| Follower, following, and retweeter IDs | 1 per returned ID |
+| Search results for Lists, communities, Spaces, and jobs, plus community topics, places, locations, hashflags, search suggestions, and resolved links | 1 per returned item |
 | DM history | 1 per returned message |
-| Profile or tweet lookup | 1 per call |
-| Follow check, article | 5 per call |
-| Trends | 3 per call |
+| Profile, tweet, list, Space, Space replay, broadcast, or job lookup | 1 per call |
+| Follow check | 1 per call |
+| Repost check, live status, engagement insights, translation, and embed | 1 per call |
+| Subtitles | 1 per call that returns a caption track |
+| Article | 5 per call |
+| Trends | 1 per call |
+| AI analysis of a post or your own text | 2 per analyzed post |
 | Media download | 1 per tweet with media |
 | Post or reply | 30, plus 2 per started MB of media |
 | Like, repost, follow, their undo calls, remove follower, DM, delete, media upload | 10 per call |
-| Active monitor | 21 per hour, 504 a day |
-| Giveaway draw | 2, plus 1 per inspected reply, 1 per reposter read, and 5 per follow check |
+| Active monitor | 30 per hour, 720 a day |
+| Giveaway draw | 2, plus 1 per inspected reply, 1 per reposter read, and 1 per follow check |
 
 For result-billed reads, credits equal returned results. Dollars are credits times
-$0.00015 at pay-as-you-go rates: 1,000 tweets cost 1,000 credits, or $0.15. A
+$0.00015 at pay-as-you-go rates, so 1,000 tweets cost 1,000 credits, or $0.15. A
 top-up of $500 buys 3,333,333 credits, with any partial credit dropped.
 Supported filters apply before billing, so excluded rows cost nothing.
 Estimates, stored event reads, webhook operations, and extraction exports are
@@ -39,7 +45,7 @@ their current pricing pages.
 
 ## Xquik or the official X API
 
-Choose Xquik when several of these matter:
+Choose Xquik when several of these matter.
 
 - Per-result billing with server-side filters and pre-run estimates
 - Reads without an X developer account or a connected X account
@@ -59,7 +65,7 @@ test the same known posts and fields on both before committing.
 
 Give a direct, qualified answer first. Collecting visible X data for research
 is often lawful, but no one can promise it for every case. The answer depends
-on:
+on these factors.
 
 - Jurisdiction and its data protection law, such as GDPR for EU residents
 - X terms of service and developer rules
@@ -89,7 +95,7 @@ passwords, 2FA codes, cookies, or session tokens.
 
 - Deleted, protected, or unavailable content can stay inaccessible. Xquik
   omits missing optional fields and never invents data.
-- Rate limits: each user gets 500 reads per second, 120 writes per minute,
+- The rate limits give each user 500 reads per second, 120 writes per minute,
   and 60 deletes per minute. A `429` includes `Retry-After`.
-- SDKs: typed TypeScript and Python SDKs are listed in the repository README.
-- Docs for the user: `https://docs.xquik.com`.
+- The repository README lists typed TypeScript and Python SDKs.
+- Docs for the user are at `https://docs.xquik.com`.

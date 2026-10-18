@@ -11,11 +11,28 @@ retrieve it through MCP, import or export portable KnowledgePacks, and connect
 local or hosted agent profiles.
 
 It is not a time-limited trial and it is not a hollow demo. The Lite boundary is
-the committed ThorAPI `api.hbs.yaml`, `./vaix` builder, Spring/H2 backend,
+the canonical ThorAPI YAML under `openapi/bundles`, `./vaix` builder, Spring/H2 backend,
 embedded dashboard, MCP server, starter KnowledgePack, Docker definition,
 tests, and public documentation in this repository.
 
-## Install in one command
+## Choose hosted or local memory
+
+[Start with the setup page](https://valkyrlabs.com/graymatter/install).
+**GrayMatter Cloud is the recommended default**: use your valkyrlabs.com account
+and the native plugin sign-in to connect hosted memory. Tenant and account
+permissions are enforced by the hosted service.
+
+**Local GrayMatter Lite needs no valkyrlabs.com signup**. In ValorIDE, click
+**Connect Local GrayMatter Lite** on the welcome screen (or use that command
+from the command palette), then select this source folder if asked. ValorIDE
+starts Lite and verifies the local account and MCP memory tools. Choose Ollama,
+LM Studio or your own model provider separately. The first source build may
+need toolchain and dependency downloads; installed local memory works offline.
+
+For other clients, use the source commands below. Hosted workflows, ecommerce
+and application hosting use their authenticated ValkyrAI services.
+
+## Install local Lite in one command
 
 On macOS or Linux:
 
@@ -27,8 +44,11 @@ cd GrayMatter
 
 `./vaix setup` uses Java 17+, Maven, and Node 20+ already on the machine when
 possible. Missing toolchains are downloaded privately under `.vaix/runtime`;
-nothing is installed system-wide. The command renders the ThorAPI application
-bundle, builds and tests the backend, creates the one local profile, and starts:
+nothing is installed system-wide. The command builds standalone Lite using public
+Maven dependencies, creates one local profile, starts the services, and verifies
+the connection. A hosted account or private ThorAPI generator is not required.
+Explicit schema generation remains available through `./vaix generate`.
+Setup starts:
 
 - dashboard and sign-in: `http://localhost:8787`
 - HTTP MCP: `http://localhost:3333/mcp`
@@ -44,13 +64,18 @@ Retrieve the generated local credentials only when you need them:
 Other source commands:
 
 ```bash
-./vaix generate     # render from templates/graymatter-light-bootstrap/api.hbs.yaml
+./vaix generate     # compose canonical YAML and generate Spring + TypeScript
+./vaix generate --extension ./application-domain.yaml
+./vaix regenerate   # generate, clean-build, and run the acceptance suite
 ./vaix build        # build the Spring/H2 backend
 ./vaix test         # backend, bootstrap, docs, release parity, and MCP contracts
 ./vaix run          # foreground backend
 ./vaix up           # background backend + HTTP MCP
 ./vaix stop
 ```
+
+See [Schema regeneration](docs/schema-regeneration.md) for the authoritative
+files, generated/handwritten boundary, extension contract, and failure rules.
 
 ## Docker
 
@@ -342,9 +367,9 @@ Set-Location GrayMatter
 .\\install.ps1
 ```
 
-The installer automatically connects this checkout to Codex when the Codex CLI is available, installs the plugin, and opens one native GrayMatter sign-in window. macOS uses a single AppKit dialog with username and masked-password fields; Windows uses one WinForms dialog backed by Windows Credential Manager. A rejected login returns to the same flow with the username preserved and a clear correction message. The password is sent only to the HTTPS login endpoint and is never printed or saved. Only the returned session and username are stored.
+The installer automatically connects this checkout to Codex when the Codex CLI is available, installs the plugin, and opens one native GrayMatter sign-in window. macOS uses a single AppKit dialog; Windows uses one WinForms dialog backed by Windows Credential Manager. The first screen offers **GrayMatter Cloud (api-0)**, **Local GrayMatter Lite (localhost:8787)**, **Local ValkyrAI (localhost:8080)**, and **Other self-hosted server**, with an editable server URL and masked password field. A rejected login returns to the same flow with the username preserved and a clear correction message. ValkyrAI/Cloud passwords are sent only to the selected login endpoint and are never printed or saved; the returned session is stored in the platform credential vault. Local HTTP is allowed only on loopback; remote instances require HTTPS. GrayMatter Lite uses its existing local account authentication and keeps local credentials in a private mode-0600 profile file.
 
-Returning users sign in immediately. New users choose **Create Free Account**, finish the dedicated GrayMatter Cloud signup page in their browser, then return to the still-open connection window and sign in with the username they created. **Recover Account** opens the dedicated username/password recovery page. Browser redirects, clipboard tokens, and manual JWT handling are never part of normal sign-in: the native window exchanges the credentials directly with `api-0` and reliably captures the returned session from the response body, headers, or secure cookies.
+Returning users sign in immediately. New users choose **Create Free Account**, finish the dedicated GrayMatter Cloud signup page in their browser, then return to the still-open connection window and sign in with the username they created. **Recover Account** opens the dedicated username/password recovery page. For a local or self-hosted instance, choose its connection before entering credentials. GrayMatter Lite accounts come from `./vaix setup`; ValkyrAI accounts come from that instance's signup or administrator. **Open Instance** opens the selected server instead of Cloud signup. A Cloud account is optional. The selected server is saved as an account profile for the next plugin launch, and its credentials stay separate from hosted accounts. Browser redirects, clipboard tokens, and manual JWT handling are never part of normal sign-in: the native window exchanges credentials with the selected ValkyrAI server and captures its session from the response body, headers, or secure cookies.
 
 Sign-in identity example:
 
@@ -587,10 +612,10 @@ The user should **not** have to manually acquire or paste a raw auth token.
 
 The intended first-run OpenClaw auth step is:
 
-1. GrayMatter opens a native macOS or Windows sign-in dialog for the `api-0` username
+1. GrayMatter opens a native macOS or Windows connection dialog; choose Cloud, localhost, or your self-hosted server
 2. The password is collected in a masked native field
 3. OpenClaw exchanges those credentials for a session
-4. GrayMatter stores only the resulting session and username in macOS Keychain or Windows Credential Manager; the password is discarded
+4. ValkyrAI/Cloud sessions are stored in the credential vault; GrayMatter Lite local accounts use their private profile credential file
 5. OpenClaw creates or refreshes an Agent record for itself in api-0
 6. Subsequent GrayMatter use reads the session from the platform credential vault automatically
 
@@ -795,7 +820,7 @@ Preferred auth flow:
 - exchange for a `VALKYR_AUTH` token
 - store only that token and the username securely in the platform credential vault for future runs
 
-Passwords are never persisted. On macOS and Windows the first plugin launch opens the native sign-in dialog automatically, including when the MCP host has no interactive terminal. Signup and recovery use dedicated website pages, then the user returns to the still-open native connection window. Normal session capture never depends on a browser redirect or clipboard token.
+Hosted/ValkyrAI passwords are never persisted; GrayMatter Lite local profiles use private credential files. On macOS and Windows the first plugin launch opens the native sign-in dialog automatically, including when the MCP host has no interactive terminal. Signup and recovery use dedicated website pages, then the user returns to the still-open native connection window. Normal session capture never depends on a browser redirect or clipboard token.
 
 Do not hardcode secrets into the repo or skill.
 Do not print tokens.
@@ -920,12 +945,12 @@ The doctor command continues through all checks and reports the exact required f
 
 ## Packaging
 
-## GrayMatter Light before/after
+## GrayMatter Lite generation and legacy compatibility
 
 Before this distribution sprint, Light mode was useful but not strict enough as a drop-in api-0 substitute:
 
 - local docs and bundles used unprefixed paths such as `/MemoryEntry` and `/SwarmOps/graph`
-- the hand-written Light OpenAPI could drift from the real ValkyrAI `api.hbs.yaml` / api-0 shape
+- the hand-written Light OpenAPI could drift from the intended GrayMatter domain
 - the packaged server expected a system Java runtime unless the operator provided one
 - there was no single command proving local write, query, health, and MCP readiness
 
@@ -933,7 +958,7 @@ After this sprint, Light mode is api-0-shaped:
 
 - `VALKYR_API_BASE=http://localhost:<port>/v1`
 - Light implements the MemoryEntry-first production path subset: `/v1/MemoryEntry/write`, `/v1/MemoryEntry/query`, `/v1/MemoryEntry/read`, `/v1/MemoryEntry/{id}`, `/v1/memory/status`, `/v1/graymatter/stats`, `/v1/graymatter/activation/bridge`, `/v1/swarm-ops/graph`, and `/v1/api-docs`
-- the Light OpenAPI is generated from the real authenticated api-0/ValkyrAI OpenAPI snapshot and carries the production component schemas
+- the Lite OpenAPI is composed from `openapi/bundles/*.yaml` plus optional application extensions, enhanced by ThorAPI, and emitted as deterministic YAML and derived JSON
 - the packaged local server uses H2 under the user-local app directory and supports bundled-runtime archives
 - `scripts/gm-light-smoke` proves the local write/query/health loop and prints MCP-ready instructions
 
@@ -943,7 +968,14 @@ Rebuild the packaged skill with:
 scripts/package-graymatter
 ```
 
-Run an actual local ThorAPI-backed Light instance with:
+Run the canonical generated Lite instance with:
+
+```bash
+./vaix setup
+./vaix doctor
+```
+
+The older compatibility launcher remains available for existing installations:
 
 ```bash
 scripts/gm-light-up
@@ -952,7 +984,12 @@ scripts/gm-write context "GrayMatter Light is running" local-light
 scripts/gm-query "GrayMatter Light"
 ```
 
-`gm-light-up` generates the api.hbs.yaml template at `.graymatter-light/api.hbs.yaml`, rendered api.yaml at `.graymatter-light/api.yaml`, the Docker Compose file, and the Light control panel, then starts the ThorAPI image with `THORAPI_TEMPLATE=/app/api.hbs.yaml` and `THORAPI_SPEC=/app/api.yaml`. The default image is `ghcr.io/valkyrlabs/thorapi:latest`; use `--image` or `THORAPI_IMAGE` when running a private, pinned, or locally built ThorAPI image. The rendered spec explicitly includes the production-shaped MCP backing paths for `memory_put`, `memory_get`, `memory_query`, `memory_health`, graph access, and schema summary. The env file sets `VALKYR_API_BASE=http://localhost:8080/v1` and `GRAYMATTER_LIGHT_MODE=true`, so the normal GrayMatter skill scripts and the standalone MCP server can connect to the running local instance without requiring hosted api-0 auth.
+`gm-light-up` copies the packaged compatibility snapshot to `.graymatter-light`
+and starts the ThorAPI container. That snapshot is not an authoring surface; schema
+changes belong in `openapi/bundles` and must be regenerated through `./vaix`.
+The compatibility environment still sets `VALKYR_API_BASE=http://localhost:8080/v1`
+and `GRAYMATTER_LIGHT_MODE=true`, so existing scripts and MCP clients continue to
+work.
 
 Run the full local loop smoke test with:
 

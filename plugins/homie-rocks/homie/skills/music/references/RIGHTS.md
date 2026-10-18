@@ -16,10 +16,10 @@ Terms change: when a person is about to publish commercially, read the current p
 
 ## The plan at render time is what counts
 
-`render` reads the plan before it sends anything and writes it into the render's receipt and
-into the manifest entry (`rights.plan`, `rights.commercial`, `rights.attribution`). The song page
-shows it in plain words. A render made on the free plan stays under free-plan terms after an
-upgrade: to use it commercially, render it again on the paid plan.
+Use the official ElevenLabs MCP's available account and rights information and the current
+terms to record the plan and permitted use at generation time. If the MCP does not expose a
+fact, record it as unknown; do not infer a commercial licence from a successful generation.
+An account upgrade does not retroactively change the terms of earlier output.
 
 ## What never goes in
 
@@ -29,15 +29,12 @@ upgrade: to use it commercially, render it again on the paid plan.
 
 ## Receipts
 
-Every paid call leaves three records:
+Before a paid call, record the approved budget and the official tool's quote, if available.
+Keep the accepted request ID so polling or downloading an existing job does not submit it again.
+Save the output and a normalized receipt with `homie-studio media import`, which records the
+provider, tool, model, request ID, prompt, style revision, rights source and date, cost, file
+hash and consumer in `media/provenance.json`.
 
-- `music/<slug>/budget.json`: the cap the person agreed to, who agreed, and every call with its
-  cost;
-- `music/receipts.jsonl`: one line per call (provider, model, the song id, credits quoted and
-  measured, the plan and rights, the file it made);
-- optionally a team ledger: set `HOMIE_SPEND_LEDGER=<file>` (and `HOMIE_SPEND_ATTRIBUTION`) and
-  each call is also appended there.
-
-Credits are measured off the account (used before and after the call). Another job spending on
-the same account at the same moment shows up in that number; the receipt keeps the quote beside
-it.
+Distinguish provider-reported actual cost from an estimate; use unknown when neither is exposed.
+Do not infer job cost from changes in the account balance. Never save raw authentication data,
+signed download URLs or an unfiltered MCP response in the studio.

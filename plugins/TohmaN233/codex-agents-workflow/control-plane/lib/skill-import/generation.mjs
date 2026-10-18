@@ -1,3 +1,5 @@
+import { automaticAuthoringCompletion } from './completion-policy.mjs';
+import { readAuthoringPreview } from './generation-preview.mjs';
 import { evaluateReview } from './review-checklist.mjs';
 import { repairGeneration } from './generation-repair.mjs';
 import { generationProgress } from './generation-progress.mjs';
@@ -6,7 +8,7 @@ import { requireValue } from '../workflow-paths.mjs';
 import { decodeGeneratedProposal } from './expansion-run.mjs';
 import { canonicalJSON, digest } from '../workflow-revisions.mjs';
 import { validateGenerationProposal } from './proposal-validation.mjs';
-import { isGenerationContractFailure, semanticGenerationRepair } from './generation-retry-policy.mjs';
+import { isGenerationContractFailure, semanticGenerationRepair, generationReviewRepairOwner } from './generation-retry-policy.mjs';
 import { MAX_AUTHORING_REVIEW_RESOURCE_BYTES, authoringDependencyAssessmentRequired, authoringReviewIdentity, isAuthoringRunProvenance } from '../authoring/authoring-workflows.mjs';
 
 const hasChecklistReview = version => Number.isInteger(version) && version >= 2;
@@ -63,8 +65,9 @@ export async function prepareAuthoringReview(runtime,args,{store,context}) {
 }
 
 // One bounded transition per request. Only pinned read-only generation repairs
-// may retry; human final acceptance remains explicit.
+// may retry; the separate pinned policy controls reviewed completion.
 export async function advanceGeneration(service, runtime, executor, args, {store,context}) {
+  const resumed=await service.resumeAutomaticAuthoring(args,{store,runtime,context});if(resumed)return resumed;
   await runtime.authorizeController(args.run_id,args);
   let record = await runtime.runs.read(args.run_id);
   let {state,pins} = record;
@@ -73,7 +76,7 @@ export async function advanceGeneration(service, runtime, executor, args, {store
   const proposal = () => decodeGeneratedProposal(state.nodes.expand.output?.host_pipeline?{proposal:state.nodes.expand.output.proposal}:state.nodes.expand.output, source.expected_revision, {requirePlanningAnalysis:pins.root.provenance.routing_rules?.selection_mode === 'automatic',requireSourceDispositions:(pins.root.provenance.review_contract_version ?? 1)>=8,requireRuntimeDependencies:authoringDependencyAssessmentRequired(pins.root.workflow.authoring?.contract)});
   for (const nodeId of ['expand','graph_assembly','execution_binding','deterministic_validation','final']) {
     record=await runtime.runs.read(args.run_id);({state,pins}=record);
-    if (state.status === 'succeeded') return {phase:'ready_to_apply',source};
+    if (state.status === 'succeeded') return automaticAuthoringCompletion(pins.root.provenance)?service.completeAuthoringResult(args,{store,runtime,context}):{phase:'ready_to_apply',source};
     if (state.status==='blocked') {const blocked=await runtime.next(args.run_id);if(blocked.approvals.length) return {phase:'approval',approvals:blocked.approvals};}
     if (state.status !== 'running') {
       const failed = Object.values(state.nodes).find(n=>n.status==='failed');
@@ -123,11 +126,11 @@ export async function advanceGeneration(service, runtime, executor, args, {store
       try {review=hasChecklistReview(pins.root.provenance.review_contract_version)?evaluateReview(result.completion.structured_output,decoded,resources,{version:pins.root.provenance.review_contract_version}):result.completion.structured_output;}
       catch(error){if(error.code!=='GENERATION_CHECKLIST_INVALID')throw error;return {phase:'attention',status:'review_protocol_error',error:{code:error.code,message:error.message,retry_class:'mechanical',automatic_retry:false}};}
       if(pins.generation?.settings && (review.approved!==true || review.findings.length)) {
-        if(review.semantic_findings.length) return repairGeneration(runtime,args,record,{code:'GENERATION_REVIEW_FINDINGS',findings:review.semantic_repair_targets?.length?review.semantic_repair_targets:review.semantic_findings});
-        return {phase:'attention',status:'host_review_findings',error:{code:'GENERATION_HOST_REVIEW_FINDINGS',message:'Reviewer found only Host-owned projection, routing or evidence problems. Another semantic planner attempt cannot repair them.',findings:review.host_findings,retry_class:'mechanical',automatic_retry:false}};
+        if(generationReviewRepairOwner(review)==='planner') return repairGeneration(runtime,args,record,{code:'GENERATION_REVIEW_FINDINGS',findings:review.semantic_repair_targets?.length?review.semantic_repair_targets:review.semantic_findings});
+        return {phase:'attention',status:'host_review_findings',error:{code:'GENERATION_HOST_REVIEW_FINDINGS',message:'Reviewer found Host-owned projection, routing or evidence problems. Resolve these before another semantic planner attempt; pending semantic findings are retained.',findings:review.host_findings,semantic_findings:review.semantic_findings,semantic_repair_targets:review.semantic_repair_targets??[],retry_class:'mechanical',automatic_retry:false}};
       }
-      const validated=validateGenerationProposal(state.nodes.expand.output,{pack,resources,provenance:pins.root.provenance,context});
-      return {phase:'review_required',source,proposal:validated.proposal,workflow:validated.compiled.workflow,validation:validated.compiled.validation,review:{...result.completion,structured_output:review}};
+      if(automaticAuthoringCompletion(pins.root.provenance))return service.completeAuthoringResult(args,{store,runtime,context});
+      return readAuthoringPreview(runtime,record,{store,context});
     }
     const live = await service.strictManager.status(runtime,args.run_id,lease);
     return {phase:['auth_required','auth_pending'].includes(live.status)?'authentication_required':nodeId==='expand'?'generating':nodeId==='final'?'reviewing':'host_compiling',stage:nodeId,live,progress:generationProgress(record,nodeId)};
@@ -137,12 +140,19 @@ export async function advanceGeneration(service, runtime, executor, args, {store
 
 export async function acceptGeneration(service, runtime, args) {
   requireValue(args.accepted === true,'GENERATION_ACCEPTANCE','Review and explicitly accept the proposed graph first');
+  const {store,context}=await service.open();
+  const resumed=await service.resumeAutomaticAuthoring(args,{store,runtime,context});if(resumed)return resumed;
   await runtime.authorizeController(args.run_id,args);
   const record = await runtime.runs.read(args.run_id);
   const provenance = record.pins.root.provenance;
   requireValue(isAuthoringRunProvenance(provenance),'GENERATION_RUN','Not an authoring Workflow Run');
   const pending = record.state.nodes.final?.attempts.find(a=>a.id===record.state.nodes.final.active_attempt_id);
+  if(args.preview_identity){
+    const current={...authoringReviewIdentity(record),final_attempt_id:pending?.id,review_result_sha256:pending?.result_proposal?.sha256};
+    requireValue(canonicalJSON(args.preview_identity)===canonicalJSON(current),'AUTHORING_PREVIEW_CHANGED','The displayed proposal or review changed; reload it before accepting');
+  }
   requireValue(record.state.status === 'succeeded' || (record.state.status === 'running' && pending?.result_proposal), 'GENERATION_NOT_READY', 'Generation is not ready for acceptance');
+  if(automaticAuthoringCompletion(provenance))return service.completeAuthoringResult(args,{store,runtime,context});
   const observation = {phase:record.state.status==='succeeded'?'ready_to_apply':'review_required', source:{workflow_id:provenance.source_workflow_id,expected_revision:provenance.source_revision}};
   if (observation.phase==='review_required') {
     const {state} = await runtime.runs.read(args.run_id);
@@ -195,6 +205,7 @@ export async function recheckGenerationProposal(service,runtime,args,{store,cont
     revision_hash:provenance.source_revision,
     run_id:args.run_id,
     routing_rules:provenance.routing_rules,
+    completion_policy:args.completion_policy??provenance.completion_policy?.mode??'manual',
   },{human:true});
   const control={run_id:started.run_id,control_token:started.control_token};
   const state=await runtime.get(started.run_id);
@@ -246,6 +257,7 @@ export async function acceptRecheckedGenerationReview(service,runtime,args) {
     state.status='running';state.updated_at=new Date().toISOString();
   },{expected_sequence:record.sequence});
   const fresh=await runtime.runs.read(args.run_id);const current=fresh.state.nodes.final.attempts.find(item=>item.id===attempt.id);
+  if(automaticAuthoringCompletion(provenance))return service.completeAuthoringResult(args,{store,runtime,context});
   await service.strictManager.acceptAuthoring(runtime,args.run_id,{node_id:'final',attempt_id:current.id,lease_token:leaseToken(args.control_token,args.run_id,'final',current.id,current.lease_generation ?? 0),control_token:args.control_token,accepted:true});
   return service.call('apply_authoring_result',{...args,workflow_id:provenance.source_workflow_id,expected_revision:provenance.source_revision},{human:true});
 }

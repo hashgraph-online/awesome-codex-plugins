@@ -1,204 +1,104 @@
-# Documentation Validation Rules
+# Documentation validation techniques
 
-## Coverage Metrics by Type
+Choose checks for the accepted document and audience. These techniques do not
+expand the [Doc contract](../SKILL.md) into a repository-wide audit, fixed
+coverage target, required section list or separate report.
 
-| Type | Key Metric | Target | How Measured |
-|------|-----------|--------|--------------|
-| CODING | Entity Coverage | >= 90% | Documented services / total services |
-| CODING | Signpost Accuracy | 100% | Referenced functions exist |
-| INFORMATIONAL | Frontmatter Valid | >= 95% | Required fields present |
-| INFORMATIONAL | Links Valid | 100% | All internal links resolve |
-| OPS | Values.yaml Coverage | >= 80% | Documented keys / total keys |
-| OPS | Golden Completeness | 100% | Required sections present |
+## State what was examined
 
----
+| Question | Evidence | Limit |
+|---|---|---|
+| Are selected entities documented? | Inspect each enumerated entity and its associated documentation against a declared criterion. | A ratio needs numerator and denominator from that same checked set; unknown or unexamined status precludes a percentage. |
+| Do code references exist? | Resolve the named symbols or commands in current source. | Existence alone does not verify the prose's behavior claims. |
+| Do links resolve? | Check links in the selected documents with the repository's validator or direct inspection. | A scoped link check says nothing about unread documents. |
+| Is required metadata present? | Check the fields required by the document's actual consumer. | No universal frontmatter target applies. |
+| Are configuration keys explained? | Compare the selected keys with source and the requested reference. | File presence is not key or entity coverage. |
 
-## INFORMATIONAL Validation
+Use caller-supplied acceptance thresholds when they exist. Otherwise report
+observed checks and gaps without inventing a percentage target. For entity
+discovery and status handling, see [code/API guidance](default-mode.md).
 
-No standalone validator script ships with this skill. Run the checks below
-manually — for doc-file presence coverage use the shipped
-`skills/doc/scripts/audit-oss-docs.sh`; for link/orphan/path checks write a
-short throwaway Python script in the target repo (not bash: bash loops are
-O(n*m) and time out on large repos, while Python processes 350+ files in
-seconds with cleaner regex extraction).
+## Informational documents
 
-### Checks Performed
+Use an existing validator where available, or inspect the selected files
+directly. `skills/doc/scripts/audit-oss-docs.sh` checks doc-file presence for an
+OSS pack; its counts do not measure API entities, link validity or semantic
+accuracy. No standalone link/orphan validator ships with this skill.
 
-1. **Broken Links** - ALL internal .md links resolved
-2. **Orphaned Docs** - Files not referenced from any index
-3. **Index Completeness** - READMEs reference all subdirectories
-4. **Hardcoded Paths** - Absolute paths like /Users/, /home/
+For a requested broader audit, define its file set and check relevant items:
 
-### Output Format
+- Broken links in that set.
+- Documents absent from an index that is intended to enumerate them.
+- Missing index entries required by the navigation contract.
+- Machine-specific paths that would mislead the intended reader.
 
-```
-CRITICAL: Broken Links (81)
-   file.md:42 -> missing.md (not found)
+An unlinked page is not automatically obsolete. Report the finding and source;
+do not delete it or create a new validator without authorization. For a scoped
+edit, check its affected links and state what was not checked.
 
-MEDIUM: Orphaned Documents (13)
-   path/to/orphan.md
+## Coding documents
 
-LOW: Hardcoded Paths (2)
-   file.md:156 -> /Users/...
+Use sections appropriate to the document's purpose. A code-map may need an
+overview, component entry points, inputs/outputs, data flow and dependencies.
+An API page may need parameters, returns, errors and usage. Configuration,
+metrics, tests, state diagrams, deployment status and lessons belong only when
+they answer the requested question or an existing template requires them.
 
-SUMMARY: 96 issues (81 critical, 13 medium, 2 low)
-```
+### Code references
 
----
+- Resolve function, class, type and command names in the stated source revision.
+- Use semantic names, such as `authenticate()` or `UserService`, with paths when
+  needed to disambiguate them.
+- Prefer stable symbol references for maintained navigation. Exact line
+  references are useful for revision-bound findings; state the revision so they
+  do not imply permanence.
 
-## CODING Validation
+## Operational documents
 
-### Required Sections (16)
+An installation or chart guide may need an overview, quick start, selected
+configuration values, dependencies, environment overrides and troubleshooting.
+Use only the sections the requested guide needs. For a full values reference,
+enumerate the selected keys and verify descriptions, types and defaults against
+the same source. Do not infer full coverage from a few documented keys.
 
-From `code-map-standard` skill:
+Commands and deployment claims require current evidence from the appropriate
+source. Repository access alone does not authorize querying a cluster or using
+credentials. If the authorized source is unavailable, label the status unknown
+or stated but unverified and name the missing check.
 
-1. Current Status (one-liner with date)
-2. Overview (2-3 sentences)
-3. State Machine (ASCII diagram if applicable)
-4. Inputs/Outputs (table)
-5. Data Flow (ASCII diagram)
-6. API Endpoints (table with curl examples)
-7. Code Signposts (NO line numbers)
-8. Configuration (table)
-9. Prometheus Metrics (table + PromQL examples)
-10. Error Handling (table)
-11. Unit Tests (table)
-12. Integration Tests (separate from unit)
-13. Example Usage (curl + SDK)
-14. Related Features (cross-links)
-15. Known Limitations
-16. Learnings (What Worked + What We'd Change)
+## Semantic validation
 
-### Signpost Rules
+Formatting checks establish structure; semantic checks establish whether the
+document's claims follow its sources. Resolve each material claim to its
+existing authority rather than creating a new ground-truth file or duplicating
+another owner's state.
 
-- **NO line numbers** - Functions/classes only
-- References must exist in source files
-- Use semantic names: `authenticate()`, `UserService`
+| Claim | Check |
+|---|---|
+| An API accepts or returns a value | Inspect its implementation, callers or executable checks. |
+| A feature is deployed or running | Read authorized native deployment state; a declaration or template alone is insufficient. |
+| A configuration value is the default | Compare with the versioned configuration source. |
+| A status observation is current | State when and against which source it was observed; use an existing freshness requirement if one applies. |
 
----
+For status prose, distinguish observed, planned and unverified facts. A date
+records an observation, not a universal validity period. There is no generic
+`--verify-claims` command or cluster check added by this reference.
 
-## OPS Validation
+## Reporting, when requested
 
-### Required Sections
+Return scoped check results and gaps with the changed paths. A separate coverage
+report is optional and follows the caller's selected destination and the Doc
+contract's evidence rules. A useful requested report can state:
 
-1. Overview with Chart.yaml description
-2. Quick Start with install command
-3. Values Reference table
-4. Dependencies table
-5. Environment overrides (dev/staging/prod)
-6. Troubleshooting table
-
-### Values.yaml Coverage
-
-Every key in values.yaml should have:
-- Description comment or doc reference
-- Type specification
-- Default value explanation
-
----
-
-## Coverage Report Format
-
-```
-===================================================================
-              DOCUMENTATION COVERAGE REPORT
-===================================================================
-Repository: [REPO_NAME]
-Type: [CODING|INFORMATIONAL|OPS]
-Generated: [date]
-
-SUMMARY
--------------------------------------------------------------------
-Total Features: 25
-Documented: 22 (88%)
-Missing: 3
-Orphaned: 1
-
-MISSING DOCUMENTATION
--------------------------------------------------------------------
-| Feature | Priority | Source Files |
-|---------|----------|--------------|
-| auth-service | P1 | services/auth/*.py |
-
-ORPHANED DOCUMENTATION
--------------------------------------------------------------------
-| Document | Last Updated | Action |
-|----------|--------------|--------|
-| legacy-api.md | 2023-06-15 | Remove |
-
-===================================================================
+```text
+Scope: <selected documents/entities and source revision>
+Criterion: <what counted as documented or valid>
+Checked: <source/document references and observed results>
+Gaps: <verified missing or inaccurate documentation>
+Unknown or unexamined: <items and reasons>
+Coverage: <checked documented entities / same enumerated entity set, if established>
 ```
 
----
-
-## Semantic Validation (CODING repos)
-
-**Structure vs Semantic:** Structural validation checks formatting. Semantic validation checks if claims are TRUE.
-
-### Semantic Metrics
-
-| Check | How | Target |
-|-------|-----|--------|
-| Status Accuracy | Compare "Status: X" to deployment state | 100% |
-| Claim Verification | Cross-ref with ground truth file | 100% |
-| Validation Freshness | Status includes date | < 30 days |
-
-### Ground Truth Pattern
-
-Establish ONE authoritative file per domain. Other docs MUST reference, not duplicate.
-
-| Domain | Ground Truth | Pattern |
-|--------|--------------|---------|
-| Agents | `docs/agents/catalog.md` | Reference via link |
-| Images | `charts/*/IMAGE-LIST.md` | Reference via link |
-| Config | `values.yaml` | Generate docs from source |
-
-### Status Validation
-
-Valid status formats:
-
-```markdown
-## Current Status: ✅ RUNNING
-Validated: 2026-01-04 against ocppoc cluster
-
-## Current Status: ❌ FAILED
-Status: Accepted=False (CRD exists but not running)
-Validated: 2026-01-04 against ocppoc cluster
-
-## Current Status: 📝 PLANNED
-Not yet deployed - template only
-```
-
-### Semantic Validation Commands
-
-```bash
-# Check status claims against cluster (manual)
-oc get pods -n ai-platform | grep <service>
-oc get agents.kagent.dev -n ai-platform
-
-# Cross-reference with ground truth
-diff <(grep "Status:" docs/code-map/services/*.md) <(cat docs/agents/catalog.md)
-```
-
-### --verify-claims Flag
-
-When running `/doc coverage --verify-claims`:
-
-1. Extract all "Status: X" claims from docs
-2. Query deployment state (oc get pods, oc get agents)
-3. Report mismatches as CRITICAL
-4. Flag stale validation dates (>30 days) as WARNING
-
----
-
-## Anti-Patterns
-
-| DON'T | DO INSTEAD |
-|-------|------------|
-| Sample 20 files, declare "healthy" | Scan ALL files |
-| Say "healthy" with broken links | Report exact issue counts |
-| Skip validation for "organized" repos | Validate regardless |
-| Use bash loops on large repos | Use Python validator |
-| Claim "deployed" without verification | Validate against cluster first |
-| Duplicate ground truth data | Reference authoritative file |
-| Omit validation dates | Include "Validated: DATE against SOURCE" |
+Do not populate counts or results from an example. Sampling supports findings
+about the sample; an exhaustive claim requires examining the declared whole
+set. Preserve the distinction between not checked and a verified defect.

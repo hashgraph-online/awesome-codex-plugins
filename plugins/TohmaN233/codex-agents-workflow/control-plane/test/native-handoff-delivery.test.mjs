@@ -34,7 +34,7 @@ test('large native inputs stay in Host files instead of crossing the controller 
     assert.doesNotMatch(JSON.stringify(bundle),/unique_rule_|Distinct printed card rule/);
     assert.equal(packet.task_bundle_path,join(workspace,'work','.workflow-runtime','native-agent','run-packets','attempt-1',`partition-${packet.index}`,'task.json'));
     assert.doesNotMatch(packet.prompt,/unique_rule_|Distinct printed card rule/);
-    assert.doesNotMatch(packet.prompt,/Implement assigned cards/);
+    assert.match(packet.prompt,/Implement assigned cards/);
     assert.match(bundle.task,/Implement assigned cards/);
     assert.deepEqual({...packet.spawn_config,task_name:undefined},{agent_type:'default',model:'gpt-6-luna',reasoning_effort:'max',fork_turns:'none',task_name:undefined});
     assert.match(packet.spawn_config.task_name,new RegExp(`^wf_[a-f0-9]{24}_${packet.index}$`));
@@ -57,8 +57,9 @@ test('retry task bundle materializes only unresolved items inherited from a prio
   const handoff=await materializedNativeAgentHandoff({state},definition,{attempt_id:attempt.id},dispatched,64000,0);
   const bundle=JSON.parse(await readFile(handoff.packets[0].task_bundle_path,'utf8'));
   const inputs=JSON.parse(bundle.task.match(/\nInputs:\n([^\n]+)/)?.[1]??'null');
-  const inputPath=JSON.parse(inputs.card_jobs_json.match(/local file at (".*") \(format: json\)\./)?.[1]??'null');
-  assert.deepEqual(JSON.parse(await readFile(inputPath,'utf8')),[jobs[1],jobs[2],jobs[6]]);
+  assert.deepEqual(inputs.card_jobs_json,[jobs[1],jobs[2],jobs[6]]);
+  assert(handoff.packets[0].prompt.includes('card_1'));
+  assert(!handoff.packets[0].prompt.includes('card_0'));
   assert.equal(bundle.result_schema.properties.items.minItems,3);
   assert.equal(bundle.result_schema.properties.items.maxItems,3);
   assert.deepEqual(bundle.writable_paths,['zz']);

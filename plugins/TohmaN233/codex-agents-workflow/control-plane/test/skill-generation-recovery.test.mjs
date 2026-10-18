@@ -1,10 +1,55 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { adoptAuthoringRun, assessAuthoringRecovery, continueControlledAuthoringRun, inspectAuthoringRun, inspectControlledAuthoringRun, mountedAuthoringSession, shouldPollAuthoring } from '../web-src/skill-generation-recovery.mjs';
+import { applyCompletedAuthoring, acceptDisplayedAuthoring, defaultWorkflowTab, discoverSavedAuthoring, adoptAuthoringRun, assessAuthoringRecovery, continueControlledAuthoringRun, inspectAuthoringRun, inspectControlledAuthoringRun, mountedAuthoringSession, shouldPollAuthoring } from '../web-src/skill-generation-recovery.mjs';
+import { discoverAuthoringPreview } from '../lib/skill-import/generation-preview.mjs';
 
 const pack={workflow:{id:'source-draft'},revision_hash:'a'.repeat(64)};
+
+test('automatic completion opens only the requested enabled launch-ready result and stops polling',async()=>{
+  const completed={phase:'completed',workflow:{id:pack.workflow.id,status:'ready',enabled:true},revision_hash:'b'.repeat(64),validation:{valid:true,launch_ready:true}};
+  const opened=[];
+  assert.equal(await applyCompletedAuthoring(completed,pack.workflow.id,async result=>opened.push(result)),true);
+  assert.deepEqual(opened,[completed]);
+  assert.equal(shouldPollAuthoring({run:{run_id:'purged'},pollEnabled:true,stopping:false,error:null,phase:'completed'}),false);
+  for(const invalid of [{...completed,validation:{valid:true,launch_ready:false}},{...completed,workflow:{...completed.workflow,id:'another'}},{...completed,workflow:{...completed.workflow,status:'draft'}}])
+    await assert.rejects(applyCompletedAuthoring(invalid,pack.workflow.id,async result=>opened.push(result)),{code:'AUTHORING_COMPLETION_RESULT'});
+  assert.equal(opened.length,1);
+});
 const definition={provenance:{kind:'authoring_workflow_run',source_workflow_id:'source-draft',source_revision:pack.revision_hash}};
 const state=()=>({run_id:'authoring-existing',sequence:12,status:'running',nodes:{expand:{status:'ready',attempts:[{status:'succeeded',result_proposal:{sha256:'b'.repeat(64)}}]},final:{status:'ready',attempts:[]}},generation_repair:{awaiting_user_input:true,latest_cumulative_plan:{proposal:{contract:'workflow-semantic-blueprint/v6'}},feedback:{code:'GENERATION_REVIEW_FINDINGS',findings:[{code:'source_mapping'}]}}});
+
+test('opening an imported scaffold defaults to generation review and discovers saved evidence without authority',async()=>{
+  assert.equal(defaultWorkflowTab({...pack,workflow:{...pack.workflow,import_status:{mode:'coarse'}}}),'review');
+  assert.equal(defaultWorkflowTab({...pack,workflow:{...pack.workflow,import_status:{mode:'ai_expanded'}}}),'canvas');
+  const calls=[];
+  await discoverSavedAuthoring(async(operation,args)=>{calls.push({operation,args});return {candidates:[],preview:null};},pack);
+  assert.deepEqual(calls,[{operation:'authoring_preview',args:{workflow_id:pack.workflow.id,revision_hash:pack.revision_hash}}]);
+});
+
+test('discovery matches exact source revisions and exposes ambiguity instead of choosing a latest Run',async()=>{
+  const records=new Map([
+    ['old',{state:{...state(),run_id:'old'},sequence:12,pins:{root:{provenance:{...definition.provenance,source_revision:'b'.repeat(64)}}}}],
+    ['other',{state:{...state(),run_id:'other'},sequence:12,pins:{root:{provenance:{...definition.provenance,source_workflow_id:'other-source'}}}}],
+    ...['first','second'].map(run_id=>[run_id,{state:{...state(),run_id},sequence:12,pins:{root:definition}}]),
+  ]);
+  const runtime={runs:{list:async()=>[...records].map(([run_id,record])=>({run_id,status:record.state.status})),read:async id=>records.get(id)}};
+  const dependencies={store:{snapshot:async(id,revision)=>{assert.equal(id,pack.workflow.id);assert.equal(revision,pack.revision_hash);return pack;}}};
+  const args={workflow_id:pack.workflow.id,revision_hash:pack.revision_hash};
+  const result=await discoverAuthoringPreview(runtime,args,dependencies);
+  assert.deepEqual(result.candidates.map(item=>item.run_id),['first','second']);assert.equal(result.preview,null);
+  const selected=await discoverAuthoringPreview(runtime,{...args,run_id:'second'},dependencies);
+  assert.equal(selected.preview.run_id,'second');assert.equal(selected.preview.phase,'user_input_required');
+  await assert.rejects(discoverAuthoringPreview(runtime,{...args,run_id:'old'},dependencies),{code:'AUTHORING_PREVIEW_SOURCE'});
+  runtime.runs.read=async()=>{throw Object.assign(new Error('Journal integrity failed'),{code:'RUN_CORRUPT'});};
+  await assert.rejects(discoverAuthoringPreview(runtime,args,dependencies),{code:'RUN_CORRUPT'});
+});
+
+test('acceptance rejects a changed displayed review before taking control or starting any execution',async()=>{
+  const calls=[],preview={run_id:'authoring-existing',preview_identity:{proposal_hash:'old'}};
+  const api=async operation=>{calls.push(operation);return {preview:{preview_identity:{proposal_hash:'new'}}};};
+  await assert.rejects(acceptDisplayedAuthoring(api,pack,preview,new Map(),()=>assert.fail('No authority should change')),{code:'AUTHORING_PREVIEW_CHANGED'});
+  assert.deepEqual(calls,['authoring_preview']);
+});
 
 test('authoring recovery checks exact source identity before authenticated adoption',async()=>{
   for(const changed of [

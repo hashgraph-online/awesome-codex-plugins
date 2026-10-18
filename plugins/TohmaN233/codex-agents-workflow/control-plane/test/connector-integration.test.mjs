@@ -1,3 +1,4 @@
+import { loadLegacyConfig } from './legacy-config.mjs';
 import assert from 'node:assert/strict';
 import { execFile, spawn } from 'node:child_process';
 import { createServer } from 'node:net';
@@ -47,7 +48,7 @@ async function fixture(t, { processRunningImpl = async () => false, cursorLaunch
 
   const cursorPort = await freePort();
   const configPath = join(root, 'control-plane.json');
-  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const config = await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   for (const id of ['grok-local', 'cursor-local']) {
     const provider = config.providers.find((item) => item.id === id);
     provider.enabled = true;

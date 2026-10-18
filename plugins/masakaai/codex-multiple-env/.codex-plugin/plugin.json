@@ -1,0 +1,40 @@
+{
+  "name": "codex-multiple-env",
+  "version": "0.4.2",
+  "description": "Manage isolated Codex account and ChatGPT workspace profiles without repeated logout and login.",
+  "author": {
+    "name": "Masaka AI",
+    "url": "https://github.com/masakaai"
+  },
+  "homepage": "https://github.com/masakaai/codex-multiple-env#readme",
+  "repository": "https://github.com/masakaai/codex-multiple-env",
+  "license": "Apache-2.0",
+  "keywords": [
+    "codex",
+    "chatgpt",
+    "account-switcher",
+    "workspace",
+    "profiles"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Masaka for Codex",
+    "shortDescription": "Switch isolated Codex accounts and workspaces.",
+    "longDescription": "Keep each ChatGPT account and workspace in its own Codex profile, inspect official usage windows, and select the identity used by the next native Codex process.",
+    "developerName": "Masaka AI",
+    "category": "Productivity",
+    "capabilities": [
+      "Account profiles",
+      "Workspace isolation",
+      "Usage visibility"
+    ],
+    "websiteURL": "https://github.com/masakaai/codex-multiple-env",
+    "defaultPrompt": [
+      "Show my Masaka Codex profiles and usage.",
+      "Help me add an isolated Codex account and workspace.",
+      "Select a Codex profile for my next native Codex process."
+    ],
+    "brandColor": "#E87532",
+    "composerIcon": "./assets/icon.png"
+  }
+}

@@ -3,7 +3,7 @@
 [![CI](https://github.com/GreenLv/codex-context-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/GreenLv/codex-context-guard/actions/workflows/ci.yml)
 [![HOL Plugin Scanner](https://github.com/GreenLv/codex-context-guard/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/GreenLv/codex-context-guard/actions/workflows/hol-plugin-scanner.yml)
 [![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dgerui-lv%252Fcontext-guard%26metric%3Dtrust&label=HOL%20trust)](https://hol.org/registry/plugins/gerui-lv%2Fcontext-guard)
-[![Release](https://img.shields.io/github/v/release/GreenLv/codex-context-guard)](https://github.com/GreenLv/codex-context-guard/releases)
+[![Release](https://img.shields.io/badge/release-latest-blue)](https://github.com/GreenLv/codex-context-guard/releases/latest)
 [![License](https://img.shields.io/github/license/GreenLv/codex-context-guard)](LICENSE)
 
 [简体中文](README.zh-CN.md) | [Introduction](https://greenlv.github.io/blogs/protecting-context-in-long-running-agent-tasks/) | [Changelog](CHANGELOG.md)
@@ -12,11 +12,11 @@ Context Guard keeps important requirements from disappearing during a long Codex
 
 It works beside Codex Plan, Goal, memories, subagents, worktrees and the transcript. Ordinary edits, commits and pushes use Codex’s existing permissions.
 
-> **Latest published: 0.15.0 — 2026-10-02.** Lower Hook startup overhead, shorter instructions and exclusive state ownership. New sessions use isolated state; existing tasks need their original runtime. Read the [release notes](docs/releases/v0.15.0.md) and [upgrade boundaries](docs/SESSION_STORAGE.md) before changing an existing installation.
+> **Current version: 0.15.1 — 2026-10-05.** Explicit resumes release ordinary pauses while preserving unfinished work; later user messages can pause again. Diagnostic status queries verify applicable sources without private writes. Bounded native macOS/Windows acceptance passed. Public availability is determined by the [GitHub Release readback](https://github.com/GreenLv/codex-context-guard/releases); see [release notes](docs/releases/v0.15.1.md) and [upgrade boundaries](docs/SESSION_STORAGE.md) before changing an installation.
 
 ## Install
 
-Requirements: Python 3.10 or newer, Codex CLI, and a Codex surface that loads plugins and lifecycle Hooks. The 0.15.0 acceptance batch targets Codex CLI `0.158.0`; earlier CLI versions are not retested for this release. See [compatibility](docs/COMPATIBILITY.md) for completed and pending checks.
+Requirements: Python 3.10 or newer, Codex CLI, and a Codex surface that loads plugins and lifecycle Hooks. The 0.15.1 acceptance batch targets Codex CLI `0.160.0`; earlier CLI versions are not retested for this release. See [compatibility](docs/COMPATIBILITY.md) for completed and pending checks.
 
 ```shell
 git clone https://github.com/GreenLv/codex-context-guard.git
@@ -34,9 +34,24 @@ The installer adds this repository as a marketplace, installs `context-guard@cod
 
 Installing a plugin does not trust its Hooks automatically. Start a fresh Codex task, open `/hooks`, review and trust all nine definitions, then start another fresh task so it loads the current version.
 
+### Ask an agent to install
+
+Copy this prompt into a Codex task:
+
+```text
+Install Context Guard from https://github.com/GreenLv/codex-context-guard
+at its latest published stable release. Use this README's safe installer
+and the normal Codex client. Detect my platform and verify Python 3.10+.
+Follow the upgrade notes; preserve unrelated settings and existing versioned caches.
+Verify the release source, installed version, source/cache parity and
+fresh-task Hook loading. If Codex asks for Hook trust, guide me through
+its normal confirmation once, then continue verification. Never edit trust
+hashes or bypass trust. Tell me if a new task or client restart is needed.
+```
+
 ### Upgrade notes
 
-Before upgrading to 0.15.0, verify its published Release. Here, HOME means Codex’s configuration and task-data directory, selected by `CODEX_HOME`. Finish old tasks before changing their HOME’s selected plugin, or keep an independent HOME explicitly on the original version while new work uses a fresh HOME. Keeping an old cache alone does not pin its Hooks: Codex may select the new version on the next turn. This release does not migrate old task state.
+Before upgrading to 0.15.1, verify its published Release. Here, HOME means Codex’s configuration and task-data directory, selected by `CODEX_HOME`. Finish old tasks before changing their HOME’s selected plugin, or keep an independent HOME explicitly on the original version while new work uses a fresh HOME. Keeping an old cache alone does not pin its Hooks: Codex may select the new version on the next turn. This release does not migrate old task state.
 
 Use the managed installer and check the installed-version readback. Review and trust all nine Hooks in a fresh task, then start another task to load the new version. Do not overwrite consumed caches. See [session storage and upgrades](docs/SESSION_STORAGE.md) for the separate-HOME route and [compatibility](docs/COMPATIBILITY.md) for tested limits.
 
@@ -180,7 +195,7 @@ Read [Successor Pack Input](skills/context-guard/references/successor-pack.md) b
 
 Runtime data is stored under Codex-managed `PLUGIN_DATA`. Prompt bodies, task state, evidence summaries, and recovery files remain local runtime data and are not part of this repository.
 
-In 0.15.0, ended v2 sessions with no resumed activity are eligible for cleanup after 30 days; legacy session trees are retained. Redacted exports are created only when requested and omit raw prompts, transcripts, credentials, authorization headers, URL query values, and plugin-private paths. See [Privacy](docs/PRIVACY.md).
+In 0.15.1, ended v2 sessions with no resumed activity are eligible for cleanup after 30 days; legacy session trees are retained. Redacted exports are created only when requested and omit raw prompts, transcripts, credentials, authorization headers, URL query values, and plugin-private paths. See [Privacy](docs/PRIVACY.md).
 
 ## Update and uninstall
 
@@ -228,11 +243,13 @@ The Hook runtime uses only the Python standard library. CI covers Ubuntu, macOS,
 
 ## Explicit non-goals
 
-Context Guard is not a semantic proof system, security sandbox, transcript backup, cloud sync service, second Plan/Goal controller, agent scheduler, or replacement for tests and human review. It does not guarantee that arbitrary content is correct; it enforces only the deterministic checks it can express. It does not replace Codex's permission system, the `repository-release` publication contract, human review, or platform readbacks.
+- Context Guard checks only results it can verify deterministically. It cannot establish that arbitrary text or images are correct, and it does not replace tests or human review.
+- It provides no security sandbox, transcript backup, cloud sync or agent scheduling. Codex continues to own Plan, Goal and execution.
+- It grants no permissions. Publication still needs release-readiness checks, user and host authorization, and public readback.
 
-Version 0.13 keeps the model- and agent-agnostic baseline: it does not assume the model or agent host brings reliable long-context protection or recovery. The recovery → work unit → evidence → completion loop is provided locally by Context Guard itself, with protocol semantics separated from the Codex Hook adapter; whether an action is authorized is decided by you, the executing agent, and host permissions — not by a Context Guard prompt.
+Its recovery and completion contract does not depend on a model or agent host providing its own context protection. The [architecture](docs/ARCHITECTURE.md) explains the protocol and Codex adapter.
 
-Project instructions and plan references are adopted only after the user who started the root task runs `context-guard adopt <project-relative-json>`. Installing a Skill, loading a template, or mentioning a plan in prose does not activate this behavior. Adoption does not modify Codex Plan state or grant authority. Covered action checks follow the protection levels described above.
+Only the user who started the root task can adopt project workflow and plan references with `context-guard adopt <project-relative-json>`. Adoption leaves Codex Plan unchanged and grants no authority. Installing a Skill or mentioning a plan does not adopt it. Release controls require explicit selection, as described above.
 
 ## Contributing and security
 

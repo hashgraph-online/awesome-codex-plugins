@@ -1,3 +1,4 @@
+import { loadLegacyConfig } from './legacy-config.mjs';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { mkdtemp } from 'node:fs/promises';
@@ -5,7 +6,7 @@ import { tmpdir } from './physical-tempdir.mjs';
 import { join } from 'node:path';
 import test from 'node:test';
 
-import { loadConfig, saveConfig, validateEndpoint } from '../lib/config.mjs';
+import { saveConfig, validateEndpoint } from '../lib/config.mjs';
 import { invokeSelection } from '../lib/control.mjs';
 import { invokeOpenAICompatible } from '../lib/providers.mjs';
 import { DEFAULT_CONFIG_PATH } from '../server.mjs';
@@ -41,7 +42,7 @@ test('direct OpenAI-compatible invocation is text-only and env-authenticated', a
 
   const dir = await mkdtemp(join(tmpdir(), 'sol-control-provider-'));
   const configPath = join(dir, 'control-plane.json');
-  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const config = await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   config.global.allow_direct_api = true;
   const provider = config.providers.find((item) => item.id === 'custom-openai-compatible');
   provider.enabled = true;
@@ -79,7 +80,7 @@ test('direct OpenAI-compatible invocation is text-only and env-authenticated', a
 test('direct API stays disabled until both provider and global switch allow it', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'sol-control-provider-off-'));
   const configPath = join(dir, 'control-plane.json');
-  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const config = await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   const provider = config.providers.find((item) => item.id === 'custom-openai-compatible');
   provider.enabled = true;
   const stage = config.task_types.find((item) => item.id === 'brainstorm').stages[0];
@@ -103,7 +104,7 @@ test('direct API stays disabled until both provider and global switch allow it',
 test('direct API deadline also bounds a response body that stalls after headers', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'sol-control-provider-body-timeout-'));
   const configPath = join(dir, 'control-plane.json');
-  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const config = await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   const provider = config.providers.find((item) => item.id === 'custom-openai-compatible');
   provider.config.timeout_ms = 1000;
   const body = {
@@ -134,7 +135,7 @@ test('direct API cancels a response body rejected by declared size', async () =>
   };
   const dir = await mkdtemp(join(tmpdir(), 'sol-control-provider-size-'));
   const configPath = join(dir, 'control-plane.json');
-  const config = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const config = await loadLegacyConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   const provider = config.providers.find((item) => item.id === 'custom-openai-compatible');
   await assert.rejects(
     invokeOpenAICompatible(provider, 'oversized response', {

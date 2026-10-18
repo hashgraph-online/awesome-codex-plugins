@@ -1,8 +1,24 @@
 # BAB IV — Data Subject Rights (Pasal 5–15) + Operational Windows (Pasal 30, 32, 40, 41, 43)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 UU PDP grants 9 data subject rights. Each must be supported by the Controller; refusals require recorded reasons.
+
+## Contents
+
+- Pasal 5 — Right to information about the Controller
+- Pasal 6 — Right to correction
+- Pasal 7 — Right to access + obtain copy
+- Pasal 8 — Right to end processing, erasure, and destruction
+- Pasal 9 — Right to withdraw consent
+- Pasal 10 — Right to object to automated decision-making
+- Pasal 11 — Right to suspend or restrict processing
+- Pasal 12 — Right to sue for damages
+- Pasal 13 — Right to data portability
+- Pasal 14 — How to exercise rights
+- Pasal 15 — Exceptions to Subject rights
+- Operational summary — the 72-hour SLAs
+- Penalty exposure (this Part)
 
 ## Pasal 5 — Right to information about the Controller
 

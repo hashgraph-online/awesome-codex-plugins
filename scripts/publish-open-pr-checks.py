@@ -96,11 +96,11 @@ def check_summary(result: dict[str, object], scanner_jobs: dict[int, list[str]])
 
     if state == "failure":
         failure_lines = reasons if isinstance(reasons, list) else []
-        details = "\n".join(f"- {item}" for item in failure_lines if isinstance(item, str))
+        details = "; ".join(item for item in failure_lines if isinstance(item, str))
         return (
             "failure",
             "Contribution requirements failed",
-            "Required scanner CI is missing or could not be validated.\n\n" + details,
+            one_paragraph(f"Catalog validation failed: {details or 'review the reported catalog findings.'}"),
         )
 
     if state == "scan":
@@ -109,13 +109,13 @@ def check_summary(result: dict[str, object], scanner_jobs: dict[int, list[str]])
             return (
                 "success",
                 "Contribution scan passed",
-                f"All {len(jobs)} source-repository scanner job(s) passed the contribution gate.",
+                f"All {len(jobs)} centralized scanner job(s) met the score threshold of 80/100; finding severities are advisory.",
             )
         job_details = ", ".join(jobs) if jobs else "no scanner job was recorded"
         return (
             "failure",
-            "Contribution scan failed",
-            f"One or more source-repository scanner jobs did not pass: {job_details}.",
+            "Centralized score not established",
+            f"The centralized scan did not establish a score of at least 80/100 ({job_details}); keep the contribution blocked until a passing score is available.",
         )
 
     raise RuntimeError(f"unknown validator result state: {state}")
@@ -141,6 +141,12 @@ def list_issue_comments(repository: str, number: int, token: str) -> list[dict[s
         page += 1
 
 
+def one_paragraph(text: str) -> str:
+    """Collapse comment whitespace so every maintainer note is one paragraph."""
+
+    return " ".join(text.split())
+
+
 def remediation_comment(
     result: dict[str, object],
     conclusion: str,
@@ -153,11 +159,9 @@ def remediation_comment(
     author_login = result.get("author_login")
     mention = f"@{author_login}" if isinstance(author_login, str) and GITHUB_LOGIN_RE.fullmatch(author_login) else "the contributor"
     if conclusion == "success":
-        return (
-            f"{COMMENT_MARKER}\n\n"
-            f"✅ **Contribution gate passed.** {mention}, no action is required.\n\n"
-            f"The previous contribution-gate failure is resolved. "
-            f"[View the latest sweep]({run_url})."
+        return one_paragraph(
+            f"{COMMENT_MARKER} Contribution gate passed. {mention}, all required catalog checks are clear; no action is needed. "
+            f"[Latest sweep]({run_url})."
         )
 
     failure_reasons = result.get("failure_reasons")
@@ -166,46 +170,19 @@ def remediation_comment(
         for reason in (failure_reasons if isinstance(failure_reasons, list) else [])
     )
     if malformed_readme:
-        guidance = (
-            "1. Format each Community Plugins entry as "
-            "`- [Plugin Name](https://github.com/<owner>/<repo>) - Description`.\n"
-            "2. Keep the link at the repository root, use one sentence for the description, "
-            "and keep the entry in its category's alphabetical order.\n"
-            "3. Push the README correction and rerun the check."
-        )
-    elif result.get("state") == "failure":
-        guidance = (
-            "1. Add a workflow under `.github/workflows/` in the linked source repository.\n"
-            "2. Trigger it on both `push` and `pull_request`, and invoke "
-            "`hashgraph-online/ai-plugin-scanner-action`.\n"
-            "3. Configure `plugin_dir: \".\"`, `mode: scan`, `min_score: 80`, and "
-            "`fail_on_severity: high`.\n"
-            "4. Keep `.codex-plugin/plugin.json`, `README.md`, `SECURITY.md`, "
-            "`LICENSE`, and a dependency lockfile in the source repository."
-        )
+        guidance = "Use one root-level repository link, a one-sentence description, the correct section, and alphabetical order, then rerun the check."
+    elif result.get("state") == "scan":
+        guidance = "Review the scanner report and rerun the centralized scan."
+        guidance += " If the completed score is below 80/100 and your source repository does not already run the scanner, source-side CI is recommended, not required: use the SHA-pinned workflow in the scanner guide, reproduce locally, run the same pinned scanner in CI, fix or document rule-level findings, link the source run, rerun the catalog scan, and request review."
     else:
-        guidance = (
-            "1. Run `pipx run plugin-scanner lint .`.\n"
-            "2. Run `pipx run plugin-scanner verify . --format text`.\n"
-            "3. Fix all critical/high findings and reach a score of at least 80.\n"
-            "4. Confirm the source repository workflow passes, then push the fixes "
-            "and rerun the workflow."
-        )
+        guidance = "Fix the catalog validation findings and rerun the contribution check."
 
-    return f"""{COMMENT_MARKER}
-
-{mention} — this pull request needs updates before it can be merged.
-
-### {check_title}
-{summary}
-
-### How to fix it
-{guidance}
-
-See the repository's [contribution requirements](https://github.com/hashgraph-online/awesome-codex-plugins/blob/main/CONTRIBUTING.md) and [scanner guide](https://github.com/hashgraph-online/awesome-codex-plugins/blob/main/SCANNER_GUIDE.md).
-
-After pushing the changes, this check and comment will update automatically: {run_url}
-"""
+    return one_paragraph(
+        f"{COMMENT_MARKER} {mention}, {summary} {guidance} "
+        "Source-repository scanner CI is optional; listing requires a completed centralized score of at least 80/100. "
+        f"[Contribution requirements](https://github.com/hashgraph-online/awesome-codex-plugins/blob/main/CONTRIBUTING.md) "
+        f"[Latest sweep]({run_url})."
+    )
 
 
 def upsert_remediation_comment(

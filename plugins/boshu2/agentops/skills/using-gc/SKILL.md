@@ -1,6 +1,6 @@
 ---
 name: using-gc
-description: 'Operate Gas City through its Mayor, registry packs and native run state. Use when: the caller explicitly selects Gas City; factory completion does not replace independent judgment.'
+description: 'Operate Gas City through its own doors: Mayor, doctor and native run state. Use when: Gas City is selected or a gc run looks stuck.'
 practices: [team-topologies, design-by-contract]
 hexagonal_role: driving-adapter
 consumes: [explicit-packets]
@@ -26,6 +26,26 @@ Use Gas City only when the caller explicitly selects it. Treat it as a
 replaceable execution adapter, not a correctness or completion boundary.
 The adapter cannot select AgentOps semantics, issue a binding verdict, or turn factory completion into delivery or validation proof.
 
+## The operator lane
+
+The operator lane into a city is a closed set:
+
+- author source intent beads;
+- `gc mail` to the Mayor, for work dispatch and for city tending;
+- `gc session wake <run_target>`, once, for a routed bead whose worker stalled;
+- `gc doctor [--fix]`, and supervisor start/stop from outside the city;
+- `ao gc prepare|check|recover-affinity`;
+- reading run, session, bead, pane and artifact state.
+
+The Mayor authors workflow beads and dispatches them; it owns retries,
+re-dispatch and tending for that work. Never create, scale or repair pack-owned
+sessions by hand: `gc session new` for a singleton or scaled agent
+(`core.control-dispatcher`, role workers) makes a mis-scoped session that
+squats the canonical name in `start-pending` and blocks the reconciler from
+spawning the real one. Session lifecycle belongs to the reconciler and demand
+scaling. Direct `gc sling` is a debugging tool for a city with no live Mayor; a
+run started that way has no coordinator, and the operator inherits its tending.
+
 ## Choose the factory first
 
 AgentOps supports both Gas City and the
@@ -38,6 +58,15 @@ need its own Gas City formula or role pack. Install or link AgentOps skills into
 the provider runtime before starting workers; the upstream Mayor, coordinator,
 and workers can then discover and select `plan`, `implement`, `test`,
 `validate`, and other AgentOps skills normally.
+
+## Version facts
+
+Status on 2026-10-04: the `gascity` pin (0.1.6, commit
+`3b3b89f2011e06d84459aa7bea1552382f13930a`) is the commit `ao gc` enforces, and
+it matches the registry's 0.1.6 release. The Gas City 1.4.0 command facts in
+this skill were not re-verified for this release. When `gc version` reports
+anything other than 1.4.0, confirm each command with `gc <command> --help`
+before relying on it.
 
 ## Gas City 1.4 operating model
 
@@ -59,6 +88,8 @@ The normal AgentOps path is:
 4. Read run, session, bead, artifact, and verdict state. Completion is never
    inferred from chat or pane prose.
 
+## Prepare and check a rig
+
 Prepare and qualify a rig before its first build with the shipped AgentOps
 CLI (no repo checkout required):
 
@@ -67,61 +98,19 @@ ao gc prepare --city /path/to/city --rig /path/to/rig
 ao gc check --city /path/to/city --rig /path/to/rig
 ```
 
-The command verifies the exact official workflow and role pins, snapshots the
-upstream validation scripts and schemas unchanged inside the rig's `.gc`
-runtime, installs only small AgentOps-owned wrappers at the formula check
-paths, selects an existing Python that can import PyYAML, and links the
-AgentOps skills into the city and rig Codex sinks. Skills come from the
-enclosing AgentOps checkout when one is present, otherwise from the installed
-skills root; pass `--skills-source` to pin a different directory. It never
-modifies the GC binary, cache, formulas, roles, or upstream pack. `check`
-issues only native inspection commands, writes no adapter files, and fails
-before model spend when that runtime contract is missing or drifted.
+`prepare` verifies the exact official workflow and role pins, stages a
+contained maintainer runtime inside the rig's `.gc` directory, links the
+AgentOps skills into the city and rig Codex sinks, and pre-seeds Codex
+workspace and hook trust for every session directory that exists when it runs.
+Hook trust needs the Codex CLI on PATH (or `--codex-bin`). `check` is
+read-only, runs no Codex subprocess, and fails before model spend when that
+runtime contract is missing or drifted.
 
-`prepare` also pre-seeds Codex trust for every session directory that exists
-when it runs — the city and rig roots, each `.gc/agents/**` session home, and
-each rig worktree root — so a Codex session in one of those directories does
-not block on the interactive trust dialog. Both persisted layers are seeded in
-`$CODEX_HOME/config.toml`: workspace trust (`[projects."<dir>"] trust_level =
-"trusted"`), without which Codex silently reports that directory as having no
-hooks at all, and per-hook trust
-(`[hooks.state."<hooks.json>:<event>:<m>:<h>"] trusted_hash = "sha256:..."`),
-which is what the pack's per-provider `.codex/hooks.json` would otherwise
-prompt for. Hook digests are read back from Codex's own `hooks/list`, never
-recomputed.
-
-Trust is judged by value, not by the presence of a table. `prepare` appends
-only entries that are missing and refuses, naming the entry, when one exists
-but does not confer trust — an explicit `trust_level = "untrusted"`, a hook
-Codex reports as changed since it was trusted, a recorded hook Codex still
-rejects, or a hook recorded `enabled = false` (a disabled hook is not a trusted
-working hook). It never overwrites an operator decision, and re-running is a
-no-op. It also fails rather than continue if Codex returns an empty or
-unrecognized hook list. The trust store itself is never edited in place: the
-merged content is parsed in memory first, then installed with the CLI's durable
-atomic writer, so no failure path can leave a partially written Codex config.
-
-`ao gc check` verifies the same pre-seed from local state only — it runs no
-Codex subprocess and writes nothing, deriving each expected hook key from the
-directory's own `hooks.json` — and names the specific deficient directory or
-hook using the same rule `prepare` seeds to.
-
-**Two named limitations.**
-
-1. **`check` cannot detect a stale hash.** Because it never asks Codex, a
-   recorded `trusted_hash` that no longer matches the hook's current content
-   reads as satisfied and still raises the trust dialog in a real session. Only
-   `prepare` sees that — Codex reports the hook as changed and `prepare`
-   refuses. A green `check` therefore means "trust is recorded", not "trust is
-   fresh".
-2. **Homes created after `prepare` are not covered.** Discovery is by
-   filesystem marker, so the guarantee covers session directories that exist at
-   `prepare` time. A session home Gas City materializes *later* still carries
-   untrusted hooks on its first spawn; `prepare` names the configured agents
-   that have no home yet.
-
-The operational rule that follows from both: run `prepare`, start the city,
-then run `prepare` again (it is idempotent) before dispatching.
+Run `prepare`, start the city, then run `prepare` again (it is idempotent)
+before dispatching. Two limitations make that order necessary: `check` cannot
+see a stale trust hash, so green means trust is recorded, not fresh; and a
+session home created after `prepare` is not covered.
+[Codex trust pre-seed](references/codex-trust-preseed.md) has the mechanism.
 
 ## Preferred pack and registries
 
@@ -143,9 +132,7 @@ install` resolves it into `packs.lock`. Prefer an exact accepted release for
 reproducible cities.
 
 AgentOps prefers the official `gascity` build pack, the workflow family visible
-in the public Maintainer City factory. The current accepted reference is
-`gascity` 0.1.6 at commit
-`3b3b89f2011e06d84459aa7bea1552382f13930a`:
+in the public Maintainer City factory, at the accepted reference above:
 
 - dashboard: `https://factory.gascity.com`;
 - workflows: `build-basic`, `build-from-*`, `implement`, review, issue, and PR
@@ -160,11 +147,11 @@ that runs work, following the exact commands returned by
 `gc pack registry show main:gascity`. Keep the stock `gc.*` namespace; do not
 nest or rename the roles behind an AgentOps pack.
 
+## Hand work to the Mayor
+
 Work enters the city through the Mayor. The caller authors ONE source intent
-bead with acceptance, then hands the Mayor its id — the Mayor decomposes,
-authors the workflow beads, and dispatches. The caller never runs `gc sling`
-itself; an operator-slung run bypasses the coordinator that owns retries,
-re-dispatch, and tending for that workflow.
+bead with acceptance, then hands the Mayor its id; the Mayor decomposes,
+authors the workflow beads, and dispatches.
 
 ```sh
 gc bd create "Add a --json flag to the export command"
@@ -177,9 +164,6 @@ Or, in an interactive Mayor session:
 ```text
 Use skill gc.mayor
 ```
-
-Direct `gc sling` remains a debugging tool for a city with no live Mayor; a
-run started that way has no coordinator and the operator inherits its tending.
 
 AgentOps skills are tools available to those factory agents, not a replacement
 workflow. Explicitly name a skill in the bead or prompt when its behavior is
@@ -241,7 +225,7 @@ exists to stop.
 |---|---|---|
 | Monitor | orchestrator | `$API/runs/census` and `$API/runs/<run-id>` on a fixed cadence, plus `gc mail inbox` for Mayor replies. `failed > 0` in the census, a run in `failed`/`canceled`, or unread Mayor mail is the act signal; everything else is a tick. |
 | Observe | orchestrator | On an act signal, walk the visibility layers in order — census, run detail, bead graph, session roster, pane truth — and stop at the first layer that explains. Do not start at pane truth. |
-| Nudge | orchestrator, once | A `ready` bead: dispatch once to its `gc.run_target`. A routed bead with a live session: `gc session wake <run_target>` once. A second nudge on the same subject means the diagnosis is wrong — mail the Mayor instead. |
+| Nudge | orchestrator, once | A routed bead with a live session: `gc session wake <run_target>` once. A `ready` bead nobody dispatched goes to the Mayor by mail with its id; dispatch is the Mayor's. A second nudge on the same subject means the diagnosis is wrong — mail the Mayor instead. |
 | Redirect | Mayor | Priority, scope, cancellation, or model/provider changes travel by mail with bead/run ids. The orchestrator never re-slings, edits workflow beads, or patches a live run. |
 | Rework | GC first, then Mayor | Failed review findings re-enter the run through its native fix loop (`review_fix_formula`, default `fix-loop-base`); bounded gated retries are `gc converge` loops. Only a TERMINAL `failed`/`canceled` run — or a completed run whose result misses caller acceptance — goes back: mail the Mayor the run id and the failure evidence for re-decompose and relaunch. |
 
@@ -253,7 +237,10 @@ author for the same intent; the Mayor's relaunch then races it.
 
 First classify the bead.
 
-- Still `ready`: dispatch it once to its `gc.run_target`, then stop and inspect.
+- Still `ready`, never dispatched: dispatch belongs to the Mayor. Mail it the
+  bead id, then stop and inspect. Only with no live Mayor is
+  `gc sling <run_target> <bead-id>`, once, the debugging fallback, and the
+  operator then inherits that run's tending.
 - Already routed/in progress: re-slinging is a **NO-OP**. Wake its owning worker
   once:
 
@@ -261,16 +248,14 @@ First classify the bead.
   gc session wake <run_target>
   ```
 
-Then capture the exact tmux pane named by session state and run `gc doctor`.
-Never repair a city from inside that city.
+Then capture the exact tmux pane named by session state and run `gc doctor`. A
+pane parked on a Codex trust dialog means its home missed the pre-seed (see
+pane truth below). Never repair a city from inside that city. Never answer a
+stall with `gc session new`; the operator lane above explains why.
 
-Never create pack-owned sessions by hand. `gc session new` for a singleton or
-scaled agent (`core.control-dispatcher`, role workers) makes a mis-scoped
-session that squats the canonical name in `start-pending` and blocks the
-reconciler from spawning the real one — extending the exact stall being
-repaired. Session lifecycle belongs to the reconciler and demand scaling.
-When the city itself needs tending (a stalled reconciler, sessions that never
-leave draining, model or provider rewiring), send the request to the Mayor:
+When one wake does not clear the stall, or the city itself needs tending (a
+stalled reconciler, sessions that never leave draining, model or provider
+rewiring), send the request to the Mayor with the bead or run ids:
 
 ```sh
 gc mail send mayor -s "<subject>" -m "<request with bead ids>" --notify
@@ -349,10 +334,5 @@ anchor worktree. Neither state is semantic completion by itself.
   context issues the semantic result or, when requested, persists `verdict.v2`.
 - This skill performs no automatic selection, retry, semantic validation, Git,
   integration, closure, release, or delivery.
-- The operator lane into a city is a closed set: author source intent beads,
-  `gc mail` (work dispatch and city tending both go to the Mayor),
-  `gc doctor [--fix]`, supervisor start/stop from outside,
-  `ao gc prepare|check|recover-affinity`, and reading state. The Mayor authors
-  workflow beads and dispatches; creating, scaling, or repairing pack-owned
-  sessions by hand is outside the lane, and the reconciler owns session
-  lifecycle.
+- Everything outside the operator lane above belongs to the Mayor or the
+  reconciler.

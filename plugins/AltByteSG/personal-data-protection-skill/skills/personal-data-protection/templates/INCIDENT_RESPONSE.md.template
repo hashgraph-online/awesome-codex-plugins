@@ -1,6 +1,6 @@
 # Incident Response Runbook
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 > **This is a template.** Copy to `docs/INCIDENT_RESPONSE.md` in your project and fill in the placeholders marked `{{LIKE_THIS}}`.
 
@@ -9,6 +9,18 @@ Solo / small-team operator runbook for responding to a personal data incident un
 **DPO / responder:** {{DPO_NAME}} — {{DPO_EMAIL}}
 **Backup contact:** {{BACKUP_NAME}} — {{BACKUP_EMAIL}}
 **Active jurisdictions:** {{JURISDICTIONS — e.g. Singapore PDPA / Indonesia UU PDP / Thailand PDPA / Malaysia PDPA / Philippines DPA}} / Vietnam PDPL
+
+## Contents
+
+- Statutory clocks
+- 1\. What counts as an incident
+- 2\. First hour — contain + record
+- 3\. Assess: is it notifiable?
+- 4\. Notify the regulator
+- 5\. Notify affected individuals
+- 6\. Post-incident
+- 7\. Detection signals to add (deferred until past beta)
+- Quick reference
 
 ## Statutory clocks
 

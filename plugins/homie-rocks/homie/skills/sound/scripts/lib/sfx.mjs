@@ -170,7 +170,14 @@ export const PRESETS = {
   },
   thud: {
     about: 'a heavy wooden knock: a door, a crate landing', level: 'normal',
-    make: (p) => mixMono([drum('tom', { tone: (p.pitch ?? 0) - 7, decay: 0.6 }), { at: 0, buf: voice({ wave: 'noise', seed: p.seed, filter: { type: 'bandpass', freq: 700, q: 1.2 }, env: { a: 0.001, d: 0.06 } }), gain: 0.5 }]),
+    // The tom now really falls to a low note (its slide target is hertz, and used to be misread as a MIDI note four
+    // octaves up, which is what a phone was playing). A body under 150 Hz is silent on a phone, so the knock is its
+    // own voice here, as in `land`: a short triangle and a band of noise between 300 Hz and 1 kHz.
+    make: (p) => mixMono([
+      drum('tom', { tone: (p.pitch ?? 0) - 7, decay: 0.6, gain: 0.6 }),
+      { at: 0, buf: voice({ wave: 'triangle', freq: P(p, 430), slide: { to: P(p, 250), time: 0.05 }, env: { a: 0.001, d: 0.1 } }), gain: 1.0 },
+      { at: 0, buf: voice({ wave: 'noise', seed: p.seed, filter: { type: 'bandpass', freq: 700, q: 1.2 }, env: { a: 0.001, d: 0.06 } }), gain: 1.4 },
+    ]),
   },
 };
 

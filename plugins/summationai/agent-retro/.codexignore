@@ -1,0 +1,11 @@
+# Local state and generated output never belong in the installed plugin.
+__pycache__/
+*.pyc
+.DS_Store
+*.html
+*.zip
+builds/
+build*/
+runs.jsonl
+*-runs.jsonl
+*.json.tmp

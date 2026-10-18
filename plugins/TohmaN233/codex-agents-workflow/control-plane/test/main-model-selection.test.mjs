@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { tmpdir } from './physical-tempdir.mjs';
 import { readMainTurnContext, resolveMainModelSelection } from '../lib/execution/main-model-selection.mjs';
 import { validateStrictConfig } from '../lib/execution/strict-config.mjs';
+import { cooperativeExecutionPolicy } from '../lib/execution/main-execution-policy.mjs';
 
 async function fixture(t) {
   const home = await mkdtemp(join(tmpdir(), 'workflow-main-selection-'));
@@ -17,6 +18,37 @@ async function fixture(t) {
   await writeFile(path, line('session_meta', { id }) + line('turn_context', { model: 'current-chat-model', effort: 'xhigh' }));
   return { home, thread: { id, path }, line };
 }
+
+test('current authenticated turn inherits only its explicit unrestricted policy and retains exact parent identity',async t=>{
+  const f=await fixture(t);
+  await appendFile(f.thread.path,f.line('turn_context',{model:'old-main',effort:'high',sandbox_policy:{type:'historical-unsupported'}}));
+  await appendFile(f.thread.path,f.line('turn_context',{model:'current-main',effort:'high',sandbox_policy:{type:'danger-full-access'}}));
+  const selection=await resolveMainModelSelection({state:{constraints:{native_parent_thread_id:f.thread.id}}},{},
+    {env:{CODEX_HOME:f.home},observe:async action=>action({call:async()=>({thread:f.thread})})});
+  assert.deepEqual(selection.main_execution_context,{parent_thread_id:f.thread.id,sandbox_type:'danger-full-access'});
+  assert.equal(cooperativeExecutionPolicy('bounded_write',selection.main_execution_context).thread_type,'dangerFullAccess');
+  assert.equal(cooperativeExecutionPolicy('read_only',selection.main_execution_context).thread_type,'readOnly');
+  await appendFile(f.thread.path,f.line('turn_context',{model:'later-main',effort:'high'}));
+  const later=await readMainTurnContext(f.thread,f.home);
+  assert.equal(later.main_execution_context,undefined,'old unrestricted context cannot authorize a later unspecified turn');
+  assert.equal(cooperativeExecutionPolicy('bounded_write',later.main_execution_context).thread_type,'workspaceWrite');
+});
+
+for(const policy of [{type:'unknown'},{type:'danger-full-access',writable_roots:['restricted']},null])
+test('unknown or contradictory current Main policy fails visibly '+JSON.stringify(policy),async t=>{
+  const f=await fixture(t);
+  await appendFile(f.thread.path,f.line('turn_context',{model:'current-main',effort:'high',sandbox_policy:policy}));
+  await assert.rejects(readMainTurnContext(f.thread,f.home),{code:'MAIN_EXECUTION_POLICY'});
+});
+
+test('other authorized policies retain access-derived capture and cannot promote a read-only caller to a writer',()=>{
+  const context={parent_thread_id:'current-parent',sandbox_type:'workspace-write'};
+  assert.equal(cooperativeExecutionPolicy('bounded_write',context).thread_type,'workspaceWrite');
+  const read=cooperativeExecutionPolicy('read_only',{...context,sandbox_type:'danger-full-access'});
+  assert.equal(read.thread_type,'readOnly');assert.equal(read.command_type,'workspaceWrite');
+  assert.equal(read.command_boundary,'capture_spool_only');
+  assert.throws(()=>cooperativeExecutionPolicy('bounded_write',{...context,sandbox_type:'read-only'}),{code:'MAIN_EXECUTION_POLICY'});
+});
 
 test('Main has no fixed default model or reasoning effort', () => {
   const settings = validateStrictConfig();

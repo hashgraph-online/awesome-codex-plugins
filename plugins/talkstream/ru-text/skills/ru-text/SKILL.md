@@ -41,7 +41,7 @@ Apply to ALL Russian text output — silently: fix, don't announce.
 | Numero sign | No. 5, #5 | № 5 |
 | Abbreviations with NBSP | т.д., т.е. | т. д., т. е. |
 | Ruble sign after number, NBSP | 1500₽ | 1 500 ₽ |
-| Percent glued | 100 % | 100% |
+| Percent glued (non-GOST) | 100 % | 100% |
 
 Full typography reference: `references/typography.md`
 

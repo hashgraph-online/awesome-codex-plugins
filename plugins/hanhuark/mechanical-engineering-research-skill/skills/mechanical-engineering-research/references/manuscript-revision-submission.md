@@ -18,6 +18,8 @@ After editing, compare these invariants. Use [result-change-and-construct-audit.
 
 Treat the response document as the reviewer's roadmap. Repeat every comment, answer directly and respectfully, describe the scientific diagnosis and action, identify the location, and state any unresolved evidence need.
 
+Before drafting the response, convert unstructured comments into a private revision roadmap. For every comment, record the severity, the scientific or editorial diagnosis, the required action, needed evidence, manuscript location, response wording, owner, and verification condition. This prevents a long response letter from becoming a collection of polite but cosmetic acknowledgments.
+
 Use this structure:
 
 ```text
@@ -31,6 +33,8 @@ Location of changes: [section, paragraph, equation, table, figure, or reference]
 ```
 
 For major changes, quote or closely reproduce the revised text. Avoid entries such as "Changes made" without enough detail to verify the response. If a methodological concern requires new analysis, data, validation, or uncertainty treatment, do that work when feasible; do not close it through wording alone.
+
+Close a roadmap item only when the revised manuscript, response, and stated evidence agree. If the available evidence cannot resolve the concern, state the boundary directly, explain why, and avoid presenting the limitation as a completed scientific answer.
 
 When the requested evidence is available locally or through authorized sources, address a substantive reviewer concern through the needed analysis, data extraction, model evaluation, figure revision, or source verification. Do not substitute a passive limitation statement or weaker framing merely because the substantive response takes more time. If the author has not specified the preferred effort level and the alternatives differ materially in time or scope, present i) a prose-only response with its unresolved limitation and ii) a substantive response with the required work. Recommend the substantive response and proceed with it when the user has requested a thorough revision. Pause only when the work meets an explicit human-pause condition, requires unavailable evidence, or requires an author-positioning decision.
 

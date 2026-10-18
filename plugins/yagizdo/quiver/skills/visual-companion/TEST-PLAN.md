@@ -10,7 +10,7 @@
 1. `/brainstorm` reads this skill, starts the companion server (`server.py`) in a temp directory, and points the user to the local URL.
 2. For each visual question, the orchestrator writes HTML to the companion temp dir; for non-visual questions, it stays in the terminal.
 3. On session end (or manual cleanup), the server process is stopped using the PID recorded in `<temp-dir>/.vc-meta/server-info.json`.
-4. Any mockups the user wants to keep are copied alongside the spec in `docs/brainstorms/`.
+4. Any mockups the user wants to keep are copied alongside the spec in `.claude/specs/`.
 
 **Verification checklist:**
 - [ ] `/brainstorm` only offers the companion when the topic is visual (UI/UX, layout, architecture diagrams).

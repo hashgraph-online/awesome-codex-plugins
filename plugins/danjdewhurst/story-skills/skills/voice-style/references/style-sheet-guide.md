@@ -62,7 +62,8 @@ not *towards*.
 
 **Capitalisation.** Titles and ranks (*the king* vs *King Aldric*),
 institutions, invented terms, deities, and directions (*the North* as a
-region). Invented terms also get glossary entries with `story add term`.
+region). Invented terms also get glossary entries with `story add term`
+(see the `worldbuilding` skill). After you add terms, run `story reindex .`, `story wordcount . --write`, and `story check .`.
 
 **Hyphenation And Compounds.** Every compound the book has settled:
 *ember-stone*, *half-light*, *well-known* before a noun.

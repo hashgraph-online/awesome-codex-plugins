@@ -1,15 +1,17 @@
+import { loadConfig } from '../lib/config.mjs';
+import { DEFAULT_CONFIG_PATH } from '../server.mjs';
+import { legacyConfig } from './legacy-config.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, writeFile, mkdtemp, rm, readdir } from 'node:fs/promises';
 import { join, relative, isAbsolute } from 'node:path';
 import { tmpdir } from './physical-tempdir.mjs';
-import { fileURLToPath } from 'node:url';
 import { prepareV6Migration, migrateV6OnDisk, restoreV6Backup } from '../lib/workflow-migration-v6.mjs';
 import { digest } from '../lib/workflow-revisions.mjs';
 import { WorkflowStore } from '../lib/workflow-store.mjs';
 import { validateWorkflowGraph } from '../lib/workflow-validator.mjs';
 
-const bundled = JSON.parse(await readFile(fileURLToPath(new URL('../default-config.json', import.meta.url)), 'utf8'));
+const bundled = await legacyConfig();
 async function fixture(t, raw = structuredClone(bundled)) {
   const root = await mkdtemp(join(tmpdir(), 'sol-workflow-migration-'));
   t.after(async () => { const rel = relative(tmpdir(), root); assert(rel && !rel.startsWith('..') && !isAbsolute(rel)); await rm(root, { recursive: true, maxRetries: 3, retryDelay: 100 }); });
@@ -18,7 +20,7 @@ async function fixture(t, raw = structuredClone(bundled)) {
   return { root, configPath, bytes, raw };
 }
 
-test('every builtin Task Type keeps its ID, route semantics, templates, bindings and approval', () => {
+test('every legacy fixture Task Type keeps its ID, route semantics, templates, bindings and approval', () => {
   const { config, workflows, mappings } = prepareV6Migration(bundled);
   assert.equal(workflows.length, bundled.task_types.length);
   for (const taskType of config.task_types) {
@@ -111,4 +113,26 @@ test('a torn uncommitted journal tail is retained and repaired; complete-record 
   await writeFile(journal, '{"sequence":1}\n');
   await assert.rejects(migrateV6OnDisk({ configPath }), { code: 'MIGRATION_JOURNAL_CORRUPT' });
   assert.equal(await readFile(journal, 'utf8'), '{"sequence":1}\n');
+});
+
+
+test('native v7 migration is a validated no-op without creating legacy backup or journal', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'workflow-current-migration-noop-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const configPath = join(root, 'control-plane.json');
+  await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
+  const before = await readFile(configPath);
+  const result = await migrateV6OnDisk({ configPath });
+  assert.deepEqual(result, { migrated: false, version: 7, store_root: join(root, 'workflows') });
+  assert.deepEqual(await readFile(configPath), before);
+  assert.equal((await readdir(root)).some(name => name.includes('backup') || name.includes('migration')), false);
+});
+
+test('migrated v7 cannot become native v7 by stripping its retained source identity', async t => {
+  const { configPath } = await fixture(t);
+  await migrateV6OnDisk({ configPath });
+  const current = JSON.parse(await readFile(configPath, 'utf8'));
+  delete current.workflow_store.migration_source_sha256;
+  await writeFile(configPath, JSON.stringify(current));
+  await assert.rejects(migrateV6OnDisk({ configPath }), { code: 'MIGRATION_STATE' });
 });

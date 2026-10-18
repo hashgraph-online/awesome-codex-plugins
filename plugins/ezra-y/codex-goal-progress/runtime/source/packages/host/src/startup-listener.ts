@@ -8,6 +8,7 @@ import {
   allocateRandomLoopbackPort,
   type CodexCdpRuntimeState,
   type CodexMacosAppIdentity,
+  commandBelongsToExecutable,
   createCodexCdpRuntimeState,
   inspectCodexMacosApp,
   inspectProcess,
@@ -65,6 +66,8 @@ export const MacosCodexStartupResponseSchema = z
     mainPid: z.number().int().positive().optional(),
     port: z.number().int().min(1_024).max(65_535).optional(),
     launchId: z.string().uuid().optional(),
+    mismatchReason: z.enum(["executable_path", "time_parse", "clock_skew", "command"]).optional(),
+    clockSkewMs: z.number().finite().optional(),
   })
   .strict();
 
@@ -491,17 +494,20 @@ export class MacosStartupHandoffController {
     const original = await this.#inspectTargetProcess(event.pid);
     const processStartedAt = Date.parse(original.startedAt);
     const eventLaunchedAt = Date.parse(event.launchedAt);
-    if (
-      (original.command !== event.executablePath &&
-        !original.command.startsWith(`${event.executablePath} `)) ||
-      !Number.isFinite(processStartedAt) ||
-      !Number.isFinite(eventLaunchedAt) ||
-      Math.abs(processStartedAt - eventLaunchedAt) > STARTUP_EVENT_MAX_CLOCK_SKEW_MS
-    ) {
-      return this.#remember(
-        key,
-        eventResponse(event, "continue", "STARTUP_EVENT_PROCESS_MISMATCH"),
-      );
+    const clockSkewMs = processStartedAt - eventLaunchedAt;
+    const mismatchReason = !commandBelongsToExecutable(original.command, event.executablePath)
+      ? "executable_path"
+      : !Number.isFinite(clockSkewMs)
+        ? "time_parse"
+        : Math.abs(clockSkewMs) > STARTUP_EVENT_MAX_CLOCK_SKEW_MS
+          ? "clock_skew"
+          : undefined;
+    if (mismatchReason) {
+      return this.#remember(key, {
+        ...eventResponse(event, "continue", "STARTUP_EVENT_PROCESS_MISMATCH"),
+        mismatchReason,
+        ...(Number.isFinite(clockSkewMs) ? { clockSkewMs } : {}),
+      });
     }
     if (original.parentPid === process.pid) {
       return this.#remember(key, eventResponse(event, "continue", "STARTUP_EVENT_HELPER_LAUNCH"));
@@ -510,10 +516,10 @@ export class MacosStartupHandoffController {
       return this.#remember(key, eventResponse(event, "continue", "STARTUP_EVENT_ALREADY_CDP"));
     }
     if (original.command !== event.executablePath) {
-      return this.#remember(
-        key,
-        eventResponse(event, "continue", "STARTUP_EVENT_PROCESS_MISMATCH"),
-      );
+      return this.#remember(key, {
+        ...eventResponse(event, "continue", "STARTUP_EVENT_PROCESS_MISMATCH"),
+        mismatchReason: "command",
+      });
     }
     if (!context.isPending()) {
       return this.#remember(key, eventResponse(event, "continue", "STARTUP_EVENT_RELEASED"));

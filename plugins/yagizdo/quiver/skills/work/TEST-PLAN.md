@@ -10,7 +10,7 @@
 3. Phase 0 NO_GIT handling skips branch creation, commits, and PR steps cleanly.
 4. The 5d summary carries the Phase 2.5 `Strategy:` and `Reason:` lines verbatim, naming the strategy (sequential or parallel) and the task count.
 5. For review-fix plans, Phase 4c parses findings, applies BLOCKING/WARNING gates, and prints the convergence verdict; Phase 4d is skipped automatically.
-6. Phase 5 invokes the `commit` and `create-pr` skills, gating each action with `AskUserQuestion`. 5b prints the `/quiver:review --base <default branch>` command as text before its question and never invokes it -- `review` carries `disable-model-invocation: true`, so the Skill tool blocks the call -- and the question offers only the PR button and Done.
+6. Phase 5 invokes the `commit` and `create-pr` skills, gating each action with `AskUserQuestion`. 5b prints the `/quiver:review --base <default branch> --run-checks` command as text before its question and never invokes it, and the question offers only the PR button and Done.
 7. A 3+ task plan creates `.claude/work/<plan-basename>/progress.md` with the identity line before the first group dispatches; a successful run through Phase 5 offers to delete it.
 8. The 5d summary carries the Phase 2.5 `Verification:` line verbatim, naming the resolved test and build commands or `none` with a reason, and the source.
 9. Phase 3 prints a `red:` line naming the new test before each task's implementation edit, then a pass line; a `none` resolution prints one `skipped:` line for the run and no `red:` line.
@@ -25,7 +25,9 @@
 - [ ] Orchestration decision line appears for every plan (including 1-2 task plans).
 - [ ] Non-git directory: plan loads and Phases 3-4 run; Phase 5 exits without commit/PR.
 - [ ] Review-fix plans: verification table and convergence verdict shown; non-review-fix plans skip Phase 4c.
+- [ ] A review-fix run whose report carries `Verification:` lines and has one finding marked `Verification: unverified --` in a file the plan touches, with no plan task naming that finding, lists it as Not in scope in the 4c table, not Addressed; the same run with an unverified Critical that a plan task names, left unfixed, stops at the item 5 question; a report with no `Verification:` line maps findings exactly as before.
 - [ ] Commit and PR steps both go through `AskUserQuestion`; skill never auto-pushes.
+- [ ] In a 3+ task run, every task brief ends with a `## Commit Messages` section copied from `skills/commit/SKILL.md`, and every commit the run makes, on a worktree branch or the working branch, has a subject line only, with its type and scope picked from that file's table.
 - [ ] Interrupting a run after Group 0 and re-invoking /work on the same plan re-dispatches no task carrying a complete line, and prints which tasks it skipped.
 - [ ] A ledger whose identity line names a different plan file is left untouched and a suffixed workspace is used instead.
 - [ ] Every `complete` line in the ledger names a branch that `git rev-parse --verify` resolves and a head commit that is on that branch; a DONE return naming a missing branch or commit writes no `complete` line -- before the agent's completion notification it prints the waiting notice, after it the task is reported as blocked with that branch and commit named.

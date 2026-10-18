@@ -37,6 +37,19 @@ test('verdict is computed from complete checks rather than a model approval flag
   assert.throws(()=>evaluateReview({...result(),approved:true},proposal,resources),{code:'GENERATION_CHECKLIST_INVALID'});
 });
 
+test('unrequested Host workspace freshness gates block generation as Host defects without planner retries',()=>{
+  for(const gate of ['whole-workspace freshness gate','entire workspace immutability requirement','directory unchanged gate']){
+    const review=result(),row=rowFor(review,'validation_strength');
+    row.status='fail';row.evidence=`Host imposes a ${gate} on rendered products although the source only requires its original product check. Runtime bookkeeping must not become a product requirement.`;
+    const verdict=evaluateReview(review,proposal,resources);
+    assert.equal(verdict.approved,false);
+    assert.equal(verdict.semantic_findings.length,0);
+    assert.equal(verdict.host_findings.length,1);
+    assert.deepEqual(verdict.host_repair_targets[0].check_ids,['validation_strength']);
+    assert.equal(verdict.semantic_repair_targets.length,0);
+  }
+});
+
 test('current ordered review rejects missing, extra, malformed, and copied identity fields',()=>{
   for(const mutate of [
     r=>r.checks.pop(),

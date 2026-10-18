@@ -70,7 +70,8 @@ locations linked by routes, and the story time between the scenes is less
 than the fastest route (possibly through other places), it reports an
 error: the character could not have made the trip. A named `time` covers a
 span (`dawn` 04:00-06:59, `morning` 05:00-11:59, `midday` 11:00-13:59,
-`afternoon` 12:00-17:59, `evening` 17:00-21:59, `night` 20:00-23:59), and
+`afternoon` 12:00-17:59, `evening` 17:00-21:59, `night` 20:00-23:59, or
+the same share of a calendar's longer or shorter `hours-per-day`), and
 a scene with a `date` but no `time` spans its whole day. The gap is taken
 at its most generous reading, so only a journey impossible on every
 reading is an error. A character at two different places at the same
@@ -90,5 +91,5 @@ need a `time`; a flashback does not reset it), not a journey inside the
 scene. A scene with no `pov` counts its chapter's `pov` as present. `story timeline .` and `story diagram timeline` show dated scenes in
 story-time order, which helps when adjusting dates.
 
-After editing routes, run `story reindex .`, `story links .`,
-`story continuity .`, and `story validate .`.
+After editing routes, run `story reindex .`, `story wordcount . --write`,
+and `story check .` (which includes the continuity route checks).

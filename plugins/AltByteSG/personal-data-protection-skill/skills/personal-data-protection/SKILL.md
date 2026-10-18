@@ -1,21 +1,21 @@
 ---
 name: personal-data-protection
-description: Personal-data-protection compliance reference for engineers building applications subject to Singapore PDPA, Indonesia UU PDP, Thailand PDPA, Malaysia PDPA, or Philippines DPA (RA 10173). Use when reviewing or modifying code that touches personal data — signup/auth/consent, data export, account deletion, retention/purging, admin access to personal-data stores, third-party processors, breach response, or privacy/T&C documents.
+description: Personal-data-protection compliance reference for engineers building applications subject to Singapore PDPA, Indonesia UU PDP, Thailand PDPA, Malaysia PDPA, Philippines DPA (RA 10173), or Vietnam PDPL (91/2025/QH15). Use when reviewing or modifying code that touches personal data — signup/auth/consent, data export, account deletion, retention/purging, admin access to personal-data stores, third-party processors, breach response, or privacy/T&C documents.
 ---
 
 # Personal Data Protection Compliance — Layered Reference
 
 > # ⚠ Reference material, not legal advice
 >
-> This skill is **engineering reference material**, not legal advice. The maintainers and contributors are **not licensed to practise law** in Singapore, Thailand, Indonesia, Malaysia, the Philippines, or any other jurisdiction. No attorney–client relationship is created by use of this skill.
+> This skill is **engineering reference material**, not legal advice. The maintainers and contributors are **not licensed to practise law** in Singapore, Thailand, Indonesia, Malaysia, the Philippines, Vietnam, or any other jurisdiction. No attorney–client relationship is created by use of this skill.
 >
 > **Do not rely on this skill as your sole source of truth for personal-data-protection compliance.** Always (a) verify any statute citation, threshold, or obligation against the official source, and (b) engage a qualified Data Protection Officer or privacy lawyer before making compliance decisions that materially affect your obligations or your users' rights.
 >
-> **Source-text posture:** this skill **does not reproduce or republish any of the underlying statutes**. It provides engineer-facing interpretation and short attributed quotations of operative phrases under fair-dealing principles, with links to the official sources. Anyone planning to package or redistribute the content beyond similar engineering-reference use should read [DISCLAIMER.md § Copyright in source materials](../../DISCLAIMER.md#copyright-in-source-materials) — Malaysia's PNMB-published Act 709 / Act A1727 carry the strictest publisher's notice of the populated jurisdictions and may require prior permission.
+> **Source-text posture:** this skill **does not reproduce or republish any of the underlying statutes**. It provides engineer-facing interpretation and short attributed quotations of operative phrases under fair-dealing principles, with links to the official sources. Anyone planning to package or redistribute the content beyond similar engineering-reference use should read [DISCLAIMER.md § Copyright in source materials](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md#copyright-in-source-materials) — Malaysia's PNMB-published Act 709 / Act A1727 carry the strictest publisher's notice of the populated jurisdictions and may require prior permission.
 >
-> By using this skill you accept the full disclaimer in [DISCLAIMER.md](../../DISCLAIMER.md), including the "use at your own risk" terms and the maintainers' zero liability for any decision taken in reliance on this content.
+> By using this skill you accept the full disclaimer in [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md), including the "use at your own risk" terms and the maintainers' zero liability for any decision taken in reliance on this content.
 
-This skill helps engineers ship features that comply with personal-data-protection statutes in Singapore, Thailand, Indonesia, Malaysia, and the Philippines. It is organised by **where in the stack the obligation lives** rather than by statute section number — engineers shouldn't need to learn statute references to do their job.
+This skill helps engineers ship features that comply with personal-data-protection statutes in Singapore, Thailand, Indonesia, Malaysia, the Philippines and Vietnam. It is organised by **where in the stack the obligation lives** rather than by statute section number — engineers shouldn't need to learn statute references to do their job.
 
 ## Step 1 — Identify the active jurisdiction(s)
 
@@ -66,11 +66,26 @@ Once the user has chosen, persist that choice in `.pdp-compliance.json` when the
 
 Layer files are **universal across all populated jurisdictions** — implementation patterns are shared. Jurisdiction-specific obligations live in `jurisdictions/<code>/obligations/`.
 
+### Jurisdiction files
+
+Once the active jurisdiction is known, open its files directly from this table rather than following links from one file to the next. Each `README.md` states scope, statute version and verification date; `statute-map.md` maps sections to layers; the obligation files hold the per-statute rules.
+
+| Code | Start here | Statute map | Obligations |
+|---|---|---|---|
+| `sg-pdpa` | [README](jurisdictions/sg-pdpa/README.md) | [statute-map](jurisdictions/sg-pdpa/statute-map.md) | [01 accountability](jurisdictions/sg-pdpa/obligations/01-accountability.md) · [02 consent](jurisdictions/sg-pdpa/obligations/02-consent.md) · [03 purpose](jurisdictions/sg-pdpa/obligations/03-purpose.md) · [04 access correction](jurisdictions/sg-pdpa/obligations/04-access-correction.md) · [05 care](jurisdictions/sg-pdpa/obligations/05-care.md) · [06 breach notification](jurisdictions/sg-pdpa/obligations/06-breach-notification.md) · [07 offences](jurisdictions/sg-pdpa/obligations/07-offences.md) |
+| `th-pdpa` | [README](jurisdictions/th-pdpa/README.md) | [statute-map](jurisdictions/th-pdpa/statute-map.md) | [01 accountability](jurisdictions/th-pdpa/obligations/01-accountability.md) · [02 consent](jurisdictions/th-pdpa/obligations/02-consent.md) · [03 purpose](jurisdictions/th-pdpa/obligations/03-purpose.md) · [04 access correction](jurisdictions/th-pdpa/obligations/04-access-correction.md) · [05 care](jurisdictions/th-pdpa/obligations/05-care.md) · [06 breach notification](jurisdictions/th-pdpa/obligations/06-breach-notification.md) · [07 offences](jurisdictions/th-pdpa/obligations/07-offences.md) |
+| `id-pdp` | [README](jurisdictions/id-pdp/README.md) | [statute-map](jurisdictions/id-pdp/statute-map.md) | [01 accountability](jurisdictions/id-pdp/obligations/01-accountability.md) · [02 consent](jurisdictions/id-pdp/obligations/02-consent.md) · [03 purpose](jurisdictions/id-pdp/obligations/03-purpose.md) · [04 access correction](jurisdictions/id-pdp/obligations/04-access-correction.md) · [05 care](jurisdictions/id-pdp/obligations/05-care.md) · [06 breach notification](jurisdictions/id-pdp/obligations/06-breach-notification.md) · [07 offences](jurisdictions/id-pdp/obligations/07-offences.md) |
+| `my-pdpa` | [README](jurisdictions/my-pdpa/README.md) | [statute-map](jurisdictions/my-pdpa/statute-map.md) | [01 accountability](jurisdictions/my-pdpa/obligations/01-accountability.md) · [02 consent](jurisdictions/my-pdpa/obligations/02-consent.md) · [03 purpose](jurisdictions/my-pdpa/obligations/03-purpose.md) · [04 access correction](jurisdictions/my-pdpa/obligations/04-access-correction.md) · [05 care](jurisdictions/my-pdpa/obligations/05-care.md) · [06 breach notification](jurisdictions/my-pdpa/obligations/06-breach-notification.md) · [07 offences](jurisdictions/my-pdpa/obligations/07-offences.md) |
+| `ph-dpa` | [README](jurisdictions/ph-dpa/README.md) | [statute-map](jurisdictions/ph-dpa/statute-map.md) | [01 accountability](jurisdictions/ph-dpa/obligations/01-accountability.md) · [02 consent](jurisdictions/ph-dpa/obligations/02-consent.md) · [03 purpose](jurisdictions/ph-dpa/obligations/03-purpose.md) · [04 access correction](jurisdictions/ph-dpa/obligations/04-access-correction.md) · [05 care](jurisdictions/ph-dpa/obligations/05-care.md) · [06 breach notification](jurisdictions/ph-dpa/obligations/06-breach-notification.md) · [07 offences](jurisdictions/ph-dpa/obligations/07-offences.md) |
+| `vn-pdpl` | [README](jurisdictions/vn-pdpl/README.md) | [statute-map](jurisdictions/vn-pdpl/statute-map.md) | [01 accountability](jurisdictions/vn-pdpl/obligations/01-accountability.md) · [02 consent](jurisdictions/vn-pdpl/obligations/02-consent.md) · [03 purpose](jurisdictions/vn-pdpl/obligations/03-purpose.md) · [04 access correction](jurisdictions/vn-pdpl/obligations/04-access-correction.md) · [05 care](jurisdictions/vn-pdpl/obligations/05-care.md) · [06 breach notification](jurisdictions/vn-pdpl/obligations/06-breach-notification.md) · [07 offences](jurisdictions/vn-pdpl/obligations/07-offences.md) · [08 sector specific](jurisdictions/vn-pdpl/obligations/08-sector-specific.md) |
+
+Templates to copy into a project: [`INCIDENT_RESPONSE.md.template`](templates/INCIDENT_RESPONSE.md.template) (breach runbook) and [`pdp-nudge.sh.template`](templates/pdp-nudge.sh.template) (changed-file reminder hook).
+
 ## Critical thresholds (commit to memory)
 
 These vary by jurisdiction — the active one(s) determine which apply.
 
-| | Singapore PDPA | Thailand PDPA | Indonesia UU PDP | Malaysia PDPA | Philippines DPA |---|
+| | Singapore PDPA | Thailand PDPA | Indonesia UU PDP | Malaysia PDPA | Philippines DPA | Vietnam PDPL |
 |---|---|---|---|---|---|---|
 | Breach notification window to authority | **3 calendar days** after assessing as notifiable (s26D(1)) | **72 hours** from awareness (s37(4)) | **72 hours** from awareness — to **both** subject AND regulator (Pasal 46(1)) | **72 hours** from discovery to Commissioner (s12B(1) + JPDP Guideline 25 Feb 2025); **7 days** post-Commissioner to affected subject | **72 hours** from knowledge / reasonable belief — to **both** NPC AND affected subject (§ 38 IRR + NPC Circular 16-03 § 12) | **72 hours from detection of the act** (Điều 23(1)) — no assessment step |
 | Significant-scale / risk threshold | ≥ 500 affected individuals | "Risk to rights and freedoms"; "high risk" triggers individual notification | Always notify subject; "certain circumstances" trigger public notification (Pasal 46(3)) | "Significant harm" triggers subject notification (s12B(2)) — no fixed scale threshold | Information-type-driven: SPI or identity-fraud-enabling info, acquired by unauthorised person, real risk of serious harm (NPC Circular 16-03 § 11); ≥ 100 persons triggers § 35 penalty aggravation | **None** — harm-based trigger covering national defence/security and the subject's life, health, **honour, dignity**, property (Điều 23(1)); Điều 23(3) also covers purpose-creep and rights failures |
@@ -95,4 +110,4 @@ Each jurisdiction's `README.md` records:
 - When the content was last verified against official sources
 - Pending amendments to watch for
 
-When statutes amend, this skill is updated and tagged. See the upstream [CHANGELOG.md](../../CHANGELOG.md) and pin to a version if you need stability.
+When statutes amend, this skill is updated and tagged. See the upstream [CHANGELOG.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/CHANGELOG.md) and pin to a version if you need stability.

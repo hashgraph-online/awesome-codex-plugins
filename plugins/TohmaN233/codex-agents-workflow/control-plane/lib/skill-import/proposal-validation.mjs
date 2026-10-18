@@ -2,13 +2,14 @@ import { sourceRepairLoopIntentFindings } from '../authoring/semantic-loops.mjs'
 import { requireValue } from '../workflow-paths.mjs';
 import { decodeGeneratedEnvelope, decodeGeneratedProposalDetailed } from './expansion-run.mjs';
 import { canonicalJSON, digest } from '../workflow-revisions.mjs';
-import { projectObservedRequirements } from './source-requirements.mjs';
+import { callableSourceRequirements, projectObservedRequirements } from './source-requirements.mjs';
 import { compileExpansion } from './semantic-expander.mjs';
 import { sourceSectionInventory, validateSourceDispositions } from './source-dispositions.mjs';
-import { applySemanticRepair, canonicalizeSemanticRepair, CURRENT_AUTHORING_SEMANTIC_BLUEPRINT_SCHEMA, INTERNAL_SEMANTIC_BLUEPRINT_SCHEMA, LEGACY_SEMANTIC_BLUEPRINT_CONTRACT, normalizeSemanticBlueprint, PREVIOUS_COMPACT_SEMANTIC_BLUEPRINT_CONTRACT, PREVIOUS_COMPACT_SEMANTIC_BLUEPRINT_SCHEMA, PREVIOUS_FANOUT_SEMANTIC_BLUEPRINT_CONTRACT, PREVIOUS_FANOUT_SEMANTIC_BLUEPRINT_SCHEMA, PREVIOUS_SEMANTIC_BLUEPRINT_CONTRACT, SEMANTIC_BLUEPRINT_CONTRACT, SEMANTIC_BLUEPRINT_SCHEMA, SEMANTIC_REPAIR_CONTRACT, SEMANTIC_REPAIR_SCHEMA } from '../authoring/blueprint-contract.mjs';
+import { applySemanticRepair, canonicalizeSemanticRepair, CURRENT_AUTHORING_SEMANTIC_BLUEPRINT_SCHEMA, INTERNAL_SEMANTIC_BLUEPRINT_SCHEMA, LEGACY_SEMANTIC_BLUEPRINT_CONTRACT, normalizeGeneratedSemanticBlueprint, PREVIOUS_COMPACT_SEMANTIC_BLUEPRINT_CONTRACT, PREVIOUS_COMPACT_SEMANTIC_BLUEPRINT_SCHEMA, PREVIOUS_FANOUT_SEMANTIC_BLUEPRINT_CONTRACT, PREVIOUS_FANOUT_SEMANTIC_BLUEPRINT_SCHEMA, PREVIOUS_SEMANTIC_BLUEPRINT_CONTRACT, SEMANTIC_BLUEPRINT_CONTRACT, SEMANTIC_BLUEPRINT_SCHEMA, SEMANTIC_REPAIR_CONTRACT, SEMANTIC_REPAIR_SCHEMA } from '../authoring/blueprint-contract.mjs';
 import { actionableSemanticError, lowerSemanticBlueprint } from '../authoring/workflow-forge.mjs';
 import { validateData } from '../workflow-data-schema.mjs';
 import { AUTHORING_PIPELINE, authoringDependencyAssessmentRequired } from '../authoring/authoring-workflows.mjs';
+import { normalizeSemanticBlueprint } from '../authoring/blueprint-contract.mjs';
 
 const countsBy=(values,key)=>Object.fromEntries([...new Set(values.map(item=>item?.[key] ?? 'none'))].sort().map(value=>[value,values.filter(item=>(item?.[key] ?? 'none')===value).length]));
 
@@ -20,12 +21,13 @@ export function authoringPipelineTrace({pack,resources,authoringPlan,proposal,co
   const graphNodes=proposal.nodes ?? [],graphEdges=proposal.edges ?? [];
   const executableNodes=compiled.workflow.nodes.filter(node=>!['start','final','end'].includes(node.id));
   const validation=compiled.validation;
+  const callableCoverage=(compiled.workflow.import_status?.requirement_coverage??[]).filter(item=>item.requirement_id.startsWith('callable_'));
   const resultById={
-    source_snapshot:{source_revision:pack.revision_hash,resource_count:Object.keys(resources).length},
+    source_snapshot:{source_revision:pack.revision_hash,resource_count:Object.keys(resources).length,callable_inventory_policy:pack.provenance?.callable_inventory_policy??'legacy',callable_coverage_counts:countsBy(callableCoverage,'status')},
     semantic_inventory:{contract:authoringPlan?.contract ?? 'legacy-proposal',activity_count:authoringPlan?.activities?.length ?? graphNodes.length,source_disposition_count:authoringPlan?.source_dispositions?.length ?? proposal.source_dispositions?.length ?? 0,control_group_counts:{sequence:authoringPlan?.sequences?.length ?? 0,parallel:authoringPlan?.parallels?.length ?? 0,choice:authoringPlan?.choices?.length ?? 0,approval:authoringPlan?.approvals?.length ?? 0,loop:authoringPlan?.loops?.length ?? 0},semantic_hash:digest(canonicalJSON(semantic))},
     graph_assembly:{node_count:graphNodes.length,edge_count:graphEdges.length,loop_count:proposal.loops?.length??0,graph_hash:digest(canonicalJSON({loops:proposal.loops??[],nodes:graphNodes.map(node=>node.id),edges:graphEdges.map(edge=>[edge.source,edge.target,edge.on ?? null,edge.label ?? null])}))},
     execution_binding:{access_counts:countsBy(executableNodes,'access'),executor_counts:countsBy(executableNodes.map(node=>node.executor ?? {}),'kind'),input_binding_count:executableNodes.reduce((total,node)=>total+Object.keys(node.input_bindings ?? {}).length,0),resource_binding_count:executableNodes.reduce((total,node)=>total+(node.resources?.length ?? 0),0),host_projection_count:repairs.length},
-    deterministic_validation:{valid:validation.valid,launch_ready:validation.launch_ready,cycle_free:validation.valid,error_codes:validation.errors.map(item=>item.code),blocker_codes:validation.blockers.map(item=>item.code),topological_order:validation.order},
+    deterministic_validation:{valid:validation.valid,launch_ready:validation.launch_ready,cycle_free:validation.valid,graph_validation_passes:compiled.validation_passes??1,error_codes:validation.errors.map(item=>item.code),blocker_codes:validation.blockers.map(item=>item.code),topological_order:validation.order},
     semantic_review:{status:'pending'},
     human_publish:{status:'pending'},
   };
@@ -71,6 +73,13 @@ export function deterministicProposalFindings(proposal,compiled,version,resource
 // One deterministic gate shared by pre-review, persisted-artifact recheck and
 // final apply.  No caller may maintain a weaker copy of the conversion rules.
 export function validateGenerationProposal(output,{pack,resources,provenance,context,previousPlan=null,repairFeedback=null}) {
+  requireValue(provenance.generation_executor_policy===undefined||['provider-subagents/v1','provider-subagents/v2'].includes(provenance.generation_executor_policy),'GENERATION_EXECUTOR_POLICY','Unknown pinned generated executor policy');
+  requireValue(provenance.callable_inventory_policy===undefined||provenance.callable_inventory_policy==='workflow-callable-inventory/v1','GENERATION_CALLABLE_POLICY','Unknown pinned callable inventory policy');
+  const generationExecutorPolicy=provenance.generation_executor_policy!==undefined;
+  const callableInventoryPolicy=provenance.callable_inventory_policy==='workflow-callable-inventory/v1';
+  // One source inventory observation for this compiler transaction, reused by
+  // initial decoding, graph binding and persisted-stage verification.
+  context={...context,generation_routing_policy:provenance.generation_executor_policy,host_callable_requirements:callableInventoryPolicy?callableSourceRequirements(resources):[]};
   const projectedPipeline=output?.host_pipeline??null;
   const envelope=projectedPipeline?{proposal:output.proposal}:output;
   const payload=decodeGeneratedEnvelope(envelope);
@@ -97,22 +106,22 @@ export function validateGenerationProposal(output,{pack,resources,provenance,con
       if(requireDependencyAssessment&&payload.contract!==SEMANTIC_REPAIR_CONTRACT&&payload.contract!==SEMANTIC_BLUEPRINT_CONTRACT)requireValue(false,'GENERATION_DEPENDENCY_ASSESSMENT','Current authoring plans must use the compact blueprint with an explicit runtime_dependencies decision');
       let normalized,proposal;
       try{
-        normalized=normalizeSemanticBlueprint(semantic);validateData(normalized,INTERNAL_SEMANTIC_BLUEPRINT_SCHEMA);
+        normalized=(generationExecutorPolicy?normalizeGeneratedSemanticBlueprint:normalizeSemanticBlueprint)(semantic,{sectionInventory:sourceSectionInventory(resources)});validateData(normalized,INTERNAL_SEMANTIC_BLUEPRINT_SCHEMA);
         // Lower from the compact source, not the normalized internal form:
         // source-inventory preflight must see the planner's dispositions and
         // report their semantic defects before graph compilation.
-        proposal=lowerSemanticBlueprint(pack,resources,semantic,{...context,routing_rules:provenance.routing_rules,routing_catalog:provenance.routing_catalog});
+        proposal=lowerSemanticBlueprint(pack,resources,semantic,{...context,routing_rules:provenance.routing_rules,routing_catalog:provenance.routing_catalog,generation_executor_policy:generationExecutorPolicy,callable_inventory_policy:callableInventoryPolicy});
       }catch(error){throw actionableSemanticError(error,semantic);}
       repairs.push({kind:'host_semantic_blueprint_lowered'});
       if(payload.contract===LEGACY_SEMANTIC_BLUEPRINT_CONTRACT)repairs.push({kind:'host_semantic_blueprint_v2_upgraded'});
       return {proposal,repairs,authoringPlan};
     })()
-    : decodeGeneratedProposalDetailed(envelope,provenance.source_revision,{requirePlanningAnalysis:provenance.routing_rules?.selection_mode === 'automatic',requireSourceDispositions:(provenance.review_contract_version ?? 1)>=8,requireRuntimeDependencies:requireDependencyAssessment,sourceInventory:sourceSectionInventory(resources)});
+    : decodeGeneratedProposalDetailed(envelope,provenance.source_revision,{requirePlanningAnalysis:provenance.routing_rules?.selection_mode === 'automatic',requireSourceDispositions:(provenance.review_contract_version ?? 1)>=8,requireRuntimeDependencies:requireDependencyAssessment,sourceInventory:sourceSectionInventory(resources),hostRequirementIds:context.host_callable_requirements.map(item=>item.requirement_id)});
   const decoded=decodedResult.proposal;
-  const proposal=projectObservedRequirements(decoded,resources);
+  const proposal=projectObservedRequirements(decoded,resources,{callable_inventory_policy:callableInventoryPolicy,host_callable_requirements:context.host_callable_requirements});
   const repairs=[...decodedResult.repairs];
   if (canonicalJSON(decoded)!==canonicalJSON(proposal)) repairs.push({kind:'host_contract_projection',fields:['source_requirements','requirement_mappings','required_executables','input_bindings','resource_refs','requirement_ids']});
-  const compiled=compileExpansion(pack,resources,proposal,{...context,routing_rules:provenance.routing_rules,routing_catalog:provenance.routing_catalog});
+  const compiled=compileExpansion(pack,resources,proposal,{...context,routing_rules:provenance.routing_rules,routing_catalog:provenance.routing_catalog,generation_executor_policy:generationExecutorPolicy,callable_inventory_policy:callableInventoryPolicy});
   if (canonicalJSON(proposal)!==canonicalJSON(compiled.canonical_proposal)) repairs.push({kind:'host_semantic_status_projection',fields:['requirement_mappings','tool_output_schemas']});
   const canonicalProposal=compiled.canonical_proposal;
   const findings=deterministicProposalFindings(canonicalProposal,compiled,provenance.review_contract_version ?? 1,resources);

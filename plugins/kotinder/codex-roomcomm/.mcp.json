@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "roomcomm": {
+      "type": "http",
+      "url": "https://roomcomm.xyz/mcp",
+      "env_http_headers": {
+        "Authorization": "ROOMCOMM_AUTH"
+      }
+    }
+  }
+}

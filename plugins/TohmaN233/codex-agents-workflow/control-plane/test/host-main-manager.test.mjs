@@ -2,7 +2,7 @@ import test from 'node:test';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import assert from 'node:assert/strict';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile, copyFile, chmod } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from './physical-tempdir.mjs';
 import { HostMainManager, closeHostMainManagers, hostMainManagerFor } from '../lib/execution/host-main-manager.mjs';
@@ -125,7 +125,7 @@ test('Host Main schedules pre-Main work without making launch wait for it', asyn
 });
 
 test('background pre-Main failure remains visible in the Run journal and Main status', async () => {
-  const state = { status: 'running', error: null };
+  const state = { status: 'running', error: null,control_hash:digest('private') };
   const runtime = { quiesceFailedOrigin: async () => {}, runs: {
     read: async () => ({ state, pins: { root: { workflow: { finalization: null } } } }),
     mutate: async (_id, _kind, update) => update(state),
@@ -140,6 +140,20 @@ test('background pre-Main failure remains visible in the Run journal and Main st
   assert.match(state.error.message, /DRIVE_FAILED/);
   const pending = await manager.pending(runtime, 'run-background-failure');
   assert.equal(pending.kind, 'host_main'); assert.equal(pending.error.code, 'DRIVE_FAILED');
+  await manager.close();
+});
+
+test('delayed pre-Main failure cannot mutate replacement authority after quiescence',async()=>{
+  const entered=deferred(),release=deferred();
+  const state={status:'running',control_hash:digest('old-owner'),error:null,updated_at:'original'};
+  const runtime={quiesceFailedOrigin:async()=>{entered.resolve();await release.promise;},runs:{mutate:async(_id,_kind,update)=>update(state)}};
+  const manager=new HostMainManager({configPath:'C:\\fixture\\host-main-fail-authority.json',getConfig:async()=>({}),qualify:async()=>({})});
+  const entry={runId:'same-run',controlToken:'old-owner',runtime,stopping:false};
+  const failure=manager.fail(entry,Object.assign(new Error('old advance failed'),{code:'DRIVE_FAILED'}));
+  await entered.promise;state.control_hash=digest('replacement-owner');state.updated_at='replacement';release.resolve();
+  const result=await failure;
+  assert.equal(state.status,'running');assert.equal(state.error,null);assert.equal(state.updated_at,'replacement');
+  assert.equal(result.status,'audit_or_cleanup_failed');assert(result.error.secondary_codes.includes('RUN_AUTHORITY'));
   await manager.close();
 });
 
@@ -163,6 +177,221 @@ const output = final => ({ type: 'object', properties: {
   value: { type: 'string' }, ...(final ? { accepted: { type: 'boolean' } } : {}),
 }, required: final ? ['value', 'accepted'] : ['value'], additionalProperties: false });
 
+async function preparedMainFixture(t, { beforeStart,closeError,strictEnabled=true,policyMode='cooperative' } = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'host-main-preparation-')), workspace = join(root, 'workspace');
+  const objects = join(root, 'runs', 'objects'); await mkdir(workspace); await mkdir(objects, { recursive: true });
+  t.after(() => rm(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }));
+  const bodies = { 'behavior.md': 'BEHAVIOR_ONCE: Follow the declared acceptance criteria.',
+    'program.py': 'EXECUTABLE_BODY_MUST_STAY_LOCAL = True\n', 'large.md': 'LARGE_RESOURCE_BODY_' + 'z'.repeat(20000),
+    'undeclared.md': 'UNDECLARED_RESOURCE_BODY' };
+  const pins = Object.entries(bodies).map(([path, body]) => ({ path, sha256: digest(body), bytes: Buffer.byteLength(body) }));
+  for (const pin of pins) await writeFile(join(objects, pin.sha256), bodies[pin.path]);
+  const declared = ['program.py', 'large.md', 'behavior.md'];
+  const definition = { id: 'work', type: 'agent', executor: { kind: 'main' }, resources: declared, outputs_schema: output(false) };
+  const record = { pins: { root: { workflow: { nodes: [definition] }, resources: pins, provenance: { kind: 'fixture' } } },
+    state: { main_actor: 'logical-main', nodes: { work: { attempts: [] } } } };
+  const envelope = { node_id: 'work', executor: definition.executor, allowed_skills: [], resources: declared,
+    skill_policy: { mode: policyMode, implicit: 'allow', ambient_allow: [], shadowed_skill_paths: [] },
+    inputs: { task: 'TASK_ONCE', baseline: 'BASELINE_ONCE', mode: 'MODE_ONCE', large_json: { body: 'LARGE_INPUT_BODY_' + 'x'.repeat(20000) } },
+    context_projection: { mode: 'declared_bindings', bindings: ['task', 'baseline', 'mode', 'large_json'], references: declared },
+    access: 'read_only', workspace, effective_allowed_paths: [], constraints: {},
+    prompt_template: 'Resources listed below are logical identifiers, not filesystem paths. Use read_workflow_resource; cite resource IDs.\n{{task}}', outputs_schema: output(false) };
+  const events = [],savedArtifacts=[],metered=[]; let starts = 0, prompt,commits=0;
+  const runtime = { runs: { directory: () => join(root, 'runs'), read: async () => record,
+    saveArtifact:async(_id,label,bytes)=>{savedArtifacts.push({label,bytes});return {artifact:'audit.bin',sha256:digest(bytes),bytes:bytes.length};},
+    saveExecutorResult: async () => ({ artifact: 'result.json', sha256: 'a'.repeat(64) }) },
+    authorizedExecution: async (_run, auth, select) => ({ record, binding: { ...select(record), ...auth }, envelope }),
+    execution: async () => envelope, reserveHostMainTurn: async () => {}, recordHostMainDispatchReceipt: async () => {},
+    recordExecutorEvent: async (_id, args) => events.push(args.event), recordHostMainUsage: async (_id,args) => metered.push(args), completeHostMainResult: async () => {commits++;} };
+  const strict = { enabled: strictEnabled, codex_binary: process.execPath, binary_sha256: 'b'.repeat(64), authentication: { mode: 'managed_chatgpt', api_key_env: '' },
+    main_model: 'current-main', main_reasoning_effort: 'high', inactivity_timeout_ms: 0 };
+  const manager = new HostMainManager({register:async({config})=>config, configPath: join(root, 'control-plane.json'), env: {}, qualify: async () => strict,
+    getConfig: async () => ({ global: { enabled: true }, strict_executor: strict, providers: [] }),
+    mainModelSelection: async () => ({ model: 'current-main', effort: 'high' }), sessionFactory: async options => {
+      if(options.resolveModelSelection)Object.assign(options,await options.resolveModelSelection({}));
+      starts++; assert.equal(options.model, 'current-main'); assert.equal(options.effort, 'high');
+      assert.equal(options.skillPolicy.implicit, 'deny'); assert.equal(options.hostExecutionOnly, undefined);
+      if (beforeStart) await beforeStart({ events, bodies, pins, declared, workspace, options });
+      return { turn: async text => { prompt = text; return { output: '{"value":"done"}', thread_id: 'thread', turn_id: 'turn',
+        usage: { available: true }, ...(closeError?{command_audit:[{status:'completed',exit_code:0,output:'captured output'}]}:{}),
+        audit: { input_sha256: digest(canonicalJSON([{ type: 'text', text }])) } }; }, close: async () => {options.toolBroker.revoke();if(closeError)throw closeError;} };
+    } });
+  t.after(() => manager.close());
+  const binding = { run_id: 'run', node_id: 'work', attempt_id: 'attempt' };
+  const execute = () => manager.executeNode({ runtime, runId: 'run', stopping: false, status: 'running' }, { host_binding: binding, agent_packet: { prompt: envelope.prompt_template } });
+  return { execute, runtime, record, events, bodies, pins, workspace, objects, envelope,savedArtifacts,metered,commits:()=>commits, starts: () => starts, prompt: () => prompt };
+}
+
+test('Main preserves completed audit and usage but never commits after shutdown failure',async t=>{
+  const f=await preparedMainFixture(t,{closeError:Object.assign(new Error('owned pipe remained held'),{code:'CODEX_COMMAND_PIPE_HELD'})});
+  await assert.rejects(f.execute(),{code:'CODEX_COMMAND_PIPE_HELD'});
+  assert.equal(f.savedArtifacts.length,1);assert.equal(f.metered.length,1);assert.equal(f.commits(),0);
+  const closing=f.events.find(event=>event.kind==='session_state'&&event.metadata.status==='closing');
+  const failed=f.events.find(event=>event.kind==='session_state'&&event.metadata.status==='failed');
+  assert(closing&&failed);
+  const audit=JSON.parse(failed.metadata.diagnostic);
+  assert.equal(audit.command_audit_artifact,'audit.bin');
+  assert.equal(audit.command_audit_sha256,digest(f.savedArtifacts[0].bytes));
+  assert.equal(audit.command_audit_bytes,f.savedArtifacts[0].bytes.length);
+  assert(f.savedArtifacts[0].bytes.includes(Buffer.from('captured output')));
+  assert.equal(f.starts(),1);
+  assert(!f.events.some(event=>event.kind==='result_proposed'));
+});
+
+test('actual Strict Main retains the explicit disable gate before session creation',async t=>{
+  const f=await preparedMainFixture(t,{policyMode:'strict',strictEnabled:false});
+  await assert.rejects(f.execute(),{code:'STRICT_DISABLED'});assert.equal(f.starts(),0);assert.equal(f.commits(),0);
+});
+
+test('actual cooperative Main executes with explicitly disabled Strict',async t=>{
+  const f=await preparedMainFixture(t,{strictEnabled:false});
+  await f.execute();assert.equal(f.starts(),1);assert.equal(f.commits(),1);
+});
+
+test('Main shares only its initial authorized projection and retains fresh effect and turn checks', async t => {
+  let f, checks = 0, projections = 0, reads = 0, receipts = 0;
+  f = await preparedMainFixture(t, { beforeStart: async ({ options }) => {
+    assert.equal(projections, 1);
+    assert.equal(checks, 1, 'The explicit authorization after projection remains fresh');
+    await options.authorize();
+  } });
+  const projection = f.runtime.authorizedExecution;
+  f.runtime.authorizedExecution = async (...args) => {
+    projections++;
+    assert.deepEqual(args[2](f.record), { node_id: 'work', attempt_id: 'attempt', lease_token: undefined });
+    return projection(...args);
+  };
+  const read = f.runtime.runs.read;
+  f.runtime.runs.read = (...args) => { reads++; return read(...args); };
+  f.runtime.execution = async () => { checks++; return f.envelope; };
+  f.runtime.recordHostMainDispatchReceipt = async () => { receipts++; };
+  await f.execute();
+  assert.equal(projections, 1); assert.equal(reads, 1, 'The existing declared-resource read remains; empty Skills need no read');
+  assert.equal(checks, 3); assert.equal(receipts, 1);
+  const spans = JSON.parse(f.events.find(event => event.kind === 'session_state' && event.metadata.status === 'running').metadata.diagnostic).startup_phase_ms;
+  assert.deepEqual(Object.keys(spans).sort(), ['authorized_execution', 'materialization', 'receipt_commit', 'snapshot']);
+  assert(Object.values(spans).every(value => Number.isSafeInteger(value) && value >= 0));
+});
+
+test('Main never replays a failed dispatch receipt and preserves its original error', async t => {
+  const f = await preparedMainFixture(t), failure = new Error('receipt failed'); let calls = 0;
+  f.runtime.recordHostMainDispatchReceipt = async () => { calls++; throw failure; };
+  await assert.rejects(f.execute(), error => error === failure);
+  assert.equal(calls, 1); assert.equal(f.commits(), 0);
+  assert(!f.events.some(event => event.kind === 'session_state' && event.metadata.status === 'running'));
+});
+
+for (const code of ['RUN_AUTHORITY', 'STALE_LEASE', 'RUN_RESOURCE_CORRUPT']) test(`Main fresh authorization rejects ${code} after projection before session startup`, async t => {
+  const f = await preparedMainFixture(t), failure = Object.assign(new Error('fresh barrier failed'), { code });
+  f.runtime.execution = async () => { throw failure; };
+  await assert.rejects(f.execute(), error => error === failure);
+  assert.equal(f.starts(), 0); assert.equal(f.commits(), 0);
+  assert.equal(f.events.length, 0);
+});
+
+test('Main retains the qualified tool interface without raw instructions or transport credentials',async t=>{
+  const metadata={method:'workflow/toolInterface',diagnostic:JSON.stringify({execution_tool_mode:'code_mode_only',broker_transport:'native_mcp'})};
+  const f=await preparedMainFixture(t,{beforeStart:async({options})=>{await options.onEvent(metadata);}});
+  await f.execute();
+  assert.deepEqual(f.events.find(event=>event.kind==='codex_event'&&event.metadata.method==='workflow/toolInterface')?.metadata,metadata);
+});
+
+test('Main journals bounded optional raw capability and exact tool-search evidence', async t => {
+  const metadata = [{ method: 'workflow/rawObservation', status: 'supported', diagnostic: 'qualified standalone schemas' },
+    { method: 'workflow/toolSearch', thread_id: 'thread', turn_id: 'turn', item_type: 'tool_search_call',
+      item_id: 'search', status: 'completed', diagnostic: 'execution=server' }];
+  const f = await preparedMainFixture(t, { beforeStart: async ({ options }) => {
+    assert.equal(options.rawObservation, undefined, 'Unsupported legacy qualification does not guess an opt-in');
+    for (const event of metadata) await options.onEvent(event);
+  } });
+  await f.execute();
+  for (const event of metadata) assert.deepEqual(f.events.find(value => value.kind === 'codex_event' && value.metadata.method === event.method)?.metadata, event);
+});
+
+test('ordinary Main normalizes command and shutdown callbacks with complete bounded pending counts',async t=>{
+  const pending=Array.from({length:70},(_,index)=>`owned-process-${index}`);
+  const metadata=[{method:'workflow/command',phase:'isolation_begin',process_id:'isolation-probe'},
+    {method:'workflow/sessionShutdown',phase:'failed',pending_process_ids:pending,error_code:'FIXTURE_SHUTDOWN'}];
+  const f=await preparedMainFixture(t,{beforeStart:async({options})=>{for(const value of metadata)await options.onEvent(value);}});
+  await f.execute();
+  const command=f.events.find(event=>event.kind==='codex_event'&&event.metadata.method==='workflow/command').metadata;
+  assert.deepEqual(command,{method:'workflow/command',status:'isolation_begin',diagnostic:JSON.stringify({process_id:'isolation-probe'})});
+  const shutdown=f.events.find(event=>event.kind==='codex_event'&&event.metadata.method==='workflow/sessionShutdown').metadata;
+  assert.equal(shutdown.status,'failed');assert.equal(shutdown.error_code,'FIXTURE_SHUTDOWN');
+  assert.deepEqual(JSON.parse(shutdown.diagnostic),{pending_process_ids:pending.slice(0,64),pending_command_count:70,pending_ids_complete:false});
+  assert.equal(metadata[1].pending_process_ids.length,70,'Observation normalization must preserve its supplied callback');
+});
+
+test('Main prepares exact declared local resources before sessionFactory and inlines tiny context once', async t => {
+  let preparation;
+  const fixture = await preparedMainFixture(t, { beforeStart: async ({ events, bodies, declared, options }) => {
+    const event = events.find(item => item.kind === 'node_input_materials');
+    assert.ok(event, 'Host must persist context preparation before creating a session');
+    const contractBytes = await readFile(event.metadata.inputs_path);
+    assert.equal(digest(contractBytes), event.metadata.manifest_sha256);
+    preparation = JSON.parse(contractBytes);
+    assert.equal(preparation.kind, 'host_main_context');
+    assert.deepEqual(preparation.resources.map(item => item.path), [...declared].sort());
+    for (const item of preparation.resources) {
+      const bytes = await readFile(item.local_path);
+      assert.equal(bytes.toString(), bodies[item.path]); assert.equal(digest(bytes), item.sha256);
+    }
+    assert.deepEqual(await readdir(join(fixture.workspace, 'work', '.workflow-runtime', 'host-main', 'run', 'attempt', 'inputs')),
+      preparation.inputs.filter(item => item.delivery === 'file').map(item => item.path.split(/[\\/]/).at(-1)));
+    assert.equal(options.ephemeral, true);
+  } });
+  await fixture.execute();
+  const prompt = fixture.prompt();
+  for (const marker of ['TASK_ONCE', 'BASELINE_ONCE', 'MODE_ONCE', 'BEHAVIOR_ONCE']) assert.equal(prompt.split(marker).length - 1, 1, marker);
+  assert.doesNotMatch(prompt, /EXECUTABLE_BODY_MUST_STAY_LOCAL|LARGE_RESOURCE_BODY_|LARGE_INPUT_BODY_|UNDECLARED_RESOURCE_BODY|Use read_workflow_resource/);
+  for (const item of preparation.resources) {
+    assert.equal(prompt.includes(canonicalJSON(item.local_path)), item.delivery==='file');
+    if(item.delivery==='inline')assert.equal(prompt.split(await readFile(item.local_path,'utf8')).length-1,1);
+  }
+  assert.equal(preparation.audit.resource_count, 3); assert.equal(preparation.audit.inline_resource_count, 1);
+  assert.equal(preparation.audit.inline_input_count, 3); assert.equal(preparation.audit.file_input_count, 1);
+  assert.equal(preparation.audit.basis, 'declared_bindings_and_pinned_resources');
+  assert.equal(fixture.starts(), 1);
+});
+
+test('Main session receives the scoped envelope PATH before its first model turn',async t=>{
+  const fixture=await preparedMainFixture(t,{beforeStart:async({workspace,options})=>{
+    assert.equal(options.env.PATH,join(workspace,'registered-scope'));
+  }});
+  const bin=join(fixture.workspace,'registered-scope');await mkdir(bin);const path=join(bin,process.platform==='win32'?'node.exe':'node');await copyFile(process.execPath,path);if(process.platform!=='win32')await chmod(path,0o755);
+  fixture.envelope.constraints.runtime_environment={status:'ready',scope_sha256:'c'.repeat(64),tools:[{name:'node',status:'found',path}]};
+  await fixture.execute();
+});
+
+test('Main rejects impossible scoped PATH before creating its session',async t=>{
+  const f=await preparedMainFixture(t),tools=[];
+  for(const dir of ['first','second']){await mkdir(join(f.workspace,dir));for(const name of ['alpha','beta']){const path=join(f.workspace,dir,name+(process.platform==='win32'?'.exe':''));await copyFile(process.execPath,path);if(process.platform!=='win32')await chmod(path,0o755);if((dir==='first'&&name==='alpha')||(dir==='second'&&name==='beta'))tools.push({name,status:'found',path});}}
+  f.envelope.constraints.runtime_environment={status:'ready',tools};
+  await assert.rejects(f.execute(),{code:'ENVIRONMENT_BINDING_STALE'});assert.equal(f.starts(),0);assert.equal(f.commits(),0);
+});
+
+for (const kind of ['changed object', 'conflicting local file', 'linked local directory', 'linked object directory']) test(`Main rejects ${kind} before starting a model session`, async t => {
+  const fixture = await preparedMainFixture(t), pin = fixture.pins.find(item => item.path === 'program.py');
+  const materials = join(fixture.workspace, 'work', '.workflow-runtime', 'host-main', 'run', 'attempt');
+  if (kind === 'changed object') await writeFile(join(fixture.objects, pin.sha256), 'changed bytes');
+  if (kind === 'conflicting local file') {
+    await mkdir(join(materials, 'resources'), { recursive: true });
+    await writeFile(join(materials, 'resources', `resource-${pin.sha256}.py`), 'conflicting bytes');
+  }
+  if (kind === 'linked local directory') {
+    await mkdir(materials, { recursive: true });
+    await symlink(fixture.objects, join(materials, 'resources'), process.platform === 'win32' ? 'junction' : 'dir');
+  }
+  if (kind === 'linked object directory') {
+    const target = join(fixture.workspace, 'linked-objects'); await mkdir(target);
+    await rm(fixture.objects, { recursive: true });
+    await symlink(target, fixture.objects, process.platform === 'win32' ? 'junction' : 'dir');
+  }
+  await assert.rejects(fixture.execute(), { code: kind === 'changed object' ? 'RUN_RESOURCE_CORRUPT'
+    : kind === 'conflicting local file' ? 'NODE_INPUT_MATERIALS_CONFLICT' : 'WORKFLOW_SYMLINK' });
+  assert.equal(fixture.starts(), 0);assert.equal(fixture.commits(),0);
+});
+
 for (const finalDeclaresAcceptance of [true, false]) test(`ordinary logical Main finalizes without a human gate (${finalDeclaresAcceptance ? 'declared' : 'implicit'} acceptance)`, async t => {
   const root = await mkdtemp(join(tmpdir(), 'host-main-manager-')); const workspace = join(root, 'workspace'); await mkdir(workspace);
   t.after(() => rm(root, { recursive: true, maxRetries: 3, retryDelay: 100 }));
@@ -181,7 +410,7 @@ for (const finalDeclaresAcceptance of [true, false]) test(`ordinary logical Main
     final: { executor: { kind: 'main' }, skill_ref: null, allowed_skills: [], resources: [], inputs: { prior: { value: 'first' } }, access: 'read_only', workspace,
       effective_allowed_paths: [], constraints: {}, prompt_template: 'SECOND-NODE-ONLY with declared prior first', outputs_schema: output(finalDeclaresAcceptance) },
   };
-  const receipts = [], usages = [], completions = [], completionChoices = [], proposals = [], sessions = [], savedArtifacts = [];
+  const receipts = [], usages = [], completions = [], completionChoices = [], proposals = [], sessions = [], savedArtifacts = [], closedSessions=[];
   const runtime = {
     workflows: { root: join(root, 'workflows') },
     runs: {
@@ -189,11 +418,14 @@ for (const finalDeclaresAcceptance of [true, false]) test(`ordinary logical Main
       saveArtifact: async (_run, label, bytes) => { savedArtifacts.push({ label, bytes }); return { artifact: `artifact-${label}-${'c'.repeat(64)}.bin`, sha256: 'c'.repeat(64), bytes: bytes.length }; },
       saveExecutorResult: async (_run, attempt, completion) => { assert(Buffer.byteLength(canonicalJSON(completion)) < 256 * 1024); proposals.push({ attempt, completion }); return { artifact: `executor-${attempt}-${'a'.repeat(64)}.json`, sha256: 'a'.repeat(64) }; },
     },
+    authorizedExecution: async (_run, auth, select) => { const binding = { ...select(record), ...auth }; return { record, binding, envelope: envelopes[binding.node_id] }; },
     execution: async (_run, binding) => envelopes[binding.node_id],
     recordHostMainDispatchReceipt: async (_run, args) => receipts.push(args.receipt),
     reserveHostMainTurn: async () => {},
     recordExecutorEvent: async (_run, args) => {
       if (args.event.kind !== 'result_proposed') return;
+      assert.equal(savedArtifacts.length,sessions.length,'Every completed session audit is durable before the result proposal');
+      assert.equal(closedSessions.length,sessions.length,'Every completed session closes before its result proposal');
       const attempt = state.nodes[args.node_id].attempts.find(item => item.id === args.attempt_id);
       attempt.result_proposal = args.event.metadata;
     },
@@ -218,13 +450,14 @@ for (const finalDeclaresAcceptance of [true, false]) test(`ordinary logical Main
     return handoff('final');
   } };
   const strict = { enabled: true, codex_binary: process.execPath, binary_sha256: 'b'.repeat(64), authentication: { mode: 'managed_chatgpt', api_key_env: '' }, main_model: 'gpt-5.6-terra', main_reasoning_effort: 'medium', inactivity_timeout_ms: 0 };
-  const manager = new HostMainManager({ configPath: join(root, 'control-plane.json'), env: {}, getConfig: async () => ({ global: { enabled: true }, strict_executor: strict, providers: [] }), qualify: async () => strict,
+  const manager = new HostMainManager({register:async({config})=>config, configPath: join(root, 'control-plane.json'), env: {}, getConfig: async () => ({ global: { enabled: true }, strict_executor: strict, providers: [] }), qualify: async () => strict,
     mainModelSelection: async current => {
       assert.equal(current, record);
       return { model: 'current-user-model', effort: 'xhigh' };
     },
     sessionFactory: async options => {
       const index = sessions.length; sessions.push(options);
+      if(options.resolveModelSelection)Object.assign(options,await options.resolveModelSelection({}));
       assert.equal(options.model, 'current-user-model');
       assert.equal(options.effort, 'xhigh');
       assert.equal(options.skillPolicy.implicit, "deny");
@@ -237,13 +470,13 @@ for (const finalDeclaresAcceptance of [true, false]) test(`ordinary logical Main
         return { output: JSON.stringify(index === 0 ? { value: 'first' } : { value: 'final', ...(finalDeclaresAcceptance ? { accepted: true } : {}) }), thread_id: `thread-${index + 1}`, turn_id: `turn-${index + 1}`,
           usage: { available: true, input_tokens: 10 + index, output_tokens: 2 }, audit: { instruction_sources: [], input_sha256: digest(canonicalJSON([{type:'text',text:prompt}])) }, item_types: ['agentMessage'],
           command_audit: [{ status: 'completed', output: 'x'.repeat(300000) }] };
-      }, async close() { options.toolBroker.revoke(); }, async interrupt() {} };
+      }, async close() { assert.equal(savedArtifacts.length,index,'Earlier session audits remain durable while this session closes');options.toolBroker.revoke();closedSessions.push(index); }, async interrupt() {} };
     } });
   const launched = await manager.launch({ runtime, drive, handoff: handoff('work') });
   assert(['starting','running'].includes(launched.status));
   const settled = await manager.wait('run-1');
   assert.equal(settled.status, 'succeeded', JSON.stringify(settled));
-  assert.equal(sessions.length, 2); assert.notEqual(sessions[0], sessions[1]);
+  assert.equal(sessions.length, 2);assert.deepEqual(closedSessions,[0,1]); assert.notEqual(sessions[0], sessions[1]);
   assert.deepEqual(sessions.map(item => [item.model, item.effort]), [['current-user-model', 'xhigh'], ['current-user-model', 'xhigh']]);
   for (const session of sessions) {
     const names = session.toolBroker.tools().map(tool => tool.name);
@@ -276,6 +509,7 @@ test('recoverable blocked Main result gets one correction turn and accounts for 
   const runtime = {
     workflows: { root: join(root, 'workflows') }, runs: { root: join(root, 'runs'), read: async () => record,
       saveExecutorResult: async () => ({ artifact: `executor-${'a'.repeat(64)}.json`, sha256: 'a'.repeat(64) }) },
+    authorizedExecution: async (_run, auth, select) => ({ record, binding: { ...select(record), ...auth }, envelope }),
     execution: async () => envelope, recordExecutorEvent: async (_id, args) => events.push(args.event),
     reserveHostMainTurn: async () => {},
     recordHostMainDispatchReceipt: async () => {}, recordHostMainUsage: async (_id, args) => usages.push(args.usage),
@@ -284,9 +518,10 @@ test('recoverable blocked Main result gets one correction turn and accounts for 
   const binding = { protocol: 'host-main-v1', run_id: 'run-1', control_token: 'control', node_id: 'work', attempt_id: 'attempt-1', lease_token: 'lease', owner: 'logical-main', final_acceptance: false };
   const handoff = { host_binding: binding, agent_packet: { prompt: 'Create the artifact', response_form: { schema } } };
   const strict = { enabled: true, codex_binary: process.execPath, binary_sha256: 'b'.repeat(64), authentication: { mode: 'managed_chatgpt', api_key_env: '' }, main_model: 'gpt-5.6-terra', main_reasoning_effort: 'medium', inactivity_timeout_ms: 0 };
-  const manager = new HostMainManager({ configPath: join(root, 'control-plane.json'), env: {}, getConfig: async () => ({ global: { enabled: true }, strict_executor: strict, providers: [] }), qualify: async () => strict,
+  const manager = new HostMainManager({register:async({config})=>config, configPath: join(root, 'control-plane.json'), env: {}, getConfig: async () => ({ global: { enabled: true }, strict_executor: strict, providers: [] }), qualify: async () => strict,
     sessionFactory: async options => {
       assert.equal(options.maxTurns, 2);
+      if(options.resolveModelSelection)Object.assign(options,await options.resolveModelSelection({}));
       const runTurn = async (prompt, args) => {
         turns++; assert(args.output_schema.properties.block_reason);
         if (turns === 2) { assert.match(prompt, requireArtifacts ? /compressed_video\.mp4/ : /prior result reported blocked/); assert.doesNotMatch(prompt, /Create the artifact/); }
@@ -342,14 +577,16 @@ test('Main preflight corrects schema and real source locations in one thread bef
   const events = [], prompts = []; let completed = false, saved = false, failAll = false;
   const runtime = { workflows: { root: join(root, 'workflows') }, runs: { root: join(root, 'runs'), read: async () => record,
       saveExecutorResult: async () => { saved = true; return { artifact: `executor-${'a'.repeat(64)}.json`, sha256: 'a'.repeat(64) }; } },
+    authorizedExecution: async (_run, auth, select) => ({ record, binding: { ...select(record), ...auth }, envelope }),
     execution: async () => envelope, recordExecutorEvent: async (_id, args) => events.push(args.event), recordHostMainDispatchReceipt: async () => {},
     reserveHostMainTurn: async () => { state.nodes.work.attempts[0].completion_turns++; }, recordHostMainUsage: async () => {},
     completeHostMainResult: async () => { completed = true; }, failNode: async () => assert.fail('Completion should be corrected') };
   const binding = { run_id: 'run-1', control_token: 'control', node_id: 'work', attempt_id: 'attempt-1', lease_token: 'lease' };
   const strict = { enabled: true, codex_binary: process.execPath, binary_sha256: 'b'.repeat(64), authentication: { mode: 'managed_chatgpt', api_key_env: '' }, main_model: 'gpt-5.6-terra', main_reasoning_effort: 'medium', inactivity_timeout_ms: 0 };
-  const manager = new HostMainManager({ configPath: join(root, 'control-plane.json'), env: {}, getConfig: async () => ({ global: { enabled: true }, strict_executor: strict, providers: [] }), qualify: async () => strict,
+  const manager = new HostMainManager({register:async({config})=>config, configPath: join(root, 'control-plane.json'), env: {}, getConfig: async () => ({ global: { enabled: true }, strict_executor: strict, providers: [] }), qualify: async () => strict,
     sessionFactory: async options => {
       assert.equal(options.maxTurns, 3);
+      if(options.resolveModelSelection)Object.assign(options,await options.resolveModelSelection({}));
       const respond = async (prompt, args) => { prompts.push(prompt); assert(args.output_schema.properties.locations);
         return { output: JSON.stringify(failAll ? { locations: [{ ...location, end_line: 3 }] }
           : prompts.length === 1 ? { locations: 'wrong type' } : prompts.length === 2
@@ -383,6 +620,7 @@ test('Host Main retains a session handed off before factory initialization fails
   const runtime = {
     workflows: { root: join(root, 'workflows') },
     runs: { root: join(root, 'runs'), directory: () => join(root, 'runs', 'run-factory'), read: async () => record },
+    authorizedExecution: async (_run, auth, select) => ({ record, binding: { ...select(record), ...auth }, envelope }),
     execution: async () => envelope,
     recordExecutorEvent: async () => {},
     failNode: async () => { state.nodes.work.status = 'failed'; },
@@ -400,7 +638,7 @@ test('Host Main retains a session handed off before factory initialization fails
     agent_packet: { prompt: envelope.prompt_template, response_form: { schema: output(false) } } };
   const strict = { enabled: true, codex_binary: process.execPath, binary_sha256: 'b'.repeat(64), authentication: { mode: 'managed_chatgpt', api_key_env: '' }, main_model: 'gpt-5.6-terra', main_reasoning_effort: 'medium', inactivity_timeout_ms: 0 };
   let allowClose = false; let closeCalls = 0; let owned;
-  const manager = new HostMainManager({ configPath: join(root, 'control-plane.json'), env: {},
+  const manager = new HostMainManager({register:async({config})=>config, configPath: join(root, 'control-plane.json'), env: {},
     getConfig: async () => ({ global: { enabled: true }, strict_executor: strict, providers: [] }), qualify: async () => strict,
     sessionFactory: async options => {
       owned = { async interrupt() {}, async close() {
@@ -408,6 +646,7 @@ test('Host Main retains a session handed off before factory initialization fails
         if (!allowClose) throw Object.assign(new Error('Synthetic profile cleanup failure'), { code: 'SYNTHETIC_PROFILE_RETAINED' });
         options.toolBroker.revoke();
       } };
+      if(options.resolveModelSelection)Object.assign(options,await options.resolveModelSelection({}));
       await options.onSessionOwned(owned);
       const setupError = Object.assign(new Error('Synthetic initialization failure'), { code: 'SYNTHETIC_SESSION_SETUP' });
       try { await owned.close(); }

@@ -197,6 +197,10 @@ Use "indicates" for evidence-supported interpretation, "suggests" for weaker inf
 
 Use "due to" or "because" only when the mechanism is supported. Otherwise use "may be attributed to" or "is likely associated with."
 
+Avoid casual, self-referential, or manuscript-process language such as "the present work," "the current work," "this study establishes," or reader-directed phrasing. Name the technical subject and make the evidence relationship explicit.
+
+Use `Fig. 6a` rather than "panel a" for subfigures unless the journal has a conflicting house style. Apply one consistent publication font, preferably Arial when unconstrained, across related figures.
+
 ## Conclusion Pattern
 
 Conclusions should be compact, specific, and cumulative.
@@ -233,3 +237,4 @@ Before finalizing a paper draft, check:
 - Does the abstract report the principal quantitative findings when the evidence supports them?
 - Does the literature review distinguish adjacent approaches from the specific remaining technical gap?
 - Are caveats specific, locally placed, and necessary to interpret the associated claim?
+- Are all figure fonts, labels, units, uncertainty definitions, subfigure references, and layouts consistent?

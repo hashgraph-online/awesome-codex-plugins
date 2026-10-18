@@ -81,9 +81,10 @@ class ThermalSkipped:
         "description": "Why the component was skipped: 'no_load_estimate' "
                        "(switching regulator with zero/absent "
                        "estimated_load_mA on its output rail), 'no_vout' "
-                       "(no estimated output voltage), or "
-                       "'below_min_pdiss' (estimated dissipation at or "
-                       "below the reporting threshold). KH-386."})
+                       "(no estimated output voltage), 'below_min_pdiss' "
+                       "(a real estimate at or below the reporting threshold), "
+                       "or 'no_pdiss_estimate' (LDO whose upstream "
+                       "power_dissipation was never computed — KH-411). KH-386."})
 
 
 @dataclass

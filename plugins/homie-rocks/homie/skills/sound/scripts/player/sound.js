@@ -15,6 +15,26 @@
  * suspended until a person has touched the page, so the first gesture resumes it (a held stick counts
  * when the finger lifts). A sound asked for before that is dropped, not queued: a late hit is worse than none.
  * window.__homieSound holds counters for a playtest (what played, when); it never controls anything.
+ *
+ * THE CAPTURE LOG (off unless a recorder asks). A recorder that renders the page frame by frame cannot
+ * record the speaker, so it asks for a log instead: before the page's scripts run it sets
+ *
+ *   window.__homieSoundCapture = { events: [] };
+ *
+ * and from then on every sound this player schedules is pushed onto `events` as it is scheduled, stamped
+ * with performance.now() (`t`, ms), enough to mix the same sound again offline from the same files:
+ *
+ *   { t, type: 'start', id, bus: 'sfx' | 'music', name, url, gain, rate, pan, loop, delay, fadeIn, bar? }
+ *   { t, type: 'stop', id, delay, fade, curve: 'cut' | 'linear' | 'target' }
+ *   { t, type: 'duck', to, seconds }                 music down to `to`, back after `seconds`
+ *   { t, type: 'levels', master, sfx, music, muted }
+ *   { t, type: 'drop', name, why }                   asked for and not played: 'locked', 'missing', 'loading', 'voices'
+ *
+ * `delay` is seconds after `t`; `url` is absolute; `rate` is the playback rate after pitch and jitter (the
+ * random choices are in the log, so the mix repeats them). With the log on, bar lines are counted on the page's
+ * clock (performance.now) instead of the audio clock, so a recorder's virtual clock moves them too.
+ * A game with its own audio code can push the same events itself; the video skill's `trailer` reads them.
+ * Without that global nothing is logged and nothing here costs anything.
  */
 export function createSound({ base = 'sound/', manifest = 'sound.json', maxPerName = 4, maxVoices = 24 } = {}) {
   const AC = window.AudioContext || window.webkitAudioContext;
@@ -28,6 +48,12 @@ export function createSound({ base = 'sound/', manifest = 'sound.json', maxPerNa
   let muted = false;
   const levels = { master: 1, sfx: 1, music: 0.7 };
   let track = null;
+  // The capture log: only when a recorder put the global there before this ran (see the head of this file).
+  let cap = null;
+  try { const c = window.__homieSoundCapture; if (c && Array.isArray(c.events)) cap = c; } catch (e) { /* not ours to read */ }
+  let capId = 0;
+  const logEv = (e) => { if (cap) { e.t = performance.now(); cap.events.push(e); } return e; };
+  const fileOf = new Map(); // a variant's key -> the file that decoded (what the log names)
 
   if (ctx) {
     buses.master = ctx.createGain();
@@ -67,17 +93,21 @@ export function createSound({ base = 'sound/', manifest = 'sound.json', maxPerNa
     return p;
   }
 
+  // A list's own key, never a file's name: a list of ONE file ("jump.wav", or ["jump.wav"]) used to be kept under
+  // that file's name, so loading the file found the list's own unfinished promise and waited on itself for ever
+  // (`ready` never resolved, and music asked for before it never started).
+  const keyOf = (list) => `=${Array.isArray(list) ? list.join('|') : list}`;
   /** A file listed as [ogg, wav]: the first this browser decodes wins (older Safari cannot decode Ogg). */
   function loadFirst(list) {
     const files = Array.isArray(list) ? list : [list];
-    const key = files.join('|');
+    const key = keyOf(list);
     if (buffers.has(key)) return buffers.get(key);
     const p = files.reduce((prev, f) => prev.then((buf) => buf || load(f).then((b) => (b instanceof AudioBuffer ? b : null))), Promise.resolve(null))
-      .then((buf) => { if (buf) buffers.set(key, buf); else buffers.delete(key); return buf; });
+      .then((buf) => { if (buf) { buffers.set(key, buf); fileOf.set(key, files.find((f) => buffers.get(f) === buf) ?? files[0]); } else buffers.delete(key); return buf; });
     buffers.set(key, p);
     return p;
   }
-  const loopBuffer = (list) => buffers.get(Array.isArray(list) ? list.join('|') : list);
+  const loopBuffer = (list) => buffers.get(keyOf(list));
 
   function applyLevels() {
     if (!ctx) return;
@@ -85,23 +115,26 @@ export function createSound({ base = 'sound/', manifest = 'sound.json', maxPerNa
     buses.master.gain.setTargetAtTime(muted ? 0 : levels.master, t, 0.02);
     buses.sfx.gain.setTargetAtTime(levels.sfx, t, 0.02);
     buses.music.gain.setTargetAtTime(levels.music, t, 0.05);
+    logEv({ type: 'levels', master: levels.master, sfx: levels.sfx, music: levels.music, muted });
   }
 
   function play(name, { volume = 1, pitch = 0, pan = 0, jitter = 0.35 } = {}) {
     stats.plays.push({ name, t: Math.round(performance.now()) });
     if (stats.plays.length > 500) stats.plays.splice(0, 250);
-    if (!ctx || ctx.state !== 'running') return null;
+    if (!ctx || ctx.state !== 'running') { logEv({ type: 'drop', name, why: 'locked' }); return null; }
     const variants = meta.sfx[name];
-    if (!variants || !variants.length) { if (!stats.missing.includes(name)) stats.missing.push(name); return null; }
-    const buf = loopBuffer(variants[Math.floor(Math.random() * variants.length)]);
-    if (!(buf instanceof AudioBuffer)) return null;
+    if (!variants || !variants.length) { if (!stats.missing.includes(name)) stats.missing.push(name); logEv({ type: 'drop', name, why: 'missing' }); return null; }
+    const variant = variants[Math.floor(Math.random() * variants.length)];
+    const buf = loopBuffer(variant);
+    if (!(buf instanceof AudioBuffer)) { logEv({ type: 'drop', name, why: 'loading' }); return null; }
     const mine = live.get(name) || [];
-    while (mine.length >= maxPerName) { try { mine.shift().stop(); } catch (e) { /* ended */ } }
+    while (mine.length >= maxPerName) { const old = mine.shift(); try { old.stop(); } catch (e) { /* ended */ } logEv({ type: 'stop', id: old.capId, delay: 0, fade: 0, curve: 'cut' }); }
     let total = 0; for (const v of live.values()) total += v.length;
-    if (total >= maxVoices) return null;
+    if (total >= maxVoices) { logEv({ type: 'drop', name, why: 'voices' }); return null; }
     const src = ctx.createBufferSource();
     src.buffer = buf;
     src.playbackRate.value = 2 ** ((pitch + (Math.random() * 2 - 1) * jitter) / 12);
+    if (cap) { src.capId = ++capId; logEv({ type: 'start', id: src.capId, bus: 'sfx', name, url: url(fileOf.get(keyOf(variant)) ?? (Array.isArray(variant) ? variant[0] : variant)), gain: volume, rate: src.playbackRate.value, pan: Math.max(-1, Math.min(1, pan || 0)), loop: false, delay: 0, fadeIn: 0 }); }
     const g = ctx.createGain(); g.gain.value = volume;
     let node = src.connect(g);
     if (pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, pan)); node = node.connect(p); }
@@ -118,12 +151,18 @@ export function createSound({ base = 'sound/', manifest = 'sound.json', maxPerNa
     if (!(buf instanceof AudioBuffer)) { ready.then(() => { if (track && !track.started) startTrack(); }); return; }
     track.started = true;
     track.t0 = ctx.currentTime + 0.05;
-    track.node = loopNode(buf, track.t0, track.fade);
+    track.c0 = performance.now() / 1000 + 0.05; // the same moment on the page's clock, for the capture log's bar lines
+    track.node = loopNode(buf, track.t0, track.fade, track.section);
     stats.music = { name: track.name, section: track.section, since: Math.round(performance.now()) };
   }
 
-  function loopNode(buf, at, fade) {
+  function loopNode(buf, at, fade, sectionName) {
     const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    if (cap) {
+      const list = track.loops[sectionName];
+      src.capId = ++capId;
+      logEv({ type: 'start', id: src.capId, bus: 'music', name: `${track.name}/${sectionName}`, url: url(fileOf.get(keyOf(list)) ?? (Array.isArray(list) ? list[0] : list)), gain: 1, rate: 1, pan: 0, loop: true, delay: Math.max(0, at - ctx.currentTime), fadeIn: Math.max(0.005, fade), bar: track.bar });
+    }
     const g = ctx.createGain(); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(1, at + Math.max(0.005, fade));
     src.connect(g).connect(buses.duck);
     src.start(at);
@@ -152,18 +191,26 @@ export function createSound({ base = 'sound/', manifest = 'sound.json', maxPerNa
     const buf = loopBuffer(track.loops[name]);
     if (!(buf instanceof AudioBuffer)) return;
     const now = ctx.currentTime;
-    const at = track.t0 + Math.ceil((now + 0.02 - track.t0) / track.bar) * track.bar;
+    let at = track.t0 + Math.ceil((now + 0.02 - track.t0) / track.bar) * track.bar;
+    if (cap) {
+      // With the capture log on, the next bar line is counted on the page's clock: a recorder's virtual clock is the
+      // one the film is on, and the audio clock runs at the wall's speed beside it.
+      const cnow = performance.now() / 1000;
+      const wait = track.c0 + Math.ceil((cnow + 0.02 - track.c0) / track.bar) * track.bar - cnow;
+      at = now + wait; track.c0 = cnow + wait;
+    }
     const old = track.node;
     old.g.gain.setValueAtTime(1, at - fade); old.g.gain.linearRampToValueAtTime(0, at);
     try { old.src.stop(at + 0.05); } catch (e) { /* */ }
-    track.node = loopNode(buf, at - fade, fade);
+    logEv({ type: 'stop', id: old.src.capId, delay: Math.max(0, at - fade - now), fade, curve: 'linear' });
+    track.node = loopNode(buf, at - fade, fade, name);
     track.t0 = at;
     stats.music = { name: track.name, section: name, since: Math.round(performance.now()) };
   }
 
   function stopMusic({ fade = 0.5 } = {}) {
     if (!track) return;
-    if (track.node && ctx) { const t = ctx.currentTime; track.node.g.gain.setTargetAtTime(0, t, fade / 3); try { track.node.src.stop(t + fade + 0.1); } catch (e) { /* */ } }
+    if (track.node && ctx) { const t = ctx.currentTime; track.node.g.gain.setTargetAtTime(0, t, fade / 3); try { track.node.src.stop(t + fade + 0.1); } catch (e) { /* */ } logEv({ type: 'stop', id: track.node.src.capId, delay: 0, fade, curve: 'target' }); }
     track = null; stats.music = null;
   }
 
@@ -171,6 +218,7 @@ export function createSound({ base = 'sound/', manifest = 'sound.json', maxPerNa
     if (!ctx) return;
     const t = ctx.currentTime; const g = buses.duck.gain;
     g.cancelScheduledValues(t); g.setTargetAtTime(to, t, 0.015); g.setTargetAtTime(1, t + seconds, 0.12);
+    logEv({ type: 'duck', to, seconds });
   }
 
   const api = {

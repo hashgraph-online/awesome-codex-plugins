@@ -21,7 +21,17 @@ start to end: QA is not a review.
 - Social feeds autoplay muted: burn the key words into the picture (the film draw-over's kinetic type
   does it) or ship `captions.vtt`, which the studio's video page loads.
 
+- A captured frame is a JPEG: full range, BT.601. `format=yuv420p` and `-colorspace bt709` change
+  neither (the file reads back `yuvj420p`, primaries and transfer unset, and phones show it washed
+  out or crushed). The skill's encodes end in `scale=out_range=tv:out_color_matrix=bt709,
+  format=yuv420p,setparams=…` with `-color_range tv`: converted, then tagged. A file made another
+  way: check it with `qa.mjs`.
+
 ## Capture
+
+- A game too heavy to paint 30 frames a second is filmed frame by frame instead (`trailer`, or
+  `record-fixed.mjs` directly): the page's clock is stepped 1/30 s a frame, so nothing is held.
+  Its sound is rebuilt from the game's sound log, not recorded (`references/TRAILER.md`, section 0).
 
 - Wait about three seconds after the page loads before the first frame: fonts, shaders and the first
   round settle.

@@ -101,6 +101,27 @@ the absolute path to this repository.
 Knowledge-base outages never block CAD work. The skills record the outage and
 continue with the available SolidWorks tooling and engineering context.
 
+## Diagnose local readiness
+
+Run the bundled doctor before the first CAD task:
+
+```powershell
+python plugins/solidworks-gpt-plugin/scripts/doctor.py
+```
+
+It validates Python, the installed manifest/skills/schema, `SW_KB_HOST` syntax,
+`curl`, and the local SolidWorks COM registration. It makes zero network
+requests and never launches SolidWorks. Missing optional dependencies are
+reported as warnings; require the complete CAD and feedback environment with:
+
+```powershell
+python plugins/solidworks-gpt-plugin/scripts/doctor.py --strict
+```
+
+For CI, support packets, or reproducible installation evidence, use `--json`.
+Host output is credential-free, and endpoint reachability is deliberately not
+claimed.
+
 For release notes and project questions, see the
 [latest release](https://github.com/Erfouni/solidworks-GPT-plugin/releases/latest),
 the [changelog](CHANGELOG.md), and

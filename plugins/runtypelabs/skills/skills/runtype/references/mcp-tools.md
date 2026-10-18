@@ -40,7 +40,7 @@ Resource discovery tools with potentially large rows (`list_products`, `list_age
 compact response by default: string values longer than 100 characters end in `…`. Keep
 that bounded form while browsing, then use the matching `get_*` tool for one resource.
 Pass `view: "full"` only when complete strings are required across the page.
-`list_agents` accepts `agent_type` (`runtype`, `external`, or `claude_managed`).
+`list_agents` accepts `agent_type` (`runtype`, `external`, or `claude_managed`) and `model` (case-insensitive equality or prefix match on `config.model`, for example `claude-sonnet`).
 
 | Tool                                                | Use for                                      |
 | --------------------------------------------------- | -------------------------------------------- |
@@ -263,6 +263,8 @@ Read `get_platform_documentation(topic="agent-skills")` before authoring.
 
 Versioned judgment question sets: named boolean, choice, or score questions answered with probabilities. Publish a version before a tool config or step references the set.
 
+Read `get_platform_documentation(topic="decision-models")` before authoring. Criteria shape depends on the type: `boolean` takes an optional object `{ "true": "...", "false": "..." }` (a string returns a 400), `choice` takes an object of label to description, and `score` takes an ordered array of 2 to 10 level descriptions, lowest first. Questions are fixed, so to judge N items, write one question per slot and put all N items in one `state`.
+
 | Tool                                                                | Use                                       |
 | ------------------------------------------------------------------- | ----------------------------------------- |
 | `create_question_set` / `update_question_set`                       | Author questions (updates add a draft)    |
@@ -342,6 +344,16 @@ Bring-your-own provider credentials: `list_provider_keys`, `create_provider_key`
 | `submit_feedback`            | Report a Runtype bug or doc gap (free)           |
 | `generate_proposal`          | Scope-of-work proposal tool for a client project |
 | `generate-proposal`          | MCP prompt variant of the proposal workflow      |
+
+## Delegation (flag-gated: `enableDelegateToRuntype`)
+
+| Tool                  | Use                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| `delegate_to_runtype` | Hand a multi-step task to Runtype's in-account operator agent; streams progress, returns a digest |
+| `check_delegation`    | Long-poll a running delegation for events since `after`                                           |
+| `cancel_delegation`   | Stop a running delegation; completed changes stay                                                 |
+
+When the account has the flag, the server instructions recommend delegating multi-step work (build or change a flow, agent, product, surface or tool; debug a run; load records; run evals). Pass `wait_seconds: 240` on Claude Code; keep it under 60 on clients with a 60-second tool timeout. A result with `status: input_required` carries a `question`; answer it with `delegate_to_runtype { task_id, task: <answer> }`.
 
 Start with the `index` topic (task-to-topic map). Useful documentation topics include `platform-catalog`, `surface-types`, `flow-step-types`, `models`, `product-schema`, `types-fpo`, `types-flow-steps`, `types-entities`, `types-surface-configs`, `orthogonal-tools`, `builtin-tools`, `agent-skills`, `external-tools`, `external-agents`, `evals`, `limits`, `validation-errors`, `setup-readiness`, `dashboard-links`, `mock-ecommerce`, `persona-embed`, `persona-fullscreen-assistant`, and `sdk-reference`.
 

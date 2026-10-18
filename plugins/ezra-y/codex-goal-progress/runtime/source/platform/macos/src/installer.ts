@@ -1,11 +1,9 @@
 import { resolve } from "node:path";
-import {
-  type GoalProgressPaths,
-  resolveGoalProgressPaths,
-} from "../../../packages/store/src/index.js";
+import type { GoalProgressPaths } from "../../../packages/store/src/index.js";
 import { requireSingleCodexMacosApp } from "./app-discovery.js";
 import {
   type CdpController,
+  cdpPaths,
   createCdpController,
   createDefaultRestoreCdp,
   type RestoreCdpResult,
@@ -143,10 +141,7 @@ export function createMacosCommandHandlers(
           code: null,
         })
       : inspectInstalledHelperReadiness);
-  const goalPaths = resolveGoalProgressPaths({
-    platform: "darwin",
-    homeDirectory: options.homeDirectory,
-  });
+  const goalPaths = cdpPaths(options.homeDirectory);
   const discoverCodex =
     options.discoverCodex ??
     (async () => {

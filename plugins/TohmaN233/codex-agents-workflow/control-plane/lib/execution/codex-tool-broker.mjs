@@ -1,14 +1,16 @@
 import { spawn, execFile } from 'node:child_process';
 import { lstat, readFile, readdir, open, rename, unlink, realpath, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, delimiter, dirname, isAbsolute, join, relative, sep, win32 } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, sep, win32 } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { resourcePath, requireValue, noSymlinks, ensureDirectory, insideRoot, canonicalNoLinks } from '../workflow-paths.mjs';
 import { pathBoundaries } from '../workflow-bindings.mjs';
 import { digest } from '../workflow-revisions.mjs';
 import { verifyRuntimeEnvironment } from '../runtime-environment.mjs';
+import { augmentedRuntimeEnvironment } from '../runtime-environment-state.mjs';
 
 const MAX_FILE = 1024 * 1024;
+const MAX_RESOURCE_READ_BYTES = 12000;
 const key = path => process.platform === 'win32' ? path.toLowerCase() : path;
 const within = (root, path) => key(path) === key(root) || key(path).startsWith(key(root) + sep);
 const textResult = value => ({ success: true, contentItems: [{ type: 'inputText', text: JSON.stringify(value) }] });
@@ -18,7 +20,7 @@ const string = { type: 'string' };
 const RECOVERABLE_TOOL_ERRORS = new Set([
   'CODEX_TOOL_ARGUMENTS', 'CODEX_TOOL_PATH', 'INVALID_RESOURCE_PATH', 'CODEX_TOOL_PATH_DENIED',
   'CODEX_TOOL_WRITE_DENIED', 'CODEX_TOOL_DIRECTORY', 'CODEX_TOOL_DIRECTORY_LIMIT', 'CODEX_TOOL_FILE',
-  'CODEX_TOOL_ENCODING', 'CODEX_RESOURCE_DENIED', 'CODEX_RESOURCE_RANGE', 'CODEX_RESOURCE_RANGE_LIMIT',
+  'CODEX_TOOL_ENCODING', 'CODEX_RESOURCE_DENIED', 'CODEX_RESOURCE_READ_LIMIT', 'CODEX_RESOURCE_RANGE', 'CODEX_RESOURCE_RANGE_LIMIT',
   'CODEX_RESOURCE_CHUNK',
   'CODEX_TOOL_WRITE_ARGUMENTS', 'CODEX_TOOL_WRITE_CONFLICT',
 ]);
@@ -364,7 +366,7 @@ function argsShape(args, names) {
 // All file access is performed by this host broker. No shell or arbitrary-path
 // dynamic reader is exposed. This is an application boundary, not an OS ACL.
 export async function createCodexToolBroker({ workspace, access, allowedPaths = [], deniedPaths = [], resources = [],
-  inputRoots = [], executionBinding, runtimeEnvironment, prepareRuntimeEnvironment, authorize, onOperation, recoverToolErrors = false,
+  inputRoots = [], executionBinding, runtimeEnvironment, prepareRuntimeEnvironment, programEnvironment, programDeadlineMs, authorize, onOperation, recoverToolErrors = false,
 }) {
   requireValue(['read_only', 'bounded_write'].includes(access) && typeof authorize === 'function' && typeof onOperation === 'function', 'CODEX_BROKER_AUTHORITY', 'The broker requires explicit access, a live lease check and a durable operation sink');
   await noSymlinks(workspace); const root = await realpath(workspace);
@@ -380,7 +382,15 @@ export async function createCodexToolBroker({ workspace, access, allowedPaths = 
     inputs.set(item.name, path);
   }
   const qualifiedExecution = qualifiedExecutionBinding(executionBinding);
-  let execution = (access === 'bounded_write' ? qualifiedExecution : null) ?? nativeExecutionBinding(runtimeEnvironment);
+  requireValue(programDeadlineMs===undefined||Number.isSafeInteger(programDeadlineMs)&&programDeadlineMs>0&&programDeadlineMs<=3600000,
+    'CODEX_EXECUTION_BINDING','Declared Host program deadline must be between 1ms and 1 hour');
+  // This trusted constructor option comes from the pinned Host-tool contract;
+  // model program arguments and ordinary broker defaults cannot extend it.
+  const withProgramDeadline=binding=>binding&&programDeadlineMs!==undefined?{...binding,command_timeout_ms:programDeadlineMs}:binding;
+  if(programEnvironment!==undefined)requireValue(programEnvironment&&typeof programEnvironment==='object'&&!Array.isArray(programEnvironment)
+    &&Object.entries(programEnvironment).length<=256&&Object.entries(programEnvironment).every(([name,value])=>/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)&&typeof value==='string'&&value.length<=32768&&!value.includes('\0')),
+    'CODEX_EXECUTION_ENVIRONMENT','Host process environment must contain bounded structured string values');
+  let execution = withProgramDeadline((access === 'bounded_write' ? qualifiedExecution : null) ?? nativeExecutionBinding(runtimeEnvironment));
   if (execution?.kind === 'wsl') requireValue(inputs.has('task_root'), 'CODEX_EXECUTION_BINDING', 'Inherited WSL task execution requires a task_root input');
   const pinned = new Map();
   requireValue(resources.length <= 512, 'CODEX_RESOURCE_LIMIT', 'Too many node resources');
@@ -440,7 +450,7 @@ export async function createCodexToolBroker({ workspace, access, allowedPaths = 
     ] : []),
     ...(execution ? [{ name: 'run_task_program', description: 'Run one Host-resolved task program without a shell. Use this for CodeGraph, Git inspection and tests. cwd is a logical root; @WORKSPACE@ and, when available, @TASK_ROOT@ expand to exact paths. Inspect the exit code and output before reporting success.', inputSchema: schema({ program: { type: 'string', enum: Object.keys(execution.programs) }, args: { type: 'array', items: string, maxItems: 256 }, cwd: { type: 'string', enum: inputs.has('task_root') ? ['workspace', 'task_root'] : ['workspace'] } }) }] : []),
     ...(access === 'bounded_write' ? [{ name: 'mkdir_workspace', description: 'Create a workspace directory within this node\'s exact write scope before writing new files.', inputSchema: schema({ path: string }) }] : []),
-    ...(pinned.size ? [{ name: 'read_workflow_resource', description: 'Read a small immutable resource pinned to this node. Large results may exceed the model transport; use read_workflow_resource_chunk for complete sequential reading.', inputSchema: schema({ path: { type: 'string', enum: [...pinned.keys()] } }) },
+    ...(pinned.size ? [{ name: 'read_workflow_resource', description: 'Read an immutable pinned UTF-8 resource only when its complete content is at most 12000 bytes. Larger resources fail visibly; use materialize_workflow_resource for execution or the range/chunk tools for inspection.', inputSchema: schema({ path: { type: 'string', enum: [...pinned.keys()] } }) },
       {name:'read_workflow_resource_chunk',description:'Read a transport-safe UTF-8 byte chunk from an immutable pinned resource. Begin at start_byte 0, use max_bytes at most 12000, then follow next_byte exactly until complete is true.',inputSchema:schema({path:{type:'string',enum:[...pinned.keys()]},start_byte:{type:'integer',minimum:0},max_bytes:{type:'integer',minimum:1,maximum:12000}})},
       {name:'read_workflow_resource_range',description:'Read 1–200 numbered lines of an immutable pinned UTF-8 resource. Reports total lines; partial content is not a full-file audit.',inputSchema:schema({path:{type:'string',enum:[...pinned.keys()]},start_line:{type:'integer',minimum:1},end_line:{type:'integer',minimum:1}})}] : []),
     ...(pinned.size && access === 'bounded_write' ? [{ name: 'materialize_workflow_resource', description: 'Atomically copy an exact pinned UTF-8 Workflow resource into a permitted workspace path without sending its contents through the model. Parent directory must exist; expected_sha256 is null for a new file.', inputSchema: schema({ path: { type: 'string', enum: [...pinned.keys()] }, destination: string, expected_sha256: { type: ['string', 'null'] } }) }] : []),
@@ -460,12 +470,14 @@ export async function createCodexToolBroker({ workspace, access, allowedPaths = 
       if (execution.kind === 'native') {
         if (prepareRuntimeEnvironment) {
           const prepared = await prepareRuntimeEnvironment();
-          execution = nativeExecutionBinding(prepared.environment ?? prepared);
+          requireValue(!runtimeEnvironment?.scope_sha256||prepared.scope_sha256===runtimeEnvironment.scope_sha256,'ENVIRONMENT_BINDING_STALE','Scoped task program preparation changed its pinned node requirement scope');
+          execution = withProgramDeadline(nativeExecutionBinding(prepared.environment ?? prepared));
         } else {
           await verifyRuntimeEnvironment(runtimeEnvironment.requirements ?? {executables:runtimeEnvironment.tools.map(tool=>tool.name)},runtimeEnvironment);
         }
         await checkAuthority();
       }
+      requireValue(execution.kind!=='wsl'||!Object.keys(programEnvironment??{}).length,'CODEX_EXECUTION_ENVIRONMENT','This WSL execution binding cannot forward a native Host process environment');
       const started = Date.now(); const argvEvidence = { args_sha256: digest(JSON.stringify(args.args)), arg_count: args.args.length };
       await onOperation({ call_id: callId, tool: name, program: args.program, cwd: args.cwd, ...argvEvidence, phase: 'started' });
       if (execution.kind === 'wsl') for(const boundary of boundaries)await requireWritableTreeWithoutLinks(boundary);
@@ -477,7 +489,10 @@ export async function createCodexToolBroker({ workspace, access, allowedPaths = 
         const roots={workspace:root,task_root:inputs.get('task_root')};
         const result=execution.kind === 'wsl'
           ? await executeBoundProgram(execution,args,roots,{...options,masks,writable:boundaries,beforeSpawn:checkAuthority})
-          : await (async()=>{await checkAuthority();return executeNativeProgram(execution,args,roots,{...options,env:{...process.env,PATH:[...new Set(Object.values(execution.programs).map(dirname)),process.env.PATH ?? ''].join(delimiter)}});})();
+          : await (async()=>{await checkAuthority();const env=augmentedRuntimeEnvironment(programEnvironment??process.env,
+            {tools:Object.entries(execution.programs).map(([name,path])=>({name,path,status:'found'}))},
+            {workspace:args.cwd==='task_root'?roots.task_root:roots.workspace});
+            return executeNativeProgram(execution,args,roots,{...options,env});})();
         await onOperation({ call_id: callId, tool: name, program: args.program, cwd: args.cwd, ...argvEvidence,
           phase: 'completed', exit_code: result.exit_code, signal: result.signal, duration_ms: Date.now() - started });
         return textResult(result);
@@ -506,7 +521,13 @@ export async function createCodexToolBroker({ workspace, access, allowedPaths = 
     }
     if (name === 'read_workflow_resource') {
       const item = pinned.get(args.path); requireValue(item, 'CODEX_RESOURCE_DENIED', 'Resource is outside the pinned node manifest');
-      await onOperation({ call_id: callId, tool: name, path: args.path, phase: 'read', sha256: item.sha256 });
+      const bytes = item.bytes.length;
+      if (bytes > MAX_RESOURCE_READ_BYTES) {
+        throw Object.assign(new Error(`Resource is ${bytes} UTF-8 bytes and exceeds the ${MAX_RESOURCE_READ_BYTES}-byte whole-file read limit. Use materialize_workflow_resource for execution, or read_workflow_resource_range/read_workflow_resource_chunk for inspection.`), {
+          code: 'CODEX_RESOURCE_READ_LIMIT', auditResourceRead: { sha256: item.sha256, bytes },
+        });
+      }
+      await onOperation({ call_id: callId, tool: name, path: args.path, phase: 'read', sha256: item.sha256, bytes });
       return textResult({ path: args.path, sha256: item.sha256, text: decode(item.bytes) });
     }
     if (name === 'list_input') {
@@ -619,11 +640,16 @@ export async function createCodexToolBroker({ workspace, access, allowedPaths = 
         }
         const stoppedOutputLimit = name==='run_task_program' && error?.code==='CODEX_EXECUTION_OUTPUT'
           && (!executionHandle || executionHandle.isQuiescent());
-        if (!recoverToolErrors || error?.committed || (!RECOVERABLE_TOOL_ERRORS.has(error?.code) && !stoppedOutputLimit)) throw error;
         if(stoppedOutputLimit) error.message += '; command stopped. Output is unavailable and effects may be partial. Inspect effects and use a narrower query; do not blindly repeat the command.';
+        const resourceRead = error?.auditResourceRead;
         const diagnostic = safeDiagnostic(error);
         const path = typeof args?.path === 'string' ? args.path.slice(0, 1000) : '';
-        await onOperation({ call_id: callId, tool: name, ...(typeof args?.root === 'string' ? { root: args.root.slice(0, 1000) } : {}), path, phase: 'rejected', code: error.code, diagnostic });
+        if (resourceRead) {
+          await onOperation({ call_id: callId, tool: name, path, phase: 'rejected', code: error.code, diagnostic,
+            sha256: resourceRead.sha256, bytes: resourceRead.bytes });
+        }
+        if (!recoverToolErrors || error?.committed || (!RECOVERABLE_TOOL_ERRORS.has(error?.code) && !stoppedOutputLimit)) throw error;
+        if (!resourceRead) await onOperation({ call_id: callId, tool: name, ...(typeof args?.root === 'string' ? { root: args.root.slice(0, 1000) } : {}), path, phase: 'rejected', code: error.code, diagnostic });
         return errorResult(error.code, diagnostic);
       }
     });

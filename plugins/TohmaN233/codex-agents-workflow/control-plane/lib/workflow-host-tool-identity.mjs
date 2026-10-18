@@ -5,10 +5,18 @@ import { requireValue } from './workflow-paths.mjs';
 import { certificateForPublishedWorkflow } from './skill-import/conversion-certificate.mjs';
 import { exportWorkflowPackage, validateWorkflowPackage } from './workflow-package.mjs';
 
-// Exact identities shipped before source newline canonicalization, in LF and
-// CRLF checkout form. These are migration evidence, never execution grants.
+// Exact shipped predecessors, including LF/CRLF forms before newline
+// canonicalization. These are migration evidence, never execution grants.
 const previous = new Map([
   ['workflow-resource-program', { version: '1', hashes: [
+    // Exact 1.2 implementation before pinned Host deadlines reached its command broker.
+    '00833a81d3b9c1ada37182077befd5e9eb812bd6c6e20f83b81646e726231ebb',
+    // Exact installed 1.2 implementation before Host program admission phases.
+    '2a9a9d29b2055e0e187914c3d35d247a4ad0dfede2855f2ad809551a9e35e6c9',
+    // Exact 1.2 implementation before per-worker completion execution slots.
+    '34b73488bfa8a67587e7e7365784513c79f94f420827352d35e2a8a02b181bb1',
+    // 1.2 implementation before scoped child-environment forwarding.
+    '1387f321c01e9438426f81adda1cd77f6c7ba820f7d8ea68183bfb8a4f68934f',
     '38c9435bfec1e03827a2279ee0829a1bb6cb821b455a635ee637c00da38f97a0',
     'b185499be50c3f6a12c1fc1f2ba533bec45c7ce47a4ca1a76698790bbf6b6f81'] }],
   ['authoring-graph-assembly', { version: '1.0.0', hashes: [
@@ -40,7 +48,15 @@ export function rebindBuiltinHostToolIdentities(workflow) {
 
 export async function migrateStoredWorkflowHostToolIdentities(store) {
   const migrations = [];
-  for (const pack of await store.list()) {
+  for (const metadata of await store.listMetadata()) {
+    // No resource bytes are needed to reject unrelated/current definitions.
+    // A changed or unsupported built-in identity is a candidate and receives
+    // the same full resource validation as before, including blocked entries.
+    let candidate=false;
+    try {candidate=rebindBuiltinHostToolIdentities(metadata.workflow).changes.length>0;}
+    catch(error){if(error.code!=='HOST_TOOL_IDENTITY_MIGRATION_UNSUPPORTED')throw error;candidate=true;}
+    if(!candidate)continue;
+    const pack=await store.snapshot(metadata.workflow.id,metadata.revision_hash);
     let rebound;
     try { rebound = rebindBuiltinHostToolIdentities(pack.workflow); }
     catch (error) {

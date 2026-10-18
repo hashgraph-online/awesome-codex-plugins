@@ -26,10 +26,15 @@ Rules for targets:
 - **Small enough to keep daily.** A missed target should be recoverable the
   next day. Chronic misses mean the target is wrong, not the writer —
   renegotiate it.
-- **Track streaks, not totals.** Run `story progress . --log` at the end of
-  each session: it records the day's manuscript word count in `progress.md`
-  and reports pace, words since the last session, and a projected finish.
-  The log is motivation data, not a performance review.
+- **Track streaks, not totals.** Set the daily target as
+  `daily-target-words` in `story.md`, and the days the writer plans to write
+  as `writing-days` (such as `[mon, tue, thu, fri]`) so rest days never
+  break a streak. Run `story progress . --log` at the end of each session: it
+  records the day's manuscript word count in `progress.md` and reports
+  today's words against the target, the current and longest streak, the
+  last four weeks, pace, and a projected finish. Read the streak from that
+  report rather than counting it by hand. The log is motivation data, not a
+  performance review.
 
 ## Batch reviews
 

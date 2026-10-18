@@ -9,27 +9,31 @@ const pluginRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 test('workflow-control-plane reserves Runs for concrete execution intent', async () => {
   const skill = await readFile(join(pluginRoot, 'skills', 'control-plane', 'SKILL.md'), 'utf8');
-  const normalized = skill.replace(/\s+/g, ' ');
+  const executionReference = skill.match(/\*\*Execute[^\n]*\[execution\]\(([^)]+)\)/)?.[1];
+  assert.ok(executionReference, 'the entrypoint must route execution to its readable reference');
+  const execution = await readFile(join(pluginRoot, 'skills', 'control-plane', executionReference), 'utf8');
+  const normalized = execution.replace(/\s+/g, ' ');
   const native = await readFile(join(pluginRoot, 'skills', 'control-plane', 'references', 'native-execution.md'), 'utf8');
 
   assert.match(skill, /persistent control plane/i);
   assert.match(skill, /planning, comparing, auditing, evaluating, or designing experiments/i);
   assert.match(skill, /mentioning this plugin is not\s+permission to start a Run/i);
-  assert.match(skill, /call\s+`workflow_route` with the concrete task/i);
+  assert.match(execution, /call\s+`workflow_route` with the concrete task/i);
   assert.match(normalized, /Start the selected candidate automatically/i);
   assert.match(normalized, /differ materially in outcome, permissions or side effects/i);
   assert.match(normalized, /Do not select by keyword overlap alone\./);
-  assert.match(skill, /host already supplies an exact Ready Workflow ID\/revision or a node\s+`agent_packet`/i);
+  assert.match(execution, /host already supplies an exact Ready Workflow ID\/revision or a node\s+`agent_packet`/i);
   assert.match(normalized, /host owns launch, node claims, identities, leases, receipts, context projection, completion envelopes, retries and continuation/i);
   assert.match(normalized, /Drafts, retired Role graphs, previous revisions and conversion history are not execution context/i);
   assert.match(normalized, /Host advances deterministic and Main worker work/i);
   assert.match(normalized, /orchestration_handoff.*initiating conversation/i);
   assert.match(normalized, /workflow_orchestration_complete.*newly authored semantic/i);
-  assert.match(normalized, /launch its exact `spawn_config` plus `prompt` with `spawn_agent`/i);
+  assert.match(normalized, /spawn_calls.*arguments/i);
   assert.match(normalized, /materializes one local task bundle/i);
   assert.match(native, /must not create an App Server thread or Codex task/i);
   assert.match(native, /records valid\s+items immediately/i);
-  assert.match(skill, /converted Workflow is a self-contained replacement for its source Skill/i);
+  assert.match(execution, /converted Workflow is a self-contained replacement for its source Skill/i);
+  assert.doesNotMatch(execution, /workflow-semantic-blueprint|workflow_create_authoring_run/);
   assert.doesNotMatch(skill,/source\/SKILL\.md/);
   assert.ok(skill.length<6000,'the always-available routing Skill must stay compact');
 });

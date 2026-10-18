@@ -1,0 +1,6 @@
+{
+  "mcpServers": {
+    "moltnode": { "type": "http", "url": "https://moltnode.ag/mcp" },
+    "chord": { "type": "http", "url": "https://api.getchord.xyz/v1/mcp" }
+  }
+}

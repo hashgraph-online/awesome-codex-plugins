@@ -1,0 +1,126 @@
+{
+  "_comment": "Amazon Ads API v1 CreateReport \u2014 Sponsored Brands Keyword equivalent of the v3 SB Keyword report. Of 46 v3 columns, 41 map cleanly to v1 fields and 4 are derived client-side; 1 ('Top-of-search Impression Share') requires a SECOND report because it is incompatible with adGroup.* dimensions (validator-confirmed). NOTE: filter on adProduct.value = SPONSORED_BRANDS, not SPONSORED_PRODUCTS. Replace placeholders before submitting.",
+  "report_1_main_keyword": {
+    "accessRequestedAccounts": [
+      {
+        "advertiserAccountId": "amzn1.ads-account.g.REPLACE_ME"
+      }
+    ],
+    "reports": [
+      {
+        "format": "GZIP_JSON",
+        "query": {
+          "fields": [
+            "date.value",
+            "portfolio.portfolioId",
+            "portfolio.name",
+            "campaign.id",
+            "campaign.name",
+            "campaign.currencyCode",
+            "campaign.costType",
+            "adGroup.id",
+            "adGroup.name",
+            "target.value",
+            "target.matchType",
+            "budgetCurrency.value",
+            "metric.impressions",
+            "metric.viewableImpressions",
+            "metric.clicks",
+            "metric.ctr",
+            "metric.vctr",
+            "metric.cpc",
+            "metric.vcpm",
+            "metric.totalCost",
+            "metric.firstQuartileVideoAd",
+            "metric.midpointVideoAd",
+            "metric.thirdQuartileVideoAd",
+            "metric.completeViewsVideoAd",
+            "metric.unmutesVideoAd",
+            "metric.5secondViewsVideoAd",
+            "metric.5secondViewRateVideoAd",
+            "metric.completionRateVideoAd",
+            "metric.sales",
+            "metric.purchases",
+            "metric.unitsSold",
+            "metric.purchaseRateOverClicks",
+            "metric.purchaseRate",
+            "metric.roas",
+            "metric.brandedSearches",
+            "metric.detailPageViews",
+            "metric.newToBrandPurchases",
+            "metric.newToBrandSales",
+            "metric.newToBrandUnitsSold",
+            "metric.percentOfPurchasesNewToBrand",
+            "metric.percentOfSalesNewToBrand",
+            "metric.newToBrandPurchaseRate",
+            "metric.salesFromClicks",
+            "metric.purchasesFromClicks",
+            "metric.unitsSoldFromClicks",
+            "metric.roasFromClicks",
+            "metric.detailPageViewsFromClicksHalo"
+          ],
+          "filter": {
+            "on": {
+              "comparisonOperator": "EQUALS",
+              "field": "adProduct.value",
+              "not": false,
+              "values": [
+                "SPONSORED_BRANDS"
+              ]
+            }
+          }
+        },
+        "periods": [
+          {
+            "datePeriod": {
+              "startDate": "START_DATE",
+              "endDate": "END_DATE"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "report_2_top_of_search_impression_share": {
+    "accessRequestedAccounts": [
+      {
+        "advertiserAccountId": "amzn1.ads-account.g.REPLACE_ME"
+      }
+    ],
+    "reports": [
+      {
+        "format": "GZIP_JSON",
+        "query": {
+          "fields": [
+            "date.value",
+            "campaign.id",
+            "campaign.name",
+            "advertiserAccount.id",
+            "adProduct.value",
+            "budgetCurrency.value",
+            "metric.impressions",
+            "metric.topOfSearchImpressionShare"
+          ],
+          "filter": {
+            "on": {
+              "comparisonOperator": "EQUALS",
+              "field": "adProduct.value",
+              "not": false,
+              "values": [
+                "SPONSORED_BRANDS"
+              ]
+            }
+          }
+        },
+        "periods": [
+          {
+            "datePeriod": {
+              "startDate": "START_DATE",
+              "endDate": "END_DATE"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

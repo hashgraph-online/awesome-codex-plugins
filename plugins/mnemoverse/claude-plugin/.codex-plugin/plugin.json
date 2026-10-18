@@ -30,7 +30,7 @@
       "Write"
     ],
     "websiteURL": "https://mnemoverse.com",
-    "privacyPolicyURL": "https://mnemoverse.com/privacy",
+    "privacyPolicyURL": "https://mnemoverse.com/docs/legal/privacy-policy",
     "termsOfServiceURL": "https://mnemoverse.com/terms",
     "defaultPrompt": [
       "Recall what we decided about this module in past sessions.",

@@ -1,0 +1,4 @@
+interface:
+  display_name: "BabelDOC PDF 翻译"
+  short_description: "保留 PDF 版式、图片与公式，支持双语输出、自定义术语及专业领域术语核对"
+  default_prompt: "使用 $babeldoc-pdf-translate 翻译这份 PDF，保留版式，并按我的要求配置双语输出和专业术语。"

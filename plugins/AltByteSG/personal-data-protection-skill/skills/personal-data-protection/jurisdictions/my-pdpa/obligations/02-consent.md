@@ -1,6 +1,6 @@
 # Consent — General Principle (s6), Withdrawal (s38), Sensitive PD (s40), Direct Marketing (s43)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Consent is the default lawful basis under the General Principle. The carve-outs in s6(2) cover most transactional processing; sensitive personal data needs **explicit consent** under s40; direct marketing has a per-channel opt-out right under s43.
 

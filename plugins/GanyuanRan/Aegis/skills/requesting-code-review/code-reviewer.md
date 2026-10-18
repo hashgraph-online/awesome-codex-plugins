@@ -119,6 +119,10 @@ browser/device/state evidence as a gap; keep tiny UI changes bounded.
 - All tests passing?
 
 **Requirements:**
+- Correct user object, actions, conditions, and complete usable delivery?
+- Does evidence exercise those outcomes, or only an intermediate step?
+- Current authorized scope preserved despite stale plans or broader project goals?
+- Unmet requirements reported honestly; repair generalizes beyond one example?
 - All plan requirements met?
 - Implementation matches spec?
 - No scope creep?

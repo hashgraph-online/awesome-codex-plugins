@@ -4,7 +4,7 @@ description: Make a portrait speak, react or perform supplied audio with Magic H
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Magic Hour talking video
@@ -19,14 +19,19 @@ Use the supplied portrait, speech and language without asking for them again. Ch
 | -------------------------------------------------- | ------------------------------------------------------------------------------ |
 | Portrait plus speech                               | `ai_talking_photo_create_talking_photo`                                        |
 | Existing speaker video plus replacement speech     | `lip_sync_create_video`                                                        |
-| Script with no recording                           | `ai_voice_generator_create_audio`, review audio, then the relevant video route |
+| Script with no recording                           | Voice Generator with a supported preset, review audio, then video              |
+| New script in a supplied or saved voice             | Voice Cloner with the authorized sample, review audio, then video               |
 | Voiceover on unrelated footage, no visible speaker | Compose narration over footage; do not add lip-sync generation                 |
+
+For a named saved presenter or voice, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with `type: character` or `type: voice`. Match the name, paginate with `next_cursor` as needed and disambiguate multiple matches. Inspect the portrait `IMAGE` or recording `AUDIO` asset and reuse its durable `file_path` in a compatible field. A saved voice item is not a `voice_name` preset or permission to invent a cloning parameter. Reuse its recording directly only when it contains the requested speech. For new text, use the supported Voice Cloner route below.
 
 Use authorized portrait, video and voice material. A preset's availability does not establish a speaker's endorsement. Prefer supplied speech when its performance is already accepted. For a portrait, favor a visible, unobstructed mouth and an angle suitable for the requested result; a stylized face or extreme profile needs its own quality check.
 
 ## Lock speech and timing
 
-Preserve the exact script, language, names and claims. Obtain a supported `voice_name` from the live schema; do not invent a voice ID or pass voice-direction controls the endpoint lacks. Keep stage directions out of the spoken text unless the user wants them read aloud. Use punctuation for phrasing; if the take is too long, revise only with authorization rather than truncating it.
+Preserve the exact script, language, names and claims. For preset speech, obtain a supported `voice_name` from the live schema; do not invent a voice ID or pass voice-direction controls the endpoint lacks. Keep stage directions out of the spoken text unless the user wants them read aloud. Use punctuation for phrasing; if the take is too long, revise only with authorization rather than truncating it.
+
+For new speech from an authorized sample, read the live `POST /v1/ai-voice-cloner` schema and supply `assets.audio_file_path` plus the exact script in `style.prompt`. Keep cloning and animation inside the existing total budget. If Voice Generator or Voice Cloner is absent from this client's MCP, use the project's existing authenticated API integration; do not invent a tool or extract credentials from an inaccessible connector. Without authorized API access, explain that specific setup dependency rather than substituting a different voice.
 
 Listen to the completed audio for pronunciation, pacing, silence and the final word. Measure its actual duration. If a script exceeds current limits, divide at sentence boundaries and keep the same voice across segments; do not divide inside a word or assume independently generated segments join naturally.
 
@@ -38,7 +43,7 @@ For lip sync, provide `assets.audio_file_path`, `assets.video_source` and its co
 
 ## Create, caption and inspect
 
-Use the creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). API routes are `/v1/ai-voice-generator`, `/v1/ai-talking-photo`, `/v1/lip-sync` and optionally `/v1/auto-subtitle-generator`; read the [live schema](https://docs.magichour.ai/api-reference/openapi.json). Budget speech, video and requested captions together before starting; do not add music, cloning or extra takes merely because available.
+Use the creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). API routes are `/v1/ai-voice-generator`, `/v1/ai-voice-cloner`, `/v1/ai-talking-photo`, `/v1/lip-sync` and optionally `/v1/auto-subtitle-generator`; read the [live schema](https://docs.magichour.ai/api-reference/openapi.json). Budget speech, video and requested captions together before starting; do not add music, cloning or extra takes merely because available.
 
 Upload local media with `video_assets_generate_presigned_url`, PUT raw bytes to its `upload_url` without the API bearer token, and use `file_path`. Submit each job once, retain its ID, then use `wait_for_audio_project` or `wait_for_video_project`. Resume retrieval after a timeout; never blindly retry a creation POST. Preserve exact download URLs and keep durable files.
 

@@ -16,4 +16,4 @@ Every significant character must connect to the story's central value question. 
 
 ## Merge-Characters Discipline
 
-When two characters serve one function — same role in the plot, same relationship to the protagonist, same thematic position — merge them into one. A smaller cast of stronger characters beats a large cast of thin ones. Before merging, check: do both characters have distinct goals? If not, they are already the same character wearing two names. Move the useful traits to the survivor, update all cross-references, then run `story reindex .`, `story links .`, and `story validate .`.
+When two characters serve one function — same role in the plot, same relationship to the protagonist, same thematic position — merge them into one. A smaller cast of stronger characters beats a large cast of thin ones. Before merging, check: do both characters have distinct goals? If not, they are already the same character wearing two names. Move the useful traits to the survivor, update all cross-references, then run `story reindex .`, `story wordcount . --write`, and `story check .`.

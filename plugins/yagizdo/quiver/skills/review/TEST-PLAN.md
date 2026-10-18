@@ -21,6 +21,7 @@
 11. Skill reads the `## Global Constraints` section of the plan named by `--plan` (Step 1.8), passes the block to every dispatched agent as context item 10, and names the source plan in the report's `Global Constraints` field. With no `--plan`, or no block in the named plan, the run is silent about it and the field reads `N/A`.
 12. Every non-filtered finding carries a `Disposition:` line (Before merge | Follow-up | Defer) in both modes, and `## Recommended Fix Order` lists every Before-merge and Follow-up finding at any severity -- the section is never omitted, and deferred findings are named in its `**Deferred:**` line instead.
 13. Deep mode dispatches `fix-reviewer` at Step 3.9, after senior-reviewer, when at least one finding carries a fix proposal. Its actions change only the fix block inside a finding; no finding is removed, re-severed, or re-dispositioned at that step.
+14. In both modes, Step 3.3 checks every synthesized finding against the code with one `finding-verifier` per finding (at most 10), each in its own worktree. A confirmed finding gains a `Verification: confirmed --` line, an unsettled one `Verification: unverified --`, and a refuted one moves to `## Filtered Findings` as `refuted-by-verification`. With zero findings the step prints nothing.
 
 **Verification checklist:**
 - [ ] Slash menu shows `/quiver:review`.
@@ -49,6 +50,12 @@
 - [ ] A rejected fix leaves its finding in place with `No verified fix -- {reason}` where the snippet was, at the original severity and disposition.
 - [ ] A flagged fix whose flag carries no replacement keeps the original snippet with a `Fix flagged:` note under it, and no replacement code appears that the fix check did not return.
 - [ ] Fast mode skips Step 3.9 along with Steps 3.5 and 3.75.
+- [ ] A fast review on a branch with one real defect prints `Checking each finding against the code...`, spawns one `finding-verifier` per finding in one response, and the saved report shows `Verification: confirmed -- <evidence>` under that finding's `Disposition:` line; the closing count line omits zero parts.
+- [ ] A finding the code refutes is absent from `## Findings` and appears in `## Filtered Findings` as `- [<id>] refuted-by-verification -- <file:line> -- <title> -- <evidence>`, with a quoted command output or file line as the evidence; the overview counts, fix order table, and verdict no longer count it.
+- [ ] A review of a PR link (Mode 1) passes `execution: off` and `reviewed_sha: none` to every check, and no check runs a test, a script, or a checkout.
+- [ ] A branch review (Mode 2) without `--run-checks` passes `execution: off` to every check, and no check runs a test or a script; the same review with `--run-checks` passes `execution: allowed`. A review of uncommitted changes (Mode 3) passes `execution: allowed` without the flag.
+- [ ] With `agents/review/finding-verifier.md` removed from the plugin, the review prints one plain line saying the findings could not be checked, every finding carries `Verification: unverified -- <reason>`, and the run completes.
+- [ ] After the run, `git branch --list 'worktree-agent-*'` and `git worktree list` show nothing the checks left behind, and `git status` matches what it showed before the review.
 
 **Known gotchas:**
 - Step 1.8 reads constraints from `--plan` alone. It used to take the newest plan in `.claude/plans/`, and on 2026-10-03 that bound a branch to the plan of another open branch, whose rule against editing `/plan` and `/brainstorm` would have reported that branch's two correct edits as violations. A plan file carries no branch, so no rule over the directory can tell the two apart; `/work` and `/ship` print the review command with `--plan` instead.

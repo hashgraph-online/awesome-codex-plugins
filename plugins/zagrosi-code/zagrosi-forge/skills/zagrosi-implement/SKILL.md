@@ -5,6 +5,11 @@ description: Build admitted Forge sections with minimal code, targeted TDD/revie
 
 # Zagrosi Implement
 
+For a Git target, check `team status --target-dir "{target_dir}"` with Forge’s
+helper before work or resume.
+Follow [team coordination](../zagrosi-forge/references/collaboration.md) when configured or unavailable;
+reuse the same task across phases and delegated agents.
+
 Use the least process that preserves correctness. Apply the all-depth
 [engineering standard](references/engineering.md): fix encountered bad code, update
 ownership, and verify behavior before/after refactors; prefer readability over
@@ -39,6 +44,11 @@ Follow returned readiness and command argument arrays; fill evidence placeholder
 only with actual results. After recording, use the returned `entry` for the next
 section. `recorded: true` means the record is saved even if that entry needs repair.
 Parallelize only disjoint files and serialize records.
+
+When the user supplies cumulative verification time, or a resumed plan reports
+a saved allowance, follow [verification allowance](references/verification.md).
+Do not infer a cap from depth or elapsed effort; extend only with explicit user
+authorization. Keep fresh evidence reusable and unfinished checks visible.
 
 1. Read index once, current section, original source excerpts, linked contracts,
    and relevant callers. Resolve assumptions that contradict the source first.
@@ -86,6 +96,12 @@ integration receipt from the last section; otherwise capture the full
 `test_command` once with `implement-verify` **without** `--section`. Run one final
 postflight without `--run-tests`. The receipt must match final code and contracts;
 later edits require refreshed verification.
+
+Ordinary verification preserves superseded receipt bytes under
+`implementation/verification/history/<receipt-stem>/<sha256>.json`, including
+bounded output tails. Identical bytes are stored once per scope; archives cannot
+establish run counts or cumulative execution time. Only current receipts determine
+completion. Archives are never pruned automatically.
 
 For externally run checks or inspection-only changes, explicitly label the source
 and outcome (`attestation` or `inspection`, `passed`) with actual evidence;

@@ -1,9 +1,11 @@
 # Validate mechanics
 
 Loaded by `SKILL.md` at the manifest step (helper commands), at cross-family
-dispatch (adapters), and at scope disclosure (the homes table). `$SKILL_DIR`
-is the directory containing `SKILL.md`: `skills/validate/` in a repository
-checkout, `.agents/skills/validate/` in an installed runtime.
+dispatch (adapters), and when writing the report (proportion and the homes
+table). Judgment never depends on this file: without it, use the Git subject
+fallback in `SKILL.md` and return the result inline. `$SKILL_DIR` is the
+directory containing `SKILL.md`: `skills/validate/` in a repository checkout,
+`.agents/skills/validate/` in an installed runtime.
 
 ## Helper commands
 
@@ -165,6 +167,21 @@ fixed ten-minute cap. A judge reads and judges; it never mutates the subject. Re
 actual author/judge model and context identities in protected evidence refs
 and freshness attestation notes; the `verdict.v2` schema is unchanged.
 Transport, output, exit and process completion are facts, not semantic PASS.
+
+## Report proportion
+
+Keep the report proportional: cite the exact subject, complete bound manifest
+and existing receipts instead of copying path or digest inventories. Group
+generated companions by source owner and verified equivalence; still verify
+every changed path and cited binding. Include excerpts only to assess a finding.
+Retain every criterion, necessary finding, identity, freshness fact and
+unchecked surface. Complete coverage does not require a second copy of the
+evidence.
+
+When delivery is outside the accepted review scope, the caller checks its
+native facts without another semantic review of unchanged content. Use the
+existing result for any pending delivery update, without repeating the
+investigation or creating another report.
 
 ## Where each scope limit lives inside a PASS
 

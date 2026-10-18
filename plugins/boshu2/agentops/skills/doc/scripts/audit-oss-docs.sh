@@ -23,7 +23,6 @@ fi
 
 # Project detection
 PROJECT_NAME=$(basename "$(pwd)")
-GIT_ORIGIN=$(git remote get-url origin 2>/dev/null || echo "")
 
 # Detect project type
 # Order matters: more specific types checked first

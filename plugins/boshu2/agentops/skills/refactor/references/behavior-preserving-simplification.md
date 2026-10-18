@@ -4,7 +4,7 @@ Use this reference when `/refactor` is asked to simplify code, remove AI-writing
 
 ## Contract
 
-The external behavior must remain the same. If you discover a bug, file or switch to a bug-fix task instead of hiding the behavior change inside the refactor.
+The external behavior must remain the same. The refactor `SKILL.md` owns what counts as behavior, the procedure and the report shape. A bug found on the way is reported separately for the caller, not fixed inside the refactor.
 
 ## Good Targets
 
@@ -14,16 +14,15 @@ The external behavior must remain the same. If you discover a bug, file or switc
 - Deep nesting that can become guard clauses.
 - Duplicated logic that has the same inputs and outputs.
 - Comments that narrate obvious code instead of explaining constraints.
-- AI-style verbose prose in docs or messages that can be made precise.
+- AI-style verbose prose in docs or comments that can be made precise. User-visible messages are behavior, not prose to tidy.
 
-## Required Loop
+## Loop and report
 
-1. Establish a green baseline.
-2. Identify the exact behavior contract and tests that protect it.
-3. Make one simplification.
-4. Run focused tests immediately.
-5. Keep the change only if behavior is unchanged and readability improves.
-6. Record the simplification in the refactor summary.
+Follow the refactor procedure: honest baseline, one simplification, the same
+focused checks before and after, then the report. A red result goes back to the
+caller as evidence; the refactor does not revert or retry on its own. Add one
+line to the report: whether a new abstraction was introduced and the second use
+or contract that justifies it.
 
 ## Red Flags
 
@@ -32,25 +31,13 @@ The external behavior must remain the same. If you discover a bug, file or switc
 - The new abstraction has no second use or clear contract.
 - The simplification deletes context that future maintainers need.
 
-## Summary Addendum
-
-```markdown
-## Simplification Checks
-
-| Check | Result |
-|---|---|
-| Behavior unchanged | PASS/FAIL |
-| Focused tests passed | PASS/FAIL |
-| New abstraction justified | yes/no |
-```
-
 ---
 
 **Source:** Adapted from an external skill corpus / `simplify-and-refactor-code-isomorphically` and `de-slopify`. Pattern-only, no verbatim text.
 
 ## Refactoring Catalog
 
-Use these patterns only after the kernel has established a green baseline, an observable behavior contract, and an atomic transformation plan.
+Use these patterns only after the procedure has recorded a baseline, named the observable behavior, and chosen one transformation.
 
 ### Extract Method
 
@@ -129,7 +116,7 @@ Safety checks:
 
 ### Remove Dead Code
 
-Use static analysis plus repository-wide search. For CLI commands, flags, or cross-language surfaces, run:
+Use static analysis plus repository-wide search. For CLI commands, flags, or cross-language surfaces in the AgentOps repository, run the following; elsewhere, search every tracked file with the repository's own tools:
 
 ```bash
 scripts/check-removed-symbol-refs.sh -- <removed-command-or-flag>

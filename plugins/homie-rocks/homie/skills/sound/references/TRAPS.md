@@ -42,6 +42,10 @@ Each of these produced silence, the wrong level or a click while every command e
 
 ## Pitch and phase
 
+- **In `synth.mjs` a number is hertz, always.** `freq: 110` is 110 Hz and `slide.to: 45` is 45 Hz.
+  A note is a name (`freq: "A2"`) or a MIDI number said out loud (`midi: 45`, `slide.toMidi: 45`,
+  or `hzOfMidi(45)`). There is no guessing by size: a number of 127 or less used to be read as a
+  MIDI note, and every bass note is a frequency under 127 Hz, so a 110 Hz bass came out at 4.7 kHz.
 - **A pitch bend is a change of frequency, integrated into phase.** `sin(2*PI*f(t)*t)` with a
   changing `f` sweeps at twice the intended rate and runs backwards on the way down; the phase must be
   the integral of the frequency (what `synth.mjs` does every sample). A scoop from below in closed
@@ -58,6 +62,10 @@ Each of these produced silence, the wrong level or a click while every command e
   whole multiple of 1/loop-length** (0.125 Hz for an 8 s loop) and no channel starts at a phase
   offset. Notes whose envelope closes before the loop point are exempt. Or render the section three
   times and keep the middle (what `sound.mjs score` does).
+- **Limit a loop before cutting it, not after.** A limiter run over the cut loop starts at full gain
+  and ends wherever the last bar left it: a step of gain at the wrap. `score` limits across the
+  three copies. A note, an echo or a reverb longer than the whole section still cannot repeat: the
+  seam goes over 1 and the report warns; make the section longer or the tail shorter.
 - **A 1-3 ms delay between channels widens a transient but cancels a held tone** in mono (a phone
   speaker folds to mono): correlation fell to -0.2 and the note lost 4 dB. Widen held sounds by
   detuning or by panning different notes, never by a channel offset; offset only the attacks.
@@ -69,7 +77,11 @@ Each of these produced silence, the wrong level or a click while every command e
 - A struck sound (a pluck, a bell, a mallet) sits about 9 dB RMS under a held one at the same peak.
   Lengthen its decay rather than raising its fader, then compare stems with their gains applied.
 - A generated room tone or ambience can carry a steady hum (a narrow line in the spectrum): `analyze`
-  lists narrow tones; notch them or regenerate.
+  lists narrow tones; notch them or regenerate. Each one comes with `prominenceDb` (over its
+  neighbours, which a filter does not change: the neighbours fall with it), `levelDb` (how loud it
+  is, dBFS), `energyShare` and `presentShare` (the share of the file it is there). Only a tone that
+  is prominent, above -60 dBFS and there 60% of the time or more is called steady; a melody's brief
+  high partial is listed and not warned about. Read its level and share to judge it.
 - Check every render at its head and tail as well as its peak: silence at the start of an effect is
   latency; a tail cut mid-ring is a click.
 

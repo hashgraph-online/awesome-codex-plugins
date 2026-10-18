@@ -133,7 +133,7 @@ Run these against the resolved `fileKey`:
 2. `get_node` for each target node ID -- full detail. Recurse into children that carry their own visual treatment (text, fills, strokes, effects, distinct auto-layout). Do not recurse into pure spacer nodes.
 3. `get_variable_defs` -- every local variable collection, its modes, and its resolved values. These are the design tokens.
 4. `get_styles` -- local paint/text/effect styles, for nodes that reference a style instead of a variable.
-5. `save_screenshots` for the target nodes into `.claude/plans/assets/<slug>/`, PNG at `scale: 2`, `clip: true`. `<slug>` is a kebab-case name derived from the top-level node name. These files are the plan's visual reference for the node specs below them.
+5. `save_screenshots` for the target nodes into `.claude/plans/assets/<slug>/`, PNG at `scale: 2`, `clip: true`. `<slug>` is a kebab-case name derived from the top-level node name. These files are the plan's visual reference for the node specs below them. Before the first write, apply the keep-local rule in `skills/local-files/SKILL.md` for `.claude/plans/`.
 
    Then export every icon and image leaf node reached in item 2. The bridge infers the
    format from the `outputPath` extension, and passing a conflicting explicit `format`

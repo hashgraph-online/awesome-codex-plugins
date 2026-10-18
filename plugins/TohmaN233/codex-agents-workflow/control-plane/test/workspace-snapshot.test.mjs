@@ -5,6 +5,18 @@ import {join,resolve} from 'node:path';
 import {tmpdir} from './physical-tempdir.mjs';
 import {snapshotWorkspace,changedWorkspacePaths} from '../lib/execution/workspace-snapshot.mjs';
 
+test('scoped metadata observation excludes unrelated large contents while preserving change detection',async t=>{
+ const f=await fixture(t),outside=join(f.root,'large-unrelated');await fs.writeFile(outside,'first');
+ const fileSystem={...fs,lstat:async(path,...args)=>{const info=await fs.lstat(path,...args);if(path===outside)info.size=typeof info.size==='bigint'?2147483649n:2147483649;return info;},
+  readFile:async(path,...args)=>{assert.notEqual(path,outside);return fs.readFile(path,...args);}};
+ const before=await snapshotWorkspace(f.root,{hashPaths:['allowed/result.txt'],fileSystem});
+ assert(before.get('large-unrelated').startsWith('metadata:'));
+ await fs.writeFile(outside,'second value');
+ const after=await snapshotWorkspace(f.root,{hashPaths:['allowed/result.txt'],fileSystem});
+ assert.deepEqual(changedWorkspacePaths(before,after),['large-unrelated']);
+ assert.equal(before.get('allowed/result.txt'),after.get('allowed/result.txt'));
+});
+
 async function fixture(t,kind='directory') {
   const root=await fs.mkdtemp(join(tmpdir(),'scope-private-'));
   t.after(()=>fs.rm(root,{recursive:true,force:true}));

@@ -93,7 +93,7 @@ delivery, are caller decisions this checklist does not make.
 ## Integration
 
 ### With /security (suite primitives)
-The redteam primitive (`collect-redteam`) covers items 1-4 automatically. This checklist covers the remaining items that require code-level review.
+The offline redteam scan (`prompt_redteam.py scan`) checks repo-owned prompt and control surfaces against the attack pack. It does not review application code, so every item in this checklist still needs a code-level result: finding, clean, or not assessed.
 
 ### With CI
 ```bash

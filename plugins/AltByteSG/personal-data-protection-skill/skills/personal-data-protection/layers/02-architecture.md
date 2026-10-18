@@ -1,8 +1,21 @@
 # Layer 02 — Architecture & Infrastructure
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Cross-cutting technical decisions that protect personal data at the system level. Universal across PDP-family jurisdictions; the principles apply regardless of cloud, database, or framework.
+
+## Contents
+
+- Data residency
+- Cross-border processing (sub-processors)
+- Encryption
+- Access isolation (per-user data scoping)
+- Privileged-function discipline
+- Service / role separation
+- Secret management
+- Logging hygiene at the architecture level
+- Defence in depth
+- Backwards compatibility (when changing personal-data handling)
 
 ## Data residency
 

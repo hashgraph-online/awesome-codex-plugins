@@ -44,6 +44,32 @@ test('dependency discovery searches host installations and supplied directories 
  } finally {await rm(root,{recursive:true,force:true});}
 });
 
+test('Chrome discovery finds standard per-machine and per-user installs without PATH',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'workflow-chrome-environment-'));
+ try {
+  const suffix=process.platform==='win32'?'.exe':'';
+  const installRoots=[
+   ['ProgramFiles',join(root,'program-files')],
+   ['ProgramFiles(x86)',join(root,'program-files-x86')],
+   ['LOCALAPPDATA',join(root,'local-app-data')],
+  ];
+  for(const [variable,base] of installRoots){
+   const chrome=join(base,'Google','Chrome','Application','chrome'+suffix);
+   await mkdir(join(base,'Google','Chrome','Application'),{recursive:true});
+   await writeFile(chrome,'fixture');
+   if(process.platform!=='win32')await chmod(chrome,0o755);
+   const home=join(root,'home');
+   const result=await discoverRuntimeEnvironment({executables:['chrome']},{env:{USERPROFILE:home,HOME:home,PATH:'',[variable]:base}});
+   assert.equal(result.status,'ready',variable);
+   assert.equal(result.tools[0].path,await realpath(chrome),variable);
+  }
+  const home=join(root,'missing-home');
+  const missing=await discoverRuntimeEnvironment({executables:['chrome']},{env:{USERPROFILE:home,HOME:home,PATH:''}});
+  assert.equal(missing.status,'installation_approval_required');
+  assert.deepEqual(missing.missing,['chrome']);
+ } finally {await rm(root,{recursive:true,force:true});}
+});
+
 test('dependency discovery rejects command strings and relative search directories',async()=>{
  await assert.rejects(discoverRuntimeEnvironment({executables:['python --version']}),{code:'ENVIRONMENT_DEPENDENCY_NAME'});
  await assert.rejects(discoverRuntimeEnvironment({executables:[]},{extraDirectories:['relative']}),{code:'ENVIRONMENT_DIRECTORIES'});

@@ -11,6 +11,24 @@ export { validateSkillReference } from './workflow-reference-schema.mjs';
 
 const sha = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
 
+function exactResourceCollection(pack, resources) {
+  const prototype=resources&&typeof resources==='object'&&!Array.isArray(resources)?Object.getPrototypeOf(resources):undefined;
+  requireValue(prototype===Object.prototype||prototype===null,'RUN_RESOURCE_SET','Pinned resources must be a plain exact path-to-bytes map');
+  const keys=Reflect.ownKeys(resources),paths=keys.filter(key=>typeof key==='string');
+  requireValue(paths.length===keys.length&&paths.length===pack.resources.length
+    &&paths.every(path=>pack.resources.some(resource=>resource.path===path)),
+    'RUN_RESOURCE_SET','Pinned resource paths must exactly match the immutable resource manifest');
+  const result=Object.create(null);
+  for(const resource of pack.resources){
+    const descriptor=Object.getOwnPropertyDescriptor(resources,resource.path),bytes=descriptor?.value;
+    requireValue(descriptor&&Object.hasOwn(descriptor,'value')&&descriptor.enumerable
+      &&bytes instanceof Uint8Array&&bytes.length===resource.bytes&&digest(bytes)===resource.sha256,
+      'RESOURCE_CORRUPT',`Pinned resource bytes differ from the immutable manifest: ${resource.path}`);
+    result[resource.path]=bytes;
+  }
+  return result;
+}
+
 // Resolve the entire immutable closure before publishing a Run. Linked sources
 // are consulted only here; resumed execution must consume these content pins.
 export async function resolveWorkflowPins(store, root, { rootResources } = {}) {
@@ -18,6 +36,16 @@ export async function resolveWorkflowPins(store, root, { rootResources } = {}) {
   const children = Object.create(null); const skills = new Map(); const blobs = new Map(); const packs = [root];
   const workflowContext = Object.create(null); const dependencyObservations = [];
   const sourceChecks = [];
+  const resolvedResources=new Map();
+  if(rootResources!==undefined)resolvedResources.set(root,exactResourceCollection(root,rootResources));
+  async function resourcesFor(pack){
+    if(resolvedResources.has(pack))return resolvedResources.get(pack);
+    const loaded=await store.snapshotWithResources(pack.workflow.id,pack.revision_hash);
+    requireValue(loaded.snapshot.revision_hash===pack.revision_hash,'REVISION_CORRUPT','Workflow revision changed while collecting its pinned resources');
+    const resources=exactResourceCollection(pack,loaded.resources);
+    resolvedResources.set(pack,resources);
+    return resources;
+  }
   let total = 0;
   function addBlob(hash, bytes) {
     if (blobs.has(hash)) return;
@@ -44,7 +72,7 @@ export async function resolveWorkflowPins(store, root, { rootResources } = {}) {
   }
   async function visit(pack, ancestry) {
     requireValue(ancestry.length <= 32 && packs.length <= 128, 'SUBWORKFLOW_DEPTH', 'Workflow closure exceeds nesting or pack count limits');
-    const resources = pack === root && rootResources !== undefined ? rootResources : await store.resources(pack.workflow.id, pack.revision_hash);
+    const resources=await resourcesFor(pack);
     for (const resource of pack.resources) addBlob(resource.sha256, resources[resource.path]);
     for (const path of pack.workflow.skill_policy.ambient_allow) await pinSkill(path);
     for (const node of pack.workflow.nodes) {
@@ -58,7 +86,10 @@ export async function resolveWorkflowPins(store, root, { rootResources } = {}) {
       requireValue(!ancestry.includes(reference.workflow_id), 'SUBWORKFLOW_CYCLE', 'Workflow closure contains recursive references');
       const id = reference.workflow_id + '@' + reference.revision_pin;
       if (Object.hasOwn(children, id)) continue;
-      const child = await store.snapshot(reference.workflow_id, reference.revision_pin);
+      const loaded=await store.snapshotWithResources(reference.workflow_id,reference.revision_pin);
+      const child=loaded.snapshot;
+      requireValue(child.revision_hash===reference.revision_pin,'REVISION_CORRUPT','SubWorkflow revision changed while collecting its pinned resources');
+      resolvedResources.set(child,exactResourceCollection(child,loaded.resources));
       children[id] = child; workflowContext[id] = child.workflow; packs.push(child);
       await visit(child, [...ancestry, reference.workflow_id]);
     }

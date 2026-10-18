@@ -1,0 +1,24 @@
+{
+  "mcpServers": {
+    "self_starter": {
+      "command": "node",
+      "args": [
+        "./bin/start.mjs",
+        "mcp"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "SELF_STARTER_HOME",
+        "SELF_STARTER_RUNTIME",
+        "CODEX_HOME",
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "NO_PROXY",
+        "https_proxy",
+        "http_proxy",
+        "no_proxy"
+      ],
+      "startup_timeout_sec": 300
+    }
+  }
+}

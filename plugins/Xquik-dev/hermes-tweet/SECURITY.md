@@ -16,7 +16,7 @@ disclosure timeline after confirming the issue.
 
 ## Scope
 
-Security-sensitive areas include:
+These areas are security-sensitive.
 
 - API key handling
 - Action endpoint gating

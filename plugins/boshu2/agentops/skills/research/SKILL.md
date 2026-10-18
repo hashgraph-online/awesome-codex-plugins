@@ -1,6 +1,6 @@
 ---
 name: research
-description: 'Trace code or test a recurring pattern to answer one cited question. Use when: uncertainty needs evidence. Not for external feature teardowns; use reverse-engineer.'
+description: 'Answer one cited question: how code works, or whether a repeated pattern deserves a rule. Use when: asked how, why, or whether to enforce a pattern.'
 practices:
 - pragmatic-programmer
 - ddd-bounded-context
@@ -14,7 +14,6 @@ produces:
 context_rel: []
 skill_api_version: 1
 user-invocable: true
-allowed-tools: Read, Grep, Glob, Bash, Write
 metadata:
   capabilities: [research, codebase_recon, pattern_mining]
   effects: [write_research_report, write_recon_pack, write_pattern_evidence]
@@ -40,15 +39,34 @@ these are optional modes, not a sequence. A quick answer needs no report file.
 is part of shaping a change; return this cited answer to that existing intent
 without restarting its interview or taking over caller choices.
 
+## Evidence rules
+
+- **One lineage counts once.** Copies, ports and repeated quotations of one
+  upstream source are a single exemplar, however many files or reports carry
+  them. Check provenance before counting instances as independent.
+- **Separate the invariant from the incidental.** Align instances by their role
+  in the behavior; name what must hold, what legitimately varies and what is
+  incidental syntax. An instance missing the invariant is not an instance.
+- **Recurrence does not earn a gate.** A blocking check needs a demonstrated
+  cost of violation: an incident, defect or measured harm traced to the
+  pattern's absence. Recommend the least committed useful shape: no action, a
+  reference or checklist line, a template, a helper, and only then a gate.
+- **Thin evidence stays a hypothesis.** Fewer than three independent exemplars,
+  or no passing holdout, leaves a pattern a hypothesis; say what evidence would
+  confirm or refute it.
+- Keep observation, inference, contradiction and unknown separate. Every
+  material claim cites evidence; source agreement does not erase shared provenance.
+
 ## Investigation
 
 1. State the question and the decision it informs. Reuse the accepted scope and
    identify what evidence would answer it; do not expand the objective mid-search.
-2. Inspect the smallest relevant sources. For changing external facts, use
-   current primary sources. Verify search hits against the actual source.
-3. Distinguish observation, inference, contradiction and unknown. Every material
-   claim cites evidence; source agreement does not erase shared provenance.
-4. Lead with the answer, then show evidence and remaining gaps. Each part of the
+2. Inspect the smallest relevant sources and verify search hits against the
+   actual source. External facts that change (versions, vendor behavior,
+   standards) need current primary sources. This skill pre-approves only local
+   tools: use the host's web tools when available and permitted; otherwise mark
+   the external claim unknown and name the source that would settle it.
+3. Lead with the answer, then show evidence and remaining gaps. Each part of the
    question is answered or explicitly unknown with the searched scope disclosed.
 
 Code claims cite the observed commit plus `file:line`. For uncommitted content,
@@ -60,8 +78,7 @@ selection or existing authorization.
 
 For several supplied reports, retain each source's identifier, author/runtime
 when known and revision/date. Compare claims as agreement, contradiction or
-unknown while preserving their original evidence. Repeated quotations of one
-upstream source are not independent corroboration. Verify decisive claims at
+unknown while preserving their original evidence. Verify decisive claims at
 their source and return one synthesis; do not launch recursive synthesis passes.
 
 ## Repository tracing
@@ -74,63 +91,30 @@ trace at its exact file/line and explain what is missing. Choose a useful lens
 such as persistence, authorization, CLI, build or test without requiring a sweep
 of every lens.
 
-An inline investigation may use dirty working-tree evidence with explicit limits.
-When a durable `codebase-recon.v1` pack is selected, its stricter contract applies:
-
-- Write `codebase-recon.json` and a cited `codebase-recon.md` companion at the
-  caller's chosen location, default `.agents/scratch/codebase-recon/<run-id>/`.
-  Keep mental model, bounded audit, pattern evidence and synthesis distinct.
-- Bind the exact current full commit OID, at least one complete baseline flow,
-  claims with kind, confidence and evidence, and inspected/uninspected scope. Fact and inference citations
-  resolve to repository-relative regular files at that commit; the companion
-  report includes line references. Unknowns remain explicit.
-- The manifest `report` names the companion and its lowercase SHA-256. The
-  companion has one `<!-- codebase-recon-report.v1 -->` marker and
-  `manifest_commit`, `manifest_mode`, `flows_sha256`, `claims_sha256`, and
-  `coverage_sha256` markers; section digests hash the `jq -cS` output for each
-  section, including its trailing newline.
-- Discover validated priors with
-  `skills/research/scripts/codebase-recon/validate-output.sh --repo-root <target> --discover-priors`.
-  Prefer a verified delta when it answers the request. Delta evidence needs a
-  valid ancestor chain, `baseline_verified: true` and the exact changed paths
-  between the prior and current commits; do not relabel a directory scan as delta.
-- Run `skills/research/scripts/codebase-recon/validate-output.sh --repo-root
-  <target> <recon.json>` before handoff. It checks both artifacts and rechecks
-  their identities, HEAD and source state; dirty source outside `.agents/` cannot
-  satisfy this commit-bound pack. Return a validation failure without disguising
-  it as a completed recon pack.
-
-Preserve earlier `.agents/recon/<run-id>/` packs and their exact cited identities.
-Prior discovery checks both legacy and current roots; never move or delete old
-proof to match a new layout. See the [recon scenarios](references/codebase-recon/codebase-recon.feature).
+An inline investigation may use dirty working-tree evidence with explicit
+limits. A selected durable `codebase-recon.v1` pack is commit-bound and follows
+the [recon pack contract](references/codebase-recon/pack-contract.md), checked by
+`skills/research/scripts/codebase-recon/validate-output.sh`.
 
 ## Pattern evidence
 
 For a recurring implementation shape, test whether the similarity represents a
-reusable rule. Record replayable searches, examined hits and exclusions. Align
-independent implementations by their role in the behavior, then separate required
-invariants, legitimate variation and incidental syntax. Copies of one lineage
-do not count as independent evidence.
+reusable rule under the evidence rules above. Record replayable searches,
+examined hits and exclusions, then report:
 
-A `pattern-mining.v1` promotion needs at least three distinct anchored exemplars,
-a candidate formed before inspecting a separate holdout, a passing holdout and
-successful back-application of every refinement to the original exemplars.
-Every invariant needs supporting alignment. Otherwise preserve the result as
-`outcome: hypothesis` with `route: no-action`; do not package weak evidence as a rule.
+```text
+exemplars: <file:line> per independent lineage; copies listed under their source
+invariant: <what every exemplar shares and the behavior needs>
+variation: <legitimate differences>; incidental: <syntax, names>
+cost:      <demonstrated cost of violation, or "none found">
+shape:     <no action | reference line | template | helper | gate> and why
+outcome:   hypothesis | promote (three independent exemplars, passing holdout and back-application)
+```
 
-For this selected durable mode, write `pattern-mining.json` to
-`.agents/scratch/pattern-mining/<run-id>/` or an authorized caller location and
-run `skills/research/scripts/pattern-mining/validate-output.sh <pattern.json>`.
-Preserve the schema's `outcome`, `exemplars`, `invariants`, `variations`,
-`incidental`, `holdout`, `back_application` and `route` fields. The compatibility route
-value `operationalize` on a valid promotion refers to
-[Skill Builder's distillation mode](../skill-builder/SKILL.md#distill-expertise);
-it is not a retired skill invocation or automatic dispatch.
-
-Recommend the least committed useful shape: no action, a reference/checklist
-line, a template, helper or gate. A gate needs demonstrated cost of violation,
-not merely recurrence. Research returns evidence; adoption remains an explicit
-caller decision. See [pattern scenarios](references/pattern-mining/pattern-mining.feature).
+A selected durable `pattern-mining.v1` record follows the
+[pattern pack contract](references/pattern-mining/pack-contract.md), checked by
+`skills/research/scripts/pattern-mining/validate-output.sh`. Research returns
+evidence; adoption remains an explicit caller decision.
 
 ## Output and boundaries
 

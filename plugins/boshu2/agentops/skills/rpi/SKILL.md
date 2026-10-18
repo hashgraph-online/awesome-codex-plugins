@@ -1,6 +1,6 @@
 ---
 name: rpi
-description: 'Apply the outcome-to-judgment charter. Use when: the caller explicitly selects RPI; ordinary coding, delegation and native goals do not require this workflow.'
+description: 'Drive one accepted change through implementation and checks to done, with one fresh review only where a mistake is costly. Use when: selected by name.'
 practices:
 - bdd-gherkin
 - tdd
@@ -66,8 +66,9 @@ mistake is costly, not a scheduler.
    deterministic check covers the changed behavior. Use the author's model
    family unless the caller selects additional legs; explicitly required
    reviewers remain required.
-6. One round. Give the validator the exact subject and one question written
-   before it starts; it does not re-run the checks. Repair what fails the
+6. One round. Give the validator the accepted criteria, the exact subject and
+   one question written before it starts, never the author's confidence or
+   desired verdict; it does not re-run the checks. Repair what fails the
    accepted behavior or would mislead a user, break install or the CLI, or
    remove protection for the product; treat the rest as optional notes. Confirm
    each repair with a check and finish. A repair does not start another
@@ -79,34 +80,21 @@ mistake is costly, not a scheduler.
    not permission to expand the goal. Report them briefly only when useful;
    do not turn them into another work batch.
 
-## Context and handoffs
-
-Load required contracts once per context, then read only what the next decision
-needs. A reference link is available context, not a reading list. Search before
-opening large files; expand only for consequential uncertainty. Keep successful
-output compact at the tool boundary; retain full logs for inspection. Reuse the
-worker's component-check list and current receipts instead of rediscovering them.
-Use native completion watches or bounded waits for ongoing checks and helpers.
-At completion, verify the expected subject and required results; a quiet or
-partial status is not success. Inspect further for a failure, suspected stall or
-decision need. Keep required user updates concise rather than narrating each poll.
+## Delegation and handoffs
 
 When delegation is authorized and useful, select the runtime's task-only
 dispatch option for independent work; a short prompt in a full-history fork
-still carries full history. Supply accepted intent/scope, exact subject,
-relevant evidence, remaining bounds, result consumer and check ownership.
-Resume an author for direct repair when useful. Validators always receive fresh
-context without the author's desired verdict. Observe actual dispatch settings;
-prompt wording proves neither isolation nor smaller inherited context.
+still carries the full history. Supply accepted intent and scope, the exact
+subject, relevant evidence, remaining bounds, the result's consumer and check
+ownership. Resume an author for direct repair when useful. Observe actual
+dispatch settings: prompt wording proves neither isolation nor smaller
+inherited context. At completion, verify the expected subject and required
+results; a quiet or partial status is not success.
 
 Return concise findings, check facts and evidence references in the existing
-handoff; disclose missing or truncated evidence. Derive the combined subject's
-manifest and applicable orphan scan at the integration/judgment boundary.
-Unjudged worker increments supply content identity and check facts, not duplicate
-final evidence bundles. A separately judged subject still needs complete proof.
-Machine evidence such as `verdict.v2` is optional
-unless requested or required by a declared consumer. When no machine
-artifact is requested or required, return the result without creating one.
+handoff, and disclose missing or truncated evidence. Identify the combined
+subject at the integration or judgment boundary; unjudged worker increments
+supply content identity and check facts, not duplicate evidence bundles.
 
 ## Causal stall and bounds
 
@@ -127,20 +115,37 @@ helper use in the native handoff. Prompt text proves no native enforcement.
 ## Evidence and boundaries
 
 When a validator is used, bind accepted intent, complete changed paths, exact
-subject and factual receipts for it; disclose affected orphaned acceptance evidence. Use
-existing provenance helpers rather than a new evidence format. Requested proof
-uses caller-selected protected external non-Git storage; preserve legacy
-`.agents/` evidence. For a requested binding verdict, missing identity,
-freshness or proof means NOT_PROVEN; proven failed acceptance or scope
-violation means FAIL; PASS needs every criterion verified and empty
-`not_checked`. Authors cannot issue binding PASS. Without that request, report
-what was checked and what was not, and finish.
+subject and factual receipts for it; disclose affected orphaned acceptance
+evidence. Use existing provenance helpers rather than a new evidence format.
+Requested proof uses caller-selected protected external non-Git storage;
+preserve legacy `.agents/` evidence. For a requested binding verdict, missing
+identity, freshness or proof means NOT_PROVEN; proven failed acceptance or
+scope violation means FAIL; PASS needs every criterion verified and empty
+`not_checked`. Authors cannot issue binding PASS.
 
 [Memory](../memory/SKILL.md), specialists and runtime adapters are on demand;
 no-match and no-change are valid. Read [boundaries](references/boundaries.md)
-when authority, scope, evidence or delivery is at issue. Do not invent a runtime, hidden machine artifact or workflow
-to finish an ordinary change.
+when authority, scope, evidence or delivery is at issue. Do not invent a
+runtime, hidden machine artifact or workflow to finish an ordinary change.
 
-Report the result, strongest checks and material limits. Plans, activity,
-reviews and saved pages earn no capability credit; NOT_PLANNED and NOT_BUILT
-are progress descriptions, not semantic verdicts.
+## Closeout
+
+Report in this shape. Plans, activity, reviews and saved pages earn no
+capability credit, and an unchecked item is reported, not a reason to keep
+validating. Machine evidence such as `rpi-report.v1` or `verdict.v2` is
+optional unless a caller or declared consumer requires it. When no machine
+artifact is requested or required, return the result without creating one.
+
+```text
+Result:      done | stopped: <cancelled, refused, bound spent or stalled> | NOT_PLANNED | NOT_BUILT
+Subject:     <commit, branch or diff identity>
+Acceptance:  <criterion> -> <evidence: check, receipt or ref>, one line each
+Checked:     <checks run on the final subject, with results>
+Not checked: <what was not run or not covered, and why> | none
+Judgment:    none (checks and CI gate an ordinary change) | <validator context id>: PASS | FAIL | NOT_PROVEN
+Limits:      <material gaps; adjacent work noticed but not done> | none
+```
+
+`NOT_PLANNED` (stopped before an actionable slice existed) and `NOT_BUILT`
+(stopped before a candidate change existed) describe progress, not semantic
+verdicts.

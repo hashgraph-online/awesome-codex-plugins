@@ -3,6 +3,23 @@ import assert from 'node:assert/strict';
 import {randomUUID,randomBytes} from 'node:crypto';
 import {WorkflowRuntime} from '../lib/workflow-runtime.mjs';
 import {digest} from '../lib/workflow-revisions.mjs';
+import {resolve} from 'node:path';
+import {tmpdir} from './physical-tempdir.mjs';
+
+function nativeIdentityRuntime(state,pins){
+ const root=resolve(tmpdir(),'managed-identity-runtime');
+ const runtime=new WorkflowRuntime({runRoot:root});
+ const policy={mode:'cooperative',implicit:'deny',ambient_allow:[],shadowed_skill_paths:[]};
+ pins.providers=[{id:'fixture-native',kind:'native_agent'}];
+ pins.root.workflow.skill_policy=policy;pins.root.workflow.finalization={node_id:'outside-this-fixture'};
+ for(const node of pins.root.workflow.nodes)Object.assign(node,{type:'agent',access:'read_only',executor:{kind:'provider',provider_id:'fixture-native'}});
+ Object.assign(state,{run_id:'run',status:'running',constraints:{},permissions:{workspace:root,access:'read_only',allowed_paths:[]}});
+ const record={state,pins,events:[]};
+ const mutate=async(_run,_kind,change)=>({result:await change(state,pins,record)});
+ runtime.runs={root,read:async()=>record,mutate,mutateNativeJournal:mutate};
+ return runtime;
+}
+
 
 test('real item and rejection validators accept only the Host-persisted managed slot',async()=>{
  const control=randomBytes(32).toString('hex'),lease=randomBytes(32).toString('hex'),id=randomUUID(),dispatch=randomUUID();
@@ -10,7 +27,7 @@ test('real item and rejection validators accept only the Host-persisted managed 
  const definition={id:'worker',subagent_count:'auto',fanout:{input:'jobs',distribution:'partition',batch_size:2,scheduling:'parallel',max_concurrency:1,result_mode:'per_item',result_output:'results'},input_bindings:{jobs:'/inputs/jobs'},outputs_schema:{properties:{results:{items:{type:'string'}}}}};
  const state={control_hash:digest(control),inputs:{jobs:['a','b']},nodes:{worker:{status:'running',active_attempt_id:id,attempts:[attempt]}}};
  const pins={root:{workflow:{nodes:[definition]}}};
- const runtime={runs:{mutate:async(_run,_kind,change)=>({result:await change(state,pins,{state,events:[]})})}};
+ const runtime=nativeIdentityRuntime(state,pins);
  const binding={node_id:'worker',attempt_id:id,control_token:control,lease_token:lease,index:0,agent_id:dispatch};
  const method=WorkflowRuntime.prototype.recordNativeItemResults;
  await assert.rejects(method.call(runtime,'run',{...binding,agent_id:dispatch.slice(1),target_indices:[0,1],result:{items:[]}}),{code:'NATIVE_ITEM_RESULT'});
@@ -30,7 +47,7 @@ test('filtered managed retry slots never accept a sibling compacted dispatch ide
    input_bindings:{jobs:'/inputs/jobs'},outputs_schema:{properties:{results:{items:{type:'string'}}}}};
  const state={control_hash:digest(control),inputs:{jobs:['a','b','c']},nodes:{worker:{status:'running',active_attempt_id:'retry',attempts:[attempt]}}};
  const pins={root:{workflow:{nodes:[definition]}}};
- const runtime={runs:{mutate:async(_run,_kind,change)=>({result:await change(state,pins,{state,events:[]})})}};
+ const runtime=nativeIdentityRuntime(state,pins);
  const args={node_id:'worker',attempt_id:'retry',control_token:control,lease_token:lease,index:1,
    target_indices:[1],result:{items:[{outcome:'completed',result:'b'}]}};
  await assert.rejects(WorkflowRuntime.prototype.recordNativeItemResults.call(runtime,'run',{...args,agent_id:'child-2'}),{code:'NATIVE_ITEM_RESULT'});

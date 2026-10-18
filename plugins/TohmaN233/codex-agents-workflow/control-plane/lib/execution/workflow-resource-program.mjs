@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { createCodexToolBroker } from './codex-tool-broker.mjs';
 import { canonicalJSON, digest } from '../workflow-revisions.mjs';
 import { requireValue } from '../workflow-paths.mjs';
+import {PROGRAM_ENVIRONMENT_ADMISSION} from './host-tool-runner.mjs';
 
 const name='workflow-resource-program';
 const version='1';
@@ -44,10 +45,11 @@ export function workflowResourceProgramRegistry(){
   const active=new Map();
   const identity=workflowResourceProgramIdentity(),broker_id='workflow-resource-program-broker';
   const evidence_sha256=digest(canonicalJSON({broker_id,identity,scope:'run-pinned-workflow-resource'}));
-  const key=context=>`${context.run_id}/${context.node_id}/${context.attempt_id}`;
+  const key=context=>`${context.run_id}/${context.node_id}/${context.attempt_id}${context.execution_slot?`/${context.execution_slot}`:''}`;
   return {[name]:{
+    [PROGRAM_ENVIRONMENT_ADMISSION]:true,
     identity,attestation:{qualified:true,cancellable:true,effect_observation:true,tool_identity:identity,broker_id,evidence_sha256},
-    async execute({input,argv,permissions,context,signal}){
+    async execute({input,argv,env,permissions,context,signal}){
       requireValue(argv.length>=3&&typeof context.workspace==='string'&&isAbsolute(context.workspace),'WORKFLOW_RESOURCE_CONTRACT','Resource program needs a workspace, program, resource and scratch directory');
       const [program,resourcePath,scratch,...args]=argv;
       const resource=context.resources?.find(item=>item.path===resourcePath);
@@ -67,7 +69,7 @@ export function workflowResourceProgramRegistry(){
       try{
         await authorize();
         const broker=await createCodexToolBroker({workspace:context.workspace,access:'bounded_write',allowedPaths:permissions.write_paths,
-          resources:context.resources,executionBinding:context.execution_binding,runtimeEnvironment:context.runtime_environment,prepareRuntimeEnvironment:context.prepareRuntimeEnvironment,
+          resources:context.resources,executionBinding:context.execution_binding,runtimeEnvironment:context.runtime_environment,prepareRuntimeEnvironment:context.prepareRuntimeEnvironment,programEnvironment:env,programDeadlineMs:context.deadline_ms,
           inputRoots:typeof context.task_root==='string'&&isAbsolute(context.task_root)?[{name:'task_root',path:context.task_root}]:[],
           authorize,onOperation:async()=>{}});
         entry.broker=broker;

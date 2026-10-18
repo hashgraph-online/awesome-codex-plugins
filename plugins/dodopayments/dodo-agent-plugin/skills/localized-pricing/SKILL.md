@@ -1,6 +1,6 @@
 ---
 name: localized-pricing
-description: Guide for implementing localized pricing, adaptive currency, and purchasing power parity with Dodo Payments
+description: Dodo Payments multi-currency pricing, covering fixed localized prices per country or currency, Adaptive Currency live FX conversion at checkout, and purchasing power parity (PPP) percentages. Use when pricing in INR, EUR, or other local currencies, offering regional or PPP discounts, or resolving billing country and currency fallback.
 ---
 
 # Localized Pricing, Adaptive Currency, and PPP
@@ -23,9 +23,9 @@ This skill covers three distinct mechanisms for pricing in multiple countries an
 |---|---|---|---|
 | **Localized Pricing** | Developer sets fixed prices per country/currency | You (via API) | Only when you update them |
 | **Adaptive Currency** | Live FX conversion at checkout time | Dodo (live rates) | Every transaction, based on current rates |
-| **PPP Discounts** | Third-party tools generate discount codes for low-income regions | ParityDeals, Evendeals, or similar | Per tool's schedule |
+| **Purchasing Power Parity (PPP)** | Charges a per-country percentage of the base price | You (business-wide country percentages in the dashboard, per-product opt-in) | Only when you change the percentages |
 
-**Key distinction:** Localized prices are static. Adaptive currency is dynamic. PPP is a discount mechanism, not a pricing mode.
+**Key distinction:** Localized prices are static. Adaptive currency is dynamic. PPP is a native per-country percentage applied to the base price before Adaptive Currency converts it.
 
 ### Localized Pricing
 
@@ -41,9 +41,23 @@ Use adaptive currency when you want to offer checkout in any currency without ma
 
 ### PPP (Purchasing Power Parity)
 
-Third-party services like ParityDeals or Evendeals generate discount codes for customers in low-income countries. These are not a native Dodo API feature. You integrate them by accepting the discount codes they generate and passing them to Dodo at checkout.
+PPP is native ([docs](https://docs.dodopayments.com/features/purchasing-power-parity)). Dodo keeps one business-wide percentage per country (30 to 100, managed in the dashboard only), and the customer pays that share of your list price based on their billing country. Each product opts in with `price.purchasing_power_parity: true` (default `false`).
 
-Use PPP when you want to offer affordability-based discounts without building your own detection logic.
+PPP requires Adaptive Currency: enable it under **Settings → Business** first, or product opt-in is rejected. A matching localized price always wins over PPP, and discount codes apply to the PPP-reduced price.
+
+```typescript
+await client.products.create({
+  name: 'Starter Plan',
+  tax_category: 'saas',
+  price: {
+    type: 'one_time_price',
+    currency: 'USD',
+    price: 2000, // $20.00; a customer in India at 30% pays $6.00
+    discount: 0,
+    purchasing_power_parity: true,
+  },
+});
+```
 
 ## Product pricing mode
 
@@ -125,23 +139,39 @@ Archived prices are soft-deleted. They no longer apply to new checkouts but rema
 
 ## Adaptive Currency at checkout
 
-Enable adaptive currency by passing `billing_currency` to a checkout session. Dodo converts the base product price using live rates.
+Enable Adaptive Currency in the dashboard under **Settings → Business** ([docs](https://docs.dodopayments.com/features/adaptive-currency)). Dodo then converts the base product price at live rates. Passing `billing_currency` and `billing_address.country` on a checkout session only pins the currency you charge in; if you omit them, Adaptive Currency picks the currency and country from the customer's IP address.
 
 ```typescript
-const session = await client.checkoutSessions.create({
-  product_cart: [
-    {
-      product_id: 'pdt_premium_plan',
-      quantity: 1,
-    },
-  ],
-  billing_currency: 'AED', // Customer sees price in AED
-  return_url: 'https://example.com/return',
-});
+// Server route (e.g. POST /api/checkout): create the session and return its URL
+export async function POST() {
+  const session = await client.checkoutSessions.create({
+    product_cart: [
+      {
+        product_id: 'pdt_premium_plan',
+        quantity: 1,
+      },
+    ],
+    billing_currency: 'AED', // Pin the charge currency (requires Adaptive Currency)
+    billing_address: { country: 'AE' },
+    return_url: 'https://example.com/return',
+  });
 
-// Redirect customer to checkout
-window.location.href = session.checkout_url;
+  return Response.json({ checkout_url: session.checkout_url });
+}
 ```
+
+Never call the SDK or expose the API key in browser code. The browser only receives the URL and redirects:
+
+```typescript
+// Browser
+const res = await fetch('/api/checkout', { method: 'POST' });
+const { checkout_url } = (await res.json()) as { checkout_url: string };
+window.location.href = checkout_url;
+```
+
+**Fees:** Adaptive Currency adds a tiered conversion fee (4% under $500, 3% from $500 to $1,500, 2% above $1,500) on top of the displayed price by default. Turn on **Fees Inclusive** in **Settings → Business** to absorb the fee from your settlement instead. When a localized price matches, the transaction is always treated as fees-inclusive.
+
+**Charm Pricing:** With Adaptive Currency on, [Charm Pricing](https://docs.dodopayments.com/features/charm-pricing) can round the converted price to a clean ending such as 49.99. It requires Adaptive Currency.
 
 Adaptive currency is also available on subscription creation and plan changes. Check the API reference for `billing_currency` support on the specific endpoint you're using.
 
@@ -195,7 +225,7 @@ A customer in India using a USD card will match `by_currency: USD` but not `by_c
 
 ### Mistake 3: Forgetting a fallback price
 
-If you set `pricing_mode: by_country` but don't create a localized price for a customer's country, Dodo falls back to the base price in the base currency. This is usually not what you want.
+If you set `pricing_mode: by_country` but don't create a localized price for a customer's country, Dodo falls back to the base price: charged directly if the customer is already in your base currency, or converted through Adaptive Currency when that is enabled ([docs](https://docs.dodopayments.com/features/localized-pricing)). Without Adaptive Currency, that is the base price in the base currency, which is usually not what you want.
 
 Always create localized prices for your target markets before enabling the mode.
 
@@ -205,17 +235,9 @@ You can use both on the same product, but they serve different purposes. Localiz
 
 If you set a localized price for India and also enable adaptive currency, the localized price takes precedence for customers in India.
 
-### Mistake 5: Expecting PPP to be a native Dodo API
+### Mistake 5: Reaching for a third-party tool for PPP
 
-PPP discounts are generated by third-party services like ParityDeals or Evendeals. Dodo does not have a built-in PPP API. You integrate PPP by accepting discount codes from these services and passing them to Dodo at checkout.
-
-```typescript
-const session = await client.checkoutSessions.create({
-  product_cart: [{ product_id: 'pdt_premium_plan', quantity: 1 }],
-  discount_codes: ['PPP_DISCOUNT_CODE_FROM_PARITY_DEALS'],
-  return_url: 'https://example.com/return',
-});
-```
+PPP is native: opt products in with `price.purchasing_power_parity: true` and set country percentages in the dashboard (Adaptive Currency must be on). Third-party tools like ParityDeals are only an alternative if you want their site banners; their codes are passed as ordinary `discount_codes` at checkout.
 
 ### Mistake 6: Not handling missing localized prices in production
 

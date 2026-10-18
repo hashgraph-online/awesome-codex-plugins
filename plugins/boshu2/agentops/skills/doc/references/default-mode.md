@@ -1,66 +1,53 @@
-# Doc default mode — code/API docs, code-maps, coverage/validate
+# Code/API documentation and code-maps
 
-> **Provenance:** This is the default-mode workflow **moved verbatim** out of
-> `skills/doc/SKILL.md` (generic-craft trim).
-> Steps 1-7 below — grep for undocumented functions, stamp function/class markdown,
-> compute coverage, write a report — are frontier-trivial: a capable model does them
-> correctly with no skill payload. The skill's durable value is the references-led
-> `--mode=readme` and `--mode=oss` modes, which stay in `SKILL.md`.
-> This file is retained so the default mode still has a full spec to follow.
+Use these techniques for the documentation the caller requested. The
+[Doc contract](../SKILL.md) owns scope: discovery, coverage checks and code-maps
+are optional task shapes, not steps that add documents or a separate report.
 
-Given a Doc command and target:
+## Find the source and document owner
 
-## Step 1: Detect Project Type
+Read the selected feature's declarations, callers, tests and existing docs.
+Project manifests can help identify languages and conventions; they do not
+prove that every source file needs API documentation. For an informational
+project or runbook, inspect the relevant content and operational source instead.
 
-```bash
-# Check for indicators
-ls package.json pyproject.toml go.mod Cargo.toml 2>/dev/null
+For discovery or a coverage question, enumerate the selected entities with
+stable identities, such as source path plus qualified symbol or command name.
+Map each entity to its source and documentation, then check the relevant
+docstring, comment or reference page against the caller's criterion. An existing
+syntax-aware tool can help enumerate symbols; search results are candidates to
+inspect, not proof of documentation.
 
-# Check for existing docs
-ls -d docs/ doc/ documentation/ 2>/dev/null
-```
+- A Python declaration line alone does not reveal its docstring. Inspect the
+  function or class body, including async functions and methods when in scope.
+- A Go declaration needs its associated comment or reference inspected.
+  Exported functions, methods and types belong only when the selected scope
+  includes them.
+- Quote delimiters, comment lines and doc-file presence are not documented
+  entity counts. They can occur in unrelated data, examples or private code.
 
-Classify as:
-- **CODING**: Has source code, needs API docs
-- **INFORMATIONAL**: Primarily documentation (wiki, knowledge base)
-- **OPS**: Infrastructure, deployment, runbooks
+For each selected entity, distinguish verified documentation, a verified gap,
+and unknown or unexamined status. Record source/document references inline or in
+the requested output; a small task needs no coverage ledger.
 
-## Step 2: Execute Command
+Only calculate a coverage ratio when numerator and denominator come from the
+same explicitly enumerated entity set and each member has been checked against
+the same declared criterion. State that set, criterion and counts. If membership
+or documentation status remains unknown, return the scoped findings and gaps
+instead of a percentage. Never imply whole-repository coverage from a sample.
 
-**discover** - Find undocumented features:
-```bash
-# Find public functions without docstrings (Python)
-grep -r "^def " --include="*.py" | grep -v '"""' | head -20
+## Write the requested documentation
 
-# Find exported functions without comments (Go)
-grep -r "^func [A-Z]" --include="*.go" | head -20
-```
+For a feature, explain its observed behavior and write to the accepted document
+owner. If the caller requests all documentation, establish what that includes
+before expanding the write scope. Discovery alone authorizes no new files.
 
-**coverage** - Check documentation coverage:
-```bash
-# Count documented vs undocumented
-TOTAL=$(grep -r "^def \|^func \|^class " --include="*.py" --include="*.go" | wc -l)
-DOCUMENTED=$(grep -r '"""' --include="*.py" | wc -l)
-echo "Coverage: $DOCUMENTED / $TOTAL"
-```
+Choose details that answer the reader's question. These are example layouts,
+not mandatory sections for every API:
 
-**gen [feature]** - Generate documentation:
-1. Read the code for the feature
-2. Understand what it does
-3. Generate appropriate documentation
-4. Write to docs/ directory
+**Function or method:**
 
-**all** - Update all documentation:
-1. Run discover to find gaps
-2. Generate docs for each undocumented feature
-3. Validate existing docs are current
-
-## Step 3: Generate Documentation
-
-When generating docs, include:
-
-**For Functions/Methods:**
-```markdown
+````markdown
 ## function_name
 
 **Purpose:** What it does
@@ -76,11 +63,12 @@ When generating docs, include:
 result = function_name(arg1, arg2)
 ```
 
-**Notes:** Any important caveats
-```
+**Notes:** Important caveats or errors
+````
 
-**For Classes:**
-```markdown
+**Class:**
+
+````markdown
 ## ClassName
 
 **Purpose:** What this class represents
@@ -98,20 +86,21 @@ result = function_name(arg1, arg2)
 obj = ClassName()
 obj.method1()
 ```
-```
+````
 
-## Step 4: Create Code-Map (if requested)
+## Code-map, when requested
 
-**Write to:** `docs/code-map/`
+Use the existing location or the caller's selected path. Adapt this example to
+the inspected components and omit sections that do not apply:
 
-```markdown
+````markdown
 # Code Map: <Project>
 
 ## Overview
 <High-level architecture>
 
 ## Directory Structure
-```
+```text
 src/
 ├── module1/     # Purpose
 ├── module2/     # Purpose
@@ -125,112 +114,43 @@ src/
 - **Entry point:** `main.py`
 - **Key files:** `handler.py`, `models.py`
 
-### Module 2
-...
-
 ## Data Flow
 <How data moves through the system>
 
 ## Dependencies
 <External dependencies and why>
-```
+````
 
-## Step 5: Validate Documentation
+## Check and return
 
-Check for:
-- Out-of-date docs (code changed, docs didn't)
-- Missing sections (no examples, no parameters)
-- Broken links
-- Inconsistent formatting
+Check the changed documentation's claims, links and examples against current
+source and the applicable repository validator. A missing parameter or example
+is a defect when the document's accepted purpose requires it. See
+[validation techniques](validation-rules.md) for relevant checks.
 
-## Step 6: Write Report
-
-**Write to:** `.agents/scratch/doc/YYYY-MM-DD-<target>.md`
-
-```markdown
-# Documentation Report: <Target>
-
-**Date:** YYYY-MM-DD
-**Project Type:** <CODING/INFORMATIONAL/OPS>
-
-## Coverage
-- Total documentable items: <count>
-- Documented: <count>
-- Coverage: <percentage>%
-
-## Generated
-- <list of docs generated>
-
-## Gaps Found
-- <undocumented item 1>
-- <undocumented item 2>
-
-## Validation Issues
-- <issue 1>
-- <issue 2>
-```
-
-## Step 7: Report to User
-
-Tell the user:
-1. Documentation coverage percentage
-2. Docs generated/updated
-3. Gaps remaining
-4. Location of report
-
-## Key Rules
-
-- **Detect project type first** - approach varies
-- **Generate meaningful docs** - not just stubs
-- **Include examples** - always show usage
-- **Validate existing** - docs can go stale
-- **Write the report** - track coverage over time
-
-## Commands Summary
-
-| Command | Action |
-|---------|--------|
-| `discover` | Find undocumented features |
-| `coverage` | Check documentation coverage |
-| `gen [feature]` | Generate docs for specific feature |
-| `all` | Update all documentation |
-| `validate` | Check docs match code |
+Return changed paths, checks performed and unresolved factual gaps. A separate
+report requires a caller request or an existing consumer; follow the Doc
+contract's destination rules when one is required.
 
 ## Examples
 
-### Generating API Documentation
+**One API:** The caller asks to document authentication in an existing API page.
+Read its implementation and callers, update that page with its observed inputs,
+outputs and errors, then verify the examples. Return the page and check results.
+This request adds no coverage audit or report.
 
-**User says:** `/doc gen authentication`
-
-**What happens:**
-1. Agent detects project type by checking for `package.json` and finding Node.js project
-2. Agent searches codebase for authentication-related functions using grep
-3. Agent reads authentication module files to understand implementation
-4. Agent generates documentation with purpose, parameters, returns, and usage examples
-5. Agent writes to `docs/api/authentication.md` with code samples
-6. Agent validates generated docs match actual function signatures
-
-**Result:** Complete API documentation created for authentication module with working code examples.
-
-### Checking Documentation Coverage
-
-**User says:** `/doc coverage`
-
-**What happens:**
-1. Agent detects Python project from `pyproject.toml`
-2. Agent counts total functions/classes with `grep -r "^def \|^class "`
-3. Agent counts documented items by searching for docstrings (`"""`)
-4. Agent calculates coverage: 45/67 items = 67% coverage
-5. Agent writes report to `.agents/scratch/doc/2026-02-13-coverage.md`
-6. Agent lists 22 undocumented functions as gaps
-
-**Result:** Documentation coverage report shows 67% coverage with specific list of 22 functions needing docs.
+**Mixed-language discovery:** The caller asks which public APIs in two selected
+modules lack docs. Enumerate the Python and Go entities in those modules, inspect
+each associated docstring/comment and reference page, and return the verified
+gaps. Unread entities remain unexamined. A quoted Python data string contributes
+no documented API; it cannot be compared with Go declaration counts.
 
 ## Troubleshooting
 
-| Problem | Cause | Solution |
-|---------|-------|----------|
-| Coverage calculation inaccurate | Grep pattern doesn't match all code styles | Adjust pattern for project conventions. For Python, check for `async def` and class methods. For Go, check both `func` and `type` definitions. |
-| Generated docs lack examples | Missing context about typical usage | Read existing tests to find usage patterns. Check README for code samples. Ask user for typical use case if unclear. |
-| Discover command finds too many items | Low existing documentation coverage | Prioritize by running `discover` on specific subdirectories. Focus on public API first, internal utilities later. Use `--limit` to process in batches. |
-| Validation shows docs out of sync | Code changed after docs written | Re-run `gen` command for affected features. Consider adding git hook to flag doc updates needed when code changes. |
+| Problem | Next action |
+|---|---|
+| Coverage denominator is unknown | Name the incomplete scope; return findings without a percentage. |
+| Entity documentation cannot be inspected | Mark it unknown or unexamined and explain the missing source. |
+| Usage is unclear | Read callers and tests; ask only if the missing use case changes the document. |
+| Discovery exceeds the requested scope | Restrict it to the accepted feature or directories. |
+| A claim is stale | Repair the affected requested document against current source. |

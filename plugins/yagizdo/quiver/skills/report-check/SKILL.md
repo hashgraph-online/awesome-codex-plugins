@@ -123,7 +123,7 @@ Handle each option:
 **Apply fixes:**
 1. For each issue with action REMOVE: delete the finding from the report file.
 2. For each issue with action DOWNGRADE: change the finding's severity and move it to the correct severity section.
-3. For each issue with action REWRITE: replace the finding's recommendation text with the corrected version.
+3. For each issue with action REWRITE: replace the finding's recommendation text with the corrected version. It changes only the recommendation text, so the finding keeps its `Verification:` line.
 4. After applying all fixes, recalculate:
    - Findings overview counts in `## Review Context`
    - Disposition counts in `## Review Context`, and the `**Deferred:**` line under the fix order table

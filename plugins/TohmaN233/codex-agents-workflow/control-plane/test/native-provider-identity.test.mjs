@@ -7,6 +7,7 @@ import { tmpdir } from './physical-tempdir.mjs';
 import { canonicalizeRoutingProviderIds } from '../lib/native-provider-identity.mjs';
 import { canonicalizeWorkflowProviderIds, migrateStoredWorkflowProviderIds } from '../lib/workflow-provider-identity.mjs';
 import { loadRoutingSettings } from '../lib/skill-import/routing-settings.mjs';
+import { DEFAULT_ROUTING_INSTRUCTIONS, LEGACY_DEFAULT_ROUTING_INSTRUCTIONS } from '../lib/skill-import/routing-rules.mjs';
 
 const legacyRules = () => ({
   version: 1,
@@ -54,6 +55,20 @@ test('persisted routing settings expose only canonical Provider IDs', async (t) 
   assert.equal(JSON.stringify(loaded).includes('native-authoring-astra-low'), false);
 });
 
+test('live default routing prose upgrades exactly while custom instructions and pinned route choices survive',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'routing-description-refresh-'));
+  t.after(()=>rm(directory,{recursive:true,force:true}));
+  const original={...legacyRules(),instructions:LEGACY_DEFAULT_ROUTING_INSTRUCTIONS};
+  await writeFile(join(directory,'skill2workflow-rules.json'),JSON.stringify(original),'utf8');
+  const loaded=await loadRoutingSettings(directory,[]);
+  assert.equal(loaded.instructions,DEFAULT_ROUTING_INSTRUCTIONS);
+  assert.deepEqual(loaded.routes,canonicalizeRoutingProviderIds(original).routes);
+  assert.deepEqual(loaded.generation,canonicalizeRoutingProviderIds(original).generation);
+  original.instructions='User policy: preserve my configured worker choice.';
+  await writeFile(join(directory,'skill2workflow-rules.json'),JSON.stringify(original),'utf8');
+  assert.equal((await loadRoutingSettings(directory,[])).instructions,original.instructions);
+});
+
 test('stored Workflow bindings collapse retired purpose aliases without mutating the source', async () => {
   const source = {
     id: 'provider-migration-fixture',
@@ -78,7 +93,8 @@ test('stored Workflow bindings collapse retired purpose aliases without mutating
   const saves = [];
   const pack = { workflow: source, revision_hash: 'a'.repeat(64), resources: [], provenance: {}, import_report: {} };
   const store = {
-    list: async () => [pack, { ...pack, workflow: migrated.workflow, revision_hash: 'b'.repeat(64) }],
+    listMetadata: async () => [pack, { ...pack, workflow: migrated.workflow, revision_hash: 'b'.repeat(64) }],
+    snapshot:async (id,revision)=>{assert.equal(id,source.id);assert.equal(revision,pack.revision_hash);return pack;},
     save: async (id, workflow, options) => {
       saves.push({ id, workflow, options });
       return { revision_hash: 'c'.repeat(64) };

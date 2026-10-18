@@ -8,7 +8,7 @@ A multi-agent personal-data-protection compliance reference for engineers — pa
 
 **Status:** Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA, Philippines DPA, and Vietnam PDPL all populated. Repo ships dual plugin manifests — [`.claude-plugin/`](.claude-plugin/) (Claude Code / Cowork via `/plugin install`) and [`.codex-plugin/`](.codex-plugin/) (Codex) — plus [`AGENTS.md`](AGENTS.md) routing for Cursor / Copilot. Vietnam PDPL added in v0.5, written against Law 91/2025/QH15 and Decree 356/2025/NĐ-CP.
 
-**Audience:** anyone building any app or service that handles personal data of users in Singapore, Thailand, Indonesia, Malaysia, or the Philippines. Tech-agnostic — works whether your stack is Supabase, Firebase, AWS, your own backend, native iOS/Android, Flutter, React Native, web, a headless API, or anything else.
+**Audience:** anyone building any app or service that handles personal data of users in Singapore, Thailand, Indonesia, Malaysia, the Philippines, or Vietnam. Tech-agnostic — works whether your stack is Supabase, Firebase, AWS, your own backend, native iOS/Android, Flutter, React Native, web, a headless API, or anything else.
 
 ## Coverage — Southeast Asia focus
 
@@ -113,7 +113,7 @@ The repo is laid out for both Claude Code and Codex packaging — skill content 
 
 ```bash
 claude plugin marketplace add AltByteSG/personal-data-protection-skill
-claude plugin install personal-data-protection@altbyte-plugins
+claude plugin install personal-data-protection@personal-data-protection-skill
 ```
 
 The repo carries a [`marketplace.json`](.claude-plugin/marketplace.json) so it works as a single-plugin marketplace. Verify with `claude plugin list`.

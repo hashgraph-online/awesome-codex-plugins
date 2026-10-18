@@ -9,14 +9,17 @@ import { compileDeployableConversion } from '../lib/skill-import/conversion-depl
 import { WorkflowForge, actionableSemanticError, lowerSemanticBlueprint } from '../lib/authoring/workflow-forge.mjs';
 import { applySemanticRepair, canonicalizeSemanticRepair, collectSemanticBlueprintFindings, CURRENT_AUTHORING_SEMANTIC_BLUEPRINT_SCHEMA, INTERNAL_SEMANTIC_BLUEPRINT_SCHEMA, normalizeSemanticBlueprint, PREVIOUS_SEMANTIC_BLUEPRINT_CONTRACT as SEMANTIC_BLUEPRINT_CONTRACT, SEMANTIC_BLUEPRINT_CONTRACT as CURRENT_SEMANTIC_BLUEPRINT_CONTRACT, SEMANTIC_BLUEPRINT_SCHEMA, SEMANTIC_REPAIR_CONTRACT, SEMANTIC_REPAIR_SCHEMA, targetedSemanticRepairSchema, AUTHORING_ACTIVITY_INSTRUCTION_MAX_LENGTH, AUTHORING_NODE_PROMPT_MAX_LENGTH } from '../lib/authoring/blueprint-contract.mjs';
 import { sourceSectionInventory } from '../lib/skill-import/source-dispositions.mjs';
+import { SEMANTIC_BLUEPRINT_GUIDE, PREVIOUS_FANOUT_SEMANTIC_BLUEPRINT_SCHEMA } from '../lib/authoring/blueprint-contract.mjs';
 import { authoringSourcePath } from '../lib/skill-import/authoring-source.mjs';
 import { observedSourceRequirements, projectObservedRequirements } from '../lib/skill-import/source-requirements.mjs';
 import { canonicalJSON, digest, prepareResources, revisionHash } from '../lib/workflow-revisions.mjs';
 import { WorkflowStore } from '../lib/workflow-store.mjs';
 import { exportWorkflowPackage, installWorkflowPackage, validateWorkflowPackage } from '../lib/workflow-package.mjs';
-import { generationRetryClass, isGenerationContractFailure, MAX_PLANNER_ATTEMPTS } from '../lib/skill-import/generation-retry-policy.mjs';
-import { AUTHORING_PLANNER_PROMPT, AUTHORING_PLANNER_PROMPT_V14, AUTHORING_PLANNER_PROMPT_V15, AUTHORING_PLANNER_PROMPT_V20, AUTHORING_PLANNER_PROMPT_V22, AUTHORING_PLANNER_PROMPT_V26, AUTHORING_PLANNER_PROMPT_V27, AUTHORING_REVIEW_PROMPT_V12, AUTHORING_REVIEW_PROMPT_V13, AUTHORING_REVIEW_PROMPT_V14, AUTHORING_REVIEW_PROMPT_V15, AUTHORING_REVIEW_PROMPT_V16, AUTHORING_REVIEW_PROMPT_V17, AUTHORING_REVIEW_PROMPT_V18, AUTHORING_REVIEW_PROMPT_V19, AUTHORING_REVIEW_PROMPT_V20, AUTHORING_REVIEW_PROMPT_V21, AUTHORING_REVIEW_PROMPT_V22, AUTHORING_WORKFLOWS, authoringWorkflowForPack, createStoredAuthoringWorkflow, ensureStoredAuthoringWorkflows } from '../lib/authoring/authoring-workflows.mjs';
+import { generationRetryClass, isGenerationContractFailure, MAX_PLANNER_ATTEMPTS, generationReviewRepairOwner } from '../lib/skill-import/generation-retry-policy.mjs';
+import { routeReviewFindings } from '../lib/skill-import/review-checklist.mjs';
+import { AUTHORING_PLANNER_PROMPT, AUTHORING_PLANNER_PROMPT_V14, AUTHORING_PLANNER_PROMPT_V15, AUTHORING_PLANNER_PROMPT_V20, AUTHORING_PLANNER_PROMPT_V22, AUTHORING_PLANNER_PROMPT_V26, AUTHORING_PLANNER_PROMPT_CURRENT, AUTHORING_REVIEW_PROMPT_V12, AUTHORING_REVIEW_PROMPT_V13, AUTHORING_REVIEW_PROMPT_V14, AUTHORING_REVIEW_PROMPT_V15, AUTHORING_REVIEW_PROMPT_V16, AUTHORING_REVIEW_PROMPT_V17, AUTHORING_REVIEW_PROMPT_V18, AUTHORING_REVIEW_PROMPT_V19, AUTHORING_REVIEW_PROMPT_V20, AUTHORING_REVIEW_PROMPT_V21, AUTHORING_REVIEW_PROMPT_CURRENT, AUTHORING_WORKFLOWS, authoringWorkflowForPack, createStoredAuthoringWorkflow, ensureStoredAuthoringWorkflows } from '../lib/authoring/authoring-workflows.mjs';
 import { AUTHORING_RUNTIME_ENVELOPE_SCHEMA, EXPANSION_PROPOSAL_SCHEMA, authoringRunPack, decodeGeneratedProposalDetailed } from '../lib/skill-import/expansion-run.mjs';
+import { compileExpansion, EXPANSION_CONTRACT } from '../lib/skill-import/semantic-expander.mjs';
 import { managedNativeResultSchema, strictAgentOutputSchema } from '../lib/execution/host-main-automation.mjs';
 import { validateWorkflowShape } from '../lib/workflow-schema.mjs';
 import { codexStructuredSchema } from '../lib/execution/codex-structured-output.mjs';
@@ -26,11 +29,25 @@ import { evaluateExpression } from '../lib/workflow-bindings.mjs';
 import { sourceContractIndex } from '../lib/skill-import/source-contracts.mjs';
 import { resolvedSubagentPlan } from '../lib/workflow-runtime.mjs';
 import { nativeAgentHandoff } from '../lib/execution/native-agent-bridge.mjs';
+import { workflowCallInvocation, WORKFLOW_CALL_DEFAULTS } from '../lib/execution/workflow-call-adapter.mjs';
+import { workflowToolDefinitions } from '../lib/workflow-tools.mjs';
 
 async function seedLegacyReady(store,workflow,options){
   store.validate=validateWorkflowShape;
   try{return await store.create(workflow,options);}finally{delete store.validate;}
 }
+
+test('mixed review findings stop at the Host before another semantic planner repair',()=>{
+  const findings=routeReviewFindings(['[phase_order] The production phase precedes required input.','[host_canonicalization] Host projection defect: completion gate imposes an unsupported artifact path.']);
+  assert.equal(generationReviewRepairOwner(findings),'host');
+  assert.equal(generationReviewRepairOwner({host_findings:[],semantic_findings:['A required route is missing.']}),'planner');
+  assert.equal(generationReviewRepairOwner({host_findings:[],semantic_findings:[]}),'none');
+});
+
+test('a reviewer assertion that the Host imposes an artifact gate stays a Host finding',()=>{
+  const finding='[artifact_interface_contract] The Host imposes an unconditional default-root artifact gate, while the source permits a different explicitly named documentation file.';
+  assert.deepEqual(routeReviewFindings([finding]),{semantic_findings:[],host_findings:[finding]});
+});
 import { WORKSPACE_SOURCE_LOCATIONS, WORKSPACE_SOURCE_LOCATIONS_SCHEMA } from '../lib/workspace-source-locations.mjs';
 
 const rules={version:1,instructions:'Host routing.',selection_mode:'automatic',routes:{implementation:{provider_id:'native-luna',role:'implementer'},complex_implementation:{provider_id:'native-sol',role:'implementer'},review:{provider_id:'native-sol',role:'reviewer'},planning:{provider_id:'native-astra',role:'implementer'}},generation:{planner_provider_id:'native-astra',review_provider_id:'native-sol',max_rounds:2}};
@@ -61,6 +78,57 @@ function activity(key,instructions,sections,{kind='work',operation='read',owners
 function dispositions(sections,keys){return sections.map(item=>({section_id:item.section_id,disposition:'workflow',activity_keys:keys,trigger:'',reason:'Required by the brief.'}));}
 function blueprint(fields){return {contract:SEMANTIC_BLUEPRINT_CONTRACT,purpose:fields.purpose,source_dispositions:fields.source_dispositions,semantic_rules:[],requirement_assignments:[],data_types:fields.data_types??[],activities:fields.activities,approvals:[],sequences:fields.sequences??[],parallels:fields.parallels??[],choices:fields.choices??[],root:fields.root};}
 const activityNode=(proposal,key)=>proposal.nodes.find(node=>node.name===key||node.semantic_key===key);
+
+test('Host-generated agent permissions are writable independently of semantic profiles',()=>{
+  const text='# Workflow\n\nComplete the requested task and inspect its evidence.';
+  const skillText='---\nname: permission-fixture\ndescription: Permission fixture\n---\n'+text;
+  const root=resolve(tmpdir(),'permission-fixture');
+  const snapshot={metadata:{name:'permission-fixture',description:'Permission fixture'},source_path:join(root,'SKILL.md'),source_hash:digest(Buffer.from(skillText)),root,instructions_start_line:5,files:{'source/SKILL.md':Buffer.from(skillText)},inventory:[],problems:[],metadata_files:{}};
+  for(const build of [compileWorkflowBrief({workflow_id:'permissions-brief',name:'Permissions',brief:text}),compileCoarseSkill(snapshot,{id:'permissions-skill'})]){
+    for(const node of build.workflow.nodes.filter(node=>node.type==='agent')){
+      assert.equal(node.access,'bounded_write',`seed ${node.id}`);
+      assert.deepEqual(node.path_scope,{binding:'run.allowed_paths'});
+    }
+    const resources=build.resources,prepared=prepareResources(resources),base={workflow:build.workflow,resources:prepared.manifest,provenance:build.provenance,import_report:build.import_report},pack={...base,revision_hash:revisionHash(base)};
+    const ids=sourceSectionInventory(resources).map(section=>section.section_id);
+    for(const profile of ['main_read','main_write','orchestration_read','orchestration_write','worker_read','worker_write','worker_complex_read','worker_complex_write','review','decision']){
+      const blueprint={contract:CURRENT_SEMANTIC_BLUEPRINT_CONTRACT,purpose:'Complete the requested task.',source_dispositions:ids.map(section_id=>({section_id,disposition:'workflow',activity_keys:['work'],note:'Required.'})),requirement_assignments:[],runtime_dependencies:[],records:[],lists:[],enums:[],activities:[{key:'work',instructions:'Complete the requested task.',profile,source_sections:ids,inputs:[],outputs:[{name:'result',kind:'text',values:[],type_ref:''}],tool:''}],approvals:[],sequences:[],parallels:[],choices:[]};
+      const forged=new WorkflowForge().compile({pack,resources,blueprint,context:{routing_rules:rules,routing_catalog:providers,providers,roles}});
+      assert.equal(forged.compiled.validation.valid,true);
+      const work=forged.compiled.workflow.nodes.find(node=>node.origin?.semantic_key==='work');
+      const worker=!profile.startsWith('orchestration')&&profile!=='decision';
+      assert.equal(work.executor.kind,worker?'provider':'main');
+      if (!worker) {
+        assert.equal(work.executor.mode, 'orchestration');
+        const startup = workflowCallInvocation('workflow_start', { workflow_id: forged.compiled.workflow.id,
+          workspace: root, access: 'bounded_write', allowed_paths: ['.'], inputs: { task: 'Write the requested result.' } });
+        const directive = startup.split('\n')[0];
+        assert.deepEqual(JSON.parse(directive.slice('// @exec: '.length)), WORKFLOW_CALL_DEFAULTS);
+        assert.ok(workflowToolDefinitions().find(tool=>tool.name==='workflow_start').description.includes(directive));
+        assert.equal(work.prompt_template.includes('@exec:'), false, 'invocation policy is Host-owned, not generated node prose');
+        for (const field of ['yield_time_ms', 'wait_seconds', 'max_output_tokens']) assert.equal(Object.hasOwn(work.executor, field), false);
+      }
+      if(worker)assert.equal(work.executor.provider_id,profile==='review'||profile.includes('complex')?'native-sol':'native-luna');
+      const readonlyProviders=providers.map(provider=>({...provider,capabilities:{read:true,write:false}}));
+      if(worker)assert.throws(()=>new WorkflowForge().compile({pack,resources,blueprint,context:{routing_rules:rules,routing_catalog:readonlyProviders,providers:readonlyProviders,roles}}),{code:'EXPANSION_WRITE_PROVIDER'});
+      for(const node of forged.compiled.workflow.nodes.filter(node=>node.type==='agent')){
+        assert.equal(node.access,'bounded_write',`${profile}: ${node.id}`);
+        assert.equal(Object.hasOwn(node,'role'),false);
+        assert.deepEqual(node.path_scope,{binding:'run.allowed_paths'});
+      }
+    }
+  }
+});
+
+test('Role template defaults are writable and explicit read-only selection is preserved',()=>{
+  for(const access of [undefined,'read_only','bounded_write']){
+    const build=compileWorkflowBrief({workflow_id:'permission-role',name:'Permission role',template_kind:'role',brief:'Perform the requested work.',...(access?{access}:{})});
+    for(const node of build.workflow.nodes.filter(node=>node.type==='agent')){
+      assert.equal(node.access,access??'bounded_write');
+      assert.deepEqual(node.path_scope,access==='read_only'?undefined:{binding:'run.allowed_paths'});
+    }
+  }
+});
 
 function dependencyBlueprint(line,dependency){
   const compiled=compileWorkflowBrief({workflow_id:'dependency-evidence-fixture',name:'Dependency evidence fixture',brief:`# Workflow\n\n## Process\n\n${line}`,provider_id:'native-luna'});
@@ -189,6 +257,18 @@ test('authoring rejects generic Agent copy-through even when fields are not iden
       error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='agent_deterministic_transcription'));
   }
   assert.doesNotThrow(()=>new WorkflowForge().compile({pack,resources,blueprint:base,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}));
+});
+
+test('authoring preserves exact source commands in authored documentation without treating provenance as a copied value',()=>{
+  const {pack,resources}=sourceFixture(),ids=sourceSectionInventory(resources).map(item=>item.section_id);
+  const plan={contract:CURRENT_SEMANTIC_BLUEPRINT_CONTRACT,purpose:'Write evidence-backed documentation.',source_dispositions:ids.map(section_id=>({section_id,disposition:'workflow',activity_keys:['write'],note:'Documentation uses verified repository evidence.'})),requirement_assignments:[],runtime_dependencies:[],records:[],lists:[],enums:[],activities:[
+    {key:'write',instructions:'Write the requested documentation from verified repository evidence. Reproduce source commands exactly. Copy the documented invocation into the example. Never invent flags or copy secrets.',profile:'worker_write',source_sections:ids,inputs:[],outputs:[{name:'handover',kind:'text',values:[],type_ref:''}],tool:'',outcome:'artifact'},
+  ],approvals:[],sequences:[],parallels:[],choices:[]};
+  assert.doesNotThrow(()=>new WorkflowForge().compile({pack,resources,blueprint:plan,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}));
+  for(const instructions of ['Copy source text into the output record.','Reproduce provided fields in the result.','Copy existing labels into the returned record.']){
+    const copied=structuredClone(plan);copied.activities[0].instructions=instructions;
+    assert.throws(()=>new WorkflowForge().compile({pack,resources,blueprint:copied,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='agent_deterministic_transcription'));
+  }
 });
 
 test('runtime dependency evidence rejects partial names, module case and unrelated version digits',()=>{
@@ -471,7 +551,10 @@ test('compact authoring contract derives the root and semantic repair changes on
   const bindingChange={contract:SEMANTIC_REPAIR_CONTRACT,purpose:'',upsert:{...structuredClone(empty),activities:[{...compact.activities[1],inputs:[{name:'implementation_result',from:'implement.result'}]}]},remove:empty};
   const rebound=applySemanticRepair(compact,bindingChange,{targets:[{semantic_keys:['implement'],affected_semantic_fields:['activities.inputs']}]});
   assert.equal(rebound.activities[1].inputs[0].name,'implementation_result');
-  assert(JSON.stringify(SEMANTIC_BLUEPRINT_SCHEMA).length<JSON.stringify(INTERNAL_SEMANTIC_BLUEPRINT_SCHEMA).length*0.9);
+  const compactSchemaJSON=JSON.stringify(SEMANTIC_BLUEPRINT_SCHEMA),internalSchemaJSON=JSON.stringify(INTERNAL_SEMANTIC_BLUEPRINT_SCHEMA);
+  for(const hostNormalizedField of ['root','semantic_rules','data_types'])assert.equal(Object.hasOwn(SEMANTIC_BLUEPRINT_SCHEMA.properties,hostNormalizedField),false);
+  assert.equal(compactSchemaJSON.includes('node_ids'),false);
+  assert(compactSchemaJSON.length<internalSchemaJSON.length);
 });
 
 test('compact requirement assignments let the Host project future user input bindings without model fields',()=>{
@@ -485,7 +568,8 @@ test('compact requirement assignments let the Host project future user input bin
   const forged=new WorkflowForge().compile({pack,resources,blueprint:compact,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),mapping=forged.proposal.requirement_mappings.find(item=>item.requirement_id===inputRequirement.requirement_id),node=forged.proposal.nodes.find(item=>item.id===mapping.node_ids[0]);
   assert.equal(forged.compiled.validation.valid,true);assert.deepEqual(mapping.binding_names,['editorial_answers']);assert.equal(node.input_bindings.task,undefined);
   assert.equal(node.input_bindings.editorial_answers,'/inputs/editorial_answers');
-  assert.deepEqual(forged.compiled.workflow.inputs_schema.properties.task,{type:'string'});
+  assert.equal(forged.compiled.workflow.inputs_schema.properties.task,undefined);
+  assert.equal(forged.compiled.workflow.nodes.find(item=>item.id==='final').input_bindings.editorial_answers,undefined);
   assert.deepEqual(forged.compiled.workflow.inputs_schema.properties.editorial_answers,{type:'string'});
   assert(!(forged.compiled.workflow.inputs_schema.required??[]).includes('editorial_answers'));
 });
@@ -502,7 +586,7 @@ test('one-member parallel syntax is collapsed mechanically without a semantic re
   assert.equal(forged.proposal.nodes.filter(node=>node.prompt_template==='Build the requested artifact.').length,1);
 });
 
-test('runtime-cardinality work lowers to a non-Main sub-Agent pool while Main activities cannot configure quantity',()=>{
+test('runtime-cardinality work lowers to a Provider pool and rejects orchestration quantity',()=>{
   const {pack,resources}=sourceFixture(),sections=sourceSectionInventory(resources),ids=sections.map(item=>item.section_id);
   const compact={contract:CURRENT_SEMANTIC_BLUEPRINT_CONTRACT,purpose:'Plan animation slots and render every slot concurrently.',source_dispositions:sections.map(item=>({section_id:item.section_id,disposition:'workflow',activity_keys:['plan','render'],note:'Required.'})),requirement_assignments:[],records:[],lists:[],enums:[],activities:[
     {key:'plan',instructions:'Plan the animation slots.',profile:'main_read',source_sections:ids,inputs:[],outputs:[{name:'slots',kind:'list',values:[],type_ref:''}],tool:''},
@@ -511,15 +595,16 @@ test('runtime-cardinality work lowers to a non-Main sub-Agent pool while Main ac
   validateData(compact,SEMANTIC_BLUEPRINT_SCHEMA);
   const forged=new WorkflowForge().compile({pack,resources,blueprint:compact,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),plan=activityNode(forged.proposal,'plan'),render=activityNode(forged.proposal,'render');
   assert.equal(forged.compiled.validation.valid,true);
-  assert.equal(plan.execution_target,'main');assert.equal(plan.subagent_count,undefined);assert.equal(plan.fanout,undefined);
+  assert.equal(plan.execution_target,'subagent');assert.equal(plan.subagent_count,'auto');assert.equal(plan.fanout,undefined);
   assert.equal(render.execution_target,'subagent');assert.equal(render.subagent_count,'auto');
   assert.equal(render.thread_lifecycle,undefined);
   assert.equal(forged.compiled.workflow.nodes.find(node=>node.id===render.id)?.executor.kind,'provider');
-  assert.deepEqual(render.fanout,{input:'slots',item_name:'slot',result_output:'renders',distribution:'one_per_item',scheduling:'parallel',join:'all_required'});
+  assert.deepEqual(render.fanout,{input:'slots',item_name:'slot',result_output:'renders',distribution:'one_per_item',scheduling:'parallel',join:'all_required',max_concurrency:1});
   assert.match(render.prompt_template,/Process only the supplied batch/);
 
   const invalidScope=structuredClone(compact);invalidScope.activities[1].fanout.write_paths_field='write_paths';invalidScope.activities[1].profile='worker_read';
-  assert(collectSemanticBlueprintFindings(invalidScope).some(item=>item.code==='fanout_write_paths_profile'));
+  assert.equal(collectSemanticBlueprintFindings(invalidScope).some(item=>item.code==='fanout_write_paths_profile'),false);
+  assert(collectSemanticBlueprintFindings(invalidScope).some(item=>item.code==='fanout_host_item_source'));
 
   const unsafeWriters=structuredClone(compact);unsafeWriters.activities[1].profile='worker_write';
   assert(collectSemanticBlueprintFindings(unsafeWriters).some(item=>item.code==='fanout_write_isolation'));
@@ -560,14 +645,16 @@ test('runtime-cardinality work lowers to a non-Main sub-Agent pool while Main ac
   const selectiveRender=activityNode(new WorkflowForge().compile({pack,resources,blueprint:selectivePackets,context:selectiveContext}).proposal,'render');
   assert.equal(selectiveRender.fanout.write_paths_field,'write_paths');
 
-  const invalid=structuredClone(compact);invalid.activities[0].fanout={input:'slots',item_name:'slot',result_output:'slots',count_mode:'auto',fixed_count:0};
-  assert.throws(()=>new WorkflowForge().compile({pack,resources,blueprint:invalid,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='fanout_owner'&&/Main activities cannot configure/.test(item.message)));
+  const invalid=structuredClone(compact);invalid.activities[0].profile='orchestration_read';invalid.activities[0].fanout={input:'slots',item_name:'slot',result_output:'slots',count_mode:'auto',fixed_count:0};
+  assert.throws(()=>new WorkflowForge().compile({pack,resources,blueprint:invalid,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='fanout_owner'&&/orchestration cannot configure/.test(item.message)));
 });
 
 test('compact batch fan-out separates runtime batch count from concurrency and retains legacy modes',()=>{
+  const cardsFor=count=>Array.from({length:count},(_,index)=>({id:index,write_paths:[`card-${index}.txt`]}));
+  const planState=cards=>({inputs:{cards},nodes:{},permissions:{workspace:process.cwd(),access:'bounded_write',allowed_paths:['.']}});
   const {pack,resources}=sourceFixture(),sections=sourceSectionInventory(resources),ids=sections.map(item=>item.section_id);
   const compact={contract:CURRENT_SEMANTIC_BLUEPRINT_CONTRACT,purpose:'Process cards in bounded batches.',source_dispositions:sections.map(item=>({section_id:item.section_id,disposition:'workflow',activity_keys:['work'],note:'Required.'})),requirement_assignments:[],records:[],lists:[],enums:[],activities:[
-    {key:'work',instructions:'Process the supplied cards.',profile:'worker_read',source_sections:ids,inputs:[{name:'cards',from:'input:cards'}],outputs:[{name:'results',kind:'list',values:[],type_ref:''}],tool:'',fanout:{input:'cards',item_name:'card',result_output:'results',count_mode:'auto',fixed_count:0,batch_size:10,max_concurrency:5}},
+    {key:'work',instructions:'Process the supplied cards.',profile:'worker_read',source_sections:ids,inputs:[{name:'cards',from:'input:cards'}],outputs:[{name:'results',kind:'list',values:[],type_ref:''}],tool:'',fanout:{input:'cards',item_name:'card',result_output:'results',count_mode:'auto',fixed_count:0,batch_size:10,max_concurrency:5,write_paths_field:'write_paths'}},
   ],approvals:[],sequences:[],parallels:[],choices:[]};
   const compile=value=>new WorkflowForge().compile({pack,resources,blueprint:value,context:{routing_rules:rules,routing_catalog:providers,providers,roles}});
   validateData(compact,SEMANTIC_BLUEPRINT_SCHEMA);
@@ -580,41 +667,52 @@ test('compact batch fan-out separates runtime batch count from concurrency and r
   const replayed=validateGenerationProposal(persisted,validationOptions);
   assert.deepEqual(replayed.proposal,initial.proposal);
   assert.equal(replayed.pipeline_trace.proposal_hash,trace.proposal_hash);
-  assert.deepEqual(node.fanout,{input:'cards',item_name:'card',result_output:'results',distribution:'partition',scheduling:'parallel',join:'all_required',batch_size:10,max_concurrency:5});
+  assert.deepEqual(node.fanout,{input:'cards',item_name:'card',result_output:'results',distribution:'partition',scheduling:'parallel',join:'all_required',batch_size:10,max_concurrency:5,write_paths_field:'write_paths'});
   assert.equal(node.subagent_count,'auto');
   assert.doesNotMatch(node.prompt_template,/dispatch the resolved number|concurrently|simulating multiple owners/);
   assert.match(node.prompt_template,/Return one batch result matching the supplied schema/);
   assert.doesNotMatch(node.prompt_template,/under results|joined list/);
   for(const size of [31,200,400]) {
-    const cards=Array.from({length:size},(_,index)=>({id:index})),plan=resolvedSubagentPlan(node,{inputs:{cards},nodes:{}});
+    const cards=Array.from({length:size},(_,index)=>({id:index,write_paths:[`card-${index}.txt`]})),plan=resolvedSubagentPlan(node,planState(cards));
     assert.equal(plan.count,Math.ceil(size/10));
     assert.deepEqual(plan.assignments,Array.from({length:plan.count},(_,index)=>cards.slice(index*10,(index+1)*10)));
     assert.deepEqual(plan.assignments.flat(),cards);
-    const handoff=nativeAgentHandoff({state:{run_id:'schema-fixture',inputs:{cards},nodes:{}}},node,{attempt_id:'attempt'},
-      {handoff_required:true,adapter:{execution:'native_agent',spawn_config:{agent_type:'default'}},envelope:{workflow_id:pack.workflow.id,workflow_revision:pack.revision_hash,workspace:'C:/fixture',access:'read_only',effective_allowed_paths:[],prompt_template:node.prompt_template,inputs:{cards},node_id:node.id}},64000,[0]);
+    const handoff=nativeAgentHandoff({state:{run_id:'schema-fixture',...planState(cards)}},node,{attempt_id:'attempt'},
+      {handoff_required:true,adapter:{execution:'native_agent',spawn_config:{agent_type:'default'}},envelope:{workflow_id:pack.workflow.id,workflow_revision:pack.revision_hash,workspace:'C:/fixture',access:'bounded_write',effective_allowed_paths:['.'],prompt_template:node.prompt_template,inputs:{cards},node_id:node.id}},64000,[0]);
     assert.deepEqual(handoff.result_schema,node.outputs_schema.properties.results.items);
     assert.notDeepEqual(handoff.result_schema,node.outputs_schema);
     assert.match(handoff.packets[0].prompt,/Return one batch result matching the supplied schema/);
   }
   const automatic=structuredClone(compact);delete automatic.activities[0].fanout.batch_size;delete automatic.activities[0].fanout.max_concurrency;
-  const automaticNode=activityNode(compile(automatic).proposal,'work');
+  const automaticNode=compile(automatic).compiled.workflow.nodes.find(item=>item.name==='work');
   assert.equal(automaticNode.fanout.distribution,'one_per_item');
-  assert.deepEqual(resolvedSubagentPlan(automaticNode,{inputs:{cards:[0,1,2,3]},nodes:{}}).assignments,[[0],[1],[2],[3]]);
+  assert.deepEqual(resolvedSubagentPlan(automaticNode,planState(cardsFor(4))).assignments,cardsFor(4).map(item=>[item]));
   const perItem=structuredClone(automatic);perItem.activities[0].fanout.result_mode='per_item';
-  const perItemNode=activityNode(compile(perItem).proposal,'work');
+  const perItemNode=compile(perItem).compiled.workflow.nodes.find(item=>item.name==='work');
   assert.deepEqual(perItemNode.fanout,{input:'cards',item_name:'card',result_output:'results',distribution:'one_per_item',
-    scheduling:'parallel',join:'all_required',result_mode:'per_item'});
-  assert.deepEqual(resolvedSubagentPlan(perItemNode,{inputs:{cards:[0,1,2,3,4,5,6]},nodes:{}}).assignments,[[0],[1],[2],[3],[4],[5],[6]]);
+    scheduling:'parallel',join:'all_required',result_mode:'per_item',write_paths_field:'write_paths'});
+  assert.deepEqual(resolvedSubagentPlan(perItemNode,planState(cardsFor(7))).assignments,cardsFor(7).map(item=>[item]));
   const incremental=structuredClone(compact);Object.assign(incremental.activities[0].fanout,{result_mode:'per_item',item_delivery:'incremental'});
   const incrementalNode=activityNode(compile(incremental).proposal,'work');
   assert.deepEqual(incrementalNode.fanout,{input:'cards',item_name:'card',result_output:'results',distribution:'partition',
-    scheduling:'parallel',join:'all_required',batch_size:10,max_concurrency:5,result_mode:'per_item',item_delivery:'incremental'});
+    scheduling:'parallel',join:'all_required',batch_size:10,max_concurrency:5,result_mode:'per_item',item_delivery:'incremental',write_paths_field:'write_paths'});
   const invalidIncremental=structuredClone(compact);invalidIncremental.activities[0].fanout.item_delivery='incremental';
   assert.throws(()=>compile(invalidIncremental),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='fanout_item_delivery'));
+  for(const profile of ['main_read','main_write']){
+    const main=structuredClone(automatic);main.activities[0].profile=profile;main.activities[0].fanout.workspace_field='workspace';
+    const forged=compile(main),projected=activityNode(forged.proposal,'work'),compiled=forged.compiled.workflow.nodes.find(item=>item.id===projected.id);
+    assert.equal(forged.compiled.validation.valid,true);assert.equal(projected.execution_target,'subagent');assert.equal(projected.subagent_count,'auto');
+    assert.equal(projected.fanout.workspace_field,undefined);assert.equal(compiled.executor.kind,'provider');assert.equal(compiled.executor.mode,undefined);
+    assert.equal(compiled.subagent_count,'auto');assert.equal(compiled.fanout.join,'all_required');assert.doesNotMatch(projected.prompt_template,/completed or blocked entry|sub-Agent|dispatch/);
+    const shared=structuredClone(main);shared.activities[0].fanout.shared_prefix={common_inputs:[]};
+    assert.throws(()=>compile(shared),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='fanout_shared_prefix'));
+    const unsupported=structuredClone(main);unsupported.activities[0].profile='orchestration_read';
+    assert.throws(()=>compile(unsupported),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='fanout_owner'));
+  }
   const fixed=structuredClone(automatic);Object.assign(fixed.activities[0].fanout,{count_mode:'fixed',fixed_count:3});
-  const fixedNode=activityNode(compile(fixed).proposal,'work');
+  const fixedNode=compile(fixed).compiled.workflow.nodes.find(item=>item.name==='work');
   assert.equal(fixedNode.fanout.distribution,'partition');assert.equal(fixedNode.subagent_count,3);
-  assert.deepEqual(resolvedSubagentPlan(fixedNode,{inputs:{cards:[0,1,2,3,4,5,6]},nodes:{}}).assignments,[[0,3,6],[1,4],[2,5]]);
+  assert.deepEqual(resolvedSubagentPlan(fixedNode,planState(cardsFor(7))).assignments,[[0,3,6],[1,4],[2,5]].map(indices=>indices.map(index=>cardsFor(7)[index])));
   for(const field of ['batch_size','max_concurrency'])for(const value of [0,33,1.5]) {
     const invalid=structuredClone(compact);invalid.activities[0].fanout[field]=value;
     assert.throws(()=>validateData(invalid,SEMANTIC_BLUEPRINT_SCHEMA));
@@ -623,20 +721,16 @@ test('compact batch fan-out separates runtime batch count from concurrency and r
   assert.throws(()=>compile(contradictory),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='fanout_batch_count'));
 });
 
-test('only explicit same-Provider task lineage creates a persistent Codex task',()=>{
+test('generated task lineage cannot implicitly select a persistent Codex task',()=>{
   const {pack,resources}=sourceFixture(),sections=sourceSectionInventory(resources),ids=sections.map(item=>item.section_id);
   const compact={contract:CURRENT_SEMANTIC_BLUEPRINT_CONTRACT,purpose:'Continue research in the same durable task.',source_dispositions:sections.map(item=>({section_id:item.section_id,disposition:'workflow',activity_keys:['research','extend'],note:'Required.'})),requirement_assignments:[],records:[],lists:[],enums:[],activities:[
     {key:'research',instructions:'Research the problem.',profile:'worker_complex_read',source_sections:ids,inputs:[],outputs:[],tool:'',task_continues:'extend'},
     {key:'extend',instructions:'Continue that research in the same task.',profile:'worker_complex_read',source_sections:ids,inputs:[],outputs:[],tool:''},
   ],approvals:[],sequences:[{key:'research_sequence',members:['research','extend'],failure_meaning:'all_required'}],parallels:[],choices:[]};
   validateData(compact,SEMANTIC_BLUEPRINT_SCHEMA);
-  const forged=new WorkflowForge().compile({pack,resources,blueprint:compact,context:{routing_rules:rules,routing_catalog:providers,providers,roles}});
-  const research=activityNode(forged.proposal,'research'),extend=activityNode(forged.proposal,'extend');
-  assert.equal(forged.compiled.validation.valid,true);
-  assert.equal(research.execution_target,'thread');assert.equal(research.thread_lifecycle,'start');
-  assert.equal(extend.execution_target,'thread');assert.equal(extend.thread_lifecycle,'continue');assert.equal(extend.thread_source_node,research.id);
+  assert.throws(()=>new WorkflowForge().compile({pack,resources,blueprint:compact,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings?.[0]?.code==='generated_task_lineage');
   const invalid=structuredClone(compact);invalid.activities[1].profile='worker_read';
-  assert.throws(()=>new WorkflowForge().compile({pack,resources,blueprint:invalid,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings?.[0]?.code==='task_continuation_invalid');
+  assert.throws(()=>new WorkflowForge().compile({pack,resources,blueprint:invalid,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings?.[0]?.code==='generated_task_lineage');
 });
 
 test('fan-out joins one list even when the semantic plan names per-item intermediates',()=>{
@@ -825,12 +919,12 @@ test('source contracts keep exact CLI distinct from candidate artifact observati
   assert.deepEqual(cli.interface.positionals.map(item=>item.name),['scenario']);assert.deepEqual(cli.interface.options.map(item=>item.flags[0]),['--project-root','--evidence']);
   assert.equal(artifact.status,'candidate');assert.equal(artifact.observed_direction,'read');
   const compact={contract:CURRENT_SEMANTIC_BLUEPRINT_CONTRACT,purpose:'Create, approve and validate one scenario.',source_dispositions:sections.map(item=>({section_id:item.section_id,disposition:'workflow',activity_keys:['create','approve','run'],note:'Required.'})),requirement_assignments:[],records:[],lists:[],enums:[],activities:[
-    {key:'create',instructions:'Create the scenario artifact.',profile:'main_write',source_sections:ids,inputs:[],outputs:[{name:'scenario',kind:'object',values:[],type_ref:'',contract_ref:artifact.contract_id}],tool:'',outcome:'artifact'},
+    {key:'create',instructions:'Create the scenario artifact.',profile:'main_write',source_sections:ids,inputs:[],outputs:[{name:'scenario',kind:'text',values:[],type_ref:'',contract_ref:artifact.contract_id}],tool:'',outcome:'artifact'},
     {key:'run',instructions:'Validate the approved scenario.',profile:'worker_write',source_sections:ids,inputs:[{name:'scenario',from:'create.scenario'}],outputs:[{name:'evidence',kind:'text',values:[],type_ref:'',contract_ref:cli.contract_id}],tool:'',contract_refs:[cli.contract_id],on_missing:'block',outcome:'validated_artifact',repeat_until:{condition:'the semantic scenario runner succeeds',max_attempts:3}},
   ],approvals:[{key:'approve',question:'Approve this exact scenario revision?',source_sections:ids,subject:'create.scenario',before:['run']}],sequences:[{key:'delivery',members:['create','approve','run'],failure_meaning:'all_required'}],parallels:[],choices:[]};
   validateData(compact,SEMANTIC_BLUEPRINT_SCHEMA);
   const forged=new WorkflowForge().compile({pack,resources,blueprint:compact,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),create=forged.proposal.nodes.find(node=>node.semantic_key==='create'),gate=forged.proposal.nodes.find(node=>node.semantic_key==='approve'),run=forged.proposal.nodes.find(node=>node.semantic_key==='run');
-  assert.deepEqual(create.outputs_schema.properties.scenario,{type:'object',additionalProperties:true});
+  assert.deepEqual(create.outputs_schema.properties.scenario,{type:'string'});
   assert.equal(create.prompt_template,'Create the scenario artifact.');
   assert(create.resource_refs.includes('source/scripts/run.py'));
   assert(run.resource_refs.includes('source/scripts/run.py'));
@@ -1028,6 +1122,107 @@ test('WorkflowForge derives a structured parallel region and aggregate bindings'
   assert.deepEqual(summary.input_bindings,{a:`/nodes/${checkA.id}/output/a`,b:`/nodes/${checkB.id}/output/b`});
 });
 
+test('current semantic blueprint compiles Host-validated tool/current-Main overlap',()=>{
+  const {pack,resources}=sourceFixture(),sections=sourceSectionInventory(resources),ids=sections.map(item=>item.section_id);
+  const workflow=structuredClone(pack.workflow);
+  const input={type:'object',required:['path'],properties:{path:{type:'string'},text:{type:'string'}},additionalProperties:false};
+  const toolContract={id:'export',identity:{name:'fixture-export',version:'1',sha256:digest('fixture-export')},argv:['fixture-export'],
+    input_schema:{type:'object',required:['source'],properties:{source:input},additionalProperties:false},
+    output_schema:{type:'object',required:['file'],properties:{file:{type:'string'}},additionalProperties:false},env_allow:[],
+    permissions:{network:false,read_paths:['source.html'],write_paths:['output.json']},output_cap_bytes:1024,deadline_ms:5000,idempotency:{mode:'non_idempotent'}};
+  workflow.inputs_schema={type:'object',required:['task','source'],properties:{task:{type:'string'},source:input},additionalProperties:false};
+  workflow.host_tools=[toolContract];
+  const snapshot={workflow,resources:pack.resources,provenance:pack.provenance,import_report:pack.import_report},sourcePack={...snapshot,revision_hash:revisionHash(snapshot)};
+  const blueprint={contract:CURRENT_SEMANTIC_BLUEPRINT_CONTRACT,purpose:'Export the source and review it concurrently.',
+    source_dispositions:sections.map(item=>({section_id:item.section_id,disposition:'workflow',activity_keys:['prepare','export','review','final_review'],note:'Required.'})),
+    requirement_assignments:[],runtime_dependencies:[],records:[],lists:[],enums:[],activities:[
+      {key:'prepare',instructions:'Inspect the supplied source and identify the focus for the final review.',profile:'main_read',source_sections:ids,inputs:[{name:'source',from:'input:source'}],outputs:[{name:'focus',kind:'text',values:[],type_ref:''}],tool:''},
+      {key:'export',instructions:'Export the supplied source.',profile:'main_read',source_sections:ids,inputs:[{name:'source',from:'input:source'}],outputs:[{name:'file',kind:'text',values:[],type_ref:''}],tool:'export'},
+      {key:'review',instructions:'Review the supplied source and report whether it is accepted.',profile:'orchestration_read',source_sections:ids,inputs:[{name:'source',from:'input:source'}],outputs:[{name:'accepted',kind:'boolean',values:[],type_ref:''}],tool:''},
+      {key:'final_review',instructions:'Review the exported result against the source and the identified focus; report whether it is accepted.',profile:'orchestration_read',source_sections:ids,inputs:[{name:'focus',from:'prepare.focus'},{name:'file',from:'export.file'},{name:'source_review_accepted',from:'review.accepted'}],outputs:[{name:'accepted',kind:'boolean',values:[],type_ref:''}],tool:''},
+    ],approvals:[],sequences:[{key:'flow',members:['prepare','overlap','final_review'],failure_meaning:'all_required'}],
+    parallels:[{key:'overlap',members:['export','review'],failure_meaning:'all_required',workspace_policy:{kind:'host_tool_overlap',tool_activity:'export',main_activity:'review',read_inputs:['source'],semantic_rejection:'defer_to_join'}}],choices:[],
+    loops:[{key:'repair',entry_activity:'prepare',exit_activity:'final_review',activity_keys:['prepare','export','review','final_review'],max_rounds:null,review_context:'current_main',until:{activity:'final_review',output:'accepted',op:'eq',value:true}}]};
+  validateData(blueprint,CURRENT_AUTHORING_SEMANTIC_BLUEPRINT_SCHEMA);
+  assert.match(SEMANTIC_BLUEPRINT_GUIDE.controls,/host_tool_overlap/);
+  assert.match(SEMANTIC_BLUEPRINT_GUIDE.controls,/semantic_rejection:"defer_to_join"/);
+  assert.match(SEMANTIC_BLUEPRINT_GUIDE.loops,/review_context:"current_main"/);
+  assert.match(SEMANTIC_BLUEPRINT_GUIDE.activities,/downstream orchestration_read exit of a validated current-Main repair loop/);
+  const forged=new WorkflowForge().compile({pack:sourcePack,resources,blueprint,context:{routing_rules:rules,routing_catalog:providers,providers,roles}});
+  assert.equal(forged.compiled.validation.valid,true);
+  const fork=forged.proposal.nodes.find(node=>node.type==='parallel'),tool=activityNode(forged.proposal,'export'),main=activityNode(forged.proposal,'review');
+  assert.deepEqual(fork.workspace_policy,{kind:'host_tool_overlap',tool_node_id:tool.id,main_node_id:main.id,read_inputs:['source'],semantic_rejection:'defer_to_join'});
+  assert.equal(main.main_mode,'orchestration');
+  assert.equal(forged.compiled.workflow.nodes.find(node=>node.origin?.semantic_key==='review').access,'read_only');
+  const finalReview=activityNode(forged.proposal,'final_review'),loop=forged.compiled.workflow.loops[0];
+  assert.equal(loop.review_context,'current_main');assert.equal(loop.max_rounds,null);assert.equal(loop.exit_node,finalReview.id);
+  assert.deepEqual(loop.until,{op:'eq',args:[{path:`/nodes/${finalReview.id}/output/accepted`},{value:true}]});
+  assert.ok([fork.id,tool.id,main.id,fork.join_id,finalReview.id].every(id=>loop.node_ids.includes(id)));
+  assert.equal(forged.compiled.workflow.nodes.find(node=>node.id===finalReview.id).access,'read_only');
+  assert.equal(fork.failure_policy,'fail_fast');
+  assert.equal(forged.compiled.workflow.nodes.find(node=>node.id===fork.join_id).type,'join');
+  assert.equal(forged.compiled.workflow.edges.filter(edge=>edge.source===fork.id).length,2);
+  assert.equal(forged.compiled.workflow.edges.filter(edge=>[tool.id,main.id].includes(edge.source)&&edge.target===fork.join_id).length,2);
+  const malformed=structuredClone(blueprint);malformed.parallels[0].workspace_policy.read_inputs=[];
+  assert.throws(()=>validateData(malformed,CURRENT_AUTHORING_SEMANTIC_BLUEPRINT_SCHEMA));
+  const finite=structuredClone(blueprint);finite.loops[0].max_rounds=3;
+  assert.equal(new WorkflowForge().compile({pack:sourcePack,resources,blueprint:finite,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow.loops[0].max_rounds,3);
+  const unqualified=structuredClone(blueprint);delete unqualified.loops;
+  assert.throws(()=>new WorkflowForge().compile({pack:sourcePack,resources,blueprint:unqualified,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),{code:'AUTHORING_SEMANTIC'});
+  const historical=structuredClone(blueprint);historical.contract='workflow-semantic-blueprint/v5';delete historical.runtime_dependencies;
+  assert.throws(()=>validateData(historical,PREVIOUS_FANOUT_SEMANTIC_BLUEPRINT_SCHEMA));
+  const wrongRoles=structuredClone(blueprint);wrongRoles.parallels[0].workspace_policy={...wrongRoles.parallels[0].workspace_policy,tool_activity:'review',main_activity:'export'};
+  assert.throws(()=>new WorkflowForge().compile({pack:sourcePack,resources,blueprint:wrongRoles,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),{code:'SHARED_HOST_POLICY'});
+});
+
+test('source expansion preserves only Host-validated shared current-Main overlap policy',()=>{
+  const {pack,resources}=sourceFixture(),workflow=structuredClone(pack.workflow),sections=sourceSectionInventory(resources),sourceSpan=sections[0].source_span;
+  const toolContract={id:'export',identity:{name:'fixture-export',version:'1',sha256:digest('fixture-export')},argv:['fixture-export'],
+    input_schema:{type:'object',required:[],properties:{},additionalProperties:false},
+    output_schema:{type:'object',required:['file'],properties:{file:{type:'string'}},additionalProperties:false},env_allow:[],
+    permissions:{network:false,read_paths:['source.html'],write_paths:['output.json']},output_cap_bytes:1024,deadline_ms:5000,idempotency:{mode:'non_idempotent'}};
+  workflow.inputs_schema={type:'object',required:['task','source'],additionalProperties:false,properties:{task:{type:'string'},source:{type:'object',required:['path'],additionalProperties:false,properties:{path:{type:'string'},text:{type:'string'}}}}};
+  workflow.host_tools=[toolContract];
+  const sourcePack={workflow,resources:pack.resources,provenance:pack.provenance,import_report:pack.import_report};
+  const revisedPack={...sourcePack,revision_hash:revisionHash(sourcePack)};
+  const policy={kind:'host_tool_overlap',tool_node_id:'export_node',main_node_id:'review_node',read_inputs:['source']};
+  const proposal={source_revision:revisedPack.revision_hash,source_requirements:[],requirement_mappings:[],planning_analysis:{parallelism:'The tool and current Main overlap as declared.',main_responsibilities:'Main performs the required read-only review.',human_intervention:'No additional intervention.'},nodes:[
+    {id:'fork',type:'parallel',join_id:'join',failure_policy:'fail_fast',workspace_policy:policy,confidence:1,source_span:sourceSpan},
+    {id:'export_node',type:'tool',tool:'export',input_bindings:{},confidence:1,source_span:sourceSpan},
+    {id:'review_node',type:'agent',task_type:'review',routing_reason:'Review the source before the export join.',main_mode:'orchestration',
+      prompt_template:'Review the source and state whether it is accepted.',input_bindings:{source:'/inputs/source'},
+      outputs_schema:{type:'object',required:['accepted'],properties:{accepted:{type:'boolean'},assessment:{type:'string'}},additionalProperties:false},confidence:1,source_span:sourceSpan},
+    {id:'join',type:'join',parallel_id:'fork',confidence:1,source_span:sourceSpan},
+    {id:'summary',type:'agent',task_type:'review',routing_reason:'Summarize the required branch outputs.',main_mode:'worker',
+      prompt_template:'Summarize the required export and review results.',input_bindings:{export:'/nodes/export_node/output',review:'/nodes/review_node/output'},
+      outputs_schema:{type:'object',required:['result'],properties:{result:{type:'string'}},additionalProperties:false},confidence:1,source_span:sourceSpan},
+  ],edges:[
+    {id:'e1',source:'start',target:'fork',confidence:1,source_span:sourceSpan},
+    {id:'e2',source:'fork',target:'export_node',label:'tool',confidence:1,source_span:sourceSpan},
+    {id:'e3',source:'fork',target:'review_node',label:'current_main',confidence:1,source_span:sourceSpan},
+    {id:'e4',source:'export_node',target:'join',confidence:1,source_span:sourceSpan},
+    {id:'e5',source:'review_node',target:'join',confidence:1,source_span:sourceSpan},
+    {id:'e6',source:'join',target:'summary',confidence:1,source_span:sourceSpan},
+    {id:'e7',source:'summary',target:'final',confidence:1,source_span:sourceSpan},
+  ]};
+  const decoded=decodeGeneratedProposalDetailed({proposal},revisedPack.revision_hash).proposal;
+  assert.deepEqual(decoded.nodes.find(node=>node.id==='fork').workspace_policy,policy);
+  assert(EXPANSION_CONTRACT.node_fields.includes('workspace_policy'));
+  const compact=decodeGeneratedProposalDetailed({proposal:{semantic_rules:[],observed_requirement_mappings:[],source_dispositions:[{section_id:sections[0].section_id,disposition:'workflow',node_ids:['fork']}],
+    nodes:[{id:'fork',type:'parallel',section_ids:[sections[0].section_id],join_id:'join',failure_policy:'fail_fast',workspace_policy:policy}],edges:[{source:'start',target:'fork',section_id:sections[0].section_id}]}},revisedPack.revision_hash,{sourceInventory:sections}).proposal;
+  assert.deepEqual(compact.nodes.find(node=>node.id==='fork').workspace_policy,policy);
+  const compiled=compileExpansion(revisedPack,resources,decoded,{routing_rules:rules,providers,routing_catalog:providers});
+  assert.deepEqual(compiled.canonical_proposal.nodes.find(node=>node.id==='fork').workspace_policy,policy);
+  assert.deepEqual(compiled.workflow.nodes.find(node=>node.id==='fork').workspace_policy,policy);
+  assert.equal(compiled.workflow.nodes.find(node=>node.id==='review_node').access,'read_only');
+  assert.equal(compiled.validation.valid,true);
+
+  const malformed=structuredClone(proposal);malformed.nodes.find(node=>node.id==='fork').workspace_policy.read_inputs=[];
+  assert.throws(()=>decodeGeneratedProposalDetailed({proposal:malformed},revisedPack.revision_hash),{code:'GENERATION_PROPOSAL_CONTRACT'});
+  const misplaced=structuredClone(proposal);misplaced.nodes.find(node=>node.id==='review_node').workspace_policy=policy;
+  assert.throws(()=>compileExpansion(revisedPack,resources,misplaced,{routing_rules:rules,providers,routing_catalog:providers}),{code:'EXPANSION_WORKSPACE_POLICY'});
+});
+
 test('WorkflowForge lowers converging choice branches to one shared semantic body',()=>{
   const {pack,resources}=sourceFixture(),sections=sourceSectionInventory(resources),ids=sections.map(item=>item.section_id);
   const semantic=blueprint({purpose:'Converge repeated fallback routes.',source_dispositions:dispositions(sections,['decide','deliver','unresolved']),activities:[
@@ -1129,20 +1324,14 @@ test('one observed approval rule maps every structurally matching gate',()=>{
   assert.equal(mapping.node_ids.filter(id=>forged.proposal.nodes.find(node=>node.id===id)?.type==='human_gate').length,2);
 });
 
-test('WorkflowForge derives continuation only for a direct same-Provider isolated-worker successor',()=>{
+test('legacy semantic task lineage is localized rather than silently generating a persistent task',()=>{
   const {pack,resources}=sourceFixture(),sections=sourceSectionInventory(resources),ids=sections.map(item=>item.section_id);
   const semantic=blueprint({purpose:'Derive safe task lineage.',source_dispositions:dispositions(sections,['analyze','implement','finish']),activities:[
     activity('analyze','Analyze the task.',ids,{ownership:'isolated_worker',complexity:'complex',continues:'implement'}),
     activity('implement','Implement the task.',ids,{ownership:'isolated_worker',operation:'write',complexity:'complex'}),
     activity('finish','Finish routine output.',ids,{ownership:'isolated_worker',operation:'write'}),
   ],sequences:[{key:'root_sequence',members:['analyze','implement','finish'],failure_meaning:'all_required'}],root:'root_sequence'});
-  const forged=new WorkflowForge().compile({pack,resources,blueprint:semantic,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),implementation=activityNode(forged.proposal,'implement'),finish=activityNode(forged.proposal,'finish'),analyze=activityNode(forged.proposal,'analyze');
-  assert.equal(forged.compiled.validation.valid,true);
-  assert.equal(implementation.thread_lifecycle,'continue');
-  assert.equal(implementation.thread_source_node,analyze.id);
-  assert.equal(finish.execution_target,'subagent');
-  assert.equal(finish.thread_lifecycle,undefined);
-  assert.equal(finish.thread_source_node,undefined);
+  assert.throws(()=>new WorkflowForge().compile({pack,resources,blueprint:semantic,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='generated_task_lineage'&&item.semantic_keys.includes('analyze')));
 });
 
 test('WorkflowForge generates nested schemas from named semantic data types and binds source-mentioned pinned resources',()=>{
@@ -1165,9 +1354,9 @@ test('WorkflowForge keeps coarse response objects separate from executable file 
   compiled.resources['source/scripts/runner.py']=Buffer.from('def run(): pass\n');
   const prepared=prepareResources(compiled.resources),snapshot={workflow:compiled.workflow,resources:prepared.manifest,provenance:compiled.provenance,import_report:compiled.import_report},pack={...snapshot,revision_hash:revisionHash(snapshot)},resources=compiled.resources,sections=sourceSectionInventory(resources),ids=sections.map(item=>item.section_id);
   const semantic=blueprint({purpose:'Reject a missing runner interface.',source_dispositions:dispositions(sections,['run']),activities:[activity('run','Run the pinned interface.',ids,{operation:'write',produces:[{name:'result',shape:{kind:'object',values:[],type_ref:''}}]})],root:'run'});
-  const forged=new WorkflowForge().compile({pack,resources,blueprint:semantic,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),node=activityNode(forged.proposal,'run');
+  const node=activityNode(lowerSemanticBlueprint(pack,resources,semantic,{routing_rules:rules,routing_catalog:providers,providers,roles}),'run');
   assert.deepEqual(node.outputs_schema.properties.result,{type:'object',additionalProperties:true});
-  assert.equal(forged.compiled.validation.valid,true);
+  assert.throws(()=>new WorkflowForge().compile({pack,resources,blueprint:semantic,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}),error=>error.code==='AUTHORING_SEMANTIC'&&error.findings.some(item=>item.code==='native_output_shape'&&item.semantic_keys.includes('run')));
 });
 
 test('WorkflowForge canonicalizes JSON string field references without a model repair',()=>{
@@ -1219,8 +1408,8 @@ test('Skill conversion and from-scratch authoring are two configurations of the 
   assert.equal(authoringWorkflowForPack({...pack,provenance:{kind:'skill_import',source_kind:'skill'}}).id,'system.skill2workflow');
   const job=authoringRunPack(pack,resources,providers[1],'authoring-contract',rules,false,providers[2],providers);
   assert.equal(job.provenance.authoring_workflow_id,'system.build-workflow');
-  assert.equal(job.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_V27);
-  assert.equal(job.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_V22);
+  assert.equal(job.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_CURRENT);
+  assert.equal(job.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
   assert.doesNotMatch(AUTHORING_REVIEW_PROMPT_V15,/Only conversation_inputs.*may be not_applicable with an explanation/);
   assert.match(AUTHORING_REVIEW_PROMPT_V15,/artifact_interface_contract.*no matching typed requirement/s);
   assert.match(AUTHORING_REVIEW_PROMPT_V15,/a failing check cites only affected entities/);
@@ -1271,12 +1460,12 @@ test('authoring contract migration preserves supported user configuration while 
   await seedLegacyReady(store,legacy,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:'codex-authoring-workflow/v2'}});
   await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
   const migrated=await store.snapshot(definition.id),migratedPlanner=migrated.workflow.nodes.find(node=>node.id==='expand'),migratedReviewer=migrated.workflow.nodes.find(node=>node.id==='final');
-  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v30');
+  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v31');
   assert.equal(migrated.workflow.authoring.pipeline.contract,'codex-authoring-pipeline/v1');
   assert.equal(migrated.workflow.authoring.max_rounds,2);
   assert.equal(migratedPlanner.prompt_template,planner.prompt_template);assert.equal(migratedPlanner.approval.required,true);
   assert.equal(migratedReviewer.prompt_template,reviewer.prompt_template);assert.equal(migratedReviewer.approval.required,true);
-  assert.deepEqual(migrated.provenance.migration,{kind:'bundled_authoring_contract',from_contract:'codex-authoring-workflow/v2',to_contract:'codex-authoring-workflow/v30'});
+  assert.deepEqual(migrated.provenance.migration,{kind:'bundled_authoring_contract',from_contract:'codex-authoring-workflow/v2',to_contract:'codex-authoring-workflow/v31'});
 });
 
 test('semantic fan-out requires an explicit write owner for declared shared changes',()=>{
@@ -1295,20 +1484,26 @@ test('semantic fan-out requires an explicit write owner for declared shared chan
   assert(collectSemanticBlueprintFindings(compact).some(item=>item.code==='fanout_shared_change_contract'));
 });
 
-test('build and skill2workflow fold only a guarded linear Main terminal into Host finalization',()=>{
+test('build and skill2workflow fold only an exact compiler final into declared current Main acceptance',()=>{
   const source='# Workflow\n\n## Process\n\nImplement the change, verify its evidence, and document the checked result.';
   const skillText='---\nname: fold-fixture\ndescription: Fold fixture\n---\n'+source;
   const skillRoot=resolve(tmpdir(),'fold-fixture');
   const snapshot={metadata:{name:'fold-fixture',description:'Fold fixture'},source_path:join(skillRoot,'SKILL.md'),source_hash:digest(Buffer.from(skillText)),root:skillRoot,instructions_start_line:5,
     files:{'source/SKILL.md':Buffer.from(skillText)},inventory:[],problems:[],metadata_files:{}};
-  const builds=[compileWorkflowBrief({workflow_id:'fold-build',name:'Fold build',brief:source,provider_id:'native-luna'}),compileCoarseSkill(snapshot,{id:'fold-skill',providerId:'native-luna'})];
+  const currentBuilds=[compileWorkflowBrief({workflow_id:'fold-build',name:'Fold build',brief:source,provider_id:'native-luna'}),compileCoarseSkill(snapshot,{id:'fold-skill',providerId:'native-luna'})];
+  const builds=[...currentBuilds,...currentBuilds.map(build=>{
+    const legacy=structuredClone(build);legacy.resources=build.resources;
+    const final=legacy.workflow.nodes.find(node=>node.id==='final');
+    final.role='finalizer';final.access='read_only';delete final.path_scope;
+    return legacy;
+  })];
   for(const build of builds){
     const resources=build.resources,prepared=prepareResources(resources),base={workflow:build.workflow,resources:prepared.manifest,provenance:build.provenance,import_report:build.import_report},pack={...base,revision_hash:revisionHash(base)};
     const sections=sourceSectionInventory(resources),ids=sections.map(item=>item.section_id);
     const blueprint={contract:CURRENT_SEMANTIC_BLUEPRINT_CONTRACT,purpose:'Implement, verify and document the result.',source_dispositions:sections.map(item=>({section_id:item.section_id,disposition:'workflow',activity_keys:['implement','validate','document'],note:'Required.'})),requirement_assignments:[],runtime_dependencies:[],records:[],lists:[],enums:[],activities:[
       {key:'implement',instructions:'Implement the change.',profile:'main_write',source_sections:ids,inputs:[],outputs:[{name:'changes',kind:'text',values:[],type_ref:''}],tool:'',outcome:'artifact'},
       {key:'validate',instructions:'Run the required checks and preserve the report.',profile:'main_write',source_sections:ids,inputs:[{name:'changes',from:'implement.changes'}],outputs:[{name:'passed',kind:'boolean',values:[],type_ref:''},{name:'report',kind:'text',values:[],type_ref:''}],tool:'',outcome:'validated_artifact',fail_on_false:['passed']},
-      {key:'document',instructions:'Use the verification report to document the checked result and assess completion.',profile:'main_write',source_sections:ids,inputs:[{name:'report',from:'validate.report'}],outputs:[{name:'diff_check_passed',kind:'boolean',values:[],type_ref:''},{name:'completion_report',kind:'text',values:[],type_ref:''}],tool:'',outcome:'artifact',fail_on_false:['diff_check_passed']},
+      {key:'document',instructions:'Use the verification report to document the checked result and assess completion.',profile:'orchestration_write',source_sections:ids,inputs:[{name:'report',from:'validate.report'}],outputs:[{name:'diff_check_passed',kind:'boolean',values:[],type_ref:''},{name:'completion_report',kind:'text',values:[],type_ref:''}],tool:'',outcome:'artifact',fail_on_false:['diff_check_passed']},
     ],approvals:[],sequences:[{key:'delivery',members:['implement','validate','document'],failure_meaning:'all_required'}],parallels:[],choices:[]};
     const forge=()=>new WorkflowForge().compile({pack,resources,blueprint,context:{routing_rules:rules,routing_catalog:providers,providers,roles}});
     const {proposal,compiled}=forge(),workflow=compiled.workflow,terminal=workflow.nodes.find(node=>node.name==='document'),validator=workflow.nodes.find(node=>node.name==='validate');
@@ -1317,7 +1512,11 @@ test('build and skill2workflow fold only a guarded linear Main terminal into Hos
     assert(!workflow.nodes.some(node=>node.id==='final'));
     assert(workflow.edges.some(edge=>edge.source===terminal.id&&edge.target==='end'));
     assert.equal(terminal.input_bindings.report,`/nodes/${validator.id}/output/report`);
-    assert.equal(terminal.input_bindings.task,'/inputs/task');
+    assert.equal(terminal.input_bindings.task,undefined);
+    const explicitTask=structuredClone(blueprint);explicitTask.activities[2].inputs.push({name:'task',from:'input:request'});
+    const explicitWorkflow=new WorkflowForge().compile({pack,resources,blueprint:explicitTask,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow;
+    assert.equal(explicitWorkflow.finalization.node_id,terminal.id);
+    assert.equal(explicitWorkflow.nodes.find(node=>node.id===terminal.id).input_bindings.task,'/inputs/request');
     assert.deepEqual(validator.completion_contract.fail_on_false,['passed']);
     assert.deepEqual(terminal.completion_contract.fail_on_false,['diff_check_passed']);
     assert.deepEqual(terminal.outputs_schema.required.sort(),['completion_report','diff_check_passed'].sort());
@@ -1327,18 +1526,71 @@ test('build and skill2workflow fold only a guarded linear Main terminal into Hos
     assert(!deployed.workflow.nodes.some(node=>node.id==='final'));
     const noEvidence=structuredClone(blueprint);noEvidence.activities[2].inputs=[];
     const retained=new WorkflowForge().compile({pack,resources,blueprint:noEvidence,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow;
-    assert.equal(retained.finalization.node_id,'final');
+    assert.equal(retained.finalization.node_id,terminal.id);
     const noTerminalGuard=structuredClone(blueprint);delete noTerminalGuard.activities[2].fail_on_false;
-    assert.equal(new WorkflowForge().compile({pack,resources,blueprint:noTerminalGuard,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow.finalization.node_id,'final');
+    assert.equal(new WorkflowForge().compile({pack,resources,blueprint:noTerminalGuard,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow.finalization.node_id,terminal.id);
     const noValidationGuard=structuredClone(blueprint);delete noValidationGuard.activities[1].fail_on_false;
-    assert.equal(new WorkflowForge().compile({pack,resources,blueprint:noValidationGuard,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow.finalization.node_id,'final');
+    assert.equal(new WorkflowForge().compile({pack,resources,blueprint:noValidationGuard,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow.finalization.node_id,terminal.id);
     const partialEvidence=structuredClone(blueprint);partialEvidence.activities[1].outputs.push({name:'check_log',kind:'text',values:[],type_ref:''});
-    assert.equal(new WorkflowForge().compile({pack,resources,blueprint:partialEvidence,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow.finalization.node_id,'final');
+    assert.equal(new WorkflowForge().compile({pack,resources,blueprint:partialEvidence,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow.finalization.node_id,terminal.id);
     const workerTerminal=structuredClone(blueprint);workerTerminal.activities[2].profile='worker_write';
     assert.equal(new WorkflowForge().compile({pack,resources,blueprint:workerTerminal,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow.finalization.node_id,'final');
+    const ephemeralProposal=structuredClone(proposal);
+    ephemeralProposal.nodes.find(node=>node.id===terminal.id).main_mode='worker';
+    const ephemeral=compileExpansion(pack,resources,ephemeralProposal,{routing_rules:rules,routing_catalog:providers,providers,roles}).workflow;
+    assert.equal(ephemeral.nodes.find(node=>node.id===terminal.id).executor.mode,'worker');
+    assert.equal(ephemeral.finalization.node_id,'final');
+    const branched=structuredClone(blueprint);
+    const otherCheck={...structuredClone(branched.activities[1]),key:'other_check'};
+    branched.activities.push(otherCheck);
+    for(const item of branched.source_dispositions)item.activity_keys.push('other_check');
+    branched.activities[2].inputs.push({name:'other_report',from:'other_check.report'});
+    branched.sequences[0].members=['implement','checks','document'];
+    branched.parallels=[{key:'checks',members:['validate','other_check'],failure_meaning:'all_required'}];
+    const joined=new WorkflowForge().compile({pack,resources,blueprint:branched,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled;
+    assert.equal(joined.validation.valid,true);
+    assert(joined.workflow.nodes.some(node=>node.type==='join'));
+    const joinedMain=joined.workflow.nodes.find(node=>node.origin?.semantic_key==='document');
+    assert.equal(joined.workflow.finalization.node_id,joinedMain.id);
+    assert(!joined.workflow.nodes.some(node=>node.id==='final'));
     const custom=structuredClone(pack);custom.workflow.nodes.find(node=>node.id==='final').prompt_template+=' Preserve my separate final duty.';
     const customResult=new WorkflowForge().compile({pack:custom,resources,blueprint,context:{routing_rules:rules,routing_catalog:providers,providers,roles}}).compiled.workflow;
     assert.equal(customResult.finalization.node_id,'final');
+  }
+});
+
+test('immediate predecessor authoring contracts migrate both routes with configured policies intact',async t=>{
+  const root=await mkdtemp(join(tmpdir(),'workflow-authoring-predecessor-'));t.after(()=>rm(root,{recursive:true,force:true}));
+  const store=await new WorkflowStore(root).initialize();
+  store.validationContext={providers,roles,host_tools:['read_workflow_resource','authoring-graph-assembly','authoring-execution-binding','authoring-deterministic-validation'],tools:['read_workflow_resource','authoring-graph-assembly','authoring-execution-binding','authoring-deterministic-validation']};
+  const oldPrompts=await import('../lib/authoring/authoring-workflows.mjs');
+  for(const definition of AUTHORING_WORKFLOWS){
+    const previous=createStoredAuthoringWorkflow(definition,{planner:providers[1],reviewer:providers[2],maxRounds:2});
+    previous.authoring.contract='codex-authoring-workflow/v30';
+    previous.nodes.find(node=>node.id==='expand').prompt_template=oldPrompts.AUTHORING_PLANNER_PROMPT_V27+' Preserve my custom requirement.';
+    previous.nodes.find(node=>node.id==='expand').approval.required=true;
+    previous.nodes.find(node=>node.id==='final').prompt_template=oldPrompts.AUTHORING_REVIEW_PROMPT_V22;
+    await seedLegacyReady(store,previous,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:previous.authoring.contract}});
+  }
+  await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
+  for(const definition of AUTHORING_WORKFLOWS){
+    const pack=await store.snapshot(definition.id),planner=pack.workflow.nodes.find(node=>node.id==='expand');
+    assert.equal(pack.workflow.authoring.contract,definition.contract);
+    assert.equal(planner.prompt_template,AUTHORING_PLANNER_PROMPT_CURRENT+' Preserve my custom requirement.');
+    assert.equal(planner.approval.required,true);assert.equal(pack.workflow.authoring.max_rounds,2);
+    assert.equal(pack.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
+    assert.equal(pack.provenance.migration.from_contract,'codex-authoring-workflow/v30');
+  }
+});
+
+test('bundled contract migration rejects future, malformed and foreign revisions',async t=>{
+  for(const contract of ['codex-authoring-workflow/v32','codex-authoring-workflow/v0','codex-authoring-workflow/v030','codex-authoring-workflow/v1.5','other-authoring-workflow/v30']){
+    const root=await mkdtemp(join(tmpdir(),'workflow-authoring-invalid-contract-'));t.after(()=>rm(root,{recursive:true,force:true}));
+    const store=await new WorkflowStore(root).initialize(),definition=AUTHORING_WORKFLOWS[0];
+    const previous=createStoredAuthoringWorkflow(definition,{planner:providers[1],reviewer:providers[2],maxRounds:2});previous.authoring.contract=contract;
+    const original=await seedLegacyReady(store,previous,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:contract}});
+    await assert.rejects(ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules}),{code:'AUTHORING_WORKFLOW_CONTRACT'});
+    assert.equal((await store.snapshot(definition.id)).revision_hash,original.revision_hash);
   }
 });
 
@@ -1356,9 +1608,9 @@ test('v20 bundled authoring prompts upgrade to v27 while custom prompt extension
   await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
   for(const [index,definition] of AUTHORING_WORKFLOWS.entries()){
     const migrated=await store.snapshot(definition.id),planner=migrated.workflow.nodes.find(node=>node.id==='expand'),reviewer=migrated.workflow.nodes.find(node=>node.id==='final');
-    assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v30');
-    assert.equal(planner.prompt_template,index===0?AUTHORING_PLANNER_PROMPT_V27:`${AUTHORING_PLANNER_PROMPT_V27} Keep my custom policy.`);
-    assert.equal(reviewer.prompt_template,AUTHORING_REVIEW_PROMPT_V22);
+    assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v31');
+    assert.equal(planner.prompt_template,index===0?AUTHORING_PLANNER_PROMPT_CURRENT:`${AUTHORING_PLANNER_PROMPT_CURRENT} Keep my custom policy.`);
+    assert.equal(reviewer.prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
   }
 });
 
@@ -1374,9 +1626,9 @@ test('v22 bundled authoring prompts adopt responsibility handoffs while configur
   await seedLegacyReady(store,previous,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:'codex-authoring-workflow/v22'}});
   await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
   const migrated=await store.snapshot(definition.id);
-  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v30');
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_V27);
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_V22);
+  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v31');
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_CURRENT);
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
   assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').approval.required,true);
 });
 
@@ -1391,10 +1643,10 @@ test('v12 bundled authoring Workflows migrate the built-in reviewer prompt witho
   await seedLegacyReady(store,previous,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:'codex-authoring-workflow/v12'}});
   await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
   const migrated=await store.snapshot(definition.id);
-  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v30');
+  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v31');
   assert.equal(migrated.workflow.authoring.max_rounds,2);
   assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').approval.required,true);
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_V22);
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
 });
 
 test('v13 bundled authoring Workflows replace their built-in reviewer wording without changing user slots',async t=>{
@@ -1409,11 +1661,11 @@ test('v13 bundled authoring Workflows replace their built-in reviewer wording wi
   await seedLegacyReady(store,previous,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:'codex-authoring-workflow/v13'}});
   await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
   const migrated=await store.snapshot(definition.id);
-  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v30');
+  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v31');
   assert.equal(migrated.workflow.authoring.max_rounds,2);
   assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').approval.required,true);
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_V27);
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_V22);
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_CURRENT);
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
 });
 
 test('v14 bundled authoring Workflows update both built-in prompts without changing configured slots',async t=>{
@@ -1428,11 +1680,11 @@ test('v14 bundled authoring Workflows update both built-in prompts without chang
   await seedLegacyReady(store,previous,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:'codex-authoring-workflow/v14'}});
   await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
   const migrated=await store.snapshot(definition.id);
-  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v30');
+  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v31');
   assert.equal(migrated.workflow.authoring.max_rounds,2);
   assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').approval.required,true);
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_V27);
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_V22);
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_CURRENT);
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
 });
 
 test('v15 authoring reviewer migrates to the Run-bound Main and runtime-path contract',async t=>{
@@ -1445,10 +1697,10 @@ test('v15 authoring reviewer migrates to the Run-bound Main and runtime-path con
   await seedLegacyReady(store,previous,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:'codex-authoring-workflow/v15'}});
   await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
   const migrated=await store.snapshot(definition.id);
-  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v30');
+  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v31');
   assert.equal(migrated.workflow.authoring.max_rounds,2);
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_V27);
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_V22);
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').prompt_template,AUTHORING_PLANNER_PROMPT_CURRENT);
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
 });
 
 test('v16 authoring reviewer migrates its built-in continuation guidance without changing configured slots',async t=>{
@@ -1462,10 +1714,10 @@ test('v16 authoring reviewer migrates its built-in continuation guidance without
   await seedLegacyReady(store,previous,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:'codex-authoring-workflow/v16'}});
   await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
   const migrated=await store.snapshot(definition.id);
-  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v30');
+  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v31');
   assert.equal(migrated.workflow.authoring.max_rounds,2);
   assert.equal(migrated.workflow.nodes.find(node=>node.id==='expand').approval.required,true);
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_V22);
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
 });
 
 test('v17 authoring reviewer migration aligns semantic-edge evidence with the Host checklist',async t=>{
@@ -1478,8 +1730,8 @@ test('v17 authoring reviewer migration aligns semantic-edge evidence with the Ho
   await seedLegacyReady(store,previous,{provenance:{kind:'bundled_authoring_workflow',authoring_workflow_id:definition.id,builtin_contract:'codex-authoring-workflow/v17'}});
   await ensureStoredAuthoringWorkflows(store,{providers,routingRules:rules});
   const migrated=await store.snapshot(definition.id);
-  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v30');
-  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_V22);
+  assert.equal(migrated.workflow.authoring.contract,'codex-authoring-workflow/v31');
+  assert.equal(migrated.workflow.nodes.find(node=>node.id==='final').prompt_template,AUTHORING_REVIEW_PROMPT_CURRENT);
 });
 
 test('portable Workflow package validates content identity and installs atomically',async t=>{
@@ -1544,9 +1796,9 @@ test('shared authoring compiler preserves explicit orchestration and worker cont
   const worker=forged.compiled.workflow.nodes.find(node=>node.origin?.semantic_key==='inspect');
   assert.deepEqual(orchestration.executor,{kind:'main',mode:'orchestration'});
   assert.equal(forged.compiled.workflow.skill_policy.mode,'cooperative');
-  assert.equal(worker.executor.kind,'main');assert.notEqual(worker.executor.mode,'orchestration');
+  assert.equal(worker.executor.kind,'provider');assert.equal(worker.executor.mode,undefined);
   assert.equal(worker.input_bindings.result,`/nodes/${orchestration.id}/output/result`);
   const fixed=new WorkflowForge().compile({pack,resources,blueprint,context:{routing_rules:{...rules,selection_mode:'fixed'},routing_catalog:providers,providers,roles}});
   assert.deepEqual(fixed.compiled.workflow.nodes.find(node=>node.origin?.semantic_key==='integrate').executor,{kind:'main',mode:'orchestration'});
-  assert.deepEqual(fixed.compiled.workflow.nodes.find(node=>node.origin?.semantic_key==='inspect').executor,{kind:'main',mode:'worker'});
+  assert.deepEqual(fixed.compiled.workflow.nodes.find(node=>node.origin?.semantic_key==='inspect').executor,{kind:'provider',provider_id:'native-luna'});
 });

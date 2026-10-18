@@ -63,7 +63,10 @@ recovery rules at the user-visible seam. Keep reproduction/root-cause ownership
 here; a proposed manual check is not executed evidence.
 
 1. Read the complete error/stack and record inputs, environment, versions, and
-   success criteria.
+   success criteria. Reproduce the user's failed outcome on the correct object,
+   through final delivery; successful parsing or green internal checks may hide
+   the failure. Verify the repaired behavior and a relevant neighboring case,
+   not a hardcoded example. Read-only diagnosis does not authorize repair.
 2. Reproduce consistently. If unstable, read
    `feedback-loop-construction.md` **only when evidence shows intermittent or
    timing-dependent reproduction** and build a bounded loop. Shrink the repro

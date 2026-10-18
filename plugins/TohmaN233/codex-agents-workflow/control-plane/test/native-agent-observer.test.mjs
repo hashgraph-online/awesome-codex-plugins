@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,writeFile,appendFile,rm,rename,symlink} from 'node:fs/promises';
+import {mkdtemp,mkdir,writeFile,appendFile,rm,rename,symlink,readFile,watch} from 'node:fs/promises';
+import {writeFileSync} from 'node:fs';
 import {join,resolve} from 'node:path';
 import {tmpdir} from './physical-tempdir.mjs';
 import {spawnSync} from 'node:child_process';
@@ -20,6 +21,54 @@ const parentId='01a0db25-ad92-72a0-b6fa-2519a6cfa2f8',childId='01a0db6b-704a-747
 const listedChild=(id=childId,parent=parentId,path=agentPath)=>({id,parentThreadId:parent,
   source:{subAgent:{thread_spawn:{parent_thread_id:parent,agent_path:path}}}});
 const logRow=(type,payload)=>JSON.stringify({timestamp:'2026-09-26T02:24:37.658Z',type,payload})+'\n';
+
+test('nonterminal journal progress does not repeat SDK group scans',async t=>{
+  const f=await lifecycleFixture(t);let terminal=false,reads=0,wakes=0;
+  const client={async call(method){if(method==='thread/read'){reads++;return {thread:f.thread};}
+    return {data:[{id:f.turnId,status:terminal?'completed':'interrupted',itemsView:terminal?'full':'summary',items:terminal?[{type:'agentMessage',phase:'final_answer',text:'{"outcome":"completed","result":{"done":true}}'}]:[]}]};}};
+  const result=await inspectNativeAgents(client,[childId],{parentThreadId:parentId,lifecycleHome:f.home,waitForTerminal:true,
+    waitForChange:async()=>{wakes++;if(wakes<=5)await appendFile(f.path,logRow('event_msg',{type:'token_count'}));
+      else{terminal=true;await appendFile(f.path,logRow('event_msg',{type:'task_complete',turn_id:f.turnId}));}
+      return {filename:'rollout-'+childId+'.jsonl',event_type:'change'};}});
+  assert.equal(result.status,'completed');assert.equal(wakes,6);assert(reads<=3,`Progress caused ${reads} repeated SDK scans`);
+});
+
+test('quiet child wait observes a Run journal authority fence',async t=>{
+  const f=await lifecycleFixture(t),runJournal=join(f.home,'run-events.jsonl');await writeFile(runJournal,'initial\n');let active=true;
+  const client={async call(method){if(method==='thread/read')return {thread:f.thread};return {data:[{id:f.turnId,status:'interrupted',itemsView:'summary',items:[]}]};}};
+  const pending=inspectNativeAgents(client,[childId],{parentThreadId:parentId,lifecycleHome:f.home,waitForTerminal:true,waitTimeoutMs:1000,
+    runJournalPath:runJournal,checkActive:async()=>{if(!active)throw Object.assign(new Error('Exact authority fenced'),{code:'NATIVE_AGENT_ATTEMPT_CHANGED'});}});
+  const timer=setTimeout(async()=>{active=false;await appendFile(runJournal,'fenced\n');},30);
+  try{await assert.rejects(pending,{code:'NATIVE_AGENT_ATTEMPT_CHANGED'});}finally{clearTimeout(timer);}
+});
+
+for(const fence of ['cancel','controller','lease'])test(`armed quiet Run journal race rechecks ${fence} authority`,async t=>{
+  const f=await lifecycleFixture(t),runJournal=join(f.home,'run-events.jsonl');await writeFile(runJournal,'active');
+  let armed=false,aborted=false,reads=0;
+  const client={async call(method){if(method==='thread/read'){reads++;return {thread:f.thread};}
+    return {data:[{id:f.turnId,status:'interrupted',itemsView:'summary',items:[]}]};}};
+  await assert.rejects(inspectNativeAgents(client,[childId],{parentThreadId:parentId,lifecycleHome:f.home,
+    runJournalPath:runJournal,waitForTerminal:true,waitTimeoutMs:120,
+    checkActive:async()=>{if(await readFile(runJournal,'utf8')!=='active')throw Object.assign(new Error(`Exact ${fence} fence`),{code:'NATIVE_AGENT_ATTEMPT_CHANGED'});},
+    waitForChange:options=>{
+      options.signal.addEventListener('abort',()=>{aborted=true;},{once:true});
+      return waitForNativeSessionEvent({...options,watchImpl:(target,config)=>{
+        // Durable commit occurs after the last pre-arm authority read but
+        // before either watcher can observe its notification.
+        if(!armed){armed=true;writeFileSync(runJournal,fence);}
+        return watch(target,config);
+      }});
+    }}),{code:'NATIVE_AGENT_ATTEMPT_CHANGED'});
+  assert.equal(armed,true);assert.equal(aborted,true);assert.equal(reads,1,'Run fence must not trigger an SDK group sweep');
+});
+
+test('native amendment observation preserves exact edits only in Host-authorized repair mode',async()=>{
+  const amendment={amendments:[{field:'summary',start_line:1,end_line:1,replacement:'new'}]};
+  const client={async call(method){return method==='thread/read'?{thread:{id:'child-1'}}:page('completed',JSON.stringify(amendment));}};
+  const observed=await inspectNativeAgent(client,'child-1',{textAmendment:true});
+  assert.equal(observed.status,'amendment');assert.deepEqual(observed.amendment,amendment);
+  assert.equal((await inspectNativeAgent(client,'child-1')).status,'invalid');
+});
 
 test('exact captured bare semantic final is accepted only under its strict declared schema',async()=>{
   const source={implementation_plan:'Inspect the pinned requirements once, implement the requested changes, and report concise evidence.',
@@ -79,6 +128,87 @@ test('foreign App Server interrupted projection stays pending until the exact ow
   assert.equal(events[0].code,'NATIVE_AGENT_TERMINAL_UNCONFIRMED');
   await appendFile(f.path,logRow('event_msg',{type:'turn_aborted',turn_id:f.turnId,reason:'interrupted'}));
   assert.equal((await inspectNativeAgent(client,childId,{parentThreadId:parentId,lifecycleHome:f.home})).status,'blocked');
+});
+
+test('upstream fork lifecycle excludes the explicit inherited ordinal prefix and accepts only owned turns',async t=>{
+  const f=await lifecycleFixture(t),parentTurn='inherited-parent-turn',args={thread:{...f.thread,forkedFromId:parentId},agentId:agentPath,parentThreadId:parentId};
+  const owner={...f.meta,forked_from_id:parentId,subagent_history_start_ordinal:3};
+  await writeFile(f.path,logRow('session_meta',owner)+logRow('session_meta',{id:parentId,source:'vscode'})
+    +logRow('event_msg',{type:'task_started',turn_id:parentTurn})+logRow('event_msg',{type:'task_complete',turn_id:parentTurn}));
+  const reader=createNativeLifecycleReader({home:f.home});
+  assert.equal((await reader(args)).turn_id,null,'A completed copied parent turn must never establish child termination');
+  await appendFile(f.path,logRow('event_msg',{type:'task_started',turn_id:f.turnId}));
+  assert.equal((await reader(args)).status,'pending');
+  await appendFile(f.path,logRow('event_msg',{type:'task_complete',turn_id:f.turnId}));
+  assert.equal((await reader(args)).turn_id,f.turnId);assert.equal((await reader(args)).status,'completed');
+  await appendFile(f.path,logRow('event_msg',{type:'task_started',turn_id:'owned-correction'})+logRow('event_msg',{type:'task_complete',turn_id:'owned-correction'}));
+  assert.equal((await reader(args)).turn_id,'owned-correction');
+});
+
+test('upstream fork lifecycle rejects forged boundaries, parents and copied or repeated metadata',async t=>{
+  const f=await lifecycleFixture(t),owner={...f.meta,forked_from_id:parentId,subagent_history_start_ordinal:3},parent={id:parentId,source:'vscode'},
+    args={thread:{...f.thread,forkedFromId:parentId},agentId:agentPath,parentThreadId:parentId};
+  const prefix=[parent,{type:'task_started',turn_id:'copied-parent'},{type:'task_complete',turn_id:'copied-parent'}];
+  const rows=(header=owner,ancestor=parent)=>logRow('session_meta',header)+logRow('session_meta',ancestor)
+    +logRow('event_msg',prefix[1])+logRow('event_msg',prefix[2])+logRow('event_msg',{type:'task_started',turn_id:f.turnId})+logRow('event_msg',{type:'task_complete',turn_id:f.turnId});
+  for(const ordinal of [-1,1.5,'3',null]){
+    await writeFile(f.path,rows({...owner,subagent_history_start_ordinal:ordinal}));
+    await assert.rejects(createNativeLifecycleReader({home:f.home})(args),{code:'NATIVE_AGENT_LIFECYCLE_BOUNDARY'});
+  }
+  for(const ordinal of [2,4]){
+    await writeFile(f.path,rows({...owner,subagent_history_start_ordinal:ordinal}));
+    await assert.rejects(createNativeLifecycleReader({home:f.home})(args),{code:'NATIVE_AGENT_LIFECYCLE_SCHEMA'});
+  }
+  await writeFile(f.path,rows({...owner,forked_from_id:childId}));
+  await assert.rejects(createNativeLifecycleReader({home:f.home})(args),{code:'NATIVE_AGENT_LIFECYCLE_BOUNDARY'});
+  await writeFile(f.path,rows());
+  await assert.rejects(createNativeLifecycleReader({home:f.home})({...args,thread:{...args.thread,forkedFromId:childId}}),{code:'NATIVE_AGENT_LIFECYCLE_BOUNDARY'});
+  for(const ancestor of [{...parent,id:'foreign-ancestor'},{...parent,agent_path:'/root/foreign'},owner]){
+    await writeFile(f.path,rows(owner,ancestor));
+    await assert.rejects(createNativeLifecycleReader({home:f.home})(args),{code:'NATIVE_AGENT_LIFECYCLE_IDENTITY'});
+  }
+  await writeFile(f.path,rows(owner,{...parent,forked_from_id:'unsupported-fork'}));
+  await assert.rejects(createNativeLifecycleReader({home:f.home})(args),{code:'NATIVE_AGENT_LIFECYCLE_IDENTITY'});
+  const withoutBoundary={...owner};delete withoutBoundary.subagent_history_start_ordinal;
+  await writeFile(f.path,rows(withoutBoundary));
+  await assert.rejects(createNativeLifecycleReader({home:f.home})(args),{code:'NATIVE_AGENT_LIFECYCLE_BOUNDARY'});
+  await writeFile(f.path,rows()+logRow('session_meta',parent));
+  await assert.rejects(createNativeLifecycleReader({home:f.home})(args),{code:'NATIVE_AGENT_LIFECYCLE_IDENTITY'});
+  await writeFile(f.path,rows()+logRow('session_meta',owner));
+  await assert.rejects(createNativeLifecycleReader({home:f.home})(args),{code:'NATIVE_AGENT_LIFECYCLE_IDENTITY'});
+});
+
+test('upstream fork lifecycle validates a nested copied ancestor chain inside its typed prefix',async t=>{
+  const f=await lifecycleFixture(t),path='/root/nested/page',grand='01a0db25-ad92-72a0-b6fa-2519a6cfa2f9';
+  const owner={...f.meta,agent_path:path,forked_from_id:parentId,subagent_history_start_ordinal:4,
+    source:{subagent:{thread_spawn:{parent_thread_id:parentId,agent_path:path}}}};
+  const parent={id:parentId,parent_thread_id:grand,agent_path:'/root/nested',forked_from_id:grand,
+    source:{subagent:{thread_spawn:{parent_thread_id:grand,agent_path:'/root/nested'}}}};
+  await writeFile(f.path,logRow('session_meta',owner)+logRow('session_meta',parent)+logRow('session_meta',{id:grand,source:'vscode'})
+    +logRow('event_msg',{type:'task_started',turn_id:'nested-parent'})+logRow('event_msg',{type:'task_complete',turn_id:'nested-parent'})
+    +logRow('event_msg',{type:'task_started',turn_id:f.turnId})+logRow('event_msg',{type:'task_complete',turn_id:f.turnId}));
+  const result=await createNativeLifecycleReader({home:f.home})({thread:{...f.thread,forkedFromId:parentId},agentId:path,parentThreadId:parentId});
+  assert.equal(result.status,'completed');assert.equal(result.turn_id,f.turnId);assert.equal(result.inherited_records,4);
+});
+
+test('upstream fork ordinals count skipped large inherited records exactly across partial reads',async t=>{
+  const f=await lifecycleFixture(t),args={thread:{...f.thread,forkedFromId:parentId},agentId:agentPath,parentThreadId:parentId};
+  const large=logRow('response_item',{text:'PRIVATE_INHERITED_CONTENT_'.repeat(10000)});
+  await writeFile(f.path,logRow('session_meta',{...f.meta,forked_from_id:parentId,subagent_history_start_ordinal:2})+logRow('session_meta',{id:parentId,source:'vscode'})+large.slice(0,-4));
+  const reader=createNativeLifecycleReader({home:f.home,maxLineBytes:1024});const pending=await reader(args);
+  assert.equal(pending.status,'pending');assert.equal(pending.turn_id,null);assert.equal(pending.retained_bytes,0);
+  await appendFile(f.path,large.slice(-4)+logRow('event_msg',{type:'task_started',turn_id:f.turnId})+logRow('event_msg',{type:'task_complete',turn_id:f.turnId}));
+  const completed=await reader(args);assert.equal(completed.status,'completed');assert.equal(completed.turn_id,f.turnId);assert.equal(completed.inherited_records,2);
+});
+
+test('upstream fork observer accepts the exact owned SDK turn and never a copied parent completion',async t=>{
+  const f=await lifecycleFixture(t),thread={...f.thread,forkedFromId:parentId},copied='copied-completed-parent';
+  await writeFile(f.path,logRow('session_meta',{...f.meta,forked_from_id:parentId,subagent_history_start_ordinal:3})+logRow('session_meta',{id:parentId,source:'vscode'})
+    +logRow('event_msg',{type:'task_started',turn_id:copied})+logRow('event_msg',{type:'task_complete',turn_id:copied}));
+  let sdkTurn=copied;const client={async call(method){return method==='thread/read'?{thread}:{data:[{id:sdkTurn,status:'completed',itemsView:'full',items:[{type:'agentMessage',phase:'final_answer',text:'{"outcome":"completed","result":{"summary":"neutral owned proposal"}}'}]}]};}};
+  assert.equal((await inspectNativeAgent(client,childId,{parentThreadId:parentId,lifecycleHome:f.home})).status,'pending');
+  await appendFile(f.path,logRow('event_msg',{type:'task_started',turn_id:f.turnId})+logRow('event_msg',{type:'task_complete',turn_id:f.turnId}));sdkTurn=f.turnId;
+  const accepted=await inspectNativeAgent(client,childId,{parentThreadId:parentId,lifecycleHome:f.home});assert.equal(accepted.status,'completed');assert.equal(accepted.turn_id,f.turnId);
 });
 
 test('one-shot native inspection returns a running child without polling',async()=>{
@@ -428,4 +558,20 @@ test('Host rechecks authority after an in-flight observation before releasing a 
   await assert.rejects(inspectNativeAgents(client,['child-1'],{checkActive:async()=>{
     if(!active)throw Object.assign(new Error('Run cancelled'),{code:'NATIVE_AGENT_ATTEMPT_CHANGED'});
   }}),{code:'NATIVE_AGENT_ATTEMPT_CHANGED'});
+});
+
+test('armed native watcher is cancelled when the race recheck fails',async()=>{
+ let lifecycleReads=0,aborted=false;
+ const client={call:async method=>method==='thread/read'?thread('child-1'):page('inProgress','')};
+ await assert.rejects(inspectNativeAgents(client,['child-1'],{waitForTerminal:true,
+  readLifecycle:async()=>{if(++lifecycleReads>1)throw Object.assign(new Error('Exact lifecycle corrupt'),{code:'NATIVE_AGENT_LIFECYCLE_SCHEMA'});return {status:'pending',turn_id:'turn-1'};},
+  waitForChange:async({signal})=>new Promise((_resolve,reject)=>{signal.addEventListener('abort',()=>{aborted=true;reject(signal.reason);},{once:true});})}),{code:'NATIVE_AGENT_LIFECYCLE_SCHEMA'});
+ assert.equal(aborted,true);
+});
+test('pending progress retains the original deadline across notifications',async()=>{
+ const timeouts=[];let turn='turn-1';
+ const client={call:async method=>method==='thread/read'?thread('child-1'):{data:[{id:turn,status:'inProgress',itemsView:'summary',items:[]}]}};
+ await assert.rejects(inspectNativeAgents(client,['child-1'],{waitForTerminal:true,waitTimeoutMs:55,
+  waitForChange:async({timeoutMs})=>{timeouts.push(timeoutMs);await new Promise(resolve=>setTimeout(resolve,20));turn='next-'+timeouts.length;}}),{code:'NATIVE_AGENT_WAIT_TIMEOUT'});
+ assert(timeouts.length>=2);assert(timeouts[1]<timeouts[0]);
 });
