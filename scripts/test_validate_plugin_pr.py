@@ -16,6 +16,13 @@ SPEC.loader.exec_module(VALIDATOR)
 
 
 class ReadmeEntryRegexTests(unittest.TestCase):
+    def parse_new_entries(self, diff: str, base_readme: str, current_readme: str):
+        with (
+            patch.object(VALIDATOR, "git", side_effect=(diff, base_readme)),
+            patch.object(Path, "read_text", return_value=current_readme),
+        ):
+            return VALIDATOR.get_new_readme_entries("origin/main")
+
     def test_repository_urls_preserve_owner_repo_and_description_groups(self) -> None:
         for suffix in (
             "",
@@ -44,10 +51,16 @@ class ReadmeEntryRegexTests(unittest.TestCase):
                 "+- [Example](https://github.com/example/plugin/?tab=readme) - Existing entry.",
             )
         )
-        base_readme = "- [Example](https://github.com/example/plugin?tab=readme) - Existing entry."
+        base_readme = (
+            "## Community Plugins\n"
+            "- [Example](https://github.com/example/plugin?tab=readme) - Existing entry."
+        )
+        current_readme = (
+            "## Community Plugins\n"
+            "- [Example](https://github.com/example/plugin/?tab=readme) - Existing entry."
+        )
 
-        with patch.object(VALIDATOR, "git", side_effect=(diff, base_readme)):
-            entries = VALIDATOR.get_new_readme_entries("origin/main")
+        entries = self.parse_new_entries(diff, base_readme, current_readme)
 
         self.assertEqual(entries, [])
 
@@ -60,13 +73,19 @@ class ReadmeEntryRegexTests(unittest.TestCase):
             )
         )
 
-        with patch.object(VALIDATOR, "git", side_effect=(diff, "")):
-            entries = VALIDATOR.get_new_readme_entries("origin/main")
+        current_readme = (
+            "## Community Plugins\n"
+            "### Development & Workflow\n"
+            "- [Example](https://github.com/example/plugin?tab=readme) - First entry.\n"
+            "- [Example](https://github.com/example/plugin/?tab=readme) - Duplicate entry."
+        )
+        entries = self.parse_new_entries(diff, "", current_readme)
 
         self.assertEqual(len(entries), 1)
 
     def test_tree_ref_and_subpath_case_are_preserved(self) -> None:
         base_readme = (
+            "## Community Plugins\n"
             "- [Example](https://github.com/example/plugin/tree/Main/Plugins/Foo) "
             "- Existing entry."
         )
@@ -79,10 +98,33 @@ class ReadmeEntryRegexTests(unittest.TestCase):
             )
         )
 
-        with patch.object(VALIDATOR, "git", side_effect=(diff, base_readme)):
-            entries = VALIDATOR.get_new_readme_entries("origin/main")
+        current_readme = (
+            "## Community Plugins\n"
+            "- [Example](https://github.com/example/plugin/tree/main/plugins/foo) "
+            "- Updated entry."
+        )
+        entries = self.parse_new_entries(diff, base_readme, current_readme)
 
         self.assertEqual(len(entries), 1)
+
+    def test_related_project_links_are_not_plugin_submissions(self) -> None:
+        diff = "\n".join(
+            (
+                "diff --git a/README.md b/README.md",
+                "+- [Koto](https://github.com/mehrdadxzaker/Koto) - Related project.",
+            )
+        )
+        current_readme = (
+            "## Community Plugins\n"
+            "### Development & Workflow\n"
+            "- [Existing](https://github.com/example/plugin) - Plugin.\n"
+            "## Related Projects\n"
+            "- [Koto](https://github.com/mehrdadxzaker/Koto) - Related project."
+        )
+
+        entries = self.parse_new_entries(diff, "", current_readme)
+
+        self.assertEqual(entries, [])
 
 
 if __name__ == "__main__":
