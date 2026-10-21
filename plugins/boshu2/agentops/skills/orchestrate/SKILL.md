@@ -160,7 +160,7 @@ authorizes delivery nor establishes acceptance. For Gas City, follow
 When reporting coordination state, return:
 
 ```text
-assignments: <worker/context id> -> <task>, state as observed (how)
+assignments: <worker/context id> -> <task>, state as observed (how); last activity <time, kind> | unobserved
 candidates:  <task> -> <exact ref>; checks <result>; judgment <ref | owed | not owed>
 next:        <free capacity> -> <dispatch>, because <observed bottleneck>
 held:        <task>, blocked by <prerequisite gap>

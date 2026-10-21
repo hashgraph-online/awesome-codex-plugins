@@ -1,0 +1,7 @@
+interface:
+  display_name: "Usage Engineer"
+  short_description: "Stop paying for wasted tokens"
+  brand_color: "#0F766E"
+  default_prompt: "Use $usage-engineer to show me where my Codex usage went this week."
+policy:
+  allow_implicit_invocation: true

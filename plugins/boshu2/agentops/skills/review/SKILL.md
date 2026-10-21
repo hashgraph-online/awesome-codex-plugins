@@ -63,10 +63,30 @@ Shared routing and handoff rules: [advice or acceptance](references/advice-or-ac
 
 ## Advisory examination
 
-1. Fix the question and the exact subject from the request and current sources;
-   recover settled choices before asking for missing intent.
+1. Fix the question and exact subject from the request and current sources;
+   recover settled choices before asking for missing intent. For a branch review,
+   identify the intended base and inspect its merge-base diff; for uncommitted or
+   whole-code review, inspect the requested subject instead. An empty branch diff
+   limits change-specific advice, not an explicitly requested whole-code review.
+   Compare changed behavior with its originating request for missing, wrong or
+   unrequested outcomes. Cite that request; if unavailable, disclose the gap.
+   Distinguish those concerns from breaches of written repository rules, citing
+   the rule for each. Reuse applicable tooling results instead of restating its
+   findings; missing results stay unknown. Generic preferences remain optional.
 2. Trace each concern to a concrete source or observable example, and seek
-   contrary evidence before recommending a change.
+   contrary evidence before recommending a change. Read the handling path
+   before calling an error swallowed or a retry safe; a wrapper may translate
+   the failure, and a timeout may follow a completed write. For a changed public
+   failure path, consult [error recovery](../test/references/error-recovery.md)
+   only when its signal or next action is in doubt. Cite the caller and handler
+   that establish the consequence; a suspicious line alone is a hypothesis.
+   When a signature, result or behavior changes, find and read callers it could
+   break; name relevant uninspected callers as gaps. For a capacity or growth
+   concern, state expected workload and its source before claiming failure at
+   scale. Unknown load leaves that claim conditional. A documented shortcut's
+   limit helps judge capacity; it does not excuse wrong results, an authorization
+   bypass or another acceptance failure even at low load. Shared code alone is
+   not a defect: connect the finding to a reachable broken promise.
 3. Use read-only inspection and checks that preserve the subject. A mutating
    check needs an authorized disposable copy. Do not repair the candidate during
    Review. Unavailable execution stays a disclosed gap, not a passing result or
@@ -75,7 +95,7 @@ Shared routing and handoff rules: [advice or acceptance](references/advice-or-ac
 
    ```text
    Findings
-   1. <file:line or section> - <defect or risk> - <consequence> - <suggestion or next check>
+   1. <file:line or section> - <defect or risk> - <consequence> - <suggestion or next check>; basis: <request | written rule | other evidence>
    Inspected: <what was read or run>. Not inspected: <paths, callers, environments that matter>
    Gaps: <assumptions or missing evidence that could change the advice>
    Advice only; acceptance needs <the fresh check>, if the caller needs it.

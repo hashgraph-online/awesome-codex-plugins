@@ -1,7 +1,7 @@
 {
   "name": "session-orchestrator",
-  "version": "5.12.0",
-  "description": "Your coding agents get an agreed plan, a check after each round of changes and a handover to the next session. Plan, Go, Close: /session reads your repo and agrees the scope, /go runs the work in waves with your tests and typecheck after each implementation wave, /close runs the full gate, verifies, commits and files the rest as issues. Scope and destructive-command guards, crash-safe resume, learnings you approve. For Claude Code, Codex CLI, Cursor and Pi.",
+  "version": "5.13.0",
+  "description": "Your coding agents get an agreed plan, a check after each round of changes and a handover to the next session. For Claude Code, Codex CLI, Cursor and Pi.",
   "type": "module",
   "homepage": "https://session-orchestrator.com",
   "keywords": [

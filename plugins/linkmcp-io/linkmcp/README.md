@@ -48,14 +48,14 @@ Then run `/mcp` in Claude Code, select `linkmcp` and choose **Authenticate**.
 
 ### ChatGPT
 
-Developer mode needs ChatGPT Plus, Pro, Business, Enterprise or Edu (not Free), on the web.
+Add LinkMCP in ChatGPT on the web, in **Plugins**. We saw **Add custom MCP server** on ChatGPT Plus (2026-10-21); OpenAI's help page also names Business and Enterprise/Edu.
 
-1. Open **Settings > Security and login** and turn on **Developer mode**.
-2. Go to [chatgpt.com/plugins](https://chatgpt.com/plugins), click **+**, name it `LinkMCP` and paste `https://app.linkmcp.io/api/mcp?ref=github`.
-3. Create the connection and approve the sign-in window.
-4. In a new chat, click **+ > Developer mode** and turn on LinkMCP.
+1. Open [chatgpt.com/plugins](https://chatgpt.com/plugins), click **Add** and choose **Add custom MCP server**.
+2. Name it `LinkMCP`, choose **Server URL**, paste `https://app.linkmcp.io/api/mcp?ref=github` and leave Authentication on **OAuth**.
+3. Tick **I understand and want to continue**, click **Create** and sign in to LinkMCP in the window that opens.
+4. In a chat, type **@** and choose LinkMCP.
 
-A workspace admin can turn Developer mode off for a Business or Enterprise workspace.
+On a Business workspace, only admins and owners can add a custom MCP server; on Enterprise and Edu, admins decide who can.
 
 ### Codex
 
@@ -293,7 +293,7 @@ As with any tool that acts on LinkedIn for you, a restriction cannot be ruled ou
 
 **Do I need Sales Navigator?** No. LinkMCP works with a normal LinkedIn account. If you have a Sales Navigator seat, the Sales Navigator search tool uses it.
 
-**Which AI clients work?** Every client that supports remote MCP servers: Claude (web, desktop, Claude Code), ChatGPT (Developer mode), Codex, Cursor, Gemini CLI, VS Code, Windsurf, n8n, Make and Zapier.
+**Which AI clients work?** Every client that supports remote MCP servers: Claude (web, desktop, Claude Code), ChatGPT (custom MCP server in Plugins), Codex, Cursor, Gemini CLI, VS Code, Windsurf, n8n, Make and Zapier.
 
 ---
 

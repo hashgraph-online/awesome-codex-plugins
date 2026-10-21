@@ -12,7 +12,7 @@ SPEC.loader.exec_module(MODULE)
 
 
 class BranchAwareValidationTests(unittest.TestCase):
-    def test_readme_branch_link_extracts_repository_and_normalizes_identity(self):
+    def test_readme_source_ref_link_extracts_repository_and_normalizes_identity(self):
         match = MODULE.README_ENTRY_RE.match(
             "- [WTFM](https://github.com/SupportPages-io/wtfm/tree/codex-plugin) - Published bundle."
         )
@@ -47,10 +47,10 @@ class BranchAwareValidationTests(unittest.TestCase):
 
         self.assertEqual(
             urlopen.call_args.args[0].full_url,
-            "https://github.com/SupportPages-io/wtfm/archive/codex-plugin.zip",
+            "https://github.com/SupportPages-io/wtfm/archive/refs/heads/codex-plugin.zip",
         )
 
-    def test_new_readme_entry_preserves_branch_for_validation(self):
+    def test_new_readme_entry_preserves_source_ref_for_validation(self):
         entry_line = (
             "- [WTFM](https://github.com/SupportPages-io/wtfm/tree/codex-plugin) "
             "- Published installable bundle."
@@ -68,7 +68,7 @@ class BranchAwareValidationTests(unittest.TestCase):
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0]["owner"], "SupportPages-io")
         self.assertEqual(entries[0]["repo"], "wtfm")
-        self.assertEqual(entries[0]["branch"], "codex-plugin")
+        self.assertEqual(entries[0]["source_ref"], "codex-plugin")
         self.assertEqual(entries[0]["description"], "Published installable bundle.")
 
 

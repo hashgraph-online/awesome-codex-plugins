@@ -20,6 +20,21 @@ irrelevant to the requested outcome or authorize ignoring a required check.
 If the symptom cannot be reproduced, report the observed evidence and missing
 condition; a plausible explanation is still an untested prediction.
 
+## A process hangs, spins or crashes
+
+Before restarting or adding instrumentation, preserve the smallest authorized
+live observation that can distinguish the suspected cause: relevant task or
+thread stacks and their waits, for example. Prefer a low-impact capture on the
+subject under test. Attaching can pause a process; a runtime or core dump can
+expose credentials and private data. Live attachment, pausing or broad dumps
+require applicable authority and an approved private destination. Do not publish
+raw state in a handoff or capture more merely because a tool permits it.
+
+Use the observed wait or execution relationship to make one causal prediction,
+then test it through the relevant experiment below. Respect authorized urgent
+containment; do not delay it to obtain a perfect capture. If observation is
+unavailable, report what could not be preserved and leave the cause unproven.
+
 ## Intermittent verdicts
 
 Name the variable the causal prediction depends on: for example, random seed,

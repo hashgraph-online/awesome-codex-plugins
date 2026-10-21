@@ -51,6 +51,16 @@ owns source changes and factual checks; the runtime derives identity and receipt
   you did not or could not run as not run. Never call unrun work verified,
   fixed or green.
 
+When changing a public failure path, preserve its native failure signal and
+check that its recovery advice matches any work already performed. For uncertain
+write outcomes or unattended callers, use only the relevant checks in
+[Test's error recovery method](../test/references/error-recovery.md).
+
+For an accepted bounded shortcut, review feedback, an authorized commit,
+dependency upgrade, removal, blocked operation or your own uncertain write,
+use only the matching [change safety method](references/change-safety.md).
+These methods preserve existing authority; they grant no new operation.
+
 For authorized service operations, load only the relevant procedure from
 [operations methods](references/operations.md) (reliability, delivery, incident
 recovery, resilience, toil); ordinary edits owe no operations phase.
@@ -114,8 +124,11 @@ gaps:      <missing or truncated evidence, known failures, scope amendments need
 ```
 
 Report an uncovered live consumer for a caller scope amendment and continue
-independent authorized work. Generated companions already included as scope
-require no new approval. Acceptance changes always require caller authority.
+independent authorized work. Disclose a reversible implementation choice only
+when its alternative has a material consequence the caller may want to change;
+name the choice, alternative and reason in the handoff, without a fixed worksheet.
+A change to accepted direction or behavior still needs caller authority.
+Generated companions already included as scope require no new approval. Acceptance changes always require caller authority.
 
 ## Diagnosis, scaffolding and delegated work
 
@@ -123,8 +136,8 @@ For an unexplained failure, first match the reported symptom and reduce the
 reproduction. State one causal prediction, test it with a discriminating check,
 and repair the cause supported by the result. Rerun the original scenario.
 Do not keep collecting hypotheses after the cause is understood. For intermittent
-verdicts, leaked test state or suspected races, use only the matching experiment
-in [difficult failures](references/difficult-failures.md). This compact
+verdicts, leaked test state, suspected races or a hung/crashed process, use
+only the matching experiment in [difficult failures](references/difficult-failures.md). This compact
 diagnosis path is informed by
 [Matt Pocock's engineering skills](https://github.com/mattpocock/skills).
 

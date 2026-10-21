@@ -29,6 +29,30 @@ new tests are needed, [Test](../../test/SKILL.md) owns test design; its
 [real-service reference](../../test/references/real-service-e2e.md) covers checks
 whose failure crosses a service boundary.
 
+## A latency or freshness alert may have the wrong boundary
+
+Before changing a timeout, monitor or pipeline, measure the named operation or
+resource from the alert under relevant conditions. An aggregate run can hide
+which member is late. Inspect the effective setting at the failing call site,
+including overrides; a helper default may never govern that request.
+
+Compare the observation with the caller's actual service threshold and the
+monitor's notification rule. A maintenance action may legitimately start before
+user harm warrants notification. Establish both policies before calling their
+difference a defect; neither a monitor nor a health command automatically owns
+the service promise. Preserve an agreed early-warning requirement.
+
+Distinguish elapsed time from progress. A slow operation still advancing, a
+blocked operation and a healthy operation reported late by a stale monitor need
+different repairs. For example, if a refresh completes within its effective
+budget while the page fires below the accepted freshness limit, investigate the
+notification condition before extending the budget. If the resource actually
+exceeds that limit, quieting the alert does not repair the service.
+
+Carry the measured target, duration or freshness, effective setting location,
+progress evidence and policy comparison in the existing handoff. Missing access
+leaves the causal claim unproven; it does not justify a speculative rewrite.
+
 ## Delivery: use representative evidence before expanding
 
 Confirm the candidate, target environment and permitted rollout extent against

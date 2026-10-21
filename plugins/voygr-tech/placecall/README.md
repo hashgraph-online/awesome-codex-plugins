@@ -398,7 +398,9 @@ If you previously installed a phone-call skill from someone else (e.g.
   2,500.
 - After a call reaches `completed`, the outcome and transcript can fill in a
   moment after the status flips, so poll `GET /calls/{id}` until
-  `outcome_type` is non-null.
+  `outcome_type` is non-null. For a minute or two after that, a check of the
+  call recording can still add marks to the transcript. The transcript is
+  complete once `transcript_status` reads `final`.
 - 13 language codes accepted (`en`, `es`, `fr`, `de`, `hi`, `ru`, `pt`, `ja`,
   `it`, `nl`, `sr`, `tr`, `pl`) plus `auto` (the default: the call runs in
   English and does not switch mid-call; send `es` for a call in Spanish).
@@ -424,9 +426,8 @@ Nothing is sent anywhere else.
 - Calls: `POST /calls` sends the number to dial, your brief and the
   language. `GET /calls`, `GET /calls/{id}`, `GET /calls/{id}/events` (polled
   while a call runs), `POST /calls/{id}/answer` (your reply to a question the
-  call agent asks mid-call), `POST /calls/{id}/cancel`,
-  `GET /calls/{id}/transcript-merged` and `GET /calls/{id}/recording` follow
-  and read it.
+  call agent asks mid-call), `POST /calls/{id}/cancel` and
+  `GET /calls/{id}/recording` follow and read it.
 - Finding a place to call: `POST /v1/places/suggest` sends your request in
   plain words, plus the name and callback number when you give them.
 - Account: `GET /users/me`, `GET /v1/usage`, `GET /checkout/packs`,

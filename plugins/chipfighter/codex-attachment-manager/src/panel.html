@@ -136,6 +136,11 @@
   .chip[aria-pressed="true"] { border-color: transparent; background: var(--accent); color: var(--accent-text); }
   .chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--accent-text) 70%, transparent); }
   .chips .sep { width: 1px; height: 16px; background: var(--border-strong); }
+  /* At most two rows (user 2026-10-21): the rest fold into 更多 N, quieter than a filter. */
+  .chip.fold { display: inline-flex; align-items: center; gap: 3px; padding: 0 6px 0 8px; border-color: transparent; color: var(--text-3); }
+  .chip.fold:hover { color: var(--text-2); }
+  .chip.fold svg { width: 13px; height: 13px; transition: transform .15s; }
+  .chip.fold[aria-expanded="true"] svg { transform: rotate(180deg); }
 
   main { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px 16px; border-top: 1px solid var(--border); scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
   .turn { position: relative; display: flex; align-items: center; gap: 10px; margin: 14px 4px 6px; color: var(--text-3); font-size: 12px; font-weight: 500; }
@@ -331,6 +336,8 @@
       "chip.upload": "上传",
       "chip.generated": "生成",
       "chip.other": "其他",
+      "chips.more": "更多 {count}",
+      "chips.less": "收起",
       "kind.upload": "用户上传",
       "kind.view": "查看的图片",
       "kind.generated": "生成的图片",
@@ -454,6 +461,8 @@
       "chip.upload": "Uploaded",
       "chip.generated": "Generated",
       "chip.other": "Other",
+      "chips.more": "{count} more",
+      "chips.less": "Show less",
       "kind.upload": "Uploaded",
       "kind.view": "Viewed",
       "kind.generated": "Generated",
@@ -668,6 +677,7 @@
     switchingTask: false,          // a cam_bind call is under way
     manual: false,                 // the running refresh was asked for with the 刷新 button
     query: "", chip: "all",        // v0.8: the search and the one filter picked
+    chipsOpen: false,              // the filters beyond two rows shown (user 2026-10-21)
     cardOpen: false,               // v0.8: the request card unfolded
     autoPending: null,             // v0.3: the switch's new state while it is being saved
   };
@@ -693,7 +703,7 @@
     S.signature = signature;
     if (S.threadId && state.threadId !== S.threadId) {
       S.unsaved.clear(); S.thumbs.clear(); thumbQueue.length = 0; thumbsInFlight.clear();
-      S.preview = null; S.query = ""; S.chip = "all"; $("search").value = "";
+      S.preview = null; S.query = ""; S.chip = "all"; S.chipsOpen = false; $("search").value = "";
     }
     S.threadId = state.threadId;
     S.data = state;
@@ -1069,15 +1079,47 @@
         const button = Object.assign(document.createElement("button"), { type: "button", className: "chip" });
         button.dataset.chip = chip;
         button.append(label, Object.assign(document.createElement("span"), { className: "n", textContent: String(n) }));
-        button.addEventListener("click", () => { S.chip = chip; render(); });
+        // Picking one folds the filters again: the one picked stays in view.
+        button.addEventListener("click", () => { S.chip = chip; S.chipsOpen = false; render(); });
         return button;
       };
       // One filter alone (全部) says nothing either.
       const all = [...kinds, ...scenes];
-      box.replaceChildren(...(all.length < 2 ? [] : [...kinds.map(make), ...(scenes.length ? [Object.assign(document.createElement("span"), { className: "sep" })] : []), ...scenes.map(make)]));
+      box.replaceChildren(...(all.length < 2 ? [] : [...kinds.map(make), ...(scenes.length ? [Object.assign(document.createElement("span"), { className: "sep" })] : []), ...scenes.map(make), foldButton]));
     }
-    for (const chip of box.querySelectorAll(".chip")) chip.setAttribute("aria-pressed", String(chip.dataset.chip === S.chip));
+    for (const chip of box.querySelectorAll(".chip[data-chip]")) chip.setAttribute("aria-pressed", String(chip.dataset.chip === S.chip));
+    foldChips();
   }
+  // ---- at most two rows of filters (user 2026-10-21): the last ones fold into 更多 N, and the one picked stays in view
+  // in front of it. Measured again only when the filters, the pick, the fold or the panel's width change. ----
+  const foldButton = Object.assign(document.createElement("button"), { type: "button", className: "chip fold" });
+  foldButton.innerHTML = '<span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  foldButton.addEventListener("click", () => { S.chipsOpen = !S.chipsOpen; foldChips(); });
+  let foldKey = "";
+  function foldChips() {
+    const box = $("chips");
+    const key = `${chipsKey}|${S.chip}|${S.chipsOpen}|${box.clientWidth}`;
+    if (key === foldKey) return;
+    foldKey = key;
+    const chips = [...box.querySelectorAll(".chip[data-chip]")];
+    const label = foldButton.querySelector("span");
+    for (const chip of chips) chip.hidden = false;
+    foldButton.hidden = true;
+    if (!chips.length || !box.clientWidth) return;
+    const twoRows = 2 * chips[0].offsetHeight + (parseFloat(getComputedStyle(box).rowGap) || 0) + 1;
+    if (box.offsetHeight <= twoRows) return;
+    foldButton.hidden = false;
+    foldButton.setAttribute("aria-expanded", String(S.chipsOpen));
+    label.textContent = S.chipsOpen ? t("chips.less") : t("chips.more", { count: 0 });
+    if (S.chipsOpen) return;
+    let folded = 0;
+    for (let i = chips.length - 1; i >= 0 && box.offsetHeight > twoRows; i--) {
+      if (chips[i].dataset.chip === S.chip) continue;
+      chips[i].hidden = true;
+      label.textContent = t("chips.more", { count: ++folded });
+    }
+  }
+  new ResizeObserver(() => foldChips()).observe($("chips"));
 
   // ---- the thumbnails, by turn, newest first ----
   const tiles = new Map();
@@ -1381,7 +1423,8 @@
     input.setAttribute("aria-label", t("auto.label"));
   }
 
-  function render() { renderCard(); renderNeeds(); renderPlugin(); renderRefresh(); renderChips(); renderSearch(); renderList(); renderFooter(); renderViewer(); }
+  // The search box and the filters show before the filters are folded, which measures them.
+  function render() { renderCard(); renderNeeds(); renderPlugin(); renderRefresh(); renderSearch(); renderChips(); renderList(); renderFooter(); renderViewer(); }
 
   $("more").addEventListener("click", () => { S.cardOpen = !S.cardOpen; renderCard(); });
   $("search").addEventListener("input", (event) => { S.query = event.target.value; renderList(); });
@@ -1392,7 +1435,7 @@
   // ---- start: handshake, then Codex sends its own cam_panel result; poll so new images show up ----
   if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
   applyLanguage();
-  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.8.0" }, appCapabilities: {} })
+  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.8.2" }, appCapabilities: {} })
     .then((init) => { applyHost(init?.hostContext); post({ method: "ui/notifications/initialized", params: {} }); reportFrame(); })
     .catch(() => {})
     .finally(() => setTimeout(() => { if (!S.data) refresh(); }, 1200));

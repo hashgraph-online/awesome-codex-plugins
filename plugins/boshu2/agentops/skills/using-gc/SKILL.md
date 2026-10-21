@@ -156,8 +156,12 @@ authors the workflow beads, and dispatches.
 ```sh
 gc bd create "Add a --json flag to the export command"
 gc mail send mayor -s "Build ago-XXXX" \
-  -m "Decompose and launch build-basic for bead ago-XXXX with push=true open_pr=true." --notify
+  -m "Decompose and launch build-basic for bead ago-XXXX with push=false open_pr=false." --notify
 ```
+
+Pass `push=true open_pr=true` only when the caller and the repository's
+delivery policy authorize publishing; otherwise the approved commit stays in its
+source anchor worktree.
 
 Or, in an interactive Mayor session:
 

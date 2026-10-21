@@ -1,0 +1,44 @@
+{
+  "name": "usage-engineer",
+  "version": "0.3.0",
+  "description": "Cut wasted tokens in Codex sessions: compact long logs, stop repeated failures, detect stale project maps, and audit where local Codex and OpenCode usage went. Local only, no network.",
+  "author": {
+    "name": "noamshorts22-prog",
+    "url": "https://github.com/noamshorts22-prog"
+  },
+  "homepage": "https://github.com/noamshorts22-prog/usage-engineer",
+  "repository": "https://github.com/noamshorts22-prog/usage-engineer",
+  "license": "MIT",
+  "keywords": [
+    "tokens",
+    "usage",
+    "rate-limits",
+    "logs",
+    "context",
+    "codex",
+    "opencode",
+    "efficiency"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Usage Engineer",
+    "shortDescription": "Stop paying for wasted tokens",
+    "longDescription": "Usage Engineer keeps agent sessions cheap without lowering quality. Long build and test logs are compacted to every error line plus the tail, with a byte-exact copy on disk. Repeated identical failures trigger a change of approach. Project maps are checked for staleness before work resumes, so only changed files are re-read. A read-only audit reports where local Codex CLI and OpenCode usage went, including oversized tool outputs and repeated tool calls. Everything runs locally through a bundled zero-dependency Python script; it makes no network calls and never reads credentials or chat text.",
+    "developerName": "noamshorts22-prog",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Where did my Codex usage go this week?",
+      "Run the tests and show me only the failures",
+      "Check whether my project map is stale before we continue"
+    ],
+    "brandColor": "#0F766E",
+    "logo": "./.codex-plugin/assets/logo.png",
+    "composerIcon": "./.codex-plugin/assets/composer-icon.svg",
+    "websiteURL": "https://github.com/noamshorts22-prog/usage-engineer",
+    "supportURL": "https://github.com/noamshorts22-prog/usage-engineer/issues"
+  }
+}

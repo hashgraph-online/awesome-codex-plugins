@@ -103,7 +103,15 @@ re-prove an unchanged healthy runner on each edit.
    discriminating example may suffice for a small change; add the error and
    boundary cases that could falsify acceptance. A `.feature` file is optional;
    if the repository already uses scenario-to-test annotations, maintain them
-   and use its scenario coverage checker.
+   and use its scenario coverage checker. When several record kinds support
+   different actions, derive the meaningful kind/action pairs from accepted
+   domain rules and check their promised end states. Do not invent impossible
+   combinations or infer a kind's result from a sibling's passing test. A table
+   test may cover many pairs; no separate artifact or test per cell is required.
+   Report relevant uncovered pairs under `unchecked`. Shared removal code is
+   valid when those kinds should both disappear; it is a defect when an observed
+   end state contradicts the accepted meaning, such as deleting a record that
+   withdrawal must retain as inactive.
 2. Find the owning suite and a narrow baseline. Use
    [Domain's standards](../domain/references/standards/test-pyramid.md) only if
    they would change the test choice. Measure broad coverage only in `coverage`
@@ -127,6 +135,7 @@ Load only the guidance needed by the subject:
 - Service integration: [real-service E2E](references/real-service-e2e.md)
 - Selected user journeys: [exploratory QA](references/exploratory-qa.md)
 - Authorized suite maintenance: [suite audit](references/suite-audit.md)
+- CLI/API failure signals and uncertain write outcomes: [error recovery](references/error-recovery.md)
 - Timing, shared-state or concurrency failures: [difficult-failure experiments](../implement/references/difficult-failures.md)
 - Workload baseline and candidate comparison: [subject performance](references/subject-performance.md)
 

@@ -1,0 +1,34 @@
+{
+  "name": "llmslim",
+  "version": "0.11.1",
+  "description": "Long-term memory with no LLM in the loop: stores messages word for word in local SQLite and recalls the ones that answer a question within a token budget.",
+  "author": {
+    "name": "Yashvardhan Thanvi",
+    "url": "https://github.com/Thanatos9404"
+  },
+  "homepage": "https://llmslim.app/integrations/mcp",
+  "repository": "https://github.com/Thanatos9404/llmslim",
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "context",
+    "tokens",
+    "mcp",
+    "sqlite"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "LLMSlim",
+    "shortDescription": "Local long-term memory with no LLM in the loop",
+    "longDescription": "Runs the LLMSlim MCP server on your machine with uvx, pinned to one release. It stores messages word for word in a local SQLite file and returns the stored messages that answer a question, under their dates and whole where they fit, within a token budget. It can also shrink a long text to a token budget, keeping what answers a query. No LLM, no embedding API and no API key.",
+    "developerName": "Yashvardhan Thanvi",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://llmslim.app",
+    "privacyPolicyURL": "https://llmslim.app/privacy",
+    "composerIcon": "./assets/icon.png"
+  }
+}

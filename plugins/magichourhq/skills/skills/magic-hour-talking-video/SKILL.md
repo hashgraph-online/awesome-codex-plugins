@@ -1,10 +1,10 @@
 ---
 name: magic-hour-talking-video
-description: Make a portrait speak, react or perform supplied audio with Magic Hour, or lip-sync an existing video to replacement speech. Use for character dialogue, talking photos, presenters and language versions with audio-first timing; not generic text-to-video.
+description: Make a still portrait speak from supplied audio with Magic Hour Talking Photo, or lip-sync existing video to replacement audio. Use when Magic Hour is requested or configured and suitable. Both routes require audio; neither synthesizes speech from text. Preserve an explicitly requested alternative provider.
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.3.0"
+  version: "1.3.1"
 ---
 
 # Magic Hour talking video
@@ -15,13 +15,15 @@ Use the supplied portrait, speech and language without asking for them again. Ch
 
 ## Select the source and route
 
-| Input and intent                                   | Route                                                                          |
-| -------------------------------------------------- | ------------------------------------------------------------------------------ |
-| Portrait plus speech                               | `ai_talking_photo_create_talking_photo`                                        |
-| Existing speaker video plus replacement speech     | `lip_sync_create_video`                                                        |
-| Script with no recording                           | Voice Generator with a supported preset, review audio, then video              |
-| New script in a supplied or saved voice             | Voice Cloner with the authorized sample, review audio, then video               |
-| Voiceover on unrelated footage, no visible speaker | Compose narration over footage; do not add lip-sync generation                 |
+| Input and intent                                     | Route                                                             |
+| ---------------------------------------------------- | ----------------------------------------------------------------- |
+| Still portrait image plus an existing audio file     | `ai_talking_photo_create_talking_photo`                           |
+| Existing speaker video plus a replacement audio file | `lip_sync_create_video`                                           |
+| Script with no recording                             | Voice Generator with a supported preset, review audio, then video |
+| New script in a supplied or saved voice              | Voice Cloner with the authorized sample, review audio, then video |
+| Voiceover on unrelated footage, no visible speaker   | Compose narration over footage; do not add lip-sync generation    |
+
+Talking Photo and Lip Sync both require an audio file and do not synthesize speech from a script. If the recording is missing, obtain it through an available, authorized speech route before video creation. A supplied still image routes to Talking Photo; existing footage routes to Lip Sync. Reuse an approved portrait directly unless the brief requires a visual change.
 
 For a named saved presenter or voice, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with `type: character` or `type: voice`. Match the name, paginate with `next_cursor` as needed and disambiguate multiple matches. Inspect the portrait `IMAGE` or recording `AUDIO` asset and reuse its durable `file_path` in a compatible field. A saved voice item is not a `voice_name` preset or permission to invent a cloning parameter. Reuse its recording directly only when it contains the requested speech. For new text, use the supported Voice Cloner route below.
 

@@ -1,7 +1,7 @@
 {
   "name": "oh-my-cassette",
-  "version": "0.4.19",
-  "description": "Edit local project media through a self-contained stdio MCP runtime that connects directly to Cassette.",
+  "version": "0.5.0",
+  "description": "Edit video with the Cassette agent from Codex: import local media, send editing turns, read the timeline, export.",
   "author": {
     "name": "Oh My Cassette contributors",
     "url": "https://github.com/Cassette-Editor/oh-my-cassette"
@@ -18,11 +18,34 @@
     "claude"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.codex-plugin/mcp.json",
+  "mcpServers": {
+    "cassette": {
+      "command": "uvx",
+      "args": [
+        "oh-my-cassette==0.5.0"
+      ],
+      "env": {},
+      "env_vars": [
+        "CASSETTE_MCP_URL",
+        "CASSETTE_AUTH_TOKEN",
+        "CASSETTE_WORKSPACE",
+        "CASSETTE_ALLOWED_ROOTS",
+        "CASSETTE_DOWNLOAD_DIR",
+        "CASSETTE_MAX_UPLOAD_MB",
+        "CASSETTE_LOCAL_WAIT_SEC",
+        "CASSETTE_FFMPEG",
+        "CASSETTE_FFPROBE",
+        "CASSETTE_TEMP_DIR",
+        "OH_MY_CASSETTE_LOG"
+      ],
+      "startup_timeout_sec": 120,
+      "tool_timeout_sec": 600
+    }
+  },
   "interface": {
     "displayName": "Oh My Cassette",
-    "shortDescription": "Edit project videos through local MCP",
-    "longDescription": "Use a local stdio MCP runtime to ingest trusted project media, guide Cassette edits, monitor background jobs, answer follow-up questions, review completion, and return validated export artifacts.",
+    "shortDescription": "Edit video with the Cassette agent",
+    "longDescription": "Open or create a Cassette project, import local media, relay the user's editing requests to the Cassette agent one turn at a time, review edits in the browser through links, undo, redo or revert a turn, and export the final video.",
     "developerName": "Oh My Cassette contributors",
     "category": "Productivity",
     "capabilities": [
@@ -35,15 +58,12 @@
     "termsOfServiceURL": "https://cassette-editor.github.io/oh-my-cassette/terms",
     "logo": "./assets/logo-400.png",
     "composerIcon": "./assets/logo-400.png",
-    "screenshots": [
-      "./assets/contact-sheet.jpg",
-      "./assets/ctl-digest.svg"
-    ],
+    "screenshots": [],
     "defaultPrompt": [
       "Edit this project video with Cassette.",
       "Let me choose the Cassette model for this edit.",
       "Add captions and background music to this clip.",
-      "Continue this Cassette job from its job ID."
+      "Revert the last Cassette turn."
     ],
     "brandColor": "#6D5EF5"
   }

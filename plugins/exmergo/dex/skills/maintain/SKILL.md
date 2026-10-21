@@ -172,9 +172,12 @@ is not described here.
   `maintain snapshot`) before triaging findings one by one. A type change is
   advisory on every format, so read the codes for retypes rather than inferring
   them from the count.
-- **`mechanical`** (schema drift): re-scaffolds a dex-scaffolded staging model,
-  or edits the drifted columns into a declaration. Still a reviewable diff: read
-  it for hand-written logic the scaffold cannot know about before applying.
+- **`mechanical`** (schema drift): edits only the drifted columns into a
+  staging model and into the YAML that already declares it, or into a
+  declaration, and leaves every other line alone. Still a reviewable diff. A
+  dropped column that hand-written logic reads comes back advisory naming the
+  use, readers further downstream are named in `warnings`, and drift the project
+  already reflects is advisory with a `maintain snapshot` hint.
 - **`advisory`** (grain, volume, semantic): a decision for the user, at most
   backed by a test edit that makes the break visible in builds. dex cannot dedup
   a warehouse or decide whether a new `'refunded'` status belongs in a metric, so

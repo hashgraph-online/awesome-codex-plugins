@@ -74,6 +74,13 @@ grep -rn 'password\s*=\s*"[^"]\+"\|api_key\s*=\s*"[^"]\+"\|secret\s*=\s*"[^"]\+"
 - [ ] Lock files committed
 - [ ] Regular dependency update process (Renovate/Dependabot)
 
+### 11. CI and Automation Definitions
+- [ ] Triggers that run contributor-controlled code (forked pull requests, comment commands) get no write token or secrets
+- [ ] Attacker-controlled fields (PR title, branch name, issue body) never expand directly into shell or script steps
+- [ ] Third-party actions, images and scripts are pinned to an immutable commit or digest, not a moving tag
+- [ ] Each job's token permissions are the minimum it needs; default write access is off
+- [ ] Every job has an execution time limit
+
 ## Severity Classification
 
 Severity ranks findings so a reviewer can order them; it carries no merge, release,

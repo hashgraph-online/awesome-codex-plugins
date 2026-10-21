@@ -73,6 +73,21 @@ Apply these to every review, scripted or manual. They are the rules most often s
    concrete input, request, or command and observed the behavior; capture it.
    A finding reasoned from the code is suspected, even with a candidate input;
    give that input and rank it below proven findings.
+5. **Snapshot scope.** Name the exact snapshot (commit, or working tree on a
+   stated HEAD) and the path scope. List inputs you did not read separately as
+   unread, deleted or outside scope; none of them counts as clean. Keep impact
+   inside the snapshot: a finding that needs absent code, a future change or an
+   unread path is a hypothesis and is labeled so. When the remaining budget
+   cannot finish another full pass, stop opening new leads and report the hunt
+   as unconverged.
+6. **Shipped scope for a share or publish question.** When asked whether
+   content is safe to make public or hand to another party (a repository, an
+   export, a package), the snapshot is what the recipient will receive: the
+   built artifact or output tree, every commit reachable in the history that
+   travels with it, and derived copies such as indexes, caches and generated
+   files. Content removed at HEAD is still exposed in earlier commits. Report
+   history exposure with its fix class (credential rotation, fresh history or
+   an owner-authorized rewrite) and perform none of them.
 
 For each finding, explain the attacker path and relevant protective control in
 the fields below. Read [attacker-path evidence](references/attacker-path-evidence.md)
@@ -81,6 +96,7 @@ closer support for that finding.
 
 ```text
 target:   <paths, endpoints, or binary>; authorization: <boundary>
+snapshot: <commit | working tree on HEAD>; unread: <paths> | deleted: <paths> | outside scope: <paths>
 findings: <id> <severity> <file:line> <class>: <what>
           proven: <input run> | suspected: <candidate input, why not run>
           path: <attacker input> -> <reachable behavior> -> <trust boundary> -> <impact>

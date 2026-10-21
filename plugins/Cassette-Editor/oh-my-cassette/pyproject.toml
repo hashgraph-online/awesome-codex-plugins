@@ -1,10 +1,72 @@
-# Lint/format configuration only — this repo is a plugin checkout, not a
-# distributable package, so there is no [project] table on purpose.
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "oh-my-cassette"
+version = "0.5.0"
+description = "MCP server that drives the Cassette video editor from Codex, Claude Code, OpenCode and Hermes."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [{ name = "Oh My Cassette contributors" }]
+keywords = ["cassette", "video-editing", "mcp", "model-context-protocol"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Multimedia :: Video",
+]
+dependencies = [
+  "mcp>=2.3,<3",
+  "httpx>=0.28,<1",
+  "keyring>=25,<27",
+  "filelock>=3.20,<4",
+]
+
+[project.urls]
+Homepage = "https://github.com/Cassette-Editor/oh-my-cassette"
+Repository = "https://github.com/Cassette-Editor/oh-my-cassette"
+Changelog = "https://github.com/Cassette-Editor/oh-my-cassette/blob/main/CHANGELOG.md"
+
+[project.scripts]
+oh-my-cassette = "oh_my_cassette.cli:main"
+
+[dependency-groups]
+dev = [
+  "pytest>=8.3",
+  "anyio>=4.9",
+  "pydantic>=2.11,<3",
+  "starlette>=0.46",
+  "uvicorn>=0.30",
+  "ruff>=0.11",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/oh_my_cassette"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/oh_my_cassette", "README.md", "LICENSE", "pyproject.toml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+markers = [
+  "live: runs against a running Cassette MCP service (CASSETTE_MCP_URL); skipped unless RUN_CASSETTE_LIVE=1",
+]
+
 [tool.ruff]
-line-length = 120
+line-length = 110
 target-version = "py311"
-# CI installs this exact version, and ruff's default rule set changes between minor
-# releases: 0.16 reports 463 findings on a tree 0.15.22 calls clean. Without this,
-# `uvx ruff` (which resolves to latest) buries a real finding in phantom ones.
-# tests/test_mcp_packaging.py keeps this in step with the CI pin and the docs.
-required-version = ">=0.15.22,<0.16"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+ignore = ["E501"]

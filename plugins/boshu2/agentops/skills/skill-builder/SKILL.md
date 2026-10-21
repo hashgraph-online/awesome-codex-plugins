@@ -95,6 +95,11 @@ layout that makes them clear. Remove the scaffold state only after authoring
 the behavior; strict source checks reject it. Removing it is an author
 assertion, not proof of semantic completeness.
 
+When repairing a skill after a miss, fix the condition rather than adding a
+case, keep each mechanism in the skill that owns it, and check a line's
+provenance before cutting it; see
+[changing existing text](references/authoring-doctrine.md#change-existing-text-at-its-owning-layer).
+
 Edit `skills/<slug>/` as the source owner. Check the completed source with
 `scripts/heal.sh --check --strict skills/<slug>`, then regenerate its owned
 projections through the repository's owning commands. Inspect the generated

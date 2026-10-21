@@ -1,6 +1,6 @@
 {
   "name": "dex",
-  "version": "1.15.1",
+  "version": "1.15.2",
   "description": "Analytics engineering for Claude Code and any agent: data warehouse exploration, dbt transformation and semantic modeling, and schema-drift maintenance on dbt.",
   "author": {
     "name": "Exmergo, Inc.",

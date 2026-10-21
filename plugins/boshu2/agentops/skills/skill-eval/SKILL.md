@@ -58,6 +58,11 @@ mandatory review merely to run an experiment.
   zero-crossing interval is not equivalence.
 - **Fix the stop before running.** Do not add trials until the result turns
   positive, remove losing observations or relax acceptance.
+- **Know the noise before cutting.** Before trimming or retuning skill text for
+  a new model, measure how much identical arms differ on the same cases. A cut
+  must clear a bar fixed before the run, above that spread. A static read of
+  the text is not a behavioral result. Saving a result means keeping the
+  completed run; rerunning to save it adds another sample and more spend.
 
 ## Choose the question
 
@@ -75,6 +80,13 @@ behavioral question, name one observable action (a file written, tool used,
 criterion rejected); a belief such as “understands validation” needs translation
 into an action. For coding or memory questions, name unchanged task acceptance
 and the maintenance choice.
+
+Prefer cases drawn from real use when authorized session history exists: a
+caller correcting, redoing or overriding the result right after the skill ran
+is the clearest sign of a miss. Label each case as drawn from use or written
+from the skill's own text; cases written from the text test what the author
+expected, not what users hit. With no usable history, say so rather than
+presenting text-derived cases as representative.
 
 ## Runners
 

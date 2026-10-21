@@ -1,7 +1,7 @@
 ---
 name: growth-architect-foundry
 description: >
-  Multi-tenant agency growth engine with 23 deterministic commands.
+  Multi-tenant agency growth engine with 31 deterministic commands.
   Use for ANY advertising, growth, campaign, content, lead, or client-reporting task.
   Triggers: foundry, audit, diagnose, report, campaign, content, tracking,
   leads, creative, competitive, season, forecast, tenants, calc,
@@ -18,7 +18,7 @@ metadata:
 # Growth Architect Foundry
 
 The multi-agent growth kernel for agencies who don't want to build one from scratch.
-23 deterministic commands. Multi-tenant. Maker/checker safety. Arabic-first.
+31 deterministic commands. Multi-tenant. Maker/checker safety. Arabic-first.
 
 ## Step 0 — Intake (ask once, then work)
 
@@ -74,6 +74,7 @@ Reports write to `04_Reports/` and append to `log.md`.
 | `foundry account audit --client <t>` | راجع حسابي | 0-100 score + grade + top fixes + 30-day plan |
 | `foundry account diagnose --client <t>` | الروآس وقع | Single biggest constraint + ranked findings |
 | `foundry account report --client <t> --lang ar` | تقرير للعميل | Decision-first client readout, EN or AR |
+| `foundry account report --client <t> --lang ar --format whatsapp` | — | Same digest, WhatsApp-ready plain text |
 
 ### Economics (deterministic, zero-dep calculator)
 | Command | Arabic | What it does |
@@ -82,6 +83,7 @@ Reports write to `04_Reports/` and append to `log.md`.
 | `foundry economics cod --spend 20000 --orders 400 ...` | — | Real ROAS on COD account + profit verdict |
 | `foundry economics learning --cpa 120` | — | Budget to exit learning phase (~50 events/week) |
 | `foundry economics vat --budget 10000 --country SA` | — | VAT split by MENA country (rates last verified 2026-10) |
+| `foundry economics leadgen --deal-value 5000 --close-rate 0.25 ...` | — | Break-even CPL / CPQL + funnel profit verdict for lead-gen funnels |
 
 ### Campaigns (reads captured ad-intel reports)
 | Command | What it does |
@@ -89,6 +91,7 @@ Reports write to `04_Reports/` and append to `log.md`.
 | `foundry campaigns list --client <t>` | All campaigns with status, spend, CTR, CPA |
 | `foundry campaigns status --client <t>` | Flagged: live vs paused vs zero-spend |
 | `foundry campaigns compare --client <t>` | Side-by-side with best CTR/CPA highlighted |
+| `foundry campaigns import --client <t> --file export.csv` | Import a platform CSV export into a standard ad-intel report (unblocks diagnose/campaigns/forecast with no API) |
 
 ### Content (reads signals, tasks, calendar)
 | Command | What it does |

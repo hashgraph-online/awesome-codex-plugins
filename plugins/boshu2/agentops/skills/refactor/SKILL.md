@@ -99,6 +99,20 @@ Reject a wrapper that only adds another name or pushes the same coordination
 into its callers. Existing boundaries are sufficient when no concrete caller
 problem warrants changing them.
 
+When choosing a target, prefer friction in the caller-selected area: repeated
+changes to the same rule, repeated caller setup, or defects spread across
+cooperating files. Recent history can locate that friction when the caller has
+not named it; churn alone does not justify a refactor. State the expected
+saving in concrete work, such as changing one rule in one place, against the
+caller migration and regression cost. Leave a stable, cheap boundary alone.
+
+Check a proposed extraction by imagining its removal: would callers have to
+rebuild a cohesive rule, or would only a forwarding step disappear? Keep
+internal test seams private when callers need no substitution. Exercise the
+preserved behavior through the caller-facing boundary; retain existing tests
+until equivalent coverage of their distinct cases is demonstrated. Moving a
+test is not permission to delete the behavior it protected.
+
 Use the caller's vocabulary for extracted operations and types. A naming
 ambiguity that changes behavior belongs with the existing domain definition;
 consult [Domain](../domain/SKILL.md) only when that distinction needs work.

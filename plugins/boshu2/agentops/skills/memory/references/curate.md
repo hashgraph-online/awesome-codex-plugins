@@ -23,9 +23,15 @@ no native isolation for restricted sources.
    material. Keep unrelated claims and useful rare constraints.
 3. Qualify a single incident narrowly. General methods require stronger support
    and later reapplication evidence; contradiction may narrow or remove a rule.
-   Retire when invalidated or unsupported after examination, not merely old.
-   Preserve withdrawal reason, provenance and unique evidence in the existing
-   page/history under owner policy. No blind TTL or deletion sweep.
+   For consolidation, test each claim against the proposed surviving source:
+   cite the exact passage that preserves its reasoning, not just a related path
+   or topic. Keep investigation results, rejected alternatives and rare constraints
+   that source does not explain; shorten duplicated explanation to a pointer.
+   Accurate but duplicated content is not invalidated. If the survivor cannot
+   be checked, retain the claim and name the gap. Retire when invalidated or
+   unsupported after examination, not merely old. Preserve withdrawal reason,
+   provenance and unique evidence in the existing page/history under owner
+   policy. No blind TTL or deletion sweep.
 4. Have a fresh authorized author-distinct context review exact factual support
    and exact destination disclosure before any Git object, index, stash or
    import. Include intended paths and metadata in the reviewed payload. A

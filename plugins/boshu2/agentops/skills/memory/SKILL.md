@@ -1,6 +1,6 @@
 ---
 name: memory
-description: 'Write, find or curate lessons and agent rules with stated evidence and limits. Use when: asked to remember something or write a rule into agent instructions.'
+description: "Find or curate supported lessons and agent rules. Use when: asked to remember, trace a corrected claim, audit instructions or write an agent rule."
 practices:
 - evidence-based-engineering
 - continuous-learning
@@ -72,6 +72,7 @@ them. Learning may also simplify or remove rules.
 | Capture useful evidence from selected sources, episodes or corrections | [Capture / mine / learn](references/mine-learn.md) |
 | Update, qualify, consolidate or retire a supported claim | [Curate / qualify / retire](references/curate.md) |
 | Rank repeated operational friction in supplied history | [Toil evidence](references/toil.md) |
+| Trace a corrected claim or audit the loaded instruction set | [Instruction sources](references/instruction-sources.md) |
 
 Memory owns these operations; other roles link here instead of keeping their
 own procedures. Capture includes bounded source maps, verdicts, corrections and

@@ -20,6 +20,7 @@ metadata:
   effects: [update_intent_source]
   canonical_status: canonical
   disposition: keep
+  triggers: ["write scope", "scope boundaries"]
 ---
 
 # Plan
@@ -34,7 +35,10 @@ supplied text. Planning produces no AgentOps packet.
 1. **One slice, not a roadmap.** Shape the narrowest change that produces an
    observable result end to end, through every layer it touches. No phases,
    no layer-by-layer breakdown, no backlog: later work stays one coarse line
-   each until new evidence makes it the next slice.
+   each until new evidence makes it the next slice. When several slices could
+   go first, prefer the smallest observable path that tests the approach's
+   riskiest dependency. Name any stand-in and what it cannot establish; a
+   demonstration with that stand-in is not proof of the real integration.
 2. **An example before any design.** Write at least one Given/When/Then with
    an observable result. Cover the boundary where a mistake is costly to
    undo, such as a repeated or external side effect, lost data or widened
@@ -51,8 +55,9 @@ supplied text. Planning produces no AgentOps packet.
 
 ## Output
 
-Write this block into the caller's existing intent (tracker item or
-conversation). It is the whole plan.
+Write this block into the caller's existing intent when the request or
+existing authorization covers editing it (the conversation always does);
+otherwise return it as a proposed amendment. It is the whole plan.
 
 ```text
 Outcome:  <who observes what, in the repository's terms>
@@ -77,6 +82,9 @@ only where it prevents a plausible scope mistake.
    exact snapshot of conversation intent, follow
    [resume and handoff](references/resume-and-handoff.md).
 2. Route only the uncertainty that could change the slice (table below).
+   If an interface choice drives that uncertainty, use the conditional
+   [caller-first design comparison](references/ground-truth-routing.md#compare-interfaces-from-the-callers-side)
+   before committing to a boundary.
 3. Fill the block. A mechanical cross-cutting migration that cannot stay
    working slice by slice uses expand, migrate, contract and states where
    integration is required. Include recapture of affected bound evidence where
@@ -84,7 +92,8 @@ only where it prevents a plausible scope mistake.
    `ao provenance evidence-orphans` finds it. Across an epic,
    [Navigate](../navigate/SKILL.md) picks the next bead; Plan shapes that bead.
 4. When evidence disproves an approach, keep the failed assumption, its
-   evidence and the revised check in the existing intent. An approach change
+   evidence and the revised check in the existing intent, under the same
+   authority as the Output write below. An approach change
    within accepted outcome and scope needs no new permission; acceptance or
    scope expansion needs the caller. Never relabel a failed acceptance
    condition as a caveat to obtain green.

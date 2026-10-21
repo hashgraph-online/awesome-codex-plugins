@@ -21,8 +21,12 @@ hits locate evidence; they do not prove complete episode coverage.
 For each useful candidate, connect an observed failure or correction to its
 cause, a narrow action that could prevent it, and a counterexample or limit.
 One incident may justify a supported local observation; a generalized rule needs
-stronger evidence. Do not manufacture a rule to fill a quota or convert all
-failures into gates. A supported searchable reference need not become policy.
+stronger evidence. When an investigation ruled out a plausible explanation,
+retain what observation ruled it out and what new evidence would justify
+reopening it. Distinguish a disproven explanation from an untested or inconclusive
+attempt so later work can avoid a dead end without treating uncertainty as fact.
+Do not manufacture a rule to fill a quota or convert all failures into gates.
+A supported searchable reference need not become policy.
 
 Search the caller-selected project `.context/` or external topic pages before
 proposing an update. Portable cleared project-page reads use ordinary filesystem

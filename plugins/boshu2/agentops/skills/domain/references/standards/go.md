@@ -258,8 +258,8 @@ func TestClassifyServeArg(t *testing.T) {
 - **Assert exact expected values:** Use `== expected`, never `!= wrong`. (See Exact Assertion Rule above.)
 - **Table-driven tests** preferred for multi-case functions. (See example above.)
 - **Test low-level functions directly;** don't depend on external CLIs (`bd`, `ao`) in tests. (See CI-Safe Test Pattern above.)
-- **Guard-test fixtures must use the real persisted shape.** Skip/dedup/consumed/idempotency/regression guard tests must round-trip a real persisted sample (production writer → production reader) or assert against a checked-in real example — never a hand-built in-memory constructor that sets a marker at a granularity the on-disk format never emits (e.g. `consumed` at item-level when `next-work.jsonl` marks it at batch-level). A fixture of a shape production can't produce gives a false green (ag-mjlg / PR #652). Related fixture guidance: `test-pyramid.md` → "Regression design".
-- **Test isolation — restore shared global/process state via `t.Cleanup`.** `cli/cmd/ao` tests share one `rootCmd` + package-global cobra flag vars and run inside the repo tree, so a test that mutates shared state without restoring it leaks into whatever test the `-shuffle=on` order runs next. This is a recurring flake class: goals `goalsMeasureScenariosOnly` cobra-global (`a9dab21c4`), `core.bare` git-env (ek8v), cwd floor (hvb).
+- **Guard-test fixtures must use the real persisted shape.** Skip/dedup/consumed/idempotency/regression guard tests must round-trip a real persisted sample (production writer → production reader) or assert against a checked-in real example — never a hand-built in-memory constructor that sets a marker at a granularity the on-disk format never emits (e.g. `consumed` set per item when the persisted file marks it per batch). A fixture of a shape production can't produce gives a false green. Related fixture guidance: `test-pyramid.md` → "Regression design".
+- **Test isolation — restore shared global/process state via `t.Cleanup`.** Tests in one package can share a cobra root command, its package-global flag vars and the repository working tree, so a test that mutates shared state without restoring it leaks into whatever test the `-shuffle=on` order runs next. This is a recurring flake class: package-global cobra flags, inherited git environment variables and the working directory.
   - Set a package-global cobra flag only through a self-cleaning helper, so every set-site auto-restores and no order can leak it:
 
     ```go
@@ -272,7 +272,7 @@ func TestClassifyServeArg(t *testing.T) {
     ```
 
   - Scope process state: `t.Chdir(t.TempDir())`, `t.Setenv`, and `git -C <tempRepo>` with `cmd.Dir` set. Never run a state-mutating `git` op against the real repo via an unset `cmd.Dir` / leaked `GIT_DIR`.
-  - Any package whose tests shell out to `git` MUST call `testsupport.ScrubGitDiscoveryEnv()` from its `TestMain` (`cli/internal/testsupport`). Git injects `GIT_DIR`/`GIT_WORK_TREE`/... into hook-launched processes; with `GIT_DIR` pointing at a linked worktree's gitdir, a fixture `git init` rewrites the SHARED `.git/config` to `core.bare=true`, bricking every worktree (ek8v; recurred 2026-07-18).
+  - Any package whose tests shell out to `git` MUST clear git's discovery environment (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` and related variables) in its `TestMain`, through one shared test helper. Git injects `GIT_DIR`/`GIT_WORK_TREE`/... into hook-launched processes; with `GIT_DIR` pointing at a linked worktree's gitdir, a fixture `git init` rewrites the SHARED `.git/config` to `core.bare=true`, bricking every worktree.
   - Find leakers by analysis (grep set-sites for a missing reset), not by chasing reproducing seeds: order-dependent flakes are population+seed-specific, so "couldn't reproduce" ≠ fixed — close on the root (the missing cleanup).
   - The push==CI full race suite runs `-shuffle=on` as the *late* backstop; it is not the primary guard.
 

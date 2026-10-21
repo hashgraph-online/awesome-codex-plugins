@@ -90,11 +90,23 @@ Answer inline.
    available judgment with exact ids (commits, checks, messages, an existing
    verdict); keep missing evidence explicit.
 2. Rebuild only the timeline the claims depend on, keeping delivered behavior,
-   failed or stopped work and process output distinct. Hidden author reasoning
-   is not fact; missing judgment is not a PASS or a FAIL.
+   failed or stopped work and process output distinct. For a correction or stop,
+   locate the first observable departure from the accepted behavior and the
+   instruction, tool result or missing input immediately before it. Compare a
+   successful case under similar conditions when available; otherwise name that
+   missing comparison. A pause required by the caller is expected behavior.
+   Hidden author reasoning is not fact; missing judgment is not a PASS or a FAIL.
 3. Put each causal claim through the first check above. Distinguish necessary
    validation and compatibility work from avoidable rework; repeated review
    alone proves no waste.
+   If the inputs include an earlier postmortem of the same subject, account for
+   its recommendations before issuing new ones: applied, partly applied,
+   not applied, or unknown, with evidence from the supplied work since then.
+   Preserve whether a change was authorized, held or never approved; missing
+   evidence of application is not failed adoption. Report recurrence of the
+   targeted failure only when observed. For repeated unapplied advice, name
+   known obstacles or an unresolved question instead of simply repeating it.
+   Nonapplication alone proves neither cause, blame nor that the advice helps.
 4. For time or token claims, state source, interval, units, included and
    excluded actors, and uncertainty. Separate elapsed time, overlapping work and
    accounting scopes; never equate totals with waste, savings or money without

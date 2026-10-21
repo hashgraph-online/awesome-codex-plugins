@@ -60,7 +60,7 @@ This repository is also a Cursor plugin. It adds the `local-mcp` MCP server, a r
 
 LMCP must be installed first (step 1 above): the plugin starts the LMCP server on your computer and does not work without it.
 
-Supports **macOS 13+** and **Windows 10+ (64-bit)**. Linux, iOS and Android are not supported yet; join the waitlist on the **[download page](https://www.local-mcp.com/download?ref=github-releases)**.
+Supports **macOS 13+** and **Windows 10+ (64-bit)**. Linux, iOS and Android are not supported.
 
 Choose one installation path:
 
@@ -146,6 +146,6 @@ See **[GitHub Releases](https://github.com/colibird-ai/local-mcp-releases/releas
 - Report a problem through LMCP's available feedback tools or **[open an issue](https://github.com/colibird-ai/local-mcp-releases/issues)**. Include OS and app version, and remove sensitive content from logs.
 - Request a feature through the available feedback tools or GitHub Issues.
 - Contact **[ctpo@colibird.co](mailto:ctpo@colibird.co)** for support; see [SECURITY.md](SECURITY.md) for vulnerabilities.
-- For current availability and commercial terms, see **[the website](https://www.local-mcp.com)** and [LICENSE](LICENSE). This README does not promise permanent pricing or future features.
+- For current availability, see **[the website](https://www.local-mcp.com)**; for license terms, see [LICENSE](LICENSE).
 
 If LMCP helps you, **[star the repository](https://github.com/colibird-ai/local-mcp-releases)** to help others discover it.

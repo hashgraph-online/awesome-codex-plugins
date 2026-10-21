@@ -1,7 +1,7 @@
 {
   "name": "loomaly",
-  "version": "1.2.2",
-  "description": "Fix your site's SEO from Codex: what to fix first on every page, a fix prompt for your framework, and a re-check once it's live.",
+  "version": "2.1.1",
+  "description": "One MCP for all of your SEO: rankings, AI search, fixes and reports. Fixed in your code, proven in your numbers.",
   "author": {
     "name": "Loomaly",
     "url": "https://loomaly.com",
@@ -24,8 +24,8 @@
   },
   "interface": {
     "displayName": "Loomaly",
-    "shortDescription": "What to fix first on every page of your site, fixed in your repo and re-checked once it's live.",
-    "longDescription": "Loomaly checks every page of your site and ranks its SEO problems by what to fix first. For each problem Codex gets the evidence and a fix prompt written for your framework, makes the change in your repo, records the fix, and once it's deployed asks Loomaly to re-check the live page. Sign in with a Loomaly account; the free plan covers one site.",
+    "shortDescription": "One MCP for all of your SEO: rankings, AI search, fixes and reports. Fixed in your code, proven in your numbers.",
+    "longDescription": "Loomaly is one MCP for all of your SEO: rankings, AI search, fixes and reports. Fixed in your code, proven in your numbers. Your assistant gets the problem Loomaly ranks first with evidence and steps for your framework, makes the change in your repo (or sends it to a developer), and Loomaly re-checks the live page once it ships. Sign in with a Loomaly account; the free plan covers one site.",
     "developerName": "Loomaly",
     "category": "Coding",
     "capabilities": [

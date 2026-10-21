@@ -137,7 +137,7 @@ optional unless a caller or declared consumer requires it. When no machine
 artifact is requested or required, return the result without creating one.
 
 ```text
-Result:      done | stopped: <cancelled, refused, bound spent or stalled> | NOT_PLANNED | NOT_BUILT
+Result:      done | stopped: <cancelled | refused | bound spent | stalled: <unknown cause | recurrence | no progress | wrong objective> - <observed fact>> | NOT_PLANNED | NOT_BUILT
 Subject:     <commit, branch or diff identity>
 Acceptance:  <criterion> -> <evidence: check, receipt or ref>, one line each
 Checked:     <checks run on the final subject, with results>

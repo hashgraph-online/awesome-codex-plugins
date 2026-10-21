@@ -1,6 +1,6 @@
 {
   "schema_version": "3",
-  "skill_count": 29,
+  "skill_count": 32,
   "skills": [
     {
       "canonical_status": "canonical",
@@ -79,6 +79,52 @@
       ],
       "references_count": 0,
       "tier": "cross-vendor",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "locate_change_friction",
+        "compare_interface_designs",
+        "propose_module_boundaries"
+      ],
+      "consumes": [
+        "repo-context"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "refactor"
+        },
+        {
+          "kind": "supplier-to",
+          "with": "plan"
+        },
+        {
+          "kind": "partnership",
+          "with": "domain"
+        }
+      ],
+      "dependencies": [],
+      "description": "Compare interface designs and find structural friction. Use when: a change spreads across modules or a boundary is unclear. For code changes, use Refactor.",
+      "disposition": "keep_specialist",
+      "effects": [],
+      "graph_root": true,
+      "hexagonal_role": "domain",
+      "name": "architecture",
+      "practices": [
+        "hexagonal-architecture",
+        "ddd-bounded-context",
+        "legacy-code-seams",
+        "refactoring",
+        "pragmatic-programmer",
+        "design-patterns"
+      ],
+      "produces": [
+        "architecture-proposal"
+      ],
+      "references_count": 1,
+      "tier": "judgment",
       "user_invocable": true
     },
     {
@@ -235,7 +281,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Write or update READMEs, docs, repo instructions and handoff notes, checked against source. Use when: documenting something, writing a README or leaving a session handoff.",
+      "description": "Write source-checked docs, READMEs, change descriptions and handoff notes. Use when: documenting a change or leaving or resuming a session handoff.",
       "disposition": "keep_specialist",
       "effects": [
         "write_documentation",
@@ -254,7 +300,7 @@
         "documentation",
         "session-handoff"
       ],
-      "references_count": 17,
+      "references_count": 18,
       "tier": "product",
       "user_invocable": true
     },
@@ -285,6 +331,50 @@
       ],
       "references_count": 2,
       "tier": "knowledge",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "audit_interface_ergonomics",
+        "review_interface_design",
+        "exercise_tool_surface",
+        "check_error_contract"
+      ],
+      "consumes": [
+        "repo-context",
+        "interface-design"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "implement"
+        },
+        {
+          "kind": "partnership",
+          "with": "doc"
+        }
+      ],
+      "dependencies": [],
+      "description": "Audit CLI, API, MCP or SDK discovery, first use and error recovery. Use when: designing an agent-facing tool or investigating misuse, including one command.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "run_target_in_disposable_environment"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "driven-adapter",
+      "name": "ergonomics",
+      "practices": [
+        "ai-assisted-dev",
+        "design-by-contract",
+        "twelve-factor-app",
+        "pragmatic-programmer"
+      ],
+      "produces": [
+        "ergonomics-findings"
+      ],
+      "references_count": 1,
+      "tier": "product",
       "user_invocable": true
     },
     {
@@ -363,7 +453,7 @@
       "produces": [
         "subject-manifest.v1"
       ],
-      "references_count": 4,
+      "references_count": 5,
       "tier": "execution",
       "user_invocable": true
     },
@@ -418,7 +508,7 @@
       "consumes": [],
       "context_rel": [],
       "dependencies": [],
-      "description": "Write, find or curate lessons and agent rules with stated evidence and limits. Use when: asked to remember something or write a rule into agent instructions.",
+      "description": "Find or curate supported lessons and agent rules. Use when: asked to remember, trace a corrected claim, audit instructions or write an agent rule.",
       "disposition": "keep_off_path",
       "effects": [
         "write_protected_drafts",
@@ -437,7 +527,7 @@
         "reviewed-topic-pages",
         "ranked-toil-evidence"
       ],
-      "references_count": 5,
+      "references_count": 6,
       "tier": "execution",
       "user_invocable": true
     },
@@ -692,7 +782,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Answer one cited question: how code works, or whether a repeated pattern deserves a rule. Use when: asked how, why, or whether to enforce a pattern.",
+      "description": "Answer one cited question about code, history, claims or patterns. Use when: asked how it works, why it changed, whether a claim holds or a pattern warrants a rule.",
       "disposition": "keep_specialist",
       "effects": [
         "write_research_report",
@@ -961,7 +1051,49 @@
       "produces": [
         "test-evidence"
       ],
-      "references_count": 10,
+      "references_count": 11,
+      "tier": "execution",
+      "user_invocable": true
+    },
+    {
+      "canonical_status": "canonical",
+      "capabilities": [
+        "observe_reported_behavior",
+        "find_duplicates_and_prior_decisions",
+        "classify_with_evidence",
+        "write_agent_ready_brief",
+        "reconcile_batch_by_id"
+      ],
+      "consumes": [
+        "incoming-report",
+        "native-source-evidence"
+      ],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "plan"
+        }
+      ],
+      "dependencies": [],
+      "description": "Turn incoming reports, external PRs and alerts into evidence-based decisions and agent-ready briefs. Use when: intake arrives. For accepted work, use Plan.",
+      "disposition": "keep_specialist",
+      "effects": [
+        "write_authorized_tracker_updates"
+      ],
+      "graph_root": true,
+      "hexagonal_role": "driving-adapter",
+      "name": "triage",
+      "practices": [
+        "pragmatic-programmer",
+        "bdd-gherkin",
+        "lean-startup",
+        "ddd-bounded-context"
+      ],
+      "produces": [
+        "triage-outcome",
+        "agent-ready-brief"
+      ],
+      "references_count": 0,
       "tier": "execution",
       "user_invocable": true
     },

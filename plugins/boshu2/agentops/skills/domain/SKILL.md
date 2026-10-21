@@ -62,6 +62,12 @@ vocabulary or rule boundary and returns it to the existing intent.
    keeping useful aliases as explicit translations. Without an owner, return
    the proposal in the caller's intent or conversation rather than creating a
    new glossary file.
+7. **Propose a decision record only when it earns one.** When settling a
+   boundary or rename becomes a design decision, propose an ADR only if it is
+   costly to reverse, would puzzle a later reader without its context, and
+   chose between real alternatives for stated reasons. Missing any of the
+   three, the owner update and its example are enough. Keep the vocabulary
+   owner free of implementation detail; that belongs in the decision or code.
 
 Return vocabulary work in this shape, then stop once the next change can be
 named and judged consistently:

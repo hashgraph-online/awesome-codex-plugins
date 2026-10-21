@@ -36,11 +36,15 @@ within authority it only appends settled notes to an existing intent source
 1. **Look it up** in the tracker, docs and code first. Ask only for choices:
    outcome, proof, non-goals, authority, budgets, priorities, risk tolerance.
 2. **Pick the branch.** Start with the outcome, then the open branch that most
-   changes acceptance, scope or authority. Defer any that change no decision.
+   changes acceptance, scope or authority **whose prerequisites are settled**.
+   Keep dependent choices open rather than inventing their prerequisites. After
+   each answer, reconsider which choice can now be settled; a changed parent
+   decision reopens only the answers that rely on it. Defer branches that cannot
+   change the next action, with a condition for returning to them.
 3. **Ask one question** in this shape, so the caller can accept, amend or
    reject in one line. Wait for the answer.
 4. **Record** only what the caller decides. A skip stays open; "your call"
-   accepts the recommendation shown. A revision reopens dependent answers.
+   accepts the recommendation shown.
 
 ```text
 Q<n>: <the decision>. <the question, with 2 to 4 options when they exist>

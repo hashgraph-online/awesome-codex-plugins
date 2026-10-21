@@ -177,7 +177,7 @@ More runs, and what was redacted before publishing, in [`examples/`](examples/RE
 
 ## Versioning
 
-The `version` field in [`plugin.json`](plugin.json) is the canonical source of truth. Platform marketplaces require self-contained manifests, so the same value is mirrored in [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) and [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json). The skill reads the portable root manifest and records that value as `prompt_version` in every generated report.
+The `version` field in [`plugin.json`](plugin.json) is the canonical source of truth. Platform marketplaces require self-contained manifests, so the same value is mirrored in [`gemini-extension.json`](gemini-extension.json), [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) and [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json). The skill reads the portable root manifest and records that value as `prompt_version` in every generated report.
 
 The current version is the `version` field of [`plugin.json`](plugin.json). `MAJOR.MINOR` continues the assessment prompt's own revision history, which predates this repository, so reports produced here stay on one timeline with reports produced by earlier revisions of the prompt. `PATCH` covers packaging changes that leave the prompt untouched.
 
@@ -188,6 +188,12 @@ Bump it as follows:
 | The report contract breaks: scoring areas or weights, gates, readiness thresholds, or report sections change such that scores are no longer comparable | major | `4.5.0` → `5.0.0` |
 | The prompt changes while the report contract holds | minor | `4.5.0` → `4.6.0` |
 | Packaging, README, or manifest changes only, with no change to prompt semantics | patch | `4.5.0` → `4.5.1` |
+
+Set the canonical version and every platform manifest version together:
+
+```sh
+python3 .github/scripts/sync_versions.py X.Y.Z
+```
 
 Scores are directly comparable across reports sharing the same `MAJOR.MINOR`. A minor bump may shift scores, so compare across one with care; a major bump breaks the contract, so do not compare across it at all.
 

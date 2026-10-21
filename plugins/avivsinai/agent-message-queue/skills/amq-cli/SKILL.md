@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.102.0 # x-release-please-version
+version: 0.103.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -60,39 +60,11 @@ while AskUserQuestion, ExitPlanMode, or a permission dialog is open; the held
 doorbell arrives after you answer, or when that turn ends.
 
 Wake settings (hold, debounce, preview, bell, input deferral, interrupt notice)
-live in `.wake.settings` and apply to a running wake. Change your own or a
-peer's wake without a restart:
-
-```bash
-amq wake config --me <handle>                           # show
-amq wake config --me <handle> --hold-normal 5m --wait   # set, wait for apply
-amq wake config --me <handle> --unset hold_normal       # back to default
-amq wake config --me <handle> --reset --hold-low 30m    # replace the file
-```
-
-Set a default for every wake of this user on this machine with `--machine`
-(no `--me`); a per-agent value overrides it per key, and `--unset` falls back
-to the next layer:
-
-```bash
-amq wake config --machine --hold-normal 5m --hold-low 30m  # machine default
-amq wake config --machine --unset hold_low                 # back to default
-```
-
-A refused file shows `file: refused: <err>` with default rows (the wake keeps
-its last applied settings); `set` and `--unset` exit 1 and point at `--reset`.
-A running wake that reports no live settings shows `unreported`: `--wait` exits
-6 after 5 s, and `set`/`--unset` on an absent file exit 6 after the same 5 s.
-Causes: an older image, a failed status write, or a resumed wake still storing
-its command-line settings in the file (wait a moment). Otherwise restart that
-wake (a resume seeds the file) or `--reset` with the full set. A missing
-mailbox exits 3.
-
-Flags fixed for a running wake (`--inject-mode`, `--inject-via`, `--inject-arg`,
-`--inject-cmd`, `--interrupt-cmd`, `--retry-until`) are refused; restart the
-wake through its owning terminal after `amq wake check`. Repair, `coop exec`,
-keepalive, and self-upgrade keep the stored settings; a resume with no file
-seeds it once from its argv settings flags.
+apply to a running wake without a restart: `amq wake config --me <handle>`
+shows them, `--hold-normal 5m --wait` sets one and waits for the wake to apply
+it, `--unset <key>` falls back, and `--machine` sets this user's default.
+Injection flags are fixed for a running wake. Exit codes and recovery are in
+[wake operations](https://github.com/avivsinai/agent-message-queue/blob/main/docs/wake-operations.md#live-settings).
 
 Without an injecting wake, use the receive methods in the operations guide.
 A notify-only wake (`--inject-mode none`) paired with a supervisor `monitor`
@@ -115,35 +87,21 @@ AMQ threads correlate messages, but do not deduplicate repeated sends.
 | Need | Read or run |
 |---|---|
 | Send, reply, drain, inspect receipts, or diagnose | Use [the operations guide](references/operations.md). |
-| Two-agent research and design | Use the `amq-spec` skill. |
+| Two-agent research and design, or a received message labeled `workflow:spec` | Use the `amq-spec` skill: do your own research before you read the partner's, then follow the `spec/<topic>` thread. |
 | Co-op roles and phased collaboration | Read [co-op mode](references/coop-mode.md). |
 | Claude Code Agent Teams | Read [swarm mode](references/swarm-mode.md). |
 | Cross-project delivery or decision threads | Read [cross-project routing](references/cross-project.md). |
-| Grok Bot on a registered Mac | Read [registered-machine execution](references/registered-machine.md). |
+| Grok Bot on a registered Mac | Read [registered-machine execution](references/registered-machine.md). Select the machine before you resolve the project or session. |
+| Two separate host queues or `amq-bridge` | Use companion `amq-bridge`, never a foreign `--root`. Read [two-host fleets](references/operations.md#two-host-fleets). |
 | Symphony or Kanban adapters | Read [integrations](references/integrations.md). |
-| Message schema details | Read [message format](references/message-format.md). |
+| Message schema and kinds | Read [message format](references/message-format.md). |
 | Multi-round background review | Read [review loop](references/review-loop.md). |
-| Attach to a running harness session | Read the [amq-remote reference](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-remote/README.md). |
+| Buzz, ACP, or `amq-acp` | Companion `amq-acp` queues to `AMQ_ACP_TO`; pool workers must not drain. Chat must not pass `--root`, recipients, or argv, and `[Context]` is not routing. Read [amq-acp](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-acp/README.md). |
+| Attach to a running harness session (`amq-remote up`, `submit`, `share`) | Read the [amq-remote reference](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-remote/README.md). |
+| Reach this session from Buzz (`/amq-remote`) | Use the `amq-remote` skill. |
 
 Use `amq <command> --help` for current flags. The repository README is the
 canonical setup path.
-
-## Remote
-
-`amq-remote` is a companion binary, not an `amq` subcommand. It attaches to a
-harness session that is already running. Targets are declared in
-`<AM_ROOT>/extensions/remote/manifest.json` (`claude`, `codex`, `pi`, or
-`fake`). `up` supervises the endpoint; `submit`, `status`, `wait`, and
-`cancel` talk to it; `share` mints the session body key. A manifest `relay`
-object shares a target with its owner over a Buzz relay. DM commands require
-the pinned `native_session_id` and run only while that session is attached;
-Desktop presence reports the attachment status and honors the pin when one
-is set.
-`doctor` lists each failing boundary under `failing` and exits 6 while any
-remains. Flags and exit codes
-are in the [amq-remote reference](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-remote/README.md). The design is
-[the remote-control ADR](https://github.com/avivsinai/agent-message-queue/blob/main/docs/adr-remote-control.md). Pinned seams are
-[the compatibility manifest](https://github.com/avivsinai/agent-message-queue/blob/main/docs/remote-compat.md).
 
 ## Safety and delivery rules
 

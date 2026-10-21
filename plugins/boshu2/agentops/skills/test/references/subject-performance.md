@@ -61,6 +61,28 @@ disclose unavailable symbols, sampling limits or missing facilities. No profile
 means the hotspot explanation remains unproven; it does not authorize inventing
 platform support or modifying system settings to obtain it.
 
+## When improving product performance is authorized
+
+When the caller authorizes optimization and the useful change is uncertain,
+start with the cheapest available measurement that separates the suspected
+cost by stage, call or query. Unavailable measurement limits attribution; it
+is not evidence that visually complicated code is the bottleneck. Keep this
+work within the actual authorized workload, resources and remaining bounds.
+
+Before an experiment, state the predicted metric effect or its uncertainty.
+Change one relevant factor when causal attribution matters; compare with the
+identified baseline under equivalent conditions and the correctness guards
+below. Retain a candidate as an improvement only when its useful effect is
+supported beyond the observed noise. An inconclusive result is not a win.
+
+After an unsuccessful experiment, remove only its own changes when safe and
+within authority; preserve other edits and useful evidence. A legitimate
+caller-authorized rollback remains available. Do not reset a shared checkout
+or undo unrelated work merely to recover a baseline. Stop at the accepted
+target, no supported next experiment, an observed plateau or the real bound,
+whichever comes first; a new hypothesis does not renew that bound. Implement
+owns authorized source edits; no retry controller or new allowance is created.
+
 ## Guard the promised behavior
 
 Check accepted outputs, ordering, errors and side effects as applicable before

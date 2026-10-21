@@ -1,6 +1,6 @@
 ---
 name: amq-spec
-version: 0.102.0 # x-release-please-version
+version: 0.103.0 # x-release-please-version
 description: Use two agents to research a design independently and converge on one specification through AMQ. Trigger for collaborative design or messages labeled workflow:spec; use amq-cli for ordinary coordination.
 argument-hint: "<description of what to design> [with <partner>]"
 metadata:
@@ -10,16 +10,16 @@ metadata:
 
 # AMQ collaborative specification
 
-Invoke the `amq-spec` skill through your host's skill interface. It defines
-a structured two-agent specification flow; invocation syntax depends on the host.
+Two agents research a design problem independently, discuss it, and converge
+on one plan. The user approves the plan before anyone implements it.
 
-Use canonical phases in order:
+Phases run in order:
 `Research -> Discuss -> Draft -> Review -> Present -> Execute`
 
-Detailed step-by-step protocol lives in `references/spec-workflow.md`.
-This file is the concise operational entrypoint.
+Per-phase commands and the research and plan templates are in
+[the spec workflow](references/spec-workflow.md).
 
-## Parse Input
+## Parse input
 
 From the user prompt, extract:
 - **topic**: short kebab-case spec name (e.g., `auth-token-rotation`)
@@ -34,13 +34,11 @@ If topic/problem are unclear, ask for clarification.
 2. Verify the AMQ root is discoverable (`.amqrc`, AMQ env vars, or the default `.agent-mail` layout); otherwise run: `amq coop init`
 3. Use thread name: `spec/<topic>`
 
-## First Action: Send problem to partner IMMEDIATELY
+## Kickoff
 
-The entire point of the spec workflow is parallel research — both agents
-exploring the problem independently, then comparing notes. Every second you
-spend researching before sending is a second your partner sits idle waiting
-for the problem statement. That's why the send comes first, even though your
-instinct might be to "research first to give better context."
+Send the problem to the partner first, then start your own research. Both
+agents then research in parallel. Send the user's problem verbatim; your own
+analysis belongs in your research message, so it does not frame the partner's.
 
 ```bash
 amq send --to "<partner>" --kind question \
@@ -48,13 +46,10 @@ amq send --to "<partner>" --kind question \
   --thread "spec/<topic>" --subject "Spec: <topic>" --body "<problem>"
 ```
 
-Send the user's problem description verbatim — your own analysis goes in the
-research phase, not the kickoff. If you pre-analyze, you bias the partner's
-independent research, which defeats the purpose of having two perspectives.
+## Labels
 
-## Label Convention
-
-Labels are how both agents and the receiver-side protocol table know which phase the conversation is in. Use existing AMQ kinds plus labels to express spec workflow semantics:
+Every spec message uses an ordinary AMQ kind plus these labels on the
+`spec/<topic>` thread:
 
 | Phase | Kind | Labels |
 |---|---|---|
@@ -66,81 +61,37 @@ Labels are how both agents and the receiver-side protocol table know which phase
 | Final decision | `decision` | `workflow:spec,phase:decision` |
 | Progress/ETA | `status` | `workflow:spec` |
 
-## Quick Command Skeleton
-
-```bash
-# Initiate spec with problem statement
-amq send --to "<partner>" --kind question \
-  --labels workflow:spec,phase:request \
-  --thread "spec/<topic>" --subject "Spec: <topic>" --body "<problem>"
-
-# Submit independent research
-amq send --to "<partner>" --kind brainstorm \
-  --labels workflow:spec,phase:research \
-  --thread "spec/<topic>" --subject "Research: <topic>" --body "<findings>"
-
-# Discuss and align
-amq send --to "<partner>" --kind brainstorm \
-  --labels workflow:spec,phase:discuss \
-  --thread "spec/<topic>" --subject "Discussion: <topic>" --body "<analysis>"
-
-# Draft plan
-amq send --to "<partner>" --kind review_request \
-  --labels workflow:spec,phase:draft \
-  --thread "spec/<topic>" --subject "Plan: <topic>" --body "<plan>"
-
-# Review plan
-amq send --to "<partner>" --kind review_response \
-  --labels workflow:spec,phase:review \
-  --thread "spec/<topic>" --subject "Review: <topic>" --body "<feedback>"
-
-# Optional final decision message
-amq send --to "<partner>" --kind decision \
-  --labels workflow:spec,phase:decision \
-  --thread "spec/<topic>" --subject "Final: <topic>" --body "<final plan>"
-```
-
-## When You RECEIVE a Spec Message
-
-If you receive a message labeled `workflow:spec`, your action depends on the phase:
+## When you receive a spec message
 
 | Label | Your action |
 |---|---|
-| `phase:request` | Read the problem statement, do your **own independent research first**, then submit findings as `brainstorm` + `phase:research` |
-| `phase:research` | **Before reading**: check if you've already submitted your own research on this thread. If not, do your own research and submit it first. This preserves research independence — reading the partner's findings before forming your own view contaminates your perspective. Once your research is submitted, read the thread and start discussion as `brainstorm` + `phase:discuss`. |
-| `phase:discuss` | Reply with your analysis, continue discussion until aligned |
-| `phase:draft` | Review the plan and send feedback as `review_response` + `phase:review`. Your job here is review, not implementation — the plan needs to survive scrutiny before anyone builds it. |
-| `phase:review` | Revise plan if needed, or confirm alignment |
-| `phase:decision` | Stop. A `phase:decision` message is agent-to-agent alignment, **not** user approval, so do **not** implement from a spec decision alone. Only the human authorizes implementation, recorded as a structural gate to the initialized human handle (conventionally `user`; see the Operator Gates section in the amq-cli operations guide). Wait until the initiator confirms the human approved on the gate thread and assigns you work. |
+| `phase:request` | Do your own research first, then send findings as `brainstorm` + `phase:research`. |
+| `phase:research` | If you have not sent your own research on this thread, research and send it before you read the partner's. Then read the thread and start discussion as `brainstorm` + `phase:discuss`. |
+| `phase:discuss` | Reply with your analysis; continue until aligned. |
+| `phase:draft` | Review the plan and send feedback as `review_response` + `phase:review`. Do not implement. |
+| `phase:review` | Revise the plan if needed, or confirm alignment. |
+| `phase:decision` | Stop. Do not implement; see the approval gate below. |
 
-**Why the partner doesn't implement**: The spec workflow is a design process.
-The initiator owns the relationship with the user and presents the final plan.
-If the partner implements without approval, the user loses control over what
-gets built. The agent-to-agent `phase:decision` message is alignment, not
-authorization: human approval is a structural gate to the initialized human
-handle, and partner agents must not implement from a spec decision alone.
-Implementation starts only after the initiator explicitly tells you the human
-approved and assigns work.
+## Approval gate
 
-## Protocol Discipline
+A `phase:decision` message records agreement between agents; it is not user
+approval. The initiator presents the final plan to the user in chat and sends
+the approval request to the human handle (conventionally `user`) on a
+`gate/<topic>` thread, as in [operator gates](https://github.com/avivsinai/agent-message-queue/blob/main/skills/amq-cli/references/operations.md#operator-gates). Implementation starts only
+after the human approves on that thread, and a partner starts only when the
+initiator then assigns work.
 
-- **Use the existing wake while waiting** — if a live injecting wake notifies
-  this terminal, finish independent work and yield. On its doorbell, run
-  `amq drain --include-body`. Do not start `amq watch`, `amq monitor`, or a
-  background polling loop for peer replies. Check `amq wake check --me <handle>
-  --json` when the capability is unknown. A bounded watch is a fallback only
-  without an injecting wake; notify-only supervisor consumers remain valid.
+## Rules
 
-These rules exist because violations silently break the workflow's value proposition:
-
-- **Send before researching** — parallel research is the whole point. Pre-researching wastes your partner's time and biases the outcome toward your initial framing.
-- **Submit your own research before reading partner's** — reading first contaminates your independent perspective. Two agents who read the same code and reach the same conclusion is less valuable than two agents who explore independently and then compare notes.
-- **Don't skip phases** — each phase builds on the previous. Collapsing directly to a finished spec skips the discussion where misunderstandings surface.
-- **Use `spec/<topic>` threads and the label convention** — this is how both agents (and the tooling) know which phase the conversation is in. Without consistent labels, the receiver-side protocol table above breaks.
-- **Don't enter plan mode during research** if it blocks tool usage — you need tools to explore the codebase.
-- **Present the final plan to the user before executing, and raise a structural gate**. The initiator owns the user relationship. After the decision phase, present the plan in chat AND raise a structural human gate using the initialized human handle (conventionally `user`) on a stable `gate/<topic>` thread, then wait for explicit approval on that thread. The agent-to-agent `phase:decision` message is alignment only; partner agents must not implement from it. See the Operator Gates section in the amq-cli operations guide for canonical mechanics, seeding, and guardrails.
-
-## Reference
-
-For full protocol details, templates, and phase gates, see:
-- [references/spec-workflow.md](references/spec-workflow.md)
+- **Wait on the existing wake.** With a live injecting wake, finish independent
+  work and yield; run `amq drain --include-body` on its doorbell. Do not start
+  `amq watch`, `amq monitor`, or a polling loop. Check
+  `amq wake check --me <handle> --json` when the capability is unknown. A
+  bounded `watch` is a fallback only without an injecting wake.
+- **Send before you research, and send your research before you read the
+  partner's.** Independent research is what the second agent adds.
+- **Do not skip phases.** Discussion is where misunderstandings surface.
+- **Keep the `spec/<topic>` thread and the labels.** The receiver table above
+  depends on them.
+- **Keep tool access during research.** Do not enter a plan mode that blocks
+  tools.

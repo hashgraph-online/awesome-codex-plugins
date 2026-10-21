@@ -92,7 +92,9 @@ https://github.com/exmergo/dex/tree/main/packages/dex-core.
    `transform plan "<intent>" --edits-file <path|->`
    (`--scaffold <table>` drafts a staging model from the `.dex/` cache). The
    payload shape and each `kind`'s rules are in
-   `${CLAUDE_SKILL_DIR}/references/edit-kinds.md`. For a rename or a removal,
+   `${CLAUDE_SKILL_DIR}/references/edit-kinds.md`. Add a `declarations` entry
+   for every model you create or change, beside `edits` in the same payload (shape
+   in `${CLAUDE_SKILL_DIR}/references/declarations.md`). For a rename or a removal,
    use `transform rename` / `transform remove` instead of assembling edits. For a
    derived column several models need, ask `transform place` where it belongs.
    For the semantic layer, use the command for the vendor `semantic.vendor`
@@ -141,6 +143,26 @@ a field, flag, or macro you need is not described here.
 - An entirely `unchanged` semantic plan changes nothing: check whether you meant
   to edit something.
 - Read every note on an Ossie plan: each names something that was not checked.
+
+### Declaring what a model means
+
+- Declare what you decided, not only what you wrote: the grain, which rows are
+  in (`population.rule`), each column's role, and every judgment call as an
+  `assumptions` entry with its `evidence` (`request`, `contract`, `precedent`,
+  `data`, `default`). A threshold, a status list or a NULL rule left only in your
+  reasoning is one no reviewer can check.
+- Relay `data.decisions` from the plan, apply or build envelope to the user at the
+  end of the task, so they see the choices you made and can overturn one.
+- A warning that a model declares nothing, or leaves out a description, grain or
+  role, is intent you still owe; a refusal names a declaration that contradicts
+  the project (a column the SELECT list does not produce, a reference that does
+  not resolve). Fix the declaration, not the check.
+- Never list a population filter's values for a column that looks like personal
+  data: state the rule in words. The refusal names the `pii_overrides` entry a
+  human can add if the column is not personal data.
+- Change a declaration by declaring again in a new plan. dex writes only
+  `description`, the tests a declaration implies, and `config.meta.dex`; every
+  other byte of the YAML stays as it was.
 
 ### Applying and refactoring
 
@@ -219,7 +241,8 @@ a field, flag, or macro you need is not described here.
   `profiles.yml`), or give the user the `CREATE` or `GRANT` statement to run.
   dex will not create a database itself.
 - On a billed connector the first call returns `needs_confirmation` with an
-  estimate (`per_table_bytes` names which node drives it). Surface it, get an
+  estimate (`per_table_bytes` names which node drives it, and `upper_bounds`
+  names the incremental lines that will likely bill less). Surface it, get an
   explicit budget from the user, and re-issue with
   `--confirm --budget <magnitude>` grounded in that number. Never invent a budget, and never retry
   with a raised one after an over-ceiling refusal without asking. Relay the
@@ -258,6 +281,8 @@ a field, flag, or macro you need is not described here.
 
 - `${CLAUDE_SKILL_DIR}/references/edit-kinds.md`: the edits payload, every
   `kind`, its path family and validation, the three kinds of test, and deletes.
+- `${CLAUDE_SKILL_DIR}/references/declarations.md`: the `declarations` payload,
+  every field and its allowed values, and what each renders into.
 - `${CLAUDE_SKILL_DIR}/references/commands.md`: `references`, `rename`, `remove`,
   `place`, `build`, `build --verify`, `test --mutate`, and `deps` in detail.
 - `${CLAUDE_SKILL_DIR}/references/init-and-dev-target.md`: per-connector init and

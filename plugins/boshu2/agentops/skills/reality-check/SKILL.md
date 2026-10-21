@@ -44,6 +44,12 @@ of the report.
    exercises code without asserting the claimed outcome are unverifiable, not
    confirmed. Name the missing evidence instead of resolving an untestable
    claim by assertion.
+   For a claim that behavior is implemented, search the code behind it for
+   pretend implementations: constant or hard-coded results, TODO or
+   not-implemented branches, sample data, or test doubles outside test code.
+   Trace each hit to its callers before classifying it. A placeholder that a
+   production path reaches makes the item a gap; a double used only by tests,
+   or code nothing calls, does not.
 3. When asked about a plan, compare proposed scope with the original goal;
    additions that lack authority are scope escalation the report cannot approve.
    Repeated measurements reuse the same question and criteria; a changed
@@ -81,6 +87,21 @@ Validate's fresh, author-distinct judgment. If acceptance is wanted, hand off an
 report a missing fresh reviewer as a gap, never as validation that occurred.
 Shared routing and handoff detail:
 [advice or acceptance](../review/references/advice-or-acceptance.md).
+
+## Health snapshot
+
+For "is this repository healthy" or "do the checks pass", run the project's
+own read-only checks: those declared in its instructions or CI configuration,
+or found in its build files. Prefer a `--check`, dry-run or verify variant
+when one exists. List any step that writes tracked files, publishes, deploys
+or needs credentials as not run, with the reason. Record what you selected and
+where it came from. Run each one separately and keep going after a failure so
+later results are not lost.
+Report each check as passed, failed, not run because the tool is unavailable,
+or not determined because its output could not be captured, and take the result
+from the exit status rather than from parsing the output. Name declared checks
+you did not run. Do not fix anything, and do not fold the results into one
+score that hides a failure.
 
 ## Goal measurement
 

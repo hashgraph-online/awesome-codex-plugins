@@ -51,6 +51,11 @@ judge from this file and say which was unavailable.
 - A changed test, tolerance, golden, suppression or acceptance text must still
   satisfy the original intent. Green obtained by weakening the oracle is FAIL
   for the criterion it was meant to prove, and that green is not evidence.
+  The same holds for green obtained by changing what the check runs against:
+  product code that behaves differently when it detects a test or CI
+  environment, a failure path newly silenced by an empty handler or discarded
+  error, or a check made non-blocking, skipped or bypassed. Each needs a reason
+  visible in the change that still serves the original intent.
 - Read receipts; do not re-run checks the author ran on this exact subject or
   that CI will run. Re-execute only a risk-critical claim that has no receipt.
 - A necessary finding never becomes an optional caveat or non-goal.

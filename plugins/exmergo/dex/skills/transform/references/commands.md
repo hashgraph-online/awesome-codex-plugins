@@ -74,7 +74,8 @@ a seed header) and stores them as one plan. Kinds: `column`, `var`, `model`,
 Removes the definition and refuses while any read survives, naming each with a
 file and a line. Same kinds and refusals as `rename`. Hand-authored read edits
 passed with `--edits-file` are validated and stored in the same plan, so the
-removal stays atomic.
+removal stays atomic. A YAML entry is removed with the comment lines written
+directly above it at its own indent; a comment set apart by a blank line stays.
 
 ## `transform place <column> --targets <a,b> --expr "<sql>" [--explain]`
 
@@ -99,6 +100,11 @@ Runs `dbt build` against a dev target, with a cost preflight first.
   with `estimated_bytes` and a `per_table_bytes` breakdown; each statement is then
   capped server-side by the profile's `maximum_bytes_billed`, and billed bytes are
   reported afterward.
+- `data.upper_bounds` names the `per_table_bytes` lines that are upper bounds:
+  incremental models whose batch filter is a watermark subquery, which a dry run
+  cannot prune on and the job does. They will likely bill less. An over-ceiling
+  refusal names them too, so tell the user how much of the estimate they are
+  before they choose a budget.
 - A refusal over the ceiling carries a calibration line from `.dex/spend.jsonl`.
   Builds over-estimate most on a partitioned or clustered warehouse.
 - dbt runs with its working directory pinned to the project dir, so relative

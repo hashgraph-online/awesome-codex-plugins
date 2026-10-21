@@ -46,7 +46,7 @@ The local trust model does not defend against:
 - **Bind mounts and device files below an opened root** (as noted above).
 
 Native Windows does not provide the Unix cross-tree identity and `.amqrc`
-authority-hardening guarantees; those checks use legacy lexical behavior.
+authority-hardening guarantees; those checks compare paths lexically.
 See the [platform limits](INSTALL.md#platform-capability-matrix).
 
 ### Known Risks

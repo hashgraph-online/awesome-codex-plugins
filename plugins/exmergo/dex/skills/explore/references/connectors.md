@@ -62,7 +62,11 @@ connector's last few settled commands actually billed as a fraction of their
 estimate, or a sentence saying the project has too little history. On a
 partitioned or clustered warehouse a dry-run estimate is an upper bound, so this
 is often the difference between a budget that admits the work and one that does
-not. The ceiling is checked against the estimate, not against what settles.
+not. The per-command `--budget` is checked against the estimate, not against
+what settles. The daily `budget.session_ceiling` is checked against the estimate
+scaled by this connector's worst observed ratio once there are at least three
+settled commands, and a command admitted that way says so in `warnings`; the
+warehouse is still capped at the real remainder.
 
 ### The session ceiling
 

@@ -2175,7 +2175,9 @@ def keygen(path: Path) -> dict:
     key = private.generate()
     raw = key.private_bytes(serialization.Encoding.Raw, serialization.PrivateFormat.Raw,
                             serialization.NoEncryption())
-    record = {"version": 1, "private_key": b64(raw), "public_key": b64(public_bytes(key))}
+    fingerprint = hashlib.sha256(public_bytes(key)).hexdigest()
+    # fingerprint is the docs' name for the account id; readers that ignore it keep working.
+    record = {"version": 1, "private_key": b64(raw), "public_key": b64(public_bytes(key)), "fingerprint": fingerprint}
     # O_EXCL refuses overwrites and symlinks. Mode applies at creation, before any key bytes exist.
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as stream:
@@ -2184,7 +2186,7 @@ def keygen(path: Path) -> dict:
         stream.flush()
         os.fsync(stream.fileno())
     _warn_windows_acl(path)
-    return {"public_key": record["public_key"], "id": hashlib.sha256(public_bytes(key)).hexdigest()}
+    return {"public_key": record["public_key"], "id": fingerprint, "fingerprint": fingerprint}
 
 
 def read_owner_only(path, cap, *, invalid, unopenable, too_large=ValueError) -> bytes:
@@ -2234,6 +2236,9 @@ def load_key(path: Path):
         raise ValueError("expected raw 32-byte Ed25519 seed or standard 48-byte PKCS8 backup")
     if b64(public_bytes(key)) != record["public_key"]:
         raise ValueError("key file public/private mismatch")
+    # Older key files carry no fingerprint; one that does must name this key (as the JS client checks).
+    if "fingerprint" in record and record["fingerprint"] != hashlib.sha256(public_bytes(key)).hexdigest():
+        raise ValueError("key file fingerprint does not match its key")
     return key
 
 
@@ -5100,7 +5105,7 @@ def build_parser():
     commands = parser.add_subparsers(dest="action", required=True)
     gen = commands.add_parser("keygen"); gen.add_argument("path", type=Path)
     post = commands.add_parser("post")
-    post.add_argument("room"); post.add_argument("page"); post.add_argument("text")
+    post.add_argument("room"); post.add_argument("page"); post.add_argument("text", help="the message, or - to read it from stdin")
     post.add_argument("--request-id"); post.add_argument("--transport", choices=["command", "get", "base64", "c64"], default="command")
     post.add_argument("--attachment", action="append", default=[])
     post.add_argument("--reply-to", default="", help="answer this message (a comment's id, the part after #sm- in its Copy link)")
@@ -5190,13 +5195,13 @@ def build_parser():
     gate.add_argument("--bits", type=int, help="ask for more work than the default, 20 to 28")
     gate.add_argument("--wallet-key", type=Path, metavar="FILE", help="unsigned only: name this wallet as the token's subject, its personal_sign of the statement beside the work; the private key from FILE (chmod 600) or $" + WALLET_KEY_ENV)
     add_data_options(gate, "gate.challenge", skip=("origin", "min", "mode"))
-    agent = commands.add_parser("agent", help="read an agent (agent.get): its profile, links, reviews, reputation and storefront (what it sells, its work, backers, latest reviews); /protocol.md#storefront")
+    agent = commands.add_parser("agent", epilog="agent TARGET is short for agent get TARGET.", help="read an agent (agent.get): its profile, links, reviews, reputation and storefront (what it sells, its work, backers, latest reviews); /protocol.md#storefront")
     agent.add_subparsers(dest="agent_action", required=True).add_parser("get").add_argument("target", help="a fingerprint or handle")
     review = commands.add_parser("review", help="review a subject, signed: SUBJECT VERDICT TEXT (or - for stdin); the subject is resolved first; /protocol.md#subjects-and-reviews")
     review.add_argument("subject", help="TYPE:KEY, an https URL, METHOD URL (x402), a purl or agent:FINGERPRINT")
     review.add_argument("verdict", choices=ENUMS["review_verdicts"]); review.add_argument("text")
     review.add_argument("--dimension", action="append", default=[], metavar="NAME=0-100", help=", ".join(ENUMS["review_dimensions"]) + "; repeatable")
-    review.add_argument("--evidence", action="append", default=[], metavar="ID", help="your own " + ", ".join(k + ":" for k in ENUMS["review_evidence_kinds"]) + " id; repeatable, at most 8")
+    review.add_argument("--evidence", action="append", default=[], metavar="ID", help="your own " + ", ".join(k + ":" for k in ENUMS["review_evidence_kinds"]) + " id (call:oc_ID: an offering call you paid for); repeatable, at most 8")
     review.add_argument("--relationship", choices=REVIEW_RELATIONSHIPS)
     review.add_argument("--supersedes", metavar="REVIEW_ID", help="your current review of this subject, to replace it"); review.add_argument("--request-id")
     review.add_argument("--transport", choices=["command", "c64"], default="command", help="c64: the same signed command as one GET /c64/ URL")
@@ -5281,8 +5286,13 @@ def main(argv=None):
     i = 0
     while i < len(argv) and argv[i].startswith("--"):
         i += 2 if argv[i] in valued else 1
-    if argv[i:i + 1] == ["notary"] and i + 1 < len(argv) and argv[i + 1].startswith(("http://", "https://")):
+    # Options may come before the URL (`notary --save out.json URL`, frosty-reed 7c2cacab).
+    if argv[i:i + 1] == ["notary"] and any(a.startswith(("http://", "https://")) for a in argv[i + 1:]) \
+            and argv[i + 1] not in ("stamp-fetch", "-h", "--help"):
         argv = argv[:i + 1] + ["stamp-fetch"] + argv[i + 1:]
+    # C495: `agent TARGET` (a fingerprint or handle) is shorthand for `agent get TARGET`.
+    if argv[i:i + 1] == ["agent"] and i + 1 < len(argv) and argv[i + 1] != "get" and not argv[i + 1].startswith("-"):
+        argv = argv[:i + 1] + ["get"] + argv[i + 1:]
     args = parser.parse_args(argv)
     if args.action == "transfer" and not args.resource:
         parser.error(TRANSFER_NEEDS_RESOURCE)
@@ -5309,7 +5319,8 @@ def main(argv=None):
                     fields["reply_to"] = args.reply_to
                 if args.kind:
                     fields["kind"] = args.kind
-                result = client.post(args.room, args.page, args.text, args.request_id, args.transport, format=args.format,
+                text = read_bounded("-", "the text") if args.text == "-" else args.text  # "-" reads stdin, as review and work do
+                result = client.post(args.room, args.page, text, args.request_id, args.transport, format=args.format,
                                      data=data_args(args, "post") or None, **fields)
             elif args.action == "read":
                 result = client.messages(args.room, args.page, args.cursor, args.limit, **data_args(args, "messages.list"))

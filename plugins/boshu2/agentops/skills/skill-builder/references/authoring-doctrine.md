@@ -72,3 +72,37 @@ conformance and unmeasured behavioral evidence. Historical `noop-phrase`,
 available through `audit.sh --legacy` for compatibility. Their tokens, headings
 and phrase counts neither prove quality nor mandate prose repairs. Keep legacy
 consumer compatibility separate from the decision to retain or revise a skill.
+
+## Change existing text at its owning layer
+
+Most skill edits add a line after a miss. Before adding, check whether the
+miss is a missing condition or a missing case.
+
+- **State the condition, not another case.** When a rule is about to gain
+  "and also when X", name what X stands for and state that instead. A rule
+  that lists its cases will need another case next month.
+- **Put a mechanism where it is owned.** Commands, exit codes and state
+  changes belong to the skill or tool that owns them. A skill that delegates
+  states the outcome it needs, the safe failure direction and the facts the
+  callee cannot derive, and links the owner.
+- **Check provenance before cutting.** Look for a test that asserts the line,
+  a commit or incident that added it, or a document that records why. If one
+  exists, the line protects something: keep it unless that consumer is gone,
+  and say what it protects. If none exists, apply the admission test below,
+  and say which cuts rest only on absence of evidence.
+- **Name what decides after a cut.** When you remove a "must", say what now
+  decides whether that step happens. If the answer is "the model, at its
+  discretion" and the step is required, the line stays.
+- **Admission test.** A line earns its place when it states a constraint a
+  run could visibly break, counters a tendency agents have shown, or supplies
+  a fact the agent cannot derive from the repository. Restated capability,
+  effort language and rationale after a self-sufficient directive do not.
+- **The description is the routing pointer.** Most hosts keep it in context
+  with the catalog, so it is read far more often than the body (verify per host,
+  as above). Its first sentence names what this skill produces that a sibling
+  would not; then the work states that should trigger it; then the sibling to
+  use for the neighboring job, when the same words could fire both.
+- **Shrink by moving, not compressing.** When a body must get smaller, move a
+  coherent conditional block to a reference named where it is needed, or
+  delete true duplication. Fused clauses and dropped articles save bytes and
+  cost comprehension.

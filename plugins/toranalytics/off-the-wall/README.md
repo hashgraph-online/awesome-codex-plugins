@@ -237,6 +237,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHA
 - [awesome-ai-plugins](https://github.com/hashgraph-online/awesome-ai-plugins)
 - [awesome-ai-agent-tools](https://github.com/michielhdoteth/awesome-ai-agent-tools)
 - [Awesome-Vibe-Coding](https://github.com/0xWelt/Awesome-Vibe-Coding)
+- [awesome-vibe-coding-resources](https://github.com/acvnace/awesome-vibe-coding-resources)
 
 ## License
 

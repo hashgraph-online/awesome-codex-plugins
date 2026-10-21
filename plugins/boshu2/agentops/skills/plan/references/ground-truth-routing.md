@@ -59,3 +59,21 @@ A prototype cannot change intent, authorize implementation or establish
 acceptance. Even promising results require implementation checks and fresh
 exact-content judgment. No new tracker, control ledger or automatic context
 admission follows from the experiment.
+
+## Compare interfaces from the caller's side
+
+Use only when the accepted behavior has materially different plausible
+interfaces. Sketch the ordinary caller and one consequential failure case for
+at most two alternatives before implementing either. Include setup, required
+call order, state ownership and error handling, not just function signatures.
+One alternative can keep the existing boundary. Sequential sketches suffice;
+this method grants no delegation authority.
+
+Compare which facts each caller must learn, which repeated rule the boundary
+owns, and where the next acceptance-relevant change would land. Include the
+migration cost for existing callers. Prefer the option that removes concrete
+coordination without exporting implementation details. A shorter signature
+that makes callers carry hidden ordering or recovery rules is not simpler.
+If neither option improves the actual callers, retain the current interface.
+Use a bounded probe above only for a difference the sketches cannot settle;
+record the chosen tradeoff in the existing intent, not a new design document.

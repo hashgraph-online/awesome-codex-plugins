@@ -1,42 +1,12 @@
 ---
 name: weekly-loop
-description: "Run the weekly SEO loop on one page that should make money: read how the focus page did, judge the last change by search and conversions, and propose one next change with evidence. Use when the user asks what to work on this week, whether a change worked, or wants a weekly SEO check-in."
+description: "Product weekly loop on the focus page: judge the last change, propose one next change with evidence."
 ---
 
-# The weekly loop on the focus page
+# Weekly loop on the focus page
 
-Rankings that don't convert are worth nothing, and a sitewide audit gives no idea which fix pays. So the loop works on **one page** (the focus page the owner picked in Loomaly) and makes **one change at a time**, then judges it on search *and* conversions.
-
-## Tools (Loomaly MCP)
-
-- `get_started` or `sites_list`: find the site id. If `needsSite` is true, find the domain in the repository or in what the user said and call `add_site`, then wait until the scan finishes before the weekly loop. Don't ask for the domain when you can see it.
-- `fix_first` (`siteId`): `weeklyPlan` is this week's snapshot (1 item on Free, 5 on Starter and up). An item with `opportunity` is a Search Console page: ask the owner, then `set_focus_page`. `more` is the rest of the queue (`kind: "finding"`). `opportunities` (`kind: "opportunity"`) and `opportunityCount` are the same Search Console list on Pro and Agency; other plans get the count and `opportunitiesUpgrade`. There is no `issues` field. A free plan's `geo` field means more llms.txt or AI-crawler findings are open than the one preview.
-- `focus_page` (`siteId`): the owner's brief (what the site sells, to whom, what counts as a conversion), the focus page's target search phrase (`keyword`, `keywordSource`) and whether that phrase is already in the title, the H1, the description, the opening and the anchor text (`placement`), the focus page's Search Console numbers (last 28 days vs the 28 before), its open issues, a conversion checkup (the page read against the brief), and the change log, each change with a `verdict`. With no focus page it returns `candidates` instead.
-- `fix_prompt` (`findingId`): instructions for one open issue on the page.
-- `log_change` (`siteId`, `summary`, `shippedOn`, `ref`, optional `conversionsBefore` / `conversionsAfter`): record a change once it is live.
-- `set_focus_page` (`siteId`, `page`, optional `keyword`): save the owner's choice of page, and the search phrase that page should rank for (`null` clears it). The reply includes whether that phrase is already in the title, the H1, the description, the opening and the anchor text.
-- `set_brief` (`siteId`, `offer`, `customer`, `conversion`, optional `keywords`): save the owner's brief, and up to five site-wide search phrases. The first one is the homepage phrase when that page has none of its own.
-- `mark_fixed` (`siteId` plus `findingId` or `ruleId` and `pathTemplate`, `ref`) records the claim and does not use a fix check. `verify` re-checks the live page after deploy and is what uses a fix check.
-
-## Steps
-
-1. `sites_list`, then `fix_first`, then `focus_page`.
-   - If `fix_first` has `needsBrief`, or `checkup.state` is `needs_brief`: ask the owner once about the audience, the goal and the keywords, and what the site sells, to whom, and what counts as a conversion. `set_brief` with their words. Do not invent the brief. Ask which search phrase the focus page should rank for, and save it with `set_focus_page`'s `keyword`.
-   - If `weeklyPlan` leads with a foundation (sitemap, robots, Search Console, homepage, server rendering), that comes before the focus-page change. A sitemap fix generates the file from the route or content source. After it is verified, `submit_sitemap` when Search Console is connected. If `gscSetup` is present, call `gsc_verify_site`: authorize Google in Loomaly, add `metaTag` to the homepage head in server-rendered HTML, leave the tag in place, and after deploy call `gsc_verify_site` with `deployed` true. The owner does not open Search Console.
-   - No focus page: suggest one of the `candidates` (pages already seen in search, ranking 3–20) that looks like it should convert; without Search Console there are none, so ask which page matters most (often pricing or the main product page). Once the owner picks, `set_focus_page`.
-2. Report the week, short:
-   - Search numbers for the page, and whether they moved beyond normal noise. Say plainly when they did not.
-   - Every change whose verdict arrived. Conversions decide: `miss` means the page climbed but did not convert better; `win` means more conversions, even with flat rankings. `too_little` (and `lowTraffic`) means the page gets too few clicks for search to show anything: say so, and judge the page by the checkup and its index status until traffic grows. `search_up` only says search improved, because no conversions were given — ask the owner for them (before and after windows are in `measure.windows`) and record them with `log_change`'s fields on a new entry or in the dashboard.
-3. If `blockers` is not empty, those come first: pages that can't be found can't be improved by any change to the focus page. Recommend fixing the biggest one (`fix_prompt` with its `findingId`).
-4. If any change is still `watching`, **recommend nothing new**. Changing the page now makes that change impossible to judge. Say how many days are left.
-5. Otherwise recommend **one** change, with the evidence behind it:
-   - First choice: a `fail` item in `checkup` (the page does not say what it offers, has no proof, no step towards the conversion…). These cost conversions directly.
-   - Then the worst open issue on the page (`openFindings`), using `fix_prompt`.
-   - Leave a page that is doing well alone unless there is a strong reason.
-6. Wait for the owner's yes before drafting. When the change ships, `log_change` with the day it went live and the PR, and `mark_fixed` any issue it closed (the owner can also do this in the dashboard). `mark_fixed` writes a change-log row for that page so the 14 days before can be compared with the 14 after. `verify`, and confirming the fix in the dashboard, write the same row if it is not there yet. This happens on every page, not only the focus page.
-
-## Accuracy
-
-- Only report what the tools return. Search Console numbers land 2–3 days late; a small site can have too few clicks for any change to clear the noise, so say so rather than read meaning into it.
-- Don't promise AI citations, and don't recommend schema or llms.txt as a way to get cited: there is no good evidence they help. Recommend what makes the page answer its question plainly and convert.
-- Never claim a change "worked" from rankings alone.
+1. `status` → `todo` → `focus`. If no brief, ask once and `set_goals`. If no focus page, suggest a candidate and `set_goals` with `page` after the owner picks.
+2. Report the week in short: Search numbers from `focus` / `visibility` `view: google` (and rankings/ai when stored), and each change verdict. Say when traffic is too thin to judge. For paid refreshes use `check` with estimate → maxCost.
+3. If any change is `watching`, recommend nothing new. Otherwise recommend **one** change: checkup `fail` items first, then the worst open finding via `problem`.
+4. Wait for the owner's yes. When it ships, `set_goals` with `summary` / `shippedOn` / `ref`, and `triage` `mark_fixed` for closed findings. `check` after deploy.
+5. Foundations in `todo` beat focus-page tweaks. Connect Google with `google` when needed.

@@ -64,6 +64,15 @@ These rules carry the value:
 5. **Do not rank, pick, schedule or start work.** The caller or Plan selects.
 6. **Stop at saturation.** Merge equivalents, and run another pass only while
    it adds a materially new evidenced candidate. Zero candidates is valid.
+7. **Generate before judging.** Name a few independent angles the question
+   allows (who is affected, which workflow, what fails, what costs, what could
+   be removed) and draft along each before filtering. Judging the first idea
+   too early narrows the set. Keep a one-line reason for each dropped idea in
+   `dropped` so a later pass does not regenerate it.
+8. **Behavior outweighs stated interest.** "Users asked for it" is weaker than
+   what they do now: the workaround they already use, what it costs them, and
+   observed adoption of anything similar. Name the status quo each candidate
+   must beat; if nobody is working around the problem today, say so.
 
 State the question, constraints, non-goals and sources first; hydrate only the
 sources this question needs and cite them, with no merged context store.
@@ -81,11 +90,12 @@ Return the portfolio in this shape:
     "overlaps": ["<existing capability it extends or repeats>"],
     "scenario": {"given": "<state>", "when": "<event>", "then": "<observable result>"}
   }],
+  "dropped": [{"idea": "<short name>", "reason": "<overlap, no evidence, or why it lost>"}],
   "termination": {"reason": "novelty-saturated", "novel_candidates_last_pass": 0}
 }
 ```
 
-`overlaps` may be empty. When every idea overlaps or lacks support, set
+`overlaps` may be empty; `dropped` is optional. When every idea overlaps or lacks support, set
 `status` to `no-new-work`, leave `candidates` empty and set `termination.reason`
 to `all-overlap-or-unsupported`. For a person, render the same fields as a
 short list, one block per candidate. When a file is wanted, write
@@ -129,6 +139,14 @@ is undone by a revert or a flag.
    continue single-model.
 3. Reveal the sealed perspectives and cross-review each by evidence,
    reversibility, system fit, failure modes and cost.
+   Compare perspectives by mechanism, not by name: two that rely on the same
+   mechanism count as one alternative, and fewer than two distinct ones is an
+   incomplete comparison, not a winner. A perspective that breaks a frozen
+   constraint is out, whatever its other strengths.
+   A combination of parts from several perspectives is a new candidate with no
+   inherited support: walk one concrete example through each guarantee the
+   combined design needs before listing it, or list it as unchecked so Plan
+   does not combine on trust.
 4. Attempt concrete refutations. Keep disagreements, failed refutations and
    minority reasoning explicit.
 5. Write `idea-challenge.v1`, validate it, and pass it to Plan as one optional

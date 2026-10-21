@@ -128,9 +128,20 @@ optionally scoped to `schema`, `volume`, `grain`, or `semantic`. It composes eve
 layer's declarations first, so a grain the semantic layer already declares is not
 proposed as though nothing declared it.
 
-- `mechanical`: on a dex-scaffolded staging model it re-scaffolds the model from
-  the drifted source; on a project format that places a declaration but authors
-  no staging model, it edits the drifted columns into that declaration.
+- `mechanical`: on a dex-scaffolded staging model it edits each drifted column
+  into the model and nothing else: one projection added to or removed from the
+  list the model names its columns in, and one entry in whichever YAML file
+  already declares the model (a shared `models/schema.yml` included; dex never
+  writes a second declaration beside it, and never invents a test). The model is
+  never regenerated, so a hand-written cast, rename or filter survives. On a
+  project format that places a declaration but authors no staging model, it
+  edits the drifted columns into that declaration.
+- A dropped column the model's own logic still reads (`status as order_status`,
+  `md5(status)`, a `where` on it) is advisory and names the use, since what that
+  logic becomes is a decision. A model downstream that still reads the dropped
+  column is named in `warnings`. Drift the project already reflects (an applied
+  plan added the column) is advisory and stores no plan: re-run
+  `maintain snapshot` to baseline it.
 - `advisory`: the decision surfaced, at most backed by a test edit. It declines
   that test where the test would be wrong: if a model declares a composite grain
   covering the column, no column-level `unique` is proposed on it, and the warning

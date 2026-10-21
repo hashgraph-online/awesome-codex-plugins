@@ -1,0 +1,12 @@
+---
+name: seo-ops
+description: "Ops loop: weekly report, hand work to developers, track fix progress, and read charts from tool text (tables and sparklines)."
+---
+
+# SEO ops in chat
+
+1. `status` then `report` `kind: weekly` (and `roi` if they ask about impact). Share `report` `kind: public` when they want a link.
+2. `todo` for this week's plan. For each item: `problem` → `send_to_dev` → paste the task. Do not open GitHub Issues.
+3. When a fix ships: `triage` `mark_fixed` with the PR URL, then `check` after deploy. `todo` `view: links` for link suggestions; `triage` `decide_link` for each.
+4. Relay each tool's `say`. Use `chart.table` / `sparkline` when present. Human steps use `handoff` toward `/account/...` — never `/dashboard`.
+5. Paid data: `set_goals` for trackKeywords / competitors / aiPrompts → `visibility` to read → `check` without `maxCost` for an estimate → `check` with `maxCost` to spend. Do not invent numbers.
