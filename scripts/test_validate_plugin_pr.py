@@ -27,6 +27,7 @@ class ReadmeEntryRegexTests(unittest.TestCase):
         for suffix in (
             "",
             "/",
+            "/tree/codex-plugin",
             "/tree/main/plugins/example",
             "?tab=readme-ov-file#setup",
         ):
@@ -38,9 +39,12 @@ class ReadmeEntryRegexTests(unittest.TestCase):
 
                 self.assertIsNotNone(match)
                 assert match is not None
+                branch = None
+                if suffix.startswith("/tree/"):
+                    branch = suffix.split("/", 3)[2]
                 self.assertEqual(
                     match.groups(),
-                    ("Example", url, "example", "plugin", "A useful plugin."),
+                    ("Example", url, "example", "plugin", branch, "A useful plugin."),
                 )
 
     def test_trailing_slash_before_query_is_not_a_new_repository(self) -> None:

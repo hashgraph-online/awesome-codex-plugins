@@ -144,5 +144,52 @@ class GeneratedBundleCleanupTests(unittest.TestCase):
                 self.assertEqual((retired / "SKILL.md").read_text(), "preserve-until-preflight-completes")
 
 
+class BranchAwareSourceTests(unittest.TestCase):
+    def test_parse_plugins_uses_branch_from_repository_link(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            readme = Path(scratch) / "README.md"
+            readme.write_text(
+                "## Community Plugins\n"
+                "- [WTFM](https://github.com/SupportPages-io/wtfm/tree/codex-plugin) - Published bundle.\n"
+            )
+
+            plugin = MODULE.parse_plugins(readme)[0]
+
+            self.assertEqual(plugin["owner"], "SupportPages-io")
+            self.assertEqual(plugin["repo"], "wtfm")
+            self.assertEqual(plugin["branch"], "codex-plugin")
+            self.assertEqual(
+                plugin["install_url"],
+                "https://raw.githubusercontent.com/SupportPages-io/wtfm/codex-plugin/.codex-plugin/plugin.json",
+            )
+
+    def test_fetch_and_manifest_urls_keep_the_selected_branch(self):
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return b"archive"
+
+        with patch.object(MODULE.urllib.request, "urlopen", return_value=Response()) as urlopen, \
+                patch.object(MODULE.zipfile, "ZipFile", return_value="archive"):
+            self.assertEqual(MODULE.fetch_repo_archive("SupportPages-io", "wtfm", "codex-plugin"), "archive")
+
+        self.assertEqual(
+            urlopen.call_args.args[0].full_url,
+            "https://github.com/SupportPages-io/wtfm/archive/codex-plugin.zip",
+        )
+        self.assertEqual(
+            MODULE.build_raw_manifest_url(
+                {"owner": "SupportPages-io", "repo": "wtfm", "branch": "codex-plugin"},
+                "",
+            ),
+            "https://raw.githubusercontent.com/SupportPages-io/wtfm/codex-plugin/.codex-plugin/plugin.json",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

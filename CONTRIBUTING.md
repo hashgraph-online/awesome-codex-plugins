@@ -121,7 +121,7 @@ Rules:
 - One plugin per line
 - Alphabetical order within each category
 - Description must be a single sentence
-- Link must point to the GitHub repository root
+- Link must point to the GitHub repository root; when the installable bundle is published from a non-default branch, append `/tree/<branch>`
 
 ## Scanner requirements
 

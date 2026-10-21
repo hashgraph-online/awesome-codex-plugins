@@ -22,6 +22,7 @@ import sys
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
+from urllib.parse import quote
 
 README = Path(__file__).parent.parent / "README.md"
 OUTPUT = Path(__file__).parent.parent / "plugins.json"
@@ -128,7 +129,7 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
             continue
 
         plugin_match = re.match(
-            r"^- \[([^\]]+)\]\((https://github\.com/([^/]+)/([^)#]+?))(?:#readme)?\)\s*[-–]\s*(.+)",
+            r"^- \[([^\]]+)\]\((https://github\.com/([^/]+)/([^/?#)]+)(?:/tree/([^/?#)]+)(?:/[^?#)]*)?)?/?(?:#readme)?)\)\s*[-–]\s*(.+)",
             line.strip(),
         )
         if not plugin_match:
@@ -146,24 +147,25 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
                 raise ValueError(f"Unrecognized Community Plugins entry: {line.strip()}")
             continue
 
-        owner, repo = plugin_match.group(3), plugin_match.group(4)
+        owner, repo, branch = plugin_match.group(3), plugin_match.group(4), plugin_match.group(5)
         repo = repo.removesuffix(".git")
         key = f"{owner}/{repo}/{plugin_match.group(1)}"
         if key in seen:
             continue
         seen.add(key)
-        plugins.append(
-            {
-                "name": plugin_match.group(1),
-                "url": plugin_match.group(2),
-                "owner": owner,
-                "repo": repo,
-                "description": plugin_match.group(5).strip(),
-                "category": current_category,
-                "source": "awesome-codex-plugins",
-                "install_url": f"https://raw.githubusercontent.com/{owner}/{repo}/{RAW_DEFAULT_BRANCH_REF}/.codex-plugin/plugin.json",
-            }
-        )
+        plugin = {
+            "name": plugin_match.group(1),
+            "url": plugin_match.group(2),
+            "owner": owner,
+            "repo": repo,
+            "description": plugin_match.group(6).strip(),
+            "category": current_category,
+            "source": "awesome-codex-plugins",
+            "install_url": f"https://raw.githubusercontent.com/{owner}/{repo}/{quote(branch or RAW_DEFAULT_BRANCH_REF, safe='')}/.codex-plugin/plugin.json",
+        }
+        if branch:
+            plugin["branch"] = branch
+        plugins.append(plugin)
 
     repo_counts: dict[str, int] = {}
     for plugin in plugins:
@@ -178,12 +180,13 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
     return plugins + local_plugins
 
 
-def fetch_repo_archive(owner: str, repo: str) -> zipfile.ZipFile:
+def fetch_repo_archive(owner: str, repo: str, branch: str | None = None) -> zipfile.ZipFile:
     last_error = None
+    branch_ref = quote(branch or RAW_DEFAULT_BRANCH_REF, safe="")
     for attempt in range(MAX_RETRIES):
         try:
             request = urllib.request.Request(
-                f"https://github.com/{owner}/{repo}/archive/HEAD.zip",
+                f"https://github.com/{owner}/{repo}/archive/{branch_ref}.zip",
                 headers={"User-Agent": USER_AGENT},
             )
             with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
@@ -248,7 +251,7 @@ def build_raw_manifest_url(plugin: dict[str, str], plugin_root_relative: str) ->
         manifest_path = f"{plugin_root_relative}/{manifest_path}"
     return (
         f"https://raw.githubusercontent.com/{plugin['owner']}/{plugin['repo']}/"
-        f"{RAW_DEFAULT_BRANCH_REF}/{manifest_path}"
+        f"{quote(plugin.get('branch') or RAW_DEFAULT_BRANCH_REF, safe='')}/{manifest_path}"
     )
 
 
@@ -372,7 +375,7 @@ def sanitize_metadata_only_manifest(manifest: dict[str, object], plugin: dict[st
 def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str, str]:
     owner_repo = f"{plugin['owner']}/{plugin['repo']}"
     try:
-        archive = fetch_repo_archive(plugin["owner"], plugin["repo"])
+        archive = fetch_repo_archive(plugin["owner"], plugin["repo"], plugin.get("branch"))
     except Exception as e:
         raise ValueError(f"Failed to fetch {owner_repo}: {e}") from e
     names = {name for name in archive.namelist() if not name.endswith("/")}
