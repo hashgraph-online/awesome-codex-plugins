@@ -14,7 +14,8 @@ Generator (CI):  plugins/<owner>/<repo>/  ←  fetched from your GitHub repo
 ```
 
 The generator removes only explicitly reviewed retired identities in
-`RETIRED_BUNDLE_IDENTITIES`, currently `samuelbushi/uizze`, and only when absent
+`RETIRED_BUNDLE_IDENTITIES`, currently `samuelbushi/uizze` and
+`waynehamadi/datacircle-plugin`, and only when absent
 from the README. Missing README entries do not authorize cleanup of other
 bundles. This retirement change includes deletion of that nine-file legacy
 bundle; `plugins/uizze/uizze` is preserved.
