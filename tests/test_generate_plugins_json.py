@@ -12,6 +12,59 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GeneratedBundleCleanupTests(unittest.TestCase):
+    def test_branch_qualified_readme_entry_uses_source_branch_metadata(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            readme = Path(scratch) / "README.md"
+            readme.write_text(
+                "## Community Plugins\n"
+                "- [WTFM](https://github.com/SupportPages-io/wtfm/tree/codex-plugin) "
+                "- A plugin from a non-default source branch.\n",
+                encoding="utf-8",
+            )
+
+            plugins = MODULE.parse_plugins(readme)
+
+        self.assertEqual(len(plugins), 1)
+        self.assertEqual(plugins[0]["owner"], "SupportPages-io")
+        self.assertEqual(plugins[0]["repo"], "wtfm")
+        self.assertEqual(plugins[0]["source_ref"], "codex-plugin")
+        self.assertEqual(
+            plugins[0]["install_url"],
+            "https://raw.githubusercontent.com/SupportPages-io/wtfm/"
+            "codex-plugin/.codex-plugin/plugin.json",
+        )
+
+    def test_branch_archive_and_manifest_urls_use_the_linked_ref(self):
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return None
+
+            def read(self):
+                return b"archive"
+
+        with (
+            patch.object(MODULE.urllib.request, "urlopen", return_value=Response()) as urlopen,
+            patch.object(MODULE.zipfile, "ZipFile", return_value=object()),
+        ):
+            MODULE.fetch_repo_archive("SupportPages-io", "wtfm", "feat+plugin")
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(
+            request.full_url,
+            "https://github.com/SupportPages-io/wtfm/archive/refs/heads/feat%2Bplugin.zip",
+        )
+        self.assertEqual(
+            MODULE.build_raw_manifest_url(
+                {"owner": "SupportPages-io", "repo": "wtfm", "source_ref": "feat+plugin"},
+                "",
+            ),
+            "https://raw.githubusercontent.com/SupportPages-io/wtfm/feat%2Bplugin/"
+            ".codex-plugin/plugin.json",
+        )
+
     def test_removes_retired_identity_and_preserves_canonical_bundle(self):
         with tempfile.TemporaryDirectory() as scratch:
             root = Path(scratch) / "plugins"

@@ -107,6 +107,7 @@ def scan_open_pull_requests(
         for entry in entries:
             try:
                 ensure_public_repository(entry)
+                VALIDATOR.ensure_source_ref_exists(entry)
             except VALIDATOR.ValidationError as error:
                 reason = str(error)
                 catalog_failures.append(reason)
@@ -203,6 +204,7 @@ def main() -> int:
         entries = VALIDATOR.get_new_readme_entries(args.base_ref)
         for entry in entries:
             ensure_public_repository(entry)
+            VALIDATOR.ensure_source_ref_exists(entry)
     except VALIDATOR.ValidationError as error:
         print(f"Contribution validation failed: {error}", file=sys.stderr)
         if args.matrix_output:

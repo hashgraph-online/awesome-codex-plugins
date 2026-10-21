@@ -31,7 +31,7 @@ import subprocess
 import sys
 import zipfile
 from pathlib import Path, PurePosixPath
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import quote, unquote, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -48,7 +48,7 @@ USER_AGENT = "awesome-codex-plugins-validator"
 # Regex for README plugin entries
 README_ENTRY_RE = re.compile(
     r"^- \[([^\]]+)\]\((https://github\.com/"
-    r"([^/]+)/([^/?#)]+)(?:/tree/[^/]+/[^)?#]+)?/?(?:[?#][^)]*)?)\)\s*[-\u2013]\s*(.+)",
+    r"([^/]+)/([^/?#)]+)(?:/tree/([^?#)]+?))?/?(?:[?#][^)]*)?)\)\s*[-\u2013]\s*(.+)",
     re.MULTILINE,
 )
 
@@ -107,9 +107,10 @@ def git(*args: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def fetch_repo_archive(owner: str, repo: str) -> zipfile.ZipFile:
-    """Download the HEAD.zip archive for owner/repo."""
-    url = f"https://github.com/{owner}/{repo}/archive/HEAD.zip"
+def fetch_repo_archive(owner: str, repo: str, source_ref: str | None = None) -> zipfile.ZipFile:
+    """Download the default-branch or explicitly linked branch archive."""
+    archive_ref = f"refs/heads/{quote(source_ref, safe='/')}" if source_ref else "HEAD"
+    url = f"https://github.com/{owner}/{repo}/archive/{archive_ref}.zip"
     request = Request(url, headers={"User-Agent": USER_AGENT})
     with urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
         return zipfile.ZipFile(io.BytesIO(response.read()))
@@ -236,7 +237,9 @@ def validate_local_bundle(plugin_dir: Path) -> tuple[list[str], list[str]]:
     return errors, warnings
 
 
-def validate_remote_repo(owner: str, repo: str) -> tuple[list[str], list[str]]:
+def validate_remote_repo(
+    owner: str, repo: str, source_ref: str | None = None
+) -> tuple[list[str], list[str]]:
     """Fetch and validate a plugin from its source GitHub repo.
 
     Returns (errors, warnings).
@@ -245,7 +248,7 @@ def validate_remote_repo(owner: str, repo: str) -> tuple[list[str], list[str]]:
     warnings: list[str] = []
 
     try:
-        archive = fetch_repo_archive(owner, repo)
+        archive = fetch_repo_archive(owner, repo, source_ref)
     except Exception as e:
         return ([f"Failed to fetch source repo https://github.com/{owner}/{repo}: {e}"], [])
 
@@ -348,6 +351,7 @@ def get_new_readme_entries(base_ref: str) -> list[dict[str, str]]:
         if not match:
             continue
         display_name, url, owner, repo = match.group(1), match.group(2), match.group(3), match.group(4)
+        source_ref = unquote(match.group(5)) if match.group(5) else None
         normalized_url = normalize_github_repo_url(url)
         if normalized_url not in current_urls or normalized_url in seen_urls or normalized_url in base_urls:
             continue
@@ -357,7 +361,8 @@ def get_new_readme_entries(base_ref: str) -> list[dict[str, str]]:
             "url": url,
             "owner": owner,
             "repo": repo,
-            "description": match.group(5),
+            "description": match.group(6),
+            "source_ref": source_ref,
         })
 
     return new_entries
@@ -430,12 +435,16 @@ def main() -> None:
 
             # Check if a local bundle already exists (generator may have run)
             local_dir = PLUGINS_DIR / owner / repo
-            if local_dir.exists() and (local_dir / ".codex-plugin" / "plugin.json").exists():
+            if (
+                not entry.get("source_ref")
+                and local_dir.exists()
+                and (local_dir / ".codex-plugin" / "plugin.json").exists()
+            ):
                 print(f"  SKIP: {label} (local bundle exists, validated above)")
                 continue
 
             print(f"  Fetching {owner}/{repo}...")
-            errors, warnings = validate_remote_repo(owner, repo)
+            errors, warnings = validate_remote_repo(owner, repo, entry.get("source_ref"))
 
             if not errors:
                 print(f"  PASS: {label}")
