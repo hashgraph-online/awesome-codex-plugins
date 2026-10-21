@@ -121,7 +121,8 @@ Rules:
 - One plugin per line
 - Alphabetical order within each category
 - Description must be a single sentence
-- Link must point to the GitHub repository root
+- Link to the GitHub repository root when the plugin is on its default branch
+- If the plugin is on a non-default branch, link to `https://github.com/<owner>/<repo>/tree/<branch>`; validation and the centralized scan use that branch
 
 ## Scanner requirements
 

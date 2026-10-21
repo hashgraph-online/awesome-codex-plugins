@@ -44,7 +44,9 @@ USER_AGENT = "awesome-codex-plugins-contribution-validator"
 
 README_ENTRY_RE = re.compile(
     r"^- \[([^\]]+)\]\((https://github\.com/"
-    r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)(?:/)?(?:[?#][^)]*)?)\)\s*[-\u2013\u2014]\s*(.+)$",
+    r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)"
+    r"(?:/tree/([A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*))?/?(?:[?#][^)]*)?)\)"
+    r"\s*[-\u2013\u2014]\s*(.+)$",
     re.MULTILINE,
 )
 
@@ -56,6 +58,7 @@ class Contribution:
     owner: str
     repo: str
     description: str
+    source_ref: str | None = None
 
 
 @dataclass(frozen=True)
@@ -253,7 +256,8 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
                             url=match.group(2).strip(),
                             owner=match.group(3),
                             repo=match.group(4),
-                            description=match.group(5).strip(),
+                            source_ref=match.group(5),
+                            description=match.group(6).strip(),
                         )
                     )
             added_line_number += 1
@@ -648,10 +652,12 @@ def write_matrix(path: Path, entries: list[Contribution]) -> None:
     """Write the scanner job matrix as compact JSON."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    matrix = [
-        {"owner": entry.owner, "repo": entry.repo}
-        for entry in entries
-    ]
+    matrix = []
+    for entry in entries:
+        contribution = {"owner": entry.owner, "repo": entry.repo}
+        if entry.source_ref:
+            contribution["ref"] = entry.source_ref
+        matrix.append(contribution)
     path.write_text(json.dumps(matrix, separators=(",", ":")), encoding="utf-8")
 
 

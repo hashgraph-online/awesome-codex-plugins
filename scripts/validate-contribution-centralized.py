@@ -113,6 +113,8 @@ def scan_open_pull_requests(
                 report_lines.append(f"  - `{entry.owner}/{entry.repo}`: **FAIL** - {reason}")
                 continue
             contribution = {"owner": entry.owner, "repo": entry.repo}
+            if entry.source_ref:
+                contribution["ref"] = entry.source_ref
             contributions.append(contribution)
             matrix.append({"pr_number": pull_request.number, **contribution})
             report_lines.append(
