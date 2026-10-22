@@ -2,6 +2,8 @@
 
 Common story structures with beat sheets. Use as starting points - adapt to fit the story.
 
+The names in each Beat column are the suggested values for a chapter's `beat` frontmatter field (`beat: Midpoint`). Any other label works too; see Recording Beats on Chapters in `../SKILL.md`.
+
 ## Three-Act Structure
 
 The most common Western story structure.

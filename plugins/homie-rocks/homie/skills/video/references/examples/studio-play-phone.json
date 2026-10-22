@@ -1,0 +1,15 @@
+{
+  "about": "The same game on a phone (a 9:16 film, 1080x1920): a tap on Play, then the game's own touch stick, dragged and held. Tested on the Gem Rush starter. A phone page has touch only: tap and drag, never a key.",
+  "path": "/gem-rush/",
+  "device": "phone",
+  "tail": 2,
+  "steps": [
+    { "wait": 1200, "caption": "Gem Rush on a phone" },
+    { "click": "a[data-play]", "caption": "Tap Play" },
+    { "waitFor": { "frame": "game", "selector": "canvas" }, "timeout": 30000 },
+    { "wait": 2500 },
+    { "drag": { "frame": "game", "selector": "canvas", "offset": [0.5, 0.7], "to": [90, 0], "ms": 500, "hold": 900 }, "caption": "Drag to move" },
+    { "drag": { "frame": "game", "selector": "canvas", "offset": [0.5, 0.7], "to": [0, -90], "ms": 500, "hold": 900 } },
+    { "wait": 1500 }
+  ]
+}

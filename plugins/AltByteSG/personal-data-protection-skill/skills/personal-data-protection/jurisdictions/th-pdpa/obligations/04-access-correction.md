@@ -1,8 +1,20 @@
 # Chapter III — Rights of the Data Subject (Sections 30–36)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Thailand PDPA grants seven distinct data-subject rights. Each must be supported by the Data Controller; rejections require recorded reasons in the s39 records.
+
+## Contents
+
+- Section 30 — Access right
+- Section 31 — Data portability right
+- Section 32 — Right to object
+- Section 33 — Right to erasure ("right to be forgotten")
+- Section 34 — Right to restrict processing
+- Section 35 — Accuracy obligation
+- Section 36 — Correction request handling
+- Penalty exposure (this Part)
+- What "complete" means in practice
 
 ## Section 30 — Access right
 

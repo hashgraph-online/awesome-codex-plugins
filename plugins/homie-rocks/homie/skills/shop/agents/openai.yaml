@@ -1,0 +1,9 @@
+# Codex: the provider's own MCP server this skill uses, declared beside the skill so Codex can wire it when the
+# skill is used (the owner signs in on Stripe's own page and gives it a sandbox first). Nothing installs before.
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "stripe"
+      description: "Stripe's own MCP server: the shop's catalog, tax settings and sales, as the owner signed it in. Never a webhook or an API key through it."
+      transport: "streamable_http"
+      url: "https://mcp.stripe.com"

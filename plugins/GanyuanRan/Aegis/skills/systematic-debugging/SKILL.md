@@ -58,8 +58,15 @@ Pass root cause, avoided misfix, boundary, evidence, complexity, and risk to
 
 ## Diagnose before repair
 
+For UI/interaction defects, compose `ui-ux-governance` for relevant state and
+recovery rules at the user-visible seam. Keep reproduction/root-cause ownership
+here; a proposed manual check is not executed evidence.
+
 1. Read the complete error/stack and record inputs, environment, versions, and
-   success criteria.
+   success criteria. Reproduce the user's failed outcome on the correct object,
+   through final delivery; successful parsing or green internal checks may hide
+   the failure. Verify the repaired behavior and a relevant neighboring case,
+   not a hardcoded example. Read-only diagnosis does not authorize repair.
 2. Reproduce consistently. If unstable, read
    `feedback-loop-construction.md` **only when evidence shows intermittent or
    timing-dependent reproduction** and build a bounded loop. Shrink the repro
@@ -71,6 +78,9 @@ Pass root cause, avoided misfix, boundary, evidence, complexity, and risk to
 4. Instrument component boundaries, then trace the bad value toward its source.
    Read `root-cause-tracing.md` **only when the observed bad value is several
    calls or components downstream from its origin**.
+   For task distortion, follow source → understanding → expression → execution
+   → delivery to the first evidenced change in meaning. This identifies where
+   divergence is observed, not a proven root; reuse sufficient current evidence.
 5. State one hypothesis and falsify it with one-variable evidence. Do not stack
    speculative fixes. End each loop with `Goal | DeeperCause | Evidence |
    Risk/Unknown | Decision`.

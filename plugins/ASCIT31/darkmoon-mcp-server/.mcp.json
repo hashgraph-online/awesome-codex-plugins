@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "darkmoon": {
+      "command": "npx",
+      "args": ["-y", "@darkmoon_ai/mcp-server"],
+      "env": {
+        "DARKMOON_BASE_URL": "${DARKMOON_BASE_URL}",
+        "DARKMOON_USERNAME": "${DARKMOON_USERNAME}",
+        "DARKMOON_PASSWORD": "${DARKMOON_PASSWORD}"
+      }
+    }
+  }
+}

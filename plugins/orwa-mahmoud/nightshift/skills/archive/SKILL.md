@@ -40,13 +40,14 @@ is special: file the same way you would on any explicit Archive.
 `archiveLayout=`, `shiftName=` and `archiveFolder=` lines. Clock-out claimed that folder for the
 shift, and every later Archive of it returns there, whatever day it runs.
 
-**Filing is a copy.** Every record is filed as it stands, and then the live side keeps only what is
-still open. A ticked item's receipt leaving live storage is a separate step, and the
+**Only what is closed is filed.** Each record lives in one place: filed once it is closed, live
+while it is open. Filing is a copy: nothing leaves live storage until its filed copy reads back.
+A ticked item's receipt leaving live storage is a separate step, and the
 agent running Archive takes it from `$NS/punch-list.md` — not later, not the owner, and not by
 guessing.
 `--retire` with one record name, repeated once per ticked item on POSIX; on native Windows,
 `-Retire` takes those names as a single comma-separated list. Receipts of open items are never
-named: they are filed as they stand and stay live. The morning receipt is named only when that shift
+named: they stay live and are not filed. The morning receipt is named only when that shift
 has ended and no open item still needs it. Once the shift has ended, the helper also retires every
 ticked item's receipt it filed, even if a name was missed. It will not retire an open item's
 receipt.
@@ -82,11 +83,11 @@ or `Get-Date -Format yyyy-MM-dd` on native Windows.
 ```text
 archive/<folder>/
 ├── .shift-id
-├── punch-list.md            the whole list as the shift ended: contract, ticked and open items
-├── receipts/                every receipt, the morning page, and an index of this folder
+├── punch-list.md            the contract and the ticked items
+├── receipts/                the receipts of ticked items, the morning page, and an index of this folder
 ├── inbox/
-│   ├── parking-lot.md       the whole file as it stood
-│   └── snag-log.md          the whole file as it stood
+│   ├── parking-lot.md       the answered decisions
+│   └── snag-log.md          the findings with a disposition
 └── run/
     ├── shift-policy.json    filed by clock-out
     ├── shift-log.md
@@ -95,15 +96,15 @@ archive/<folder>/
 ```
 
 Links between those records keep working as written. A link to a record that stayed live — the
-drafting table, a receipt of an open item still being worked — is repointed back to it. That
-rewriting changes bytes, so the untouched original is preserved beside each rewritten file, under the
-same name with an "original" suffix. Do not hand-edit either one.
+drafting table, a receipt of an open item still being worked — is repointed back to it in the filed
+page, which is the only copy. Do not hand-edit it.
 
 ## What moves, what stays
 
 - **Punch list → filed by the runtime.** Once the shift has ended, `archive-receipts` files the
- whole list, exactly as it stood, then takes the ticked items out of `$NS/punch-list.md`.
- Open items, the contract and the gates stay live. Do not move items by hand. When the owner is present
+ contract and the ticked items, then takes the ticked items out of `$NS/punch-list.md`.
+ Open items, the contract and the gates stay live; an item ticked later joins the same filed list
+ on the next Archive. Do not move items by hand. When the owner is present
  and no open box is left, ask whether to keep the contract for the next shift or change it. In
  unattended filing (a `.pending-filing` from clock-out) do not ask: append one reminder under
  `## Notes` (create the heading below `## Items` if it is missing):
@@ -111,8 +112,8 @@ same name with an "original" suffix. Do not hand-edit either one.
  composing a new campaign; Archive does not reset them. Skip the note when open work remains, when the same sentence is already
  present, or if adding it would require an open checkbox. Never write `- [ ]` here and never edit
  above `## Items`.
-- **Receipts — every one filed, the ticked ones retired.** For each ticked item, pass `--retire <receipt-name>`;
- receipts of open items are filed as they stand and stay live.
+- **Receipts — the ticked ones filed and retired.** For each ticked item, pass `--retire <receipt-name>`;
+ receipts of open items stay live and are not filed.
  `archive-receipts` rebuilds `receipts/README.md` on both sides of the move so each index lists
  only the receipts in its own folder.
 - **Shift log, usage, policy → filed by the runtime.** Once the shift has ended, the helper moves
@@ -120,15 +121,15 @@ same name with an "original" suffix. Do not hand-edit either one.
  shift's usage readings, and moves a policy of that shift that is still live. A `usage-<id>/`
  folder the Start preflight set aside goes to the folder of the shift it belongs to. Do not move
  any of these by hand.
-- **Snag log — filed whole, only the open entries stay.** `archive-receipts` files
- `$NS/inbox/snag-log.md` as it stands, then takes out each `- ` bullet entry that carries a
- disposition (`fixed`, `ignored`, `answered`, `rejected-because`, `accepted-tradeoff`) and appends
- one `Filed:` pointer to the filed copy (label: the folder's name, or the shift id in the `shift`
+- **Snag log — the handled entries filed, only the open entries stay.** `archive-receipts` files
+ each `- ` bullet entry of `$NS/inbox/snag-log.md` that carries a disposition (`fixed`, `ignored`,
+ `answered`, `rejected-because`, `accepted-tradeoff`), takes those entries out of the live file,
+ and appends one `Filed:` pointer to the filed copy (label: the folder's name, or the shift id in the `shift`
  layout; target: relative path to the filed file). A file with no entry files nothing. Do not
  hand-copy entries. Entries still awaiting the owner stay live: an open question is not history
  yet. Text written as a paragraph instead of a bullet is never filed; Doctor names it by file and
  line.
-- **Parking lot — filed whole, only the unanswered stay.** Same helper, same pointer rule on
+- **Parking lot — the answered entries filed, only the unanswered stay.** Same helper, same pointer rule on
  `$NS/inbox/parking-lot.md`. The owner answers an entry by appending ` · answered: <decision>`; an
  answered entry is filed, never deleted. Parking-lot questions unanswered stay. Read live entries
  first; when checking whether a finding or decision was already handled, follow the pointer and

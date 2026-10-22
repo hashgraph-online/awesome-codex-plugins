@@ -1,8 +1,17 @@
 # BAB VIII (Pasal 57) + BAB XIII–XIV (Pasal 65–73) — Administrative Sanctions, Prohibitions, Criminal Penalties
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 UU PDP splits enforcement into **administrative sanctions** (Pasal 57), **prohibitions** (Pasal 65–66), and **criminal penalties** (Pasal 67–73). Corporate criminal liability under Pasal 70 is significantly broader than Singapore or Thailand.
+
+## Contents
+
+- BAB VIII — Administrative Sanctions (Pasal 57)
+- BAB XIII — Prohibitions (Pasal 65–66)
+- BAB XIV — Criminal Penalties (Pasal 67–73)
+- Mental model
+- Penalty cap calculation in practice
+- Cross-references
 
 ## BAB VIII — Administrative Sanctions (Pasal 57)
 

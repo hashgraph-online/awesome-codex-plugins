@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sirv E-commerce"
+  short_description: "Product imagery workflows: Shopify push/sync, marketplace compliance, supplier autofix, and saved pipelines."
+  default_prompt: "Use $sirv-ecommerce to run store-facing product image workflows safely, checking connections, credits, and push strategy."

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Designer run report v1",
+  "title": "Designer run report v2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -19,7 +19,7 @@
   ],
   "properties": {
     "schemaVersion": {
-      "const": 1
+      "const": 2
     },
     "runId": {
       "type": "string",
@@ -64,11 +64,13 @@
     "checks": {
       "type": "array",
       "minItems": 1,
+      "maxItems": 128,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": [
           "id",
+          "kind",
           "required",
           "status",
           "reason",
@@ -78,6 +80,9 @@
           "id": {
             "type": "string",
             "minLength": 1
+          },
+          "kind": {
+            "enum": ["static", "functional", "accessibility", "rendered"]
           },
           "required": {
             "type": "boolean"
@@ -96,6 +101,7 @@
           },
           "evidence": {
             "type": "array",
+            "maxItems": 16,
             "items": {
               "type": "object",
               "additionalProperties": false,
@@ -194,6 +200,7 @@
     },
     "findings": {
       "type": "array",
+      "maxItems": 256,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -231,6 +238,7 @@
           "evidence": {
             "type": "array",
             "minItems": 1,
+            "maxItems": 16,
             "items": {
               "type": "object",
               "additionalProperties": false,
@@ -272,6 +280,7 @@
       }
     },
     "changes": {
+      "description": "Implementation changes only; authorized planning/report artifacts belong in evidence.",
       "type": "array",
       "uniqueItems": true,
       "items": {
@@ -302,17 +311,17 @@
             "contains": {
               "type": "object",
               "properties": {
-                "required": {
-                  "const": true
-                },
-                "status": {
-                  "const": "PASS"
+                "kind": { "const": "rendered" },
+                "required": { "const": true },
+                "status": { "const": "PASS" },
+                "evidence": {
+                  "contains": {
+                    "properties": { "origin": { "const": "observed" } },
+                    "required": ["origin"]
+                  }
                 }
               },
-              "required": [
-                "required",
-                "status"
-              ]
+              "required": ["kind", "required", "status", "evidence"]
             },
             "items": {
               "if": {
@@ -359,7 +368,7 @@
       "if": {
         "properties": {
           "mode": {
-            "const": "audit"
+            "enum": ["audit", "plan"]
           }
         }
       },

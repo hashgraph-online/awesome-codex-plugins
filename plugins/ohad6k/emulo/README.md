@@ -158,6 +158,8 @@ python emulo.py --coach                   # every source it can find
 python emulo.py --coach --source claude   # Claude Code only
 ```
 
+Or let your agent run it when you complain that it keeps forgetting how you work: `npx skills add ohad6k/emulo@agent-profile-from-sessions` installs a skill that starts with this free report and only offers mining after you see the evidence.
+
 It runs before any mining and makes no model call. On a big history it takes about a minute: roughly 1,400 sessions took 54 to 71 s across three runs on one Windows machine.
 
 Every check is a text match on your own messages. It counts asks you sent three or more times in a row unchanged, messages with a phrase like "as I said" or "I told you", runs of near-identical asks in a row, and how often a message opens like a correction ("no,", "that's wrong"). A phrase inside quoted or pasted text (a fenced code block, a line starting with `>`, or a double-quoted span) is not counted, so an email you are answering does not read as you repeating yourself. A match cannot tell why you repeated something or whether the agent had forgotten anything, so the report offers fixes as possibilities, not diagnoses.

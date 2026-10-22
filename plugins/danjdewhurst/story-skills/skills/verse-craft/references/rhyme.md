@@ -68,3 +68,21 @@ strong fresh rhyme usually comes from a concrete noun or verb.
    the author meant it.
 4. Check that no rhyme word repeats within a stanza unless it is a
    refrain.
+
+## Rhyme in other languages
+
+The kinds above are English. Other traditions define rhyme differently;
+check the verse's `language` and follow its tradition:
+
+- **French** classical verse alternates masculine rhymes and feminine
+  rhymes (ending in a mute *e*), and values a *rime riche* that matches
+  more sounds than the vowel.
+- **Spanish** distinguishes consonant rhyme (*rima consonante*: every
+  sound from the last stressed vowel) from assonant rhyme (*rima
+  asonante*: only the vowels). The *romance* rhymes the even lines in
+  assonance.
+- **Classical Chinese** regulated verse rhymes on the even lines.
+- **Japanese** haiku and tanka do not use rhyme.
+
+In any language, a rhyme that holds in the spelling but not the
+pronunciation is an eye rhyme, and dialect still decides what rhymes.

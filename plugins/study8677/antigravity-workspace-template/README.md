@@ -4,9 +4,11 @@
 
 # RepoBrain
 
-### Give your repo a brain 🧠 — ChatGPT for your codebase, works in Claude Code, Cursor, Codex, Windsurf & 4 more.
+Cross-IDE repository knowledge engine for grounded codebase Q&A.
 
 <sub>Formerly known as <b>Antigravity Workspace Template</b> — same project, new name.</sub>
+
+**English** · [中文](README_CN.md) · [Español](README_ES.md)
 
 [![License](https://img.shields.io/badge/License-MIT-22C55E?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org/)
@@ -15,26 +17,9 @@
 [![NLPM](https://img.shields.io/badge/NLPM-audited-7C3AED?style=flat-square)](https://github.com/xiaolai/nlpm-for-claude)
 [![Stars](https://img.shields.io/github/stars/study8677/repobrain?style=flat-square&color=F59E0B)](https://github.com/study8677/repobrain/stargazers)
 
-<br/>
-
-<img src="https://img.shields.io/badge/Claude_Code-✓-D97757?style=flat-square" alt="Claude Code"/>
-<img src="https://img.shields.io/badge/Codex_CLI-✓-412991?style=flat-square" alt="Codex"/>
-<img src="https://img.shields.io/badge/Cursor-✓-000000?style=flat-square" alt="Cursor"/>
-<img src="https://img.shields.io/badge/Windsurf-✓-06B6D4?style=flat-square" alt="Windsurf"/>
-<img src="https://img.shields.io/badge/Gemini_CLI-✓-4285F4?style=flat-square" alt="Gemini CLI"/>
-<img src="https://img.shields.io/badge/VS_Code_+_Copilot-✓-007ACC?style=flat-square" alt="VS Code"/>
-<img src="https://img.shields.io/badge/Cline-✓-FF6B6B?style=flat-square" alt="Cline"/>
-<img src="https://img.shields.io/badge/Aider-✓-8B5CF6?style=flat-square" alt="Aider"/>
-
-<sub>**English** · [中文](README_CN.md) · [Español](README_ES.md)</sub>
-
-<br/><br/>
-
 <img src="docs/assets/demo.gif" alt="rb-ask demo — ask your codebase, get grounded answers with file paths and line numbers" width="800"/>
 
 </div>
-
-<br/>
 
 <div align="center">
 
@@ -42,42 +27,11 @@
 
 </div>
 
-<br/>
+RepoBrain helps you understand an unfamiliar repository, trace an implementation,
+and ask questions with source-file references. It keeps project knowledge in
+`.repobrain/`, shared across supported IDEs and agents.
 
-<div align="center">
-<img src="docs/assets/before_after.svg" alt="Before vs After RepoBrain" width="800"/>
-</div>
-
-<br/>
-
-```bash
-# 1 — Install (Claude Code plugin marketplace)
-/plugin marketplace add study8677/repobrain
-/plugin install repobrain@repobrain
-
-# 2 — Configure a backend (logged-in local CLI = no key, or paste an API key), build the knowledge base
-/repobrain:rb-setup
-/repobrain:rb-refresh
-
-# 3 — Ask anything, grounded in real code with file paths + line numbers
-/repobrain:rb-ask "How does auth work?"
-```
-
-> **95.83% weighted semantic accuracy · 4.04× faster scored queries than CodeGraph + Trae on the main track.**
-> [Benchmark results ↓](#repobrain-vs-codegraph--trae-2026-09-09)
-> Codex CLI users — drop the `repobrain:` prefix; the same four slash commands ship there too.
-
-### 🧠 Fastest start — let your AI install it for you (no API key)
-
-Already in a logged-in AI IDE (Trae / Cursor / Claude Code / Codex)? Don't touch pip or an API key — **paste this one line to your AI assistant** and it does the rest (detects your logged-in CLI, wires up a zero-key backend, initializes the project, self-tests):
-
-> Read https://github.com/study8677/repobrain/blob/main/AI_INSTALL.md and follow it to install RepoBrain in this project.
-
-Then just ask your AI anything about your codebase.
-
----
-
-## Why RepoBrain?
+## Project Philosophy
 
 **Cross-IDE repository knowledge engine for grounded codebase Q&A.** Same `.repobrain/` knowledge layer reads in every IDE; one engine, every host.
 
@@ -108,426 +62,96 @@ Architecture is **files + a live Q&A engine**, not plugins. Portable across any 
 
 </details>
 
----
-
-## RepoBrain vs CodeGraph + Trae (2026-09-09)
-
-Flask, ripgrep, Vite, Prometheus · 20 questions × 3 repeats per product · same source access and model route (`Seed-2.1-Turbo → seed-code-pro`).
-
-| Main-track metric | RepoBrain | CodeGraph + Trae |
-|:---|---:|---:|
-| Weighted semantic accuracy | **95.83%** | 84.17% |
-| Successful queries | **60/60** | 53/60 |
-| Scored query time | **5,106.67 s** | 20,621.14 s |
-| Query tokens | **22,326,315** | 86,027,974 |
-| Cold build time | 7,420.63 s | **9.58 s** |
-| Cold build + scored queries | **12,527.30 s** | 20,630.72 s |
-
-Failures count as incorrect. Cold builds compare full AI knowledge generation with static code-graph indexing, not equivalent workloads. Results apply to this locked experiment only.
-
-[Full results and methodology](benchmarks/codegraph-comparison/results/latest-v2-full-report.md)
-
----
+Read the full [project philosophy](docs/en/PHILOSOPHY.md).
 
 ## Quick Start
 
-**Plugin install for Claude Code / Codex CLI** (recommended — the `rb` CLI and engine auto-install together on Claude's first session):
+Ask an AI assistant that can run commands in your project to install RepoBrain:
+
+> Read [AI_INSTALL.md](https://github.com/study8677/repobrain/blob/main/AI_INSTALL.md) and follow it to install RepoBrain in this project.
+
+The guide installs the tools, configures a model backend, then builds the knowledge
+base and checks an answer. A logged-in headless CLI such as Trae can serve as the
+backend without an API key; an OpenAI-compatible API is also supported. Requirements:
+Python 3.10+, Git with at least one commit, and a clean worktree before refresh.
+
+For platform-specific installation or manual configuration, see
+[the installation guide](INSTALL.md) and [the quick-start guide](docs/en/QUICK_START.md).
+Installing RepoBrain into an existing project does not require `rb init` or `rb-init`.
+
+## Everyday Use
+
+Run these commands in your project directory after installation and configuration:
 
 ```bash
-# Claude Code
-/plugin marketplace add study8677/repobrain
-/plugin install repobrain@repobrain
-/repobrain:rb-setup            # interactive: use a logged-in local CLI (Codex/Trae/Claude, no key) or paste an API key; writes .env
-/repobrain:rb-refresh          # first refresh auto-creates .repobrain/
-/repobrain:rb-ask "How does this project work?"
-
-# Codex CLI (manual engine install — Codex hooks are not yet supported)
-pipx install "git+https://github.com/study8677/repobrain.git#subdirectory=engine"
-pipx inject --force --include-apps repobrain-engine "git+https://github.com/study8677/repobrain.git#subdirectory=cli"
-codex plugin marketplace add study8677/repobrain
-/rb-setup
-/rb-refresh
-/rb-ask "How does this project work?"
+rb-refresh
+rb-ask "How does authentication work in this project?"
 ```
 
-Codex auto-discovers slash commands from the plugin's `commands/` directory, so the same four commands work without the `repobrain:` namespace prefix. The raw CLI calls (`rb-refresh --workspace .`, `rb-ask "..." --workspace .`) also still work. If your Codex build supports MCP, register `rb-mcp --workspace <project>` separately.
+`rb-refresh` automatically builds the first knowledge base, updates affected groups
+after committed changes, or continues a matching interrupted task. If knowledge is
+already current, it skips without calling a model. After a failure, run the same
+command again to continue.
 
-<details>
-<summary><b>Option B — Manual install: engine + CLI via pip</b></summary>
+Use this only when you want to regenerate all knowledge:
 
 ```bash
-# 1. Install engine + CLI
-pip install "git+https://github.com/study8677/repobrain.git#subdirectory=cli"
-pip install "git+https://github.com/study8677/repobrain.git#subdirectory=engine"
-
-# 2. Configure .env with any OpenAI-compatible API key
-cd my-project
-cat > .env <<EOF
-OPENAI_BASE_URL=https://your-endpoint/v1
-OPENAI_API_KEY=your-key
-OPENAI_MODEL=your-model
-RB_ASK_TIMEOUT_SECONDS=120
-EOF
-
-# 3. Build knowledge base (ModuleAgents self-learn each module)
-rb-refresh --workspace .
-
-# 4. Ask anything
-rb-ask "How does auth work in this project?"
-
-# 5. (Optional) Register as MCP server for Claude Code
-claude mcp add repobrain rb-mcp -- --workspace $(pwd)
+rb-refresh --full
 ```
 
-</details>
+`rb-ask` reads the existing knowledge base and answers with source evidence. It
+reminds you when committed code is newer; it does not refresh during a question.
 
-<details>
-<summary><b>Option C — Context files only (any IDE, no LLM needed)</b></summary>
+Examples of useful questions:
 
-```bash
-pip install git+https://github.com/study8677/repobrain.git#subdirectory=cli
-rb init my-project && cd my-project
-# IDE entry files bootstrap into AGENTS.md; dynamic knowledge is in .repobrain/
+- Where is this API implemented, and what calls it?
+- How does data move from the UI to the backend?
+- Which modules are affected by changing this function?
+
+## How It Works
+
+```text
+Source code → rb-refresh → .repobrain/ knowledge → rb-ask → answer with code references
 ```
 
-</details>
+RepoBrain groups related code, generates module knowledge, and routes each question
+to relevant context. Knowledge lives in your project, so supported IDEs share the
+same base. Updates are staged separately and become active only when complete;
+a failed update preserves the existing usable generation.
 
-See [INSTALL.md](INSTALL.md) for full install details, verification commands such as `rb doctor`, and troubleshooting notes for PATH, MCP, and host-specific plugin behavior.
-
----
-
-## Slash Commands
-
-Same four slash commands ship to both **Claude Code** and **Codex CLI**. Claude namespaces them as `/repobrain:<name>`; Codex auto-discovers `commands/` and surfaces the bare `/<name>` form. No retraining — same flow on both hosts.
-
-| Claude Code | Codex CLI | Purpose |
-|---|---|---|
-| `/repobrain:rb-setup` | `/rb-setup` | First-time setup — pick LLM provider, write `.env` |
-| `/repobrain:rb-refresh [quick]` | `/rb-refresh [quick]` | Build a full baseline or manually update only affected Agent groups |
-| `/repobrain:rb-ask <question>` | `/rb-ask <question>` | Routed Q&A on the current codebase |
-| `/repobrain:rb-init <name>` | `/rb-init <name>` | Scaffold a new multi-agent repo from this template |
-
-A typical first session is **rb-setup → rb-refresh → rb-ask**.
-If installation or provider setup looks wrong, run `rb doctor --workspace .`.
-
-<details>
-<summary><b>What each slash command actually does</b></summary>
-
-### `rb-setup` — first-time configuration
-
-Run this **once per project**, right after installing the plugin. Interactive picker that first **detects the headless CLIs you're already logged into** (Codex / Trae / Claude / Gemini) and offers a **no-API-key local host-runner** as the most convenient option — no key to paste, RepoBrain just drives your existing CLI login for both `rb-ask` and `rb-refresh`. If you'd rather use a hosted model, it also offers the API-key providers (OpenAI / DeepSeek / Groq / 阿里灵积 / NVIDIA NIM / Ollama local / any OpenAI-compatible endpoint). Either way it writes `.env` to the project root — `RB_HOST_RUNNER` + `RB_HOST_COMMAND` for a local CLI, or `OPENAI_BASE_URL` / `OPENAI_API_KEY` / `OPENAI_MODEL` for a provider — and ensures `.env` is in `.gitignore`. Skip it if you already have a working `.env`.
-
-### `rb-refresh` — build / refresh the knowledge base
-
-Deploys the multi-agent cluster and creates an atomic generation baseline. The
-first run must be a full refresh. Later, `quick` compares committed changes from
-the active generation to HEAD, requires a clean worktree, and lets RepoBrain's
-ImpactPlanner plus an independent Verifier execute only affected Agent groups.
-It never falls back to a full refresh. Use `failed-only` to resume failed or
-pending groups for the same target commit. `rb-ask` only warns about new commits;
-it never refreshes knowledge automatically.
-
-Time: a few minutes for small repos, longer for large ones. Requires `rb-setup` to have completed. Works with either backend: an API-key/OpenAI-compatible provider runs the full LLM refresh, while a **local host-runner** (Codex / Trae / Claude / …) runs the tool-free stages (module docs, `map.md`) through your logged-in CLI and automatically degrades the tool/handoff stages (conventions, git insights) to deterministic output — no API key needed. Add `RB_REFRESH_SCAN_ONLY=1` only if you want a fast structure-only index with no LLM narration at all.
-
-### `rb-ask` — routed Q&A on the codebase
-
-The **main reason this plugin exists**. Routes your question to the right ModuleAgent (and GitAgent when applicable), then returns an answer grounded in actual source with file paths and line numbers. Use it **before** manually grepping or reading files — it's faster and more accurate. Good question shapes: "where is X defined/handled?", "why was Y done this way?", "how does the auth flow work?", "what depends on module Z?".
-
-Requires a knowledge base — if you see "no index" or empty answers, run `rb-refresh` first.
-
-**Calling from another AI / script?** Add `--json` for a stable, parseable envelope instead of human-formatted text — this is the lightweight way to let any agent that can run a shell command query RepoBrain, no MCP server required:
-
-```bash
-rb-ask "How does auth work?" --workspace . --json
-# → {"answer": "...", "sources": [...], "limitations": [...], "workspace": "...", "question": "..."}
-```
-
-On failure, `--json` keeps stdout empty and writes `{"error": "..."}` to stderr with a non-zero exit code, so a calling agent can branch cleanly. It runs the same engine as everything else, so it works with an API-key provider **or** a no-API-key local host runner. See [Let another AI call RepoBrain (CLI, no MCP)](#let-another-ai-call-repobrain-cli-no-mcp).
-
-### `rb-init` — scaffold a new multi-agent repo
-
-Creates a **new** project from the RepoBrain template. Two modes: `quick` (fast scaffold, clean copy) and `full` (adds runtime profile, `.env`, mission file, sandbox config, optional `git init`). This is for **starting a new repo** — you do **not** need it before `rb-refresh` on an existing project.
-
-> The plugin also bundles the `agent-repo-init` skill (the same backend that `rb-init` invokes — Codex / Claude can also match it by description) and the optional `rb-mcp` MCP server (`ask_project` + `refresh_project`) for tool-style integration.
-
-</details>
-
----
+The first build can take several minutes or longer on large repositories and
+uses your configured model. Commit or stash local changes before refreshing.
+IDE rules and new-project scaffolding are optional; see [the usage reference](docs/en/USAGE.md).
 
 ## Support Matrix
 
-| Layer | Channels | Contract |
-|:------|:---------|:---------|
-| Native plugins | Claude Code, Codex CLI | Bundled slash commands for `rb-setup`, `rb-refresh`, `rb-ask`, and `rb-init`. |
-| Compatible IDEs | Cursor, Windsurf, Gemini CLI, VS Code + Copilot, Cline, Aider, DeepSeek Harness | Use shared context files, the `rb`/`rb-*` CLI entrypoints, or an MCP client. See `INSTALL.md` for the opt-in DSH overlay. |
-| Advanced tool integration | `rb-mcp` | Exposes `ask_project` and `refresh_project` for hosts that can call MCP tools. |
-| Workspace bootstrapping | `rb-init`, `rb init` | Starts a new repo or injects portable agent context into an existing one. |
-
-The native plugins are the first-class install path today. Other environments are supported through the same repository knowledge artifacts rather than separate host-specific plugin packages.
-
----
-
-## Architecture (TL;DR)
-
-```
-  rb init             Inject context files into any project (--force to overwrite)
-       │
-       ▼
-  .repobrain/       Shared knowledge base — every IDE reads from here
-       │
-       ├──► rb-refresh     Dynamic multi-agent self-learning → module knowledge docs + structure map
-       ├──► rb-ask         Router → ModuleAgent Q&A with live code evidence
-       └──► rb-mcp         Optional MCP server → IDE tool integration
-```
-
-**Dynamic Multi-Agent Cluster** — During `rb-refresh`, files are grouped by import graph, directory co-location, and filename prefix. Each sub-agent gets ~30K tokens of focused, related code pre-loaded (no tool calls needed) and writes a **comprehensive Markdown knowledge doc** to `agents/*.md`. Large modules → multiple agent docs in parallel (no merging, no information loss). A **Map Agent** indexes everything into `map.md`. During `rb-ask`, the Router reads `map.md` to pick modules, then feeds their agent docs to answer agents. **Fully language-agnostic** — pure directory-structure module detection, LLM-driven code analysis.
-
-**GitAgent** — Dedicated agent for analyzing git history — who changed what and why.
-
-**NLPM Audit Feedback** — Improved by [NLPM](https://github.com/xiaolai/nlpm-for-claude), a natural-language programming linter by [xiaolai](https://github.com/xiaolai).
-
-<details>
-<summary><b>Detailed pipeline & internals</b></summary>
-
-### `rb-refresh` — Multi-agent self-learning (8-step pipeline)
-
-```bash
-rb-refresh --workspace my-project
-```
-
-1. Scan codebase (languages, frameworks, structure)
-2. Multi-agent pipeline generates `conventions.md`
-3. Generate `structure.md` — language-agnostic file tree with line counts
-4. Build knowledge graph (`knowledge_graph.json` + mermaid)
-5. Write document/data/media indexes
-6. **LLM full-context analysis** — group files by import graph + directory + prefix, pre-load into context (~30K tokens per sub-agent), filter out build artifacts. Each sub-agent reads the full source code and outputs a **comprehensive Markdown knowledge document** (`agents/*.md`). Large modules get multiple agent docs (one per group, no merging). Global API concurrency control prevents rate-limiting. **Fully language-agnostic** — works with any programming language.
-7. **RefreshGitAgent** analyzes git history, generates `_git_insights.md`
-8. **Map Agent** reads all agent docs → generates `map.md` (module routing index with descriptions and key topics)
-
-### `rb-ask` — Router-based Q&A
-
-```bash
-rb-ask "How does auth work in this project?"
-```
-
-Router reads `map.md` → selects modules → reads `agents/*.md` → LLM answers with code references. Multiple agent docs are read in parallel, then a Synthesizer combines answers.
-
-Falls back to the legacy Router → ModuleAgent/GitAgent swarm when agent docs are not yet generated.
-
-### Key design choices
-
-- **LLM as analyzer**: No AST parsing or regex — source code is fed directly to LLMs. Works with any programming language out of the box.
-- **Smart grouping**: Files grouped by import relationships, directory co-location, filename prefixes. Build artifacts filtered. Hard character limit (800K) prevents context overflow.
-- **No information loss**: Large modules produce multiple `agent.md` files — no merging or compression. Parallel reads + Synthesizer recombines at answer time.
-- **Global API concurrency control**: `RB_API_CONCURRENCY` limits total simultaneous LLM calls.
-- **Language-agnostic module detection**: Pure directory structure — no `__init__.py` or any language-specific marker required.
-
-</details>
-
----
-
-## IDE Compatibility
-
-Architecture is encoded in **files** — any agent that reads project files benefits:
-
-| IDE | Config File |
-|:----|:------------|
-| Cursor | `.cursorrules` |
-| Claude Code | `CLAUDE.md` |
-| Windsurf | `.windsurfrules` |
-| VS Code + Copilot | `.github/copilot-instructions.md` |
-| Gemini CLI / Codex | `AGENTS.md` |
-| Cline | `.clinerules` |
-| Google Antigravity | `.repobrain/rules.md` |
-
-All are generated by `rb init`: `AGENTS.md` is the single behavioral rulebook, IDE-specific files are thin bootstraps, and `.repobrain/` stores shared dynamic project context.
-
----
-
-## Let another AI call RepoBrain (CLI, no MCP)
-
-The lightest way to let another LLM or agent use RepoBrain is the CLI — no long-running server, no protocol handshake. Any agent that can run a shell command can call:
-
-```bash
-rb-ask "<question>" --workspace /path/to/project --json
-```
-
-and read back a stable JSON object:
-
-```json
-{
-  "answer": "Auth is handled in engine/hub/auth.py …",
-  "sources": ["engine/hub/auth.py:12", "engine/hub/auth.py:44"],
-  "limitations": ["host-runner single-turn mode"],
-  "workspace": "/path/to/project",
-  "question": "<question>"
-}
-```
-
-- **Success** → the envelope above on stdout, exit code `0`.
-- **Failure** → stdout stays empty; a `{"error": "..."}` object is written to stderr with a non-zero exit code, so your wrapper can branch on it without scraping text.
-
-**How agents discover this automatically:** `rb init` drops an `AGENTS.md` (and `CLAUDE.md` for Claude Code) into the project telling any agent to prefer `rb-ask` over manual grep/file search. Editors like Cursor, Windsurf, Codex, and Gemini CLI read those files, so they'll call `rb-ask` on their own once the project is initialized.
-
-**Zero API key:** `rb-ask` runs the same engine as everything else, so it honors a no-API-key local host runner. Put this in the project's `.env` (or run `rb-setup`) and the calling AI drives a CLI you're already logged into — no key changes hands:
-
-```bash
-RB_HOST_RUNNER=generic
-RB_HOST_COMMAND=trae-cli exec --cd {workspace} --sandbox read-only --skip-git-repo-check --ephemeral -o {output_file}
-RB_HOST_OUTPUT_MODE=file
-```
-
-Prefer this over the MCP server (below) whenever the caller can shell out; reach for `rb-mcp` only for clients that speak MCP exclusively.
-
----
-
-## Advanced Features
-
-<details>
-<summary><b>MCP Server — Give Claude Code a ChatGPT for your codebase</b></summary>
-
-Instead of reading hundreds of documentation files, Claude Code can call `ask_project` as a live tool — backed by a dynamic multi-agent cluster: Router routes questions to the right ModuleAgent, returning grounded answers with file paths and line numbers.
-
-**Setup:**
-
-```bash
-# Install engine
-pip install "git+https://github.com/study8677/repobrain.git#subdirectory=engine"
-
-# Refresh knowledge base first (ModuleAgents self-learn each module)
-rb-refresh --workspace /path/to/project
-
-# Register as MCP server in Claude Code
-claude mcp add repobrain rb-mcp -- --workspace /path/to/project
-```
-
-**Tools exposed to Claude Code:**
-
-| Tool | What it does |
-|:-----|:-------------|
-| `ask_project(question)` | Router → ModuleAgent/GitAgent answers codebase questions. Returns file paths + line numbers. |
-| `refresh_project(quick?)` | Rebuild knowledge base after significant changes. ModuleAgents re-learn the code. |
-
-</details>
-
-<details>
-<summary><b>MCP Integration (Consumer) — Let agents call external tools</b></summary>
-
-`MCPClientManager` lets your agents connect to external MCP servers (GitHub, databases, etc.), auto-discovering and registering tools.
-
-```json
-// mcp_servers.json
-{
-  "servers": [
-    {
-      "name": "github",
-      "transport": "stdio",
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "enabled": true
-    }
-  ]
-}
-```
-
-Set `MCP_ENABLED=true` in `.env` to make configured servers available, and set `RB_ALLOW_MCP=true` only when you want `rb-ask` to auto-connect those external servers. Stdio MCP servers inherit process environment plus configured `env` values, so treat enabled servers as local-permission code.
-
-</details>
-
-<details>
-<summary><b>Sandbox — Configurable code execution environment</b></summary>
-
-| Variable | Default | Options |
-|:---------|:--------|:--------|
-| `SANDBOX_TYPE` | `local` | `local` · `microsandbox` |
-| `SANDBOX_TIMEOUT_SEC` | `30` | seconds |
-| `RB_RETRIEVAL_MODE` | `compact` | `off` · `compact` · `full` |
-
-The default sandbox is for trusted local workspaces, not untrusted code isolation. Retrieval graph files redact common secrets before writing to disk, but `full` mode can still preserve source snippets. See [Sandbox docs](docs/en/SANDBOX.md).
-
-</details>
-
-<details>
-<summary><b>CLI Commands Reference</b></summary>
-
-| Command | What it does | LLM needed? |
-|:--------|:-------------|:-----------:|
-| `rb init <dir>` | Inject cognitive architecture templates | No |
-| `rb init <dir> --force` | Re-inject, overwriting existing files | No |
-| `rb refresh --workspace <dir>` | CLI convenience wrapper around the knowledge-hub refresh pipeline | Yes |
-| `rb ask "question" --workspace <dir>` | CLI convenience wrapper around the routed project Q&A flow | Yes, or local Codex host runner |
-| `rb-refresh` | Multi-agent self-learning of codebase, generates module knowledge docs + `conventions.md` + `structure.md` | Yes |
-| `rb-ask "question"` | Router → ModuleAgent/GitAgent routed Q&A | Yes, or local Codex host runner |
-| `rb-mcp --workspace <dir>` | **Start MCP server** — exposes `ask_project` + `refresh_project` to Claude Code | Yes |
-| `rb report "message"` | Log a finding to `.repobrain/memory/` | No |
-| `rb log-decision "what" "why"` | Log an architectural decision | No |
-
-`rb ask` / `rb refresh` are available when both `cli/` and `engine/` are installed. `rb-ask` / `rb-refresh` are the engine-only entrypoints.
-
-</details>
-
-<details>
-<summary><b>Two Packages, One Workflow — repo layout</b></summary>
-
-```
-repobrain/
-├── cli/                     # rb CLI — lightweight, pip-installable
-│   └── templates/           # .cursorrules, CLAUDE.md, .repobrain/, ...
-└── engine/                  # Multi-agent engine + Knowledge Hub
-    └── repobrain_engine/
-        ├── _cli_entry.py    # rb-ask / rb-refresh / rb-mcp + python -m dispatch
-        ├── config.py        # Pydantic configuration
-        ├── hub/             # ★ Core: multi-agent cluster
-        │   ├── agents.py    #   Refresh swarm (ScanAnalyst → ArchitectureReviewer → ConventionWriter) + Ask swarm (Router / ModuleAgent / GitAgent)
-        │   ├── contracts.py #   Pydantic models: claims, evidence, refresh status
-        │   ├── ask_pipeline.py    # agent.md + graph-enriched ask
-        │   ├── refresh_pipeline.py # LLM-driven refresh → agents/*.md + map.md
-        │   ├── ask_tools.py
-        │   ├── scanner.py   #   multi-language project scanning
-        │   ├── module_grouping.py # smart functional file grouping
-        │   ├── incremental.py #   committed-diff / --quick agent-group refresh
-        │   ├── host_runner.py #   local CLI backend, no API key
-        │   ├── storage.py   #   generation dirs + current.json
-        │   ├── structure.py
-        │   ├── knowledge_graph.py
-        │   ├── retrieval_graph.py
-        │   ├── mcp_server.py
-        │   └── language_adapters/ # language-specific code adapters
-        ├── mcp_client.py    # MCP consumer (connects external tools)
-        ├── memory.py        # Persistent interaction memory
-        ├── tools/           # MCP query tools + extensions
-        ├── skills/          # Skill loader
-        └── sandbox/         # Code execution (local / microsandbox)
-```
-
-**CLI** (`pip install .../cli`) — Zero LLM deps. Injects templates, logs reports & decisions offline.
-
-**Engine** (`pip install .../engine`) — Repository knowledge runtime. Powers `rb-ask`, `rb-refresh`, `rb-mcp`. Uses the OpenAI-compatible endpoint written by `rb-setup` (OpenAI, DeepSeek, Groq, DashScope, NVIDIA NIM, Ollama, or custom). Experimental local mode can set `RB_HOST_RUNNER=codex` so `rb-ask` runs through the user's local `codex login` instead of an API key; this is for personal/local use and is not a hosted product backend.
-
-**Skill packaging:**
-- `engine/repobrain_engine/skills/graph-retrieval/` — graph-oriented retrieval tools for structure and call-path reasoning.
-- `engine/repobrain_engine/skills/knowledge-layer/` — project knowledge-layer tools for semantic context consolidation.
-
-For local work on this repository itself:
-
-```bash
-python3 -m venv venv
-source venv/bin/activate
-pip install -e ./cli -e './engine[dev]'
-pytest engine/tests cli/tests
-```
-
-</details>
-
----
+| Use | Environments | How to connect |
+|:----|:-------------|:---------------|
+| Native plugins | Claude Code, Codex CLI | Setup, refresh, and ask via slash commands. |
+| Compatible IDEs | Cursor, Windsurf, Gemini CLI, VS Code + Copilot, Cline, Aider, DeepSeek Harness | Shared context files, CLI, or an MCP client. |
+| Other agents and scripts | Any host that can run commands or call MCP tools | CLI/JSON output or optional `rb-mcp`. |
+
+Platform-specific commands, JSON output, and MCP registration are documented in
+[the usage reference](docs/en/USAGE.md) and [INSTALL.md](INSTALL.md).
+
+## Evaluation
+
+A locked comparison on Flask, ripgrep, Vite, and Prometheus used the same source
+access and model route for RepoBrain and CodeGraph + Trae. The
+[full report](benchmarks/codegraph-comparison/results/latest-v2-full-report.md)
+includes accuracy, query time, tokens, and cold-build cost. Results apply to that
+experiment; AI knowledge generation and static graph indexing are different workloads.
 
 ## Documentation
 
-| | |
-|:--|:--|
-| 🇬🇧 English | **[`docs/en/`](docs/en/)** |
-| 🇨🇳 中文 | **[`docs/zh/`](docs/zh/)** |
-| 🇪🇸 Español | **[`docs/es/`](docs/es/)** |
+- [Installation and troubleshooting](INSTALL.md)
+- [Commands, JSON, and optional integrations](docs/en/USAGE.md)
+- [Knowledge generation and Q&A architecture](docs/en/SWARM_PROTOCOL.md)
+- [External MCP tools](docs/en/MCP_INTEGRATION.md) · [Sandbox configuration](docs/en/SANDBOX.md)
+- [Release changes](CHANGELOG.md)
+- Full documentation: [English](docs/en/README.md) · [中文](docs/zh/README.md) · [Español](docs/es/README.md)
+
+**NLPM Audit Feedback** — Improved by [NLPM](https://github.com/xiaolai/nlpm-for-claude), a natural-language programming linter by [xiaolai](https://github.com/xiaolai).
 
 ---
 

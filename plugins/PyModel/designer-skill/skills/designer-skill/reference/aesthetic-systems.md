@@ -1,8 +1,8 @@
 # Aesthetic Systems
 
-A menu of five opinionated, **mutually exclusive** design languages. Pick ONE per surface and execute it whole. These systems intentionally contradict each other — Minimalist bans shadows and gradients; Soft requires them; Brutalist forbids `border-radius` entirely. **Every rule below is scoped to its own system, never universal.** A value that is law in one profile is a banned anti-pattern in another (see the [Cross-System Contradictions](#cross-system-contradictions) table).
+Optional visual-language examples for authorized new-direction work: four build profiles and two strategy registers. Preserve an established design system rather than selecting a replacement profile for routine edits. Where a profile is adopted, use its motifs coherently; its font/color/layout preferences are not accessibility rules or reasons to reject approved product choices.
 
-Before anything: dark vs light is **never a default**. Write one sentence of physical scene — who uses this, where, under what ambient light, in what mood — and let it force the answer. If it doesn't, add detail until it does.
+If light/dark treatment is genuinely unresolved, consider user environment and the existing theme policy. A physical-scene exercise may help explain a proposal; it is not a required ceremony and cannot force every product into one theme.
 
 Shared motion *mechanics* (animate only `transform`/`opacity`, `IntersectionObserver` not scroll listeners, stagger formulas, blur/`backdrop-filter` perf guardrails) live in **motion-and-interaction.md**. This file carries each system's signature *feel* only.
 
@@ -103,7 +103,7 @@ Shared motion *mechanics* (animate only `transform`/`opacity`, `IntersectionObse
 | Canvas | Canvas White `#F9FAFB` (warm-neutral, never blue-white) |
 | Surface | Pure White `#FFFFFF` |
 | Ink | Charcoal `#18181B` (Zinc-950, never pure black) |
-| Body / meta | Steel `#71717A`; tertiary Muted Slate `#94A3B8` |
+| Body / meta | Steel `#71717A` on `#F9FAFB` (4.62:1); secondary Slate `#64748B` (4.55:1). Verify actual backgrounds, sizes and states; `#94A3B8` is not a readable-text role here. |
 | Border | Whisper `rgba(226,232,240,0.5)` |
 | Shadow | Diffused `rgba(0,0,0,0.05)` |
 | **Accent — pick ONE, sat < 80%** | Emerald `#10B981` (growth) · Electric Blue `#3B82F6` (SaaS/dev) · Deep Rose `#E11D48` (creative) · Amber `#F59E0B` (social) |
@@ -112,9 +112,9 @@ Shared motion *mechanics* (animate only `transform`/`opacity`, `IntersectionObse
 
 **Spacing.** Grid-first, `max-width: 1400px` centered, padding `1rem`/`2rem`/`4rem` (mobile/tablet/desktop). Cards `rounded-[2.5rem]`, pure white, whisper border, shadow `0 20px 40px -15px rgba(0,0,0,0.05)`, padding `2rem–2.5rem` — used ONLY when elevation serves hierarchy; high-density layouts replace cards with `border-top` dividers or negative space. Bento: Row 1 = 3 cols, Row 2 = 2 cols (70/30). Hero: inline-image typography (photos at type-height between words); centered hero banned when variance > 4; max 1 primary CTA.
 
-**Motion feel.** Spring exclusively: `stiffness: 100, damping: 20`, no linear easing. Perpetual micro-loops (Pulse/Typewriter/Float/Shimmer) on active components. Stagger `calc(var(--index) * 100ms)`.
+**Motion feel.** When motion has a task-specific purpose, springs such as `stiffness: 100, damping: 20` are one option; simple CSS transitions may be sufficient. Avoid perpetual loops unless they communicate actual ongoing state. Apply the frequency, interruption and reduced-motion rules in `motion-and-interaction`.
 
-**Bans — within this system.** No `Inter` (premium contexts). No generic serifs (`Times New Roman`/`Georgia`/`Garamond`/`Palatino`) — only `Fraunces`/`Instrument Serif`/`Editorial New` if needed; serif always banned in dashboards. No pure black, no neon/outer glows, no accents > 80% saturation, no overlapping elements, no 3-equal-card rows, no `flexbox` percentage math (`calc(33% - 1rem)`), no `h-screen`, no circular spinners (skeletal shimmer only), no fake round numbers (`99.99%` → `47.2%`).
+**Bans — within this system.** No `Inter` (premium contexts). No generic serifs (`Times New Roman`/`Georgia`/`Garamond`/`Palatino`) — only `Fraunces`/`Instrument Serif`/`Editorial New` if needed; serif always banned in dashboards. No pure black, no neon/outer glows, no accents > 80% saturation, no overlapping elements, no 3-equal-card rows, no `flexbox` percentage math (`calc(33% - 1rem)`), no `h-screen`, no circular spinners (skeletal shimmer only), no invented statistics: use approved sourced values or visibly labeled demonstration fixtures, never more plausible fabricated numbers.
 
 ---
 
@@ -132,7 +132,7 @@ Shared motion *mechanics* (animate only `transform`/`opacity`, `IntersectionObse
 
 The `≤10%` rule is **Restrained-only**; Committed/Full/Drenched deliberately exceed it. When Committed or Drenched, don't hedge with neutrals — commit. Palette IS voice; don't converge across projects; reach past the obvious cultural-symbol palette.
 
-**Typography (font-selection procedure — every project, never skip).** (1) Write three physical-object brand-voice words ("warm and mechanical and opinionated", not "modern/elegant"). (2) List three reflex fonts; reject any on the reflex-reject list. (3) Browse a real catalog (Google Fonts, Pangram Pangram, Future Fonts, Adobe Fonts, ABC Dinamo, Klim, Velvetyne); find the font for the brand as a physical object; reject the first thing that "looks designy". (4) Cross-check — if the pick lines up with the reflex, start over. **Reflex-reject (greenfield only):** Fraunces · Newsreader · Lora · Crimson · Playfair Display · Cormorant · Syne · IBM Plex (Sans/Mono/Serif) · Space Mono · Space Grotesk · Inter · DM Sans/Serif · Outfit · Plus Jakarta Sans · Instrument Sans/Serif. Modular scale, fluid `clamp()`, **≥1.25 ratio** between steps (flat 1.1× reads uncommitted).
+**Typography (optional exploration for a newly authorized brand).** (1) Write three physical-object brand-voice words ("warm and mechanical and opinionated", not "modern/elegant"). (2) List three reflex fonts; reject any on the reflex-reject list. (3) Browse a real catalog (Google Fonts, Pangram Pangram, Future Fonts, Adobe Fonts, ABC Dinamo, Klim, Velvetyne); find the font for the brand as a physical object; reject the first thing that "looks designy". (4) Cross-check — if the pick lines up with the reflex, start over. **Reflex-reject (greenfield only):** Fraunces · Newsreader · Lora · Crimson · Playfair Display · Cormorant · Syne · IBM Plex (Sans/Mono/Serif) · Space Mono · Space Grotesk · Inter · DM Sans/Serif · Outfit · Plus Jakarta Sans · Instrument Sans/Serif. Modular scale, fluid `clamp()`, **≥1.25 ratio** between steps (flat 1.1× reads uncommitted).
 
 **Spacing & permissions.** Asymmetric compositions, fluid `clamp()` spacing, intentional grid-breaking for emphasis; cards via `repeat(auto-fit, minmax(280px, 1fr))` when cards are right. Take permissions product can't: ambitious first-load motion (reveals + typographic choreography, not fade-on-scroll-everything — some brands skip entrance motion entirely), single-purpose viewports, unexpected color, art direction per section.
 

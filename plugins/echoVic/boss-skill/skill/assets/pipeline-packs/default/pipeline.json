@@ -1,0 +1,26 @@
+{
+  "name": "default",
+  "version": "1.0.0",
+  "type": "pipeline-pack",
+  "description": "默认 9-Agent 全流程 Pipeline（BMAD 方法论）",
+  "author": "Boss Harness Team",
+  "license": "MIT",
+  "config": {
+    "roles": "full",
+    "designPreview": true,
+    "skipUI": false,
+    "agents": [
+      "boss-pm",
+      "boss-architect",
+      "boss-ui-designer",
+      "boss-tech-lead",
+      "boss-scrum-master",
+      "boss-frontend",
+      "boss-backend",
+      "boss-qa",
+      "boss-devops"
+    ],
+    "gates": ["gate0", "gate1", "gate2"]
+  },
+  "enabled": true
+}

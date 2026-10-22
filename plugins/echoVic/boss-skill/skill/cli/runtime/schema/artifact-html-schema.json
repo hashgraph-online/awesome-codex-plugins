@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Boss Artifact HTML Render Model",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "artifact",
+    "feature",
+    "sourceArtifact",
+    "title",
+    "generatedAt",
+    "summaryItems",
+    "toc",
+    "bodyHtml"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string", "minLength": 1 },
+    "artifact": { "const": "artifact-html" },
+    "feature": { "type": "string", "minLength": 1 },
+    "sourceArtifact": { "type": "string", "pattern": "\\.md$" },
+    "title": { "type": "string", "minLength": 1 },
+    "generatedAt": { "type": "string", "minLength": 1 },
+    "summaryItems": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "toc": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "level", "text"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "level": { "type": "integer", "minimum": 1, "maximum": 6 },
+          "text": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "bodyHtml": { "type": "string", "minLength": 1 }
+  }
+}

@@ -34,6 +34,8 @@ Then waits for user approval. On "post", calls Publora to react + comment.
 
 1. **Parse the URL.** Use `lib.url_parser.parse_linkedin_url` to get `post_urn` and, if present, the post's activity ID.
 2. **Fetch the post body.** If `APIFY_TOKEN` is set, call `lib.ApifyClient.fetch_post(url)` for the post body and `fetch_post_comments(post_id=..., max_items=10)` for the top existing comments (so your draft doesn't duplicate an existing take). Both actors are no-cookies and cost roughly $0.001 + $0.005 per call on the Apify free tier. If `APIFY_TOKEN` is not set, ask the user to paste the post text and (optionally) top comments.
+
+   **No token? Try the connector.** If the Apify MCP connector is available in this session, its tools read the same actors with no token on disk, which is the only way to read on claude.ai. Call the tool, then apply the mapping in `../../references/mcp-read-layer.md` so the record matches what the library would have returned. If neither a token nor the connector is there, ask the user to paste.
 3. **Detect the author's closing question.** If the post ends with a "?" line, the Answer-the-Closing-Question template usually wins.
 4. **Draft comment variants.** Pick 2-3 templates from `references/comment-templates.md` that fit the post's topic. Fill them with user-voice phrasing.
 5. **Run the humanizer pass.** Scrub 2026 AI vocab by paragraph density, cap em dashes (about one per 100 words, never swap one for a period), fix only machine-flat rhythm without manufacturing variance, and add an odd-precision number with a named referent if missing. Canonical rules: `linkedin-humanizer` V3.

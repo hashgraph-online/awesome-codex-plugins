@@ -121,7 +121,7 @@ Competitor job postings reveal strategy 3-6 months in advance:
 - **Shadowban patterns**: Sudden reach collapse without policy violation notice. Test by posting from a clean account on the same topic
 
 ### Policy and Targeting Changes
-- **Tracking restrictions**: Apple ATT, Google Privacy Sandbox, platform-specific consent requirements — all reduce targeting precision. Budget implications: broader targeting, more creative variants needed, first-party data becomes more valuable
+- **Tracking restrictions**: Apple ATT, browser tracking protections (Safari/Firefox), consent-mode requirements, platform-specific consent requirements — all reduce targeting precision. Budget implications: broader targeting, more creative variants needed, first-party data becomes more valuable
 - **Content moderation shifts**: New restricted categories, stricter enforcement on claims, increased scrutiny on certain industries (health, finance, crypto)
 - **API changes**: Deprecations affect reporting, automation, and integration workflows. Monitor developer blogs and changelog pages. Plan migrations 3+ months before deprecation deadlines
 - **Ad format changes**: New placements (e.g., AI chat placements), deprecated formats (e.g., expanded text ads), spec changes. Early adoption of new formats often yields lower CPMs

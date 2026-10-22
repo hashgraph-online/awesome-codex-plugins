@@ -34,8 +34,10 @@ resonance or cut the earlier appearances.
 
 ## Tracking motifs
 
-Maintain a motif table in the relevant arc file or a `continuity/motifs.md`
-ledger (one file per project is enough for most stories):
+Keep one motif table in `continuity/motifs.md` (one file per project is
+enough for most stories). Do not add motif rows to an arc's
+`## Foreshadowing` table, which holds other hints (see the story-maintenance
+conventions):
 
 | Motif | Planted (Ch) | Variations (Ch) | Ending resonance (Ch) | Status |
 |-------|--------------|-----------------|------------------------|--------|

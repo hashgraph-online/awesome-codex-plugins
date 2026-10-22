@@ -1,0 +1,9 @@
+/* consent.js's default look (sectionsight, MIT). Serve it and set consentConfig.stylesheet, or copy the rules into the site's CSS. Keep max-height and overflow: the banner must fit a 400% zoom. */
+.consent-banner{position:fixed;left:0;right:0;bottom:0;z-index:var(--consent-z,45);padding:12px;font:inherit;box-sizing:border-box;max-height:100vh;max-height:100dvh;overflow-y:auto}
+.consent-banner__inner{max-width:440px;margin-left:auto;background:var(--consent-bg,#111);color:var(--consent-fg,#fff);border-radius:14px;padding:16px;border:1px solid rgba(255,255,255,.2);box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.consent-banner__title{font-weight:600;margin:0 0 6px}
+.consent-banner__body{margin:0 0 12px;font-size:.9em;opacity:.85}
+.consent-banner__body a{color:inherit;text-decoration:underline}
+.consent-banner__buttons{display:flex;gap:12px}
+.consent-banner__more{margin-top:12px}
+.consent-banner__button{flex:1;min-height:44px;border-radius:999px;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;font-weight:600;cursor:pointer}

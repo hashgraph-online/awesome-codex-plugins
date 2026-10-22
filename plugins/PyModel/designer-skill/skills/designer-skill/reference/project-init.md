@@ -1,172 +1,46 @@
 # Project Init
 
-Setup flow for **designer-skill**. One codebase crawl feeds everything it writes:
+Optional project-context setup, only when requested or when the user authorizes documentation changes. Missing PRODUCT.md never blocks a bounded UI repair. Read-only audits and plans do not authorize implementation or context-file mutation.
 
-- **PRODUCT.md** (strategic): root project file for register, target users, product purpose, brand personality, anti-references, strategic design principles. Answers "who/what/why".
-- **DESIGN.md** (visual): root project file for visual theme, color palette, typography, components, layout. Follows the [Google Stitch DESIGN.md format](https://stitch.withgoogle.com/docs/design-md/format/). Answers "how it looks".
-- **`.designer-skill/live/config.json`** (live mode): pre-configured for variant mode when live helper scripts are available.
+## 1. Inspect existing evidence
 
-It closes by pointing the user at the best command to run next. Every other designer-skill command reads PRODUCT.md and DESIGN.md before doing any work.
+Read existing PRODUCT.md, DESIGN.md, tokens, components, manifests and approved assets relevant to the requested setup. The loader searches the project root, `.agents/context/` and `docs/`; read each document independently. It does not rename legacy files or migrate them. If `.designer-skill.md` contains useful older context, read it and propose an explicit migration only when authorized.
 
-## Step 1: Load current state
+Preserve existing files and concurrent work. If the user requests refresh, clarify which information should change rather than rewriting valid context. A discovered framework/component/icon system stays in place unless migration is part of the task.
 
-Check what already exists. PRODUCT.md and DESIGN.md live at the project root, or under `.agents/context/` or `docs/` (case-insensitive). Read whichever are present with your native file tool. Also note whether `.designer-skill/live/config.json` already exists (Step 6 leaves it untouched if so).
+## 2. Resolve material unknowns
 
-Decision tree:
-- **Neither file exists (empty project or no context yet)**: do Steps 2-4 (write PRODUCT.md), then decide on DESIGN.md based on whether there's code to analyze.
-- **PRODUCT.md exists, DESIGN.md missing**: skip to Step 5 and offer `get_command({ verb: "spec" })` for DESIGN.md.
-- **PRODUCT.md exists but has no `## Register` section (legacy)**: add it. Infer a hypothesis from the codebase (see Step 2), confirm with the user, write the field.
-- **Both exist**: Ask the user which file to refresh. Skip the one they don't want changed.
-- **Just DESIGN.md exists (unusual)**: do Steps 2-4 to produce PRODUCT.md.
+Infer facts from the codebase and label uncertain hypotheses. Ask only what cannot be established and matters to this setup, using the host's discovered question tool or ordinary chat. Established users/purpose/identity need no redundant confirmation round.
 
-Never silently overwrite an existing file. Always confirm first.
+Useful questions when evidence is absent:
+- Is the primary surface brand-led marketing or a task-led product? Mixed products can record both per surface.
+- Who uses it, in what context, and what outcome matters?
+- What approved identity, voice, references and anti-references apply?
+- Which accessibility requirements or known needs must be met?
 
-If setup was invoked as a setup blocker by another command (e.g. the user asked to finish UI with no PRODUCT.md), pause that command here. Complete setup, then resume the original task.
+A proposed brand is not an observed fact. When direction is unresolved, present a proposal and obtain the needed decision before recording it as approved. A user may explicitly delegate that choice.
 
-## Step 2: Explore the codebase
+## 3. Write only authorized context
 
-Before asking questions, thoroughly scan the project to discover what you can. This single crawl feeds PRODUCT.md, DESIGN.md, **and** the live-mode framework detection in Step 6, so be thorough once rather than re-scanning later:
+PRODUCT.md records strategic evidence; DESIGN.md records observed visual contracts or clearly labeled proposals. Link canonical sources instead of maintaining independently editable copies of tokens.
 
-- **README and docs**: Project purpose, target audience, any stated goals
-- **Package.json / config files**: Tech stack, dependencies, existing design libraries, **and the framework** (Vite/SPA, Next.js, Nuxt, SvelteKit, Astro, multi-page static) plus the HTML entry the browser actually loads
-- **Existing components**: Current design patterns, spacing, typography in use
-- **Brand assets**: Logos, favicons, color values already defined
-- **Design tokens / CSS variables**: Existing color palettes, font stacks, spacing scales
-- **Any style guides or brand documentation**
-
-Also form a **register hypothesis** from what you find:
-
-- Brand signals: `/`, `/about`, `/pricing`, `/blog/*`, `/docs/*`, hero sections, big typography, scroll-driven sections, landing-page-shaped content.
-- Product signals: `/app/*`, `/dashboard`, `/settings`, `/(auth)`, forms, data tables, side/top nav, app-shell components.
-
-Register is a hypothesis at this point, not a decision; Step 3 confirms it.
-
-Note what you've learned and what remains unclear. Also note any rough edges worth a follow-up command (thin hierarchy, flat or gray palette, missing error/empty states, dull copy); Step 7 turns these into concrete recommendations without re-analyzing.
-
-## Step 3: Ask strategic questions (for PRODUCT.md)
-
-Ask only about what you couldn't infer from the codebase.
-
-### Interview mode, not confirmation mode
-
-If the repo is empty or the user's brief is sparse, run a short interview before proposing PRODUCT.md. Do **not** turn a one-sentence request into a complete inferred PRODUCT.md and ask for blanket confirmation.
-
-- Use the harness's structured question tool when one exists. Otherwise, ask directly in chat and stop.
-- Ask **2-3 questions per round**, then wait for answers.
-- Use inferred answers as hypotheses or options, not as finished facts.
-- Complete at least one real user-answer round before drafting PRODUCT.md, unless every required answer is directly discoverable from repo docs.
-- Round 1 should establish register, users/purpose, and desired outcome.
-- Round 2 should establish brand personality or references, anti-references, and accessibility needs.
-
-### Minimum viable interview
-
-Ask enough to complete PRODUCT.md. At minimum, cover register confirmation, users and purpose, brand personality, anti-references, and accessibility needs unless each answer is directly discoverable from repo context. After at least one interview round, you may propose inferred answers, but the user must confirm them before you write PRODUCT.md. Never synthesize PRODUCT.md from the original task prompt alone.
-
-### Register (ask first; it shapes everything below)
-
-Every design task is either **brand** (marketing, landing, campaign, long-form content, portfolio: design IS the product) or **product** (app UI, admin, dashboards, tools: design SERVES the product).
-
-If Step 2 produced a clear hypothesis, lead with it: *"From the codebase, this looks like a [brand / product] surface. Does that match your intent, or should we treat it differently?"*
-
-If the signal is genuinely split (e.g. a product with a big marketing landing), ask which register describes the **primary** surface. The register can be overridden per task later, but PRODUCT.md carries one default.
-
-### Users & Purpose
-- Who uses this? What's their context when using it?
-- What job are they trying to get done?
-- For brand: what emotions should the interface evoke? (confidence, delight, calm, urgency)
-- For product: what workflow are they in? What's the primary task on any given screen?
-
-### Brand & Personality
-- How would you describe the brand personality in 3 words?
-- Reference sites or apps that capture the right feel? What specifically about them?
-  - Push for specific named references with the *specific* thing about them that fits this brand, not generic "modern" adjectives or category-bucket lanes.
-- What should this explicitly NOT look like? Any anti-references?
-
-### Accessibility & Inclusion
-- Specific accessibility requirements? (WCAG level, known user needs)
-- Considerations for reduced motion, color blindness, or other accommodations?
-
-Skip questions where the answer is already clear. **Do NOT ask about colors, fonts, radii, or visual styling here.** Those belong in DESIGN.md, not PRODUCT.md.
-
-## Step 4: Write PRODUCT.md
-
-Write PRODUCT.md only after the user has confirmed the strategic answers from Step 3. If an inferred answer is uncertain or unconfirmed, ask before writing.
-
-Synthesize into a strategic document:
+Example PRODUCT.md outline (fill with real evidence, omit unknown sections or label them pending):
 
 ```markdown
 # Product
-
 ## Register
-
 product
-
 ## Users
-[Who they are, their context, the job to be done]
-
 ## Product Purpose
-[What this product does, why it exists, what success looks like]
-
 ## Brand Personality
-[Voice, tone, 3-word personality, emotional goals]
-
-## Anti-references
-[What this should NOT look like. Specific bad-example sites or patterns to avoid.]
-
 ## Design Principles
-[3-5 strategic principles derived from the conversation. Principles like "practice what you preach", "show, don't tell", "expert confidence". NOT visual rules like "use OKLCH" or "magenta accent".]
-
 ## Accessibility & Inclusion
-[WCAG level, known user needs, considerations]
 ```
 
-Register is either `brand` or `product` as a bare value. No prose, no commentary.
+For DESIGN.md use `refactor-and-redesign` §6. Include token/component source locations, behavior, supported environments and approved decisions. Do not claim an unrendered system was verified.
 
-Write to `PROJECT_ROOT/PRODUCT.md`. If `.designer-skill.md` existed, the loader already renamed it; merge into that content rather than starting from scratch.
+Context-file writes stay inside authorized scope. Setup does not authorize framework configuration, dependency installs, CSP changes or launching a server. This release uses ordinary source variants and the host's browser/native preview; it creates no live-helper config. Existing user-owned live config is left untouched.
 
-## Step 5: Decide on DESIGN.md
+## 4. Wrap up
 
-Offer `get_command({ verb: "spec" })` either way. Two paths:
-
-- **Code exists** (CSS tokens, components, a running site): "I can generate a DESIGN.md that captures your visual system (colors, typography, components) so variants stay on-brand. Want to do that now?"
-- **Pre-implementation** (empty project): "I can seed a starter DESIGN.md from five quick questions about color strategy, type direction, motion energy, and references. You can re-run once there's code, to capture the real tokens. Want to do that now?"
-
-If the user agrees, follow the **spec** verb guidance in `refactor-and-redesign.md` §7.
-
-If the user prefers to skip, mention they can run `get_command({ verb: "spec" })` any time later.
-
-## Step 6: Configure live mode (when code exists)
-
-If the project has code with HTML entries and a dev server (the same "code exists" condition that puts `designer-skill document` in scan mode), pre-configure live mode now. You already identified the framework and the served HTML entry in Step 2, so this is nearly free, and it spares the user the first-time setup detour when they later run `designer-skill live`.
-
-**Skip this step for empty / pre-implementation projects** (nothing to inject into yet). Tell the user live mode will configure itself the first time they run it once there's code.
-
-**If `.designer-skill/live/config.json` already exists, leave it untouched** and note that live mode is already configured.
-
-Otherwise:
-
-1. Write `.designer-skill/live/config.json`. Choose `files`, `insertBefore`, and `commentSyntax` from the framework table in `live-mode.md`. For multi-page static sites, prefer a glob over a literal list.
-2. When CSP patching is required, ask the user before editing framework config. See `live-mode.md` (CSP section). On decline, skip the patch.
-3. Set `cspChecked: true` in the config once CSP is handled (patched, declined, manual, or not needed).
-
-Writing the config file is harmless and needs no consent; only the CSP **source-file patch** requires a yes.
-
-## Step 7: Recommend starting points, then wrap up
-
-Summarize tersely:
-- Register captured (brand / product)
-- What was written (PRODUCT.md, DESIGN.md, live config, or a subset)
-- The 3-5 strategic principles from PRODUCT.md that will guide future work
-- If DESIGN.md or live config is pending, one line on how to set it up later
-
-Then recommend the **best next steps** (2–4, not a menu dump), using MCP verbs:
-
-- **Build something new**: `get_command({ verb: "build" })` or `get_command({ verb: "plan" })` for empty/early projects.
-- **Improve what's there**: `review`, `check`, or `finish` on the specific surface; map weaknesses to verbs (`layout`, `color`, `ship`, `copy`).
-- **Iterate visually**: `get_command({ verb: "preview" })` when preview config exists.
-
-Full vocabulary: `list_commands`.
-
-If setup blocked another task, resume it now. Your own writes are the freshest source; no reload needed.
-
-Optionally ask whether to append a short **Design Context** pointer to the project's agent config file (e.g. `AGENTS.md` or `CLAUDE.md`).
+Report files changed, established facts, pending decisions and verification gaps. Suggest one or two relevant canonical verbs from `scripts/command-metadata.json` or `list_commands`, not a separate command vocabulary. Optional follow-up documentation is a proposal, not a setup prerequisite for unrelated work.

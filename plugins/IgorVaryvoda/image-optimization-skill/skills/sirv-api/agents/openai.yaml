@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sirv API"
+  short_description: "Use Sirv REST API docs and patterns for files, metadata, search, jobs, and account operations."
+  default_prompt: "Use $sirv-api to implement or debug Sirv REST API calls without guessing endpoint fields, path escaping, or pagination."

@@ -14,7 +14,7 @@ external canonical JSON regular single-link file, mode `0600`. The implementatio
 root is user-owned `0700`; Forge creates only its fixed directories/config/state.
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py implement-setup \
+python3 "{plugin_root}/scripts/zagrosi_skills.py" implement-setup \
   --sections-dir "{sections_dir}" --target-dir "{target_dir}" \
   --implementation-root "{implementation_root}" \
   --admission-pinner "{admission_pinner}" \
@@ -59,7 +59,7 @@ immutable; replay requires identical authorities and config bytes.
 ## Ready-section loop
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py next-section --planning-dir "{planning_dir}" --implementation-root "{implementation_root}"
+python3 "{plugin_root}/scripts/zagrosi_skills.py" next-section --planning-dir "{planning_dir}" --implementation-root "{implementation_root}"
 ```
 
 Implement only returned dependency-ready sections. Use targeted TDD, focused
@@ -76,7 +76,7 @@ code_review/{section}-decisions.md
 ```
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py implement-record-section \
+python3 "{plugin_root}/scripts/zagrosi_skills.py" implement-record-section \
   --sections-dir "{sections_dir}" --implementation-root "{implementation_root}" \
   --section "{section}" --commit "{hash_or_none}" \
   --file "{changed_file}" --test-file "{test_file}" \
@@ -95,7 +95,7 @@ Never supply reserved S26/S28 rows; Forge derives them.
 Only this public command obtains reserved evidence:
 
 ```bash
-python3 {plugin_root}/scripts/zagrosi_skills.py implement-evidence-handoff --implementation-root "{implementation_root}" --section S26
+python3 "{plugin_root}/scripts/zagrosi_skills.py" implement-evidence-handoff --implementation-root "{implementation_root}" --section S26
 ```
 
 Use exact `S26` or `S28`; aliases, extra arguments, missing selectors, and

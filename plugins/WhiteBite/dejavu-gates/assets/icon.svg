@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <!-- dejavu app icon: dark tile, white d, amber echoes -->
+  <rect width="96" height="96" rx="22" fill="#14172B"/>
+  <g transform="translate(14.4 11.7) scale(0.78)">
+    <!-- bowl + stem (white) -->
+    <g fill="#F7F7F4">
+      <path fill-rule="evenodd" d="M10 66a21 21 0 1 0 42 0 21 21 0 1 0-42 0Zm12 0a9 9 0 1 1 18 0 9 9 0 1 1-18 0Z"/>
+      <rect x="46" y="38" width="10" height="49"/>
+    </g>
+    <!-- echoes (amber) -->
+    <g fill="#E8A33B">
+      <path d="M46 22h24v22H60V32H46Z"/>
+      <path d="M56 6h26v34a16 16 0 0 1-16 16V46a6 6 0 0 0 6-6V16H56Z"/>
+    </g>
+  </g>
+</svg>

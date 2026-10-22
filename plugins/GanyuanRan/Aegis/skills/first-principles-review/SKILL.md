@@ -43,6 +43,11 @@ authority or a generic skill trace.
 
 ## Five-Line Review
 
+Check the agreed goal for omissions and unsupported additions, including
+quantities, exclusions, relationships and conditions. Review criteria come from
+authorized requirements; this lens cannot add them or veto an authorized
+transformation merely because its form differs.
+
 Answer only what is needed, usually in five short lines:
 
 ```text

@@ -62,7 +62,9 @@ clutter; lush or maximal voices keep their length.
 
 - **Filter words.** *She saw*, *heard*, *felt*, *noticed* put a pane of
   glass between reader and scene. Remove them where the perceiving is not
-  the point. See `../../voice-style/references/prose-checks.md`.
+  the point. See `../../voice-style/references/prose-checks.md`. The
+  word list is English; in another language, look for the same effect
+  (verbs of perceiving that announce instead of show) by reading.
 - **Head-hopping.** Only the POV character's thoughts and feelings are
   known directly; others' show through behaviour.
 - **Knowledge slips.** The POV character names things they could not

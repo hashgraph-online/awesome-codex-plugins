@@ -37,10 +37,15 @@ These are two different things and they are not equal today:
   repository, run from its root: the script ships with the source, not inside an
   installed skill bundle. Without a clone, the same roster is published at
   https://happy520ai.github.io/unified-ai-system/verify-mcp-docker-image.html.
+- **Newest content review: `0.8.0`** ([review](https://github.com/happy520ai/unified-ai-system/blob/master/docs/security/mcp-image-review-0.8.0.md)),
+  read from the published layer tarballs with `node tools/inspect-image-filesystem.mjs 0.8.0` - no Docker
+  engine and nothing executed. It found one thing worth knowing before you pull: the `linux/arm64` tag carries
+  x86-64 native modules, including `better_sqlite3.node`, so request `--platform linux/amd64`.
 - **Reviewed and pinned below: `0.4.9`.** The inspection procedure in this file
-  pins that image's recorded digests because `0.4.9` is the newest version with a
-  completed [content review](https://github.com/happy520ai/unified-ai-system/blob/master/docs/security/mcp-image-review-0.4.9.md).
-  It carries 9 of the fifteen names: the model-backed enhancement, knowledge
+  pins that image's recorded digests because `0.4.9` is the newest version reviewed by that procedure, which
+  exports a container filesystem with Docker. The 0.8.0 review above uses a different method and pins its own
+  digests, so the table below still describes 0.4.9 until it is rewritten against a 0.8.0 export.
+  `0.4.9` carries 9 of the fifteen names: the model-backed enhancement, knowledge
   retrieval and workflow execution tools arrived at 0.5.0, and the three
   governance tools at 0.8.0.
 

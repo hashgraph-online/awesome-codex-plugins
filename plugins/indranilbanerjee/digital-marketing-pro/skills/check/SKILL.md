@@ -1,20 +1,14 @@
 ---
 name: check
-description: "Run the unified pre-publish quality gate on marketing content — wraps scripts/eval-runner.py to score hallucination risk, claim substantiation (with --evidence), brand-voice fit (with --brand), structure (with --schema), content quality, and readability, plus a C2PA provenance check for AI assets in EU-targeted campaigns; returns a composite score with a PASS / WARN / BLOCKED decision and per-issue fix suggestions. Reports only — it never edits the content. Triggers on \"/digital-marketing-pro:check\", \"is this safe to publish\", \"run a hallucination check on this draft\", \"validate this copy against the brand voice\", \"pre-publish quality gate\". Resolves the active brand profile automatically; pairs with /digital-marketing-pro:c2pa-metadata to fix missing manifests."
+description: "Run the scored pre-publish gate via eval-runner.py: claims, brand voice, compliance, AI tells. \"check this before we publish\""
 user-invocable: true
-triggers:
-  - check this content before publishing
-  - run the eval suite on this draft
-  - validate this marketing copy
-  - pre-publish quality gate
-  - hallucination check
-  - dm check
-  - eval my content
-  - is this safe to publish
+argument-hint: "<file-or-content> [--full|--compliance] [--brand <slug>] [--evidence <path>] [--schema <name>]"
 allowed-tools: Read Bash Glob Grep
 ---
 
 # /digital-marketing-pro:check — Unified Pre-Publish Quality Gate
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 This skill is the canonical pre-publish gate for marketing content. It wraps the evaluation suite (`scripts/eval-runner.py`) and produces a single pass/fail decision with actionable issues.
 
@@ -144,6 +138,12 @@ Decision: PASS — safe to publish but address WARNINGs first
 
 If any CRITICAL issue is found, decision = **BLOCKED** and the user is asked to fix before publishing.
 
+### Decision rules
+
+- **PASS** — no CRITICAL issues and the composite score is above the auto-reject threshold (`auto_reject_threshold`, default 40)
+- **WARN** — no CRITICAL issues but at least one WARNING; the user should address it before publishing
+- **BLOCKED** — at least one CRITICAL issue (e.g. placeholder URL, fabricated statistic in a headline, missing required disclaimer for a regulated industry, missing C2PA provenance manifest on an AI-generated asset in an EU-targeted campaign); the content cannot publish until fixed
+
 ## AI-tell scans (advisory section, never scored)
 
 Alongside the eval-runner scorers, run both tell scans and report them as a single ADVISORY section of the check output:
@@ -165,7 +165,7 @@ The check gains a compliance dimension for AI-generated assets in EU-targeted ca
 1. The active (or `--brand`) profile's `target_markets` include any EU/EEA jurisdiction, **and**
 2. An accompanying asset is declared AI-generated — either the file metadata says so, or the `--evidence` JSON declares `ai_generated: true` for it.
 
-When both hold, the gate runs a C2PA manifest presence check on the asset via `embed-c2pa.py` (presence/verify mode — it does not modify the asset). A **missing or invalid C2PA provenance manifest is a CRITICAL issue → decision = BLOCKED.** Article 50 applies from **2 Aug 2026** (penalty up to EUR 15M or 3% of global turnover). To embed a compliant manifest, run `/digital-marketing-pro:c2pa-metadata`.
+When both hold, the gate checks the asset read-only with `python "${CLAUDE_PLUGIN_ROOT}/scripts/embed-c2pa.py" --verify <asset>`: exit 0 = manifest present and valid (a self-signed dev signer is reported as `untrusted_signer`, not failed), 6 = no manifest, 7 = manifest fails validation, 2 = c2pa-python not installed (report the dimension as SKIPPED with the printed install command; never PASS it). A **missing or invalid C2PA provenance manifest (exit 6 or 7) is a CRITICAL issue → decision = BLOCKED.** Article 50 applies from **2 Aug 2026** (penalty up to EUR 15M or 3% of global turnover). To embed a compliant manifest, run `/digital-marketing-pro:c2pa-metadata`.
 
 If `embed-c2pa.py` is not present in the script inventory or the asset cannot be resolved, surface the dimension as SKIPPED with a warning (never silently PASS an EU AI-asset check).
 

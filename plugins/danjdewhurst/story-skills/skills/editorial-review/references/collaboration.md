@@ -40,13 +40,13 @@ Agree and record in `story.md`'s `## Notes`:
    change per branch keeps reviews small.
 3. Merge through pull requests. The other author reviews story changes;
    the `story-checks.yml` template from `templates/github/` runs
-   `story validate`, `story links`, and `story continuity` on every pull
-   request.
+   `story check` (validate, links, and continuity) on every pull request.
 4. Update branches by rebasing onto `main` before merging, and push a
    rebased branch with `--force-with-lease`, never plain `--force`.
 5. Registries (`_index.md` files) and word counts are generated: when two
-   branches conflict there, take either side and run `story reindex .`
-   and `story wordcount . --write` rather than hand-merging.
+   branches conflict there, take either side and run `story reindex .`,
+   `story wordcount . --write`, and `story check .` rather than
+   hand-merging.
 6. Conflicts in chapter prose or entity files are creative decisions;
    show both versions to the users and let them choose.
 
@@ -70,7 +70,7 @@ GitHub) so changes to shared entities require review by their owner:
 
 CODEOWNERS only enforces review when branch protection on `main`
 requires code-owner review; tell the user to enable it in the repository
-settings. Use `story names "<candidate>" --path .` before adding a name,
+settings. Use `story names '<candidate>' --path .` before adding a name,
 so authors do not create clashing characters or places (it exits 1 on an
 exact clash and warns about look-alikes; pass each word of a multi-word
 name separately to check it for look-alikes too), and run

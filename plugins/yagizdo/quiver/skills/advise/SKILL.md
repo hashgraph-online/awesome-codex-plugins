@@ -16,7 +16,7 @@ when-to-use: "user wants a senior-style opinion on code or a plan, no spec artif
 ```
 
 ```
-!`git log --oneline -5 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -5 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ---
@@ -75,7 +75,7 @@ Rules:
 - No filler, no preamble. Start at `## Observation`.
 - Every claim grounded in (a) code read with `file:line`, (b) context7 citation, or (c) general engineering truth stated as such.
 - Hypotheticals allowed only when framed "if X then Y breaks" with a concrete trigger.
-- Do NOT write any file under any circumstance. No `docs/brainstorms/`, no `.claude/plans/`, no `.claude/handovers/`, no `.claude/reports/`.
+- Do NOT write any file under any circumstance. No `.claude/specs/`, no `.claude/plans/`, no `.claude/handovers/`, no `.claude/reports/`.
 
 ## Step 6 -- Multi-turn Arming
 

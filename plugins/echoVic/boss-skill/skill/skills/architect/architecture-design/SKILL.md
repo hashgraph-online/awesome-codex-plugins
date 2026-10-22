@@ -13,6 +13,8 @@ triggers:
   - 技术调研完成后
   - 需要设计系统架构时
   - 需要定义项目结构时
+metadata:
+  internal: true
 ---
 
 # 系统架构设计方法论

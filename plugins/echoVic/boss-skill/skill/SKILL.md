@@ -18,7 +18,7 @@ description: |
   - 极小事（预计 <30 分钟人工可完成、不需要 PRD/架构/门禁记录）
 
   Output: 完整项目代码 + PRD/架构/UI/测试/部署文档，写入 .boss/<feature>/ 目录
-version: 4.0.0
+version: 5.0.3
 license: MIT
 user-invocable: true
 ---
@@ -76,7 +76,11 @@ user-invocable: true
 ## 快速入口
 
 1. 判断用户输入是否是可执行任务。约束类输入不要新建 `.boss/<feature>/`；按 `references/orchestration-loop.md` 的 Feature Slug 归一化处理。
-2. **CLI 探测**：派发前运行 `boss --version`。失败则进入降级模式，读取 `references/no-cli-fallback.md`，用 `.boss/<feature>/STATE.md` 承载状态（CLI 是可审计性增强，不是准入条件）。
+2. **CLI 探测**：派发前运行 `boss --version`。CLI 随本 skill 分发（市场安装自带，无需 npm）：
+   - 插件安装（Claude Code / Codex）：`node "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts" --version`
+   - 复制安装 / skills.sh：`node <skill>/cli/bin/boss.mts --version`（`<skill>` 即包含本 SKILL.md 的目录；需 Node >=22.18）
+   - PATH 上已有 `boss` 时可直接用 `boss`
+   失败则进入降级模式，读取 `references/no-cli-fallback.md`，用 `.boss/<feature>/STATE.md` 承载状态（CLI 是可审计性增强，不是准入条件）。下文所有 `boss <command>` 均指运行上述入口。
 3. 除非 `--quick`，先确认”做什么 + 给谁用 + 核心场景”。缺失时读取 `skills/brainstorming/SKILL.md`。
 4. 初始化或恢复项目：
    - 新 feature：`boss project init <feature-name>`

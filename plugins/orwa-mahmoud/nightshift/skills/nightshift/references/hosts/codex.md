@@ -15,3 +15,10 @@ the punch list stays. A crash that never fires SessionEnd still revives, but onl
 thread/conversation handles, rollout paths and other non-resumable identities are refused: the
 watchman stands down rather than starting an unrelated conversation. A missing id still falls back
 to a fresh session whose handover is the punch list.
+
+The plan room closes on the owner's typed `$nightshift:plan-exit` or `$nightshift:start` (the `/`
+spelling works too) as the first word of a message. Codex's `UserPromptSubmit` carries the prompt
+about to be sent in `prompt`, and Codex keeps a `$` skill mention as the text typed; a skill the
+model invokes is not a prompt and never reaches the hook. Codex runs a plugin hook only once it has
+been reviewed and trusted, so until this one is, and on any surface that does not deliver the event,
+`ns plan-exit` in a terminal is the exit.

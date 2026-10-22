@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Image Editing"
+  short_description: "Change a photo while protecting its identity"
+  default_prompt: "Use $magic-hour-image-editing to make the requested change to my attached image while preserving its identity, geometry, and exact text."

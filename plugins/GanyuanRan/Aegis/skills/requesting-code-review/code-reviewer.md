@@ -107,12 +107,22 @@ remaining test gaps or residual risk.
 - Are there unverified assumptions being presented as facts?
 
 **Testing:**
+
+For interface/interaction changes, compose `ui-ux-governance`. Check the accepted
+user task, applicable visual/state/accessibility requirements, total user effort,
+and evidence at the user-visible seam. Include API-to-UI changes. Report missing
+browser/device/state evidence as a gap; keep tiny UI changes bounded.
+
 - Tests actually test logic (not mocks)?
 - Edge cases covered?
 - Integration tests where needed?
 - All tests passing?
 
 **Requirements:**
+- Correct user object, actions, conditions, and complete usable delivery?
+- Does evidence exercise those outcomes, or only an intermediate step?
+- Current authorized scope preserved despite stale plans or broader project goals?
+- Unmet requirements reported honestly; repair generalizes beyond one example?
 - All plan requirements met?
 - Implementation matches spec?
 - No scope creep?

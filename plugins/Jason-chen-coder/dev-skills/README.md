@@ -47,7 +47,8 @@ dev-skills 是一套给 Claude Code / Codex 用的 SDD-style 开发工作流和 
 ## 快速开始
 
 - 不知道下一步:说 `用 dev-auto 看看下一步该做什么`。
-- 新功能 / 改功能:先说 `用 dev-grill-docs 帮我梳理这个需求`。
+- 需求清楚、范围小的新功能 / 改功能:直接实施并做适当检查;行为改动可用 `dev-tdd`。
+- 需求有关键缺口或需要需求文档:说 `用 dev-grill-docs 帮我梳理这个需求`。
 - 老提示里的 `dev-spec` 仍可用,现在等价于 `dev-grill-docs --spec-only`。
 - UI / landing page / 产品界面:先说 `用 dev-design-context 沉淀设计上下文`。
 - UI 图 / 截图生成代码:说 `用 dev-image-to-code 根据这张图和 1518x950 生成 web 页面`。
@@ -62,10 +63,10 @@ dev-skills 是一套给 Claude Code / Codex 用的 SDD-style 开发工作流和 
 ### 新功能 / 改功能
 
 ```text
-dev-design-context(可选) -> dev-grill-docs -> dev-plan(可选) -> dev-tdd -> dev-verify -> dev-code-review -> git commit -> dev-finish
+需求对齐(有关键缺口时用 dev-grill-docs) -> dev-plan(复杂 / 高风险时) -> dev-tdd -> dev-verify -> dev-code-review -> git commit -> dev-finish
 ```
 
-先把需求说清楚。复杂功能再出方案。写代码前用测试锁住行为,完成前验证,提交前 review。
+清楚的小改动直接实施;业务含义、权限或不可逆操作有关键缺口时先对齐,需要文档时再生成 spec。复杂或高风险功能先出方案。行为改动优先用有意义的测试锁住结果,低影响改动用相应检查。已有授权覆盖的工作继续推进,提交和分支操作按用户授权执行。
 
 ### Bug / 事故
 
@@ -107,15 +108,15 @@ dev-tdd -> dev-verify -> dev-code-review -> git commit
 
 ```text
 Intent / Context
-  -> Spec: dev-grill-docs
-  -> Plan / ADR: dev-plan
+  -> Spec(需要时): dev-grill-docs
+  -> Plan / ADR(复杂 / 高风险时): dev-plan
   -> Tests / Fix evidence: dev-tdd 或 dev-fix
   -> Verify: dev-verify
   -> Review: dev-code-review
   -> Ship: git commit / dev-finish
 ```
 
-简单任务可以只做到 Spec-first;复杂、高风险或多 agent 任务建议做到 Spec-anchored,把 `.claude/artifacts/` 里的 spec / plan / fix 作为后续实现、验证、review 的对齐依据。
+简单任务可在对话中明确目标和验收方式后直接实施;需要持久需求文档时用 Spec-first。复杂、高风险或需要跨 agent 持久交接的任务建议做到 Spec-anchored,把 `.claude/artifacts/` 里的 spec / plan / fix 作为后续实现、验证、review 的对齐依据。
 
 完整说明见 [`docs/sdd-workflow.md`](./docs/sdd-workflow.md)。
 
@@ -132,7 +133,7 @@ Intent / Context
 ### 需求和方案
 
 - [`dev-design-context`](./skills/dev-design-context/):做 UI 前,先沉淀项目设计上下文。
-- [`dev-grill-docs`](./skills/dev-grill-docs/):主需求入口;拷问术语、边界和决策,生成 `.claude/artifacts/designs/<feature>.md`,并按需把稳定词汇写入 `CONTEXT.md` / ADR。
+- [`dev-grill-docs`](./skills/dev-grill-docs/):需求有关键缺口或需要需求文档时使用;对齐术语、边界和决策,生成 `.claude/artifacts/designs/<feature>.md`,并按需把稳定词汇写入 `CONTEXT.md` / ADR。
 - [`dev-spec`](./skills/dev-spec/):兼容入口;等价于 `dev-grill-docs --spec-only`,保留给旧提示和旧文档。
 - [`dev-plan`](./skills/dev-plan/):复杂或高风险功能先出实施方案。
 
@@ -175,7 +176,7 @@ Types     6
 
 ### 实现和修复
 
-- [`dev-tdd`](./skills/dev-tdd/):新功能或 scoped 改动写代码前,先用测试锁住行为。
+- [`dev-tdd`](./skills/dev-tdd/):按行为和风险选择验证;新行为优先先测后改,重构可用已有行为测试,低影响改动复用适当检查。
 - [`dev-fix`](./skills/dev-fix/):修 bug 时先复现,再定位 root cause。
 
 ### 完成和提交
@@ -301,20 +302,12 @@ npx skills add Jason-chen-coder/dev-skills --global --force
 
 ## Multi-agent 怎么用
 
-如果你的 runtime 支持多 agent,`dev-skills` 可以作为分工协议使用。SDD artifact 是 agent 之间的契约,不是聊天记录里的口头约定:
+如果你的 runtime 支持多 agent,且用户或适用规则授权委派,`dev-skills` 可以作为分工协议使用。任务要给出明确目标、边界和验收条件;有相关 SDD artifact 时复用它们:
 
 - 主 agent:负责用户沟通、拆分任务、最终整合和 git 操作。
-- 子 agent:只做边界清晰的探索、实现、验证或 review,并基于 spec / plan / fix artifact 输出证据。
+- 子 agent:只做边界清晰的探索、实现、验证或 review,并对照任务契约输出证据。
 
-```toml
-[features]
-multi_agent = true
-parallel = true
-
-[agents]
-max_threads = 12
-max_depth = 2
-```
+Codex 的开关和配置字段随版本变化。当前版本默认启用子 agent;先使用安装版本的默认配置,需要限制并发时再按其[配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)设置 `agents.max_concurrent_threads_per_session`。并发数取决于独立任务、资源和成本预算,子 agent 的启用与委派规则见[官方说明](https://learn.chatgpt.com/docs/agent-configuration/subagents)。
 
 对话里可以这样说:
 
@@ -353,10 +346,12 @@ flowchart TD
   ImageCode --> Verify
   Auto --> Kind{"这是什么类型的工作?"}
 
-  Kind -->|新功能 / 增强| GrillDocs["dev-grill-docs<br/>拷问需求并生成 spec<br/>按需沉淀 CONTEXT / ADR"]
+  Kind -->|新功能 / 增强| NeedSpec{"关键需求缺口 / 需要需求文档?"}
+  NeedSpec -->|是| GrillDocs["dev-grill-docs<br/>对齐需求并生成 spec<br/>按需沉淀 CONTEXT / ADR"]
+  NeedSpec -->|否| NeedPlan
   GrillDocs --> NeedPlan{"复杂 / 高风险?"}
   NeedPlan -->|是| Plan["dev-plan<br/>先出方案"]
-  NeedPlan -->|否| TDD["dev-tdd<br/>先测试,再实现"]
+  NeedPlan -->|否| TDD["dev-tdd<br/>按行为和风险测试 / 实施"]
   Plan --> TDD
 
   Kind -->|Bug / 事故| Fix["dev-fix<br/>复现并找到 root cause"]
@@ -373,6 +368,8 @@ flowchart TD
   CommitMsg --> GitCommit["git commit"]
   GitCommit --> Finish["dev-finish<br/>分支收尾"]
 ```
+
+图中的提交和分支收尾仅在相应操作已获授权时执行;已有授权覆盖的阶段直接继续。
 
 </details>
 
@@ -412,10 +409,10 @@ flowchart TD
 
 不用。
 
-一句话 hotfix 可以跳过 `dev-grill-docs` 和 `dev-plan`,但只要改的是行为,仍建议走:
+清楚的小改动可以跳过 `dev-grill-docs` 和 `dev-plan`。行为改动优先用有意义的测试,纯文案等低影响改动用直接检查;准备提交时走:
 
 ```text
-dev-tdd -> dev-verify -> dev-code-review -> git commit
+适当实现 / 检查 -> dev-verify -> dev-code-review -> git commit
 ```
 
 </details>

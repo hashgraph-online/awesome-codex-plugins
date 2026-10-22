@@ -1,0 +1,142 @@
+{
+  "version": "1.0.0",
+  "description": "默认 Artifact 依赖图：定义产物间的依赖关系与对应 Agent",
+  "artifacts": {
+    "design-brief": {
+      "inputs": [],
+      "agent": null,
+      "stage": 0,
+      "optional": true,
+      "description": "需求澄清产出（brainstorming）"
+    },
+    "prd.md": {
+      "inputs": ["design-brief"],
+      "agent": "boss-pm",
+      "stage": 1,
+      "optional": false,
+      "description": "产品需求文档"
+    },
+    "architecture.md": {
+      "inputs": ["prd.md"],
+      "agent": "boss-architect",
+      "stage": 1,
+      "optional": false,
+      "description": "架构设计文档"
+    },
+    "ui-spec.md": {
+      "inputs": ["prd.md"],
+      "agent": "boss-ui-designer",
+      "stage": 1,
+      "optional": true,
+      "description": "UI/UX 设计规范"
+    },
+    "ui-design.json": {
+      "inputs": ["prd.md"],
+      "agent": "boss-ui-designer",
+      "stage": 1,
+      "optional": true,
+      "description": "可渲染 UI 原型与机器约束 JSON"
+    },
+    "tech-review.md": {
+      "inputs": ["architecture.md", "ui-spec.md", "ui-design.json"],
+      "agent": "boss-tech-lead",
+      "stage": 2,
+      "optional": false,
+      "description": "技术评审报告"
+    },
+    "tasks.md": {
+      "inputs": ["tech-review.md"],
+      "agent": "boss-scrum-master",
+      "stage": 2,
+      "optional": false,
+      "description": "任���拆解与测试用例"
+    },
+    "code": {
+      "inputs": ["tasks.md"],
+      "agent": ["boss-frontend", "boss-backend"],
+      "stage": 3,
+      "optional": false,
+      "description": "代码实现（前后端并行）"
+    },
+    "qa-report.md": {
+      "inputs": ["code", "prd.md"],
+      "agent": "boss-qa",
+      "stage": 3,
+      "optional": false,
+      "description": "QA 测试报告"
+    },
+    "deploy-report.md": {
+      "inputs": ["qa-report.md"],
+      "agent": "boss-devops",
+      "stage": 4,
+      "optional": false,
+      "description": "部署报告"
+    },
+    "gate0": {
+      "inputs": ["code"],
+      "agent": null,
+      "stage": 3,
+      "type": "gate",
+      "runtime": "builtin",
+      "optional": false,
+      "description": "代码质量门禁（编译 + Lint + 安全扫描）"
+    },
+    "gate1": {
+      "inputs": ["code"],
+      "agent": null,
+      "stage": 3,
+      "type": "gate",
+      "runtime": "builtin",
+      "optional": false,
+      "description": "测试门禁（覆盖率 + 通过率 + E2E）"
+    },
+    "gate2": {
+      "inputs": ["code"],
+      "agent": null,
+      "stage": 3,
+      "type": "gate",
+      "runtime": "builtin",
+      "optional": true,
+      "description": "性能门禁（Lighthouse + API P99，仅 Web 项目）"
+    },
+    "owasp-scan": {
+      "inputs": ["code"],
+      "agent": null,
+      "stage": 3,
+      "type": "gate",
+      "runtime": "plugin",
+      "optional": true,
+      "description": "OWASP Top 10 安全模式扫描（注入、XSS、认证失效等）"
+    },
+    "llm-judge": {
+      "inputs": ["code", "qa-report.md"],
+      "agent": null,
+      "stage": 3,
+      "type": "gate",
+      "runtime": "plugin",
+      "optional": true,
+      "description": "LLM-as-Judge 产物质量评估（代码质量、测试完整性、架构合理性）"
+    },
+    "strategic-review.md": {
+      "inputs": ["prd.md"],
+      "agent": "boss-pm",
+      "stage": 2,
+      "optional": true,
+      "description": "战略评审报告（市场契合度、ROI、竞争优势）"
+    },
+    "ui-design-variants.json": {
+      "inputs": ["prd.md"],
+      "agent": "boss-ui-designer",
+      "stage": 1,
+      "optional": true,
+      "description": "UI 设计变体方案（2-3 个变体 + 对比分析）"
+    },
+    "changelog.md": {
+      "inputs": ["deploy-report.md"],
+      "agent": "boss-devops",
+      "stage": 4,
+      "optional": true,
+      "description": "自动生成的变更日志"
+    }
+  }
+}

@@ -9,6 +9,15 @@ updates:
     cooldown:
       default-days: 7
       semver-major-days: 14
+  - package-ecosystem: "npm"
+    directory: "/.github/skild"
+    schedule:
+      interval: "weekly"
+    assignees:
+      - avivsinai
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

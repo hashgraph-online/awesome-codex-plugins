@@ -17,6 +17,21 @@ and apply only the methods relevant to this task. Preserve this entry point's
 execution contract and output format. Read referenced skills as instructions;
 do not invoke the current command recursively or add provider calls from a seat.
 
+## Portable feature boundary
+
+Before implementation, select the existing feature and run its boundary adapter:
+
+```bash
+OCTO_ROOT="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}"
+bash "$OCTO_ROOT/scripts/helpers/feature-workflow.sh" boundary develop "${OCTOPUS_FEATURE:-}"
+```
+
+Read the bound project policy, relative source and digest. Ask the returned marker batch once through the available native host question tool. Keep skipped or noninteractive decisions open. Report the open count and defer only tasks whose current contract depends on a named unanswered decision. The runtime repeats these checks before actual task dispatch.
+
+Two or more spec/plan/tasks artifacts trigger deterministic analysis automatically. A clean pass uses no extra model seat. Unresolved findings can trigger at most one independent bounded seat, shared across host and runtime for that artifact revision. Unavailable or failed semantic review warns and proceeds. Analysis reports exact source quotations and never rewrites artifacts.
+
+Use stable task IDs and metadata when present. The parent resolves paths, dependencies and current Git state at every wave. A hint cannot grant concurrency or permit overwriting user changes. Legacy inputs retain their existing planner and execution path.
+
 ## Pre-Development: State Check
 
 Before starting development:
@@ -142,7 +157,7 @@ Provider Availability:
 🧭 Antigravity CLI: ${agy_status} - Additional external-model challenge
 🔵 Claude: Available ✓ - Integration and quality gates
 
-💰 Estimated Cost: $0.02-0.10
+💰 Estimated Cost: 0.02-0.10 USD
 ⏱️  Estimated Time: 3-7 minutes
 ```
 
@@ -157,7 +172,7 @@ Provider Availability:
 🧭 Antigravity CLI: ${agy_status} - Additional external-model challenge
 🔵 Claude: Available ✓ - Integration and quality review
 
-💰 Estimated Cost: $0.02-0.10
+💰 Estimated Cost: 0.02-0.10 USD
 ⏱️  Estimated Time: 3-7 minutes
 ```
 
@@ -754,7 +769,7 @@ After writing code, ensure:
 - 🟡 Antigravity CLI uses your AGY_AUTH_TOKEN (costs apply)
 - 🔵 Claude analysis included with Claude Code
 
-Tangle workflows typically cost $0.02-0.10 per task depending on complexity and code length.
+Tangle workflows typically cost 0.02-0.10 USD per task depending on complexity and code length.
 
 
 ## Post-Development: Checkpoint

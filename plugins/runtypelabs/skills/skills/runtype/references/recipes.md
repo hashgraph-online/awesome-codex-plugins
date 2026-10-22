@@ -2,7 +2,7 @@
 
 End-to-end examples for common product shapes. Each one shows the MCP tool calls to make, in order, and notes the gotchas to watch for.
 
-These are sketches, not copy-paste configs — the exact JSON shapes are best discovered via `get_build_instructions` and `get_platform_documentation` once you're connected to the MCP server. Use the recipe as a roadmap.
+These are sketches, not copy-paste configs. The exact JSON shapes are best discovered via `get_build_instructions` and `get_platform_documentation` once you're connected to the MCP server. Use the recipe as a roadmap.
 
 ## Contents
 
@@ -13,7 +13,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 - [Recipe 5: Embeddable chat widget for a website](#recipe-5-embeddable-chat-widget-for-a-website)
 - [Recipe 6: Eval harness for an agent change](#recipe-6-eval-harness-for-an-agent-change)
 - [Recipe 7: Multi-agent system](#recipe-7-multi-agent-system)
-- [When to package as an FPO Template](#when-to-package-as-an-fpo-template)
+- [When to package as an FPO template](#when-to-package-as-an-fpo-template)
 - [Recipe 8: Multi-capability product with auto-orchestrator](#recipe-8-multi-capability-product-with-auto-orchestrator)
 - [Recipe 9: Federate an external CrewAI agent into a Runtype product](#recipe-9-federate-an-external-crewai-agent-into-a-runtype-product)
 - [Recipe 10: Browser-side page tools for an embedded assistant (WebMCP)](#recipe-10-browser-side-page-tools-for-an-embedded-assistant-webmcp)
@@ -28,7 +28,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 
 1. **Tools**:
    - `create_tool` for `lookup_customer` (HTTP call to the CRM with `{{secret:CRM_API_KEY}}` in the header).
-   - `create_tool` for `create_linear_issue` (Linear API call).
+   - `create_tool` for `create_linear_issue` (Linear API call). If the user can connect Linear in the dashboard (**Add tool** on the agent, then **Linear**), use the Linear integration's `create_issue` and `list_teams` tools instead, and skip the custom tool and the `LINEAR_API_KEY` secret.
 2. **Secrets**:
    - `create_secret` for `CRM_API_KEY` and `LINEAR_API_KEY`.
 3. **Agent**:
@@ -41,7 +41,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
    - `add_product_capability` to attach the agent to the product.
 5. **Surface**:
    - `create_surface` of type `slack`.
-   - Connect the workspace by following the `slack-setup` topic (`runtype://guide/slack-setup`): `get_slack_app_manifest`, hand the user the two browser moments, then poll `get_surface_setup` until `ready`. Not `install_slack_integration` — that one needs a bot token and signing secret you don't have yet.
+   - Connect the workspace by following the `slack-setup` topic (`runtype://guide/slack-setup`): `get_slack_app_manifest`, hand the user the two browser moments, then poll `get_surface_setup` until `ready`. Not `install_slack_integration`, which needs a bot token and signing secret you don't have yet.
    - `add_surface_item` to wire the capability to the Slack surface.
 6. **Test**:
    - `execute_agent` directly with a test message before sending Slack traffic.
@@ -65,20 +65,20 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
    - `create_tool` for `send_sms_reply` (Twilio API call).
    - Reuse `lookup_customer` and `create_linear_issue` from Recipe 1.
 2. **Flow**: `create_flow`:
-   - Step 1: `prompt` — classify message intent (JSON output).
-   - Step 2: `conditional` — branch on intent:
+   - Step 1: `prompt` to classify message intent (JSON output).
+   - Step 2: `conditional` to branch on intent:
      - **Faq**: `prompt` to draft a reply, then `tool-call` to `send_sms_reply`.
      - **Lookup**: `tool-call` `lookup_customer` → `prompt` with customer context → `tool-call` `send_sms_reply`.
      - **Escalate**: `tool-call` `create_linear_issue` → `tool-call` `send_sms_reply` ("Got it, a human will follow up").
 3. **Surface**: `create_surface` of type `webhook`:
-   - `behavior.response`: empty TwiML — `<?xml version="1.0"?><Response></Response>` — so Twilio gets a valid ACK shape.
+   - `behavior.response`: empty TwiML (`<?xml version="1.0"?><Response></Response>`) so Twilio gets a valid ACK shape.
    - Setting `behavior.response` makes the flow fire **async**, which is what we want.
 4. **Wiring**: `add_product_capability` + `add_surface_item` to route the webhook to the flow.
 5. **Test**: `dispatch` with a sample Twilio payload; verify trace.
 
 **Gotchas:**
 
-- The webhook surface spreads top-level payload fields into flow inputs — so `{{From}}`, `{{To}}`, `{{Body}}` work directly in templates without reaching into `payload.*`.
+- The webhook surface spreads top-level payload fields into flow inputs, so `{{From}}`, `{{To}}`, `{{Body}}` work directly in templates without reaching into `payload.*`.
 - Use `behavior.inputMapping` if Twilio's field names don't match what your steps expect (e.g. rename `Body` → `message`).
 
 ---
@@ -93,12 +93,12 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
    - `source` records (one per source URL, with metadata).
    - `digest` records (one per day's summary).
 2. **Flow**: `create_flow`:
-   - Step 1: `list-records` with `recordFilter: { type: "source" }` — load all sources (array, newest-first).
+   - Step 1: `list-records` with `recordFilter: { type: "source" }` to load all sources (array, newest-first).
    - Step 2: `loop` over the sources with a `fetch-url` (or `crawl`) step inside, collecting each page's content.
-   - Step 3: `prompt` — summarize new content; produce a structured digest object.
-   - Step 4: `upsert-record` — store the digest as a `digest` record with today's date as `name`.
-   - Step 5: `template` — render an HTML email from the digest.
-   - Step 6: `send-email` — deliver to a configured recipient list.
+   - Step 3: `prompt` to summarize new content and produce a structured digest object.
+   - Step 4: `upsert-record` to store the digest as a `digest` record with today's date as `name`.
+   - Step 5: `template` to render an HTML email from the digest.
+   - Step 6: `send-email` to deliver to a configured recipient list.
 3. **Schedule**: `create_schedule`:
    - `target: { flow_id }`
    - `trigger: { type: "recurring", cron: "0 8 * * 1-5", timezone: "America/New_York" }`
@@ -108,7 +108,7 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 **Gotchas:**
 
 - The fetch step can take a while. The execution engine handles long-running tasks but watch `get_log_stats` for time-outs.
-- Email rendering — prefer `template` (Liquid) over generating HTML in a `prompt`. Determinism, cost, predictability.
+- Email rendering: prefer `template` (Liquid) over generating HTML in a `prompt`. Determinism, cost, predictability.
 
 ---
 
@@ -126,12 +126,12 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
    - `add_product_capability` for the agent or flow.
 4. **Surface**: `create_surface` of type `mcp`.
 5. **Surface item**: `add_surface_item` to bind the capability to the MCP surface. Each bound capability becomes an MCP tool.
-6. **Surface key**: `create_surface_key` — the user's Cursor MCP config will need this key.
+6. **Surface key**: `create_surface_key`. The user's Cursor MCP config will need this key.
 7. **Distribute**: Tell the user to add the MCP server to Cursor with the URL and key.
 
 **Gotchas:**
 
-- Tool descriptions are the LLM's interface — write them like docstrings, not like commit messages. The LLM will choose based on the description.
+- Tool descriptions are the LLM's interface. Write them like docstrings, not like commit messages. The LLM will choose based on the description.
 - For each tool, define `inputSchema` strictly. Loose schemas yield bad LLM tool calls.
 
 ---
@@ -145,14 +145,14 @@ These are sketches, not copy-paste configs — the exact JSON shapes are best di
 1. **Agent**: `create_agent` with the support persona and any tools it needs (FAQ search, ticket creation, etc.).
 2. **Product** + capability binding.
 3. **Surface**: `create_surface` of type `chat`. Configure the launcher, theme, and visible features (`showToolCalls`, `showReasoning`). If the widget must call browser-side page tools, configure `behavior.webmcp` with an origin-scoped allowlist.
-4. **Client token**: `create_client_token` — public, scoped, revocable, and usable by the browser-side widget.
-5. **Embed code**: `generate_persona_embed_code` — returns a ready-to-paste HTML snippet. **Prefer this over hand-writing the embed.**
+4. **Client token**: `create_client_token` creates a public, scoped, revocable token that the browser-side widget uses.
+5. **Embed code**: `generate_persona_embed_code` returns a ready-to-paste HTML snippet. **Prefer this over hand-writing the embed.**
 6. **Page tools (optional)**: If using WebMCP, set widget `config.webmcp.enabled`, then register tools on `document.modelContext` before Persona initializes. Keep the client token's `allowedOrigins` aligned with the `behavior.webmcp` origins.
-7. **Theming**: Before generating a custom theme, call `get_persona_theme_reference` to load the design-token docs and example themes. See `persona-widget.md` for the contrast rules and theming gotchas — header tokens are easy to get wrong.
+7. **Theming**: Before generating a custom theme, call `get_persona_theme_reference` to load the design-token docs and example themes. See `persona-widget.md` for the contrast rules and theming gotchas. Header tokens are easy to get wrong.
 
 **Gotchas:**
 
-- Wrong package name (`@runtype/persona` vs `@runtypelabs/persona` — the latter is correct), wrong API (`Persona.mount()` doesn't exist — use `initAgentWidget()`), wrong CSS path are common errors. The MCP-generated embed code avoids all of these.
+- Wrong package name (`@runtype/persona` vs `@runtypelabs/persona`; the latter is correct), wrong API (`Persona.mount()` doesn't exist; use `initAgentWidget()`), wrong CSS path are common errors. The MCP-generated embed code avoids all of these.
 - For consumer-facing widgets, set `features.showToolCalls: false` and `features.showReasoning: false`. For internal debug surfaces, leave them on.
 - To let the model ask structured follow-up questions or propose reply chips, expose Persona's built-in LOCAL tools with `features.askUserQuestion.expose` and `features.suggestReplies.expose` instead of inventing custom tool UIs.
 - Do not model browser-side page actions as an `mcp` surface. Use WebMCP on the `chat` surface when the capability must run inside the user's page.
@@ -187,7 +187,7 @@ For a one-time model or prompt comparison, `submit_eval` with several eval confi
 
 Three viable patterns. Pick by where the routing decision lives.
 
-**Pattern A: Auto-orchestrator (Runtype-managed)** — preferred when each sub-agent is independently useful
+**Pattern A: Auto-orchestrator (Runtype-managed)**: preferred when each sub-agent is independently useful
 
 - Build each sub-agent independently. Each is its own agent with its own tools.
 - Add all sub-agents as capabilities of the product.
@@ -197,13 +197,13 @@ Three viable patterns. Pick by where the routing decision lives.
 
 This is the default choice for multi-agent products. The platform handles the routing.
 
-**Pattern B: Sub-agents as tools** — preferred when one agent should be primary and others assist
+**Pattern B: Sub-agents as tools**: preferred when one agent should be primary and others assist
 
 - A primary agent has tools that wrap the sub-agents (each tool calls `execute_agent` on a sub-agent).
 - The primary agent decides at each turn which sub-agent to invoke.
 - Useful when the primary is the user-facing personality and the sub-agents are "advisors."
 
-**Pattern C: Flow with `execute-agent` steps** — preferred when orchestration is deterministic
+**Pattern C: Flow with `execute-agent` steps**: preferred when orchestration is deterministic
 
 - A flow with a known sequence: research → write → review.
 - Each step is `execute-agent` against a sub-agent.
@@ -219,12 +219,12 @@ Choose A if multiple capabilities should be exposed to users via the same surfac
 
 ---
 
-## When to package as an FPO Template
+## When to package as an FPO template
 
 If the user is building something they want others to instantiate (e.g. a McKenzieMax-style consulting product, a CollectiveX RAG starter, a SeedScout monitoring agent), package it as an FPO Template.
 
 - Define `template.variables` for things importers fill in (model preference, webhook URLs, recipient lists, etc.).
-- For secrets, use the pending-secret pattern: declare on tool `auth.secrets`, reference in tool config with `{{secret:KEY}}` (singular). On import, the platform creates `needs_configuration` bindings and prompts the user — secrets never live in the FPO file.
+- For secrets, use the pending-secret pattern: declare on tool `auth.secrets`, reference in tool config with `{{secret:KEY}}` (singular). On import, the platform creates `needs_configuration` bindings and prompts the user. Secrets never live in the FPO file.
 - See `fpo-templates.md` for the TypeScript types and validation.
 
 The result is a single distributable JSON document someone else can import in one click.
@@ -233,18 +233,18 @@ The result is a single distributable JSON document someone else can import in on
 
 ## Recipe 8: Multi-capability product with auto-orchestrator
 
-**Shape**: A web chat that exposes three agents — sales, support, billing — and routes user messages automatically.
+**Shape**: A web chat that exposes three agents (sales, support, billing) and routes user messages automatically.
 
 **Steps**:
 
 1. Build three agents independently: `sales_agent`, `support_agent`, `billing_agent`. Each has its own system prompt and tool set.
 2. `create_product` to group them.
-3. `add_product_capability` three times — one per agent.
+3. `add_product_capability` three times, once per agent.
 4. `create_surface` of type `chat`.
-5. `add_surface_item` three times — wiring each capability into the same surface.
+5. `add_surface_item` three times, wiring each capability into the same surface.
 6. **Runtype auto-provisions an orchestrator** because multiple capabilities are bound to the same conversational surface.
 7. Test the routing: send messages that obviously belong to each capability and verify they reach the right agent. `trace_conversation` shows the orchestrator's routing decisions.
-8. **Run a surface eval (dashboard) on the orchestrator** before launch — send a set of messages with expected routing through the surface and compare strategies.
+8. **Run a surface eval (dashboard) on the orchestrator** before launch. Send a set of messages with expected routing through the surface and compare strategies.
 
 **When to override the orchestrator default**: only if routing is slow (>1s) or wrong. The default uses an inexpensive model with minimum data over the wire. Customize the orchestrator's system prompt with domain hints if routing is borderline:
 
@@ -267,7 +267,7 @@ The result is a single distributable JSON document someone else can import in on
 
 **Notes**:
 
-- Streaming may be reduced compared to native Runtype agents — A2A standard supports basic streaming but loses some Runtype-specific features (artifact generation, certain UI tools).
+- Streaming may be reduced compared to native Runtype agents. The A2A standard supports basic streaming but loses some Runtype-specific features (artifact generation, certain UI tools).
 - Same product can mix native Runtype agents, Runtype flows, A2A agents, and cloud-managed agents.
 - Pattern of choice for: incremental migration into Runtype, using specialized frameworks for sub-tasks, or treating Runtype as a "surface delivery layer" for agents built elsewhere.
 
@@ -275,7 +275,7 @@ The result is a single distributable JSON document someone else can import in on
 
 ## Recipe 10: Browser-side page tools for an embedded assistant (WebMCP)
 
-**Shape**: An AI assistant embedded on a SaaS app. The agent should be able to read what's on the current page and trigger front-end actions (open a modal, navigate to a record, fill a form) — operations that don't have server-side APIs.
+**Shape**: An AI assistant embedded on a SaaS app. The agent should be able to read what's on the current page and trigger front-end actions (open a modal, navigate to a record, fill a form), which are operations that don't have server-side APIs.
 
 **Steps**:
 
@@ -306,16 +306,16 @@ The result is a single distributable JSON document someone else can import in on
 
 ## Recipe 11: Privacy-sensitive product with hidden parameters + server-side local tools
 
-**Shape**: An agent that answers questions about a user's personal medical records. The LLM should never see the records directly — only summarized, redacted views.
+**Shape**: An agent that answers questions about a user's personal medical records. The LLM should never see the records directly, only summarized, redacted views.
 
 **Steps**:
 
 1. In your server code (Python or TS SDK), define the agent.
-2. Define tools as **server-side local tools** — they run on your server, not in Runtype.
+2. Define tools as **server-side local tools**. They run on your server, not in Runtype.
 3. For each tool, mark the user-context parameters as **hidden** (`user_id`, `tenant_id`, `session_token`).
-4. The LLM sees something like `get_summary(question)` — no auth, no user id.
+4. The LLM sees something like `get_summary(question)`, with no auth, no user id.
 5. Your server-side tool implementation, when invoked, fills in `user_id` from request context, queries your records database, returns a redacted summary string.
-6. The LLM never receives raw records — only the summary string from the tool's return.
+6. The LLM never receives raw records, only the summary string from the tool's return.
 7. Optional: deploy the whole thing **on-prem** if the customer also requires that data never leaves their infrastructure.
 
 **This is the current best practice for LLM products on sensitive data.** Hidden parameters + local tools + (optionally) on-prem deployment together cover the security surface most enterprises ask about.

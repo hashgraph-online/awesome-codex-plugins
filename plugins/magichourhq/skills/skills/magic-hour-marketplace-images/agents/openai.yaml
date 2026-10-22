@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Marketplace Images"
+  short_description: "Create accurate, finished product listing image sets"
+  default_prompt: "Use $magic-hour-marketplace-images to create a listing image set from my product photos and verified product details."

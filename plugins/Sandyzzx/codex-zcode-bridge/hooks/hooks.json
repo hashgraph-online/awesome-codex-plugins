@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^startup$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${PLUGIN_ROOT}/hooks/session-start.mjs\"",
+            "statusMessage": "Checking Codex ZCode Bridge setup",
+            "timeout": 25
+          }
+        ]
+      }
+    ]
+  }
+}

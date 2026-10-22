@@ -1,0 +1,241 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://boss-skill.local/schema/execution-schema.json",
+  "title": "Boss Execution State",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "feature",
+    "status",
+    "stages",
+    "qualityGates",
+    "metrics",
+    "plugins",
+    "pluginLifecycle",
+    "conversations",
+    "derivedTodos",
+    "conversationMetrics"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "string" },
+    "feature": { "type": "string" },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" },
+    "status": {
+      "type": "string",
+      "enum": ["initialized", "running", "completed", "failed"]
+    },
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "pipelinePack": { "type": "string" },
+        "pipelinePackVersion": { "type": "string" },
+        "enabledGates": { "type": "array", "items": { "type": "string" } },
+        "activeAgents": { "type": "array", "items": { "type": "string" } },
+        "skipUI": { "type": "boolean" },
+        "skipDeploy": { "type": "boolean" },
+        "skipFrontend": { "type": "boolean" },
+        "skipReview": { "type": "boolean" },
+        "roles": { "type": "string" },
+        "packConfig": { "type": "object" }
+      },
+      "additionalProperties": true
+    },
+    "stages": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["pending", "running", "completed", "failed", "retrying", "skipped"]
+          },
+          "startTime": { "type": ["string", "null"] },
+          "endTime": { "type": ["string", "null"] },
+          "retryCount": { "type": "integer", "minimum": 0 },
+          "maxRetries": { "type": "integer", "minimum": 0 },
+          "failureReason": { "type": ["string", "null"] },
+          "artifacts": { "type": "array", "items": { "type": "string" } },
+          "gateResults": { "type": "object" },
+          "agents": { "type": "object" }
+        },
+        "required": ["status", "artifacts", "gateResults"]
+      }
+    },
+    "qualityGates": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "passed": { "type": ["boolean", "null"] },
+          "checks": { "type": "array" },
+          "executedAt": { "type": ["string", "null"] }
+        },
+        "required": ["status", "checks"]
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "totalDuration",
+        "stageTimings",
+        "gatePassRate",
+        "retryTotal",
+        "agentSuccessCount",
+        "agentFailureCount",
+        "meanRetriesPerStage",
+        "revisionLoopCount",
+        "pluginFailureCount"
+      ],
+      "properties": {
+        "totalDuration": { "type": ["number", "null"] },
+        "stageTimings": { "type": "object" },
+        "gatePassRate": { "type": ["number", "null"] },
+        "retryTotal": { "type": "integer", "minimum": 0 },
+        "agentSuccessCount": { "type": "integer", "minimum": 0 },
+        "agentFailureCount": { "type": "integer", "minimum": 0 },
+        "meanRetriesPerStage": { "type": "number", "minimum": 0 },
+        "revisionLoopCount": { "type": "integer", "minimum": 0 },
+        "pluginFailureCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "plugins": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "version", "type"],
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "type": { "type": "string" },
+          "dependencies": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "manifestPath": { "type": "string" }
+        }
+      }
+    },
+    "pluginLifecycle": {
+      "type": "object",
+      "required": ["discovered", "activated", "executed", "failed"],
+      "properties": {
+        "discovered": { "$ref": "#/properties/plugins" },
+        "activated": { "$ref": "#/properties/plugins" },
+        "executed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["plugin", "hook", "exitCode", "timestamp"],
+            "properties": {
+              "plugin": { "$ref": "#/properties/plugins/items" },
+              "hook": { "type": "string" },
+              "stage": { "type": ["integer", "null"] },
+              "exitCode": { "type": "integer", "minimum": 0 },
+              "timestamp": { "type": "string" }
+            }
+          }
+        },
+        "failed": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["plugin", "hook", "exitCode", "timestamp"],
+            "properties": {
+              "plugin": { "$ref": "#/properties/plugins/items" },
+              "hook": { "type": "string" },
+              "stage": { "type": ["integer", "null"] },
+              "exitCode": { "type": "integer", "minimum": 0 },
+              "timestamp": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "conversations": {
+      "type": "object",
+      "required": ["threads", "messages", "resolutions"],
+      "properties": {
+        "threads": { "type": "array" },
+        "messages": { "type": "array" },
+        "resolutions": { "type": "array" }
+      }
+    },
+    "derivedTodos": {
+      "type": "array"
+    },
+    "conversationMetrics": {
+      "type": "object",
+      "required": ["opened", "resolved", "todos", "huddles", "unresolved"],
+      "properties": {
+        "opened": { "type": "integer", "minimum": 0 },
+        "resolved": { "type": "integer", "minimum": 0 },
+        "todos": { "type": "integer", "minimum": 0 },
+        "huddles": { "type": "integer", "minimum": 0 },
+        "unresolved": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "humanInterventions": { "type": "array" },
+    "revisionRequests": { "type": "array" },
+    "feedbackLoops": { "type": "object" },
+    "workflow": {
+      "type": "object",
+      "required": ["planPath", "hash", "nodes", "nextNodeIds"],
+      "properties": {
+        "planPath": { "type": "string" },
+        "hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "nextNodeIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "resumedFromRunId": { "type": "string" },
+        "updatedAt": { "type": "string" },
+        "nodes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["id", "kind", "status", "inputs"],
+            "properties": {
+              "id": { "type": "string" },
+              "kind": { "type": "string", "enum": ["input", "agent", "gate", "wave"] },
+              "artifact": { "type": "string" },
+              "gate": { "type": "string" },
+              "agent": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "array", "items": { "type": "string" } },
+                  { "type": "null" }
+                ]
+              },
+              "stage": { "type": "integer", "minimum": 0 },
+              "phase": { "type": "string" },
+              "inputs": { "type": "array", "items": { "type": "string" } },
+              "optional": { "type": "boolean" },
+              "status": {
+                "type": "string",
+                "enum": [
+                  "pending",
+                  "ready",
+                  "running",
+                  "completed",
+                  "failed",
+                  "skipped",
+                  "reused",
+                  "blocked"
+                ]
+              },
+              "decision": { "type": "string", "enum": ["reuse", "run", "skip"] },
+              "reason": { "type": "string" },
+              "updatedAt": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -77,11 +77,17 @@ After the boundary line, every section ends with one recommended letter and why:
 - It is advice, not a choice. Nothing is applied until the user picks in chat.
 
 
-On an interactive sheet, lines 2 and 3 are functions of the value, never per letter —
-`references/controls.md`.
-
 Chat is a pointer, not the explanation — two or three lines at most. A paragraph per
 specimen in chat means the sheet was written wrong.
+
+## A ladder that doesn't fit isn't a ladder
+
+**Never let a comparison scroll sideways.** Two specimens that can't be on screen
+together are compared from memory, which is the one thing this tool exists to avoid.
+
+When it does not fit, drop near-duplicate candidates or isolate a context, keeping the
+distinctions the user needs to judge. If the user specified a count, keep it and adapt
+the layout or split it into clearly labeled groups.
 
 ## Context
 

@@ -1,0 +1,48 @@
+{
+  "name": "wtfm",
+  "version": "0.5.7",
+  "description": "Your coding agent writes the user docs from your codebase, screenshots included.",
+  "author": {
+    "name": "SupportPages.io",
+    "url": "https://supportpages.io"
+  },
+  "homepage": "https://github.com/SupportPages-io/wtfm#readme",
+  "repository": "https://github.com/SupportPages-io/wtfm",
+  "license": "Apache-2.0",
+  "keywords": [
+    "documentation",
+    "help center",
+    "screenshots",
+    "mcp"
+  ],
+  "skills": "./scripts/skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "WTFM",
+    "shortDescription": "User docs with screenshots",
+    "longDescription": "Your coding agent writes the user docs from your codebase, screenshots included. Ask Codex for a guide and WTFM reads your source, writes the steps in plain language, and shows every screen with a screenshot rendered from your real templates and CSS. No running app, no manual captures, no account.",
+    "developerName": "SupportPages.io",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://help.wtfm.sh/",
+    "supportURL": "https://github.com/SupportPages-io/wtfm/issues",
+    "privacyPolicyURL": "https://supportpages.io/legal/privacy",
+    "termsOfServiceURL": "https://supportpages.io/legal/terms",
+    "defaultPrompt": [
+      "Set up WTFM for this project.",
+      "Write an illustrated guide to inviting a teammate.",
+      "What support articles do we have?"
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/screenshots/help-centre.png",
+      "./assets/screenshots/immich.png",
+      "./assets/screenshots/paperless.png"
+    ]
+  }
+}

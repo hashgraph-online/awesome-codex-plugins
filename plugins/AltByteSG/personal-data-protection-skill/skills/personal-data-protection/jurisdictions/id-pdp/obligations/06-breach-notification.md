@@ -1,8 +1,23 @@
 # Pasal 46 — Breach Notification (72 hours, dual-recipient)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 UU PDP's breach notification obligation is in a single dense paragraph of Pasal 46. The 72-hour clock is non-negotiable, and unlike Singapore (PDPC only) or Thailand (regulator only), **Indonesia requires notification to BOTH the Data Subject AND the regulator**.
+
+## Contents
+
+- Pasal 46 — The rule
+- Three-tier notification
+- What constitutes a "Personal Data protection failure"
+- Notification content (Pasal 46(2))
+- Channels for notifying Data Subjects
+- Subject notification content
+- Public notification (Pasal 46(3))
+- Vendor / sub-processor breaches
+- Records and audit
+- Penalty exposure
+- Operational checklist (incorporate into the runbook)
+- Quick reference
 
 ## Pasal 46 — The rule
 

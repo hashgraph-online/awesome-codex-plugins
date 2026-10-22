@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Bring Your AI">
+  <rect width="64" height="64" rx="14" fill="#0d0d0e"/>
+  <path d="M13 20h18v16H13zM33 28h18v16H33z" fill="none" stroke="#d97757" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M27 28h11M35 24l5 4-5 4M37 36H26M29 32l-5 4 5 4" fill="none" stroke="#f4efe7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18 26h8M38 38h8" stroke="#d97757" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,31 @@
+{
+  "skill_name": "sirv-ecommerce",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Replace the main image of Shopify product 8827553184012 with this processed cutout https://example.com/cutout.png and make sure it shows first.",
+      "expected_output": "Checks sirv_shopify_status first, uses sirv_push_image_to_shopify with replace_source (asking for/finding the source image id) or add + set_as_featured rather than replace_all, includes alt text, and verifies the product afterward.",
+      "files": [],
+      "expectations": [
+        "Checks Shopify connection status before pushing",
+        "Does NOT use replace_all without explicit confirmation",
+        "Uses set_as_featured to control position 1",
+        "Provides alt_text with the push",
+        "Verifies the product image after pushing"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Prep our 50 new product photos so they pass Amazon main-image rules and publish them to the matching Shopify products.",
+      "expected_output": "A pipeline: check credits and connection, remove backgrounds to pure white, validate against the Amazon preset, autofix failures, generate alt text, push per product with a deliberate upload strategy, and verify per-image results rather than declaring batch success.",
+      "files": [],
+      "expectations": [
+        "Checks credits/usage and Shopify status before starting",
+        "Validates against marketplace rules and autofixes failures before publishing",
+        "Considers a saved workflow for the repeatable pipeline",
+        "Chooses upload_strategy deliberately and confirms destructive options",
+        "Reports per-image successes/failures from actual results"
+      ]
+    }
+  ]
+}

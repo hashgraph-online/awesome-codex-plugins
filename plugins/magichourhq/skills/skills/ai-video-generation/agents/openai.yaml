@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI Video Generation with Magic Hour"
+  short_description: "Create and finish a reviewed AI video"
+  default_prompt: "Use $ai-video-generation to turn my brief and media into a finished, inspected video within my budget."

@@ -12,7 +12,7 @@
   <a href="README.es.md">Español</a>
 </p>
 
-<img src=".github/assets/franky.png" width="92" alt="franky" />&nbsp;<img src=".github/assets/zoro.png" width="92" alt="zoro" />&nbsp;<img src=".github/assets/usopp.png" width="92" alt="usopp" />&nbsp;<img src=".github/assets/jinbe.png" width="92" alt="jinbe" />&nbsp;<img src=".github/assets/robin.png" width="92" alt="robin" />&nbsp;<img src=".github/assets/nami.png" width="92" alt="nami" />
+<img src=".github/assets/forge.webp" width="92" alt="forge" />&nbsp;<img src=".github/assets/sentinel.webp" width="92" alt="sentinel" />&nbsp;<img src=".github/assets/probe.webp" width="92" alt="probe" />&nbsp;<img src=".github/assets/arbiter.webp" width="92" alt="arbiter" />&nbsp;<img src=".github/assets/assayer.webp" width="92" alt="assayer" />&nbsp;<img src=".github/assets/pathfinder.webp" width="92" alt="pathfinder" />
 
 <sub><b>the crew</b> — optional subagents, one job each</sub>
 
@@ -26,7 +26,7 @@ After installing, type your task in Codex, Claude Code, or Antigravity with a le
 loopy add the payments module
 ```
 
-The agent plans it, proves each piece with a real file, and reports back — you don't run any commands yourself. The packaged Stop hook stays quiet unless `SUPERLOOPY_STOP_HOOK=on`. Set `SUPERLOOPY_CALQUE_NUDGE=on` to get an advisory note at your next prompt when the previous Korean reply carried an English calque such as 조용히 실패 or 우아하게 종료.
+The agent plans it, proves each piece with a real file, and reports back — you don't run any commands yourself. The packaged Stop hook keeps a session going only after you start or resume a loop there with `loopy`, and only until you send a plain prompt; set `SUPERLOOPY_STOP_HOOK=on` to drive every session with unfinished work, or `SUPERLOOPY_STOP_HOOK=off` to turn it off. Set `SUPERLOOPY_CALQUE_NUDGE=on` to get an advisory note at your next prompt when the previous Korean reply carried an English calque such as 조용히 실패 or 우아하게 종료.
 
 ## Why Superloopy?
 
@@ -99,7 +99,7 @@ examples/qt-kanban/scripts/audit-macos-accessibility.sh \
 
 For bigger work, Superloopy ships six optional subagents — each owns one lane. Claude Code uses the plugin-bundled `agents/*.md`. On Codex, bootstrap, `superloopy install`, and `superloopy agents install` materialize personal TOMLs under `$CODEX_HOME/agents`; model routing is resolved during that installation step.
 
-Codex calls the stable `model/list` method only when resolution state is missing, the policy version or target changed, the cache is at least 24 hours old, or `--refresh-models` is supplied. When fresh state still matches the managed files, it reuses the exact manifest without a query or state rewrite. Profiles select the first supported complete model/effort/tier tuple: `gpt-6-sol` / `high` / `priority` for `standard`, `gpt-6-sol` / `xhigh` / `priority` for `deep`, and `gpt-6-luna` / `low` / `fast` for `fast`. If a preferred model is unavailable, that profile uses its explicit GPT-5.6 compatibility tuple. `gpt-6-astra` is allowed for the orchestrator (your own Codex session) when you select it in Codex; crew lanes keep their pins and never inherit the orchestrator's model. An unknown first probe conservatively selects policy compatibility; an unknown refresh preserves a valid existing resolution. `--compat` makes the compatibility choice deterministically without querying.
+Codex calls the stable `model/list` method only when resolution state is missing, the policy version or target changed, the cache is at least 24 hours old, or `--refresh-models` is supplied. When fresh state still matches the managed files, it reuses the exact manifest without a query or state rewrite. Profiles select the first supported complete model/effort/tier tuple: `gpt-6.1-sol` / `high` / `priority` for `standard`, `gpt-6.1-sol` / `xhigh` / `priority` for `deep`, and `gpt-6-luna` / `low` / `fast` for `fast`. If `gpt-6.1-sol` is unavailable, `standard` and `deep` fall back to `gpt-6-sol` first; a profile that still cannot resolve uses its explicit GPT-5.6 compatibility tuple. `gpt-6-astra` is allowed for the orchestrator (your own Codex session) when you select it in Codex; crew lanes keep their pins and never inherit the orchestrator's model. An unknown first probe conservatively selects policy compatibility; an unknown refresh preserves a valid existing resolution. `--compat` makes the compatibility choice deterministically without querying.
 
 Upgrades from pre-managed Superloopy releases are hash-bound: a complete exact legacy fleet is adopted and upgraded without `--force`, while one edit, symlink, missing file, or unknown hash keeps the whole fleet in conflict. Changed agent definitions require a Codex restart; an unchanged fresh manifest does not. `superloopy doctor --refresh-models` can report preferred availability before managed state exists, detects a wrapper/plugin split-brain, and never rewrites resolution state or agent files.
 
@@ -109,14 +109,14 @@ Resolution finishes before launch, with no post-launch retry or model switch. Th
 
 <table>
   <tr>
-    <td align="center" width="33%"><img src=".github/assets/franky.png" width="190" alt="franky" /><br /><b>franky</b><br /><sub>builds it</sub></td>
-    <td align="center" width="33%"><img src=".github/assets/zoro.png" width="190" alt="zoro" /><br /><b>zoro</b><br /><sub>reviews it</sub></td>
-    <td align="center" width="33%"><img src=".github/assets/usopp.png" width="190" alt="usopp" /><br /><b>usopp</b><br /><sub>tests it</sub></td>
+    <td align="center" width="33%"><img src=".github/assets/forge.webp" width="190" alt="forge" /><br /><b>forge</b><br /><sub>builds it</sub></td>
+    <td align="center" width="33%"><img src=".github/assets/sentinel.webp" width="190" alt="sentinel" /><br /><b>sentinel</b><br /><sub>reviews it</sub></td>
+    <td align="center" width="33%"><img src=".github/assets/probe.webp" width="190" alt="probe" /><br /><b>probe</b><br /><sub>tests it</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src=".github/assets/jinbe.png" width="190" alt="jinbe" /><br /><b>jinbe</b><br /><sub>gates it</sub></td>
-    <td align="center"><img src=".github/assets/robin.png" width="190" alt="robin" /><br /><b>robin</b><br /><sub>audits it</sub></td>
-    <td align="center"><img src=".github/assets/nami.png" width="190" alt="nami" /><br /><b>nami</b><br /><sub>finds it</sub></td>
+    <td align="center"><img src=".github/assets/arbiter.webp" width="190" alt="arbiter" /><br /><b>arbiter</b><br /><sub>gates it</sub></td>
+    <td align="center"><img src=".github/assets/assayer.webp" width="190" alt="assayer" /><br /><b>assayer</b><br /><sub>audits it</sub></td>
+    <td align="center"><img src=".github/assets/pathfinder.webp" width="190" alt="pathfinder" /><br /><b>pathfinder</b><br /><sub>finds it</sub></td>
   </tr>
 </table>
 
@@ -144,7 +144,25 @@ When Superpowers is installed (on Codex or Claude Code), Superloopy notices and 
 
 ## Install
 
-Superloopy installs on both **Codex** and **Claude Code** from one repo. The core (loop state, evidence gates, doctor) is host-agnostic; each host gets its own thin plugin manifest, hook wiring, and agent format.
+Superloopy installs on **Codex**, **Claude Code**, and **Google Antigravity** from one repo. The core (loop state, evidence gates, doctor) is host-agnostic; each host gets its own thin plugin manifest, hook wiring, and agent format.
+
+### Quick install with npx
+
+Needs Node.js ≥ 22. In a terminal:
+
+```sh
+npx superloopy@latest
+```
+
+It finds `claude`, `codex`, `agy`, and `omp` on your `PATH`, asks before installing into each one, and installs through that host's own plugin commands (the same ones listed per host below). Hosts that already have Superloopy are updated instead. Then reload or restart each host as it tells you.
+
+```sh
+npx superloopy@latest setup --host claude,codex --yes   # no prompts
+npx superloopy@latest update                            # update every host that has Superloopy
+npx superloopy@latest doctor                            # each host's version, validation, and the fix command
+```
+
+An older cached copy of the package re-runs itself as the latest release first (`--no-self-update` turns that off). The per-host commands below do the same thing by hand.
 
 For agent-driven installs such as `install https://github.com/beefiker/superloopy`, use [installation.md](installation.md). It is written as a host-selection and verification checklist for Codex and Claude Code agents.
 
@@ -172,7 +190,26 @@ Needs Node.js ≥ 22 and Claude Code ≥ 2.1.280 for the pinned Opus 5.5 subagen
 
 Reload plugins (or restart Claude Code) and approve the hooks when prompted. On Claude Code the skills, subagents (`agents/*.md`), and hooks (`hooks/hooks.json`) are **plugin-bundled** — there is no `~/.codex` install step and no `superloopy` wrapper; the hooks invoke the CLI directly via `${CLAUDE_PLUGIN_ROOT}`, and `SessionStart` is a clean no-op (nothing to bootstrap). For local development, point Claude Code at a checkout with `claude --plugin-dir <checkout>`. Verify with `node "${CLAUDE_PLUGIN_ROOT}/src/cli.js" doctor --json`. The subagents' advisory model defaults for Claude are documented in `docs/superloopy-model-policy-claude.md`.
 
+### omp
+
+[omp](https://github.com/can1357/oh-my-pi) installs the Claude Code plugin from the same marketplace:
+
+```sh
+omp plugin marketplace add beefiker/superloopy
+omp plugin install superloopy@beefiker
+```
+
+Run `/reload-plugins` in open omp sessions. omp loads the skills and the crew agents. It does **not** run Claude-format `hooks.json`, so on omp there is no automatic Stop-hook continuation, no subagent receipt check, and no `SessionStart` bootstrap. The completion gate in `superloopy loop finish` still re-runs every command-backed proof. The `superloopy loop …` commands need a `superloopy` command on `PATH`; a Codex install provides it. Without Codex, run `node "<installPath>/src/cli.js" bin install` with the `installPath` from `omp plugin list --json`, and again after each omp upgrade, since that path is versioned.
+
 ## Update
+
+Every host at once, through each host's own update commands:
+
+```sh
+npx superloopy@latest update
+```
+
+Or update one host by hand:
 
 ### Codex
 
@@ -225,6 +262,15 @@ git -C ~/.gemini/config/plugins/superloopy pull --ff-only
 agy plugin validate ~/.gemini/config/plugins/superloopy
 ```
 
+### omp
+
+```sh
+omp plugin marketplace update beefiker
+omp plugin upgrade superloopy@beefiker
+```
+
+Then run `/reload-plugins` in open omp sessions.
+
 ## Troubleshooting
 
 If plugin install or upgrade commands fail, update the Codex CLI first. `codex plugin add` is available in Codex CLI 0.131.0 and newer; older builds can have trouble with current plugin marketplace commands and hook approval flows.
@@ -253,11 +299,21 @@ Restart Codex after uninstalling. Optional local bootstrap cleanup: plugin remov
 
 ```sh
 rm -f ~/.local/bin/superloopy
-rm -f ~/.codex/agents/franky.toml ~/.codex/agents/zoro.toml ~/.codex/agents/usopp.toml ~/.codex/agents/jinbe.toml ~/.codex/agents/robin.toml ~/.codex/agents/nami.toml
+rm -f ~/.codex/agents/forge.toml ~/.codex/agents/sentinel.toml ~/.codex/agents/probe.toml ~/.codex/agents/arbiter.toml ~/.codex/agents/assayer.toml ~/.codex/agents/pathfinder.toml
 ```
 
 ```powershell
 Remove-Item "$env:APPDATA\npm\superloopy.cmd" -ErrorAction SilentlyContinue
+Remove-Item "$env:USERPROFILE\.codex\agents\forge.toml", "$env:USERPROFILE\.codex\agents\sentinel.toml", "$env:USERPROFILE\.codex\agents\probe.toml", "$env:USERPROFILE\.codex\agents\arbiter.toml", "$env:USERPROFILE\.codex\agents\assayer.toml", "$env:USERPROFILE\.codex\agents\pathfinder.toml" -ErrorAction SilentlyContinue
+```
+
+Upgrading removes the pre-rename agent files automatically when they are unmodified. If you edited any of them, remove them by hand:
+
+```sh
+rm -f ~/.codex/agents/franky.toml ~/.codex/agents/zoro.toml ~/.codex/agents/usopp.toml ~/.codex/agents/jinbe.toml ~/.codex/agents/robin.toml ~/.codex/agents/nami.toml
+```
+
+```powershell
 Remove-Item "$env:USERPROFILE\.codex\agents\franky.toml", "$env:USERPROFILE\.codex\agents\zoro.toml", "$env:USERPROFILE\.codex\agents\usopp.toml", "$env:USERPROFILE\.codex\agents\jinbe.toml", "$env:USERPROFILE\.codex\agents\robin.toml", "$env:USERPROFILE\.codex\agents\nami.toml" -ErrorAction SilentlyContinue
 ```
 
@@ -295,5 +351,14 @@ Remove-Item "$env:APPDATA\npm\superloopy.cmd" -ErrorAction SilentlyContinue
 ```
 
 If you keep Superloopy on Codex, keep the wrapper or run `superloopy install` to repoint it to your Codex installation. Agents and skills on Antigravity are plugin-bundled so no agent TOMLs are placed. If you installed with `SUPERLOOPY_BIN_DIR`, clean up that configured path instead.
+
+### omp
+
+```sh
+omp plugin uninstall superloopy@beefiker
+omp plugin marketplace remove beefiker
+```
+
+Then run `/reload-plugins`. If you ran `bin install` for omp and do not use Superloopy on Codex, also remove `~/.local/bin/superloopy`.
 
 <sub>MIT licensed.</sub>

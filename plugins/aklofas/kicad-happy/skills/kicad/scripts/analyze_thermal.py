@@ -205,7 +205,7 @@ def _estimate_all_power_dissipation(schematic: dict) -> tuple:
     components (regulators) that could not be assessed, with reason drawn
     from a fixed vocabulary: "no_load_estimate", "no_vout",
     "below_min_pdiss" (KH-386 — a dropped component previously vanished
-    from the report with no trace).
+    from the report with no trace), or "no_pdiss_estimate" (KH-411 — LDO with no upstream power_dissipation estimate at all).
     """
     results = []
     skipped = []
@@ -220,9 +220,16 @@ def _estimate_all_power_dissipation(schematic: dict) -> tuple:
         topology = reg.get("topology", "").lower()
         pdiss = reg.get("power_dissipation", {})
 
-        if topology in ("ldo", "linear") and isinstance(pdiss, dict):
-            p_w = pdiss.get("estimated_pdiss_W", 0)
-            if p_w and p_w > MIN_PDISS_W:
+        if topology in ("ldo", "linear"):
+            p_w = pdiss.get("estimated_pdiss_W") if isinstance(pdiss, dict) else None
+            if p_w is None:
+                # KH-411: the upstream regulator detector never produced an
+                # estimate (no power_dissipation block, or no estimated_pdiss_W
+                # in it) — distinct from a real sub-threshold estimate.
+                skipped.append({"ref": ref, "value": reg.get("value", ""),
+                                 "reason": "no_pdiss_estimate"})
+                seen_refs.add(ref)
+            elif p_w > MIN_PDISS_W:
                 results.append({
                     "ref": ref,
                     "value": reg.get("value", ""),

@@ -1,6 +1,6 @@
 {
   "name": "since-cutoff",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Find which dependency APIs your code uses changed after your coding model's training cutoff, and write short AGENTS.md notes from the API diff, each with its source.",
   "author": {
     "name": "Mohammad Hijjawi",

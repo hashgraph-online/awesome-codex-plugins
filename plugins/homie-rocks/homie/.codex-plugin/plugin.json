@@ -1,0 +1,65 @@
+{
+  "name": "homie",
+  "version": "0.58.12",
+  "description": "Build games and apps with Homie’s engine packages, animated characters, sound, music and video skills. Play from a post on X. Publish on your own Cloudflare and connect your own Stripe with one approval. Open source.",
+  "author": {
+    "name": "Homie",
+    "url": "https://homie.rocks"
+  },
+  "homepage": "https://homie.rocks/studios/",
+  "repository": "https://github.com/homie-rocks/homie",
+  "license": "Apache-2.0",
+  "keywords": [
+    "games",
+    "multiplayer",
+    "netplay",
+    "cloudflare",
+    "music",
+    "sound",
+    "sfx",
+    "art",
+    "3d",
+    "models",
+    "playtest",
+    "performance",
+    "video",
+    "trailers",
+    "studio",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "hooks": "./hooks/codex.json",
+  "interface": {
+    "displayName": "Homie",
+    "shortDescription": "Build games and apps with Homie’s engine packages, animated characters, sound, music and video skills. Play from a post on X. Publish on your own Cloudflare and connect your own Stripe with one approval. Open source.",
+    "longDescription": "Build games and apps with Homie’s engine packages, animated characters, sound, music and video skills. Play from a post on X. Publish on your own Cloudflare and connect your own Stripe with one approval. Open source.",
+    "developerName": "Homie",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://homie.rocks/",
+    "privacyPolicyURL": "https://homie.rocks/privacy/",
+    "termsOfServiceURL": "https://homie.rocks/terms/",
+    "defaultPrompt": [
+      "Set up a game studio called Night Owls and make a multiplayer game",
+      "Make a multiplayer game in this studio where everyone races to steal one crown",
+      "Plan my game with me and make its codex",
+      "Show me three looks for my game and lock the one I like",
+      "Find free 3D models for my game",
+      "What do I need to set up for my studio?",
+      "Put this studio online and list its games in the Homie directory",
+      "Make this game multiplayer on my studio",
+      "Make a 30-second theme song for my studio",
+      "Make a 15-second trailer of my game",
+      "Make sound effects and a short theme for my game",
+      "Playtest my game and tell me what is weak",
+      "Give my studio a news post and make my game's landing page epic"
+    ],
+    "brandColor": "#FFCF5A",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

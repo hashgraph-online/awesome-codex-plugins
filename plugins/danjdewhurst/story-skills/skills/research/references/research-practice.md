@@ -120,6 +120,8 @@ reviewed-by:
   - "Dr A. Patel, A&E consultant"
 ```
 
+After you edit the frontmatter, run `story reindex .`, `story wordcount . --write`, and `story check .`.
+
 Research gathers facts and flags concerns; it never
 substitutes for professional advice, and the agent never gives legal,
 medical, weapons, or safety advice. Omit operational detail that would let

@@ -1,10 +1,12 @@
 ---
 name: connect
-description: "Guide the connection of a known MCP integration to the plugin — looks up the connector registry via connector-status.py, checks current status, and returns transport-specific setup steps (OAuth for HTTP connectors, env-var credentials plus the exact .mcp.json block for npx connectors), verification steps, and the skills each connector unlocks. Triggers on \"/digital-marketing-pro:connect\", \"connect Google Ads\", \"hook up Slack to the plugin\", \"set up the HubSpot integration\", \"how do I add Mailchimp\". Guidance and status checks only — the user adds credentials themselves; unknown or custom servers route to /digital-marketing-pro:add-integration."
+description: "Connect a known MCP integration: check the registry and status, return exact setup steps. \"connect Google Ads\""
 argument-hint: "[connector-name]"
 ---
 
 # /digital-marketing-pro:connect
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## Purpose
 
@@ -25,12 +27,26 @@ The user must provide (or will be prompted for):
 
 3. **Present setup instructions based on transport type**:
 
-   **For HTTP connectors** (the 10 registry-backed ones: Slack, Canva, Figma, HubSpot, Ahrefs, Similarweb, Klaviyo, Amplitude, Google Calendar, Gmail):
-   - **Nothing is pre-connected.** The shipped `.mcp.json` is empty (`{"mcpServers":{}}`) so a fresh install has zero auto-connecting MCP servers — this is deliberate (it keeps Cowork and multi-tenant installs safe). These HTTP connectors are an **opt-in catalog**, documented in `.mcp.json.connectors-reference`.
+   **For HTTP connectors** (the registry-backed ones: Slack, Canva, Figma, HubSpot, Ahrefs, Similarweb, Klaviyo, Amplitude, Google Calendar, Gmail, and the official ad-platform servers `meta-ads`, `google-ads-mcp`, `amazon-ads-mcp`):
+   - **Nothing is pre-connected.** No `.mcp.json` ships (it is gitignored), so a fresh install has zero auto-connecting MCP servers — this is deliberate (it keeps Cowork and multi-tenant installs safe). These HTTP connectors are an **opt-in catalog**, documented in `.mcp.json.connectors-reference`.
    - To enable one, the user copies its block from `.mcp.json.connectors-reference` into their own `.mcp.json` (or adds it via `/digital-marketing-pro:add-integration`), then restarts the client. HTTP connectors need no API key in the file — once the server is added, Claude prompts for OAuth on first use.
    - Example: "Slack isn't connected yet. Copy the Slack block from `.mcp.json.connectors-reference` into your `.mcp.json` (or run `/digital-marketing-pro:add-integration slack`), restart, then run `/digital-marketing-pro:send-notification` — you'll be prompted to authorize Slack via OAuth."
    - Notion, Stripe, Asana, and Webflow are **catalog-only** HTTP servers: configure them directly from `.mcp.json.connectors-reference` the same way, but they are not in the connector registry, so `/digital-marketing-pro:doctor` and `connector-status.py` will not report on them.
    - List the skills this connector would enable once added
+
+   **Official ad-platform and CRM servers (checked 2026-10-04; see the CONNECTORS.md section "Official ad-platform and CRM MCP servers")**: the setup guide returns an `access` field and a `setup_note`. Read both to the user:
+   - **`meta-ads`** (`https://mcp.facebook.com/ads`, open beta): read + write, with a business-authenticated Meta login.
+   - **`google-ads-mcp`**: read-only. It runs locally via `pipx` (Claude Code only), or the user self-hosts it over Streamable HTTP, so the URL has a `<...>` placeholder.
+   - **`amazon-ads-mcp`**: partners with active Amazon Ads API credentials only. The endpoint comes from their API onboarding.
+   - **`hubspot`** (`https://mcp.hubspot.com`, GA): OAuth 2.1 + PKCE with the user's connector app credentials.
+
+   For every read-write server, tell the user plainly:
+   - writes happen only through `/digital-marketing-pro:launch-ad-campaign`'s typed approval gate;
+   - new ad objects are created PAUSED;
+   - DMP never deletes through these servers.
+
+   Never add any of them to the shipped `.mcp.json`; the user copies the entry into their own config.
+   - If the user asks for Asana, Webflow or Make.com, use the current Streamable HTTP URLs in the catalog. The old `/sse` URLs use the HTTP+SSE transport that MCP spec 2026-07-28 deprecates; Asana's V1 `/sse` server was shut down on 11 May 2026. Replicate's catalog entry is flagged because its vendor page still lists only `/sse`.
 
    **For npx connectors** (Google Ads, Meta, Salesforce, Twilio, etc.):
    - List the specific environment variables needed with clear descriptions

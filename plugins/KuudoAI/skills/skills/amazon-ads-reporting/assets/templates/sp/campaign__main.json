@@ -1,0 +1,57 @@
+{
+  "accessRequestedAccounts": [
+    {
+      "advertiserAccountId": "amzn1.ads-account.g.REPLACE_ME"
+    }
+  ],
+  "reports": [
+    {
+      "format": "GZIP_JSON",
+      "query": {
+        "fields": [
+          "date.value",
+          "portfolio.portfolioId",
+          "portfolio.name",
+          "adProduct.value",
+          "campaign.id",
+          "campaign.name",
+          "campaign.deliveryStatus",
+          "campaign.country",
+          "country.code",
+          "country.name",
+          "campaign.currencyCode",
+          "campaign.budgetAmount",
+          "campaign.budgetType",
+          "campaign.bidStrategy",
+          "budgetCurrency.value",
+          "metric.impressions",
+          "metric.clicks",
+          "metric.ctr",
+          "metric.cpc",
+          "metric.totalCost",
+          "metric.purchases",
+          "metric.sales",
+          "metric.roas"
+        ],
+        "filter": {
+          "on": {
+            "comparisonOperator": "EQUALS",
+            "field": "adProduct.value",
+            "not": false,
+            "values": [
+              "SPONSORED_PRODUCTS"
+            ]
+          }
+        }
+      },
+      "periods": [
+        {
+          "datePeriod": {
+            "startDate": "START_DATE",
+            "endDate": "END_DATE"
+          }
+        }
+      ]
+    }
+  ]
+}

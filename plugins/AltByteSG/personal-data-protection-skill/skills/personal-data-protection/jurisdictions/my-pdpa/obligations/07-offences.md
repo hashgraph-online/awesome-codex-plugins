@@ -1,6 +1,6 @@
 # Offences and Penalties — s5(2), s12B(3), s40(3), s129(5), s130, s133
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 MY PDPA backs every Principle with a discrete offence rather than a general civil penalty regime. The 2024 Amendment (A1727) raised the principle-breach maximum and introduced two new offences (breach-notification failure, and the data-portability obligation in s43A operates via s5(2) by extension of the Access Principle).
 

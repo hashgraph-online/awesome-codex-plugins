@@ -8,18 +8,21 @@ import {
   resolveGoalProgressPaths,
 } from "../../../packages/store/src/index.js";
 import {
+  type CodexMacosAppIdentity,
+  type CommandRunner,
   inspectCodexMacosApp,
   requireSingleCodexMacosApp,
   runSystemCommand,
 } from "./app-discovery.js";
 import {
   allocateRandomLoopbackPort,
-  commandBelongsToExecutable,
   createCodexCdpRuntimeState,
-  inspectProcess,
+  inspectCodexCdpRuntime,
+  type inspectProcess,
+  inspectRunningProcess,
   launchCodexWithCdp,
+  listCodexMainProcesses,
   readCodexCdpRuntimeState,
-  stopCodexCdpRuntime,
   stopLaunchedCodexCdpProcess,
   verifyCodexCdpListenerOwnership,
   waitForCodexCdpListenerOwnership,
@@ -53,7 +56,7 @@ const GOAL_PROGRESS_LEGACY_RESTORE_HANDOFF_LABEL = "com.codexgoalprogress.restor
 export const GOAL_PROGRESS_CDP_HANDOFF_LABEL = "com.codexgoalprogress.cdp-handoff-v2";
 export const GOAL_PROGRESS_RESTORE_HANDOFF_LABEL = "com.codexgoalprogress.restore-handoff-v2";
 
-function cdpPaths(homeDirectory: string, configuredRoot = process.env.GOAL_PROGRESS_ROOT) {
+export function cdpPaths(homeDirectory: string, configuredRoot = process.env.GOAL_PROGRESS_ROOT) {
   const root = configuredRoot?.trim();
   return resolveGoalProgressPaths(
     root
@@ -300,6 +303,7 @@ export async function runCodexCdpHandoff(homeDirectory: string): Promise<void> {
 export function createCdpController(
   homeDirectory: string,
   configuredRoot = process.env.GOAL_PROGRESS_ROOT,
+  handoffProcess = process.env.GOAL_PROGRESS_INTERNAL_CDP_HANDOFF === "1",
 ): CdpController {
   const paths = cdpPaths(homeDirectory, configuredRoot);
 
@@ -308,7 +312,10 @@ export function createCdpController(
     try {
       state = await readCodexCdpRuntimeState(paths.cdpRuntimePath);
     } catch (error) {
-      if (isNotFound(error)) {
+      if (
+        isNotFound(error) ||
+        stableErrorCode(error).startsWith("GOAL_PROGRESS_CDP_TIME_IDENTITY_REBUILD_REQUIRED")
+      ) {
         return false;
       }
       throw error;
@@ -322,7 +329,13 @@ export function createCdpController(
       throw new Error("GOAL_PROGRESS_CDP_RUNTIME_APP_MISMATCH");
     }
     try {
-      await verifyCodexCdpListenerOwnership(app, state.mainPid, state.port);
+      const ownership = await verifyCodexCdpListenerOwnership(app, state.mainPid, state.port);
+      if (
+        ownership.mainProcess.startedAt !== state.processStartedAt ||
+        ownership.mainProcess.command !== state.command
+      ) {
+        return false;
+      }
       const { discoverCodexCdp } = await import("../../../packages/codex-adapter/src/cdp.js");
       await discoverCodexCdp(state.port);
       return true;
@@ -340,7 +353,7 @@ export function createCdpController(
       const decision = decideCodexCdpRestart({
         cdpReady: await verify(),
         restartRequested: restartCodex,
-        handoffProcess: process.env.GOAL_PROGRESS_INTERNAL_CDP_HANDOFF === "1",
+        handoffProcess,
       });
       if (decision === "skip") {
         return false;
@@ -350,55 +363,7 @@ export function createCdpController(
         return true;
       }
       const app = await requireSingleCodexMacosApp();
-      const processList = await runSystemCommand("/bin/ps", ["-axo", "pid=,command="]);
-      if (processList.exitCode !== 0) {
-        throw new Error("GOAL_PROGRESS_CODEX_PROCESS_LIST_FAILED");
-      }
-      const running: Array<Awaited<ReturnType<typeof inspectProcess>>> = [];
-      for (const line of processList.stdout.split(/\r?\n/u)) {
-        const match = /^\s*(\d+)\s+(.+)$/u.exec(line);
-        const pid = Number(match?.[1]);
-        if (
-          Number.isSafeInteger(pid) &&
-          pid > 1 &&
-          match?.[2] &&
-          commandBelongsToExecutable(match[2].trim(), app.realExecutablePath)
-        ) {
-          running.push(await inspectProcess(pid));
-        }
-      }
-      if (running.length > 1) {
-        throw new Error(`GOAL_PROGRESS_CODEX_MAIN_PROCESS_AMBIGUOUS: count=${running.length}`);
-      }
-      const original = running[0];
-      if (original) {
-        process.kill(original.pid, "SIGTERM");
-        const timeoutAt = Date.now() + 15_000;
-        while (Date.now() < timeoutAt) {
-          try {
-            const current = await inspectProcess(original.pid);
-            if (current.startedAt !== original.startedAt) {
-              break;
-            }
-          } catch {
-            break;
-          }
-          await delay(100);
-        }
-        try {
-          const current = await inspectProcess(original.pid);
-          if (current.startedAt === original.startedAt) {
-            throw new Error("GOAL_PROGRESS_CODEX_CURRENT_PROCESS_STOP_TIMEOUT");
-          }
-        } catch (error) {
-          if (
-            error instanceof Error &&
-            error.message === "GOAL_PROGRESS_CODEX_CURRENT_PROCESS_STOP_TIMEOUT"
-          ) {
-            throw error;
-          }
-        }
-      }
+      const original = await stopRunningCodex(app);
       return runCdpRestartWithFallback(
         async () => {
           const appMetadataBefore = await stat(app.realAppPath);
@@ -432,10 +397,42 @@ export function createCdpController(
   };
 }
 
+export async function stopRunningCodex(
+  app: Pick<CodexMacosAppIdentity, "realExecutablePath">,
+  runner: CommandRunner = runSystemCommand,
+): Promise<Awaited<ReturnType<typeof inspectProcess>> | undefined> {
+  const running = await listCodexMainProcesses(app, runner);
+  if (running.length > 1) {
+    throw new Error(`GOAL_PROGRESS_CODEX_MAIN_PROCESS_AMBIGUOUS: count=${running.length}`);
+  }
+  const original = running[0];
+  if (!original) return undefined;
+  const current = await inspectRunningProcess(original.pid, runner);
+  if (!current) return undefined;
+  if (current.startedAt !== original.startedAt || current.command !== original.command) {
+    throw new Error("GOAL_PROGRESS_CDP_LAUNCH_IDENTITY_CHANGED");
+  }
+  process.kill(original.pid, "SIGTERM");
+  const timeoutAt = Date.now() + 15_000;
+  do {
+    const observed = await inspectRunningProcess(original.pid, runner);
+    if (
+      !observed ||
+      observed.startedAt !== original.startedAt ||
+      observed.command !== original.command
+    ) {
+      return original;
+    }
+    await delay(100);
+  } while (Date.now() < timeoutAt);
+  throw new Error("GOAL_PROGRESS_CODEX_CURRENT_PROCESS_STOP_TIMEOUT");
+}
+
 async function restoreCdpInstallation(
   homeDirectory: string,
   restartCodex: boolean,
   allowSchedule: boolean,
+  reopen?: (appPath: string) => Promise<void>,
 ): Promise<RestoreCdpResult> {
   const paths = cdpPaths(homeDirectory);
   let state: Awaited<ReturnType<typeof readCodexCdpRuntimeState>>;
@@ -447,27 +444,29 @@ async function restoreCdpInstallation(
     }
     throw error;
   }
-  if (allowSchedule && process.env.GOAL_PROGRESS_INTERNAL_RESTORE_HANDOFF !== "1") {
+  const runtime = await inspectCodexCdpRuntime(state);
+  if (
+    runtime.identity === "running" &&
+    allowSchedule &&
+    process.env.GOAL_PROGRESS_INTERNAL_RESTORE_HANDOFF !== "1"
+  ) {
     await scheduleCodexRestoreHandoff(restartCodex);
     return { changed: true, scheduled: true, restartedCodex: false };
   }
-  const app = await inspectCodexMacosApp(state.appPath);
-  if (
-    app.realExecutablePath !== state.executablePath ||
-    app.bundleId !== state.bundleId ||
-    app.teamId !== state.teamId
-  ) {
-    throw new Error("GOAL_PROGRESS_CDP_RUNTIME_APP_MISMATCH");
-  }
-  await stopCodexCdpRuntime(state);
+  const app = runtime.app;
+  await runtime.stop();
   await unlink(paths.cdpRuntimePath);
   if (restartCodex) {
-    const opened = spawnSync("/usr/bin/open", [app.realAppPath], {
-      encoding: "utf8",
-      maxBuffer: 1024 * 1024,
-    });
-    if (opened.status !== 0) {
-      throw new Error("GOAL_PROGRESS_CODEX_RESTART_FAILED");
+    if (reopen) {
+      await reopen(app.realAppPath);
+    } else {
+      const opened = spawnSync("/usr/bin/open", [app.realAppPath], {
+        encoding: "utf8",
+        maxBuffer: 1024 * 1024,
+      });
+      if (opened.status !== 0) {
+        throw new Error("GOAL_PROGRESS_CODEX_RESTART_FAILED");
+      }
     }
   }
   return {
@@ -477,9 +476,12 @@ async function restoreCdpInstallation(
   };
 }
 
-export function createDefaultRestoreCdp(homeDirectory: string) {
+export function createDefaultRestoreCdp(
+  homeDirectory: string,
+  reopen?: (appPath: string) => Promise<void>,
+) {
   return (restartCodex: boolean): Promise<RestoreCdpResult> =>
-    restoreCdpInstallation(homeDirectory, restartCodex, true);
+    restoreCdpInstallation(homeDirectory, restartCodex, true, reopen);
 }
 
 export async function runCodexRestoreHandoff(homeDirectory: string): Promise<void> {

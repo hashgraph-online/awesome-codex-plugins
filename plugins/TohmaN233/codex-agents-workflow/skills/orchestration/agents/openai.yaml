@@ -1,0 +1,4 @@
+interface:
+  display_name: "Workbench Roles"
+  short_description: "Automatically assign configured helpers in ordinary tasks"
+  default_prompt: "Use $orchestration automatically when no Workflow matches and an enabled Workbench Role would materially help."

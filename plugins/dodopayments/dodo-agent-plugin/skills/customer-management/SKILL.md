@@ -1,6 +1,6 @@
 ---
 name: customer-management
-description: Guide for managing customer records, saved payment methods, monetary wallets, and hosted customer-portal sessions; subscription lifecycle and custom billing UI are covered separately.
+description: Dodo Payments customer management, covering customer CRUD, saved payment methods, real-money customer wallets and ledger entries, entitlements, and hosted customer portal sessions. Use when linking app users to cus_ IDs, opening a Manage billing portal, listing or deleting payment methods, or crediting wallets; use credit-based-billing for usage credits.
 ---
 
 # Customer Management
@@ -68,19 +68,28 @@ await client.customers.update('cus_abc123', {
 
 ## Customer Portal
 
-Create a time-bound session that redirects customers to a hosted portal. The portal is read-only for most actions; customers can view invoices, cancel subscriptions, change plans, update payment methods, recover on-hold subscriptions, and download license keys.
+Create a time-bound session that redirects customers to a hosted portal. In the portal, customers can view invoices, cancel subscriptions, change plans, update payment methods, recover on-hold subscriptions, and download license keys.
+
+Never call the SDK from the browser: it uses your secret API key. Create the session in a server route and return only the link.
 
 ```typescript
-// Create a portal session
+// Server route: create a portal session
 const session = await client.customers.customerPortal.create('cus_abc123', {
   return_url: 'https://yourapp.com/dashboard',
+  // send_email: true, // optionally also email the link to the customer
 });
 
-// Redirect the customer
-window.location.href = session.link;
+return Response.json({ link: session.link });
 ```
 
-The portal session link expires after a short time. Customers cannot:
+```typescript
+// Browser: redirect the customer
+const res = await fetch('/api/portal', { method: 'POST' });
+const { link } = await res.json();
+window.location.href = link;
+```
+
+The portal session link is valid for 24 hours. Pass `send_email: true` to have Dodo also email the link to the customer. Customers cannot:
 - Create new subscriptions (use checkout for that)
 - Refund themselves
 - Change their email or name (contact support)
@@ -225,23 +234,22 @@ const found = customers.items.find(c => c.email === user.email);
 
 ## Common mistakes
 
-**Creating duplicate customers per checkout.** Each checkout should reuse an existing `customer_id` or create the customer once. Creating a new customer for every transaction fragments your customer data.
+**Creating duplicate customers per checkout.** Passing `customer: { email }` does not create a new customer each time: by default, checkout uses the email to find an existing customer and attaches the session to it. Duplicates come from setting `feature_flags.always_create_new_customer: true`, or from calling `customers.create` before every checkout. Create the customer once (or let the first checkout create it), store its `customer_id`, and pass that on later checkouts.
 
 ```typescript
-// WRONG
+// WRONG: forces a new customer record on every checkout
 const session = await client.checkoutSessions.create({
-  product_cart: [...],
-  customer: { email: user.email }, // Creates a new customer each time
+  product_cart: [{ product_id: 'pdt_abc', quantity: 1 }],
+  customer: { email: user.email },
+  feature_flags: { always_create_new_customer: true },
 });
 
-// RIGHT
-const customer = await client.customers.create({
-  email: user.email,
-  name: user.name,
-});
+// RIGHT: reuse the stored customer ID, or fall back to email (matched to an existing customer by default)
 const session = await client.checkoutSessions.create({
-  product_cart: [...],
-  customer: { customer_id: customer.customer_id }, // Reuse the customer
+  product_cart: [{ product_id: 'pdt_abc', quantity: 1 }],
+  customer: user.dodo_customer_id
+    ? { customer_id: user.dodo_customer_id }
+    : { email: user.email },
 });
 ```
 

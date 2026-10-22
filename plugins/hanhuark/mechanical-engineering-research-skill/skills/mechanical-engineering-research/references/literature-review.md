@@ -58,11 +58,16 @@ If a review only teaches the writer what others have done, it is preliminary. A 
    - Digitize figures when needed and allowed by the task; clearly mark digitized values and likely uncertainty.
    - Keep a claim-evidence ledger for consequential claims and use [citation-integrity.md](citation-integrity.md) for source and locator checks.
 
-6. Synthesize rather than list.
+6. Build an evidence map before writing the synthesis.
+   - Sort sources into foundational, representative, key-comparison, background, and conflicting-or-limiting roles.
+   - For each major category, record the physical question or mechanism, evidence type, applicability boundary, and limitation that leads to the next question.
+   - Keep the matrix compact. Its purpose is to prevent accidental overemphasis of the easiest papers to find and to make the narrative structure traceable.
+
+7. Synthesize rather than list.
    - Group papers by mechanism, theory, design family, method, metric, material, operating regime, or unresolved challenge.
    - Identify trends, scaling behavior, agreement, disagreement, limitations, and missing diagnostics.
 
-7. Connect review to doing and communicating.
+8. Connect review to doing and communicating.
    - Use the review to decide what calculation, CAD model, code, experiment, manufacturer question, or expert conversation should happen next.
    - Use results from doing and communicating to refine the literature search.
 

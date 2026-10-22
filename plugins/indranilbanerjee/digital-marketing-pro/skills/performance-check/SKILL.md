@@ -1,19 +1,12 @@
 ---
 name: performance-check
-description: "Pull live metrics from every connected analytics MCP into one cross-channel snapshot: KPI scoreboard with RAG status vs profile targets, period-over-period trends, industry benchmarks, top wins and concerns, and 3-5 recommended actions — then persist the snapshot via performance-monitor.py for trend history. Triggers on \"/digital-marketing-pro:performance-check\", \"how are our marketing metrics\", \"pull current KPIs\", \"quick performance snapshot\", \"are we hitting our targets\". Reads the brand profile for KPI targets and industry benchmarks; reports data gaps for unconnected platforms. Pairs with /digital-marketing-pro:performance-report, which turns these snapshots into the stakeholder narrative."
+description: "Check live performance KPIs from connected analytics: RAG status, trends, actions. \"quick performance snapshot\""
 user-invocable: true
-triggers:
-  - check marketing performance
-  - pull current KPIs
-  - performance snapshot
-  - how are our marketing metrics
-  - compare performance to targets
-  - marketing performance check
-  - quick KPI health check
-  - check campaign performance
 ---
 
 # /digital-marketing-pro:performance-check
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## Purpose
 

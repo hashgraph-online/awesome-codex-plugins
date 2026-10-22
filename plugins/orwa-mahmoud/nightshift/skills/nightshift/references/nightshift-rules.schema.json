@@ -271,6 +271,10 @@
           "minimum": 1,
           "description": "Remembered time budget for a composed shift, in whole hours, or null to leave composition to ask. A finite punch list may still end at its last tick with no clock at all."
         },
+        "itemBudget": {
+          "type": "string",
+          "description": "The budget every punch-list item gets when it names none of its own, in the same words as an item's Budget line, for example \"soft 30m / 1M tokens, hard 45m / 2M tokens\". A soft limit tells the agent once to start finishing the item; a hard limit allows only wrap-up from the next tool call and closes the item as stopped, never ticked. Tokens are input plus output. Empty means no limit."
+        },
         "execution": {
           "type": "string",
           "enum": [
@@ -442,7 +446,7 @@
             "host-grant",
             "host-default"
           ],
-          "description": "inherit-recorded-scope revives a session with the permissions the shift was started under, as they were recorded when it armed. It is the shipped choice, and it never widens what the original session had: where the scope could not be recorded, revival falls back to the host's own default and says so rather than reaching for more. host-grant starts a revived session with the documented grant for that host — on Codex danger-full-access, on Cursor --trust --yolo — which is broader than a restricted session had and is only ever used because the owner wrote it here. host-default adds no permission argument at all. Claude Code inherits its own launch in every case. The scope in force is named in the shift log on every revival, and a failed revival is retried at the same scope, never a broader one."
+          "description": "inherit-recorded-scope restores a recorded restricted Codex sandbox (read-only or workspace-write). Missing or unsupported scopes refuse recovery. host-default adds no permission arguments and uses independently configured host permissions, without promising the original session scope. Legacy host-grant is retained for compatibility but refuses recovery. Nightshift never writes host permission settings or adds bypass flags. Each revival logs its scope and retries at the same scope."
         }
       }
     },

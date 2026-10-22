@@ -1,14 +1,14 @@
 # Design Principles
 
-The aesthetic-agnostic visual foundation. These rules hold whether the brief is brutalist, editorial, luxury, dark-tech, or consumer-warm. Concrete palettes, named token systems, and worked examples live in aesthetic-systems.md; motion, easing, hover transforms, and live-mode params live in motion-and-interaction.md. This file is the neutral baseline every aesthetic builds on.
+Visual guidance for hierarchy and readability. Reuse the project's established typography, spacing and palette; numeric aesthetic examples below are proposals, not mandatory migrations or universal defect thresholds. Concrete palettes, named token systems, and worked examples live in aesthetic-systems.md; motion, easing, hover transforms, and live-mode params live in motion-and-interaction.md. This file is the neutral baseline every aesthetic builds on.
 
-The bar for any decision: pick from a defined set, commit to it, and apply it everywhere. Arbitrary values are the tell.
+The bar for a change is an observed usability/readability defect or an authorized design requirement. Consistency should come from the project's real tokens and component conventions, not a new scale imposed by this reference.
 
 ---
 
 ## Typography
 
-Type carries most of the information on the page. Replace invisible defaults (Inter, Roboto, Arial, Open Sans, system fallback at a flat scale) with type that reflects the brand and scales with intentional contrast.
+Type carries most of the information on the page. Existing system fonts, Inter, Roboto, Arial and other familiar families are valid choices. Adjust hierarchy, measure or loading for a demonstrated problem; replace a typeface only when that change is authorized and its wrapping/performance impact is checked.
 
 ### Type scale and ratio
 
@@ -34,7 +34,7 @@ Five sizes cover most needs. Pick **one** ratio and commit; the common failure i
 - **Pair on a contrast axis:** serif + sans, geometric + humanist, condensed + wide. Never pair two similar-but-not-identical families (two geometric sans-serifs). One family in multiple weights beats two competing typefaces.
 - **Bolder pairs extremes:** 900 with 200, not 600 with 400.
 - **Emphasis stays in-family:** italic or bold of the *same* font. Injecting a random serif word into a sans headline is an amateur tell.
-- **Default sans with character:** Geist, Outfit, Cabinet Grotesk, Satoshi. Inter is discouraged as a default (acceptable only for explicit neutral/Linear-style or public-sector/accessibility briefs). Serif is **very discouraged as default**; reach for it only when the brief names a serif or the aesthetic is genuinely editorial/luxury/heritage with an articulable reason. `Fraunces` and `Instrument_Serif` are banned defaults.
+- **New type selection:** compare families against the product's voice, readability, language coverage, licensing and loading cost. Familiarity or popularity is not a defect; an existing approved font wins over an unrequested taste-driven swap.
 
 ### Tracking, measure, line-height
 
@@ -47,9 +47,9 @@ Five sizes cover most needs. Pick **one** ratio and commit; the common failure i
 - **Always:** body ≥16px / 1rem; `rem` not `px` (respects user zoom); never disable zoom (`user-scalable=no`). Use `font-variant-numeric: tabular-nums` for data and numbers that align in columns.
 - **Vertical rhythm:** line-height is the base unit for all vertical spacing. Body at line-height 1.5 on 16px (= 24px) means spacing in multiples of 24px. Paragraph rhythm: space-between **OR** first-line indent, never both.
 
-### Hard floors (checkable, not judgment calls)
+### Readability checks
 
-Mechanical pass/fail thresholds. Everything above is judgment; these are not.
+The numerical targets below are optional product-policy starting points, not universal WCAG thresholds. Inspect actual content, zoom, typography and adopted requirements; a source match alone is not a rendered readability verdict.
 
 - **Line-height ≥1.3× on any multi-line body or UI text.** 1.5-1.7 stays the body target; below 1.3 fails outright. Headings keep their 1.1-1.2.
 - **Text never below 12px.** Below 12px is an outright fail; secondary UI text (metadata, captions) stays ≥14px, and body copy is 16px.
@@ -64,7 +64,7 @@ Mechanical pass/fail thresholds. Everything above is judgment; these are not.
 
 Space is the most underused design tool. Layout problems are often the root cause of an interface feeling "off" even when color and type are fine.
 
-- **Use a 4pt base scale:** `4, 8, 12, 16, 24, 32, 48, 64, 96px`. Prefer it over 8pt; 8pt is too coarse and you will constantly want 12px between 8 and 16. **Never use values outside the scale** (no random 13px gaps). Pull every gap from the set.
+- **Use the existing spacing scale.** If a new scale is requested, `4, 8, 12, 16, 24, 32, 48, 64, 96px` is one starting example. A legitimate project token outside this set is not a defect.
 - **Rhythm comes from variety, never equal spacing:** tight grouping for related elements (**8-12px** between siblings), generous separation between distinct sections (**48-96px**), varied gaps within a section (not every row needs the same gap). Marketing pages double the spacing; dense data dashboards can pack tighter. When in doubt on a marketing page, double the whitespace. **Monotony self-check:** among 10+ gaps on a page, one value covering >60% of them with ≤3 unique values total = no rhythm; rework.
 - **Hard floors — checkable, not judgment calls:** text inside any bordered, outlined, or colored container gets **≥8px padding, ideally 12-16px**. Two failure shapes to catch: the element's own padding too low for its font size, and a near-zero-padding wrapper whose text children land flush against a visible boundary. Body paragraphs sit **≥16px (ideally 24-32px)** from the viewport edge, via a container or `max-width` + auto margins.
 - **Bolder** uses dramatic **100-200px** gaps, not 20-40px. **Quieter** evens out extreme variations into consistent rhythm.

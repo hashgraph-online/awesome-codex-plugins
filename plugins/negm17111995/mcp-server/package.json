@@ -1,0 +1,83 @@
+{
+  "name": "maqami-travel",
+  "version": "1.0.9",
+  "mcpName": "io.github.negm17111995/maqami-travel",
+  "description": "MCP server for hotel and flight search and booking: live rates for 3M+ hotels and global flights, then a secure checkout link on book.maqami.co. Works with Claude, ChatGPT, Cursor, VS Code, Windsurf, Cline and Gemini CLI. Remote Streamable HTTP endpoint or stdio via npx; no API key.",
+  "type": "module",
+  "bin": {
+    "maqami-travel": "index.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "node --test test/bridge.test.js test/manifests.test.js",
+    "build:mcpb": "bash scripts/build-mcpb.sh"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "modelcontextprotocol",
+    "mcp-tools",
+    "remote-mcp",
+    "streamable-http",
+    "stdio",
+    "travel",
+    "travel-api",
+    "travel-booking",
+    "travel-agent",
+    "ai-travel-agent",
+    "hotels",
+    "hotel-api",
+    "hotel-search",
+    "hotel-booking",
+    "hotel-rates",
+    "flights",
+    "flight-api",
+    "flight-search",
+    "flight-booking",
+    "airfare",
+    "booking",
+    "trip-planner",
+    "ai-agent",
+    "ai-agents",
+    "agentic",
+    "llm",
+    "llm-tools",
+    "claude",
+    "claude-desktop",
+    "claude-code",
+    "anthropic",
+    "chatgpt",
+    "openai",
+    "openai-agents",
+    "cursor",
+    "vscode",
+    "windsurf",
+    "cline",
+    "gemini",
+    "gemini-cli",
+    "langchain",
+    "maqami"
+  ],
+  "author": "MAQAMI <info@maqami.co> (https://maqami.co)",
+  "license": "MIT",
+  "homepage": "https://mcp.maqami.co/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/negm17111995/mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/negm17111995/mcp-server/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

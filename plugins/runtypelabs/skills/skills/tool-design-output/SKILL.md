@@ -1,14 +1,14 @@
 ---
 name: tool-design-output
-description: 'Design agent tool results, including pagination, partial success, context size, and actionable next steps.'
+description: 'Design or audit what an agent tool returns: shape and trim payloads, paginate, report partial success, reference files and media, and add next-step hints. Use when tool output bloats the context window.'
 user-invocable: true
 argument-hint: '[tool whose result shape to design]'
 ---
 
 # Tool Output Design
 
-Every byte a tool returns is paid for in context tokens and in the agent's attention. The
-result is not a data dump; it is the next prompt the agent reads. Design it as one.
+Every byte a tool returns costs context tokens and becomes part of the model's next input.
+Design the result as that input.
 
 ## Procedure
 
@@ -20,6 +20,8 @@ result is not a data dump; it is the next prompt the agent reads. Design it as o
 4. **Add navigation**: `hasMore` and cursor, GUI URLs, and a next-action hint.
 5. **Handle mixed outcomes** with per-item status for anything that touches more than
    one item.
+6. **Verify.** Run the tool once and read the raw result. Then run the agent and check how
+   much of its context the tool results take. If they dominate, tighten the size policy.
 
 ## Rules with examples
 
@@ -34,6 +36,7 @@ Before:
 ```json
 {
   "data": {
+    "id": "usr_123",
     "user": {
       "attributes": {
         "first_name": "Ada",
@@ -72,15 +75,16 @@ After:
 
 ### Paginate by cursor (Paginated Result)
 
-Page numbers drift as data changes; cursors do not. Return:
+Page numbers and offsets drift as data changes. A cursor that encodes the last item's
+sort key, not a position, does not. Return:
 
 ```json
 {
   "items": [],
   "count": 50,
   "hasMore": true,
-  "nextCursor": "eyJvZmZzZXQiOjUwfQ",
-  "nextAction": "Call list_contacts(cursor=\"eyJvZmZzZXQiOjUwfQ\") for more"
+  "nextCursor": "eyJhZnRlciI6ImN0Y18wNTAifQ",
+  "nextAction": { "tool": "list_contacts", "args": { "cursor": "eyJhZnRlciI6ImN0Y18wNTAifQ" } }
 }
 ```
 
@@ -125,11 +129,11 @@ failures with reasons, summary counts, and a retry hint for exactly the failed i
   "succeeded": 2,
   "failed": 1,
   "results": [
-    { "id": "a", "ok": true },
-    { "id": "b", "ok": true },
-    { "id": "c", "ok": false, "error": "mailbox full", "retryable": true }
+    { "email": "a@example.com", "ok": true },
+    { "email": "b@example.com", "ok": true },
+    { "email": "c@example.com", "ok": false, "error": "mailbox full", "retryable": true }
   ],
-  "retryHint": "Retry with send_invites(emails=[\"c@example.com\"])"
+  "nextAction": { "tool": "send_invites", "args": { "emails": ["c@example.com"] } }
 }
 ```
 
@@ -156,27 +160,53 @@ transformation step in the agent's head.
 - Different tools naming the same field differently.
 - Embedding a 200 KB document body in a result the agent only needed the title from.
 
+For error shapes, retry classification, and step failure defaults, see
+`tool-design-errors`.
+
 ## On Runtype
 
-- Runtime tool results feed the model directly. An `external` tool returns the
+- Runtime tool results go to the model directly. An `external` tool returns the
   upstream body unchanged (its `body` template maps the request, not the response), so
   shape a noisy payload in a `flow` tool whose `api-call` step feeds a `transform-data`
-  step, or in a downstream `transform-data` step. A `custom` code tool has no network
-  egress: it shapes only what arrives in its parameters. The same rules apply to MCP
-  tools surfaced through `discover_mcp_server_tools`.
-- A `transform-data` step is the place to shape a third-party payload once instead of
-  in every prompt; `paginate-api` is the platform's cursor-pagination step for
-  upstream lists.
+  step. A `custom` code tool has no network egress unless it opts in with
+  `networkAccess` (an `allowedHostnames` list is the safe form); without it, the tool can
+  shape only what arrives in its parameters.
+- A `flow` tool returns the value that the flow's final executed step wrote. Set
+  `outputVariable` to return one named flow variable instead, such as the
+  `transform-data` output, and `outputMapping` to select a dot path inside it. A
+  `_`-prefixed variable is rejected, and a variable the flow never assigned fails the
+  tool call. See [Flow tools](https://docs.runtype.com/developer-guides/guides/runtime-tools#flow-tools).
+- If you run your own MCP server, apply these rules to its results. You cannot reshape
+  a third-party MCP server's results, so prefer its narrower tools.
+- `paginate-api` is the platform's pagination step for upstream lists (cursor, offset,
+  page, or `Link` header).
 - **Empty is not the same as failed.** A fetch-class step (`fetch-url`, `api-call`,
   `crawl`, `search`) with `errorHandling` unset swallows a failure into
   `defaultValue` (or an empty result) and reports success, so a downstream
   `transform-data` or `upsert-record` runs over zero rows as if the API returned
   nothing. `validate_flow` warns with `FETCH_CLASS_SWALLOWING_FEED`; set
-  `errorHandling: "fail"` when an empty result must not look like a real one.
-- `upsert-record` needs a JSON object as its source (`responseFormat: "json"` on the
-  producing prompt step, or a transform output); a string source is rejected as
-  `UPSERT_RECORD_SOURCE_NOT_JSON`. Shape the result before it reaches a record.
-- Large artifacts belong in records or artifacts, referenced by id, not in the message;
-  `get_record` is the resolver for that reference.
-- Persona renders the first assistant text block prominently, so a tool whose result
-  is meant for display should return the final shape, not a preamble.
+  `errorHandling: { "onError": "fail" }` when an empty result must not look like a real
+  one. Unlike these steps, `paginate-api` fails by default.
+- `upsert-record` needs a JSON object as its source. `validate_flow` warns with
+  `UPSERT_RECORD_SOURCE_NOT_JSON` when a text prompt feeds it, and the write fails at
+  runtime. Set the prompt's `responseFormat` to `"json"`, shape the value in
+  `transform-data`, or set `contentField` on the upsert step to wrap the string.
+- Store large content in a record and return its id. The agent calls `get_record` to
+  fetch it.
+- Binary media over 4 KB in a tool result, such as a screenshot or a generated image,
+  becomes a `runtype-asset://` handle automatically, so later turns carry the handle, not
+  the bytes. Handles expire after 7 days. To accept one, declare the parameter with
+  `contentEncoding: "base64"`, and Runtype substitutes the stored bytes before the call:
+
+  ```json
+  { "image": { "type": "string", "contentEncoding": "base64" } }
+  ```
+
+- The model receives each new tool result in full; Runtype does not truncate it for
+  you. Older results outside the recent window (40,000 tokens by default) are masked:
+  the model sees only a short "cleared" placeholder, not a trimmed copy. Write anything
+  the agent needs in later turns to a record. See [Context compaction](https://docs.runtype.com/user-guide/agents/creating-and-configuring-agents#context-compaction).
+- To verify a result shape, run the tool with `execute_tool` and read the raw result.
+  After an agent run, the **Context window** bar in
+  [Logs](https://docs.runtype.com/user-guide/logs/working-with-logs) shows the share of
+  input tokens that tool results take, and hints when they dominate.

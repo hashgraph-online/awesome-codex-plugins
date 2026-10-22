@@ -1,0 +1,54 @@
+{
+  "name": "cometchat-skills",
+  "version": "5.1.0",
+  "description": "CometChat AI-coding skills — add real-time chat, voice/video calling and push to React, Angular, React Native, iOS, Android and Flutter apps, with the CometChat Docs MCP for always-current docs.",
+  "author": {
+    "name": "CometChat",
+    "email": "support@cometchat.com",
+    "url": "https://www.cometchat.com"
+  },
+  "homepage": "https://github.com/cometchat/cometchat-skills",
+  "repository": "https://github.com/cometchat/cometchat-skills",
+  "license": "MIT",
+  "keywords": [
+    "chat",
+    "messaging",
+    "voice-and-video",
+    "calls",
+    "ui-kit",
+    "cometchat",
+    "react",
+    "angular",
+    "react-native",
+    "ios",
+    "android",
+    "flutter",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "CometChat",
+    "shortDescription": "Add chat, voice/video calling and push to your app",
+    "longDescription": "Verified CometChat integration skills for React, Angular, React Native, iOS, Android and Flutter. The cometchat skill detects your project, asks a few setup questions, and writes chat and calling into the files you already have, reading current docs through the CometChat Docs MCP.",
+    "developerName": "CometChat",
+    "category": "Coding",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.cometchat.com",
+    "privacyPolicyURL": "https://www.cometchat.com/legal-privacy-policy",
+    "termsOfServiceURL": "https://www.cometchat.com/legal-terms-of-service",
+    "defaultPrompt": [
+      "Use CometChat to add chat to my app.",
+      "Use CometChat to add voice and video calling to my app."
+    ],
+    "brandColor": "#6851D6",
+    "logo": "./assets/icon.png",
+    "composerIcon": "./assets/composer-icon.png",
+    "screenshots": [
+      "./assets/screenshot-1.png"
+    ]
+  }
+}

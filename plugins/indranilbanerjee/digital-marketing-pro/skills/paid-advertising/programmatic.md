@@ -1,6 +1,8 @@
 # Programmatic Advertising — DSP, CTV & DOOH
 
-> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
+
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python "${CLAUDE_PLUGIN_ROOT}/scripts/benchmark_book.py" --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
 
 ## Programmatic Ecosystem Overview
 
@@ -176,7 +178,7 @@ START: What is your primary goal?
 - [ ] Implement contextual targeting as primary scale driver
 - [ ] Test Universal ID solutions (UID2 via TTD, RampID via LiveRamp)
 - [ ] Evaluate seller-defined audiences from premium publishers
-- [ ] Invest in Google Privacy Sandbox APIs (Topics, Attribution Reporting)
+- [ ] Do NOT invest in Google Privacy Sandbox APIs — Topics and Attribution Reporting are under "Intent to Deprecate and Remove" (privacysandbox.google.com/overview/status, checked 2026-10-04); put the effort into server-side conversion APIs and clean-room / first-party matching
 - [ ] Shift measurement from last-click to incrementality and media mix modeling
 
 ## Brand Safety & Fraud Prevention

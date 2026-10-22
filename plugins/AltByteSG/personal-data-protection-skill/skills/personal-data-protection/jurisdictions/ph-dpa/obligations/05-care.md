@@ -1,8 +1,19 @@
 # Security, Retention, and Cross-Border Accountability — § 20, § 21 RA 10173 + §§ 25–29 IRR + § 50 IRR + NPC Circular 16-01
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 § 20 sets the security obligation; the IRR §§ 25–29 break it into **organisational, physical, and technical measures**. § 21 establishes accountability for transfers — including cross-border — and § 50 IRR operationalises it. Together these define the "care" engineering owes the personal information under its control.
+
+## Contents
+
+- § 20(a) — General security duty
+- § 20(b) — Determining "reasonable and appropriate"
+- §§ 25–28 IRR — Organisational, physical, and technical measures
+- § 20(c) — Vendor selection
+- § 11(e) — Retention
+- § 21 — Cross-border accountability
+- § 50 IRR — Operational rules for transfers
+- What's at stake
 
 ## § 20(a) — General security duty
 

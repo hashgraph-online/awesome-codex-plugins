@@ -38,7 +38,7 @@ SCHEMA_DIR = REPO_ROOT / "skills/datasheets/schemas"
 def _build_registry() -> Registry:
     registry = Registry()
     for schema_path in SCHEMA_DIR.glob("*.schema.json"):
-        schema = json.loads(schema_path.read_text())
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
         uri = schema.get("$id")
         if uri:
             registry = registry.with_resource(uri, Resource.from_contents(schema))
@@ -70,7 +70,7 @@ def validate_result(result_file: Path, task_type: str) -> "tuple[int, str]":
         return 2, f"result file not found: {result_file}"
 
     try:
-        wrapper = json.loads(result_file.read_text())
+        wrapper = json.loads(result_file.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         return 2, f"result file is not valid JSON: {exc}"
 
@@ -82,7 +82,7 @@ def validate_result(result_file: Path, task_type: str) -> "tuple[int, str]":
     if "data" not in wrapper:
         return 1, "result wrapper has no 'data' field"
 
-    schema = json.loads(schema_path.read_text())
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
     err = _validate(wrapper["data"], schema)
     if err:
         return 1, f"schema validation: {err}"

@@ -1,6 +1,6 @@
 # Indonesia UU PDP — Jurisdiction Notes
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 | | |
 |---|---|
@@ -14,7 +14,7 @@
 
 > **Translation caveat:** the binding text of UU PDP is the original **Bahasa Indonesia** version. As of last verification, no official English translation has been published by the Indonesian government. The content here is based on the maintainer's reading of the original Bahasa Indonesia text. **In any conflict, the Bahasa Indonesia original wins.** Use this skill as a starting framework; verify specific provisions against the Bahasa Indonesia statute and consult a qualified Indonesian privacy lawyer for binding interpretation.
 
-> **Source copyright:** the statute is published in the State Gazette of the Republic of Indonesia; the consolidated text is hosted on [peraturan.go.id](https://peraturan.go.id). Indonesian statutes are generally treated as public materials, but layout, official translations, and Komdigi guidance may carry separate rights. Verbatim quotations and English renderings of statute language in this skill are short operative phrases reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence. See [DISCLAIMER.md § Copyright in source materials](../../../../DISCLAIMER.md#copyright-in-source-materials).
+> **Source copyright:** the statute is published in the State Gazette of the Republic of Indonesia; the consolidated text is hosted on [peraturan.go.id](https://peraturan.go.id). Indonesian statutes are generally treated as public materials, but layout, official translations, and Komdigi guidance may carry separate rights. Verbatim quotations and English renderings of statute language in this skill are short operative phrases reproduced with attribution for educational and engineering reference under fair-dealing principles — they are **not** licensed under this repository's MIT licence. See [DISCLAIMER.md § Copyright in source materials](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md#copyright-in-source-materials).
 
 ## Critical thresholds
 

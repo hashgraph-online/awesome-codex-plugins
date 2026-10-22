@@ -90,10 +90,23 @@ bank, so a post interview quietly grows it.
    correction to something the author used to believe.
 5. **Ask who disagrees.** That names the audience and supplies the tension.
 6. **Ask what the reader should do differently.** That is the close.
-7. **Read back the spine** in five lines and let them correct it. Their correction
-   is usually better than the draft.
-8. **Hand off** to `linkedin-post-writer` with the spine, and append anything
-   concrete to the bank.
+7. **Read back the spine** and let them correct it. Their correction is usually
+   better than the draft. The spine is five named lines, always these five, in
+   this order:
+
+   | Line | Holds | Comes from |
+   |---|---|---|
+   | **Moment** | the scene and its date: what happened, when, to whom | step 2 |
+   | **Number** | one figure, its referent, how it was measured | step 3 |
+   | **Correction** | what they believed before, and what changed it | step 4 |
+   | **Opposition** | who disagrees, which names the audience | step 5 |
+   | **Ask** | what the reader should do differently | step 6 |
+
+   A line with nothing real in it stays empty and is labelled empty. An empty
+   Number is a weaker post; an invented one is a retraction.
+8. **Hand off** to `linkedin-post-writer`, passing the five lines verbatim under
+   their own names so the writer can tell material from inference, and append
+   anything concrete to the bank.
 
 ## Hard rules
 

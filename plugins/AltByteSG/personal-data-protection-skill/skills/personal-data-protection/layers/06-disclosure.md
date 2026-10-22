@@ -1,8 +1,18 @@
 # Layer 06 — Disclosure
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Documents and copy that the user reads. The "Notification of Purpose" obligation lives here. Universal across PDP-family jurisdictions.
+
+## Contents
+
+- Privacy Policy structure
+- Sub-processor disclosure
+- T&C structure
+- OS permission usage strings
+- Contextual notices
+- Marketing notifications copy (when applicable)
+- Languages
 
 ## Privacy Policy structure
 

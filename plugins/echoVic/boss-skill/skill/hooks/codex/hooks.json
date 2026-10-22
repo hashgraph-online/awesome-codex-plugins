@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"session:start\" \"scripts/hooks/session-start.js\"",
+            "command": "node \"${PLUGIN_ROOT}/skill/cli/bin/boss.mts\" hooks run \"session:start\" \"scripts/hooks/session-start.js\"",
             "timeout": 10
           }
         ],
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"session:resume\" \"scripts/hooks/session-resume.js\"",
+            "command": "node \"${PLUGIN_ROOT}/skill/cli/bin/boss.mts\" hooks run \"session:resume\" \"scripts/hooks/session-resume.js\"",
             "timeout": 10
           }
         ],
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"pre:write:artifact-guard\" \"scripts/hooks/pre-tool-write.js\" \"standard,strict\"",
+            "command": "node \"${PLUGIN_ROOT}/skill/cli/bin/boss.mts\" hooks run \"pre:write:artifact-guard\" \"scripts/hooks/pre-tool-write.js\" \"standard,strict\"",
             "timeout": 5
           }
         ],
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"pre:bash:dangerous-cmd-guard\" \"scripts/hooks/pre-tool-bash.js\" \"standard,strict\"",
+            "command": "node \"${PLUGIN_ROOT}/skill/cli/bin/boss.mts\" hooks run \"pre:bash:dangerous-cmd-guard\" \"scripts/hooks/pre-tool-bash.js\" \"standard,strict\"",
             "timeout": 5
           }
         ],
@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"post:write:artifact-track\" \"scripts/hooks/post-tool-write.js\" \"standard,strict\"",
+            "command": "node \"${PLUGIN_ROOT}/skill/cli/bin/boss.mts\" hooks run \"post:write:artifact-track\" \"scripts/hooks/post-tool-write.js\" \"standard,strict\"",
             "timeout": 10
           }
         ],
@@ -70,7 +70,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"post:bash:context\" \"scripts/hooks/post-tool-bash.js\" \"standard,strict\"",
+            "command": "node \"${PLUGIN_ROOT}/skill/cli/bin/boss.mts\" hooks run \"post:bash:context\" \"scripts/hooks/post-tool-bash.js\" \"standard,strict\"",
             "timeout": 10
           }
         ],
@@ -83,7 +83,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"stop:pipeline-guard\" \"scripts/hooks/on-stop.js\" \"standard,strict\"",
+            "command": "node \"${PLUGIN_ROOT}/skill/cli/bin/boss.mts\" hooks run \"stop:pipeline-guard\" \"scripts/hooks/on-stop.js\" \"standard,strict\"",
             "timeout": 30
           }
         ],

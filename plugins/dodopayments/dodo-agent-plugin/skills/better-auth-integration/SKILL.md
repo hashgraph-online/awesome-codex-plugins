@@ -1,6 +1,6 @@
 ---
 name: better-auth-integration
-description: Guide only for applications using @dodopayments/better-auth, covering authenticated customer sync, checkout, portal access, usage ingestion, and verified webhook callbacks.
+description: Dodo Payments plugin for Better Auth (@dodopayments/better-auth) covering customer sync on signup, authenticated checkout, customer portal, usage ingestion, and verified webhooks. Use when an app uses Better Auth and needs the dodopayments, dodopaymentsClient, checkout, portal, usage, or webhooks plugins; for other auth stacks use framework-adapters.
 ---
 
 # Better Auth Integration
@@ -18,8 +18,10 @@ Use `@dodopayments/better-auth` to synchronize Better Auth users with Dodo Payme
 ## Install
 
 ```bash
-npm install @dodopayments/better-auth dodopayments better-auth
+npm install @dodopayments/better-auth dodopayments better-auth zod
 ```
+
+Requires Better Auth 1.4 or a later 1.x release.
 
 The package exports the lowercase server functions `dodopayments`, `checkout`, `portal`, `usage`, and `webhooks`. Its client entry point exports `dodopaymentsClient`.
 
@@ -75,6 +77,13 @@ export const auth = betterAuth({
 ```
 
 `products` maps an application slug to a Dodo product ID. `authenticatedUsersOnly: true` requires a Better Auth session for checkout. `getCustomerParams` adds application metadata when customer synchronization runs.
+
+The plugin adds a `dodoCustomerId` field to the Better Auth `user` table. After adding the plugin, update your database schema with the [Better Auth CLI](https://www.better-auth.com/docs/concepts/cli):
+
+```bash
+npx auth generate   # generate the ORM schema or SQL migration, then apply it yourself
+npx auth migrate    # or apply it directly (built-in Kysely adapter only)
+```
 
 ## Browser client setup
 
@@ -170,7 +179,7 @@ if (error) {
 }
 ```
 
-The plugin derives `customer_id` from the authenticated session. `event_id` is the event's idempotency key; reuse it when retrying the same event.
+Both `usage.ingest` and `usage.meters.list` require a signed-in user with a verified email address. The plugin derives `customer_id` from the authenticated session. `event_id` is the event's idempotency key; reuse it when retrying the same event.
 
 ## Webhook endpoint
 

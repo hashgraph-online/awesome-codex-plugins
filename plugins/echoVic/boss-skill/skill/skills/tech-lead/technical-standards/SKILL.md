@@ -11,6 +11,8 @@ dependencies:
 triggers:
   - 需要定义技术规范时
   - 需要统一代码风格时
+metadata:
+  internal: true
 ---
 
 # 技术规范与最佳实践

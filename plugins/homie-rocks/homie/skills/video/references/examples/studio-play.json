@@ -1,0 +1,17 @@
+{
+  "about": "A studio's own game, recorded from its landing page: Play, then a few moves with the arrow keys. Tested on the Gem Rush starter (scripts/studio-check.mjs --record). For another game: its id in \"path\", and its own keys (games/<id>/src, the keydown handler).",
+  "path": "/gem-rush/",
+  "device": "computer",
+  "tail": 2,
+  "steps": [
+    { "wait": 1500, "caption": "Gem Rush, on the studio's own site" },
+    { "click": "a[data-play]", "caption": "Press Play" },
+    { "waitFor": { "frame": "game", "selector": "canvas" }, "timeout": 30000 },
+    { "wait": 2500, "caption": "A public room at once; bots fill the empty seats" },
+    { "key": "ArrowRight", "hold": 900, "frame": "game", "caption": "The arrow keys move" },
+    { "key": "ArrowUp", "hold": 700, "frame": "game" },
+    { "key": "ArrowLeft", "hold": 900, "frame": "game" },
+    { "key": "ArrowDown", "hold": 700, "frame": "game" },
+    { "wait": 1500 }
+  ]
+}

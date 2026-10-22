@@ -1,6 +1,6 @@
 {
   "name": "boss",
-  "version": "4.0.0",
+  "version": "5.0.3",
   "description": "BMAD pipeline plugin for Codex with installer-managed hooks and shared Boss runtime behavior.",
   "author": {
     "name": "echoVic",
@@ -18,6 +18,7 @@
     "automation"
   ],
   "skills": "./skill/",
+  "hooks": "./skill/hooks/codex/hooks.json",
   "interface": {
     "displayName": "Boss",
     "shortDescription": "Auditable multi-agent engineering workflow for Codex.",

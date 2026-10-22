@@ -1,5 +1,7 @@
 # Memory Architecture — Persistent Brand Knowledge System
 
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
+
 How the Digital Marketing Pro plugin stores, retrieves, and learns from marketing knowledge across sessions.
 
 ---

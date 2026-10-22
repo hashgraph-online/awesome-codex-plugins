@@ -1,6 +1,6 @@
 ---
 name: result
-description: Retrieve bounded output for finished jobs and automatic CPJ completion hooks.
+description: Retrieve output for jobs and automatic CPJ completion notices.
 ---
 
 # Job Result
@@ -13,10 +13,9 @@ node "<plugin-root>/scripts/job.mjs" result [job-id] [options] --json
 
 Never search memory for CPJ work; use validated CPJ state.
 
-If state is unwritable, request escalation immediately; do not probe for
-a predictable `EPERM`.
+If state is unwritable, request escalation; do not probe for a predictable `EPERM`.
 
-On a CPJ hook prompt, use every requested ID with `--peek` and summarize
+On an automatic CPJ completion notice, use every requested ID with `--peek` and summarize
 evidence in final.
 
 Keep follow-up about the underlying task, not CPJ. Continue only a previously

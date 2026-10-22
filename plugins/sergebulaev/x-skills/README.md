@@ -214,6 +214,28 @@ A tweet with a visual gets more engagement. The Post Writer can generate an inli
 
 Setup: drop `PIXFARO_TOKEN=pf_live_...` into your `.env`. The thin client at `lib/pixfaro_client.py` and the wrappers `lib.illustrate(prompt, kind="wide")` / `lib.refine(image_id, instruction)` return a hosted URL that flows straight into `lib.publish(..., media_urls=[url])`. `refine` edits a prior image by its id (cheaper than regenerating); results carry `cost`, `balance_after`, and a `premium` flag so the skills never quietly spend on a pricey model.
 
+## Optional: read real X data with Apify
+
+`x-audience-insights` can rank your own or a competitor's tweets by engagement, pull the repliers on a tweet (X gates likers, so replies are the signal), scan a niche query, and read one tweet by URL. Without a read credential it asks you to paste the numbers, so nothing breaks.
+
+**With a shell**, drop a free token into your `.env`:
+
+```
+APIFY_TOKEN=apify_api_...
+```
+
+One actor does all of it, `xquik/x-tweet-scraper`, at about $0.15 per 1,000 tweets, no cookies and no X login.
+
+**On claude.ai**, where a skill has no environment to put a token in, add Apify's MCP server as a custom connector instead:
+
+```
+https://mcp.apify.com?actors=xquik/x-tweet-scraper
+```
+
+Sign in with OAuth on first use. Same actor, same inputs, same cost, no key on disk. **Keep the `?actors=` filter**: the bare `https://mcp.apify.com` also hands the agent `search-actors` and `call-actor`, which can run anything in the Apify Store at whatever that actor charges.
+
+The skills use whichever is available and fall back to asking you to paste. Details and the field mapping: [`references/mcp-read-layer.md`](references/mcp-read-layer.md).
+
 ## Voice rules
 
 Every skill follows these rules automatically:

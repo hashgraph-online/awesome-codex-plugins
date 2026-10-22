@@ -10,6 +10,8 @@ description: >
 allowed-tools: Read, Grep, Glob
 disallowed-tools: Write, Edit, NotebookEdit, Bash, PowerShell, Monitor
 context: fork
+model: sonnet
+effort: medium
 user-invocable: true
 ---
 
@@ -31,7 +33,9 @@ alongside it. Locate that folder once, then read the named files from it:
   Cowork on 12.08.2026, where an opening `ls` returned «Permission to use Bash has been
   denied» in red before the search found the corpus anyway. The call bought nothing and
   cost the reader a scare.
-- In Claude Code the plugin root is also available directly, which saves the search.
+- In Claude Code the folder is `${CLAUDE_SKILL_DIR}/../ru-text/references/` — `Read`
+  `info-style.md` there first and skip the search. If that path arrives unexpanded or the
+  read fails, fall back to the search above.
 - **Do not guess a path.** If the folder cannot be found, say so and stop — a check run
   against remembered rules instead of the corpus is not this command, and reporting one
   as the other is the failure this whole product exists to prevent.
@@ -56,7 +60,7 @@ nothing else:
    `##`. Not the rest of the file.
 
 Then check the text: typography mechanically (straight quotes, a hyphen doing a dash's work,
-`...` for an ellipsis, an ordinary space after в, к, с, о, у, и, а, я — verify by codepoint, not
+`...` for an ellipsis, a space between a number and `%`, an ordinary space after в, к, с, о, у, и, а, я — verify by codepoint, not
 by eye); catalog stop-words including inflected forms, judging every candidate line yourself
 («данные» the noun is not «данный» the stop-word); index tells by eye.
 
@@ -80,7 +84,10 @@ exists to prevent. No search tool on this host → no triage: run the full check
 1. **Typography** — read `typography.md`, then apply:
    - Quotes: «» primary, „“ nested
    - Dashes: — (em) in text, – (en) in ranges, - (hyphen) in compounds only
-   - Spaces: NBSP after single-letter words, in digit groups, before units
+   - Spaces: NBSP after single-letter words, in digit groups, before units — but `%` is glued to
+     the number in general and web text (R37: `100%`, not `100 %`; a GOST technical document may use
+     `100<NBSP>%`). Report it with the reason the rule gives: an ordinary
+     space is a line break point and leaves `%` alone on the next line
    - Ellipsis, abbreviations, special characters
 
 2. **Anti-patterns** — read `anti-patterns.md`, then scan for:

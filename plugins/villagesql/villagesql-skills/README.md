@@ -8,6 +8,7 @@ in Claude Code, agy, Codex, Cursor, Amp, Kiro, OpenCode, and OpenClaw.
 | Skill | What it does |
 |---|---|
 | [`vsql-install-server`](skills/vsql-install-server/) | Gets a working VillageSQL server on your machine — install, start, connect, load an extension, verify. Start here if you do not have a server yet. |
+| [`vsql-docs`](skills/vsql-docs/) | Answers VillageSQL questions from the published docs, for the version of your server. |
 | [`vsql-extension-builder`](skills/vsql-extension-builder/) | Builds a VillageSQL extension end-to-end through a 7-phase persona-driven workflow. Discovers the current VEF API from live SDK headers — no hardcoded API names. |
 
 More skills will be added here over time.
@@ -46,6 +47,21 @@ Override locations with env vars:
 VILLAGESQL_SKILLS_SRC=~/code/villagesql-skills \
 CLAUDE_SKILLS_DIR=~/.claude/skills \
   curl -sSL https://villagesql.com/skills | bash
+```
+
+### Claude Code plugin
+
+From the official Claude Code plugin marketplace:
+
+```
+/plugin install vsql-extension-builder@claude-plugins-official
+```
+
+Or add this repo as a marketplace:
+
+```
+/plugin marketplace add villagesql/villagesql-skills
+/plugin install villagesql@villagesql
 ```
 
 ### Manual install (recommended for contributors)

@@ -45,6 +45,13 @@ Help turn ideas into fully formed designs and specs through natural collaborativ
 
 Start by understanding the current project context and authority boundary, then ask questions one at a time to refine the idea. Once you understand what you're building, present the smallest design artifact that stabilizes the work and get the required approval.
 
+Define success as the user's usable result, including delivery and meaningful
+failure states. Separate real business/authorization constraints from current
+implementation limits; an unsupported action remains an unmet need. Balance
+this request with reliability across supported scenarios, without expanding
+its scope. Existing approval satisfies unchanged decisions; clarify only gaps
+that affect the design or authorization.
+
 <HARD-GATE>
 Do NOT invoke any implementation skill, write any code, scaffold any project, or take implementation action for work that matches this skill until you have presented the required design/spec and the user has approved it where this workflow requires approval.
 </HARD-GATE>
@@ -394,6 +401,10 @@ create accepted architecture memory from unexecuted ideas.
 **Existing codebases:** Follow existing patterns. Include targeted improvements only when they serve the current goal. If the design touches contracts, compat, fallbacks, or duplicated owners → call it out directly.
 
 ## Conditional Detailed Guidance
+
+For user-facing interface or interaction design, compose `ui-ux-governance`;
+carry scoped experience rules into the existing acceptance criteria. This skill
+retains design approval and handoff ownership.
 
 Conditional design probe, scenario profile, and workspace/spec documentation
 detail maps to explicit headings below.

@@ -23,6 +23,8 @@ matter. A finding without a consequence and a remedy is not a finding — it is 
 Before executing the review, attempt to read `.brooks-lint.yaml` from the project root.
 If the file exists, parse and apply its settings before proceeding.
 If the file does not exist, continue with defaults (all risks enabled, no ignores).
+If a runner has already supplied the config in context (CI has no file access), use that
+copy and the provenance it states instead of reading the file.
 
 In a multi-mode session, re-read only if the user says the config has changed.
 
@@ -91,8 +93,10 @@ If the YAML fails to parse entirely, skip config loading and proceed with defaul
 
 If a config file was found and applied, add this line immediately after the **Scope** line
 in the report:
-`Config: .brooks-lint.yaml applied (strictness: <preset>, N risks disabled, M paths ignored)`
+`Config: .brooks-lint.yaml applied from <source> — strictness: <preset>, N risks disabled, M paths ignored`
 
+`<source>` is `working tree` when you read the file yourself, or the provenance the runner
+stated (e.g. `base (main)`) when the config was supplied in context.
 Use `balanced` for `<preset>` when `strictness` is unset. Include N and M even if zero.
 Omit this line if no config file was found.
 

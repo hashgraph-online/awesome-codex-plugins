@@ -1,9 +1,11 @@
 ---
 name: client-report
-description: "Generate a white-labeled client report in agency voice — weekly pulse, monthly review, or QBR — with a KPI scorecard vs targets and comparison period, channel breakdowns, top wins with attribution, root-cause analysis of misses, 3-5 strategic recommendations, and budget efficiency. Requires explicit approval before any external send; only then can it deliver via connected Slack, email, or Google Sheets MCPs and log the delivery. Triggers on \"/digital-marketing-pro:client-report\", \"prepare the monthly report for the client\", \"build the QBR for this account\", \"send the weekly performance pulse\", \"white-labeled performance report\". Reads the brand profile and pulls data via campaign-tracker.py, execution-tracker.py, and connected platform MCPs; formats via report-generator.py."
+description: "Write a white-labeled report for one client from tracked data. All clients → agency-dashboard. \"prepare the monthly client report\""
 ---
 
 # /digital-marketing-pro:client-report
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## Purpose
 
@@ -43,7 +45,7 @@ The user must provide (or will be prompted for):
 9. **Write report in agency voice**: Draft the full report using professional, third-person agency voice — NOT the brand's personality. Focus on clarity, data-backed insights, actionable next steps, and a confident but honest tone that builds client trust
 10. **Format for delivery channel**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/report-generator.py" --brand {slug} --action format-slack` (or `format-email` / `format-sheets`), passing the report JSON via `--data '{report_json}'`; for a clean markdown artifact use `--action generate-report --data '{report_json}'`
 11. **Create approval checkpoint**: Present the full report preview for review. Risk level: low. Require explicit approval before any external delivery — highlight any sensitive data, unexpected results, or negative findings that may need pre-briefing with the client
-12. **Deliver via MCP if approved**: On approval, send via the appropriate MCP integration (Slack MCP, email MCP, Google Sheets MCP) if a delivery channel was specified. Handle delivery errors gracefully with retry guidance
+12. **Deliver via MCP if approved**: On approval, send via the appropriate MCP integration (Slack MCP, email MCP, Google Sheets MCP) if a delivery channel was specified. On a delivery error, retry only a write that provably never reached the platform (connection refused, DNS failure, or a 429 rate-limit rejection); after a timeout or a lost reply, look the record up on the platform first (is the report already in the channel or inbox?) and resend only if it is missing
 13. **Log delivery and archive**: Record the report delivery in the execution log with timestamp, recipients, delivery confirmation status, report version, and a reference to the archived report for future comparison
 
 ## Output

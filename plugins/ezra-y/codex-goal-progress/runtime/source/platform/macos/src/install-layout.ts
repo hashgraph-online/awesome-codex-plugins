@@ -40,6 +40,9 @@ export function resolveMacosInstallationLayout(
   const paths = resolveGoalProgressPaths({
     platform: "darwin",
     homeDirectory: input.homeDirectory,
+    ...(process.env.GOAL_PROGRESS_ROOT?.trim()
+      ? { root: resolve(process.env.GOAL_PROGRESS_ROOT.trim()) }
+      : {}),
   });
   return {
     applicationSupportRoot: paths.root,

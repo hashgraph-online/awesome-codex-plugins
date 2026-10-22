@@ -2,8 +2,8 @@
 
 ## Attribution
 
-Zagrosi Forge is a Codex-native redesign inspired by Pierce Lamb's MIT-licensed
-Deep Trilogy Claude Code plugins:
+Zagrosi Forge provides shared workflows for Codex and Claude Code, inspired by
+Pierce Lamb's MIT-licensed Deep Trilogy Claude Code plugins:
 
 | Upstream Project | Repository |
 |------------------|------------|
@@ -23,10 +23,10 @@ The following high-level ideas informed this package:
 
 ## Zagrosi Forge Changes
 
-This package is not a direct copy of those projects. It replaces
-Claude-specific workflow assumptions with Codex-native behavior:
+This package adapts those ideas into shared skills and a verified Python runtime:
 
-- Codex skill packaging under `skills/`
+- Codex and Claude Code plugin metadata pointing to the same `skills/` tree
+- compact plans at every depth, with review performed by the active agent
 - resumable state inferred from files on disk
 - deterministic Python helper commands in `scripts/zagrosi_skills.py`
 - Forge metadata via `FORGE_META`

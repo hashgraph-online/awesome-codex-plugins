@@ -133,6 +133,14 @@ Then the next item. Item anatomy: one top-level checkbox per task, plain `-` sub
 when the punch list has no open item, and only through Start; on shift, drafts stay where the owner
 left them, and you never invent scope the owner didn't ask for.
 
+**Budgets.** An item may carry a `Budget:` line — a soft and/or a hard limit in time and/or tokens —
+and the shift block's `itemBudget` covers an item that names none. The runtime measures it; you never
+do. A soft budget arrives once as a notice: start finishing the item. A spent hard budget leaves only
+wrap-up from the next tool call: commit the work in progress, write the receipt, then close the item
+as stopped — change its box to `- [-]` and add a `Stopped:` sub-bullet naming the limit, what was
+spent and the commit — and move to the next item. A stopped item is never ticked; it stays open work
+for the owner.
+
 ## The receipts
 
 `$NS/receipts/<NN>-<slug>-<id>.md` is the narrative of each item, written as you go rather than
@@ -155,11 +163,13 @@ carries what was delivered, why, what was tried and rejected, the verification t
 where the outputs or commits are, and any snag or parked decision it touched. The runtime adds what the item cost when `receipts.usage`
 is `when-available`, and how long it took when `receipts.duration` is `on`.
 
-The runtime measures what each item cost, from the records the host already keeps, and writes the
-usage and duration lines into the section at the tick, and a Sessions table with one row per stretch
-the item was worked. **Do not write, estimate or edit a usage or duration figure, and keep the
-Sessions block as the runtime wrote it**: you cannot see your own token counts from inside the
-conversation, and a number you infer would be a guess wearing a measurement's clothes.
+The runtime measures what each item cost, from the records the host already keeps, and keeps one
+section under the receipt's heading: the Tokens and Time totals over every stretch the item was
+worked, a Sessions table with one row per stretch naming its host and model, and any handoff between
+hosts. It redraws that section in place whenever a stretch closes. **Do not write, estimate or edit
+a usage or duration figure, and keep that section as the runtime wrote it**: you cannot see your
+own token counts from inside the conversation, and a number you infer would be a guess wearing a
+measurement's clothes.
 
 The item being charged is the open item whose receipt you wrote last. Setting an item aside for
 another is therefore just writing the other item's receipt when you start on it, and writing this

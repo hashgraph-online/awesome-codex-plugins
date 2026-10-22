@@ -10,8 +10,8 @@
         <img src="https://badgen.net/github/release/GanyuanRan/Aegis?label=Latest%20Release" /></a>
     <a href="https://github.com/GanyuanRan/Aegis" alt="GitHub Stars">
         <img src="https://img.shields.io/github/stars/GanyuanRan/Aegis?style=flat&label=Stars" /></a>
-    <a href="https://gitcode.com/m0_67899281/Aegis" alt="AtomGit Stars">
-        <img src="https://gitcode.com/m0_67899281/Aegis/star/badge.svg" alt="AtomGit Stars" /></a>
+    <a href="https://atomgit.com/GanyuanRan/Aegis" alt="AtomGit Stars">
+        <img src="https://atomgit.com/GanyuanRan/Aegis/star/badge.svg" alt="AtomGit Stars" /></a>
     <a href="https://olud.ai/project/ganyuanran-aegis.html" alt="Aegis on olud.ai">
         <img src="https://olud.ai/badge.php?tool=ganyuanran-aegis" alt="Aegis on olud.ai" /></a>
 </p>
@@ -57,11 +57,26 @@ engineers — so you don't have to watch them.
   with a retirement trigger — technical debt stops accumulating silently.
 - **Simple tasks stay simple.** Trivial requests stay on the fast path;
   ceremony only appears when the task genuinely needs it.
+- **UI/UX rules on demand.** [UI/UX governance](skills/ui-ux-governance/SKILL.md)
+  carries project design rules, lower user effort, and scoped experience evidence
+  through design, implementation, review, and verification.
 - **One method pack, every host.** The same discipline works across Codex,
   Claude Code, OpenCode, Kimi, and other skill-aware hosts.
 
-> The numbers above are bounded advisory evidence from the frozen benchmark
-> below, not a universal-quality or completion-authority claim.
+> These numbers are bounded advisory evidence from Aegis 2.7.6 (2026-08-11),
+> not a measurement of this release, a universal-quality claim, or completion authority.
+> See [the full benchmark and its limitations](#measured-agentic-benchmark).
+
+## Quick Install
+
+New here? The fastest start is one prompt to your agent — the full
+install-and-verify flow is below.
+
+Give this prompt to your AI coding agent:
+
+```text
+Read https://github.com/GanyuanRan/Aegis, identify my current AI coding host, and install Aegis globally using the correct host guide. If the host is the official DeepSeek Harness (`dsh`), treat global/minimal installation as native profile-plugin installation with `dsh plugin --profile <profile> add "git+https://github.com/GanyuanRan/Aegis.git"`; do not silently substitute the direct-child compatibility path unless the plugin manager is unavailable and I explicitly approve compatibility mode. Restart or reload the host if needed, then run complete-install verification from the installed Aegis method-pack root. Do not run the doctor command from the target project directory. First locate `<aegis-method-pack-root>`, then run `cd <aegis-method-pack-root> && python scripts/aegis-doctor.py --write-config --json`. Treat the install as complete only if the JSON includes `"ok": true`, `"workspaceSupport": "available"`, and `"configStatus": "configured"`; if the host uses a separate skill discovery directory, also verify it with `--discovery-root <path>`; if the host guide declares a skill directory name prefix, also pass `--discovery-name-prefix <prefix>`. Also complete the selected host guide's native activation and automatic-entry checks; file discovery or a generic doctor result alone is not sufficient when the host provides a plugin, hook, or session-start bootstrap contract.
+```
 
 ## Measured Agentic Benchmark
 
@@ -77,16 +92,18 @@ covers 22 cases with one observation per arm and case. It uses a different run
 profile from the extended snapshot above and does not measure the changes in
 this release.
 
-## Quick Install
+## Try Aegis Methods in a Coding Runtime
 
-New here? The fastest start is one prompt to your agent — the full
-install-and-verify flow is below.
+[Autoloom](https://github.com/GanyuanRan/Autoloom) is our AI coding desktop
+client. It brings Aegis's change necessity analysis, complexity governance, and
+delivery review into development execution, helping you spend less time
+repeating instructions and inspect the evidence behind delivered changes.
 
-Give this prompt to your AI coding agent:
+Currently available as a **Windows x64 Alpha**. The client is free; choose your
+model provider, which bills model usage separately.
 
-```text
-Read https://github.com/GanyuanRan/Aegis, identify my current AI coding host, and install Aegis globally using the correct host guide. If the host is the official DeepSeek Harness (`dsh`), treat global/minimal installation as native profile-plugin installation with `dsh plugin --profile <profile> add "git+https://github.com/GanyuanRan/Aegis.git"`; do not silently substitute the direct-child compatibility path unless the plugin manager is unavailable and I explicitly approve compatibility mode. Restart or reload the host if needed, then run complete-install verification from the installed Aegis method-pack root. Do not run the doctor command from the target project directory. First locate `<aegis-method-pack-root>`, then run `cd <aegis-method-pack-root> && python scripts/aegis-doctor.py --write-config --json`. Treat the install as complete only if the JSON includes `"ok": true`, `"workspaceSupport": "available"`, and `"configStatus": "configured"`; if the host uses a separate skill discovery directory, also verify it with `--discovery-root <path>`; if the host guide declares a skill directory name prefix, also pass `--discovery-name-prefix <prefix>`. Also complete the selected host guide's native activation and automatic-entry checks; file discovery or a generic doctor result alone is not sufficient when the host provides a plugin, hook, or session-start bootstrap contract.
-```
+**[Explore Autoloom](https://github.com/GanyuanRan/Autoloom) ·
+[Download Alpha](https://github.com/GanyuanRan/Autoloom/releases)**
 
 ## Updating Aegis
 
@@ -158,7 +175,7 @@ Aegis keeps a multi-host, plugin-installable distribution goal.
 | `Codex`, `OpenCode` | Fresh evidence exists for the current method-pack scope | [Codex](docs/README.codex.md), [OpenCode](docs/README.opencode.md) |
 | `Claude Code`, `CodeBuddy`, `DeepSeek-TUI`, `DeepSeek Harness`, `Trae`, `GitHub Copilot`, `Qoder`, `Kimi Code CLI`, `ZCode`, `Grok Build` | Install guides exist; release-level fresh host smoke is still pending | [Claude Code](docs/README.claude-code.md), [CodeBuddy](docs/README.codebuddy.md), [DeepSeek-TUI](docs/README.deepseek-tui.md), [DeepSeek Harness](docs/README.deepseek-harness.md), [Trae](docs/README.trae.md), [GitHub Copilot](docs/README.copilot.md), [Qoder](docs/README.qoder.md), [Kimi Code CLI](docs/README.kimi-code.md), [ZCode](docs/README.zcode.md), [Grok Build](docs/README.grok-build.md) |
 | `CC GUI (JetBrains IDEA)` | Structural IDE plugin layer support for Claude Code / OpenAI-GPT provider paths; release-level fresh host smoke is still pending | [CC GUI](docs/README.cc-gui.md) |
-| `Antigravity CLI`, `Antigravity IDE`, `Antigravity App` | `Antigravity CLI` is the current active closeout target; `IDE/App` remain structural targets and release-level fresh host smoke is still pending | [Antigravity](docs/README.antigravity.md) |
+| `Antigravity CLI`, `Antigravity IDE`, `Antigravity App` | `Antigravity CLI` has installation and structural discovery evidence; live Aegis skill loading, task routing, and session refresh remain pending verification; `IDE/App` remain structural targets | [Antigravity](docs/README.antigravity.md) |
 | `Pi CLI`, `OMP`, `OpenClaw`, `Hermes Agent` | Structural Agent Skills / `SKILL.md` skill-host adaptations; release-level fresh host smoke is still pending | [Pi CLI](docs/README.pi.md), [OMP](docs/README.omp.md), [OpenClaw](docs/README.openclaw.md), [Hermes Agent](docs/README.hermes-agent.md) |
 | `Gemini CLI` | Retired; Aegis no longer ships or verifies a Gemini CLI adapter | [Compatibility Matrix](docs/current/AEGIS_HOST_COMPATIBILITY_MATRIX_SNAPSHOT.md) |
 
@@ -245,6 +262,22 @@ Read:
 - Feedback and discussion: [GitHub Discussions](https://github.com/GanyuanRan/Aegis/discussions) · [Issues](https://github.com/GanyuanRan/Aegis/issues) · [LINUX DO](https://linux.do/t/topic/2108966/20) · [DEV.to](https://dev.to/_879c5a0279451d52e43c3/aegis-a-method-pack-for-more-reliable-ai-coding-agents-1gfm)
 - Extend Aegis: write your own skill with `aegis:writing-skills`; see the [Workflow Guide](docs/current/AEGIS_WORKFLOW_GUIDE.md).
 - Follow along: [RELEASE-NOTES.md](RELEASE-NOTES.md) · [Releases](https://github.com/GanyuanRan/Aegis/releases)
+
+## Aegis and Autoloom
+
+- **Aegis** is our open-source method pack for bringing engineering discipline
+  to your existing AI coding host. It remains independently usable with
+  multi-host support; Autoloom is not required.
+- **[Autoloom](https://github.com/GanyuanRan/Autoloom)** is our independent
+  desktop product for experiencing Aegis's core methods in the coding runtime.
+  Its client source code is not currently public. Its repository maintains
+  downloads, release scope, and feedback.
+
+Autoloom carries the runtime-core direction while Aegis retains its method-pack
+boundary. The benchmarks on this page measure Aegis, not Autoloom. See the
+[product relationship](docs/current/AEGIS_PRODUCT_BASELINE.md#current-product-relationship-autoloom)
+for the boundary, or bring a scoped task to Autoloom and
+[share your experience](https://github.com/GanyuanRan/Autoloom/issues).
 
 ## Relationship To Superpowers
 

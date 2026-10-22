@@ -1,10 +1,12 @@
 ---
 name: content-engine
-description: "Draft marketing content in brand voice — blog posts, ad copy, email sequences, social posts, landing pages, and brand-voice guides — through a gated pipeline (research, outline, draft, fact-check, humanize, voice check, SEO checklist) with numbered working files and a five-gate quality scorecard before copy is publish-ready. Triggers on \"/digital-marketing-pro:content-engine\", \"write a blog post about X\", \"draft ad copy for this campaign\", \"create an email sequence\", \"landing page copy for our product\". Takes /digital-marketing-pro:content-brief as preferred upstream; hands off to /digital-marketing-pro:publish-blog, /digital-marketing-pro:content-repurpose, and /digital-marketing-pro:check. Reads the brand profile, guidelines, platform specs, and compliance rules."
+description: "Draft content in brand voice through a gated pipeline: blogs, ads, emails. Brief only → content-brief. \"write a blog post about X\""
 argument-hint: "[content-type and topic]"
 ---
 
 # Content Engine
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## When to Use This Skill
 
@@ -148,6 +150,7 @@ For quick requests (e.g., "write me a LinkedIn post"), infer reasonable defaults
 - `case-studies.md` — Challenge-Solution-Results framework, customer-hero narrative structure, and case study creation best practices
 - `personalization.md` — Personalization maturity model, segment/rule-based/behavioral strategies, and implementation guidance
 - `video-scripting.md` — Platform-specific video formats and lengths, script structures, and hook and retention techniques
+- `draft-deliverables.md` — Minimum components per deliverable type (incl. press release), the after-drafting follow-up menu, and parallel-dispatch rules when one brief yields several formats
 
 ## Output Formats
 

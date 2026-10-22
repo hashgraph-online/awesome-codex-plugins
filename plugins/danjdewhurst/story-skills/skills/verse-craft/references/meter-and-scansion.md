@@ -93,3 +93,39 @@ means the poem is in a different meter than claimed. Say so.
   keep them in deliberate pastiche.
 - **Syllable counting without stress:** ten syllables is not iambic
   pentameter unless the stresses fall on the even syllables.
+
+## Verse in other languages
+
+Everything above describes English accentual-syllabic verse. Languages
+measure a line differently, so read `language` in `story.md` (a missing
+field means `en`), or ask for a standalone poem, and scan by the
+language's own tradition. Never scan non-English verse in English feet,
+and never carry an English meter into a translation or a poem in another
+language unless the author wants that effect.
+
+| Tradition | What counts | Examples | How to scan |
+|-----------|-------------|----------|-------------|
+| Accentual-syllabic | Stresses and syllables | English, German, Dutch, Russian | As above, with the language's own word stress |
+| Syllabic | Syllables, with fixed stress or a caesura | French alexandrine (12) and octosyllable (8); Spanish *octosílabo* and *endecasílabo*; Italian *endecasillabo* and *settenario* | Count syllables by the language's rules and mark the caesura or the fixed final stress |
+| Quantitative | Long and short syllables | Classical Greek and Latin hexameter; Arabic and Persian *ʿarūḍ* meters | Mark each syllable long (–) or short (u) by the language's rules of vowel length and position |
+| Mora-based | Morae (*on*), not syllables | Japanese haiku (5-7-5) and tanka (5-7-5-7-7) | Count *on*: a long vowel, `ん`, and a small `っ` each count one, so *Tōkyō* (とうきょう) is four |
+| Tonal | Syllable count and tone pattern | Classical Chinese regulated verse (*lüshi*, *jueju*), five or seven characters a line | Mark each character level (平) or oblique (仄) and check the pattern |
+
+Counting rules that trip agents:
+
+- **French:** a mute *e* counts as a syllable before a consonant inside
+  the line, not at the line end and not before a vowel, where it elides.
+  Classical alexandrines break after the sixth syllable.
+- **Spanish:** vowels across a word boundary usually join into one
+  syllable (*sinalefa*). A line ending on a stressed final syllable
+  counts one more; a line ending on a word stressed three from the end
+  counts one fewer.
+- **Italian:** vowels across a word boundary usually join, as in Spanish.
+  The *endecasillabo* has its last stress on the tenth syllable.
+- **Japanese:** count from the kana reading, not the kanji.
+
+Adapt the scansion table to the tradition: keep the Line, Rhyme, and
+Verdict columns and replace Scansion, Syll, and Beats with what the
+tradition counts (syllables with elisions marked, long and short marks,
+*on*, or tones). If you cannot scan a tradition reliably, say so and ask
+the author or a native-speaker poet to check the lines.

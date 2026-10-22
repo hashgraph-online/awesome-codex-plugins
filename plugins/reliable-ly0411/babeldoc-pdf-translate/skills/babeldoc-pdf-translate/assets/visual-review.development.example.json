@@ -1,0 +1,10 @@
+{
+  "source":"input.pdf",
+  "translated":"production/best.mono.pdf",
+  "output":"development-acceptance",
+  "purpose":"development_acceptance",
+  "repair":false,
+  "dpi":144,
+  "provider":{"type":"codex","model":"gpt-6-astra","vision":true,"retries":0,"timeout_seconds":240,"cache_dir":"private-development-cache"},
+  "limits":{"max_rounds":0,"max_model_calls":22,"max_seconds":7200,"max_repairs_per_page":0}
+}

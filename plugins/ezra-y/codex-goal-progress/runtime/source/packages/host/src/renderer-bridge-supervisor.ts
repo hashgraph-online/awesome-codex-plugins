@@ -1,3 +1,4 @@
+import { GoalProgressPageError } from "../../codex-adapter/src/cdp.js";
 import type { GoalProgressRendererBridgeDoctor } from "../../codex-adapter/src/index.js";
 import {
   classifyGoalProgressUpdateState,
@@ -235,6 +236,10 @@ export class RendererBridgeSupervisor implements ViewModelPublisherSink {
       return true;
     } catch (error) {
       const code = stableErrorCode(error);
+      if (error instanceof GoalProgressPageError) {
+        this.#lastErrorCode = code;
+        throw error;
+      }
       await this.#dropBridge();
       if (!retryableBridgeError(code)) {
         this.#blocked = true;
@@ -256,6 +261,10 @@ export class RendererBridgeSupervisor implements ViewModelPublisherSink {
       return true;
     } catch (error) {
       const code = stableErrorCode(error);
+      if (error instanceof GoalProgressPageError) {
+        this.#lastErrorCode = code;
+        throw error;
+      }
       await this.#dropBridge();
       if (retryableBridgeError(code)) {
         this.#recordRetryableFailure(code);
@@ -297,6 +306,11 @@ export class RendererBridgeSupervisor implements ViewModelPublisherSink {
       await candidate.setUiPreference?.(this.#uiPreference);
       await candidate.setUpdateState?.(this.#updateState).catch(() => undefined);
     } catch (error) {
+      if (error instanceof GoalProgressPageError) {
+        this.#bridge = candidate;
+        this.#lastErrorCode = stableErrorCode(error);
+        throw error;
+      }
       await candidate.close().catch(() => undefined);
       const code = stableErrorCode(error);
       if (retryableBridgeError(code)) {

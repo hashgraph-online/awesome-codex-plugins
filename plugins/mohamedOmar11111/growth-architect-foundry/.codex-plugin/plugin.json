@@ -1,0 +1,49 @@
+{
+  "name": "foundry",
+  "description": "Growth ops kernel for ad agencies: deterministic account audit, diagnose, EN/AR client reports and COD-aware ROAS maths. Live Google/Meta changes need a human typing the campaign key at a real terminal.",
+  "version": "1.4.1",
+  "author": {
+    "name": "Mohamed Omar",
+    "url": "https://github.com/mohamedOmar11111"
+  },
+  "homepage": "https://github.com/mohamedOmar11111/growth-architect-foundry",
+  "repository": "https://github.com/mohamedOmar11111/growth-architect-foundry",
+  "license": "MIT",
+  "keywords": [
+    "marketing",
+    "ads",
+    "google-ads",
+    "meta-ads",
+    "agency",
+    "arabic",
+    "mena",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Foundry",
+    "shortDescription": "Audit ad accounts, write client reports, and run ROAS maths. Live writes need a human.",
+    "longDescription": "Foundry gives Codex deterministic growth-ops commands for ad agencies: a 0-100 account audit, the single biggest constraint, decision-first client reports in English or Arabic, and break-even and COD-aware ROAS calculators. Reports and client data live in your own workspace, never inside the plugin. Live Google Ads and Meta changes (pause, budget) are enforced in code to need a person typing the campaign key at a real terminal, so an agent cannot approve them itself.",
+    "developerName": "Mohamed Omar",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mohamedOmar11111/growth-architect-foundry",
+    "privacyPolicyURL": "https://github.com/mohamedOmar11111/growth-architect-foundry/blob/master/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/mohamedOmar11111/growth-architect-foundry/blob/master/LICENSE",
+    "defaultPrompt": [
+      "Audit the Acme client account and tell me the weakest dimension.",
+      "Work out my break-even CPA and ROAS for a COD product.",
+      "Write an Arabic client report for Acme."
+    ],
+    "brandColor": "#eb6c36",
+    "composerIcon": "./assets/codex/icon.svg",
+    "logo": "./assets/codex/logo.svg",
+    "screenshots": [
+      "./assets/codex/screenshot-overview.png",
+      "./assets/codex/screenshot-live-write-gate.png"
+    ]
+  }
+}

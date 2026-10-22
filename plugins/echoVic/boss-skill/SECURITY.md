@@ -54,7 +54,7 @@ references should be added only when the corresponding files exist and are
 reviewed. Codex hook installation is handled by `boss-skill install`, not by the
 plugin marketplace manifest.
 
-The npm package intentionally excludes local development agent settings such as
+The distributed skill bundle intentionally excludes local development agent settings such as
 `.claude/settings.json` and `.claude/settings.local.json`. Publishable plugin
 metadata lives under `.claude-plugin/`, `.codex-plugin/`, and
 `.agents/plugins/marketplace.json`.

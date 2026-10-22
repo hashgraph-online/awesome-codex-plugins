@@ -1,0 +1,40 @@
+{
+  "name": "nueton-receipts",
+  "version": "0.1.0",
+  "description": "Counts every \"done\" your coding agent said and checks each one against the session's own commands: Confirmed, Contradicted or Unverified. Local, read-only, standard-library Python. Sends nothing.",
+  "author": {
+    "name": "Nikxius, Inc.",
+    "url": "https://receipts.nueton.ai"
+  },
+  "homepage": "https://receipts.nueton.ai",
+  "repository": "https://github.com/Kloudedge-apex/receipts-collector",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "claude-code",
+    "agent-claims",
+    "session-logs",
+    "observability",
+    "audit"
+  ],
+  "skills": "./skills/",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "Receipts by Nueton",
+    "shortDescription": "Check every \"done\" your agent said against its own logs",
+    "longDescription": "Runs the open-source Receipts collector over local Codex and Claude Code session logs, marks each completion claim Confirmed, Contradicted or Unverified from the session's own commands, and prints the counts plus a 40-column card. Read-only and offline; nothing is sent anywhere.",
+    "developerName": "Nikxius, Inc.",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://receipts.nueton.ai",
+    "privacyPolicyURL": "https://receipts.nueton.ai/privacy",
+    "termsOfServiceURL": "https://receipts.nueton.ai/terms",
+    "defaultPrompt": [
+      "Show my receipts card for the last 30 days",
+      "How often was my agent's done actually true?",
+      "Audit my agent's completion claims since 2026-10-01 using local git history"
+    ]
+  }
+}

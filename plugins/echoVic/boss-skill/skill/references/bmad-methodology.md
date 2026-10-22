@@ -34,7 +34,7 @@ BMAD 将软件开发流程分解为 9 个专业化角色，每个角色由专门
 
 ### 2. 产物驱动（DAG）
 
-产物之间的依赖关系由 `packages/boss-cli/assets/artifact-dag.json` 定义为有向无环图（DAG），并可通过 `.boss/artifact-dag.json` 做项目级覆盖，而非简单线性流：
+产物之间的依赖关系由 `skill/assets/artifact-dag.json` 定义为有向无环图（DAG），并可通过 `.boss/artifact-dag.json` 做项目级覆盖，而非简单线性流：
 
 ```
 design-brief → prd.md ─┬→ architecture.md → tech-review.md → tasks.md → [code] → qa-report.md → deploy-report.md
@@ -184,7 +184,7 @@ Agent:    pending → running → completed | failed
 
 ### 定义文件
 
-`packages/boss-cli/assets/artifact-dag.json` 定义了内置产物依赖图，项目可用 `.boss/artifact-dag.json` 覆盖：
+`skill/assets/artifact-dag.json` 定义了内置产物依赖图，项目可用 `.boss/artifact-dag.json` 覆盖：
 
 ```json
 {
@@ -319,7 +319,7 @@ Pipeline Pack 是预定义的流水线配置，指定启用哪些 Agent、Stage�
 
 ### 插件 Schema
 
-`packages/boss-cli/assets/plugin-schema.json` 定义插件格式：
+`skill/assets/plugin-schema.json` 定义插件格式：
 - Hook 阶段：`pre-stage, post-stage, pre-gate, gate, post-gate, report`
 - 支持条件激活和优先级
 

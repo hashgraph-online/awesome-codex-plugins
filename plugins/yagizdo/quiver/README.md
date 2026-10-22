@@ -1,6 +1,6 @@
 # Quiver
 
-[![Version](https://img.shields.io/badge/version-1.25.0-blue)](https://github.com/yagizdo/quiver/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/yagizdo/quiver/releases)
 
 Quiver is a development lifecycle plugin for AI coding CLIs. Purpose-built skills for brainstorming, planning, execution, debugging, code review, and session handover, plus specialized agents for review and debugging. Every step leaves evidence on disk (a spec, a plan, a ledger, a report, a handover), and nothing is called done without it.
 
@@ -13,6 +13,7 @@ Quiver is a development lifecycle plugin for AI coding CLIs. Purpose-built skill
   - [Building Something](#building-something)
   - [How /work runs a large plan](#how-work-runs-a-large-plan)
   - [Building a Whole Project](#building-a-whole-project)
+  - [How /ship runs a project](#how-ship-runs-a-project)
   - [Implementing a Design](#implementing-a-design)
   - [Reviewing Code](#reviewing-code)
   - [Fixing a Bug](#fixing-a-bug)
@@ -26,6 +27,7 @@ Quiver is a development lifecycle plugin for AI coding CLIs. Purpose-built skill
   - [Debug](#debug)
   - [Workflow](#workflow)
 - [External Dependencies](#external-dependencies)
+- [Setup](#setup)
 - [CLI Notes](#cli-notes)
 - [Uninstall](#uninstall)
 - [Contributing](#contributing)
@@ -96,8 +98,8 @@ The script symlinks Quiver into every runtime it detects, and prints the install
 | Component | Count |
 |-----------|-------|
 | Hooks | 3 |
-| Skills | 21 |
-| Agents | 20 |
+| Skills | 22 |
+| Agents | 22 |
 
 ## What Do I Use?
 
@@ -126,7 +128,23 @@ After the last group merges, the resolved test command runs once on the combined
 
 | Situation | Command | What happens |
 |-----------|---------|--------------|
-| I want to build a project from a description without touching it myself | `/ship` | Deep planning Q&A (outcomes, scope, stack, verification), written as a plan to `.claude/plans/` and handed to `/work --auto` for a build that stops only for a genuine blocker, then a build, test, and smoke pass and a report naming the `/quiver:review` command to run before merging. `--execute` and `--verify` re-enter a paused run |
+| I want to build a project from a description without touching it myself | `/ship "<description>"` | Asks one batch of project questions, proposes a split into phases, and on your approval saves a roadmap and one file per phase under `.claude/ship/`, then builds the phases in order, each one starting when the one before it finishes |
+| The phases are saved, build the next one | `/ship` | Runs the next phase end to end and goes on to the one after it: its questions, research, a spec and a plan written without approval prompts, the build through `/work --auto`, a build, test, and smoke check, `/quiver:review`, an automatic fix of the problems the review confirmed, and a plain-language report |
+| Run a specific phase, or re-check one | `/ship <phase-id>`, `/ship --verify` | Starts or continues that phase, including one that stopped; `--verify` runs the build, test, and smoke checks again |
+
+### How /ship runs a project
+
+State lives in `.claude/ship/`:
+
+- `roadmap.md` lists the phases, each with its status and what it depends on.
+- `decisions.md` collects the numbered project decisions, so a later phase reads them instead of asking again.
+- `phases/<id>-<slug>.md` holds one phase: its goal, scope, and done criteria, the answers you gave, where it stopped, the paths to its spec, plan, and review report, the check results, and its final report.
+
+Every step of a phase is saved to its file before the next one starts. After `/clear`, or in a new session, `/ship` picks up where the last run stopped. When a phase's plan is large or the session is already full, `/ship` suggests moving to a fresh session before the code is written; everything is saved, so `/clear` then `/ship` continues it.
+
+After the build and the checks, `/ship` runs `/quiver:review` on the branch. Each problem the review confirms against the code is fixed in one more `/work` round, and the branch is built, tested, and reviewed once more. A Critical problem, or a fix that would change behavior the phase spec defines, stops for your choice: fix it, leave it listed as open, or stop the phase. Problems the review could not confirm are listed in the report, not fixed.
+
+`/ship` commits through `/work` but never pushes and never opens a pull request. The final report names `/quiver:create-pr` when you are ready.
 
 ### Implementing a Design
 
@@ -181,6 +199,8 @@ After the last group merges, the resolved test command runs once on the combined
 
 Pass `--comment-pr` to post the report as a PR comment. Use `--deep --with-codex` for cross-model coverage (requires `codex` CLI).
 
+Every review, fast or deep, checks each finding against the code before it saves the report. A finding the code rules out moves to the report's Filtered Findings section with the evidence that ruled it out: file lines, command output, or a recorded project decision. Each remaining finding is marked confirmed, with its evidence, or not checked, with the reason. A branch review runs the project's tests for this only when you pass `--run-checks`, because the branch checked out may be someone else's; a review of uncommitted changes runs them without the flag, and a pull request link never runs them. A review can also be started by another skill or by a plain request such as "review my changes".
+
 Re-review detection: if you run `/quiver:review` again on the same branch after fixing issues, it automatically detects the previous report and switches to re-review mode.
 
 ### Fixing a Bug
@@ -219,6 +239,8 @@ Re-review detection: if you run `/quiver:review` again on the same branch after 
 | `pre-compact-handover` | PreCompact | Summarizes the conversation and saves a handover before the CLI compacts context |
 | `session-start-auto-dispatch` | SessionStart | Reads every skill's `when-to-use` and emits a routing block so intent matches invoke the right skill |
 
+> To turn the guard's confirmation prompts off, add `"env": {"QUIVER_GUARD_PROMPTS": "off"}` to `~/.claude/settings.json`, or to a project's `.claude/settings.json` for that project only. The refusals for `rm -rf /` and `rm -rf ~` stay on.
+
 > The handover hook keeps the 3 most recent handovers in `.claude/handovers/` and prunes older ones automatically. Filenames are timestamps, so sort order is lexicographic.
 
 ## Agents
@@ -228,10 +250,13 @@ Review, research, and debug agents run with the `Edit`, `Write`, `NotebookEdit`,
 report findings, not to change it. `Bash` stays enabled because these agents need
 `git diff`, `git log`, and `git blame`, so the denial is a guardrail against
 accidental edits rather than a sandbox: a shell command can still write a file or
-reach the network. Two agents carry a narrower denylist: `best-practices-researcher`
+reach the network. Four agents carry a narrower denylist: `best-practices-researcher`
 keeps web access so it can check library versions against upstream release notes,
-and `codex-code-reviewer` can write because it persists the raw output of the
-external reviewer it wraps.
+`stack-researcher` keeps it because it answers open questions from current docs
+and package registries, `codex-code-reviewer` can write because it persists
+the raw output of the external reviewer it wraps, and `finding-verifier` can write
+inside its own git worktree so it can run a scratch check against a review finding,
+then undoes every edit before it returns.
 
 <!-- agents-start -->
 
@@ -250,6 +275,7 @@ external reviewer it wraps.
 | `codex-code-reviewer` (`quiver:codex-code-reviewer`) | Cross-model code review via the OpenAI Codex CLI; dispatched only when `--with-codex` is passed and the `codex` CLI is installed. Uses whatever model your local codex is configured for: Quiver does not override `--model` |
 | `report-checker` (`quiver:report-checker`) | Independent quality auditor for review reports -- detects noise, false positives, overkill, and findings that exist to appear thorough |
 | `senior-reviewer` (`quiver:senior-reviewer`) | Language-aware senior developer review -- evaluates code through a pragmatic team lead lens with optional meta-review of other agents' findings in the pipeline |
+| `finding-verifier` (`quiver:finding-verifier`) | Checks one review finding against the code and returns it confirmed, refuted, or unverifiable, with the command output or file lines that settled it |
 
 <!-- agents:review-end -->
 
@@ -259,6 +285,7 @@ external reviewer it wraps.
 | Agent | What it catches |
 |-------|-----------------|
 | `best-practices-researcher` (`quiver:best-practices-researcher`) | Deprecated APIs and outdated patterns versus current library docs |
+| `stack-researcher` (`quiver:stack-researcher`) | Answers open technical questions before code is written, with a source for every answer |
 | `project-context-analyst` (`quiver:project-context-analyst`) | Prior decisions, past bugs, and churn patterns in this area of the codebase |
 | `code-locator` (`quiver:code-locator`) | Fast file:line locations for "where is X / what calls Y" without heavy mapping |
 | `code-navigator` (`quiver:code-navigator`) | CodeGraph-first codebase explorer that maps files, symbols, and patterns relevant to a task |
@@ -317,32 +344,29 @@ The Figma plugin side is a manual import from the bridge's [releases page](https
 
 `/quiver:design` and `/design-fix` only call the bridge's read tools, and `/design-fix` also runs with the bridge absent when you point it at an existing `/quiver:design` plan. `/design-build` never calls it at all. Every other Quiver skill works without it.
 
-## CLI Notes
+## Setup
 
-Every CLI runs the same skills and the same agents, and `/quiver:review` fans out to 5 agents by default on all of them, or the full pipeline with `--deep`.
+Quiver writes its working files into your project: specs from `/brainstorm` in `.claude/specs/` (earlier releases used `docs/brainstorms/`), plans in `.claude/plans/`, review reports in `.claude/reports/`, handovers in `.claude/handovers/`, and `/work` progress in `.claude/work/`. They stay out of git with no setup. The first time a skill writes one of these folders in a git repository, it adds the folder to `.git/info/exclude` and prints a line saying so. That file is git's local ignore list for your clone: the folder drops out of `git status`, and no file in the repository changes.
+
+To keep a folder in git instead, commit a file in it, or say so in the project's `CLAUDE.md` or `AGENTS.md`. The handover hook that runs before compaction cannot read those files, so for `.claude/handovers/` commit a file. A folder already listed in `.git/info/exclude` stays out of git until you delete its line there.
+
+## CLI Notes
 
 ### Cursor
 
-- Cursor discovers skills by scanning a fixed set of roots: `~/.cursor/skills/`, `~/.cursor/skills-cursor/`, `~/.cursor/cloud-skills/`, `~/.cursor/plugins/`, `~/.claude/skills/`, `~/.claude/plugins/`, `~/.codex/skills/`, `~/.agents/skills/`. A Claude Code install lands in `~/.claude/plugins/`, so Cursor picks it up. A Codex install lands in `~/.codex/plugins/`, which is not on that list.
-- Two installs give you two copies on separate update schedules, and nothing warns you when you are reading the old one. Keep the Claude Code install and let Cursor read it.
-- `~/.cursor/plugins/local/<name>/` has to be a real directory. Cursor scans that directory on startup and rejects an entry that is a symlink pointing outside it, which is why the Cursor install is a clone in place and why `install.sh`, which links into your clone, has no Cursor target. Measured on Cursor 3.17.21: a clone at that path logs `loadUserLocalPlugin quiver loaded`, and a symlink to a clone elsewhere logs `loadUserLocalPlugin quiver rejected: symlink target ... is outside ...` with 0 plugins loaded.
-- The Plugins panel imports the repo by git URL as well. That route indexes the repo through Cursor's servers and pins the install to what came back, so updates are Cursor's to schedule rather than a `git pull`. The clone needs neither the panel nor a sign-in.
-- If the clone fails with `fatal: Unable to read current working directory: Operation not permitted`, the shell is sitting in a directory macOS will not let git read, and the target path has nothing to do with it. Run it from `cd ~` and it goes through. The parent directories need no `mkdir`; git creates them.
-- The `cursor-agent` CLI does not load plugin skills (IDE-only). Use Cursor IDE for skill-using workflows.
-- `WebFetch` and `WebSearch` are unsupported on Cursor; the included context7 MCP covers documentation lookups.
-- If handover auto-save does not fire after install, Cursor's `preCompact` event may use a different JSON field name than Claude Code. Edit `.cursor/hooks.json` to log raw stdin to a file, trigger context compaction, and inspect the log for the actual field names.
+- Cursor sees a Claude Code install but not a Codex install.
+- The clone at `~/.cursor/plugins/local/quiver` has to be a real directory. Cursor ignores a symlink there that points to a clone somewhere else.
+- The `cursor-agent` CLI does not load plugin skills. Use the Cursor IDE.
+- If no handover appears in `.claude/handovers/` after a compaction, run `/handover` yourself.
 
 ### Codex
 
-- Codex uses the bundled default `PreCompact` hook in `hooks/hooks.json` for automatic handover auto-save before automatic compaction. If Codex prompts for hook review, open `/hooks` and trust the Quiver hook; `/handover` also works manually.
-- `AskUserQuestion` is polyfilled as numbered text prompts: reply with the option number.
-- Agent dispatch uses `spawn_agent(worker)` with the agent's persona prompt read from `agents/`.
+- The handover auto-save runs before compaction once the hook is trusted. If Codex asks you to review hooks, open `/hooks` and trust Quiver's.
 
 ### OpenCode
 
-- Installing from an earlier release put a git-backed `quiver` entry in the `plugin` array of your `opencode.json`. That entry no longer resolves: delete it, then run `./install.sh`.
-- The plugin registers the skills directory and the context7 MCP server itself, so you do not need an `mcp` or `skills` entry of your own.
-- Skills do not appear in the `/` autocomplete menu, because OpenCode's TUI filters out anything with `source: "skill"`. Typing `/brainstorm` still runs it.
+- An earlier release added a `quiver` entry to the `plugin` array in your `opencode.json`. That entry no longer resolves: delete it, then run `./install.sh`.
+- Skills do not show in the `/` autocomplete menu. Typing `/brainstorm` still runs it.
 
 ## Uninstall
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Media"
+  short_description: "Turn photos, performances and ideas into finished media"
+  default_prompt: "Use $magic-hour-media to turn my photo into an impossible scene, keep me recognizable and deliver the finished video within my budget."

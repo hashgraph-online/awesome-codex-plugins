@@ -1,9 +1,11 @@
 ---
 name: integrations
-description: "Show the MCP integration status dashboard — which connectors are connected, which are available but not yet configured, the skills each one unlocks, per-category coverage, and the top three quick-win connectors to add next. Read-only status check via connector-status.py; it changes nothing. Triggers on \"/digital-marketing-pro:integrations\", \"what integrations are connected\", \"which connectors do I have\", \"what would connecting a CRM unlock\", \"show my integration coverage\". Pairs with /digital-marketing-pro:connect for connector setup instructions and /digital-marketing-pro:add-integration for custom MCP servers."
+description: "Show integrations status: connected and available connectors, what each unlocks. \"which connectors do I have\""
 ---
 
 # /digital-marketing-pro:integrations
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## Purpose
 
@@ -26,6 +28,7 @@ The user may optionally provide:
    - Show connected connectors with a checkmark indicator and the skills they power
    - Show available-but-not-connected connectors with what they would unlock
    - For available connectors, indicate whether they are HTTP (works everywhere, easy OAuth setup) or npx (Claude Code only, requires API keys)
+   - When an entry carries an `access` field, show it next to the connector. These are the official ad-platform and CRM servers: `meta-ads`, `google-ads-mcp`, `amazon-ads-mcp` and `hubspot` (checked 2026-10-04; see CONNECTORS.md). `google-ads-mcp` is **read-only**. For the read-write ones, say that writes happen only behind `/digital-marketing-pro:launch-ad-campaign`'s typed approval gate, and that new ad objects are created PAUSED
 
 3. **Highlight quick wins**: Identify the top 3 connectors the user should consider connecting based on which would unlock the most additional skill capabilities. Prioritize HTTP connectors (easier to set up) over npx connectors.
 

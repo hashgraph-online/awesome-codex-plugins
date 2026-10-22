@@ -6,7 +6,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"session:start\" \"scripts/hooks/session-start.js\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "session:start",
+              "scripts/hooks/session-start.js"
+            ],
             "timeout": 10
           }
         ],
@@ -18,7 +25,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"session:resume\" \"scripts/hooks/session-resume.js\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "session:resume",
+              "scripts/hooks/session-resume.js"
+            ],
             "timeout": 10
           }
         ],
@@ -32,7 +46,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"pre:write:artifact-guard\" \"scripts/hooks/pre-tool-write.js\" \"standard,strict\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "pre:write:artifact-guard",
+              "scripts/hooks/pre-tool-write.js",
+              "standard,strict"
+            ],
             "timeout": 5
           }
         ],
@@ -44,7 +66,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"pre:bash:dangerous-cmd-guard\" \"scripts/hooks/pre-tool-bash.js\" \"standard,strict\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "pre:bash:dangerous-cmd-guard",
+              "scripts/hooks/pre-tool-bash.js",
+              "standard,strict"
+            ],
             "timeout": 5
           }
         ],
@@ -58,7 +88,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"post:write:artifact-track\" \"scripts/hooks/post-tool-write.js\" \"standard,strict\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "post:write:artifact-track",
+              "scripts/hooks/post-tool-write.js",
+              "standard,strict"
+            ],
             "timeout": 10
           }
         ],
@@ -70,7 +108,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"post:bash:context\" \"scripts/hooks/post-tool-bash.js\" \"standard,strict\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "post:bash:context",
+              "scripts/hooks/post-tool-bash.js",
+              "standard,strict"
+            ],
             "timeout": 10
           }
         ],
@@ -83,7 +129,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"subagent:start\" \"scripts/hooks/subagent-start.js\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "subagent:start",
+              "scripts/hooks/subagent-start.js"
+            ],
             "timeout": 5
           }
         ],
@@ -96,7 +149,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"subagent:stop\" \"scripts/hooks/subagent-stop.js\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "subagent:stop",
+              "scripts/hooks/subagent-stop.js"
+            ],
             "timeout": 10
           }
         ],
@@ -107,7 +167,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"post:stage:wip-checkpoint\" \"scripts/hooks/wip-checkpoint.js\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "post:stage:wip-checkpoint",
+              "scripts/hooks/wip-checkpoint.js"
+            ],
             "timeout": 15
           }
         ],
@@ -120,7 +187,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"stop:pipeline-guard\" \"scripts/hooks/on-stop.js\" \"standard,strict\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "stop:pipeline-guard",
+              "scripts/hooks/on-stop.js",
+              "standard,strict"
+            ],
             "timeout": 30
           }
         ],
@@ -133,7 +208,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"notification:log\" \"scripts/hooks/on-notification.js\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "notification:log",
+              "scripts/hooks/on-notification.js"
+            ],
             "async": true,
             "timeout": 5
           }
@@ -147,7 +229,14 @@
         "hooks": [
           {
             "type": "command",
-            "command": "boss hooks run \"session:end\" \"scripts/hooks/session-end.js\"",
+            "command": "node",
+            "args": [
+              "${CLAUDE_PLUGIN_ROOT}/skill/cli/bin/boss.mts",
+              "hooks",
+              "run",
+              "session:end",
+              "scripts/hooks/session-end.js"
+            ],
             "timeout": 10
           }
         ],

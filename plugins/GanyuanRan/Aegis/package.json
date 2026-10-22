@@ -1,6 +1,12 @@
 {
   "name": "aegis",
-  "version": "2.11.0",
+  "version": "2.14.1",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GanyuanRan/Aegis.git"
+  },
   "type": "module",
   "main": ".opencode/plugins/aegis.js",
   "keywords": [
@@ -30,9 +36,9 @@
     ]
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-agent": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-llm": "^0.1.0-rc.6",
-    "@deepseek-ai/dsh-skill-filesystem": "^0.1.0-rc.6"
+    "@deepseek-ai/dsh-agent": ">=0.1.0-rc.6",
+    "@deepseek-ai/dsh-llm": ">=0.1.0-rc.6",
+    "@deepseek-ai/dsh-skill-filesystem": ">=0.1.0-rc.6"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-agent": {

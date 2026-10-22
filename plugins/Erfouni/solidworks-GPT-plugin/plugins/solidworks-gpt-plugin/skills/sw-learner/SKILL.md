@@ -32,6 +32,10 @@ GET /api/parts?q={encoded-part-identifier}&pageSize=20
 Record the best exact or close `partId`; use `null` when none exists. Preserve
 the known `partNumber`.
 
+On Windows, run `curl.exe` instead of `curl`: in Windows PowerShell 5.1
+`curl` is an alias for `Invoke-WebRequest`, which rejects curl options such
+as `-sS`. `curl.exe` is the real curl in every Windows shell.
+
 ## 3. Collect eligible images
 
 Find images referenced by generated code (`SaveBMP`, `ExportBMP`, `SaveAs`, or

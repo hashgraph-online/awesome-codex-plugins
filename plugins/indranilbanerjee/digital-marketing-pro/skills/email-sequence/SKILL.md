@@ -1,6 +1,6 @@
 ---
 name: email-sequence
-description: "Design a complete, ESP-ready email sequence — per-email subject line options, preview text, body copy with CTAs, send timing, segmentation and branching logic, plus a bulk-sender deliverability checklist (SPF/DKIM/DMARC, one-click unsubscribe, complaint-rate limits). Designs only; it sends nothing. Triggers on \"/digital-marketing-pro:email-sequence\", \"build a welcome sequence\", \"write a cart abandonment flow\", \"our emails keep landing in spam\", \"nurture sequence for trial users\". Reads the brand profile, voice, templates, and compliance rules; actual sending belongs to /digital-marketing-pro:send-email-campaign."
+description: "Design an ESP-ready email sequence: subjects, copy, timing, branching, deliverability. \"build a welcome sequence\""
 argument-hint: "[sequence-type]"
 ---
 
@@ -42,6 +42,8 @@ Any brand sending at bulk volume (~5,000+ messages/day to a mailbox provider) mu
 - **Send from a consistent, PTR/reverse-DNS-valid IP over TLS**, with a warmed-up sending domain and consistent from-address.
 - **Physical mailing address + accurate From/Reply-To identity** in every message (CAN-SPAM), and documented opt-in consent per jurisdiction (GDPR / CASL).
 - **List hygiene**: suppress hard bounces and inactive addresses; never send to purchased lists.
+
+For per-type email counts and cadence, the per-email blueprint, branching/exit/suppression rules, the per-email deliverability checklist, the deliverable layout, and the after-sequence follow-up menu, read `sequence-blueprint.md` beside this file.
 
 ## Output
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Music Video"
+  short_description: "Turn your track into a visual story or performance"
+  default_prompt: "Use $magic-hour-music-video to turn this song excerpt into a finished visual within my budget, preserving the full musical phrase."

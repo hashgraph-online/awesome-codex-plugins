@@ -65,6 +65,19 @@ is no longer updated and can be deleted from the project.
 
 ### Phase 1: Check Project Initialization
 
+## Repository feature recovery
+
+Before looking for a transcript or machine-local `.octo` state, inspect portable feature artifacts:
+
+```bash
+OCTO_ROOT="${CLAUDE_PLUGIN_ROOT:-${HOME}/.claude-octopus/plugin}"
+python3 "$OCTO_ROOT/scripts/helpers/feature-contract.py" resume --root "$(pwd -P)" --explicit "<feature directory or spec path, empty when omitted>"
+```
+
+An unambiguous feature recovers intent, decisions, open markers and stable completed/pending task IDs from the repository. Historical completion is context and needs fresh verification. Missing raw runtime files are expected. If several unrelated features exist, ask the user to select one; never choose by recency. Pass the selected feature to the existing `agent-resume` orchestrator path. Explicit Claude agent IDs retain transcript continuation.
+
+A feature with a spec only resumes planning. A feature with plan/tasks resumes pending implementation through the same policy, clarification, analysis and wave-validation gates. Run the returned decision batch once through the host's native question tool before the next plan/develop boundary. Keep skipped decisions open.
+
 #### Step 1: Verify .octo/ Directory Exists
 
 ```bash
@@ -84,7 +97,7 @@ offer to start a new session based on that context.
 
 **No project state found.**
 
-There is no `.octo/` directory in this project, which means no previous session state exists.
+There is no machine-local `.octo/` directory. Check the portable feature artifacts before treating this as a fresh project.
 
 ### Get Started
 
@@ -286,7 +299,7 @@ Continue validation and delivery.
 
 **No project state found.**
 
-There is no `.octo/` directory in this project, which means no previous session state exists.
+There is no machine-local `.octo/` directory. Check the portable feature artifacts before treating this as a fresh project.
 
 ### Get Started
 

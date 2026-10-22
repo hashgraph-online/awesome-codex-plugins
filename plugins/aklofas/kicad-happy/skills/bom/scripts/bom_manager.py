@@ -41,28 +41,24 @@ _kicad_scripts = Path(__file__).resolve().parent.parent.parent / 'kicad' / 'scri
 if _kicad_scripts.is_dir() and str(_kicad_scripts) not in sys.path:
     sys.path.insert(0, str(_kicad_scripts))
 
+from kicad_utils import (MPN_FIELD_ALIASES, MPN_FIELD_ALIASES_PRIMARY,
+                         MPN_FIELD_ALIASES_GENERIC, DIGIKEY_FIELD_ALIASES,
+                         normalize_field_name)
+
 
 # ---------------------------------------------------------------------------
 # Field name aliases — maps every known variant to a canonical name
 # ---------------------------------------------------------------------------
 
 FIELD_ALIASES: dict[str, list[str]] = {
-    "mpn": [
-        "MPN", "mpn", "Mfg Part", "MfgPart", "PartNumber", "Part Number",
-        "Manufacturer_Part_Number", "Manufacturer Part Number",
-        "Manufacturer Part #", "Mfr No.", "Mfr_No", "Mfr No",
-        "ManufacturerPartNumber", "Manf#", "manf#", "MFN", "MFPN",
-        "Partno", "Part#", "MPN#", "MP",
-    ],
+    # KH-414: shared with analyze_schematic / analyze_pcb (kicad_utils), plus
+    # the bom-local ambiguous extras the analyzers deliberately exclude.
+    "mpn": sorted(MPN_FIELD_ALIASES | {"mp", "mfn"}),
     "manufacturer": [
         "Manufacturer", "Manufacturer_Name", "Manufacturer Name",
         "Mfr", "MFR", "MF", "Mfg", "MANUFACTURER",
     ],
-    "digikey": [
-        "DigiKey", "Digi-Key Part Number", "Digi-Key_PN", "DigiKey Part",
-        "Digikey Part Number", "Digi-Key PN", "DigiKey_Part_Number",
-        "DigiKey Part Number", "DK", "Digikey", "Digi-Key",
-    ],
+    "digikey": sorted(DIGIKEY_FIELD_ALIASES),
     "mouser": [
         "Mouser", "Mouser Part Number", "Mouser Part", "Mouser_PN",
         "Mouser PN",
@@ -79,12 +75,35 @@ FIELD_ALIASES: dict[str, list[str]] = {
     ],
 }
 
-# Build reverse lookup: actual field name -> canonical name
+# Build reverse lookup: NORMALIZED field name -> canonical name (KH-414:
+# case- and whitespace-insensitive, so "Manufacturer  P/N" == "manufacturer p/n").
 _ALIAS_LOOKUP: dict[str, str] = {}
 for canonical, aliases in FIELD_ALIASES.items():
     for alias in aliases:
-        _ALIAS_LOOKUP[alias] = canonical
-        _ALIAS_LOOKUP[alias.upper()] = canonical  # case-insensitive fallback
+        _ALIAS_LOOKUP[normalize_field_name(alias)] = canonical
+
+
+def _canonical_for(name: str):
+    """Canonical BOM field for an actual KiCad property name, or None."""
+    return _ALIAS_LOOKUP.get(normalize_field_name(name))
+
+
+def _first_nonblank_stripped(props: dict, aliases: frozenset) -> str:
+    """First value whose normalized key is in *aliases* and whose .strip() is
+    non-empty, returned STRIPPED (final wave fix)."""
+    for key, value in props.items():
+        v = str(value).strip()
+        if v and normalize_field_name(key) in aliases:
+            return v
+    return ""
+
+
+def _pick_mpn_from_props(props: dict) -> str:
+    """Alias-scan fallback for the mpn canonical (KH-418 tiers; bom-local
+    `mp`/`mfn` count as generic). Whitespace-only values are skipped
+    (final wave fix)."""
+    return (_first_nonblank_stripped(props, MPN_FIELD_ALIASES_PRIMARY)
+            or _first_nonblank_stripped(props, MPN_FIELD_ALIASES_GENERIC | frozenset({"mp", "mfn"})))
 
 # Canonical field names to use when creating new properties
 CANONICAL_NAMES = {
@@ -266,7 +285,7 @@ def detect_convention(
             if name in STANDARD_FIELDS:
                 continue
             field_counts[name] += 1
-            canonical = _ALIAS_LOOKUP.get(name) or _ALIAS_LOOKUP.get(name.upper())
+            canonical = _canonical_for(name)
             if canonical and value.strip():
                 populated_counts[canonical] = populated_counts.get(canonical, 0) + 1
 
@@ -298,7 +317,7 @@ def detect_convention(
     # Build field mapping: canonical -> actual field name used in this project
     field_mapping: dict[str, str] = {}
     for name in field_counts:
-        canonical = _ALIAS_LOOKUP.get(name) or _ALIAS_LOOKUP.get(name.upper())
+        canonical = _canonical_for(name)
         if canonical:
             # If multiple aliases map to same canonical, pick the most common
             if canonical not in field_mapping or field_counts[name] > field_counts.get(field_mapping[canonical], 0):
@@ -372,14 +391,35 @@ def generate_bom(symbols: list[dict], convention: dict,
 
         # Extract canonical field values using the project's actual field names
         def get_canonical(canonical_name: str) -> str:
+            if canonical_name == "mpn":
+                # KH-418 round 2: the project's declared MPN field is
+                # authoritative among manufacturer-specific names when it is
+                # itself primary-tier and populated on this symbol — file
+                # order only breaks ties between OTHER primaries.
+                mpn_field = field_map.get("mpn")
+                if (mpn_field and normalize_field_name(mpn_field) in MPN_FIELD_ALIASES_PRIMARY
+                        and props.get(mpn_field, "").strip()):
+                    return props.get(mpn_field, "").strip()
+                # KH-418: a manufacturer-specific field on THIS symbol always
+                # outranks the project's convention-majority field when that
+                # majority field is generic (El-Luhb: majority field is
+                # `Part#`, but this symbol also carries `MPN`).
+                primary = _first_nonblank_stripped(props, MPN_FIELD_ALIASES_PRIMARY)
+                if primary:
+                    return primary
             actual_name = field_map.get(canonical_name)
             if actual_name:
-                return props.get(actual_name, "").strip()
-            # Try all known aliases as fallback
-            for alias in FIELD_ALIASES.get(canonical_name, []):
-                val = props.get(alias, "").strip()
+                val = props.get(actual_name, "").strip()
                 if val:
                     return val
+            # Try all known aliases as fallback (normalized match, KH-414).
+            # Also reached when the convention-majority field is empty on
+            # this symbol (final wave fix).
+            if canonical_name == "mpn":
+                return _pick_mpn_from_props(props)
+            for actual, val in props.items():
+                if _canonical_for(actual) == canonical_name and val.strip():
+                    return val.strip()
             return ""
 
         mpn = get_canonical("mpn")
@@ -576,7 +616,7 @@ def analyze(
         for name, value in sym["raw_properties"].items():
             if name in STANDARD_FIELDS or name in DNP_FIELDS or name in BOM_COMMENT_FIELDS:
                 continue
-            canonical = _ALIAS_LOOKUP.get(name) or _ALIAS_LOOKUP.get(name.upper())
+            canonical = _canonical_for(name)
             if not canonical and value.strip():
                 guess = classify_pn_by_pattern(value)
                 if guess:

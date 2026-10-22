@@ -38,9 +38,8 @@ amq drain --root .agent-mail/demo --me bob --include-body
 
 This walkthrough connects **Claude Code** and **Codex CLI** on one machine.
 Install both agent CLIs and put `claude` and `codex` on `PATH` first.
-Use macOS or Linux; on Windows, use WSL with the Linux binary for this
-terminal workflow. Native Windows supports the core queue; see the
-[platform matrix](INSTALL.md#platform-capability-matrix).
+Use macOS, Linux, or WSL; native Windows supports a subset (see the
+[platform matrix](INSTALL.md#platform-capability-matrix)).
 
 ### 1. Install the binary
 
@@ -50,15 +49,9 @@ On macOS:
 brew install avivsinai/tap/amq
 ```
 
-Or on macOS/Linux, review and run the [installer](scripts/install.sh):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/avivsinai/agent-message-queue/main/scripts/install.sh | bash
-```
-
-The script installs to a user-local directory without `sudo` and checks the
-release checksum before extraction. Confirm the install with `amq --version`.
-See [Installation](INSTALL.md) for manual downloads and source builds.
+On Linux, or without Homebrew, use the installer script or a release
+download from [Installation](INSTALL.md#binary-installation). Confirm the
+install with `amq --version`.
 
 ### 2. Install Skill
 
@@ -94,17 +87,12 @@ backend, it prints one command per agent and exits with code `6` (action
 required). Paste each complete command into a separate terminal; do not
 shorten or rebuild it.
 
+Optional, for Claude Code: `amq wake install-dialog-hook` keeps the wake from
+typing into an open AskUserQuestion, plan, or permission dialog.
+
 Start both agents before sending the first message. Messages that arrive
 before a recipient's wake starts remain unread but do not trigger that new
 wake. The recipient can still get them with `amq drain --include-body`.
-
-### Control a session from Buzz
-
-Inside a running Claude Code or Codex session, type `/amq-remote`. The first
-time, import that session's agent into Buzz Desktop. Each session has its own
-agent; the ACP model `amq-remote:<name>` selects it. DM that agent from the
-Buzz app or Desktop, and the DM runs in that session.
-`/amq-remote off` disconnects it. See [amq-remote](cmd/amq-remote/README.md).
 
 <a id="messaging"></a>
 
@@ -147,20 +135,24 @@ agent to check its inbox; it is not evidence that the agent read or completed
 the request. See [routing](docs/session-routing.md) and
 [message tracing](docs/trace.md) for those contracts.
 
+Optional [priority holds](docs/wake-operations.md#hold-by-priority) can delay
+the first notification for routine mail while urgent mail skips the hold. Wake
+[live settings](docs/wake-operations.md#live-settings) have a machine default
+for this user (`amq wake config --machine --hold-normal 5m`) and per-agent
+overrides; use `amq wake config --me <handle> --hold-normal 5m` to change a
+running wake.
+
 AMQ is for local agent coordination, not a distributed broker. The optional
 [bridge companion](cmd/amq-bridge/README.md) exchanges messages between hosts;
 each host keeps control of its own queue.
 
-### Remote
+## Remote control
 
-The optional [remote companion](cmd/amq-remote/README.md) connects a running
-session to its own Buzz agent. The default path is the session mailbox: a DM
-arrives as an AMQ message from `buzz`, and the agent's reply is the answer.
-`--native` and the relay are the other paths. It is a separate binary: `amq`
-gains no socket. The Homebrew `amq` formula installs `amq`, `amq-acp`, and
-`amq-remote`. Commands, flags, and exit codes are in that README. The design is
-[the remote-control ADR](docs/adr-remote-control.md); pinned seams are
-[the compatibility manifest](docs/remote-compat.md).
+The optional [remote companion](cmd/amq-remote/README.md) gives a running
+Claude Code or Codex session its own Buzz agent, so you can DM that session
+from the Buzz app or Buzz Desktop. Inside the session, type `/amq-remote`
+(in Codex, `$amq-remote`); `/amq-remote off` disconnects it. Setup, commands,
+and the trust model are in that README.
 
 ## Documentation
 
@@ -168,6 +160,7 @@ gains no socket. The Homebrew `amq` formula installs `amq`, `amq-acp`, and
 | --- | --- |
 | Install, update, or use another platform | [Installation](INSTALL.md) |
 | Run agent pairs, isolate sessions, or supervise notifications | [Co-op operations](COOP.md) |
+| Batch routine wake notifications by priority | [Wake operations](docs/wake-operations.md#hold-by-priority) |
 | Look up a command or flag | [CLI reference](docs/cli.md) |
 | Diagnose delivery or wake problems | [Wake operations](docs/wake-operations.md) · [Trace](docs/trace.md) |
 | Attach to a running harness session | [amq-remote](cmd/amq-remote/README.md) |

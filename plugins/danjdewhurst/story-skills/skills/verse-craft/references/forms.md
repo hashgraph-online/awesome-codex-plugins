@@ -42,7 +42,8 @@ ten syllables with filler; inverted syntax to reach the rhyme.
 ## Haiku
 
 - In English, the usual pattern is three lines of 5, 7, and 5 syllables.
-  Many poets write shorter lines; follow the user.
+  Many poets write shorter lines; follow the user. Japanese haiku count
+  5, 7, and 5 *on* (morae), not syllables; see `meter-and-scansion.md`.
 - One concrete image, often a season word (*kigo*) and a cut (*kireji*),
   a pause that sets two images side by side. In English a dash or line
   break does the cutting.

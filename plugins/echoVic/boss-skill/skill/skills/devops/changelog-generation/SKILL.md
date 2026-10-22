@@ -12,6 +12,8 @@ triggers:
   - 部署成功完成后
   - 需要生成版本变更日志时
   - 发布新版本时
+metadata:
+  internal: true
 ---
 
 # CHANGELOG 自动生成

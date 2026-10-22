@@ -1,0 +1,3 @@
+# Codex installs this tree as-is. Dependencies are installed on the first start.
+node_modules/
+.codex-install.lock

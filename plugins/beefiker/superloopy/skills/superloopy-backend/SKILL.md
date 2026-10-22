@@ -11,10 +11,11 @@ Open the response with `SUPERLOOPY BACKEND ENABLED`. If another active Superloop
 
 Inspect the repository before prescribing commands, code, schema, or infrastructure: its instructions, its recorded conventions and the hooks, linters, formatters, or convention checks that enforce them, language and runtime, data stores and schema authority, test commands, generated artifacts and how they are regenerated, and the project's own definition of done for a change of this kind. Preserve the existing stack and patterns; remain stack-neutral when evidence does not select a technology. Ask only when a missing fact would materially change the implementation or its safety.
 
-Fill the context card only as far as the classified change reaches. A change confined to one unit needs the first five lines; a schema, contract, or runtime-agent change needs all of it. A card filled to the bottom for a two-line fix is cost, not diligence.
+Fill the context card only as far as the classified change reaches. A change confined to one unit needs the first six lines; a schema, contract, or runtime-agent change needs all of it. A card filled to the bottom for a two-line fix is cost, not diligence.
 
 ```text
 User outcome:
+Open items the request/ticket states, quoted, each in scope, out (follow-up drafted), or answered:
 Language and runtime / existing architecture:
 Recorded conventions and their enforcement:
 Generated artifacts and their regeneration command:
@@ -30,10 +31,10 @@ Unknowns that affect the decision:
 Classify the change as one or more of: API behavior, schema or migration, transaction, background job, cache, event or queue, runtime agent tool, performance, reliability, or security. Load only the modules the classification names:
 
 - [Architecture](references/architecture.md) — system boundaries, API or event contracts, consistency, transactions, idempotency, caching, background work, compatibility, stack restraint.
-- [Data safety](references/data-safety.md) — whenever the diff touches a query, mapper, schema, migration, privilege, or transaction boundary: schema authority, tenant isolation, least-privilege identities, reconcilable writes, migration preflight, rollout and recovery.
+- [Data safety](references/data-safety.md) — any security change, or one touching a secret, credential, query, mapper, schema, migration, privilege, or transaction boundary: secret and credential handling, schema authority, tenant isolation, least-privilege identities, reconcilable writes, migration preflight, rollout and recovery.
 - [Runtime agents](references/runtime-agents.md) — typed tool boundaries with read-only, least-privilege defaults; authorization and tenant scope from verified context; retrieved records are untrusted data, not instructions or authority; bounded time, rows, payload, cost, retries.
 - [Testing and operations](references/testing-and-operations.md) — realistic persistence tests, observability, performance evidence, rollout and recovery proof.
-- [Evidence](references/evidence.md) — when finishing: where the active or standalone evidence root comes from, how to publish, how to recover a lost receipt.
+- [Evidence](references/evidence.md) — when finishing: the evidence root, publishing, recovering a lost receipt.
 - [Upstream notice](references/upstream-notice.md) — only when auditing the public evidence behind this guidance.
 
 Do not load unrelated modules or invent their contents when a reference is unavailable; state the missing guidance as a blocker or evidence gap.
@@ -61,7 +62,7 @@ Each of these is checkable from the diff or from a run. Measured effect (see the
 
 ## Repair the class, and stop where behavior was already correct
 
-Narrow means minimal in mechanism, not partial in coverage: repair the mechanism that produced the defect rather than the single instance it was reported through, and before calling it fixed, enumerate every other route into that mechanism from your own diff — the other call sites of each symbol you changed, the other branches of each statement you edited, the other code that writes each value you moved, the other input shapes the condition you added accepts — and either correct each in the same change or pin it: an assertion that locks its present behavior, or a filed follow-up whose id the change carries. Decide each candidate by the two checks in [Sweep](references/sweep.md). Any correction you make beyond the site the report names is a behavior change of its own and carries what the requested one carries — a test that fails without it and a stated reason on the change — and callers that were behaving correctly keep the behavior they have.
+Narrow means minimal in mechanism, not partial in coverage: repair the mechanism that produced the defect, not the single instance it was reported through, and before calling it fixed, enumerate every other route into that mechanism from your own diff — the other call sites of each symbol you changed, the other branches of each statement you edited, the other code that writes each value you moved, the other input shapes the condition you added accepts — and either correct each in the same change or pin it: an assertion that locks its present behavior, a filed follow-up id the change carries, or a drafted one raised as a blocker. Decide each by the checks in [Sweep](references/sweep.md). Any correction beyond the site the report names is its own behavior change and carries what the requested one carries — a test that fails without it and a stated reason on the change — and callers that were behaving correctly keep the behavior they have.
 
 ## Fail closed
 
@@ -77,11 +78,11 @@ Report the context card, change classification, contracts, changed behavior, val
 
 - `regression_test_failed_without_fix` — one row per new case, not per file: the hunk whose reversion reddens that case, the command, and the assertion that failed. Two cases naming the same hunk are one case; a case naming none is not evidence.
 - `unrequested_changes` — every hunk not on the path from the reported symptom to the repair, each with its own failing test, or reverted before you finish; a formatting or flag-only hunk has no expressible test and is reverted. `none` if there are none.
-- `routes_into_the_mechanism` — one row per symbol, statement, writer and input shape from the clause above: each corrected here, or pinned, naming the assertion that locks it or the follow-up id. A route recorded only in this report reaches nobody.
+- `routes_into_the_mechanism` — one row per symbol, statement, writer and input shape: each corrected here, or pinned, naming the assertion that locks it or the follow-up id, or blocked, citing the drafted follow-up. A route recorded only in this report reaches nobody.
 - `definition_of_done` — the project's own list from the context card, item by item, each marked done or explicitly deferred.
 
 Redact credentials, connection strings, tokens, and protected row data; reference large artifacts by path instead of inlining them.
 
-Publish the report by passing it on standard input to `node "$BACKEND_SKILL_DIR/scripts/write-evidence-report.mjs" write "<project-root>" "<active-evidence-root>" "<qualified-report-id>"`, exactly as [Evidence](references/evidence.md) directs: it resolves the active evidence root inside a Superloopy loop or the project-local root for a standalone run, mints a qualified report id that names one attempt (a re-attempt gets a new id such as `-attempt-2`), recovers a lost receipt with `recover` only for the invocation whose receipt was lost, and keeps the evidence root out of the change under review. Never write the target path directly. Announce the printed path and end with this exact receipt after replacing the placeholder:
+Publish the report by passing it on standard input to `node "$BACKEND_SKILL_DIR/scripts/write-evidence-report.mjs" write "<project-root>" "<active-evidence-root>" "<qualified-report-id>"`, exactly as [Evidence](references/evidence.md) directs: it resolves the active evidence root inside a Superloopy loop or the project-local root for a standalone run, mints a qualified report id that names one attempt (a re-attempt gets a new id like `-attempt-2`), and recovers a lost receipt with `recover` only for the invocation whose receipt was lost. Never write the target path directly. Announce the printed path and end with this exact receipt after replacing the placeholder:
 
 `SUPERLOOPY_EVIDENCE: <BACKEND_EVIDENCE_REPORT>`

@@ -1,6 +1,6 @@
 # Accountability — s12A (new 2024) and Codes of Practice (s23–29)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Accountability obligations under MY PDPA are largely **non-engineering** (DPO designation, code-of-practice registration, vendor contracts) — but the engineering touch-points are real: a registered DPO contact has to be reachable, the audit trail underpins any "due diligence" defence under s133, and applicable codes of practice can prescribe specific technical controls.
 

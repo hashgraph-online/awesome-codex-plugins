@@ -1,0 +1,47 @@
+{
+  "name": "dropthehassle",
+  "version": "1.0.5",
+  "description": "Your AI publishes a site to a free HTTPS link or your own .com. It never pays.",
+  "author": {
+    "name": "DropTheHassle",
+    "email": "info@dropthehassle.com",
+    "url": "https://dropthehassle.com"
+  },
+  "homepage": "https://dropthehassle.com",
+  "repository": "https://github.com/bosmdavid-gif/dropthehassle-skill",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "hosting",
+    "mcp",
+    "deploy",
+    "claude-code",
+    "cursor",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "mcpServers": {
+    "dropthehassle": {
+      "type": "http",
+      "url": "https://dropthehassle.com/mcp"
+    }
+  },
+  "interface": {
+    "displayName": "DropTheHassle",
+    "shortDescription": "Your AI publishes a site to a free HTTPS link or your own .com. It never pays.",
+    "longDescription": "Your AI publishes a finished site to a free HTTPS link on dropthehassle.app, or to your own .com. Searching names and publishing are free. A payment link is handed to you. The AI never pays.",
+    "developerName": "DropTheHassle",
+    "category": "Deployment",
+    "capabilities": [
+      "Interactive"
+    ],
+    "websiteURL": "https://dropthehassle.com",
+    "privacyPolicyURL": "https://dropthehassle.com/privacy",
+    "termsOfServiceURL": "https://dropthehassle.com/terms",
+    "defaultPrompt": [
+      "Publish this site with DropTheHassle and give me the link."
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

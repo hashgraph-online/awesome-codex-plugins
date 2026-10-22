@@ -16,7 +16,7 @@ when-to-use: "user wants to execute a saved plan or implement tasks step by step
 ```
 
 ```
-!`git log --oneline -5 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -5 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ```
@@ -126,6 +126,18 @@ If the plan contains genuine contradictions (e.g., two steps that conflict, a re
 
 **If git is NOT available (Phase 0 detected `NO_GIT`):** Skip this phase entirely -- proceed to Phase 2.5.
 
+**If the repository has no commit yet** (git is available and the `git log` gather block printed `NO_COMMITS`), no branch exists until something is committed. `git checkout -b` then only renames the commit-less branch, so the default branch never comes into existence, and a later `/quiver:review --base <default branch>` stops because that branch is not found. Settle it before the rules below, with an empty first commit: `git commit --allow-empty --only -m "chore: initial commit"`. `--only` with no paths leaves anything already staged out of it, so the commit holds no file; that is why this skill makes it without asking whether to commit.
+
+- On `main` or `master`: make the commit, print `> This repository had no commit yet, so I made an empty first commit on <branch> for the new branch to start from.`, and create the branch as below.
+- On any other branch there is no main branch to compare against, and its name is the user's choice, so ask, in auto mode too. One `AskUserQuestion`, with `main` first unless `git config --get init.defaultBranch` prints `master`:
+  > This repository has no commit yet, and you are on `<branch>`. A review compares this branch against a main branch, and there is none yet. Which one should I create?
+
+  - "Create main" -- An empty first commit becomes `main`, and the work continues on `<branch>` from it.
+  - "Create master" -- An empty first commit becomes `master`, and the work continues on `<branch>` from it.
+  - "Create neither" -- Nothing is committed now; a review will have no main branch to compare this branch against.
+
+  On "Create main" or "Create master", make the commit, then run `git branch <name>`, and continue on `<branch>`. On "Create neither", make no commit.
+
 **If already on a feature branch** (not main/master), use `AskUserQuestion`:
 > You're on `{branch}`. Continue here or create a new branch?
 Buttons: `["Continue on {branch}", "Create new branch"]`
@@ -151,8 +163,9 @@ Verification: test <command | none (<reason>)>, build <command | none (<reason>)
 
 The orchestrator copies the test value into every brief's `Test command:` line. `none` is printed as-is and carried forward -- it is never replaced by a guess.
 
-Then split on the task count:
+Then choose the path; the first line that matches wins:
 
+- **No commit yet** (the `git log` gather block printed `NO_COMMITS`, which it also prints outside a git repository, and Phase 2 made no empty first commit): Sequential, whatever the task count. The Reason line says the repository has no commit yet, or that there is no git repository when Phase 0 detected `NO_GIT`. The working branch does not resolve until a first commit exists, and outside a repository there is no branch at all, so every worktree subagent's first step -- switching to that branch -- would come back BLOCKED. That leaves a run outside git and one where the user chose to create no main branch; every other run got its first commit in Phase 2 and takes the rules below.
 - **1-2 tasks:** Sequential. Proceed to Phase 3 with the verification command resolved above. The ledger below is orchestration-path-only; the sequential path keeps TodoWrite unchanged and writes nothing to disk.
 - **3+ tasks:** Parallel orchestration. Resolve the workspace and check for a ledger (below), then follow `skills/work/orchestrator.md`. Skip Phase 3 entirely -- orchestration replaces it.
 
@@ -199,7 +212,7 @@ Break the plan into TodoWrite tasks (specific, dependency-ordered, with testing 
 
 Every task on this path is subject to the plan's `## Global Constraints` when the plan carries one: a task that cannot be completed without violating a constraint is a blocker, handled by the Blockers rule below.
 
-**Commits:** After each logical unit, commit if the evidence line is a pass and the change is meaningful (`git add <specific files>` -- never `git add .`). Wait if tests fail or the message would say "WIP". Heuristic: "Can I write a message describing a complete, valuable change?"
+**Commits:** After each logical unit, commit if the evidence line is a pass and the change is meaningful (`git add <specific files>` -- never `git add .`). Wait if tests fail or the message would say "WIP". Heuristic: "Can I write a message describing a complete, valuable change?" Write each message by the rules in the `# Commit Message Generation` section of `skills/commit/SKILL.md`, read once per run at the first commit.
 
 **Blockers:** Stop immediately. Note in TodoWrite. Ask the user. Do not proceed until resolved.
 
@@ -240,7 +253,7 @@ If Phase 1 identified this as a review-fix plan and the review report was succes
 
 1. **Parse findings.** Extract all non-filtered findings from the review report, grouped by severity (Critical, High, Medium, Low). Skip the `## Filtered Findings` section entirely.
 
-2. **Map findings to plan steps.** Match each finding to a plan task by file path or title/description. Findings with no matching plan step are marked "Not in scope."
+2. **Map findings to plan steps.** Match each finding to a plan task by file path or title/description. Findings with no matching plan step are marked "Not in scope." When the review report carries any `Verification:` line, a finding without `Verification: confirmed` matches a plan task only by its ID or title, never by file path alone: the review could not show it holds against the code, so a change to its file does not address it. A plan that names such a finding keeps it in scope, and an unfixed Critical among them still blocks in item 5.
 
 3. **Check addressed status.** For each in-scope finding, verify the referenced file was modified (`git diff`) and the corresponding TodoWrite task is `completed`. Both conditions met = **Addressed**; otherwise = **Not addressed**.
 
@@ -264,13 +277,13 @@ If Phase 1 identified this as a review-fix plan and the review report was succes
    Review-Fix Cycle Status: Iteration {review_iteration} | Findings {addressed}/{total_in_scope} | Criteria {met}/{total_criteria} | COMPLETE
    ```
 
-<!-- SYNC: This verification parses the report format defined in skills/review/SKILL.md, section `### Synthesized report structure`. If the report structure changes, update the parsing logic here. New sections (What's Working Well, Recommended Fix Order, Senior Assessment) are additive and do not affect this parsing. -->
+<!-- SYNC: This verification parses the report format defined in skills/review/SKILL.md, section `### Synthesized report structure`. If the report structure changes, update the parsing logic here. It reads each finding's severity, file path, title, and text, plus each finding's `Verification:` line for the item 2 scope rule only, and nothing else: the What's Working Well, Recommended Fix Order and Senior Assessment sections, each finding's `Disposition:` line, the `Dispositions:` line in Review Context, the `**Deferred:**` line, and the `Fix corrected:`, `Fix flagged:` and `No verified fix` notes are invisible to it. A Critical marked Not addressed blocks in item 5 whatever its disposition. -->
 
 #### 4d -- Optional: Agent-assisted review
 
 **SKIP this phase entirely if this is a review-fix plan.** The Phase 4c verification is the quality gate for review-fix work. Dispatching review agents on review-fix changes creates infinite loops -- the agents will always find new issues that weren't in the original scope.
 
-For **non-review-fix plans** with large, risky, or security-sensitive changes, consider dispatching review agents. Discover available review agents by scanning `agents/review/*.md` and dispatch them in parallel -- one `Agent` call per agent, all in a single response, the way `skills/review/SKILL.md` Step 2 does it.
+For **non-review-fix plans** with large, risky, or security-sensitive changes, consider dispatching review agents. Discover available review agents by scanning `agents/review/*.md` and dispatch them in parallel -- one `Agent` call per agent, all in a single response, the way `skills/review/SKILL.md` Step 2 does it. The scan skips `finding-verifier`, which needs a finding and a reviewed commit that this phase never supplies.
 
 **Do not use review agents by default.** Tests + linting + pattern-following is sufficient for most work. Reserve agent reviews for:
 - Large refactors (10+ files) that are NOT review-fix plans
@@ -287,13 +300,13 @@ For **non-review-fix plans** with large, risky, or security-sensitive changes, c
 
 #### 5a -- Final commit
 
-If there are uncommitted changes after Phase 4, stage the relevant files (specific files only -- never `git add .`) then invoke the `commit` skill. If the user cancels, do not re-ask or proceed to 5b. In auto mode, commit directly with a Conventional Commits message -- the same rule Phase 3 commits under -- instead of delegating to the prompt.
+If there are uncommitted changes after Phase 4, stage the relevant files (specific files only -- never `git add .`) then invoke the `commit` skill. If the user cancels, do not re-ask or proceed to 5b. In auto mode, commit directly instead of delegating to the prompt, writing the message by the same `# Commit Message Generation` section of `skills/commit/SKILL.md` that Phase 3 commits under.
 
 #### 5b -- Create PR
 
 After committing (or if all commits were already made during Phase 3), print the review command as text:
-> Review before merging: /quiver:review --base <default branch>
-Add `--plan <plan path>` to that line when the run had a plan file; `<default branch>` is `main` or `master`, whichever the repository has. `skills/review/SKILL.md` carries `disable-model-invocation: true`: the Skill tool blocks a `review` call from this skill and tells the model not to reproduce the review another way, so the review is the user's to run and never a button here. This is the whole review story for `/work`: the run itself dispatches no review agents, because `/quiver:review` on the finished branch sees every task's change together with the synthesis filters a per-task pass would not have.
+> Review before merging: /quiver:review --base <default branch> --run-checks
+Add `--plan <plan path>` to that line when the run had a plan file; `<default branch>` is `main` or `master`, whichever the repository has. `--run-checks` lets the review run the project's tests to check its findings, which a branch review does only on request because the branch could be someone else's; this one is the run's own work. The run starts no review: a review reads the finished branch and is the user's step before merging, so the command is printed as text and is never a button here. This is the whole review story for `/work`: the run itself dispatches no review agents, because `/quiver:review` on the finished branch sees every task's change together with the synthesis filters a per-task pass would not have.
 
 Then use `AskUserQuestion`:
 > All work is committed on `{branch_name}`. What would you like to do next?
@@ -331,8 +344,9 @@ Summarize:
 - Link to the PR (if one was created)
 - Any follow-up work needed or remaining tasks, including every task accepted after three failed attempts and every discovered edit the group announcements printed (file and reason), so a change outside the plan's file lists is visible before the PR
 - The test-first tally, one line: `TDD: <n> red-verified, <m> skipped (<distinct reasons>)`. The sequential path counts the lines Phase 3 printed; the orchestration path counts the `TDD` lines the group-completion announcements printed. Include this line whenever the run implemented anything.
+- The Phase 2.5 lines, verbatim: `Strategy:`, `Reason:`, and `Verification:` as resolved. They are the only record of which path ran and whether the test command came from the rule or a guess, and a prose restatement ("no test script") drops the source. Include them whenever the run reached Phase 2.5.
 
-This summary ends `/work`. It does not end the turn when another skill loaded `/work` through the Skill tool -- `/ship` does, and continues into its verification here -- because that skill's instructions are still in this conversation and its next step runs now. Before ending the turn on this summary, check whether a skill invoked `/work` and follow its continuation step.
+This summary ends `/work`. It does not end the turn when another skill loaded `/work` through the Skill tool: check whether a skill invoked `/work` and follow its continuation step.
 
 ---
 

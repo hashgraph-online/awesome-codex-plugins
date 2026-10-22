@@ -16,7 +16,7 @@ when-to-use: "user wants a quick targeted single-pass senior developer review --
 ```
 
 ```
-!`git log --oneline -10 2>/dev/null || echo "NO_GIT"`
+!`git log --oneline -10 2>/dev/null || echo "NO_COMMITS"`
 ```
 
 ---
@@ -133,5 +133,5 @@ After presenting findings, use `AskUserQuestion`:
 > Review complete. What would you like to do?
 
 Buttons:
-- **"Save report"** --> Write to `.claude/reports/senior-review-{timestamp}.md` (use `date '+%Y-%m-%d_%H-%M-%S'` format). Confirm with: `> Report saved to {path}`
+- **"Save report"** --> Write to `.claude/reports/senior-review-{timestamp}.md` (use `date '+%Y-%m-%d_%H-%M-%S'` format). Before the first write, apply the keep-local rule in `skills/local-files/SKILL.md`. Confirm with: `> Report saved to {path}`
 - **"Done"** --> Stop.

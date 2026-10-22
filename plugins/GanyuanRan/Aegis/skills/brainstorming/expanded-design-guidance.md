@@ -57,8 +57,8 @@ Apply only the relevant profile instead of loading every lens for every task:
   migration, negative cases;
 - `persistence-migration`: data owner, schema evolution, partial migration,
   crash recovery, backup/rollback, read/write cutover;
-- `ui-workflow`: user journey and loading/empty/error/partial/success/cancel/
-  retry states, accessibility, irreversible actions, recovery;
+- `ui-workflow`: compose `ui-ux-governance` for applicable experience rules
+  and evidence; retain design/spec ownership in `brainstorming`;
 - `security-permission`: trust boundary, attacker capability, authority owner,
   sensitive data, downgrade/revocation, safe failure, auditability;
 - `operational-release`: deployment boundary, observability, partial rollout,

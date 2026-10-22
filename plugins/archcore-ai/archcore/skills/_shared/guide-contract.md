@@ -2,7 +2,7 @@
 
 Plugin runtime asset. Loaded before composing any `guide`: `plan` (the runbook
 instrument at `sdd.runbook`), `document` (the describe track and the decision
-track's standard cascade), `review` (the experience offer). Companion to
+track's standard cascade), `review` (the durable-context capture). Companion to
 `skills/_shared/precision-rules.md`.
 
 ## What a guide is

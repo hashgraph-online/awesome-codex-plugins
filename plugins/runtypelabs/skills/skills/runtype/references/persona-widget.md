@@ -1,8 +1,8 @@
-# Persona Chat Widget
+# Persona chat widget
 
 Persona (`@runtypelabs/persona`) is the SDK behind the embeddable chat UI for any Runtype agent or flow surface of type `chat`.
 
-When asked to generate embed code, prefer calling `generate_persona_embed_code` on the MCP server — it returns a tested, current snippet. Only hand-write embed code when the MCP tool is unavailable. When hand-writing, follow this guide exactly.
+When asked to generate embed code, prefer calling `generate_persona_embed_code` on the MCP server. It returns a tested, current snippet. Only hand-write embed code when the MCP tool is unavailable. When hand-writing, follow this guide exactly.
 For current WebMCP and fullscreen layout details, prefer `persona-embed`,
 `persona-fullscreen-assistant`, and `types-surface-configs`.
 
@@ -25,13 +25,13 @@ For current WebMCP and fullscreen layout details, prefer `persona-embed`,
 
 These are the errors most agents make. Read this section first.
 
-- **Package name**: `@runtypelabs/persona` — NOT `@runtype/persona`.
-- **Global script file**: `install.global.js` — NOT `index.umd.js`.
-- **API**: `initAgentWidget()` — NOT `Persona.mount()`, `window.Persona`, `window.RuntypePersona`. These don't exist.
+- **Package name**: `@runtypelabs/persona`, NOT `@runtype/persona`.
+- **Global script file**: `install.global.js`, NOT `index.umd.js`.
+- **API**: `initAgentWidget()`, NOT `Persona.mount()`, `window.Persona`, `window.RuntypePersona`. These don't exist.
 - **CSS**: When using ESM/manual setup, you **must** load `widget.css`. The script installer handles this automatically.
-- **Ready event**: `persona:chat-ready`; `persona:ready` is only a deprecated alias — NOT `widget:ready` or `agentwidget:ready`.
+- **Ready event**: `persona:chat-ready`; `persona:ready` is only a deprecated alias. NOT `widget:ready` or `agentwidget:ready`.
 - **Ready callback**: `onChatReady(handle)`; `onReady` is only a deprecated alias.
-- **Controller events**: use `user:message` and `assistant:complete` — NOT `message:sent` or `message:received`.
+- **Controller events**: use `user:message` and `assistant:complete`, NOT `message:sent` or `message:received`.
 
 ## CDN base URL
 
@@ -47,7 +47,7 @@ Use `cdn.runtype.com` everywhere. It is the recommended source on every surface
 preview pages: their strict Content Security Policy allows no other script source, so
 third-party CDNs (jsdelivr, unpkg, esm.sh) are blocked there and fail silently. Deployed
 `static` apps allow scripts and styles from any https origin by default (an author can
-re-tighten via the manifest `csp` field), so third-party CDNs load on apps — but a remote
+re-tighten via the manifest `csp` field), so third-party CDNs load on apps, but a remote
 script can change underneath an immutable deployed bundle, which is why the first-party
 CDN remains the right choice for Persona.
 
@@ -96,7 +96,7 @@ To mount in a specific container:
 ### Option 2: manual global bundle
 
 Full control in the browser. Requires loading `widget.css` separately. Do NOT
-`import` from `/index.js` in a browser — the ESM build keeps bare import
+`import` from `/index.js` in a browser: the ESM build keeps bare import
 specifiers (`marked`) and fails with `Failed to resolve module specifier`,
 leaving an empty mount; ESM is for bundlers (npm, Option 3) only. Use the
 self-contained `index.global.js` instead (or set the full config, functions
@@ -277,8 +277,9 @@ Rules:
 - Allow-list patterns match bare tool names. Use exact names, `*`, or one
   trailing wildcard such as `search_*`.
 - The HTTP `Origin` header is canonical. `pageOrigin` is diagnostic only.
-- `requireConfirmFor` is a Persona-side confirmation hint, not server-side
-  enforcement.
+- `requireConfirmFor` forces Persona's confirmation and is not a security
+  boundary. Chat dispatch does not enforce it; the voice direct route never
+  picks a listed tool.
 - The dashboard WebMCP tab shows discovered tools and observed origins from the
   trailing 7 days and can promote tools into allow-list rules. It shows an
   "Allow all tools" mode for the empty-allowlist case and reveals the rule
@@ -343,7 +344,7 @@ For both `config.theme` and `config.darkTheme`:
 Dark header → use `#ffffff` or `#f5f5f5` for foregrounds.
 Light header → use `#111827` or `#1f2937`.
 
-Before generating any custom theme, call `get_persona_theme_reference` to get the design-token docs and example themes — these are your starting points, not your fallbacks.
+Before generating any custom theme, call `get_persona_theme_reference` to get the design-token docs and example themes. These are your starting points, not your fallbacks.
 
 ## Tool calls and reasoning bubbles
 
@@ -364,14 +365,14 @@ Set to `false` for consumer-facing widgets. Leave on for dev/debug surfaces.
 
 ### Behavior
 
-Tool calls — `config.features.toolCallDisplay`:
+Tool calls, `config.features.toolCallDisplay`:
 
 - `expandable`: when `false`, collapsed summary only
 - `collapsedMode`: `"tool-call"` | `"tool-name"` | `"tool-preview"`
 - `activePreview`: live preview during execution
 - `previewMaxLines`, `activeMinHeight`, `grouped`
 
-Reasoning — `config.features.reasoningDisplay`:
+Reasoning, `config.features.reasoningDisplay`:
 
 - `expandable`, `activePreview`, `previewMaxLines`, `activeMinHeight`
 
@@ -463,7 +464,7 @@ For ChatGPT/Claude-style fullscreen split-pane layouts (chat on left, artifacts 
 When generating standalone HTML files or Claude artifacts that embed the widget:
 
 1. Use the **script installer** approach for simplicity.
-2. For more control, use **ESM** — and include `widget.css`.
+2. For more control, use **ESM** and include `widget.css`.
 3. `clientToken` / `data-runtype-token` is the browser-safe client token from `create_client_token`.
 4. API URL is `https://api.runtype.com` (or environment-appropriate).
 5. Don't invent APIs. The only init function is `initAgentWidget()`. The current ready event is `persona:chat-ready` (`persona:ready` is deprecated).

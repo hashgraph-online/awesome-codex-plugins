@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Body Swap"
+  short_description: "Place a person naturally into a supplied scene"
+  default_prompt: "Use $magic-hour-body-swap to put me into this scene, check identity and body placement, and deliver the finished image within my budget."

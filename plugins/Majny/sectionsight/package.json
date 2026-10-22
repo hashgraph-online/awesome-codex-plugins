@@ -1,0 +1,14 @@
+{
+  "name": "sectionsight",
+  "private": true,
+  "type": "module",
+  "description": "Tests for the sectionsight agent skill. The skill itself needs none of these packages.",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "fixture": "node test/server.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.64.0",
+    "posthog-js": "1.438.3"
+  }
+}

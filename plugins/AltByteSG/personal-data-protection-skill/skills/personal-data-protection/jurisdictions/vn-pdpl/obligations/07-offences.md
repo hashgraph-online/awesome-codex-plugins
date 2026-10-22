@@ -1,6 +1,6 @@
 # Prohibited Acts and Penalties — Điều 7, 8
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 >
 > **Unofficial translation.** Law 91/2025/QH15 and Decree 356/2025/NĐ-CP have no official
 > English version. English wording below is the maintainer's rendering of the Vietnamese;

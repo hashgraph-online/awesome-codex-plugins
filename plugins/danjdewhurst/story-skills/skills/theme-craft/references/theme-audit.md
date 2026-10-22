@@ -59,5 +59,5 @@ updated each revision round) with the premise, the five answers, and a
 **verdict**: `theme-holds` (minor fixes) or `theme-broken` (structural
 revision needed, with the specific scenes to rework listed). If the audit
 changes the premise, update `story.md`'s `premise:` field and the theme
-tracking in `plot/_index.md`, then run `story reindex .` and
-`story validate .`.
+tracking in `plot/_index.md`, then run `story reindex .`,
+`story wordcount . --write`, and `story check .`.

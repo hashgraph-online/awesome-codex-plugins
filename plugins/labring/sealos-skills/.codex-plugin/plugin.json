@@ -1,7 +1,7 @@
 {
   "name": "sealos",
-  "version": "1.2.5",
-  "description": "Sealos deployment, database, object storage, and app-building skills for Codex.",
+  "version": "2.0.0",
+  "description": "Deploy and operate Sealos Cloud apps through one interactive skill and a Brain managed workflow.",
   "author": {
     "name": "Sealos",
     "url": "https://sealos.io/"
@@ -11,23 +11,18 @@
   "license": "MIT",
   "keywords": [
     "sealos",
-    "sealos-cloud",
     "deployment",
-    "docker",
     "kubernetes",
     "codex",
     "skills",
-    "devops",
-    "desktop-apps",
     "database",
-    "object-storage",
-    "s3"
+    "object-storage"
   ],
-  "skills": "./skills/",
+  "skills": "./plugins/sealos/skills/",
   "interface": {
     "displayName": "Sealos",
-    "shortDescription": "Deploy apps and connect Sealos cloud services",
-    "longDescription": "Use Sealos in Codex to assess cloud-native readiness, generate production Dockerfiles, build or reuse container images, convert Docker Compose services into Sealos templates, deploy and update workloads on Sealos Cloud, connect cloud databases, configure S3-compatible object storage, and build Sealos Desktop apps with SDK integration guidance. The plugin bundles Sealos Agent Skills under ./skills/ and is invoked as $sealos in Codex or /sealos in Claude Code-compatible hosts.",
+    "shortDescription": "Deploy and operate apps on Sealos Cloud",
+    "longDescription": "Use Sealos to deploy from the template store, container images, or source code; provision cloud databases and S3-compatible storage; inspect and troubleshoot workloads. Brain managed mode uses its dedicated deploy and Kaniko skills.",
     "developerName": "Sealos",
     "category": "Coding",
     "capabilities": [
@@ -40,12 +35,12 @@
     "termsOfServiceURL": "https://sealos.io/docs/msa/terms-of-service/",
     "defaultPrompt": [
       "Deploy this repo to Sealos Cloud.",
-      "Containerize this app and deploy it to Sealos.",
-      "Create private S3 object storage and wire env vars."
+      "Deploy an app from the Sealos template store.",
+      "Create a Sealos database or private object storage bucket."
     ],
     "brandColor": "#15B8A6",
-    "composerIcon": "./assets/logo.svg",
-    "logo": "./assets/logo.svg",
+    "composerIcon": "./plugins/sealos/assets/logo.svg",
+    "logo": "./plugins/sealos/assets/logo.svg",
     "screenshots": []
   }
 }

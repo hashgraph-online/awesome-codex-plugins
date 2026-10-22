@@ -11,6 +11,10 @@ Set `KB_HOST` from `SW_KB_HOST`; default to
 `https://sw-plugin.ideep.org`. Use quoted `curl` shell calls only. Runtime
 endpoints are public and use camelCase JSON.
 
+On Windows, run `curl.exe` instead of `curl`: in Windows PowerShell 5.1
+`curl` is an alias for `Invoke-WebRequest`, which rejects curl options such
+as `-sS`. `curl.exe` is the real curl in every Windows shell.
+
 ## 1. Check health
 
 ```text

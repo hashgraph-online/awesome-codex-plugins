@@ -163,16 +163,24 @@ choices:
 - `story links` errors on a choice to a missing chapter and warns about a
   chapter no choice path reaches; the build refuses the first and warns
   about the second. `story move` and `story remove chapter` rewrite and
-  drop choice targets.
+  drop choice targets. After either command changes files, run `story reindex .`,
+  `story wordcount . --write`, and `story check .`.
 - Without `ifid:` in `story.md` the build derives the IFID from the story
   id and warns with the line to add. Add it before sharing the story, so
   a retitle keeps the same IFID.
-- `story continuity` still reads the chapters in number order, as one
-  path, so it cannot tell that two branches never meet. Check branch state
-  by hand against the State table in the branch map.
+- `story continuity` follows the paths of choices for deaths, revivals,
+  knowledge, and progressions, so a death or a fact on one branch does not
+  reach its sibling branches. A chapter where branches rejoin is checked
+  against every branch that leads there. `continuity/state.md` is still one
+  snapshot at `current-chapter`; a `state-differs-by-path` warning means
+  the branches leading there disagree. Promises, questions, clues, and the
+  clock still read chapter numbers, so check those, and Twine or ink state
+  variables, by hand against the State table in the branch map.
 
 [`examples/the-gull-rock-light`](../../../examples/the-gull-rock-light/)
 is a small branch-and-bottleneck story built this way.
+The `interactive-fiction` skill covers drafting and revising such a
+project: rejoins, endings, and path continuity.
 
 `story build --format ink` builds the same project as ink, with the same
 checks: one knot per chapter (`chapter-03` becomes `chapter_03`), a sticky

@@ -1,6 +1,6 @@
 ---
 name: video-script
-description: "Write a production-ready video script — 3 hook variants, timestamped dialogue with visual and audio direction columns, CTA placement map, retention notes, accessibility package, and thumbnail concepts. Detects whether the script is organic or an ad: organic scripts declare a search/browse discovery intent, ad scripts inherit objective, audience, and offer from campaign context and follow per-format rules (6s bumper, 15s skippable, 30s spot, UGC-style with disclosure). Triggers on \"/digital-marketing-pro:video-script\", \"write a YouTube script about X\", \"script a 15-second ad\", \"TikTok video for our launch\", \"explainer video script\". Reads the brand profile and campaign briefs; every script passes the /digital-marketing-pro:check gate before delivery."
+description: "Write a video script: hooks, timestamped dialogue, visual cues. Title/thumbnail → video-packaging. \"write a YouTube script about X\""
 argument-hint: "[topic or format]"
 ---
 

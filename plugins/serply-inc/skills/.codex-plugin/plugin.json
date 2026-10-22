@@ -1,0 +1,47 @@
+{
+  "name": "serply",
+  "version": "1.1.0",
+  "description": "Live Google Search, Scholar, News, Maps, Images, Jobs, Video, Bing, Amazon, eBay and Reddit results, plus URL scraping, through the Serply API and MCP server.",
+  "author": {
+    "name": "Serply",
+    "url": "https://serply.io"
+  },
+  "homepage": "https://serply.io/mcp",
+  "repository": "https://github.com/serply-inc/skills",
+  "license": "MIT",
+  "keywords": [
+    "search",
+    "web-search",
+    "serp",
+    "google",
+    "scholar",
+    "news",
+    "reddit",
+    "scraping",
+    "agents",
+    "mcp"
+  ],
+  "skills": "./codex/skills/",
+  "mcpServers": "./codex.mcp.json",
+  "interface": {
+    "displayName": "Serply",
+    "shortDescription": "Live Google web, news, Scholar, and Maps results plus page scraping.",
+    "longDescription": "Connects Codex to the hosted Serply MCP server over streamable HTTP and bundles a skill that picks the right Serply tool for each vertical. Search Google by vertical (web, news, Scholar with citation counts, Maps, images, video, jobs), Bing, Amazon, eBay and Reddit, or scrape a URL to text. The API key is read from the SERPLY_API_KEY environment variable and is never stored in this repository.",
+    "developerName": "Serply",
+    "category": "Research",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://serply.io",
+    "privacyPolicyURL": "https://serply.io/privacy",
+    "termsOfServiceURL": "https://serply.io/terms",
+    "defaultPrompt": [
+      "Search Google News with Serply for this week's coverage of this topic and cite the sources.",
+      "Find the most cited Google Scholar papers on this subject with Serply.",
+      "Scrape this URL with Serply and summarize the page."
+    ],
+    "brandColor": "#F03E2F",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

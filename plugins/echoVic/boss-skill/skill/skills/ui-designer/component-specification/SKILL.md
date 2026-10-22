@@ -12,6 +12,8 @@ triggers:
   - 需要设计组件时
   - 需要定义组件规范时
   - 前端开发需要组件文档时
+metadata:
+  internal: true
 ---
 
 # UI组件规范

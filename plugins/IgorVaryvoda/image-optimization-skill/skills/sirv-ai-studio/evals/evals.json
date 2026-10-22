@@ -1,0 +1,31 @@
+{
+  "skill_name": "sirv-ai-studio",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Remove backgrounds from 80 product images, upscale the results, generate alt text, and deliver optimized storefront images through Sirv CDN.",
+      "expected_output": "A workflow that checks for Sirv AI MCP tools first, batches where possible, checks usage/credits, chains remove-background/upscale/alt-text, uploads or stores outputs in Sirv, and keeps delivery optimization in Sirv CDN/Dynamic Imaging.",
+      "files": [],
+      "expectations": [
+        "Prefers available Sirv AI MCP tools over telling the user to visit the website",
+        "Checks credits/usage before a batch",
+        "Uses batch operations where possible",
+        "Separates AI processing outputs from CDN delivery transforms",
+        "Preserves final product metadata and verifies outputs"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create lifestyle scenes for a product catalog and prepare marketplace-compliant images.",
+      "expected_output": "A product workflow using cutouts/lifestyle generation, marketplace review or validation, output folder organization, metadata/alt text, and Dynamic Imaging profiles for storefront and marketplace delivery.",
+      "files": [],
+      "expectations": [
+        "Chooses appropriate product/lifestyle tools and model quality settings",
+        "Includes marketplace validation or review when relevant",
+        "Organizes outputs in Sirv folders",
+        "Keeps original masters distinct from generated deliverables",
+        "Uses CDN profiles or transforms for final delivery"
+      ]
+    }
+  ]
+}

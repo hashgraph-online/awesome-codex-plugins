@@ -114,7 +114,8 @@ Then check code quality:
 - Were all post-review edits reverified?
 
 Use a fresh read-only reviewer for higher-risk changes when it adds independent
-coverage. Do not delegate a small diff merely to satisfy a process checklist.
+coverage or when requested by the user or applicable repository/team policy.
+Otherwise, do not delegate a small diff merely to satisfy a process checklist.
 Apply [independent-review.md](independent-review.md) for the review packet,
 revision binding, finding disposition, and cost accounting.
 

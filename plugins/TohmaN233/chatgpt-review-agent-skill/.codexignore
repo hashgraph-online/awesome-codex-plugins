@@ -1,0 +1,9 @@
+# Local runtime caches and generated test output are not plugin resources.
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+dist/
+build/

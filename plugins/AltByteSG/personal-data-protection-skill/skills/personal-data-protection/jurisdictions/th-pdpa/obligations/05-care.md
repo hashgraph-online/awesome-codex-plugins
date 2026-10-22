@@ -1,6 +1,19 @@
 # Sections 28–29, 35, 37(1)–(3), 40 — Care of Data (Accuracy, Security, Retention, Cross-Border)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+
+## Contents
+
+- Section 35 — Accuracy obligation
+- Section 37(1) — Security measures
+- Section 37(2) — Onward-disclosure protection
+- Section 37(3) — Retention examination system
+- Section 28 — Cross-border transfer
+- Section 29 — Within-affiliate Personal Data Protection Policy
+- Section 29 paragraph 3 — Suitable protection measures fallback
+- Section 40 — Data Processor duties (security overlap)
+- Cross-border transfer table (planning template)
+- Penalty exposure (this Part)
 
 ## Section 35 — Accuracy obligation
 

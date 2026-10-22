@@ -5,7 +5,7 @@
 [![npm](https://img.shields.io/npm/v/@dodopayments/opencode-plugin.svg?style=flat-square)](https://www.npmjs.com/package/@dodopayments/opencode-plugin)
 [![Discord](https://img.shields.io/discord/1305511580854779984?label=discord&style=flat-square)](https://discord.gg/bYqAp4ayYh)
 
-The official Dodo Payments plugin for AI coding agents. Installs seventeen integration skills and two MCP servers across **Claude Code**, **Codex CLI**, **Cursor**, **VS Code / GitHub Copilot**, and **OpenCode** from a single source of truth.
+The official Dodo Payments plugin for AI coding agents. Installs the Dodo Payments integration skills and two MCP servers across **Claude Code**, **Codex CLI**, **Cursor**, **VS Code / GitHub Copilot**, **Grok Build**, **Meta Muse Code**, **Gemini CLI**, **Antigravity**, **Junie**, **OpenCode**, and more, from a single source of truth.
 
 This plugin conforms to the [Agent Plugins 1.0.0](https://agent-plugins.org/specification) specification: a root [`plugin.json`](./plugin.json), skills as immediate children of [`skills/`](./skills), and MCP servers in [`mcp.json`](./mcp.json). Clients with native Agent Plugins support load it directly; the provider-specific manifests in this repo are generated compatibility shims for clients that do not.
 
@@ -13,9 +13,27 @@ This plugin conforms to the [Agent Plugins 1.0.0](https://agent-plugins.org/spec
 
 - **Dodo Payments API MCP server** - Live API access (payments, subscriptions, customers, products, refunds, licenses, usage). Authenticates via browser OAuth, no local credentials required.
 - **Dodo Knowledge MCP server** - No credentials. Semantic search over the current Dodo Payments documentation.
-- **Seventeen agent skills** - Written as `SKILL.md` files with YAML frontmatter. Your agent loads the relevant skill on its own when a task calls for it.
+- **Agent skills** - Integration guides (listed [below](#included-skills)), written as `SKILL.md` files with YAML frontmatter. Your agent loads the relevant skill on its own when a task calls for it.
 
 ## Install
+
+| Client | Skills | MCP | How |
+|---|---|---|---|
+| Claude Code | ✅ | ✅ | [Marketplace](#claude-code) |
+| Codex CLI / ChatGPT | ✅ | ✅ | [Marketplace](#codex-cli) |
+| Cursor (and Grok Bot) | ✅ | ✅ | [Clone](#cursor) |
+| VS Code / GitHub Copilot | ✅ | ✅ | [Plugins view](#vs-code--github-copilot) · [Copilot CLI](./docs/clients/more-clients.md) |
+| Grok Build | ✅ | ✅ | [`grok plugin install`](./docs/clients/grok.md) |
+| grok.com, xAI API | — | ✅ | [Connector / API tool](./docs/clients/grok.md) |
+| Meta Muse Code | ✅ | ✅ | [`muse plugins install`](./docs/clients/muse.md) |
+| Gemini CLI | ✅ | ✅ | [Extension](#gemini-cli) |
+| Google Antigravity | ✅ | ✅ | [`agy plugin install`](./docs/clients/antigravity-and-junie.md#antigravity) |
+| JetBrains Junie | ✅ | ✅ | [Extension](./docs/clients/antigravity-and-junie.md#junie) |
+| Kiro | ✅ | ✅ | [Power](#kiro) |
+| OpenCode | ✅ | ✅ | [npm](#opencode) |
+| Qwen Code, Devin, Goose, Factory Droid, Augment, OpenHands, OpenClaw, Hermes | ✅ | ✅ | [More clients](./docs/clients/more-clients.md) |
+| Cline, Kilo, Zed, Warp, Amp, Continue, Kimi, … | ✅ | ✅ | [`npx skills` + `npx add-mcp`](./docs/clients/more-clients.md#skills-and-mcp-separately) |
+| Claude.ai, ChatGPT, Perplexity, Mistral | — | ✅ | [Custom connector](./docs/clients/more-clients.md#mcp-only-assistants) |
 
 ### Claude Code
 
@@ -75,16 +93,13 @@ git clone https://github.com/dodopayments/dodo-agent-plugin.git
 
 Point Kiro at the cloned folder. Skills load from `skills/`, MCP servers from `mcp.json`, and Kiro-specific presentation comes from the `dev.kiro` extension namespace in `plugin.json`.
 
-### Gemini CLI (MCP only)
-
-Gemini CLI has no agent-skill primitive, so **only the two MCP servers are available** - the seventeen skills are not. `dodo-knowledge` still covers a good share of what the skills provide, and it stays current automatically.
+### Gemini CLI
 
 ```bash
-git clone https://github.com/dodopayments/dodo-agent-plugin.git \
-  ~/.gemini/extensions/dodopayments
+gemini extensions install https://github.com/dodopayments/dodo-agent-plugin
 ```
 
-Restart Gemini CLI. `gemini-extension.json` at the repo root is the manifest.
+`gemini-extension.json` at the repo root is the manifest, and Gemini auto-discovers the `skills/` directory next to it. Verified on Gemini CLI 0.63.0: `gemini skills list` shows every skill and `gemini mcp list` shows both servers.
 
 ### VS Code / GitHub Copilot
 
@@ -94,7 +109,7 @@ git clone https://github.com/dodopayments/dodo-agent-plugin.git
 
 Then open the Chat view, go to **Plugins**, and add the cloned folder. Skills load from `skills/`, and both MCP servers load from `.mcp.json`.
 
-> VS Code 1.125.1 does not key off the Agent Plugins `$schema` - the string appears nowhere in its bundle. Its loader picks a manifest by probing, in order, `.plugin/plugin.json`, then `.claude-plugin/plugin.json`, then a root `plugin.json`, and defaults MCP to `.mcp.json` rather than `mcp.json`. Because this repo ships a generated `.claude-plugin/plugin.json`, VS Code loads it through that branch. Everything works - seventeen skills and two MCP servers - but via the compatibility manifests rather than the spec ones, so VS Code gets the `mcp-remote` bridge rather than the native transports in `mcp.json`.
+> VS Code 1.125.1 does not key off the Agent Plugins `$schema` - the string appears nowhere in its bundle. Its loader picks a manifest by probing, in order, `.plugin/plugin.json`, then `.claude-plugin/plugin.json`, then a root `plugin.json`, and defaults MCP to `.mcp.json` rather than `mcp.json`. Because this repo ships a generated `.claude-plugin/plugin.json`, VS Code loads it through that branch. Everything works - all skills and both MCP servers - via the compatibility manifests rather than the spec ones.
 
 ### OpenCode
 
@@ -107,7 +122,7 @@ OpenCode distributes via npm. Add the plugin to your `opencode.json`:
 }
 ```
 
-Restart OpenCode. Both MCP servers (`dodopayments-api`, `dodo-knowledge`) are registered automatically via the plugin's `config` hook. No manual `mcp` block required.
+Restart OpenCode. Both MCP servers (`dodopayments-api`, `dodo-knowledge`) are registered automatically via the plugin's `config` hook as native remote servers. No manual `mcp` block required. Run `opencode mcp auth dodopayments-api` to sign in to the API server.
 
 **Skills need the package installed locally plus one extra line.** OpenCode does not scan installed packages for skills, so point it at the package's `skills/` directory yourself. `skills.paths` entries resolve against the project directory, so the package must be present in the project's `node_modules` - OpenCode's own plugin cache is not the same location:
 
@@ -127,7 +142,7 @@ npm install --save-dev @dodopayments/opencode-plugin
 
 An absolute path works too, and avoids the local-install requirement.
 
-Verify with `opencode run "List every skill available to you by name."` - you should see all seventeen. A skills path that does not exist is ignored silently, so check rather than assume.
+Verify with `opencode run "List every skill available to you by name."` - you should see every skill listed under [Included Skills](#included-skills). A skills path that does not exist is ignored silently, so check rather than assume.
 
 > Versions before 0.5.0 documented these skills as auto-discovered. They were not: nothing in OpenCode scans an installed package, so OpenCode users had MCP servers but no skills. Setting `config.skills` from the plugin's `config` hook does not fix this either - the skill index is built before `config` hooks run, so it never registers anything.
 
@@ -160,6 +175,7 @@ If you prefer the local stdio API server with your own API key instead of the de
 | `dodo-best-practices` | SDK setup, environments, API keys, and the canonical checkout-to-webhook architecture |
 | `framework-adapters` | Official `@dodopayments/*` handlers for Next.js, Express, Hono, Astro, Remix, SvelteKit, Nuxt, Fastify, TanStack, Bun, Convex |
 | `testing-and-go-live` | Test mode, test payment methods, webhook testing, production launch checklist |
+| `dodo-mcp-usage` | When to use the documentation vs API MCP servers, test-mode safety rules, auth, troubleshooting |
 
 **Accepting payments**
 
@@ -209,7 +225,7 @@ Skills source: [`dodopayments/skills`](https://github.com/dodopayments/skills), 
 | `dodopayments-api` | Live API access (payments, subscriptions, customers, products, refunds, licenses, usage) | OAuth (browser) |
 | `dodo-knowledge` | Semantic search over the Dodo Payments documentation | None |
 
-Both servers speak Streamable HTTP. The canonical `mcp.json` declares them natively (`type: "streamable-http"`), which is what spec-native clients such as Codex CLI and Cursor use. The generated compatibility manifests — `.mcp.json`, read by Claude Code, VS Code and Cursor's legacy path — wire the same two endpoints through `mcp-remote` instead, so they run in clients that cannot yet dial Streamable HTTP directly.
+Both servers speak Streamable HTTP over HTTPS, and every manifest dials them natively - no `npx mcp-remote` bridge and no Node dependency. The canonical `mcp.json` uses the spec's `type: "streamable-http"`; the generated `.mcp.json` (Claude Code, Cursor, VS Code, Grok Build, Devin, Goose, Droid) uses the same endpoints spelled `type: "http"`, the name that dialect uses; Muse, Antigravity, Junie and Gemini get their own spellings from the generator.
 
 ## Configure (optional, Claude Code)
 
@@ -269,9 +285,8 @@ These clients load MCPs from the static `.mcp.json` shipped with the plugin. To 
 {
     "mcpServers": {
         "dodopayments-api": {
-            "type": "stdio",
-            "command": "npx",
-            "args": ["-y", "mcp-remote@latest", "https://mcp.dodopayments.com/mcp"],
+            "type": "http",
+            "url": "https://mcp.dodopayments.com/mcp",
             "enabled": false
         }
     }
@@ -327,9 +342,9 @@ npm run verify     # generated artifacts in sync + Agent Plugins conformance
 |---|---|
 | `plugin.json` | **Canonical.** Agent Plugins v1.0.0 manifest and the version source of truth |
 | `mcp.json` | **Canonical.** Agent Plugins v1.0.0 MCP config |
-| `skills/` | **Canonical.** Seventeen skills, vendored as real files |
+| `skills/` | **Canonical.** Skills, vendored as real files; the declared set lives in `.skills-source.json` |
 | `overlays/*.json` | Hand-authored provider extras the closed spec schema cannot express |
-| `.claude-plugin/`, `.cursor-plugin/`, `.agents/`, `.mcp.json`, `plugins/dodopayments/` | **Generated.** Do not hand-edit - run `npm run build` |
+| `.claude-plugin/`, `.cursor-plugin/`, `.codex-plugin/`, `.muse-plugin/`, `.agents/`, `.mcp.json`, `gemini-extension.json`, `plugins/dodopayments/`, `providers/` | **Generated.** Do not hand-edit - run `npm run build` |
 | `scripts/build.mjs` | The single generator (`--check` for drift) |
 | `scripts/conformance.mjs` | Agent Plugins conformance validator |
 | `.skills-source.json` | Upstream provenance for the vendored skills |
@@ -343,7 +358,7 @@ The repo is configured to publish the OpenCode npm package on every GitHub Relea
 **One-time setup (already done for this repo):**
 
 - npm scope `@dodopayments` exists and is owned by Dodo Payments.
-- GitHub Actions secret `NPM_TOKEN` is provisioned with publish rights to the `@dodopayments` scope.
+- npm Trusted Publishing (OIDC) is configured for `@dodopayments/opencode-plugin` against `publish-opencode.yml`. No npm token is stored in the repo.
 
 **Release workflow:**
 
@@ -358,7 +373,7 @@ The repo is configured to publish the OpenCode npm package on every GitHub Relea
 
 **CI checks:**
 
-- `Verify` runs on every pull request and push to `main`: artifact drift, Agent Plugins conformance, live JSON Schema validation, a "seventeen skills, zero symlinks" assertion, and an npm payload check.
+- `Verify` runs on every pull request and push to `main`: artifact drift, Agent Plugins conformance, live JSON Schema validation, an "every declared skill, zero symlinks" assertion, per-client manifest checks (Muse, Antigravity, Junie, Gemini), and an npm payload check.
 - The release workflow re-runs the same gates before publishing.
 
 ## Resources

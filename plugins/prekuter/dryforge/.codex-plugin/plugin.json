@@ -1,6 +1,6 @@
 {
   "name": "dryforge",
-  "version": "1.3.7",
+  "version": "1.3.8",
   "description": "Intent to implementation: ready, then go.",
   "author": {
     "name": "prekuter",
@@ -29,7 +29,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Dryforge",
-    "shortDescription": "Intent to implementation: ready, then go.",
+    "shortDescription": "ready, then go.",
     "longDescription": "Bounded-autonomy plugin harness for agents. Intent to implementation: ready, then go.",
     "developerName": "prekuter",
     "category": "Productivity",

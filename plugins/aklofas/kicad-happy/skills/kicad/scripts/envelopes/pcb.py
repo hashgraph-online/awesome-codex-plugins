@@ -178,7 +178,7 @@ class Vias:
     # annular_ring, current_capacity) once stable.
     via_analysis: dict = field(metadata={
         "description": "Nested analysis: type_breakdown, annular_ring, "
-                       "current_capacity."})
+                       "current_capacity, degenerate_drills (KH-412)."})
     vias: Optional[list[dict]] = field(default=None, metadata={
         "description": "Detailed per-via array (--full only): "
                        "[{x, y, layers, size, drill, net, type}]."})

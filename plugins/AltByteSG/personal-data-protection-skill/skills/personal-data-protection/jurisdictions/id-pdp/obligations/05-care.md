@@ -1,6 +1,18 @@
 # Pasal 29, 35–39, 42, 55–56 — Care of Data (Accuracy, Security, Retention, Cross-Border)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+
+## Contents
+
+- Pasal 29 — Accuracy
+- Pasal 35 — Security obligations
+- Pasal 36 — Confidentiality
+- Pasal 37 — Supervise all parties involved
+- Pasal 38 — Protect from unlawful processing
+- Pasal 39 — Prevent unauthorized access
+- Pasal 42 — End processing when triggered
+- BAB VII — Personal Data Transfer
+- Penalty exposure (this Part)
 
 ## Pasal 29 — Accuracy
 

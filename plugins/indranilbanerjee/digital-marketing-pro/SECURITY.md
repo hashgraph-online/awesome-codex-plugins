@@ -68,7 +68,7 @@ We may move faster than this timeline for actively-exploited issues. We will not
 If you are running DMP in a sensitive environment (multi-tenant agency setup, regulated industry brands):
 
 1. **Never commit `.mcp.json` with real API keys.** Use env vars or a secret manager — `.mcp.json.example` is the safe template.
-2. **Treat brand data at `~/.claude-marketing/<brand-slug>/` as sensitive.** It contains client strategy documents. Apply filesystem ACLs as you would any client PII.
+2. **Treat brand data at `~/.claude-marketing/brands/<brand-slug>/` as sensitive.** It contains client strategy documents. Apply filesystem ACLs as you would any client PII.
 3. **Rotate Anthropic API keys quarterly.** Use `/usage` to monitor for anomalous consumption.
 4. **Review SKILL.md edits in PRs.** Skills run with whatever permissions Claude Code has. Treat skill modifications like code review for production systems.
 5. **Pin the plugin version in agency environments.** Don't auto-update production agencies on the same day as release — let community testing happen first.

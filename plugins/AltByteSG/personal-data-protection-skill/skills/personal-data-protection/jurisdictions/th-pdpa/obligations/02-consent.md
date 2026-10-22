@@ -1,6 +1,16 @@
 # Chapter II Part I + Sections 24, 26 — Consent, Lawful Bases, Sensitive Data
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+
+## Contents
+
+- Section 19 — Consent required (general rule)
+- Section 20 — Minor consent
+- Section 21 — Purpose limitation tied to consent
+- Section 24 — Lawful bases (collection without consent)
+- Section 25 — Collection from sources other than the data subject
+- Section 26 — Sensitive Personal Data
+- Penalty exposure (this Part)
 
 ## Section 19 — Consent required (general rule)
 

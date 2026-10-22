@@ -1,12 +1,13 @@
 ---
 name: vsql-extension-builder
 description: >
-  Build a VillageSQL extension end-to-end using the 7-phase persona-driven
-  workflow: requirements, feasibility, scaffold, implementation, CTO review,
-  UAT, and documentation. Supports C++ (default) and Rust implementations.
-  Discovers the current VEF API from live SDK sources during Phase 1
-  feasibility and Phase 2 bootstrap — no hardcoded API names. Works from
-  any directory.
+  Build a VillageSQL extension — custom SQL functions or custom types — in
+  C++ or Rust, including a port of an existing PostgreSQL extension. Use
+  when the user wants to create, scaffold, test, or port a VillageSQL (VEF)
+  extension. Runs a 7-phase workflow: requirements, feasibility, scaffold,
+  implementation, review, acceptance testing, and documentation, reading the
+  current VEF API from the installed SDK headers.
+argument-hint: "[what the extension should do]"
 ---
 
 # VillageSQL Extension Builder
@@ -87,16 +88,16 @@ Gather through plain-text conversational questions (no UI selectors):
    `references/rust-workflow.md` for Rust-specific steps in Phases 1–3
    and 6; all other phases and gates apply unchanged.
 
-   **If Rust — pre-flight check:** Before proceeding, verify:
+   **If Rust — pre-flight check:** Before proceeding, run:
    ```bash
-   cargo --version        # must be 1.87 or higher
-   cargo vsql --help      # confirms cargo-vsql is installed
+   cargo --version                  # must be 1.87 or higher
+   cargo install --force cargo-vsql # install or replace with the current release
    ```
+   Always reinstall: `cargo-vsql` has no `--version`, so an old copy
+   cannot be detected.
    If `cargo` is missing: "Install Rust via https://rustup.rs (stable
    toolchain, 1.87+), then re-run."
-   If `cargo vsql` is missing: "Run `cargo install cargo-vsql`, then
-   re-run."
-   Do not continue until both checks pass.
+   Do not continue until both commands succeed.
 
    **PostgreSQL port detection.** If the description references an
    existing PostgreSQL extension (e.g. "port pgcrypto", "like hstore",
@@ -133,6 +134,11 @@ Gather through plain-text conversational questions (no UI selectors):
    If a socket path and credentials are available, attempt connection
    immediately. Only ask the user if the connection attempt fails or no
    credentials can be found in any of the above files.
+
+   If no VillageSQL server is installed or running, run the
+   `vsql-install-server` skill, then continue from this step. If that skill
+   is not installed, give the user the install command
+   `curl -fsSL https://install.villagesql.com | bash` and stop.
 
    Once connected, run:
    ```sql
@@ -359,8 +365,8 @@ server-side tracking issues happens in Phase 6.
      ships.
    - Update `README.md` placeholder content (the template has a stub —
      replace it now with at least the extension name, one-line
-     description, and install command; full README assembly happens in
-     Phase 6)
+     description, install command, and an empty "Known Limitations"
+     heading; full README assembly happens in Phase 6)
    - Update `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` so they describe this
      extension, not the template. These onboard future agents and must
      not ship as template boilerplate.
@@ -603,7 +609,12 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
 
    a. **Keyword search.** Run two queries against villagesql-server using
       `mcp__github__search_issues` — one using `search_terms.technical`,
-      one using `search_terms.user_facing`. Log both query strings.
+      one using `search_terms.user_facing`. Log both query strings. If
+      `language: rust` and the gap is in the crate or `cargo vsql`, search
+      `villagesql/vsql-rust-sdk` instead; a draft for that gap goes there.
+
+      If the GitHub MCP tools are unavailable, use `gh search issues`,
+      `gh issue view`, and `gh issue list` instead.
 
    b. **Inspect every hit.** For each result returned, call
       `mcp__github__issue_read` to read the full issue body. A match
@@ -633,6 +644,36 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
         templates and open the body with:
         > *Surfaced by the VillageSQL Extension Builder skill while
         > building `<extension-name>`.*
+        Then label it as "Labels on filed issues" below says.
+
+   **Labels on filed issues.** Every issue this skill files or drafts
+   gets labels. Put the labels in every draft, so that a user who
+   files it by hand adds them too.
+
+   | Repo | Issue | Labels |
+   |---|---|---|
+   | `villagesql/villagesql-server` | VEF limitation | `area/vef`, `kind/feature` |
+   | `villagesql/villagesql-server` | server defect found while building | `area/vef`, `kind/bug` |
+   | `villagesql/villagesql-server` | extension announcement (step 4) | `area/extension`, `kind/feature` |
+   | `villagesql/vsql-rust-sdk` | crate or `cargo vsql` gap | `enhancement`, or `bug` for a defect |
+   | `villagesql/villagesql-skills` | skill retrospective | `documentation` |
+
+   On `villagesql-server`, a bot marks each new issue `needs-area` and
+   `needs-kind` until it has one `area/` label and one `kind/` label.
+   Anyone can add them, with no write access. After you file the
+   issue, post one comment that holds the two commands on separate
+   lines:
+
+   ```text
+   /area vef
+   /kind feature
+   ```
+
+   On the other repos, pass the label when you create the issue
+   (`--label` for `gh issue create`, `labels` for the MCP tool).
+   GitHub lets only users with triage access set labels. If the
+   created issue has no label, do not retry. Tell the user which label
+   a maintainer should add.
 
    **Gate:** For every entry in `limitations.md`, record: both search
    queries used, all hits inspected with pass/fail reasoning, whether
@@ -653,6 +694,8 @@ Phase 6. The extension is not done until the Phase 6 gate passes.
    `[Community Extension] <extension-name>`. If the agent files it, the
    body must open with:
    > *Filed by the VillageSQL Extension Builder skill.*
+
+   Label it as "Labels on filed issues" in step 3 says.
 
 5. **Verify skill vocabulary is absent.** The Phase 4 critic already
    checked for this across all shipped files. Re-run a final grep over
@@ -805,13 +848,23 @@ could be clearer, tighter, or better specified.
 **If no friction points**: skip silently. Do not present the note or
 offer to file anything.
 
+**Before you present the note, sort each friction point by its cause.**
+Only a problem with this skill's own instructions belongs in the note. A
+defect in a tool goes to that tool's repository as a separate draft issue,
+in the Phase 6 Call to Action format:
+
+- `cargo vsql` or the `villagesql` crate → `villagesql/vsql-rust-sdk`
+- the server, or the C++ SDK → `villagesql/villagesql-server`
+
 **If friction points exist**: present the note inline (do not print
 tracking file contents — synthesize from them), then ask: "Want me to
 file this as an issue on villagesql-skills so it can improve future
 runs?" If yes, file to `villagesql/villagesql-skills` with title
 `[skill-feedback] <extension-name>: <one-line summary>` and the
-structured note as the body. If the MCP call fails (permissions),
-offer the note as copy-paste text instead.
+structured note as the body. If the MCP call fails (permissions), use
+`gh issue create`; if that fails too, offer the note as copy-paste text.
+Label every issue from this pass as "Labels on filed issues" in Phase 6
+step 3 says.
 
 ---
 

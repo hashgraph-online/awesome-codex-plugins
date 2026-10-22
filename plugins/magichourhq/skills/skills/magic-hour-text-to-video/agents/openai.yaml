@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Text to Video"
+  short_description: "Turn an original idea into a clear visual moment"
+  default_prompt: "Use $magic-hour-text-to-video to make an elevator open onto the moon and deliver the finished vertical clip."

@@ -1,0 +1,18 @@
+{
+  "name": "security-audit",
+  "version": "1.0.0",
+  "type": "gate",
+  "description": "安全审计门禁：检查依赖漏洞、敏感信息泄露、常见安全反模式",
+  "author": "Boss Harness Team",
+  "license": "MIT",
+  "hooks": {
+    "gate": "gate.js"
+  },
+  "config": {
+    "severity": "high",
+    "failOnSecrets": true,
+    "scanPaths": ["."]
+  },
+  "stages": [3],
+  "enabled": true
+}

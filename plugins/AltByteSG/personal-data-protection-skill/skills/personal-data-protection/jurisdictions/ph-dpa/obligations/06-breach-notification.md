@@ -1,8 +1,19 @@
 # Personal Data Breach Notification — § 20(f) RA 10173 + § 38 IRR + NPC Circular 16-03
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 PH has a **72-hour** breach notification clock that runs to **both NPC and the affected data subjects**, plus an **annual security incident report** every March. The trigger is information-type-driven: SPI or identity-fraud-enabling information acquired by an unauthorised person, with real risk of serious harm. **Concealment is its own offence** under § 30 RA 10173.
+
+## Contents
+
+- § 20(f) RA 10173 — Statutory basis for breach notification
+- § 38 IRR + NPC Circular 16-03 — When notification is mandatory
+- NPC Circular 16-03 § 12 — The 72-hour clock
+- NPC Circular 16-03 § 13 — Content of the NPC notification
+- NPC Circular 16-03 § 14 — Notification to affected data subjects
+- NPC Circular 16-03 § 17 — Annual Security Incident Report
+- § 30 RA 10173 — Concealment of security breaches involving sensitive personal information
+- What's at stake
 
 ## § 20(f) RA 10173 — Statutory basis for breach notification
 

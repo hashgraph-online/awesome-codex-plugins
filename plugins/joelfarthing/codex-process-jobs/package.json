@@ -1,6 +1,6 @@
 {
   "name": "codex-process-jobs",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Portable detached process job runtime for Codex",
   "type": "module",
   "license": "Apache-2.0",
@@ -33,7 +33,6 @@
     "assets/icon.png",
     "benchmarks/token-savings/",
     "docs/",
-    "hooks/",
     "skills/",
     "scripts/",
     "README.md",

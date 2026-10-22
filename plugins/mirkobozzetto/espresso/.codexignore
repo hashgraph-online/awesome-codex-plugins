@@ -1,0 +1,8 @@
+.git/
+.gitnexus/
+.remember/
+.claude/
+.pi/
+.DS_Store
+node_modules/
+espresso-hero.jpeg

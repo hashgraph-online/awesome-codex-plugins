@@ -11,6 +11,8 @@ dependencies:
 triggers:
   - 需要审查代码时
   - 需要评估代码质量时
+metadata:
+  internal: true
 ---
 
 # 代码审查方法

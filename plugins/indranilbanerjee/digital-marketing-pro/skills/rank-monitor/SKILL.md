@@ -1,10 +1,12 @@
 ---
 name: rank-monitor
-description: "Set up and run keyword ranking monitoring — baseline capture, scheduled position checks against GSC and connected rank-tracker MCPs, and severity-tiered alerts (minor/major/critical) on drops; --features adds a query-by-SERP-feature ownership matrix including AI Overview citation presence. Triggers on \"/digital-marketing-pro:rank-monitor\", \"track our keyword rankings\", \"why did our rankings drop\", \"alert me when positions change\", \"are we in the AI Overview for this query\". Reads the brand profile and saved keyword lists; for scored AI visibility pair with /digital-marketing-pro:geo-monitor, and for snapshot comparison /digital-marketing-pro:seo-drift."
-argument-hint: "[brand-name] [--features]"
+description: "Monitor keyword rankings with drop alerts and SERP features. Two-snapshot compare → seo-drift. \"track our keyword rankings\""
+argument-hint: "[brand-name] [--features] [--serp-snapshot <file>]"
 ---
 
 # /digital-marketing-pro:rank-monitor
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## Purpose
 
@@ -16,6 +18,11 @@ Set up and manage keyword ranking monitoring — and, with `--features`, SERP-fe
 
 - **Google Search Console MCP** is the authoritative position + impressions source for verified properties. GSC returns per-query/per-page positions, impressions, clicks, and CTR — it does **not** return the full per-query SERP-feature layout or AI Overview citation lists. Do not claim otherwise.
 - **Rank-tracker MCPs** (Ahrefs / Semrush / SE Ranking, if connected) fill in positions for keywords/competitors GSC can't see and provide their own SERP-feature flags.
+- **SERP snapshot file** (optional, from any provider): if the brand already exports per-query SERP results from any SERP API or rank tracker, pass the export with `--serp-snapshot <file>` and validate it first:
+  ```
+  python "${CLAUDE_PLUGIN_ROOT}/scripts/serp-snapshot.py" --file <export.csv|export.json> --brand-domain <brand domain>
+  ```
+  Its rows supply position, AI Overview presence and citation, People Also Ask and featured-snippet ownership for those queries. The format is in `serp-snapshot-format.md` beside this file. The script reads only that file (no network, no API key, no provider code), exits 1 and lists every bad row if the export is malformed (show the errors and do not use the file), and nothing changes when no file is given.
 - **Moz MCP** (`mcp-moz`) is **optional** — verify the package exists on npm before use (`npm view mcp-moz`); `npx` executes remote code, so don't wire an unverified package. If Moz isn't connected, use GSC + whichever rank-tracker MCP the brand already has.
 - **AI Overview presence** in `--features` mode records only *whether* an AI Overview appeared and *whether the brand was cited in it* (a binary SERP-feature signal). For scored AI-visibility measurement across the 6 canonical AI surfaces, use `/digital-marketing-pro:geo-monitor` / `/digital-marketing-pro:aeo-audit` (the canonical AI-visibility scoring standard) and, for actual impressions, `/digital-marketing-pro:gsc-ai-performance`. Do not re-implement AI-visibility scoring here.
 
@@ -34,7 +41,7 @@ The user must provide (or will be prompted for):
 ## Process
 
 1. **Load brand context**: Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`. Apply brand voice, compliance rules for target markets (`skills/context-engine/compliance-rules.md`), and industry context. Also check for guidelines at `~/.claude-marketing/brands/{slug}/guidelines/_manifest.json` — if present, load restrictions. Check for agency SOPs at `~/.claude-marketing/sops/`. If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults.
-2. **Capture current rankings baseline**: Query the connected rank sources (GSC MCP, plus any rank-tracker / Moz MCP available) for the current ranking position of each target keyword. Record position, ranking URL, click-through rate and impressions from GSC where available. In `--features` mode, also record which SERP features are present for the query (from the rank-tracker's feature flags or manual observation) and the owning domain per feature. For competitor domains, capture their positions (and feature ownership) for the same keywords.
+2. **Capture current rankings baseline**: Query the connected rank sources (GSC MCP, plus any rank-tracker / Moz MCP available) for the current ranking position of each target keyword. Record position, ranking URL, click-through rate and impressions from GSC where available. In `--features` mode, also record which SERP features are present for the query (from the rank-tracker's feature flags, a validated SERP snapshot file, or manual observation) and the owning domain per feature, and say which source each query's flags came from. For competitor domains, capture their positions (and feature ownership) for the same keywords.
 3. **Configure monitoring schedule**: Save the keyword list, mode (`rankings` or `rankings+features`), monitoring frequency, alert thresholds, competitor domains, device type, and target country to `${CLAUDE_PLUGIN_DATA}/{brand}/seo/rank-monitor/config.json`. Create or update the baseline snapshot at `${CLAUDE_PLUGIN_DATA}/{brand}/seo/rank-monitor/baseline.json` with the current positions (and, in `--features` mode, the feature matrix) as the reference point.
 4. **On each monitoring check: query and compare**: Pull current positions for all tracked keywords. Compare each keyword's current position to both the baseline (original position when monitoring started) and the previous check (last recorded position). Calculate absolute change from baseline, change since last check, rolling 7-day and 30-day trend direction, and average position across all tracked keywords. In `--features` mode, diff the feature matrix against the previous snapshot (features gained/lost, ownership changes, AI Overview appearance/citation changes).
 5. **Detect significant changes**: Identify keywords that crossed alert thresholds — drops exceeding the configured position threshold, keywords that fell from page 1 (positions 1-10) to page 2 or beyond, keywords that gained >5 positions (potential quick wins), and (in `--features` mode) new SERP-feature appearances or losses for the brand's ranking URLs, plus competitor rank/feature changes that moved them above or below the brand.

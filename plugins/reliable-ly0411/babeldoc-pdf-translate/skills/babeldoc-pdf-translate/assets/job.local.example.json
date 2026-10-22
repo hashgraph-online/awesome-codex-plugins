@@ -1,0 +1,11 @@
+{
+  "input":"input.pdf",
+  "output":"translation-local",
+  "source_language":"en",
+  "target_language":"zh-CN",
+  "outputs":"both",
+  "watermark":"no_watermark",
+  "translate_tables":true,
+  "auto_terms":false,
+  "provider":{"type":"openai","base_url":"http://127.0.0.1:11434/v1","model":"YOUR-ALREADY-INSTALLED-TEXT-MODEL","auth":"none"}
+}

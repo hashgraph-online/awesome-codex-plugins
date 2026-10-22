@@ -1,6 +1,6 @@
 # EU Code of Practice on AI-Generated Content — context for marketing teams
 
-**Status as of 29 July 2026:** the European AI Office published the **FINAL Code of Practice on Transparency of AI-Generated Content on 10 June 2026** — ahead of the **2 August 2026** applicability date for **AI Act Article 50 transparency obligations**. The Commission has confirmed the Code as an **"adequate voluntary tool"** for demonstrating Article 50 compliance, and has also adopted its **final Guidelines on Article 50**. The final Code is now the operative reference (superseding the 5 March 2026 second draft). The **initial-signatory window closed 22 July 2026**; late signing remains possible. (Re-verify this status line at each release.)
+**Status as of 4 October 2026 (enforcement live since 2 August 2026):** the European AI Office published the **FINAL Code of Practice on Transparency of AI-Generated Content on 10 June 2026** — ahead of the **2 August 2026** applicability date for **AI Act Article 50 transparency obligations**. The Commission has confirmed the Code as an **"adequate voluntary tool"** for demonstrating Article 50 compliance, and has also adopted its **final Guidelines on Article 50**. The final Code is now the operative reference (superseding the 5 March 2026 second draft). The **initial-signatory window closed 22 July 2026**; late signing remains possible. (Re-verify this status line at each release.)
 
 Sources: [Code of Practice on Transparency of AI-Generated Content — official page](https://digital-strategy.ec.europa.eu/en/policies/code-practice-ai-generated-content) · [final Code PDF](https://ec.europa.eu/newsroom/dae/redirection/document/129555) (10 June 2026).
 
@@ -9,7 +9,7 @@ This document is the canonical reference for any DMP skill that produces, valida
 ### July 2026 verification notes (re-check before each release)
 
 - **Final EU Code of Practice** — ✅ PUBLISHED 10 June 2026. Citations in this doc now point at the final text. The **initial-signatory window closed 22 July 2026** (late signing remains possible); one time-sensitive obligation remains: Article 50 obligations **apply from 2 August 2026**.
-- **Standardized EU disclosure icons** — ✅ published with the final Code. Use the official EU icons for visible AI-generation labels on EU-targeted assets; source them from the final Code annex rather than recreating them.
+- **Standardized EU disclosure icons** — ✅ published: three icons (Basic / Fully AI-Generated / Partially AI-Modified), optional to use but labelling itself is mandatory; label visible at first exposure and when reshared or downloaded. Details and source below under "The official EU icons" (Commission page updated 24 Sep 2026).
 - **FTC endorsement guidance (May 2026)** — the US FTC's updated endorsement/testimonial guidance covers AI-generated testimonials and synthetic-creator content. Verify the current text against ftc.gov and fold specifics into `skills/influencer-creator/ftc-compliance.md` and `skills/c2pa-metadata/SKILL.md`.
 - **New York synthetic-performer disclosure law (effective June 2026)** — applies to synthetic influencers and AI-generated endorsements ($1K–$5K per violation, $10K repeat). Verify scope/effective date against a primary source before relying on the figures.
 
@@ -43,7 +43,7 @@ The final Code also requires **detection and verification protocols** so a deplo
 The Code explicitly supports **open standards** to keep compliance costs low — **C2PA satisfies the secured-metadata layer**.
 
 ### Section 2 — Deployers
-Carried over from the second draft into the final text: **the prior taxonomy distinguishing AI-generated content from AI-assisted content is dropped**. The approach focuses on:
+Carried over from the second draft into the final text: **the disclosure obligation no longer depends on an AI-generated vs AI-assisted distinction** (that distinction now lives only in which label you show — see the EU icons below). The approach focuses on:
 
 | What | Disclosure requirement |
 |---|---|
@@ -51,9 +51,27 @@ Carried over from the second draft into the final text: **the prior taxonomy dis
 | **Text publications on matters of public interest** | Disclosure required UNLESS human editorial review with editorial responsibility was applied |
 | **Artistic, creative, satirical, fictional, or editorially-controlled content** | Simplified / reduced requirements — disclosure must not hamper the work |
 
-The Section 2 changes mean DMP no longer needs to maintain a "AI-generated vs AI-assisted" classifier on every output. Every AI-touched asset that meets the deepfake or public-interest-text criteria carries the same disclosure obligation.
+The Section 2 changes mean the **obligation** does not depend on how much AI was involved: every AI-touched asset that meets the deepfake or public-interest-text criteria must be disclosed. The **label you show**, however, does distinguish the extent — see the EU icons below.
 
 Source: [final Code of Practice (EU Commission, 10 June 2026)](https://ec.europa.eu/newsroom/dae/redirection/document/129555).
+
+### The official EU icons (Commission page, updated 24 Sep 2026)
+
+| Icon | Use it when |
+|---|---|
+| **Basic** | AI was involved in creating deepfake content (image, audio, video) or published text, or when a custom text label or interactive second layer is implemented |
+| **Fully AI-Generated** | The entire deepfake content or text is fully generated by AI, with no human-created elements and no human editorial control |
+| **Partially AI-Modified** | Pre-existing, human-made content was partially modified with AI, turning it into a deepfake or into text on matters of public interest |
+
+Three rules from the same page:
+
+1. **The icons are optional; labelling is not.** "The use of these EU icons is optional, but the labelling requirements under Article 50 AI Act are not." A clear text label satisfies the obligation; the icon is the standardized way to do it.
+2. **First exposure.** The label must be "clearly perceivable and distinguishable at the latest at the time of first exposure" — on the asset or in the first thing a person sees, never in a footer or a linked policy page.
+3. **It must travel.** "The icon must be visible when content is reshared or downloaded" — so burn visible labels into image/video assets for social distribution rather than relying on a caption that platforms strip; C2PA metadata is the machine-readable layer, not a substitute for the visible one.
+
+**Choosing the icon from DMP's own records:** when a content-engine run carries an `authorship.py` record, `may_claim_authored: true` with human source text maps to **Partially AI-Modified**; a run with no human source draft and no editorial review maps to **Fully AI-Generated**; when unsure, use **Basic** (the uncertain ⇒ disclose rule still applies — never skip the label because the icon choice is unclear).
+
+Source: [EU icons for labelling AI-generated content](https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content) (European Commission, last update 24 Sep 2026). **Enforcement:** the Commission began enforcing Article 50 on 2 Aug 2026 ([announcement](https://digital-strategy.ec.europa.eu/en/news/commission-starts-enforcing-ai-act-rules-and-new-transparency-requirements-2-august), 31 Jul 2026).
 
 ## Voluntary status
 

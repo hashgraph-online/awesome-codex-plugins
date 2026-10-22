@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="background" x1="72" y1="48" x2="441" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#183B73"/>
+      <stop offset="1" stop-color="#101B35"/>
+    </linearGradient>
+    <linearGradient id="conversation" x1="211" y1="280" x2="414" y2="424" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#47D8C4"/>
+      <stop offset="1" stop-color="#25A9BA"/>
+    </linearGradient>
+    <filter id="shadow" x="54" y="51" width="368" height="410" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse">
+      <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+      <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0"/>
+      <feOffset dy="12"/>
+      <feGaussianBlur stdDeviation="14"/>
+      <feComposite in2="SourceAlpha" operator="out"/>
+      <feColorMatrix values="0 0 0 0 0.0157 0 0 0 0 0.0549 0 0 0 0 0.1294 0 0 0 0.42 0"/>
+      <feBlend in2="BackgroundImageFix" result="effect1_dropShadow"/>
+      <feBlend in="SourceGraphic" in2="effect1_dropShadow" result="shape"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#background)"/>
+  <g filter="url(#shadow)">
+    <path d="M139 88H301L363 150V367C363 378.046 354.046 387 343 387H139C127.954 387 119 378.046 119 367V108C119 96.954 127.954 88 139 88Z" fill="#F5F8FF"/>
+    <path d="M301 88V130C301 141.046 309.954 150 321 150H363L301 88Z" fill="#C9D8F1"/>
+    <path d="M158 186H294" stroke="#2D6DCA" stroke-width="17" stroke-linecap="round"/>
+    <path d="M158 229H266" stroke="#B5C5DE" stroke-width="14" stroke-linecap="round"/>
+    <path d="M158 266H247" stroke="#B5C5DE" stroke-width="14" stroke-linecap="round"/>
+  </g>
+  <path d="M234 296C234 282.745 244.745 272 258 272H390C403.255 272 414 282.745 414 296V363C414 376.255 403.255 387 390 387H365L338 412V387H258C244.745 387 234 376.255 234 363V296Z" fill="url(#conversation)"/>
+  <circle cx="280" cy="330" r="8" fill="#F4FFFF"/>
+  <circle cx="324" cy="330" r="8" fill="#F4FFFF"/>
+  <circle cx="368" cy="330" r="8" fill="#F4FFFF"/>
+</svg>

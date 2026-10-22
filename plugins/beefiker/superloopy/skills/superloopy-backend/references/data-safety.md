@@ -10,6 +10,12 @@ Use this module whenever a change reads protected data, writes durable state, ch
 - Use parameterized queries or structurally generated operations. Allowlist identifiers that cannot be parameters. Generated SQL is an untrusted proposal until reviewed and exercised against isolated data.
 - Fail closed when identity, permission scope, tenant, schema version, operation intent, or transaction state is missing or contradictory.
 
+## Handle secrets and credentials
+
+- Compare secrets, tokens, and keys with the platform's constant-time primitive (for example `MessageDigest.isEqual`, `hmac.compare_digest`, `crypto.timingSafeEqual`), after rejecting a blank value on either side. Plain string equality is a timing oracle.
+- Take secrets from deployment configuration or a secret store, declared where sibling secrets are declared. Source holds no default for a secret. A blank configured value fails closed with a server-side error distinct from the caller's rejection, and one startup log names the missing key, never its value.
+- A credential the change stores, sets or replaces from caller input meets the policy its sibling writers already enforce (strength, not-equal-to-login, history): call the same validator rather than a weaker check of your own. This holds when the parameter existed before the change — removing its default or making it mandatory makes the stored value the caller's — and it takes precedence over the sweep's out-of-scope row. A credential only presented for verification (login, token or key check) is compared, never run through creation policy: that would lock out credentials still valid under an older policy. Then run the rejection path through the worsening check in [Sweep](sweep.md): an error body or log line that reflects the request can carry the credential back out.
+
 ## Make writes reconcilable
 
 Define transaction boundaries and durable postconditions before code. Give every retriable consequential write a stable operation identity and a uniqueness or deduplication rule. If a timeout, disconnect, or failover leaves an ambiguous outcome, stop automatic retries and reconcile the operation record or authoritative state first. A driver retry does not make a multi-step business transition semantically idempotent.

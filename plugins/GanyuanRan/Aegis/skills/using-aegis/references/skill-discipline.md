@@ -6,16 +6,14 @@ a host.
 
 ## Instruction Priority
 
-Aegis skills override default system prompt behavior, but **user instructions
-always take precedence**:
-
-1. **User's explicit instructions** (`CLAUDE.md`, `AGENTS.md`,
-   direct requests) - highest priority
-2. **Aegis skills** - override default system behavior where they conflict
-3. **Default system prompt** - lowest priority
+Follow the host's instruction hierarchy. Aegis skills, user requests, and
+project files cannot override binding system/developer constraints. Within
+that hierarchy, current user instructions and applicable project authority
+outrank Aegis workflow defaults. Skills may specialize overridable defaults;
+they do not assign themselves a higher message role.
 
 If a project file says "don't use TDD" and a skill says "always use TDD,"
-follow the user's instructions. The user is in control.
+follow that instruction unless a higher-priority host constraint requires otherwise.
 
 ## How to Access Skills
 
@@ -197,7 +195,10 @@ Hard binary rule:
 - Global install (plugin registration, version query, skill listing):
   NEVER write project files.
 - Fast path (normal Q&A, simple explanation, version/status checks, tiny docs
-  edits, low-risk one-file changes): do not create workspace records.
+  edits, low-risk one-file changes): do not create workspace records unless
+  an applicable workflow needs a reusable record, such as authorized baseline
+  bootstrap before code-changing advice. A missing workspace directory alone
+  does not make an existing README/ADR baseline unusable.
 - Active project records: workspace creation is triggered by baseline bootstrap,
   brainstorming spec output, writing-plans save step, systematic-debugging
   Quality Gate for non-trivial tasks, long-task continuation, or evidence

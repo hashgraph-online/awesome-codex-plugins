@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tempfile
 import time
 from pathlib import Path
@@ -30,9 +31,13 @@ def _read_capability_mode(path: Path) -> Optional[dict]:
     time. **No self-heal under os.link first-writer-wins**: if the
     corrupt file persists on disk, os.link raises FileExistsError, the
     caller falls back to re-reading, and the retry loop here will keep
-    returning None on the same corrupt content. External tooling that
-    writes capability_mode.json directly (not through this module) can
-    therefore wedge the run; recovery is manual (`rm capability_mode.json`).
+    returning None on the same corrupt content (unparseable JSON). This
+    is distinct from valid-but-foreign JSON (e.g. an analyzer envelope
+    written to this path by external tooling, not through this module)
+    — that case parses fine here and is no longer treated as a wedge;
+    see _is_valid_record / KH-415, which rejects it downstream and the
+    caller bypasses it with a fresh in-memory record instead of raising
+    or giving up.
     The 5-retry x 5ms sleep window is sized for the only failure mode
     this module actually races against: the brief gap between
     tempfile.mkstemp/fdopen and os.link in our own writer.
@@ -43,6 +48,23 @@ def _read_capability_mode(path: Path) -> Optional[dict]:
         except (json.JSONDecodeError, FileNotFoundError, OSError):
             time.sleep(0.005)
     return None
+
+
+def _is_valid_record(rec) -> bool:
+    """A capability_mode record is a dict with a non-empty string run_id.
+
+    Anything else at the sidecar path (an analyzer envelope, a list, a bare
+    string) must not be adopted as the run record — KH-415: indexing
+    record["run_id"] on such a file crashed every analyzer at startup.
+    """
+    return isinstance(rec, dict) and isinstance(rec.get("run_id"), str) and bool(rec["run_id"])
+
+
+def _warn_malformed(path: Path, rec) -> None:
+    kind = type(rec).__name__ if not isinstance(rec, dict) else "dict without a string run_id"
+    print(f"Warning: {path} is not a capability_mode record ({kind}); "
+          f"leaving it untouched and using a fresh in-memory run_id (KH-415)",
+          file=sys.stderr)
 
 
 def _detect_datasheet_status(cache_dir: Optional[Path] = None) -> str:
@@ -90,6 +112,19 @@ def _read_schema_versions() -> dict:
     return versions
 
 
+def _fresh_record(datasheet_extraction, cache_dir, llm_review_status, schema_versions) -> dict:
+    return {
+        "run_id": generate_run_id(),
+        "datasheet_extraction": datasheet_extraction or _detect_datasheet_status(cache_dir),
+        "datasheet_coverage_pct": _compute_coverage_pct(cache_dir),
+        "llm_review": llm_review_status,
+        "insertion_points_active": [],
+        "schema_versions": schema_versions or _read_schema_versions(),
+        "platform": "claude-code",
+        "tier_map": {},
+    }
+
+
 def get_or_create_capability_mode(
     analysis_dir,
     *,
@@ -109,7 +144,13 @@ def get_or_create_capability_mode(
     if path.exists():
         existing = _read_capability_mode(path)
         if existing is not None:
-            return existing
+            if _is_valid_record(existing):
+                return existing
+            # Parses, but is not ours (KH-415) — never crash the analysis
+            # over a sidecar; do not overwrite someone else's file either.
+            _warn_malformed(path, existing)
+            return _fresh_record(datasheet_extraction, cache_dir,
+                                 llm_review_status, schema_versions)
         # exists() is True but the file isn't valid JSON yet — most likely
         # a racing writer is mid-create (our own writer's mkstemp/fdopen
         # window before os.link). Fall through and try to write our own.
@@ -119,16 +160,7 @@ def get_or_create_capability_mode(
         # the original record stub if the file was externally corrupted
         # (no self-heal under os.link first-writer-wins; see
         # _read_capability_mode docstring for recovery).
-    record = {
-        "run_id": generate_run_id(),
-        "datasheet_extraction": datasheet_extraction or _detect_datasheet_status(cache_dir),
-        "datasheet_coverage_pct": _compute_coverage_pct(cache_dir),
-        "llm_review": llm_review_status,
-        "insertion_points_active": [],
-        "schema_versions": schema_versions or _read_schema_versions(),
-        "platform": "claude-code",
-        "tier_map": {},
-    }
+    record = _fresh_record(datasheet_extraction, cache_dir, llm_review_status, schema_versions)
     analysis_dir.mkdir(parents=True, exist_ok=True)
     # Atomic create: stage the full record to a temp file in the same
     # directory, then os.link() it into place. os.link raises
@@ -150,7 +182,12 @@ def get_or_create_capability_mode(
             os.link(tmp_path, path)
         except FileExistsError:
             # Another analyzer won the race — return its record, not ours.
-            return _read_capability_mode(path) or record
+            winner = _read_capability_mode(path)
+            if _is_valid_record(winner):
+                return winner
+            if winner is not None:
+                _warn_malformed(path, winner)
+            return record
     finally:
         try:
             os.unlink(tmp_path)

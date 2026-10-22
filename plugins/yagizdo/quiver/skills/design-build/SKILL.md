@@ -284,7 +284,7 @@ Buttons: `["Commit -- /commit", "Open a PR -- /create-pr", "Stop here"]`
 - **Open a PR:** invoke the `create-pr` skill.
 - **Stop here:** stop.
 
-`skills/review/SKILL.md` carries `disable-model-invocation: true`: the Skill tool blocks a `review` call from this skill and tells the model not to reproduce the review another way, so the review is the user's to run and never a button here.
+The build starts no review: a review reads the finished branch and is the user's step before merging, so the command is printed as text and is never a button here.
 
 Do not open a pull request directly -- `/create-pr` owns that.
 

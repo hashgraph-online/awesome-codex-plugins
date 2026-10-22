@@ -21,15 +21,20 @@ Google's public Antigravity materials describe:
 - Antigravity CLI `1.0.1` plugin discovery for skills and agents from
   installed plugin directories
 
-The precise local file layout and plugin manifest contract for third-party
-method-pack distribution are still host-version-dependent and must be verified
-against the current Antigravity release before writing install instructions that
-claim a canonical path.
+The local file layout and plugin manifest contract were verified against
+Antigravity CLI `1.4.0` on Windows (2026-10-17): the CLI reads skills from
+`~/.gemini/antigravity-cli/skills/<skill-name>/`, plugins require a
+`plugin.json` manifest with optional `skills/<skill-name>/SKILL.md` components
+copied under `~/.gemini/config/plugins/<plugin-name>/`, and the Aegis
+updater-managed direct-child exposure is the verified structural install path.
+Live Aegis skill loading, task routing, and session refresh remain pending
+verification. A runnable signed-in CLI or structural discovery readback alone
+does not prove those behaviors. Re-verify the layout against the current host
+release before claiming a canonical path for a different version.
 
 ## Skill Access
 
-Prefer portable text requests until the current Antigravity surface has been
-verified:
+Prefer portable text requests as the stable cross-host entry form:
 
 ```text
 Use the Aegis `systematic-debugging` skill for this failure.

@@ -24,16 +24,19 @@ Match the convention used by the reference examples in `vsql-rust-sdk`
 ### SDK Discovery (replaces Phase 1 step 2)
 
 There is no staged SDK directory for Rust. The `villagesql` crate is the
-SDK. To verify the crate version matches the running server:
+SDK. To check what it supports against the running server:
 
 1. Find the installed Rust SDK source. Check `~/.villagesql/credentials.txt`
    for a `RUST_SDK_PATH` entry first; fall back to asking the user.
 2. Read `Cargo.toml` at the crate root and extract the `version` field.
-3. Compare to the server's `villagesql_server_version` from Phase 0. The
-   crate major and minor versions must match the server major and minor
-   versions. If they differ, pause and ask the user to update the SDK.
-4. Note the confirmed crate version as `sdk_version` in the conversation
-   (written to `.claude/tracking/architecture.md` in Phase 2).
+3. Do not judge the crate by its version number: every version is `0.0.x`
+   until beta, and a server patch release can add a hook the crate lacks.
+   For each hook the design needs, find it in
+   `{sdk_dir}/include-dev/villagesql/vsql/` (see
+   `references/environment.md`), then grep the crate source for it. A hook
+   missing from the crate is a gap — present it before Phase 2.
+4. Note the crate version as `sdk_version` in the conversation (written
+   to `.claude/tracking/architecture.md` in Phase 2).
 
 ### Feasibility (replaces Phase 1 step 3)
 
@@ -77,6 +80,8 @@ to run with `vsql_allow_preview_extensions=ON`.
 **Not yet available in the Rust SDK** (confirm against the crate source
 before treating as current):
 - Variable-length column storage (Column Storage ABI)
+- `bind_and_check_types`, which a function needs to declare the type
+  parameters of a parameterized custom-type result
 
 If the user's request requires any unavailable capability, present the
 gap explicitly before Phase 2. Do not proceed with a workaround that
@@ -115,7 +120,13 @@ crate-type = ["cdylib"]
 
 [dependencies]
 villagesql = "<crate-version-from-sdk-discovery>"
+
+[workspace]
 ```
+
+Keep the empty `[workspace]` table, and add it to a `cargo generate`
+scaffold too. Without it, an extension inside another Cargo project fails
+with `package ID specification ... did not match any packages`.
 
 Create `manifest.json` next to `Cargo.toml`:
 ```json
@@ -210,6 +221,16 @@ When reinstalling via SQL shell, run `UNINSTALL` and `INSTALL` as
 ```bash
 cargo vsql test           # run MTR suite
 cargo vsql test --record  # record/update .result files
+```
+
+MTR stops at the first failing test, so the tests after it do not run, and
+`cargo vsql test` cannot pass `--force` yet. To run every test while one
+fails, install and then call MTR directly:
+
+```bash
+cargo vsql install
+cd "$VillageSQL_BUILD_DIR/mysql-test"
+perl mysql-test-run.pl --suite=<extension_dir>/mysql-test --force
 ```
 
 MTR test files live in `mysql-test/t/` and results in `mysql-test/r/`.

@@ -1,0 +1,4 @@
+# Read by the HOL plugin scanner (awesome-codex-plugins best-practice check), not by Codex itself:
+# a real `codex plugin add` still copies these. Lists files a plugin user doesn't need.
+test-suite/
+node_modules/

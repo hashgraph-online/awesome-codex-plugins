@@ -1,6 +1,35 @@
 # BAB VI — Controller / Processor Obligations + DPO + Records (Pasal 19–54)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+
+## Contents
+
+- Pasal 19 — Who is bound
+- Pasal 20 — Lawful basis required
+- Pasal 22 — Consent must be in writing
+- Pasal 24 — Burden of proof on Controller
+- Pasal 27, 28 — Core processing duties
+- Pasal 29 — Accuracy
+- Pasal 30 — Correction within 72 hours
+- Pasal 31 — Records of Processing Activities
+- Pasal 32 — Access within 72 hours
+- Pasal 33 — Permitted refusals
+- Pasal 34 — Mandatory DPIA for high-risk processing
+- Pasal 35–39 — Security obligations
+- Pasal 40 — Stop processing on consent withdrawal (72h)
+- Pasal 41 — Suspend / restrict processing (72h)
+- Pasal 42 — End processing on retention met / purpose achieved / subject request
+- Pasal 43 — Erasure obligation (4 grounds)
+- Pasal 44 — Destruction obligation
+- Pasal 45 — Notify subject of erasure / destruction
+- Pasal 46 — Breach notification (72 hours)
+- Pasal 47 — Accountability
+- Pasal 48 — M&A / dissolution notice
+- Pasal 49 — Comply with regulator orders
+- Pasal 50 — Exceptions (national security, law enforcement, public administration)
+- Pasal 51–52 — Data Processor obligations
+- Pasal 53 / 54 — DPO (engineering touch-points)
+- Penalty exposure (this Part)
 
 ## Pasal 19 — Who is bound
 

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "solidping": {
+      "type": "http",
+      "url": "https://solidping.io/api/v1/mcp"
+    }
+  }
+}

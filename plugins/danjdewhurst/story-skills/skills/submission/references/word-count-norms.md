@@ -1,5 +1,14 @@
 # Word-Count Norms
 
+**English-language market only.** Do not apply these ranges to a book in
+another language (`language` in `story.md`): the same story runs to a
+different word count in each language, Chinese and Japanese publishing
+count characters rather than words (Japanese manuscripts are often
+measured in 400-character manuscript pages), and each market has its own
+expectations. For those books, ask the user for the norms of the market
+and the publishers they are targeting, and report the count without a
+verdict.
+
 These ranges are rough industry conventions for debut novels in the
 English-language trade market. They vary by agent, publisher, country, and
 year. Always tell the user the manuscript's count and the range, and ask
@@ -38,7 +47,10 @@ anthologies publish their own limits; follow those.
   thousand in submission copy.
 - When the count is well outside the range (roughly 15% or more), tell the
   user, name the likely objection (printing cost for long books, thinness
-  for short ones), and let them decide.
+  for short ones), and let them decide. If they choose to cut or expand,
+  run `revision-continuity`'s
+  [length pass](../../revision-continuity/references/pass-checklists.md#length-pass),
+  which sets a budget per chapter and arc before touching the prose.
 - Sequels and established authors are judged differently; these ranges are
   for a first submission.
 - If `story.md` has `target-words`, also report the count against that

@@ -1,0 +1,44 @@
+{
+  "_case": "Clarisix worked example - US Home and Kitchen, $29.99",
+  "_source": "referenced in references/formulas.md",
+  "inputs": {
+    "selling_price": 29.99,
+    "vat_rate": 0.0,
+    "cogs": 8.0,
+    "inbound_shipping": 1.0,
+    "advertising_per_unit": 2.0,
+    "return_rate": 0.03,
+    "restock_share": 0.6,
+    "storage_per_unit": 0.29,
+    "other_costs": 0.0,
+    "target_margin": 0.2,
+    "refund_admin_fee_rate": 0.2,
+    "refund_admin_fee_cap": 5.0
+  },
+  "fee_model": {
+    "type": "rule",
+    "referral_bands": [
+      {
+        "up_to": null,
+        "rate": 0.15,
+        "mode": "marginal"
+      }
+    ],
+    "fba_fee": 6.31
+  },
+  "solve_range": {
+    "low": 6.0,
+    "high": 90.0
+  },
+  "expected": {
+    "operating_profit": 7.2438,
+    "operating_margin": 0.2415,
+    "roi_on_cogs": 0.9055,
+    "amazon_take": 0.3701,
+    "returns_net": -0.6477,
+    "break_even_price": 21.19,
+    "price_for_target_margin": 27.99,
+    "max_ad_spend_at_target": 3.246,
+    "loss_zones_count": 1
+  }
+}

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="332" viewBox="0 0 920 332">
+<rect width="920" height="332" rx="14" fill="#16181d"/>
+<rect x="1" y="1" width="918" height="44" rx="13" fill="#1f232b"/>
+<circle cx="26" cy="23" r="7" fill="#e5604d"/><circle cx="48" cy="23" r="7" fill="#f4b24a"/><circle cx="70" cy="23" r="7" fill="#2bb3a3"/>
+<text x="460" y="29" fill="#8b93a1" font-size="14" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">added before the agent answers your next prompt</text>
+<text x="28" y="82" fill="#f4b24a" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">[off-the-wall] What this user actually said when correcting earlier answers (verbatim; the</text>
+<text x="28" y="104" fill="#e6e1d6" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">most similar to this request, then the latest):</text>
+<text x="28" y="126" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">- &quot;stop asking me to choose, just pick one&quot;</text>
+<text x="28" y="148" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">- &quot;yes obviously, I asked you to tag it&quot;</text>
+<text x="28" y="170" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">- &quot;Should pass? Run them and show me the output.&quot;</text>
+<text x="28" y="192" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">- &quot;you only looked at lint. the e2e job failed&quot;</text>
+<text x="28" y="214" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">- &quot;you missed the two call sites in cli.py&quot;</text>
+<text x="28" y="236" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">- &quot;I only asked for the login page. revert the others&quot;</text>
+<text x="28" y="258" fill="#e6e1d6" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">Before answering, predict in one line what this user would object to in the answer you are</text>
+<text x="28" y="280" fill="#e6e1d6" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">about to give, and change the answer so it does not draw that objection. Do not write the</text>
+<text x="28" y="302" fill="#e6e1d6" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">prediction in the answer.</text>
+</svg>

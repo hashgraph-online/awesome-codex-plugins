@@ -22,9 +22,9 @@ updated: YYYY-MM-DD
 
 | Right | Territory / language | Holder | Contract date | Term | Reversion | Status |
 |-------|----------------------|--------|---------------|------|-----------|--------|
-| Print (paperback) | World English | Author | - | - | - | self-published |
-| Ebook | World English | Author | - | - | - | self-published |
-| Audio | World English | Author | - | - | - | available |
+| Print (paperback) | World {language} | Author | - | - | - | self-published |
+| Ebook | World {language} | Author | - | - | - | self-published |
+| Audio | World {language} | Author | - | - | - | available |
 | Translation: German | Germany, Austria, Switzerland | Author | - | - | - | available |
 | Film and TV | World | Author | - | - | - | available |
 
@@ -33,14 +33,23 @@ updated: YYYY-MM-DD
 - {Contract name}: signed {date}; copy kept at {location}; notes.
 ```
 
+`{language}` is the book's own language, from `language` in `story.md`
+(`World English`, `World Spanish`). Split it by territory when the
+author licenses or sells it separately in different countries.
+
 Rights to consider, each its own row when relevant:
 
 - **Print:** paperback, hardcover, large print, book club, special editions
 - **Ebook**
 - **Audio:** unabridged, abridged, dramatized
 - **Translation:** by language, often by territory within a language
-- **English-language territories:** North America, UK and Commonwealth,
-  world
+  (Spanish for Spain and for Latin America, Portuguese for Brazil and for
+  Portugal, French for France and for Canada)
+- **Territories in the original language:** for an English book, North
+  America, UK and Commonwealth, world. For a book written in another
+  language, the first rows are that language (`World Spanish`,
+  `German: Germany, Austria, Switzerland`), and English becomes a
+  translation right like any other
 - **Serial:** first serial (excerpts before publication), second serial
 - **Dramatic:** film, TV, stage, radio, podcast adaptation
 - **Games and interactive**

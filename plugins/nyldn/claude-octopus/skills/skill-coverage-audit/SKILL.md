@@ -12,6 +12,10 @@ disable-model-invocation: true
 
 # Test Coverage Audit
 
+## Artifact consistency before implementation
+
+When invoked at a spec/plan/tasks boundary, use the feature boundary adapter rather than this skill's code-test generation mode. It automatically runs bounded deterministic checks for coverage, declared paths, stable IDs, explicit terminology/enums/counts and verified policy references. A single artifact skips analysis; a clean pass costs no seat. Reports are advisory and quote the original sources. Escalation uses at most one independent seat, and unavailable or failed semantic review leaves the deterministic results usable.
+
 ## Overview
 
 Trace every codepath in a diff, map each path against existing tests, visualize coverage gaps, and auto-generate tests for uncovered paths.

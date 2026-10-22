@@ -1,6 +1,6 @@
 ---
 name: langfuse
-version: 0.12.1
+version: 0.13.0
 description: Investigate AI traces, observations, exceptions, latency, sessions, prompts, datasets, annotation queues, and scores through Langfuse MCP. Use when the request names Langfuse or asks to diagnose recorded AI behavior.
 metadata:
   short-description: Langfuse observability via MCP

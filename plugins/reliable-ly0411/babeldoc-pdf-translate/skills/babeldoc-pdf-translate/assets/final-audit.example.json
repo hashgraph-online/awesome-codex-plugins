@@ -1,0 +1,24 @@
+{
+  "provider": {
+    "type": "codex",
+    "model": "gpt-6-luna",
+    "reasoning_effort": "high",
+    "vision": true,
+    "timeout_seconds": 240,
+    "retries": 0
+  },
+  "purpose": "production",
+  "semantic": {
+    "provider": {
+      "type": "codex",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "timeout_seconds": 120,
+      "retries": 0
+    },
+    "adjudication_wait_seconds": 90
+  },
+  "dpi": 144,
+  "max_repair_rounds": 1,
+  "limits": {"max_model_calls": 12, "max_seconds": 1800}
+}

@@ -1,11 +1,13 @@
 ---
 name: data-export
-description: "Export marketing data — metrics, contacts, campaigns, performance snapshots — to BigQuery, Google Sheets, or Supabase as clean tabular data with schema documentation, PII redaction, and post-export integrity verification, gated behind an explicit approval step. Triggers on \"/digital-marketing-pro:data-export\", \"send this month's metrics to BigQuery\", \"export contacts to a Google Sheet\", \"get campaign data into our warehouse\", \"set up a recurring weekly export\". Reads local campaign, execution, and performance stores plus connected analytics and CRM MCPs, and pairs with /digital-marketing-pro:segment-audience to build a segment before exporting its members."
+description: "Export marketing data to a warehouse or Sheets, PII-redacted, approval-gated. \"export contacts to a sheet\""
 disable-model-invocation: false
 argument-hint: "[destination]"
 ---
 
 # /digital-marketing-pro:data-export
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## Purpose
 
@@ -18,7 +20,8 @@ Use this command to move data out of the marketing system for external analysis,
 1. Present the full preview — recipients / spend / changes / compliance — as an **Execution Summary** before touching any live system.
 2. The user must type `yes` (or an equivalent explicit approval). ANY other input — ambiguous, implied, partial, or absent approval — cancels the run.
 3. Never proceed on ambiguous input. Never auto-retry a failed execution; a failure needs human review before any re-run.
-4. Record the approval with `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"risk_level":"<tier>","summary":"..."}'` **before** executing, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id}` after the platform confirms success.
+4. Only after the user types `yes`, record it: `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action create-approval --data '{"type":"data-export","platform":"<platform>","content_summary":"<one line from the Execution Summary>","risk_level":"<tier>"}'`, then `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action approve --id {approval_id}`. If either command errors, stop and report the error; never work around it with another tool. The record proves the approval step ran for this action; it cannot prove who typed `yes`.
+5. Execute. A write sent through `connector_executor.py` needs `--approval-id` and fires only against a matching, unused, unexpired record (see `/digital-marketing-pro:execute-action`). A write through a connected MCP server tool is outside that code check: it relies on this typed `yes` and on your host's permission prompt. Afterwards run `python "${CLAUDE_PLUGIN_ROOT}/scripts/approval-manager.py" --brand {slug} --action mark-executed --id {approval_id} --data '{"execution_result":"success"}'` (or `failure`).
 
 ## Input Required
 
@@ -47,7 +50,7 @@ The user must provide (or will be prompted for):
 5. **Validate data quality**: Check the transformed dataset for completeness and accuracy — missing values by column (percentage of nulls), outlier detection (values beyond 3 standard deviations), date continuity (no unexpected gaps in daily data), referential integrity (campaign IDs match campaign names, channel names are consistent), and row count reasonableness (flag if significantly more or fewer rows than expected for the date range).
 6. **Check destination connectivity and schema**: Verify access to the target destination — BigQuery dataset write permissions and quota, Google Sheets API access and sheet size limits, or Supabase connection credentials and table permissions. Confirm the destination table or sheet exists (or create it with proper schema) and validate schema compatibility if appending to existing data (column names, data types, and ordering must match).
 7. **Create approval gate**: Assess risk as low for data exports. Present export preview showing total row count, column schema with data types, first 5 rows of data as a formatted table, destination details (URL/path), append/replace mode, estimated file size, and any data quality warnings requiring attention.
-8. **On approval, export via destination MCP**: Push the data to the target platform through the appropriate MCP — BigQuery via the BigQuery MCP (streaming insert for small datasets, load job for large ones), Google Sheets via the Google Sheets MCP (batch update with formatting), or Supabase via the Supabase MCP (upsert with conflict resolution). Handle pagination for large datasets, retry transient failures, and apply access permissions if specified.
+8. **On approval, export via destination MCP**: Push the data to the target platform through the appropriate MCP — BigQuery via the BigQuery MCP (streaming insert for small datasets, load job for large ones), Google Sheets via the Google Sheets MCP (batch update with formatting), or Supabase via the Supabase MCP (upsert with conflict resolution). Handle pagination for large datasets and retry only a write that provably never reached the platform (connection refused, DNS failure, or a 429 rate-limit rejection); after a timeout or a lost reply, look the record up on the platform first (a BigQuery streaming insert retried after a timeout duplicates rows; count the rows already there) and resend only what is missing. Apply access permissions if specified.
 9. **Apply PII handling rules**: If PII handling was specified, process contact data fields accordingly — redact email addresses (j***@example.com), hash phone numbers (SHA-256), anonymize names, or remove PII columns entirely. Log which fields were modified and the handling method applied for audit purposes.
 10. **Apply Google Sheets formatting (if applicable)**: For Google Sheets exports, apply professional formatting — freeze header row, auto-resize columns, apply number formatting (currency, percentages, integers), add conditional formatting for KPIs (green/red for above/below target), and create named ranges for easy reference in formulas and charts.
 11. **Verify export integrity**: After export completes, verify data integrity at the destination — confirm row count matches source, spot-check 5 sample values against source data, validate that schema was applied correctly (column names, data types, formatting), and for Google Sheets confirm that headers, column widths, number formats, and conditional formatting render correctly.
@@ -66,7 +69,7 @@ A structured data export report containing:
 - **Access and sharing details**: Who has access to the exported data — for Google Sheets, the sharing settings and viewer/editor list; for BigQuery, the authorized users/service accounts; for Supabase, the API access configuration
 - **PII handling audit**: Fields modified or redacted, handling method per field (redaction, hashing, anonymization, removal), and compliance justification for the PII treatment applied
 - **Google Sheets formatting applied (if applicable)**: Formatting details — frozen rows/columns, conditional formatting rules, named ranges created, number format patterns, and any charts or summary rows added
-- **Execution log**: Timestamped record of the export process — API calls to source and destination, batch sizes, response status, retry attempts, rate limit pauses, and processing duration per step
+- **Execution log**: Timestamped record of the export process — API calls to source and destination, batch sizes, response status, retries (each for a write that provably never reached the platform), rate limit pauses, and processing duration per step
 - **Comparison to previous export (if recurring)**: Row count delta, new columns or removed columns since last export, data freshness comparison, and any schema drift warnings that may indicate upstream data changes
 - **Source data freshness**: Timestamp of the most recent data point per source — confirms whether the export reflects the latest available data or if any sources have stale data that may affect analysis accuracy
 - **Destination health check**: Post-export verification of the destination — BigQuery table size and query cost estimate, Google Sheets row/cell utilization vs. limits, or Supabase storage consumption and API rate status
@@ -76,4 +79,4 @@ A structured data export report containing:
 
 - **analytics-analyst** — Data gathering across platforms, transformation logic, schema design, derived metric calculation, data quality validation, outlier detection, export verification, and destination health monitoring
 - **crm-manager** — CRM-sourced data extraction, contact data compliance checking, PII handling and redaction rules, and field mapping for CRM record exports
-- **execution-coordinator** — Export approval workflow, destination connectivity verification, batch execution management, retry logic, and completion notification delivery
+- **execution-coordinator** — Export approval workflow, destination connectivity verification, batch execution management, retries limited to writes that provably never reached the platform, and completion notification delivery

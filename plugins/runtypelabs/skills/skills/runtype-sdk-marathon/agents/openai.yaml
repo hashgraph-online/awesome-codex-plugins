@@ -1,5 +1,5 @@
 interface:
-  display_name: 'Runtype SDK And Marathon'
+  display_name: 'Runtype SDK and Marathon'
   short_description: 'Use Runtype SDK, CLI, and Marathon'
   brand_color: '#6D5EF7'
   default_prompt: 'Use $runtype-sdk-marathon to plan a Runtype SDK or Marathon workflow.'

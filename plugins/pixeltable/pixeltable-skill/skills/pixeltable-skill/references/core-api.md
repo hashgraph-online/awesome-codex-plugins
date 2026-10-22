@@ -34,8 +34,16 @@ class Docs(TableModel, name='docs'):
 Notebook:
 
 ```python
+from typing import TypedDict
+
 import pixeltable as pxt
 from pixeltable.functions.uuid import uuid7
+
+
+class Record(TypedDict):
+    name: str
+    score: float
+
 
 t = pxt.create_table('dir.docs', {
     'title': pxt.String,
@@ -45,10 +53,12 @@ t = pxt.create_table('dir.docs', {
     'audio': pxt.Audio,
     'doc': pxt.Document,
     'tags': pxt.Json[list[str]],
-    'records': pxt.Json[list[dict[str, str]]],
+    'records': pxt.Json[list[Record]],
     'uuid': uuid7(),
 }, primary_key=['uuid'], if_exists='ignore')
 ```
+
+`pxt.Json[...]` takes a TypedDict for keyed objects (`NotRequired[...]` marks an optional key). `dict[str, str]` declares no keys, so Pixeltable treats it as untyped Json.
 
 Types: `String`, `Int`, `Float`, `Bool`, `Image`, `Video`, `Audio`, `Document`, `Json`, `Timestamp`, `Date`, `UUID`, `Binary`, `Array[(3, 4), pxt.Float]`.
 
@@ -73,8 +83,9 @@ t.recompute_columns('summary', errors_only=True)
 
 Changing a computed column's logic:
 
-- **App.** Editing an existing column's expression in place is reported `UNSUPPORTED`. `--allow-destructive` does **not** help, and one unsupported table makes the whole `pxt schema update` apply nothing. **Rename** the column instead: the old name is a destructive drop, the new one an additive add, so it lands in one pass with `--allow-destructive`. Or drop it in one pass and re-add it in a second. Either way the data is destroyed and recomputed. `Table.rename_column()` preserves an existing column and its existing expression; it does not install new logic. `pxt.move()` moves a table or directory.
-- **Notebook.** `t.add_computed_column(summary=..., if_exists='replace')` replaces it in one call when the column is directly replaceable and has no dependents. Otherwise drop dependents first, or `drop_column` and recreate; do not depend on one exception class for every rejected replacement.
+- **App, same type.** Edit the expression in `app.py`. `pxt schema diff` shows a safe `~` alter, and `pxt schema update` applies it with no flag, but it **does not recompute** existing rows: it prints the `pxt recompute my_app/docs summary` command to run, which also recomputes dependent columns (`--no-cascade` to skip them). New rows use the new expression. A running service answers 409 until `pxt service update ... -f` restarts it.
+- **App, new type.** A changed type, including `T` to `T | None`, a stored/computed swap, or a new `stored=`, is `UNSUPPORTED`. `--allow-destructive` does **not** help, and one unsupported table makes the whole `pxt schema update` apply nothing. **Rename** the column: the old name is a destructive drop and the new one an additive add, so it lands in one pass with `--allow-destructive -f`. Renaming a stored column drops its data. `Table.rename_column()` preserves an existing column and its expression; `pxt.move()` moves a table or directory.
+- **Notebook.** `t.alter_computed_column(summary=new_expr)` keeps the type and, by default, recomputes the column and its dependents (`recompute=False` leaves the old values until `recompute_columns()`). A new type raises. `add_computed_column(..., if_exists='replace')` also works, but only on a column with no dependents.
 - `if_exists='ignore'` never fixes logic -- it skips the call.
 
 ## Querying
@@ -115,7 +126,7 @@ t.add_computed_column(
 )
 ```
 
-Extract the field (`.text`, `.choices[0].message.content`). Cast Json with `.astype(pxt.String)` only before embedding or concatenating.
+Extract the field (`.text`, `.choices[0].message.content`). The field is Json holding a string: `.astype(pxt.String)` it before concatenating or embedding. A Json dict or list does not cast (`Expected string, got dict` at insert); serialize it with `pxtf.json.dumps(...)`.
 
 ## Views
 
@@ -173,7 +184,7 @@ tags = pxt.create_view('dir.tags', t, iterator=list_iterator(tag=t.tags), if_exi
 records = pxt.create_view('dir.records', t, iterator=list_iterator(t.records), if_exists='ignore')
 ```
 
-`list_iterator` requires typed Json. Use keyword arguments for typed scalar lists, such as `tag=t.tags`; the keyword becomes the output column. Its single positional form requires a typed list of dictionaries with compatible keys. Untyped `pxt.Json` is rejected because Pixeltable cannot infer the view schema.
+`list_iterator` requires typed Json. Use keyword arguments for typed scalar lists, such as `tag=t.tags`; the keyword becomes the output column. The single positional form needs a list of TypedDicts (`pxt.Json[list[Record]]` above), and each key becomes a column (`name`, `score`). Untyped `pxt.Json` and `list[dict[str, str]]` are rejected, because they declare no keys to turn into columns.
 
 App: `base=` plus `iterator=` on the model. See [workflows.md](workflows.md).
 
@@ -332,11 +343,32 @@ Call `pxt.get_table()` inside custom FastAPI handlers. Do not `python app.py` if
 
 ## Tools
 
-```python
-from pixeltable.functions.openai import chat_completions, invoke_tools
+An agent is a table. Insert a message and the chain runs: the model picks tools, `invoke_tools` runs them, and a second call answers. Each step is a column you can inspect.
 
-tools = pxt.tools(search_docs, lookup_fn)
-# invoke_tools is per provider: openai.invoke_tools vs anthropic.invoke_tools
+```python
+@pxt.udf
+def get_weather(city: str) -> str:
+    """Current weather for a city."""  # the docstring is the tool description the model reads
+    return f'{city}: 22C, sunny'
+
+
+tools = pxt.tools(get_weather)  # also @pxt.query functions, retrieval_udf(), mcp_udfs(); pxt.tool() renames
+
+
+class Assistant(TableModel, name='assistant'):
+    message: pxt.String
+    response = pxtf.openai.chat_completions(
+        messages=[{'role': 'user', 'content': message}], model='gpt-4o-mini', tools=tools
+    )
+    tool_output = pxtf.openai.invoke_tools(tools, response)  # {'get_weather': ['Paris: 22C, sunny']}
+    answer = pxtf.openai.chat_completions(
+        messages=[{'role': 'user', 'content': message + '\nTool results: ' + pxtf.json.dumps(tool_output)}],
+        model='gpt-4o-mini',
+    ).choices[0].message.content
 ```
+
+`invoke_tools` belongs to the provider that made the call: `openai`, `anthropic`, `gemini`, `bedrock`, and `groq` each ship one. It returns a dict with one key per registered tool: a list of results when the model called it, `None` when it did not. That dict is Json, so it goes into the next prompt through `pxtf.json.dumps()`. When the model calls a tool, `message.content` is null: extract it with `.astype(pxt.String | None)`.
+
+On Pixeltable 0.7.11 a `tools=` column never reaches schema agreement (PXT-1429, open): the stored tool schema comes back with its keys reordered, so `pxt schema diff` always reports a safe alter, and each `pxt schema update` bumps the table version without changing a value. Serving requires agreement, so `pxt service update` refuses every service in that app file (exit 1), and `router.bind()` raises `SCHEMA_MISMATCH`. Insert and read from Python (`import app; app.TableModel.bind_all('my_app')`) instead. Do not run the `pxt recompute` the update suggests: it calls the model again on every row and leaves the diff pending.
 
 MCP: `pxt.mcp_udfs(url)` returns one UDF per remote tool over streamable HTTP; tools returning images or audio are not supported. Keys: env or [Configuration](https://docs.pixeltable.com/platform/configuration), not `api_key=` in calls.

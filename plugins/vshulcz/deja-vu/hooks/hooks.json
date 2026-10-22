@@ -49,6 +49,18 @@
           }
         ]
       }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/deja.sh hook-session-end",
+            "timeout": 10,
+            "statusMessage": "Marking this session as ended…"
+          }
+        ]
+      }
     ]
   }
 }

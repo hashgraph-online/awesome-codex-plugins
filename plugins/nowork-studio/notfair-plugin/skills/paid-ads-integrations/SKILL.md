@@ -1,0 +1,9 @@
+---
+name: paid-ads-integrations
+description: Discover, connect, and verify NotFair paid-ad integrations and their actual capabilities. Use when asked to connect an ad account, configure an ads MCP, check available tools, troubleshoot access, or determine whether NotFair can read or change a platform.
+argument-hint: "<platform or connection issue>"
+---
+
+# Canonical NotFair workflow
+
+Read [`../../paid-ads/paid-ads-integrations/WORKFLOW.md`](../../paid-ads/paid-ads-integrations/WORKFLOW.md) completely, then follow it as the active workflow. Normalize that path from the directory containing this wrapper: the canonical file is `<plugin-root>/paid-ads/paid-ads-integrations/WORKFLOW.md`, not `<plugin-root>/skills/paid-ads-integrations/paid-ads-integrations/SKILL.md`. Resolve every relative reference from the canonical file against `<plugin-root>/paid-ads/paid-ads-integrations/`. If the canonical file cannot be read, stop and report the packaging error; never substitute a similarly named skill from another plugin.

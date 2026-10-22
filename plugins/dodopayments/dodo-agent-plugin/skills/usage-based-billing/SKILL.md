@@ -1,6 +1,6 @@
 ---
 name: usage-based-billing
-description: Guide for charging directly per measured API call, token, storage unit, or other consumption using meters, stable usage events, aggregation, free thresholds, and metered subscriptions.
+description: Dodo Payments usage-based billing that charges per measured unit, covering meters, usage event ingestion by event_name, aggregation, free thresholds, price_per_unit, and metered subscriptions. Use when billing per API call, AI token, storage, or bandwidth, sending usage events, or adding metered pricing to a plan; use credit-based-billing for prepaid credit pools.
 ---
 
 # Dodo Payments Usage-Based Billing
@@ -181,7 +181,7 @@ async function trackBatchUsage(
     customerId: string;
     eventName: string;
     occurredAt: string;
-    metadata: Record<string, string>;
+    metadata: Record<string, string | number | boolean>;
   }>
 ) {
   const formattedEvents = events.map((event) => ({
@@ -235,135 +235,29 @@ The `product-catalog-management` skill is the canonical source for the complete 
 
 ## Instrumenting Your Application
 
-### Track API Calls
+Full guide: [references/instrumentation.md](references/instrumentation.md).
 
-Persist the event before reporting the operation as complete, then ingest it from a retrying worker. The outbox or queue implementation must durably store the payload before `persist` resolves.
+Covers:
 
-```typescript
-type PersistedUsageEvent = {
-  event_id: string;
-  customer_id: string;
-  event_name: string;
-  timestamp: string;
-  metadata: Record<string, string | number | boolean>;
-};
-
-interface UsageOutbox {
-  persist(event: PersistedUsageEvent): Promise<void>;
-  nextBatch(limit: number): Promise<PersistedUsageEvent[]>;
-  markIngested(eventIds: string[]): Promise<void>;
-}
-
-async function completeApiOperation(
-  outbox: UsageOutbox,
-  operationId: string,
-  customerId: string,
-  occurredAt: string,
-): Promise<void> {
-  await outbox.persist({
-    event_id: `api-call:${operationId}`,
-    customer_id: customerId,
-    event_name: 'api.call',
-    timestamp: occurredAt,
-    metadata: { endpoint: '/v1/users', method: 'GET', status: 200 },
-  });
-}
-
-async function ingestUsageOutbox(outbox: UsageOutbox): Promise<void> {
-  const events = await outbox.nextBatch(1000);
-  if (events.length === 0) return;
-
-  await client.usageEvents.ingest({ events });
-  await outbox.markIngested(events.map((event) => event.event_id));
-}
-```
-
-If the worker crashes after Dodo accepts the batch but before `markIngested`, retry the same persisted events with the same IDs. Dodo ignores the already-ingested IDs.
-
-### Track AI Token Usage
-
-```typescript
-async function callAI(
-  customerId: string,
-  generationId: string,
-  prompt: string,
-  completedAt: string,
-) {
-  const response = await openai.chat.completions.create({
-    model: 'gpt-4',
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  // Track tokens after completion
-  await client.usageEvents.ingest({
-    events: [{
-      event_id: `generation:${generationId}`,
-      customer_id: customerId,
-      event_name: 'ai.tokens',
-      timestamp: completedAt,
-      metadata: {
-        tokens: response.usage.total_tokens.toString(),
-        prompt_tokens: response.usage.prompt_tokens.toString(),
-        completion_tokens: response.usage.completion_tokens.toString(),
-        model: 'gpt-4',
-      }
-    }]
-  });
-
-  return response;
-}
-```
-
-### Track Storage Usage
-
-For snapshot-based metrics (current state), use the `last` aggregation:
-
-```typescript
-async function updateStorageUsage(
-  customerId: string,
-  snapshotId: string,
-  bytesUsed: number,
-  capturedAt: string,
-) {
-  await client.usageEvents.ingest({
-    events: [{
-      event_id: `storage-snapshot:${snapshotId}`,
-      customer_id: customerId,
-      event_name: 'storage.snapshot',
-      timestamp: capturedAt,
-      metadata: {
-        bytes: bytesUsed.toString(),
-        gb: (bytesUsed / 1024 / 1024 / 1024).toFixed(2),
-      }
-    }]
-  });
-}
-
-// Call periodically or after storage changes
-await updateStorageUsage(
-  'cus_abc',
-  'snapshot_01K1M4D2K9',
-  5368709120,
-  '2026-08-01T10:30:00Z',
-); // 5GB
-```
-
----
+- Track API Calls
+- Track AI Token Usage
+- Track Storage Usage
 
 ## Querying Usage for Display
 
 ### Retrieve Usage History
 
 ```typescript
-const usage = await client.subscriptions.retrieveUsageHistory(
-  'sub_abc123',
-  { page_size: 100 }
-);
-
-console.log(usage.items); // Array of billing-period usage records
+// Auto-paginates across ALL billing periods; narrow with start_date/end_date/meter_id.
+for await (const period of client.subscriptions.retrieveUsageHistory('sub_abc123', {
+  start_date: '2025-01-01T00:00:00Z',
+  page_size: 20,
+})) {
+  console.log(period); // one record per billing period, with per-meter usage
+}
 ```
 
-This returns aggregated usage per meter for the subscription's current billing period.
+This is paginated usage history organized by billing period, across the subscription's lifetime - not just the current period. Filter with `start_date`, `end_date`, and `meter_id`, and iterate pages (or `for await`) rather than reading only the first page.
 
 ---
 
@@ -378,7 +272,7 @@ To link a meter to credits:
 3. On the meter, enable **Bill usage in Credits**.
 4. Set `credit_entitlement_id` and `meter_units_per_credit` (e.g., 1,000 tokens = 1 credit).
 
-Usage under the free threshold is excluded. Approximately every minute, a background worker aggregates new usage, converts it using the meter-to-credit ratio, and consumes the oldest non-expired credit grants (FIFO). When credits run out, configured overage behavior applies.
+The free threshold does **not** apply to credit-billed meters: every unit counts toward credit deduction (it only applies when the meter bills in money). Approximately every minute, a background worker aggregates new usage, converts it using the meter-to-credit ratio, and deducts from non-expired grants, earliest-expiring grants consumed first. When credits run out, configured overage behavior applies.
 
 ---
 

@@ -1,0 +1,437 @@
+--- a/babeldoc/format/pdf/document_il/midend/styles_and_formulas.py
++++ b/babeldoc/format/pdf/document_il/midend/styles_and_formulas.py
+@@ -359,10 +359,392 @@
+             if form in page.pdf_form:
+                 page.pdf_form.remove(form)
+ 
++    @staticmethod
++    def preserve_table_math_geometry(page):
++        """Keep short mathematical runs in detected tables as original 2-D objects."""
++        tables = [t for t in page.page_layout if t.class_name == 'table']
++        if not tables:
++            return
++        fonts = {(None, f.font_id): f.name for f in page.pdf_font}
++        for obj in page.pdf_xobject:
++            fonts.update({(obj.xobj_id, f.font_id): f.name for f in obj.pdf_font})
++        nodes, owners, mixed = [], {}, []
++        def chars_of(p):
++            return [ch for c in p.pdf_paragraph_composition if c.pdf_line for ch in c.pdf_line.pdf_character]
++        def bounds(chars):
++            boxes = [(c.visual_bbox.box if c.visual_bbox else c.box) for c in chars]
++            return Box(min(b.x for b in boxes), min(b.y for b in boxes),
++                       max(b.x2 for b in boxes), max(b.y2 for b in boxes))
++        def near(a, b, size):
++            dx = max(a.x - b.x2, b.x - a.x2, 0)
++            dy = max(a.y - b.y2, b.y - a.y2, 0)
++            return dx <= size * 2.5 and dy <= size * 0.28
++        def edge_math(c):
++            text = c.char_unicode or ''
++            if text.isspace() or re.fullmatch(r'[0-9=+−×÷⇒≤≥<>()[\]{}]', text):
++                return True
++            name = fonts.get((c.xobj_id, c.pdf_style.font_id), fonts.get((None, c.pdf_style.font_id), '')) or ''
++            return len(text) == 1 and text.isalpha() and 'italic' in name.lower()
++        for p in page.pdf_paragraph:
++            if p.layout_label != 'fallback_line':
++                continue
++            chars = chars_of(p)
++            if not chars:
++                continue
++            box = bounds(chars)
++            table = next((t for t in tables if t.box.x <= box.x and box.x2 <= t.box.x2
++                          and t.box.y <= box.y and box.y2 <= t.box.y2), None)
++            if table is None:
++                continue
++            owners[id(p)] = p
++            text = p.unicode or ''.join(c.char_unicode or '' for c in chars)
++            if not re.search(r'[A-Za-z]{3,}', text) and re.search(r'[A-Za-z0-9=+−×÷⇒≤≥<>√∑∫]', text):
++                nodes.append((p, chars, box, table.id, bool(re.search(r'[=+−×÷⇒≤≥<>√∑∫]', text))))
++            else:
++                mixed.append((p, chars, table.id))
++        for p, chars, table_id in mixed:
++            for reverse in (False, True):
++                run = []
++                for c in (reversed(chars) if reverse else chars):
++                    if not edge_math(c):
++                        break
++                    run.append(c)
++                run = [c for c in run if not (c.char_unicode or '').isspace()]
++                if not run:
++                    continue
++                box = bounds(run)
++                size = max(c.pdf_style.font_size for c in run)
++                if any(n[0].xobj_id == p.xobj_id and n[3] == table_id and near(box, n[2], size) for n in nodes):
++                    nodes.append((p, run, box, table_id, False))
++        groups, used = [], set()
++        for i in range(len(nodes)):
++            if i in used:
++                continue
++            group, queue = [], [i]
++            while queue:
++                j = queue.pop()
++                if j in used:
++                    continue
++                used.add(j)
++                group.append(j)
++                a = nodes[j]
++                size = max(c.pdf_style.font_size for c in a[1])
++                queue.extend(k for k, n in enumerate(nodes) if k not in used and n[3] == a[3]
++                             and n[0].xobj_id == a[0].xobj_id and near(a[2], n[2], size))
++            if any(nodes[j][4] for j in group):
++                groups.append(group)
++        split_paragraphs = set()
++        for group in groups:
++            parts = [nodes[j] for j in group]
++            anchor = next((n[0] for n in parts if len(n[1]) == len(chars_of(n[0]))), None)
++            if anchor is None:
++                continue
++            chars, seen, glyphs = [], set(), set()
++            for _, run, _, _, _ in parts:
++                for c in run:
++                    key = (c.xobj_id, c.render_order, c.pdf_character_id, c.char_unicode, c.box.x, c.box.y, c.box.x2, c.box.y2)
++                    seen.add(id(c))
++                    if key not in glyphs:
++                        chars.append(c)
++                        glyphs.add(key)
++            box = bounds(chars)
++            size = max(c.pdf_style.font_size for c in chars)
++            curves = []
++            for curve in page.pdf_curve:
++                b = curve.box
++                if b is None or curve.xobj_id != anchor.xobj_id:
++                    continue
++                if (b.x >= box.x - size and b.x2 <= box.x2 + size and b.y >= box.y - size
++                        and b.y2 <= box.y2 + size and b.x2 - b.x <= (box.x2 - box.x) * 1.2
++                        and b.y2 - b.y <= box.y2 - box.y + 2 * size):
++                    curves.append(curve)
++            formula = PdfFormula(pdf_character=chars, pdf_curve=curves, line_id=0, x_offset=0, y_offset=0)
++            update_formula_data(formula)
++            for curve in curves:
++                page.pdf_curve.remove(curve)
++            for p, _, _, _, _ in parts:
++                if p is anchor:
++                    continue
++                for comp in p.pdf_paragraph_composition:
++                    if comp.pdf_line:
++                        previous = comp.pdf_line.pdf_character
++                        comp.pdf_line.pdf_character = [c for c in previous if id(c) not in seen]
++                        if len(comp.pdf_line.pdf_character) != len(previous):
++                            split_paragraphs.add(id(p))
++            anchor.pdf_paragraph_composition = [PdfParagraphComposition(pdf_formula=formula)]
++            anchor.box = box
++            anchor.unicode = ''.join(c.char_unicode or '' for c in chars)
++        for p in owners.values():
++            lines = [c for c in p.pdf_paragraph_composition if c.pdf_line]
++            remaining = [ch for c in lines for ch in c.pdf_line.pdf_character]
++            if lines and remaining:
++                if id(p) in split_paragraphs:
++                    p.box = bounds(remaining)
++                    # Extracted spacing can span glyphs now owned by the formula.
++                    # Keep every source object and the vertical metrics, but start
++                    # and end translated prose at its visible horizontal extent.
++                    visible = [c for c in remaining if (c.char_unicode or '').strip()]
++                    if visible:
++                        ink = bounds(visible)
++                        p.box.x, p.box.x2 = ink.x, ink.x2
++                # Retain the existing source-glyph reconstruction for every
++                # line, including untouched ones (e.g. a native ellipsis).
++                p.unicode = ''.join(c.char_unicode or '' for c in remaining)
++            if lines and not remaining:
++                p.pdf_paragraph_composition = [c for c in p.pdf_paragraph_composition if not c.pdf_line]
++        page.pdf_paragraph = [p for p in page.pdf_paragraph if p.pdf_paragraph_composition]
++
++    @staticmethod
++    def source_glyph_signature(page):
++        """Unique visible source glyphs; dummy spacing is not document content."""
++        result = set()
++        for paragraph in page.pdf_paragraph:
++            for composition in paragraph.pdf_paragraph_composition:
++                obj = composition.pdf_formula or composition.pdf_line or composition.pdf_same_style_characters
++                if not obj:
++                    continue
++                for char in obj.pdf_character:
++                    if not char.char_unicode or char.char_unicode.isspace():
++                        continue
++                    box = char.box
++                    result.add((char.xobj_id, char.render_order, char.pdf_character_id,
++                                char.char_unicode, char.pdf_style.font_id,
++                                box.x, box.y, box.x2, box.y2))
++        return result
++
++    @staticmethod
++    def source_curve_signature(page):
++        """Every original vector curve keeps exactly one owner while parsing."""
++        curves = list(page.pdf_curve)
++        for paragraph in page.pdf_paragraph:
++            for composition in paragraph.pdf_paragraph_composition:
++                if composition.pdf_formula:
++                    curves.extend(composition.pdf_formula.pdf_curve)
++        return sorted(id(curve) for curve in curves)
++
++    @staticmethod
++    def bind_math_accents(page):
++        """Bind each unambiguous raised accent to its geometric math base.
++
++        PDF paint order can put several macrons on a separate, earlier line.
++        Moving the ORIGINAL glyph into its base formula keeps both coordinates
++        and their association; line-id equality cannot establish that relation.
++        """
++        accents = set('¯ˉ‾ˆ˜˙¨')
++        for paragraph in page.pdf_paragraph:
++            compositions = paragraph.pdf_paragraph_composition
++            objects = [(c, c.pdf_formula or c.pdf_line) for c in compositions if c.pdf_formula or c.pdf_line]
++            formulas = [c.pdf_formula for c in compositions if c.pdf_formula]
++            moves = []
++            for composition, obj in objects:
++                for accent in list(obj.pdf_character):
++                    if accent.char_unicode not in accents:
++                        continue
++                    a = accent.visual_bbox.box if accent.visual_bbox else accent.box
++                    candidates = []
++                    for formula in formulas:
++                        for base in formula.pdf_character:
++                            if not base.char_unicode or not base.char_unicode.isalpha() or base.char_unicode in accents:
++                                continue
++                            if base.xobj_id != accent.xobj_id:
++                                continue
++                            b = base.visual_bbox.box if base.visual_bbox else base.box
++                            size = base.pdf_style.font_size
++                            gap = a.y - b.y2
++                            overlap = min(a.x2, b.x2) - max(a.x, b.x)
++                            if (-size * .04 <= gap <= size * .4
++                                    and a.y2 - a.y < size * .35
++                                    and a.x2 - a.x <= (b.x2 - b.x) * 1.8
++                                    and overlap >= min(a.x2 - a.x, b.x2 - b.x) * .6
++                                    and abs((a.x + a.x2 - b.x - b.x2) / 2) <= size * .35):
++                                candidates.append((formula, base))
++                    if len(candidates) != 1:
++                        continue
++                    formula, base = candidates[0]
++                    if formula is not obj:
++                        moves.append((obj, accent, formula, base))
++            for origin, accent, target, base in moves:
++                origin.pdf_character = [c for c in origin.pdf_character if c is not accent]
++                target.pdf_character.insert(target.pdf_character.index(base), accent)
++            for composition, obj in objects:
++                if obj.pdf_character and any(c.char_unicode and not c.char_unicode.isspace() for c in obj.pdf_character):
++                    if composition.pdf_formula:
++                        update_formula_data(obj)
++                    continue
++                # A dummy space between separately painted accents must not
++                # become a 100pt anonymous object in translated prose.
++                if not composition.pdf_formula or not obj.pdf_curve:
++                    compositions.remove(composition)
++
++    @staticmethod
++    def coalesce_inline_math(page):
++        """Keep adjacent math, its numeric/punctuation gaps and calls together.
++
++        Ordinary words are hard boundaries. Delimited max/min/sin/log calls
++        may retain a Roman operator between geometric math neighbors.
++        Formula line IDs must agree; this
++        is deliberately not a general multiline/table clustering algorithm.
++        """
++        punctuation = re.compile(r'[\s0-9.,;:()\[\]{}+\-*/=<>^_%|\u0370-\u03ff\u2100-\u214f]*')
++        for paragraph in page.pdf_paragraph:
++            original = paragraph.pdf_paragraph_composition
++            result = []
++            index = 0
++            while index < len(original):
++                first = original[index]
++                if not first.pdf_formula:
++                    result.append(first); index += 1; continue
++                if not first.pdf_formula.pdf_character:
++                    result.append(first); index += 1; continue
++                if result and result[-1].pdf_line:
++                    previous = result[-1].pdf_line
++                    prefix = []
++                    for char in reversed(previous.pdf_character):
++                        value = char.char_unicode or ''
++                        if len(value) == 1 and (value.isspace() or value in '0123456789.,;:()[]{}+-*/=<>^_%|'):
++                            prefix.insert(0,char)
++                        else:
++                            break
++                    text = ''.join(c.char_unicode or '' for c in prefix)
++                    remaining=previous.pdf_character[:-len(prefix)] if prefix else previous.pdf_character
++                    literal=''.join(c.char_unicode or '' for c in remaining)
++                    operator=re.search(r'(?<![A-Za-z0-9_])(max|min|sin|log)\s*$',literal)
++                    starts_argument=''.join(c.char_unicode or '' for c in first.pdf_formula.pdf_character).lstrip().startswith(('(','{'))
++                    operator_prefix=bool(operator and (starts_argument or any(
++                        text.count(a)>text.count(b) for a,b in zip('([{',')]}'))))
++                    if operator_prefix:
++                        offset=0;start=None
++                        for n,char in enumerate(remaining):
++                            if offset==operator.start():start=n;break
++                            offset+=len(char.char_unicode or '')
++                        operator_prefix=start is not None
++                        if operator_prefix:
++                            prefix=remaining[start:]+prefix
++                            text=''.join(c.char_unicode or '' for c in prefix)
++                    # Only an unfinished opening delimiter belongs to the
++                    # following math. Balanced ordinary prose stays editable.
++                    if prefix and (operator_prefix or any(text.count(a)>text.count(b) for a,b in zip('([{',')]}'))):
++                        last = prefix[-1].box;anchor = first.pdf_formula.box
++                        size = max(c.pdf_style.font_size for c in first.pdf_formula.pdf_character)
++                        if (abs(last.x2-anchor.x)<=size and max(last.y-anchor.y2,anchor.y-last.y2,0)<=size*.5):
++                            previous.pdf_character = previous.pdf_character[:-len(prefix)]
++                            if previous.pdf_character:
++                                boxes = [c.visual_bbox.box if c.visual_bbox else c.box for c in previous.pdf_character]
++                                previous.box = Box(min(b.x for b in boxes),min(b.y for b in boxes),
++                                                   max(b.x2 for b in boxes),max(b.y2 for b in boxes))
++                            else:
++                                result.pop()
++                            first.pdf_formula.pdf_character = prefix+first.pdf_formula.pdf_character
++                            update_formula_data(first.pdf_formula)
++                line = first.pdf_formula.line_id
++                run = [first]; cursor = index + 1
++                size = max(c.pdf_style.font_size for c in first.pdf_formula.pdf_character)
++                while cursor < len(original):
++                    part = original[cursor]
++                    if part.pdf_formula:
++                        if part.pdf_formula.line_id != line:
++                            break
++                    elif part.pdf_line:
++                        text = ''.join(c.char_unicode or '' for c in part.pdf_line.pdf_character)
++                        b = part.pdf_line.box
++                        anchor = first.pdf_formula.box
++                        if b and max(b.y - anchor.y2, anchor.y - b.y2, 0) > size * .5:
++                            break
++                        following=original[cursor+1].pdf_formula if cursor+1<len(original) else None
++                        left_text=''.join(c.char_unicode or '' for item in run
++                            for c in (item.pdf_formula or item.pdf_line).pdf_character)
++                        left_box=(run[-1].pdf_formula or run[-1].pdf_line).box
++                        operator_call=bool(re.fullmatch(r'\s*(?:max|min|sin|log)\s*',text)
++                            and following and following.line_id==line
++                            and ''.join(c.char_unicode or '' for c in following.pdf_character).lstrip().startswith(('(','{'))
++                            and re.search(r'[=≜≝≤≥+−\-×*/,:;({\[]\s*$',left_text)
++                            and b and following.box and left_box
++                            and 0<=b.x-left_box.x2+size*.25<=size*1.5
++                            and 0<=following.box.x-b.x2+size*.25<=size*1.5)
++                        if not punctuation.fullmatch(text) and not operator_call:
++                            # Roman-font closing delimiters can share a line
++                            # object with following prose. Consume only the
++                            # required prefix, retaining every source glyph.
++                            chars = [c for item in run for c in (item.pdf_formula or item.pdf_line).pdf_character]
++                            opened = []
++                            for char in chars:
++                                for symbol in char.char_unicode or '':
++                                    if symbol in '([{':
++                                        opened.append(symbol)
++                                    elif symbol in ')]}' and opened and '([{'.index(opened[-1]) == ')]}'.index(symbol):
++                                        opened.pop()
++                            take = 0
++                            for position,char in enumerate(part.pdf_line.pdf_character):
++                                symbol = char.char_unicode or ''
++                                if symbol.isspace():
++                                    take += 1; continue
++                                # (1b) is a printed reference, not a translated
++                                # number plus a free prose suffix.
++                                numeric_label = ''.join(c.char_unicode or '' for c in chars)+''.join(
++                                    c.char_unicode or '' for c in part.pdf_line.pdf_character[:position])
++                                following = part.pdf_line.pdf_character[position+1:position+2]
++                                if (len(symbol)==1 and symbol in 'abcdefghijklmnopqrstuvwxyz'
++                                        and re.fullmatch(r'\s*\(\s*\d+\s*',numeric_label)
++                                        and following and following[0].char_unicode==')'):
++                                    take += 1; continue
++                                if len(symbol) == 1 and symbol in ')]}' and opened and '([{'.index(opened[-1]) == ')]}'.index(symbol):
++                                    opened.pop(); take += 1
++                                    if not opened:
++                                        break
++                                else:
++                                    break
++                            prefix = part.pdf_line.pdf_character[:take]
++                            if prefix and any((c.char_unicode or '').strip() for c in prefix):
++                                tail = part.pdf_line.pdf_character[take:]
++                                closing = PdfLine(pdf_character=prefix)
++                                run.append(PdfParagraphComposition(pdf_line=closing))
++                                if tail:
++                                    part.pdf_line.pdf_character = tail
++                                    boxes = [c.visual_bbox.box if c.visual_bbox else c.box for c in tail]
++                                    part.pdf_line.box = Box(min(b.x for b in boxes),min(b.y for b in boxes),
++                                                           max(b.x2 for b in boxes),max(b.y2 for b in boxes))
++                                else:
++                                    cursor += 1
++                            break
++                        next_formula = original[cursor+1].pdf_formula if cursor+1<len(original) else None
++                        if next_formula and next_formula.line_id!=line and any(
++                                text.count(a)>text.count(b) for a,b in zip('([{',')]}')):
++                            # A next-line opening delimiter belongs to the
++                            # next formula, not the previous line's wide bbox.
++                            break
++                        # Same physical baseline, even when its font bbox is
++                        # different from the neighboring italic glyph's ink.
++                        b = part.pdf_line.box
++                        anchor = first.pdf_formula.box
++                        if b and max(b.y - anchor.y2, anchor.y - b.y2, 0) > size * .5:
++                            break
++                    else:
++                        break
++                    run.append(part); cursor += 1
++                # Include trailing punctuation as source objects, never ask
++                # the model to reconstruct the internals of a function call.
++                if len(run) > 1:
++                    chars = [c for part in run for c in (part.pdf_formula or part.pdf_line).pdf_character]
++                    curves = [c for part in run if part.pdf_formula for c in part.pdf_formula.pdf_curve]
++                    formula = PdfFormula(pdf_character=chars, pdf_curve=curves,
++                                         line_id=line, x_offset=0, y_offset=0)
++                    update_formula_data(formula)
++                    result.append(PdfParagraphComposition(pdf_formula=formula))
++                else:
++                    result.append(first)
++                index = cursor
++            paragraph.pdf_paragraph_composition = result
++
++
+     def process_page(self, page: Page):
+         """处理页面，包括公式识别和偏移量计算"""
++        source_glyphs = self.source_glyph_signature(page)
++        source_curves = self.source_curve_signature(page)
++        self.preserve_table_math_geometry(page)
+         self.process_page_formulas(page)
+         # self.process_page_offsets(page)
++        self.bind_math_accents(page)
++        self.coalesce_inline_math(page)
+         self.process_comma_formulas(page)
+         self.merge_overlapping_formulas(page)
+         if not self.translation_config.skip_formula_offset_calculation:
+@@ -380,6 +762,10 @@
+             self.process_page_offsets(page)
+         self.update_all_formula_data(page)
+         self.process_page_styles(page)
++        if self.source_glyph_signature(page) != source_glyphs:
++            raise RuntimeError('FORMULA_PARSE_GLYPH_CONSERVATION_FAILED')
++        if self.source_curve_signature(page) != source_curves:
++            raise RuntimeError('FORMULA_PARSE_CURVE_CONSERVATION_FAILED')
+ 
+     def update_line_data(self, line: PdfLine):
+         min_x = min(char.visual_bbox.box.x for char in line.pdf_character)
+@@ -996,9 +1382,8 @@
+                 current_chars.append(char)
+             # 检查是否是逗号，且不在括号内
+             elif char.char_unicode == "," and bracket_level == 0:
+-                if current_chars:
+-                    result.append((current_chars, char))
+-                    current_chars = []
++                result.append((current_chars, char))
++                current_chars = []
+             else:
+                 current_chars.append(char)
+ 
+@@ -1211,12 +1596,12 @@
+                             )
+ 
+                             # 如果有逗号，添加为文本行
+-                            if comma:
+-                                comma_line = PdfLine(pdf_character=[comma])
+-                                self.update_line_data(comma_line)
+-                                new_compositions.append(
+-                                    PdfParagraphComposition(pdf_line=comma_line),
+-                                )
++                        if comma:
++                            comma_line = PdfLine(pdf_character=[comma])
++                            self.update_line_data(comma_line)
++                            new_compositions.append(
++                                PdfParagraphComposition(pdf_line=comma_line),
++                            )
+                 else:
+                     new_compositions.append(composition)
+ 

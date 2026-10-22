@@ -1,0 +1,47 @@
+{
+  "name": "aident-loadout",
+  "version": "1.0.0",
+  "description": "Coordinate work across user-authorized apps with live schemas and approval-aware execution.",
+  "author": {
+    "name": "Aident AI, LLC",
+    "email": "help@aident.ai",
+    "url": "https://aident.ai"
+  },
+  "homepage": "https://loadout.aident.ai",
+  "repository": "https://github.com/Aident-AI/aident-skill",
+  "license": "MIT",
+  "keywords": [
+    "automation",
+    "integrations",
+    "mcp",
+    "productivity"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Aident Loadout",
+    "shortDescription": "Orchestrate work across apps",
+    "longDescription": "Aident Loadout helps users discover and run actions across services they authorize. It provides live action schemas, connection status, cost preflight, approval-aware execution, and reusable workflow guidance for multi-app tasks.",
+    "developerName": "Aident AI, LLC",
+    "category": "Productivity",
+    "capabilities": [
+      "Search authorized app actions",
+      "Inspect live action schemas",
+      "Check and connect accounts",
+      "Estimate metered action cost",
+      "Execute approved cross-app work",
+      "Find reusable workflow skills"
+    ],
+    "websiteURL": "https://loadout.aident.ai",
+    "privacyPolicyURL": "https://loadout.aident.ai/codex/privacy",
+    "termsOfServiceURL": "https://loadout.aident.ai/codex/terms",
+    "defaultPrompt": [
+      "Find unread customer emails and prepare a sourced follow-up plan.",
+      "Research prospects and save the strongest matches to my connected CRM.",
+      "Review failed deployments and prepare a concise incident brief."
+    ],
+    "brandColor": "#171717",
+    "composerIcon": "./assets/aident-icon.png",
+    "logo": "./assets/aident-icon.png"
+  }
+}

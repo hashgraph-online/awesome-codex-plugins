@@ -455,6 +455,12 @@ easy/medium/difficult tiers, preserved explicit choices, reviewer minimums, and
 bounded escalation. Setup and runtime verification are required; this does not
 switch the main app model or establish token savings.
 
+For optional **main-turn routing in the CLI**, see the
+[experimental JEV Router pilot](resources/jev-router-pilot.md). It covers
+third-party prompt sharing, compatibility checks, and a quality-first comparison
+of time and usage. No installation is required for this guide, and no savings
+have been established by this pilot.
+
 ## Repository map
 
 ```text

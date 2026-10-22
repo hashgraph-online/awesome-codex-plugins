@@ -11,6 +11,8 @@ dependencies:
 triggers:
   - 需要配置部署流程时
   - 需要设置CI/CD时
+metadata:
+  internal: true
 ---
 
 # 部署流程与CI/CD

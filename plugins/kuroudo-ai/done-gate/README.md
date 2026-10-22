@@ -60,7 +60,8 @@ That is all. It takes effect from the **next** session you open.
 - **Codex only:** the first time Codex sees a new hook, it asks you to trust it. Say yes.
   (For unattended runs, Codex has `codex exec --dangerously-bypass-hook-trust`. Only use that if you understand what it skips.)
 - Check: `python3 install.py --check` / Remove: `python3 install.py --uninstall` (add `--codex` for Codex)
-- The installer remembers where this folder is. **If you move the folder, run `python3 install.py` again.**
+- The installer remembers where this folder is. **To move the folder, run `python3 install.py --uninstall` first, then run `python3 install.py` again in the new place.** (If you forgot, the installer points out the old line to the missing file; remove that line by hand.)
+- "This tool's lines" means lines that run a file inside this folder. The same check installed from another folder (another package from us, or your own copy) is never removed. If it is already there, it is not added twice and the installer tells you; `--allow-duplicates` registers both.
 
 ## Good to know
 

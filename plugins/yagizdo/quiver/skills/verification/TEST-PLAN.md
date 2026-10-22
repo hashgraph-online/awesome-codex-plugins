@@ -1,6 +1,6 @@
 # Test Plan -- verification
 
-**Trigger:** Reference skill -- not directly invoked. Read by `/work` Phase 2.5 and 4a, `/ship` Phase 3 and Verification Steps 1-2, `/design-build` 3d, and `/hypothesis-debugging` Step 7.
+**Trigger:** Reference skill -- not directly invoked. Read by `/work` Phase 2.5 and 4a, `/ship` Init 2, its plan stage, and its verify stage, `/design-build` 3d, `/hypothesis-debugging` Step 7, and `/quiver:review` Step 3.3.
 
 **Setup:**
 - A Node project whose `package.json` has no `test` script.

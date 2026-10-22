@@ -1,0 +1,4 @@
+interface:
+  display_name: "Image Optimization"
+  short_description: "Audit and improve image delivery, Core Web Vitals, responsive images, and Sirv/CDN workflows."
+  default_prompt: "Use $image-optimization to audit image delivery, fix LCP/CLS/responsive image issues, and verify the rendered result."

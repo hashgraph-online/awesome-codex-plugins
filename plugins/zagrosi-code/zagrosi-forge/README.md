@@ -1,182 +1,218 @@
-<div align="center">
-  <img src="assets/icon.svg" alt="Zagrosi Forge icon" width="96" height="96" />
-  <h1>Zagrosi Forge</h1>
-  <p><strong>Lean Codex workflows for project decomposition, planning, and test-first implementation.</strong></p>
-  <p>
-    <a href="https://github.com/zagrosi-code/zagrosi-forge"><img alt="Codex plugin" src="https://img.shields.io/badge/Codex-plugin-0F766E?style=flat-square" /></a>
-    <img alt="Python 3.11+" src="https://img.shields.io/badge/Python-3.11%2B-334155?style=flat-square" />
-    <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-111827?style=flat-square" />
-  </p>
-  <img src="assets/readme-hero.svg" alt="Zagrosi Forge workflow hero" width="100%" />
-</div>
+# Zagrosi Forge
 
-Forge turns requests into bounded specs, plans, and tested code.
-Lean mode is default: fewer files, shorter prompts, one setup, one final gate.
+<p>
+<picture>
+  <source media="(max-width: 600px)" srcset="assets/readme-hero-mobile.svg" />
+  <img src="assets/readme-hero.svg" alt="Forge turns briefs into reviewed plans and tested code, in Codex and Claude Code." width="100%" />
+</picture>
+</p>
 
-## Lean By Default
+Forge plans, builds, fixes and cleans code in Codex and Claude Code.
+Lean by default: focused context, targeted checks, one integration result.
 
-| Mode | Use |
-|------|-----|
-| `lean` | Default. Minimum sufficient artifacts and focused checks. |
-| `standard` | Explicit opt-in for wider research, traceability, or coordination. |
-| `deep` | Explicit opt-in for high-risk or architecture-heavy work. |
-
-Depth changes investigation and review rigor. Every mode uses compact contracts
-with stable requirement IDs, file ownership, acceptance, and verification.
-No minimum prose quotas or duplicate research, TDD, decision, and review files.
+[Install](#install) · [Use](#use) · [Multiple models](#multiple-models) · [Teams](#teams) · [Workflows](#workflows) · [Engineering](#engineering) · [Releases](docs/releases.md) · [Contribute](#contribute)
 
 ## Install
 
-Requires Codex plugin support and Python 3.11+.
+Requires Python 3.11+ and plugins. On Windows, replace `python3`
+with `python` or `py -3`. Restart after installing or updating.
+
+### Claude Code
 
 ```bash
-git clone https://github.com/zagrosi-code/zagrosi-forge.git
-cd zagrosi-forge
-python3 scripts/zagrosi_skills.py install --pretty
+claude plugin marketplace add zagrosi-code/zagrosi-forge
+claude plugin install zagrosi-forge@zagrosi
 ```
 
-Restart Codex after success. Preview with `install --dry-run --pretty`; compare
-the installed cache with `update-check --pretty`; refresh it with
-`self-update --pretty`.
+Update with `claude plugin marketplace update zagrosi`, then
+`claude plugin update zagrosi-forge@zagrosi`.
 
-Updates exclude development artifacts and preserve a recoverable installation.
-Cache cleanup does not shrink the repository.
-
-Codex marketplace install is also supported:
+### Codex
 
 ```bash
 codex plugin marketplace add zagrosi-code/zagrosi-forge
 codex plugin add zagrosi-forge@zagrosi
 ```
 
+<details>
+<summary>Install or develop from a local checkout</summary>
+
+```bash
+git clone https://github.com/zagrosi-code/zagrosi-forge.git
+cd zagrosi-forge
+```
+
+One Claude Code session:
+
+```bash
+claude --plugin-dir "/absolute/path/to/zagrosi-forge"
+```
+
+From the checkout in Codex:
+
+```bash
+python3 scripts/zagrosi_skills.py install --pretty
+# Preview without writing:
+python3 scripts/zagrosi_skills.py install --dry-run --pretty
+# Refresh from the updated checkout:
+git pull --ff-only
+python3 scripts/zagrosi_skills.py update-check --pretty
+python3 scripts/zagrosi_skills.py self-update --pretty
+```
+
+</details>
+
 ## Use
 
-Start at the phase you need:
+Describe your task; optionally request `standard` or `deep`.
+Try the [first task](examples/first-task/README.md).
+
+**Claude Code**
 
 ```text
-Use $zagrosi-forge:zagrosi-project on @planning/requirements.md
-Use $zagrosi-forge:zagrosi-plan on @planning/01-auth/spec.md
-Use $zagrosi-forge:zagrosi-implement on @planning/01-auth/sections/
+/zagrosi-forge:zagrosi-forge Add this feature and finish verification.
+/zagrosi-forge:zagrosi-cleanup Simplify this subsystem while preserving behavior.
 ```
 
-<img src="assets/readme-workflow.svg" alt="Zagrosi Forge artifact workflow" width="100%" />
+**Codex**
 
-Output stays small at every depth:
+```text
+Use $zagrosi-forge:zagrosi-forge to add this feature and finish verification.
+Use $zagrosi-forge:zagrosi-cleanup to simplify this subsystem while preserving behavior.
+```
 
-| Workflow | Required output |
-|----------|-----------------|
+Shared skills, runtime and standards; phases: `zagrosi-project`,
+`zagrosi-plan`, `zagrosi-implement`. Authorized work continues through delivery;
+planning-only requests stop at planning.
+
+Optional [verification allowances](skills/zagrosi-implement/references/verification.md)
+(unlimited by default).
+
+## Multiple models
+
+Request independent Codex, Claude or Gemini reviews of the same bounded packet:
+
+```text
+Implement this feature with independent Codex and Claude reviews. Keep one writer; report missing access.
+```
+
+Forge reuses native CLI logins and model defaults or requested IDs.
+Missing access and unreported identity stay visible; no silent fallback.
+Add `--check-auth` for login status. See [provider setup](skills/zagrosi-forge/references/providers.md).
+Resolve `{plugin_root}` from the loaded Forge skill: the absolute directory
+containing `scripts/zagrosi_skills.py`.
+
+```bash
+python3 "{plugin_root}/scripts/zagrosi_skills.py" provider-status --check-cli --pretty
+```
+
+## Teams
+
+Share reviewed plans through Git; reserve work across clones, worktrees and hosts.
+Enable collaboration explicitly; commit `.forge/team.json` for teammates.
+Execution records stay private. No extra service.
+
+All depths and cleanup share reservations and advisory dependency warnings at
+work boundaries. Stale tasks retain ownership; offline status grants no clearance.
+Notes remain in Git history. See [setup, migration and limits](docs/collaboration.md).
+
+## Workflows
+
+<p>
+<picture>
+  <source media="(max-width: 600px)" srcset="assets/readme-workflow-mobile.svg" />
+  <img src="assets/readme-workflow.svg" alt="Project splits a brief into specs; Plan defines a compact contract; Implement tests, builds, reviews, and records each section." width="100%" />
+</picture>
+</p>
+
+| Workflow | Output |
+|---|---|
 | Project | `project-manifest.md` and child `spec.md` files |
-| Single-section plan | `sections/index.md` and one canonical section containing tests, evidence, decisions, risks, and review |
-| Multi-section plan | One shared plan and ordered sections that link shared contracts |
-| Implement | Tests, code, and compact machine-readable section records |
+| Single-section plan | `sections/index.md` and one canonical section with tests, evidence, decisions, risks, and review |
+| Multi-section plan | Shared plan and ordered sections |
+| Implement | Code, tests, and machine-readable section records |
+| Cleanup | Simpler responsibilities and preserved behavior, with regression evidence |
 
-Each phase uses setup and strict postflight:
+| Depth | Use |
+|---|---|
+| `lean` — default | Minimum sufficient artifacts and focused checks |
+| `standard` | Wider research, traceability, or coordination |
+| `deep` | High-risk or architecture-heavy work |
 
-```bash
-python3 scripts/zagrosi_skills.py plan-setup \
-  --file planning/01-auth/spec.md --plugin-root . --depth lean
-# Complete the generated draft and review it; the source brief stays unchanged.
-python3 scripts/zagrosi_skills.py postflight \
-  --phase plan --planning-dir planning/01-auth --depth lean --strict
-```
+Depth controls investigation and review; every mode retains requirements,
+ownership, acceptance and verification.
 
-Project uses `project-setup`; implementation uses `implement-setup`.
-Setup returns applicable command arguments. Replace evidence placeholders with
-actual results; `status --path PATH --pretty` resumes work.
-`commands --pretty` lists all commands.
+Complete contracts before coding. See
+[compact-plan format](skills/zagrosi-plan/references/plan-format.md),
+[depth standards](skills/zagrosi-plan/references/depth-standards.md), and
+[example briefs](examples/gallery/README.md).
 
-Use the explicit [compact-plan format](skills/zagrosi-plan/references/plan-format.md).
-Map source, behavior, expected results and verification once per requirement.
-Legacy plans and reviews remain supported. Use `plan-setup --for-detached` for
-detached frozen runs, which retain physical contracts and separate records.
+### Resume and compatibility
 
-## Context and Performance
+Resume from the target project in either host. Checkpoints retain progress;
+conflicting ownership serializes work. Changed code/contracts require fresh
+verification; legacy evidence cannot prove completion.
 
-Context preserves complete sections and linked decisions/risks, selects relevant
-requirements, and identifies omissions. `context-brief` and `implementation-packet`
-default to 2,000 words; adjust `--max-words` when necessary. Broken links and
-oversized contracts fail explicitly. Setup and successful section recording
-include the next packet. A saved record remains saved if its successor needs repair.
-
-Failed flights return unique diagnostics and a path to the complete report.
-Use `--full-output` for the nested machine payload; no findings are discarded.
-
-Saved progress identifies the next action; changed inputs require fresh checks.
-Records bind requirements and dependencies. Contract edits reopen completion;
-code drift requires integration checks. Legacy records remain readable, labeled unbound.
-
-The shared [engineering standard](skills/zagrosi-implement/references/engineering.md)
-draws on [Ponytail](https://github.com/DietrichGebert/ponytail): trace callers, reuse
-code, prefer clear names and direct flow. Repair encountered duplication and mixed
-responsibilities; update ownership before broader edits. Characterize weak coverage,
-run targeted regression checks, then the full suite at integration.
-
-On macOS/Linux, known read-only gates avoid repeated process startup; other gates
-retain process isolation and timeouts. Compare stable local checkouts:
+Run helpers **from the target project directory**, with absolute plugin and plan
+paths. Until implementation setup saves the target, `status` uses the working
+directory; it has no `--target-dir` option.
 
 ```bash
-python3 tools/benchmark_forge.py \
-  --original-root /path/to/main --baseline-root /path/to/earlier-snapshot --runs 5
+cd "/absolute/path/to/target project"
+python3 "{plugin_root}/scripts/zagrosi_skills.py" status --path "/absolute/path/to/planning/01-auth" --pretty
+python3 "{plugin_root}/scripts/zagrosi_skills.py" next-section --planning-dir "/absolute/path/to/planning/01-auth" --target-dir "/absolute/path/to/target project" --pretty
+python3 "{plugin_root}/scripts/zagrosi_skills.py" commands --phase implement --verbose --pretty
 ```
 
-Benchmarks measure helper latency, context size and modeled reference loads on
-identical fixtures across depths. See the
-[recorded comparison](examples/evals/performance.json).
+`fast` aliases `lean`; existing `zagrosi-*`, `deep-*`, `DEEP_META`, and migrated
+`claude-*` artifacts remain accepted. `codex_review` aliases `agent_review`.
 
-[Coding trials](examples/evals/coding/README.md) compare complete tasks, retaining
-failures, timings and available usage. Verdicts separate behavior, workflow and
-independent cleanup review, bound to candidate, baseline, plugin and evaluator.
+[Detached execution](skills/zagrosi-implement/references/detached-frozen.md) retains
+its pinned evidence protocol and physical contracts; privileged handoff requires
+Darwin/arm64 and APFS.
 
-## Runtime
+## Engineering
 
-The CLI imports modules on demand. SHA-256 manifests bind runtime/test sources;
-verification compiles those exact bytes without bytecode caches. Detached runs
-reverify sources, ownership, locks and immutable inputs in isolated processes.
-Checks reuse unchanged analysis within one command. Mutable writes are serialized
-and atomic. Privileged policy uses a source-bound adapter with frozen checks.
+Our [engineering standard](skills/zagrosi-implement/references/engineering.md)
+follows [Ponytail](https://github.com/DietrichGebert/ponytail): trace callers, reuse
+code, prefer direct flow. Simplify duplication and responsibilities with
+regression coverage. [Preservation checks](skills/zagrosi-implement/references/compatibility.md)
+run before edits, then replay unchanged checks and commands; required pairs gate
+completion. Capture cannot prove coverage or authorship. Run feature checks and
+integration. Cleanup can cover repositories; PR review covers the diff and callers.
 
-Installed files come from `.codex-plugin/package-files.json`; undeclared local
-files stay out. Configuration updates preserve unrelated values, publish
-atomically under a lock, and preview only Forge-owned settings.
+`context-brief` and `implementation-packet` keep complete sections, mapped source
+requirements and linked contracts. Budget: 2,000 words (`--max-words`);
+broken links fail and oversized sections return an adjusted retry. Failures retain
+blockers, recovery commands and complete reports (`--full-output`).
 
-## Compatibility
+Runtime loading verifies SHA-256 source bindings; writes are locked and atomic.
 
-`fast` remains a compatibility alias for `lean`. Existing `zagrosi-*`,
-`deep-*`, `DEEP_META`, and migrated `claude-*` workflows remain accepted. New
-work should use the names above. Migrate recognized old artifacts with:
+[Helper benchmarks](examples/evals/performance.json) measure fixed fixtures.
+[Suite comparisons](examples/evals/coding/README.md#manifest-driven-suites) use frozen
+tasks, isolated checks and blind review.
+[Historical results](examples/evals/coding/behavior-contract-results-2026-10-02.md)
+retain failures; adapter support proves neither speed nor quality.
 
-```bash
-python3 scripts/zagrosi_skills.py migrate --planning-dir planning/01-auth
-```
+## Contribute
 
-## Package Map
+Shared workflows: `skills/`; runtime: `scripts/forge/`; checks: `tests/` and
+`examples/`; host metadata: `.codex-plugin/` and `.claude-plugin/`.
 
-```text
-skills/                    three Codex workflows
-scripts/zagrosi_skills.py  verified entrypoint and runtime manifest
-scripts/forge/             focused CLI, workflow, and security modules
-scripts/deep_skills.py     compatibility wrapper
-examples/                  valid, invalid, and benchmark fixtures
-tests/                     focused CLI, gate, recovery, and coding-trial tests
-tools/                     runtime binding, performance comparison, coding trials
-assets/                    icon and README visuals
-```
-
-## Validate
-
-After runtime/test edits, run `python3 tools/update_runtime_manifest.py`.
-After adding/removing packaged files, stage the intended files and run
+Runtime/test edits: run `python3 tools/update_runtime_manifest.py`.
+Package membership changes: stage intended files, then run
 `python3 tools/update_package_manifest.py`.
-CI checks bindings and the full suite on Linux/Python 3.12; focused checks cover
-Python 3.11, macOS and Windows.
+CI covers Linux/macOS/Windows and native packaging. Native validators require their CLIs.
 
 ```bash
 python3 tools/update_runtime_manifest.py --check
 python3 tools/update_package_manifest.py --check
+npm ci --prefix tools
 uv run --with pytest python -m pytest
 python3 scripts/zagrosi_skills.py doctor --plugin-root . --strict --pretty
 python3 scripts/zagrosi_skills.py release-check --plugin-root . --pretty
 plugin-scanner verify .
+claude plugin validate . --strict
 ```
 
-Zagrosi Forge is MIT licensed and includes attribution in [NOTICE.md](NOTICE.md).
+[MIT License](LICENSE) · [Attribution](NOTICE.md)

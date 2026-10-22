@@ -38,11 +38,13 @@ def check_summary(result: dict[str, object], scanner_jobs: dict[int, list[str]])
 
     if state == "failure":
         failure_lines = reasons if isinstance(reasons, list) else []
-        details = "\n".join(f"- {item}" for item in failure_lines if isinstance(item, str))
+        details = "; ".join(item for item in failure_lines if isinstance(item, str))
         return (
             "failure",
             "Catalog validation failed",
-            details or "The catalog change could not be validated against the pull request source.",
+            PUBLISHER.one_paragraph(
+                f"Catalog validation failed: {details or 'the catalog change could not be validated against the pull request source.'}"
+            ),
         )
 
     if state == "scan":
@@ -50,14 +52,14 @@ def check_summary(result: dict[str, object], scanner_jobs: dict[int, list[str]])
         if jobs and all(conclusion == "success" for conclusion in jobs):
             return (
                 "success",
-                "Centralized scanner completed",
-                f"All {len(jobs)} centralized scanner job(s) completed successfully. Maintainers still verify the numeric score before merge.",
+                "Centralized score threshold passed",
+                f"All {len(jobs)} centralized scanner job(s) met the score threshold of 80/100; finding severities are advisory.",
             )
         job_details = ", ".join(jobs) if jobs else "no scanner job conclusion was recorded"
         return (
-            "neutral",
-            "Centralized scanner needs score review",
-            f"Scanner job status: {job_details}. This status is not a substitute for the numeric scanner score; maintainers apply the score threshold separately.",
+            "failure",
+            "Centralized score not established",
+            f"The centralized scan did not establish a score of at least 80/100 ({job_details}); keep the contribution blocked until a passing score is available.",
         )
 
     raise RuntimeError(f"unknown validator result state: {state}")
@@ -72,20 +74,25 @@ def remediation_comment(
 ) -> str:
     marker = PUBLISHER.COMMENT_MARKER
     if conclusion == "success":
-        return f"{marker}\n\nContribution gate passed. No action is required. [Latest sweep]({run_url})."
-    if conclusion == "neutral":
-        return (
-            f"{marker}\n\nCentralized scanner status is inconclusive without the numeric score. "
-            f"Maintainers will use the score from the scan result, not this job conclusion, for the merge decision. "
-            f"[Latest sweep]({run_url})."
+        if result.get("state") == "scan":
+            message = "Contribution gate passed. The centralized score threshold of 80/100 was met; finding severities are advisory."
+        else:
+            message = "Contribution gate passed. No new Community Plugins entries require validation in this pull request."
+        return PUBLISHER.one_paragraph(
+            f"{marker} {message} No action is required. [Latest sweep]({run_url})."
         )
 
     reasons = result.get("failure_reasons")
     failure_lines = [item for item in reasons if isinstance(item, str)] if isinstance(reasons, list) else []
     details = " ".join(failure_lines) if failure_lines else summary
-    return (
-        f"{marker}\n\nThe catalog change could not be validated: {details} "
-        f"Fix the catalog format/source discovery problem and push the correction. [Latest sweep]({run_url})."
+    if result.get("state") == "scan":
+        guidance = "Resolve the scan failure and rerun the centralized scan; listing requires a completed score of at least 80/100."
+        guidance += " If the completed score is below 80/100 and your source repository does not already run the scanner, source-repository scanner CI is recommended, not required: use the SHA-pinned workflow in the scanner guide, reproduce locally, run the same pinned scanner in CI, fix or document rule-level findings, link the source run, rerun the catalog scan, and request review."
+        return PUBLISHER.one_paragraph(
+            f"{marker} {details} {guidance} Source-repository scanner CI is optional. [Latest sweep]({run_url})."
+        )
+    return PUBLISHER.one_paragraph(
+        f"{marker} The catalog change could not be validated: {details} Fix the catalog format/source discovery problem and push the correction. [Latest sweep]({run_url})."
     )
 
 

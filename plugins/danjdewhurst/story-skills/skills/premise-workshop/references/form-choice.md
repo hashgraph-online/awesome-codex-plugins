@@ -40,6 +40,12 @@ norms for novels are in `../../submission/references/word-count-norms.md`.
 `story validate` warns when `target-words` sits outside the form's usual
 range; take the warning to the user rather than silently changing either.
 
+These bands are English word counts. The same story runs to a different
+count in another language, and Chinese and Japanese publishing count
+characters, not words. For a book not in English, agree the target with
+the user from the norms of the market it is written for, and treat the
+form's English range as a rough guide only.
+
 `serial` sets no book-level `target-words`: set `target-words` on each
 episode chapter instead.
 

@@ -20,7 +20,7 @@ Use this order unless the target venue or user request calls for a different str
 3. Identify remaining issues, limitations, unresolved mechanisms, measurement gaps, or design barriers.
 4. Explain why the issues remain unsolved, such as difficult measurements, limited diagnostics, coupled physics, lack of models, scale mismatch, or limited operating conditions.
 5. State the proposed innovation, method, model, measurement, or design that addresses the gap.
-6. State the significance and impact: what the innovation enables, clarifies, predicts, improves, or makes measurable.
+6. State the significance and impact: the specific quantity, decision, capability, or physical understanding that the innovation clarifies, predicts, improves, or makes measurable.
 
 Do not write "no prior work has been done on X" as the novelty claim. Lack of prior work does not prove importance. Instead, explain the challenge that limited prior work and how the proposed work overcomes that challenge.
 

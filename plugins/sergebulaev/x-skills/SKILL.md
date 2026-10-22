@@ -20,6 +20,7 @@ the [Publora API](https://publora.com) for posting tweets and threads.
 - **Adapting content from another platform into a native X post or thread** -> use `x-repurposer`
 - **Auditing and rewriting your X profile (bio, name, header, pinned tweet)** -> use `x-profile-optimizer`
 - **Reading your X audience and niche from real data (your tweets, repliers, competitors, top tweets)** -> use `x-audience-insights`
+- **Working out what you actually have to say, or having nothing concrete for a draft to use** -> use `x-humanizer --mode interview`. It interviews you and fills the Story Bank every writing skill reads before drafting.
 
 ## Core pattern
 
@@ -41,6 +42,14 @@ Every action-taking skill follows three steps:
 The skills work out of the box. No API keys, no signup. Every approved draft is
 returned as a copy-paste block with the target X URL. Great for trying the
 skills before committing to any backend.
+
+### Reading X data (orthogonal to the tiers above)
+
+`x-audience-insights`, `x-hook-extractor` and `x-reply-drafter` read real tweets
+when they can. Two ways in: `APIFY_TOKEN` in the environment, or Apify's MCP
+server as a custom connector, which is the only one available on claude.ai.
+Filtered URL, tool name, input shapes and the mapping back to the library's
+records: `references/mcp-read-layer.md`. With neither, they ask for a paste.
 
 ### Tier 1 - Publora auto-post (recommended, ~2 min)
 
@@ -125,6 +134,8 @@ choice, not a URL distinction.
 
 - [Publora API docs](https://docs.publora.com) - endpoint reference for the publishing layer
 - `lib/publora_client.py` - thin Python client used by every writing skill
+- `references/story-bank.md` - what you have to say, filled by the interview
+- `references/voice-profile.md` - how you sound, filled by `--mode profile`
 - `lib/url_parser.py` - X URL to handle/tweet-id parser
 
 ## Acknowledgments

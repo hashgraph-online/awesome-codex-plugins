@@ -1,0 +1,10 @@
+{
+  "_doc": "Dual role. (1) PLUGIN-scoped MCP: this file sits at the plugin root (marketplace source '.'), so Claude Code auto-discovers it and AUTO-CONNECTS `cometchat-docs` for anyone who installs the plugin — plugin-scoped servers connect without a trust prompt, so skills read live docs automatically (RULES.md 'Canonical doc channel', tier 1). (2) PROJECT-scoped for people WORKING ON this pack: opening this repo connects it too. Excluded from the npm tarball (package.json `files`) because an npm/node_modules install does NOT auto-connect it — the CLI install path wires the MCP separately (follow-up) and every family's references/docs-map.md still carries a DOCS_BASE fetch fallback (tier 3), so a shipped skill never HARD-STOPS on a missing MCP.",
+  "mcpServers": {
+    "cometchat-docs": {
+      "type": "http",
+      "url": "https://mcp.cometchat.com/mcp",
+      "_note": "Hosted CometChat Docs MCP (serverInfo 'CometChat Docs') — indexes production docs (www.cometchat.com/docs). Health: https://mcp.cometchat.com/health. Canonical production host mcp.cometchat.com/mcp (host history in AUDIT-243). Verified 2026-09-10: full handshake healthy on .com (initialize 200, notifications/initialized 202, tools/call returns docs); note .com's index may lag until re-indexed. Tools (production server, checked 2026-10-01): search_cometchat_docs, fetch_cometchat_doc_page, get_cometchat_implementation_bundle, list_cometchat_bundles. Note the /mcp path — the bare domain 404s."
+    }
+  }
+}

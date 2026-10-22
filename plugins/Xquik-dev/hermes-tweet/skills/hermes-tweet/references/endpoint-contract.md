@@ -18,7 +18,7 @@ monitors, webhooks, extraction jobs, giveaway draws, and media operations.
 
 ## Approval checklist
 
-Before calling `tweet_action`, state and confirm:
+Before you call `tweet_action`, state and confirm these items.
 
 1. The catalog-listed endpoint and method.
 2. The target account or workflow.

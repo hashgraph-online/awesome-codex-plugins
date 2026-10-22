@@ -1,0 +1,34 @@
+{
+  "name": "agent-retro",
+  "version": "1.0.1",
+  "description": "A weekly retro of how you use AI coding agents (Codex, Claude Code, and optional ChatGPT or claude.ai exports): 12 animated slides of stats with four bite-sized, evidence-backed coaching tips.",
+  "author": {
+    "name": "Matt Herz"
+  },
+  "repository": "https://github.com/summationai/agent-retro",
+  "homepage": "https://github.com/summationai/agent-retro",
+  "keywords": [
+    "retro",
+    "usage",
+    "stats",
+    "coaching",
+    "prompting"
+  ],
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agent Retro",
+    "composerIcon": "./assets/icon.svg",
+    "shortDescription": "Your week with your coding agents",
+    "longDescription": "Reads your local Codex and Claude Code logs, plus ChatGPT or claude.ai exports in ~/Downloads, and builds an animated 12-slide deck: 8 fun stats about your week and 4 coaching tips, each backed by your own numbers. Everything runs on your machine.",
+    "developerName": "Matt Herz",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Build my Agent Retro for this week"
+    ]
+  }
+}

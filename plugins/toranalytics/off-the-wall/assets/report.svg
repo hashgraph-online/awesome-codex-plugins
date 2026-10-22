@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="930" height="486" viewBox="0 0 930 486">
+<rect width="930" height="486" rx="14" fill="#16181d"/>
+<rect x="1" y="1" width="928" height="44" rx="13" fill="#1f232b"/>
+<circle cx="26" cy="23" r="7" fill="#e5604d"/><circle cx="48" cy="23" r="7" fill="#f4b24a"/><circle cx="70" cy="23" r="7" fill="#2bb3a3"/>
+<text x="465" y="29" fill="#8b93a1" font-size="14" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">otw report --claude-dir examples/claude-history --days 0</text>
+<text x="28" y="82" fill="#8b93a1" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">Reading 20 turn ends with claude (haiku), 1 calls…</text>
+<text x="28" y="104" fill="#e6e1d6" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">All history: 20 times you answered the assistant, 9 of them (45%) correcting how it worked.</text>
+<text x="28" y="126" fill="#8b93a1" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve"></text>
+<text x="28" y="148" fill="#f4b24a" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">   3×  stopped or asked when it should have continued</text>
+<text x="28" y="170" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">        &quot;stop asking me to choose, just pick one&quot;</text>
+<text x="28" y="192" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">        &quot;yes obviously, I asked you to tag it&quot;</text>
+<text x="28" y="214" fill="#f4b24a" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">   2×  claimed done without checking</text>
+<text x="28" y="236" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">        &quot;Should pass? Run them and show me the output.&quot;</text>
+<text x="28" y="258" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">        &quot;you only looked at lint. the e2e job failed&quot;</text>
+<text x="28" y="280" fill="#f4b24a" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">   2×  shrank or changed the scope</text>
+<text x="28" y="302" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">        &quot;you missed the two call sites in cli.py&quot;</text>
+<text x="28" y="324" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">        &quot;I only asked for the login page. revert the others&quot;</text>
+<text x="28" y="346" fill="#f4b24a" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">   1×  another complaint about how it worked</text>
+<text x="28" y="368" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">        &quot;way too long, five bullet points max&quot;</text>
+<text x="28" y="390" fill="#f4b24a" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">   1×  ignored an earlier instruction or decision</text>
+<text x="28" y="412" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">        &quot;did you deploy to production like I said earlier?&quot;</text>
+<text x="28" y="434" fill="#8b93a1" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve"></text>
+<text x="28" y="456" fill="#8b93a1" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">Run with --seed to start recall from these corrections.</text>
+</svg>

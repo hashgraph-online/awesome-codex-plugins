@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tablejourney": {
+      "type": "http",
+      "url": "https://tablejourney.com/mcp"
+    }
+  }
+}

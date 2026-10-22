@@ -1,0 +1,4 @@
+interface:
+  display_name: "ChatGPT Agent Setup"
+  short_description: "Choose zero-setup ZIP mode or configure MCP for this workspace"
+  default_prompt: "Use ZIP by default. Configure this workspace's MCP Bridge and ChatGPT Connector only when I explicitly ask for MCP; finish with a real workspace_info call and agentctl doctor ready=true."

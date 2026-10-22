@@ -1,6 +1,6 @@
 {
   "name": "jev-social",
-  "version": "0.1.10",
+  "version": "0.1.13",
   "description": "Run read-only Instagram, TikTok, and LinkedIn research through Jev-directed socai CLI operations in the user's local browser.",
   "author": {
     "name": "socai-io",

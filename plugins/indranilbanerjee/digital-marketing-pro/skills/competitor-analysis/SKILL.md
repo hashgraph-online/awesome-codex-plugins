@@ -1,6 +1,6 @@
 ---
 name: competitor-analysis
-description: "Run a multi-dimensional competitive teardown of 2-5 competitors — content strategy, SEO, paid ads, social, AI answer-engine visibility, and pricing/positioning — producing a competitor overview matrix, per-competitor SWOT, gap analysis, and strategic recommendations prioritized by opportunity size. Triggers on \"/digital-marketing-pro:competitor-analysis\", \"analyze our competitors\", \"how do we stack up against X\", \"competitive landscape report\", \"what are competitors doing that we aren't\". Point-in-time analysis, not ongoing tracking — pair with /digital-marketing-pro:competitor-monitor for that. Reads the brand profile, guidelines, and compliance rules."
+description: "Analyze 2-5 competitors once: positioning, content, SEO, ads, pricing. Ongoing → competitor-monitor. \"how do we stack up against X\""
 argument-hint: "[competitor names]"
 ---
 
@@ -30,6 +30,8 @@ The user must provide (or will be prompted for):
 7. **Pricing and positioning**: Pricing models, value proposition, messaging frameworks, market positioning
 8. Synthesize findings into strategic opportunities and threats
 9. Generate actionable recommendations for competitive advantage
+
+For the per-dimension checklists, report table layouts, the after-analysis follow-up menu, and the parallel-dispatch rules (7 dimensions per competitor in one message; sequence the competitors), read `dimension-checklists.md` beside this file.
 
 ## Output
 

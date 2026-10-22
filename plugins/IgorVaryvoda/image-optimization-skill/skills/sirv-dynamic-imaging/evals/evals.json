@@ -1,0 +1,31 @@
+{
+  "skill_name": "sirv-dynamic-imaging",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Build Sirv URLs for a responsive product card grid with square white-background thumbnails and high-DPR screens.",
+      "expected_output": "Responsive Sirv src/srcset URLs using width candidates, fit/canvas or a reusable profile, realistic sizes, explicit dimensions, format=optimal, quality tuning, and no aspect-ratio distortion.",
+      "files": [],
+      "expectations": [
+        "Uses w/h or thumbnail parameters deliberately",
+        "Uses scale.option=fit or a product-card profile instead of ignore",
+        "Keeps dimensions/aspect ratio stable",
+        "Uses format=optimal unless a fixed output format is required",
+        "Mentions profile use for repeated card recipes"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Create an LCP hero image Sirv transform and markup for a full-width marketing page.",
+      "expected_output": "A hero-specific solution with preconnect/preload, fetchpriority high, no lazy loading, explicit dimensions, responsive candidates, scale.option=noup, and verification via headers/network waterfall.",
+      "files": [],
+      "expectations": [
+        "Does not lazy-load the hero/LCP image",
+        "Uses preconnect and responsive preload where appropriate",
+        "Includes explicit width/height",
+        "Uses width candidates and sizes=100vw or the actual layout width",
+        "Verifies response type, size, and request priority"
+      ]
+    }
+  ]
+}

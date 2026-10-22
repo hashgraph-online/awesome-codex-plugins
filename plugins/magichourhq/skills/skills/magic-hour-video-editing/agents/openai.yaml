@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Video Editing"
+  short_description: "Edit footage while preserving action and audio"
+  default_prompt: "Use $magic-hour-video-editing to apply my requested changes to this footage, preserve its accepted action and audio, and deliver the finished versions."

@@ -19,10 +19,24 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 - Track question maximum: 4 on the classify chain. The per-gate split
   (classify 1, adr 2, rfc 2, cascade 1) follows the weight of the source
   questions [assumption]; the resolution entry adds `decision.resolve` with
-  budget 1 outside that chain. Each
-  `budget` knob is the per-gate maximum, reached only in expert invocation; in
-  auto mode every question draws from the shared per-invocation ceiling in
-  `skills/_shared/elicitation-contract.md`.
+  budget 1 outside that chain. Each `budget` knob caps its gate inside the
+  5-question per-invocation ceiling of `skills/_shared/elicitation-contract.md`.
+- Settled decision. A request that states the chosen option ("we decided",
+  "we chose", "record the decision to use X") creates exactly one `adr` and no
+  `rfc`; no exit question fires.
+- Open choice. A request that lists options without a choice, or asks "should
+  we", is an open choice; the user picks its exit at `decision.classify`. A
+  pending choice is never recorded as an `adr` with an invented verdict. The
+  exits of an open choice:
+  1. Record now — an `adr`, when the user names the chosen option.
+  2. Propose first — an `rfc` for review; a later "we accepted the proposal"
+     turns it into an `adr` that extends the `rfc`, through `decision.resolve`.
+  3. Investigate first — under `/archcore:document`, write nothing and name
+     `/archcore:plan <topic>`; under `/archcore:plan`, a bounded `rnd`.
+- Recommended exit. A named reviewer, a disagreement between people or teams,
+  or proposal wording ("proposal", "RFC", "for review") recommends exit 2. No
+  recorded facts and no named reviewer recommends exit 3. WHEN the user gives
+  no answer or answers "you decide", the recommended exit runs.
 - Global matches: when the duplicate check in `decision.classify` matches a
   global document (`source_kind: "global"`), the executing skill loads
   `skills/_shared/globals.md`, records the decision as a local document that
@@ -39,16 +53,16 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 - Entry conditions:
   - skip_when: the subject text names the target type `adr` or `rfc` — the named type selects the branch.
   - The request describes one technical decision, proposal, or standard.
-  - WHEN the request carries no standard signal, `list_documents(types=["adr", "rfc"])` returns no existing document that already records this topic (global matches: see Track notes).
+  - WHEN the request carries no standard signal, `list_documents(types=["adr", "rfc"])` is checked for local documents on this topic (global matches: see Track notes): none → proceed; a local `adr` the request would replace ("switch to", "replace", "we moved to") → record it as the replaced decision; a local `adr` that already records the same choice → report it and exit without a write; an open `rfc` draft → `decision.resolve` when a verdict is stated, otherwise the trigger below fires.
   - WHEN the request carries a standard signal — "make it our standard", "we should always", "developers must", or the type `rule` in the subject — no `rfc` records the topic and at most one local `adr` does; that `adr` becomes the upstream of the standard cascade. IF two or more local `adr` documents match, THEN the trigger below fires and asks which one the standard follows.
 - Elicitation knobs:
-  - trigger: two or more local `adr` documents match a standard request; or the request does not state whether the decision is settled, or open-proposal wording ("thinking about", "should we", "proposing", "design proposal") appears — confirm the RFC branch before routing.
+  - trigger: two or more local `adr` documents match a standard request; or an open `rfc` draft on the topic exists and no verdict is stated — ask whether to resolve that `rfc` or record a separate decision; or the request names no chosen option, or open-choice wording ("thinking about", "should we", "proposing", "design proposal") appears — ask one question that offers the three exits of an open choice in the Track notes, the recommended exit first.
   - taxonomy: Constraints & Tradeoffs, Completion Signals from `skills/_shared/coverage-taxonomy.md`.
   - budget: 1
 - Produces: none — the `decision.adr` and `decision.rfc` gates produce the document.
 - Exit checks:
-  - blocking: the recorded outcome names `decision.adr`, `decision.rfc`, or `decision.cascade`.
-- Next: `decision.cascade` with the standard cascade selected when the request carries standard signals and one local `adr` on the topic exists; `decision.adr` when the decision is settled, when no answer marks it open (the default), or when standard signals appear and no local `adr` exists; `decision.rfc` when the user confirms the proposal is open.
+  - blocking: the recorded outcome names `decision.adr`, `decision.rfc`, `decision.cascade`, `decision.resolve`, or the existing `adr` that already records the choice.
+- Next: `decision.resolve` when an open `rfc` draft on the topic exists and a verdict is stated or chosen; exit when a local `adr` already records the same choice, or on exit 3 (under `/archcore:plan`, to the conductor with a bounded `rnd` need); `decision.cascade` with the standard cascade selected when the request carries standard signals and one local `adr` on the topic exists; `decision.adr` when the request names the chosen option, on exit 1, or when standard signals appear and no local `adr` exists; `decision.rfc` on exit 2.
 
 ### gate: decision.adr
 
@@ -57,15 +71,16 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
   - skip_when: `decision.classify` selected `decision.rfc`.
   - The request, recorded clarifications, or an `rnd` or `research` covering the topic state the specific choice (version or name), the considered alternatives with rejection reasons, and the conditions that would invalidate the decision.
 - Elicitation knobs:
-  - trigger: the coverage scan returns `Missing` on a named category — the decision lacks a specific choice, named alternatives with rejection reasons, or invalidation conditions.
+  - trigger: the coverage scan returns `Missing` on a named category — the decision lacks a specific choice, or names no alternative with a rejection reason. WHEN only the invalidation conditions are missing, derive them from the stated reason, mark them `[assumption]`, and ask no question.
   - taxonomy: Constraints & Tradeoffs, Completion Signals from `skills/_shared/coverage-taxonomy.md` [assumption].
   - budget: 2
 - Produces:
   - type: adr
   - status: draft
-  - relations: evaluate the decision's inputs and consumers through `skills/_shared/relation-authoring.md`; use `depends_on` for an investigation the decision relies on, and `related` for a justified joint reading task. A shared topic alone creates no edge.
+  - relations: evaluate the decision's inputs and consumers through `skills/_shared/relation-authoring.md`; use `depends_on` for an investigation the decision relies on, and `related` for a justified joint reading task; `supersedes` → the local `adr` that `decision.classify` recorded as replaced. A shared topic alone creates no edge.
 - Exit checks:
   - blocking: the draft carries every section that `skills/_shared/adr-contract.md` requires.
+  - advisory: the draft names at least one governed path or file kind with `@path` notation or a compound extension.
 - Next: `decision.cascade`.
 
 ### gate: decision.rfc
@@ -128,6 +143,7 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
   - blocking: every created cascade document carries its relation from the Produces list.
   - blocking: each created rule carries every section that `skills/_shared/rule-contract.md` requires; each created spec carries every section that `skills/_shared/spec-contract.md` requires.
   - blocking: each created guide carries every section `skills/_shared/guide-contract.md` requires; each created plan covers Goal, Tasks, Acceptance Criteria, Dependencies; each created cpat covers What Changed, Why, Before, After, Scope.
+  - blocking: WHEN the architecture cascade creates a spec, the spec passes the user-owned choice check of `sdd.design` (`skills/_shared/tracks/sdd.md`) before the plan is created; a failed check keeps the spec's state block and creates no plan.
   - advisory: WHEN grounding surfaced a concrete file or module for a plan task, the created plan annotates that task with `@path` notation — parity with the plan skill's task-mapping step.
   - advisory: the closing report lists document paths, relation edges, and one recommended next action.
 - Next: exit.

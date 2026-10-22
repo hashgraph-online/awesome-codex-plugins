@@ -1,8 +1,23 @@
 # Access, Correction, Prevention, Portability — Part II Division 4 (s30–37, s42, s43A)
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 Data subjects have a closed list of statutory rights against a controller. The big ones engineers ship are: access (s30–33), correction (s34–37), prevention of damaging processing (s42), and the **new (2024) data portability** right (s43A).
+
+## Contents
+
+- s30 — Right of access
+- s31 — Compliance with data access request
+- s32 — Refusal grounds
+- s33 — Notification of refusal
+- s34 — Right to correct personal data
+- s35 — Compliance with correction request
+- s36 — Refusal grounds for correction
+- s37 — Notification of correction refusal
+- s42 — Right to prevent processing causing damage or distress
+- s43 — Right to prevent direct marketing
+- s43A (new 2024) — Right to data portability
+- What's at stake
 
 ## s30 — Right of access
 

@@ -15,6 +15,19 @@ owns the evidence for choosing a relation. It adds no manifest fields.
 
 Reuse complete bodies already read during this task unless they changed.
 
+Three body signals produce candidates that usually hold. Inspect them first:
+
+- **Named document.** A body names another document by filename, slug, or
+  `[[slug]]` link. Decide the pair with the check below, recording `add` or
+  `no_relation`.
+- **Replacement wording.** A body says it supersedes, replaces, or
+  deprecates another document, in any language. Check the pair for
+  `supersedes`; a partial replacement still takes `supersedes`, with the kept
+  scope stated in the newer document's prose.
+- **Historical target.** An `implements` or `depends_on` edge points to a
+  document that labels itself historical, deprecated, or superseded. Report
+  the edge for `review`: a live document now depends on a record of the past.
+
 A workflow's relation table supplies candidates and intended roles, not proof
 that every available pair has a relation. Preserve required traceability when
 the documents establish those roles. Do not use alphabetical neighbours as the
@@ -77,7 +90,13 @@ review evidence, not new parameters to `add_relation`.
 5. Keep audit-only work read-only.
 
 Counts identify candidates, not semantic defects. A document without edges can
-be complete. A dense group can contain useful dependencies. Multiple relation
+be complete. A dense group can contain useful dependencies. One shape is a
+strong candidate for review: a directory whose documents are joined by
+`related` on more than half of their pairs. That shape comes from linking a batch, not
+from reading claims. Check each pair for a joint reading task. Prefer edges
+from one hub to the leaves over all-pairs `related`: a `task-type` or `guide`
+`depends_on` each rule it follows, and an explicit index takes `related` to
+the documents it indexes. Multiple relation
 types can express different claims between the same pair.
 
 A rejected target can remain historical context or a superseded record. A

@@ -23,7 +23,18 @@ Choose concrete checks from repository evidence while you work. The plain form n
 click-gate verify -- python3 -m pytest -q
 ```
 
-Its evidence id is derived from the argv, so resubmitting the same command resubmits the same check; its class is the command's own minimum; its working directory is the tool call's. Several checks in one request, an explicit id, a `reporting` block, or a different `workdir` use the JSON form:
+Its evidence id is derived from the argv, so resubmitting the same command resubmits the same check; its class is the command's own minimum; its working directory is the tool call's.
+
+On Linux with `strace`, this form in Evidence mode takes any command: no runner has to be recognized; on Windows it takes commands that run Node. Click reuses the last passing result while none of the files, directory listings, programs or failed lookups the command was observed to touch have changed, and its `[Click result]` line says whether the command ran or was reused, and why. After a passing run Click observes the command once more in the background to record those inputs. When the command takes test files or packages as arguments, name them with `--paths` and put `{paths}` where they go:
+
+```text
+click-gate verify --paths 'tests/test_*.py' -- python3 -m pytest -q {paths}
+click-gate verify --paths 'src/**/*.test.ts' -- npx vitest run {paths}
+```
+
+Click then decides each group of paths on its own and runs only the changed ones. It does so only after checking that the groups, each run alone, pass and read everything the whole command reads; until then the whole command runs. Details are in the [capability protocol](references/capability-protocol.md#observed-checks).
+
+Several checks in one request, an explicit id, a `reporting` block, or a different `workdir` use the JSON form, which always goes through the receipt runner, as does every check of a Guarded contract:
 
 ```text
 click-gate verify '{"version":2,"workdir":"/absolute/path/to/repository","checks":[{"evidence_id":"E1","argv":["python3","-m","pytest","-q"],"class":"broad"}]}'

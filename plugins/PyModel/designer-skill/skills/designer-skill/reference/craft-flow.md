@@ -1,131 +1,61 @@
 # Craft Flow
 
-Build a feature with production-grade UX and UI quality: shape the design, land the visual direction, build real production code, inspect and improve in-browser until it meets a high-end studio bar.
+Implementation guidance for an authorized UI task. SKILL.md owns mode, permission, confirmation and verification policy; this file describes the craft passes inside that policy. An audit reports findings; a plan proposes work. Neither advances into implementation.
 
-Before writing code, you need: PRODUCT.md loaded, register identified and the matching reference loaded, and a confirmed design direction for this task (either from `plan` or supplied by the user). PRODUCT.md is project context, not a task-specific brief.
+## 1. Establish the smallest useful brief
 
-Treat any approved visual direction (generated mock or stated reference) as a concrete contract for composition, hierarchy, density, atmosphere, signature motifs, and distinctive visual moves. Don't let mocks replace structure, copy, accessibility, or state design. But if the live result lacks the approved direction's major ingredients, the implementation is wrong.
+Read the target, neighboring components, tokens and actual framework. PRODUCT.md and DESIGN.md are useful evidence when present, not prerequisites. A bounded repair retains existing identity and needs no discovery interview, palette selection, mock generation or separate plan approval.
 
-### Gates for a new direction: do not compress
+For genuinely new or changed direction, state audience, task, hierarchy, behavior and brand constraints to the depth needed. Ask only about missing decisions that materially change the result. A supplied direction or explicit delegation can settle the choice; tool availability does not create extra mandatory approval gates. If choosing a greenfield stack is not already authorized or specified, ask through a discovered question tool or ordinary chat.
 
-These gates apply when `implement` sets a new or changed direction. Inside an established identity (`brandPolicy: preserve`), the existing tokens and components are the approved direction: gates 2–4 are already met, and a bounded change goes straight to code. Audit and plan modes never reach them.
+Reuse the project's framework, icon set and component system. Do not start a parallel build or edit generated output to bypass its source pipeline.
 
-Craft has **multiple user gates**, not one. When the harness has native image generation, the gate sequence before code is:
+## 2. Load only the craft guidance needed
 
-1. **Plan brief confirmed** (Step 1)
-2. **Direction questions answered** (palette strategy, physical-scene sentence, 2–3 named references)
-3. **Palette confirmed** (`get_palette_seed` on greenfield, or committed tokens on existing projects)
-4. **One mock direction approved or delegated** (when image generation is available)
-
-You must stop at every gate. **Plan confirmation alone is NOT a green light to start coding.** Compressing gates 2 through 4 because the plan brief felt complete is the dominant failure mode of this flow.
-
-When the harness lacks native image generation, gates 2–4 collapse into the brief itself, and plan confirmation may advance straight to code.
-
-## Step 0: Project Foundation
-
-Before plan, before code: figure out what kind of project you're working in.
-
-Look at the working directory. Run `ls`. Check for:
-
-- An existing framework: `astro.config.mjs/ts`, `next.config.js/ts`, `nuxt.config.ts`, `svelte.config.js`, `vite.config.js/ts`, `package.json` with framework deps, `Cargo.toml` + Leptos/Yew, `Gemfile` + Rails. **If found, use it.** Do not start a parallel build, do not introduce a second framework, do not write to `dist/` or `build/` directly. Whatever pipeline the project has, respect it.
-- An existing component library or design system: `src/components/`, `app/components/`, a `tokens.css` / `theme.ts`, an `astro.config` `integrations`. Read what's there before adding to it.
-- An existing icon set: `lucide-react`, `@phosphor-icons/react`, `@iconify/*`, hand-rolled SVG sprites in `assets/icons/`. **Use what's already in the project**; don't introduce a second set.
-
-If the directory is empty (greenfield), don't pick a framework silently. Ask the user via the AskUserQuestion tool, with sensible defaults framed by the brief:
-
-```text
-What should this be built on?
-  - Astro (default for content-led brand sites, landing pages, marketing surfaces)
-  - SvelteKit / Next.js / Nuxt (when the brief implies an app surface or significant interactivity)
-  - Single index.html (one-shot demo, prototype, or a deliberately framework-free experiment)
-```
-
-Default: Astro for brand briefs, the project's existing framework for product briefs. Ask once; don't re-ask mid-task.
-
-## Step 1: Plan the Design
-
-Run the **plan** verb via `get_command({ verb: "plan" })` or `dispatch_intent`, passing the user's feature description. Plan is **required** for build; it produces a confirmed direction.
-
-Present the plan output and stop. Wait for the user to confirm, override, or course-correct before writing code.
-
-If the user already supplied a confirmed brief or ran plan separately, use it and skip this step.
-
-When the original prompt + PRODUCT.md already answer scope, content, and visual direction with no real ambiguity, the shape output can be **compact** (3-5 bullets stating what you're building and the visual lane, ending with one or two specific questions or "confirm or override"). The full 10-section structured brief is reserved for genuinely ambiguous, multi-screen, or stakeholder-heavy tasks. Don't pad a clear brief into a long one to look thorough; equally, don't skip the pause to look efficient.
-
-If the harness has native image generation, a compact shape's "confirm or override" advances to **Step 3 (visual direction)**, not to Step 4. Phrase the closing line accordingly: "Confirm or override; once we lock direction, I'll confirm palette and references before generating any mocks."
-
-## Step 2: Load References
-
-Based on the design brief's "Recommended References" section, load designer-skill references via `get_reference`. At minimum:
+Use the canonical command registry through MCP or `scripts/command-metadata.json` on the filesystem. Begin with one to four relevant references, not the whole library:
 
 | Need | Reference |
-|---|---|
+| --- | --- |
 | Layout, spacing, type | `design-principles` |
-| Aesthetic language | `aesthetic-systems` |
+| Authorized new visual language | `aesthetic-systems`, optionally `differentiation-playbook` |
 | Forms, navigation, states | `interaction-design` |
 | Motion | `motion-and-interaction` |
-| Engineering, responsive, a11y | `engineering-and-performance` |
-| UX copy | `command-playbook` (Clarify kit) |
+| Engineering and verification | `engineering-and-performance`, `verification-and-recovery` |
+| Truthful content and advisory critique | `avoid-ai-slop` |
 
-Always include `avoid-ai-slop` for the ship gate.
+Examples are proposals, not permission to replace approved tokens or popular fonts.
 
-## Step 3: Visual Direction & Assets (Harness-Gated)
+## 3. Explore direction only when it answers a question
 
-If the harness has **native image generation**, this step is mandatory:
+Mock generation and named references are optional tools for an unresolved design decision. Discover the host's capabilities; without image generation, continue from the brief and local product evidence. Never upload private material or install tooling merely because a reference workflow suggests it.
 
-1. Ask 2–3 direction questions (physical scene, color strategy, named references).
-2. Confirm palette — `get_palette_seed` on greenfield; existing tokens on established projects.
-3. Generate 2–3 mock directions; user picks one or delegates.
-4. Produce a mock-fidelity inventory (hero silhouette, motifs, imagery, nav/CTA) before code.
+If the user adopts a mock or reference, record the important composition, hierarchy, density, assets and distinctive motifs. It is a visual target, not a complete specification of accessibility, copy, responsive behavior or recovery. Resolve conflicts explicitly; a user can revise their direction.
 
-If the harness lacks native image generation, **state in one line that the visual-direction-by-generation step is being skipped**, then proceed. The brief is the contract.
+## 4. Build a coherent authorized slice
 
-Whether or not mocks were generated: do not replace required imagery with generic cards, emoji, fake metrics, or filler copy.
+Implement in passes: structure, visual system, relevant states, motion/media and responsiveness. Preserve event handling, navigation and data contracts unless their change was requested.
 
-## Step 4: Build to Production Quality
+- **Content:** source real names, statistics and assets; label demonstration fixtures visibly. No fake controls or missing requested behavior.
+- **Semantics:** headings, landmarks, labels, accessible names, form associations and state announcements as applicable.
+- **Visual system:** reuse tokens, deliberate spacing, readable type, stable wrapping and cause-level overflow fixes.
+- **States:** implement only reachable loading, empty, error, success, disabled, focus and recovery states. Stress real data extremes where relevant.
+- **Input:** keyboard, touch, focus restoration and non-hover paths; reduced-motion alternatives preserve information.
+- **Media:** verify approved assets exist, check licensing, use meaningful alternatives and appropriate dimensions/loading. An unverified guessed URL is not an asset.
+- **Engineering:** source changes follow the actual build pipeline. Run discovered validation commands only when host policy permits; missing checks remain gaps.
+- **Motion:** spend effects on feedback or explanation, keep interaction interruptible, measure expensive effects on target devices.
 
-**Precondition.** If Step 3 used image generation, direction questions, palette, and mock approval must be complete before any code. A confirmed shape brief alone is not enough.
+When discovery changes scope or an adopted requirement, surface the conflict before expanding the change.
 
-Implement the feature following the design brief. Build in passes so structure, visual system, states, motion/media, and responsive behavior each get deliberate attention. The list below is the definition of done, not inspiration.
+## 5. Inspect and repair within the budget
 
-### Production bar
+Use the host's browser or native preview; reuse an existing preview. Capture and inspect the affected states at sizes/input modalities from the product's policy. A screenshot path without viewing its contents is not visual evidence. Without rendering capability, complete safe source work and report UI NOT_VERIFIED rather than inventing inspection.
 
-- **Real content.** No placeholder copy, placeholder images, dead links, fake controls, or unused scaffold at presentation time.
-- **Preserve the approved mock's major ingredients.** Missing hero objects, world/product imagery, section structure, CTA/nav treatment, or distinctive motifs are blocking defects unless the user accepted the change.
-- **Semantic first.** Real headings, landmarks, labels, form associations, button/link semantics, accessible names, state announcements where needed.
-- **Deliberate spacing and alignment.** No default gaps, arbitrary margins, unbalanced whitespace, or accidental optical misalignment.
-- **Intentional typography.** Chosen loading strategy, clear hierarchy, readable measure, stable line breaks, no overflow at any width.
-- **Realistic state coverage.** Default, hover, focus-visible, active, disabled, loading, error, success, empty, overflow, long/short text, first-run.
-- **Finished interaction quality.** Keyboard paths, touch targets, feedback timing, scroll behavior, state transitions, no hover-only functionality.
-- **Coherent icon set.** Use the project's established set; otherwise pick one library or use accessible text. Don't mix.
-- **Respect the build pipeline.** Edit source files and run the project's build (`npm run build` or equivalent). Don't write to `build/` / `dist/` / `.next/` with `cat`, heredoc, or Bash redirects; that skips asset hashing, image optimization, code splitting, and CSS extraction, and produces output the dev server won't serve.
-- **Verify image URLs before referencing them.** Use image-search MCP or web-fetch when available; guessed photo IDs ship as broken-image placeholders. Without verification, prefer fewer images you're confident about.
-- **Optimized imagery and media.** Correct dimensions, useful alt text, lazy loading below the fold, modern formats when practical, responsive `srcset`/`picture` for raster, no project-referenced asset left outside the workspace.
-- **Premium motion.** Use atmospheric blur, filter, mask, shadow, reveal when they improve the experience. Avoid casual layout-property animation, bound expensive effects, verify smoothness in-browser, respect reduced motion, and avoid choreography that blocks task completion.
-- **Maintainable.** Reusable local patterns, clear component boundaries, project conventions. No rasterized UI text or one-off hacks when a local pattern exists.
-- **Technically clean.** Production build passes, no console errors, no avoidable layout shift, no needless dependencies, no broken asset paths.
-- **Ask when uncertain.** If a discovery materially changes the brief or approved direction, stop and ask. Don't guess.
+Compare against the actual brief, not a generic studio checklist. Fix only material observed defects; do not manufacture iterations. Capture relevant checks after the final edit, using the verification plan and `verification-and-recovery`. Static detector output is supplemental defect evidence, not rendered readiness.
 
-## Step 5: Iterate Visually
+## 6. Present the result
 
-Look at what you built like a designer would. Your eyes are whatever the harness gives you: a connected browser, a screenshotting tool, Playwright, or asking the user. Use them for responsive testing (mobile, tablet, desktop minimum) and general visual validation.
+State what changed, states and environments exercised, evidence, accepted deviations and remaining gaps. Separate task completion from UI readiness. Do not let a polished presentation hide incomplete requirements or unavailable checks.
 
-If your tool returns a file path, read the PNG back into the conversation. A screenshot you didn't read doesn't count.
+## Hand-off plans another agent can execute
 
-For long-form brand surfaces, inspect major sections individually. Thumbnails hide spacing, clipping, and cascade defects.
-
-After the first pass, write an honest critique against the brief, the approved mock's major ingredients (hero silhouette, motifs, imagery, nav/CTA, density), and designer-skill anti-slop rules. Patch material defects and re-inspect. **Don't invent defects to demonstrate iteration.** A confident "first pass clean, shipping" beats a fake fix.
-
-Actively check: responsive behavior (composes, not shrinks), every state (empty / error / loading / edge), craft details (spacing, alignment, hierarchy, contrast, motion timing, focus), performance basics. The exit bar: defensible in a high-end studio review.
-
-Detector output (`detect_antipatterns`) is defect evidence only; never proof the work is finished.
-
-## Step 6: Present
-
-Present the result to the user:
-- Show the feature in its primary state
-- Summarize the browser/viewports checked and the most important fixes made after inspection
-- Walk through the key states (empty, error, responsive)
-- Explain design decisions that connect back to the design brief and, when used, the chosen north-star mock. Include any accepted deviations from the mock; do not hide unimplemented mock ingredients.
-- Note any remaining limitations or follow-up risks honestly
-- Ask: "What's working? What isn't?"
+A hand-off is self-contained: the executor may have none of this conversation's context. Include scope/authority, target files and symbols, exact proposed token values/durations/curves where needed, applicable states and an acceptance check for each requirement. "Add a subtle entrance" hides a design decision; "opacity 0→1 and translateY(12px)→0 over 200ms var(--ease-out)" is an executable proposal. Label suggestions as advisory, preserve approved requirements, and keep each slice bounded with its own evidence.

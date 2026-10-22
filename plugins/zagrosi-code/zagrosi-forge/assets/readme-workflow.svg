@@ -1,76 +1,38 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 430" role="img" aria-labelledby="title desc">
-  <title id="title">Zagrosi Forge artifact workflow</title>
-  <desc id="desc">A workflow diagram showing input, project split, planning, implementation, and verification artifacts.</desc>
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1100" y2="430" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#F8FAFC"/>
-      <stop offset="1" stop-color="#ECFDF5"/>
-    </linearGradient>
-    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
-      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#0F172A" flood-opacity=".08"/>
-    </filter>
-  </defs>
-  <rect width="1100" height="430" rx="28" fill="url(#bg)"/>
-  <rect x="20" y="20" width="1060" height="390" rx="22" fill="none" stroke="#0F766E" stroke-opacity=".18" stroke-width="2"/>
-
-  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
-    <text x="56" y="68" fill="#0F172A" font-size="28" font-weight="760">The Forge artifact loop</text>
-    <text x="56" y="98" fill="#475569" font-size="16">Every phase leaves durable files on disk, so Codex can resume without hidden session state.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 350" role="img" aria-labelledby="title desc">
+  <title id="title">Project, Plan, Implement</title>
+  <desc id="desc">Start at the phase you need. Project splits a brief into project-manifest.md and child spec.md files. Plan creates sections/index.md and reviewed section contracts, with a shared plan when needed. Implement produces code, tests, and section records. Lean, standard, and deep use the same flow.</desc>
+  <rect width="1000" height="350" fill="#F3F8F7"/>
+  <g font-family="Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" fill="#0B1F1E">
+    <text x="40" y="51" font-size="25" font-weight="600">Start at the phase you need.</text>
+    <g font-size="30" font-weight="700" fill="#0F766E">
+      <text x="40" y="115">Project</text>
+      <text x="366" y="115">Plan</text>
+      <text x="700" y="115">Implement</text>
+    </g>
+    <g font-size="19">
+      <text x="40" y="151">Split a broad brief.</text>
+      <text x="366" y="151">Review behavior and tests.</text>
+      <text x="700" y="151">Build, test, and record.</text>
+    </g>
+    <g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="18">
+      <text x="40" y="206">project-manifest.md</text>
+      <text x="40" y="237">*/spec.md</text>
+      <text x="366" y="206">sections/index.md</text>
+      <text x="366" y="237">section-*.md</text>
+    </g>
+    <g font-size="20">
+      <text x="700" y="206">Code + tests</text>
+      <text x="700" y="237">Section records</text>
+    </g>
+    <g font-size="16" fill="#355E57">
+      <text x="40" y="264">Boundaries + dependencies</text>
+      <text x="366" y="264">Shared plan when needed</text>
+      <text x="700" y="264">Verified, resumable progress</text>
+    </g>
+    <text x="40" y="325" font-size="18" fill="#355E57">Lean · standard · deep — the same flow, with your chosen depth of investigation.</text>
   </g>
-
-  <g transform="translate(56 142)" filter="url(#cardShadow)">
-    <rect width="178" height="150" rx="16" fill="#FFFFFF" stroke="#D1FAE5"/>
-    <text x="22" y="38" fill="#0F766E" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700">INPUT</text>
-    <text x="22" y="72" fill="#0F172A" font-family="Inter, ui-sans-serif, system-ui" font-size="20" font-weight="730">brief</text>
-    <text x="22" y="102" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">requirements.md</text>
-    <text x="22" y="126" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">chat idea</text>
+  <g fill="none" stroke="#0F766E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M281 105h44m-9-8 9 8-9 8M614 105h44m-9-8 9 8-9 8"/>
   </g>
-
-  <g transform="translate(274 142)" filter="url(#cardShadow)">
-    <rect width="178" height="150" rx="16" fill="#FFFFFF" stroke="#D1FAE5"/>
-    <text x="22" y="38" fill="#0F766E" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700">PROJECT</text>
-    <text x="22" y="72" fill="#0F172A" font-family="Inter, ui-sans-serif, system-ui" font-size="20" font-weight="730">split</text>
-    <text x="22" y="102" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">manifest.md</text>
-    <text x="22" y="126" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">*/spec.md</text>
-  </g>
-
-  <g transform="translate(492 142)" filter="url(#cardShadow)">
-    <rect width="178" height="150" rx="16" fill="#FFFFFF" stroke="#D1FAE5"/>
-    <text x="22" y="38" fill="#0F766E" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700">PLAN</text>
-    <text x="22" y="72" fill="#0F172A" font-family="Inter, ui-sans-serif, system-ui" font-size="20" font-weight="730">research</text>
-    <text x="22" y="102" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">codex-plan.md</text>
-    <text x="22" y="126" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">codex-plan-tdd.md</text>
-  </g>
-
-  <g transform="translate(710 142)" filter="url(#cardShadow)">
-    <rect width="178" height="150" rx="16" fill="#FFFFFF" stroke="#D1FAE5"/>
-    <text x="22" y="38" fill="#0F766E" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700">IMPLEMENT</text>
-    <text x="22" y="72" fill="#0F172A" font-family="Inter, ui-sans-serif, system-ui" font-size="20" font-weight="730">section</text>
-    <text x="22" y="102" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">sections/*.md</text>
-    <text x="22" y="126" fill="#475569" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">tests + diff</text>
-  </g>
-
-  <g transform="translate(928 142)" filter="url(#cardShadow)">
-    <rect width="128" height="150" rx="16" fill="#0F766E"/>
-    <text x="18" y="38" fill="#CCFBF1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13" font-weight="700">VERIFY</text>
-    <text x="18" y="72" fill="#F8FAFC" font-family="Inter, ui-sans-serif, system-ui" font-size="20" font-weight="730">gate</text>
-    <text x="18" y="102" fill="#CCFBF1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">score</text>
-    <text x="18" y="126" fill="#CCFBF1" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13">traceability</text>
-  </g>
-
-  <g fill="none" stroke="#14B8A6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M244 217h22"/>
-    <path d="m258 208 12 9-12 9"/>
-    <path d="M462 217h22"/>
-    <path d="m476 208 12 9-12 9"/>
-    <path d="M680 217h22"/>
-    <path d="m694 208 12 9-12 9"/>
-    <path d="M898 217h22"/>
-    <path d="m912 208 12 9-12 9"/>
-  </g>
-
-  <g transform="translate(56 336)">
-    <rect width="998" height="48" rx="12" fill="#ECFDF5" stroke="#99F6E4"/>
-    <text x="20" y="30" fill="#0F766E" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">No hidden task files. No chat-memory dependency. Resume state is inferred from the artifact tree.</text>
-  </g>
+  <path d="M40 291h920" stroke="#B6CEC8"/>
 </svg>

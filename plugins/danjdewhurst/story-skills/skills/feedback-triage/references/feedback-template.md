@@ -10,6 +10,8 @@ reader: "{Reader name or label}"
 round: {N}
 chapters-read: "{e.g. 1-12, or all}"
 overall-verdict: "{loved it | liked it with reservations | mixed | didn't connect}"
+# source: simulated   # only for a reader-panel persona read; omit for a human reader
+# persona: {persona}  # the reader-panel persona's file id, with source: simulated
 ---
 
 # Feedback — {Reader} (Round {N})

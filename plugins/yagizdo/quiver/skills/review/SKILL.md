@@ -1,9 +1,8 @@
 ---
 name: review
 description: Run a multi-agent code review. Default fast mode (5 agents); pass --deep for full pipeline (all agents + quality check + senior review). Pass --with-codex for cross-model coverage.
-argument-hint: "[PR/MR URL | --base <branch>] [--deep] [--plan <path>] [--output <path>] [--set-output <path>] [--terminal] [--comment-pr] [--with-codex]"
-disable-model-invocation: true
-when-to-use: "user wants a multi-agent code review of a PR or diff -- '/review', 'review my changes', 'review this PR', 'code review', 'audit the diff' (not: 'senior review')"
+argument-hint: "[PR/MR URL | --base <branch>] [--deep] [--plan <path>] [--run-checks] [--output <path>] [--set-output <path>] [--terminal] [--comment-pr] [--with-codex]"
+when-to-use: "user wants a multi-agent code review of a PR or diff -- '/review', '/quiver:review', 'review my changes', 'review this PR', 'code review', 'audit the diff' (not: 'senior review')"
 ---
 
 # Gather Context
@@ -34,13 +33,14 @@ Print: `> No git repository detected. /quiver:review requires a git repo.`
 
 ## Step 0.5 -- Detect Review Depth
 
-Parse `$ARGUMENTS` for the `--deep` and `--plan` flags:
+Parse `$ARGUMENTS` for the `--deep`, `--plan`, and `--run-checks` flags:
 
 1. If `$ARGUMENTS` contains `--deep`, set `review_mode = deep`. Strip `--deep` from `$ARGUMENTS` before passing to subsequent steps.
 2. Otherwise, set `review_mode = fast`.
 3. If `$ARGUMENTS` contains `--plan <path>`, set `constraints_plan_path` to the path token that follows the flag, and strip both `--plan` and that path from `$ARGUMENTS` before passing to subsequent steps. Otherwise leave `constraints_plan_path` unset.
+4. If `$ARGUMENTS` contains `--run-checks`, set `run_checks` and strip the flag from `$ARGUMENTS` before passing to subsequent steps. Otherwise leave `run_checks` unset.
 
-`--deep` affects Steps 2 (agent dispatch), 3 (synthesis), 3.5, 3.75, and 3.9 only. `--plan` affects Step 1.8 only -- it names the plan whose Global Constraints bind this review, and never changes which diff is reviewed. All other steps (diff source detection, manifest building, LSP detection, report saving, PR posting) are identical in both modes.
+`--deep` affects Steps 2 (agent dispatch), 3 (synthesis), 3.5, 3.75, and 3.9 only. `--plan` affects Step 1.8 only -- it names the plan whose Global Constraints bind this review, and never changes which diff is reviewed. `--run-checks` affects Step 3.3 only -- it lets a branch review run the project's tests to check a finding. All other steps (diff source detection, manifest building, LSP detection, report saving, PR posting) are identical in both modes. Fast mode includes Step 3.3: every finding is checked against the code in both modes.
 
 Announce the mode:
 - Fast: `Running review (5 core agents)...`
@@ -169,13 +169,11 @@ Pass both `codegraph_available` and `lsp_available` to agents that search the br
 
 Find the plan whose Global Constraints bind this review and extract that block verbatim. This step is a read-only lookup. It never edits, extends, paraphrases, or renumbers the block, and it never writes a plan file -- `/plan` is the only skill that decides constraint content.
 
-1. **Explicit plan.** If Step 0.5 set `constraints_plan_path` from `--plan <path>`, use that file. If the path does not exist or cannot be read, set the block to empty and continue with no note.
-2. **PR/MR mode.** Otherwise, if Step 1 resolved to Mode 1 (PR/MR link provided) and did not fall back to Mode 2 or Mode 3, skip discovery entirely and set the block to empty. A PR diff can come from a branch whose plan never existed on this machine, so the newest local plan is more likely wrong than right, and a wrong constraint removes real findings in the suppression direction. A user who knows a local plan applies to a PR passes `--plan <path>`.
-3. **Newest local plan.** Otherwise, list the plans directory with the Bash tool (`ls -1t .claude/plans/*.md 2>/dev/null`) and take the first path it prints -- the newest `.md` file by modification time. Empty output means there is no plans directory and no plan file; go to rule 5.
-4. **Extract the block.** Read the chosen file and take the `## Global Constraints` section: every line after that heading up to the next `## ` heading, with leading and trailing blank lines trimmed. Set `constraints_plan_path` to the chosen file's path -- Step 3's report template prints it in `## Review Context`.
-5. **Degrade cleanly.** If there is no `.claude/plans/` directory, no `.md` file in it, or no `## Global Constraints` heading in the chosen file, set the block to empty and continue with no note, no warning, and no error. An empty block means Step 2 skips per-agent context item 10 entirely, the Step 3 `constraint-blocked` filter never fires, and the report's `Global Constraints` field reads `N/A`. This path must behave exactly as a review did before this step existed.
+1. **Explicit plan only.** If Step 0.5 set `constraints_plan_path` from `--plan <path>`, use that file. Otherwise set the block to empty and go to rule 3, in branch, PR and uncommitted mode alike. Never pick a plan on your own: a plan file is not tied to a branch, so a plan chosen by date or name can belong to another open branch, and a wrong constraint removes real findings in the suppression direction. `/work` and `/ship` print the review command with `--plan` for this reason; a user who knows a plan applies passes `--plan <path>`.
+2. **Extract the block.** Read the file and take the `## Global Constraints` section: every line after that heading up to the next `## ` heading, with leading and trailing blank lines trimmed. Step 3's report template prints `constraints_plan_path` in `## Review Context`.
+3. **Degrade cleanly.** With no `--plan`, a path that does not exist or cannot be read, or a file with no `## Global Constraints` heading, set the block to empty and continue with no note, no warning, and no error. An empty block means Step 2 skips per-agent context item 10 entirely, the Step 3 `constraint-blocked` filter never fires, and the report's `Global Constraints` field reads `N/A`. This path must behave exactly as a review did before this step existed.
 
-Do the listing and the read with the Bash and Read tools at this point in the run, not with a `!` block at the top of this file: the lookup is conditional on the review mode resolved in Step 1, and `!` blocks run before any step logic.
+Do the read with the Read tool at this point in the run, not with a `!` block at the top of this file: it depends on the flag parsed in Step 0.5, and `!` blocks run before any step logic.
 
 Say nothing about this step in the chat stream. The report's `Global Constraints` field and the `constraint-blocked` entries in `## Filtered Findings` are where the block becomes visible.
 
@@ -247,6 +245,7 @@ Then continue the fast review without Codex.
 - **`report-checker`**: Never dispatched in Step 2. This agent is a post-synthesis quality gate, dispatched only in Step 3.5 after the report is assembled. Skip silently during agent discovery.
 - **`senior-reviewer`**: Never dispatched in Step 2. This agent is a post-quality-check senior review, dispatched only in Step 3.75 after report-checker completes. Skip silently during agent discovery.
 - **`fix-reviewer`**: Never dispatched in Step 2. This agent is a post-senior-review fix-proposal check, dispatched only in Step 3.9 after senior-reviewer completes. It lives under `agents/debug/`, so Step 2a's discovery never sees it. Skip silently during agent discovery.
+- **`finding-verifier`**: Never dispatched in Step 2 -- it runs at Step 3.3, once per synthesized finding. Skip silently during agent discovery.
 - **Future agents**: Add a row to the `## Dispatch Gates` table in `.claude/rules/review-agent-rules.md` before the agent's first review run, then restate that row here. The table row is the gate. Until a row exists, the agent is dispatched on every diff regardless of what changed, and `tests/skills/test-review-dispatch-contract.sh` fails until one is added -- dispatching too much is recoverable, silently reviewing nothing is not.
 
 Spawn qualifying agents simultaneously using multiple Agent tool calls in a single response. Use the `quiver:{name}` identifier format described above as the `subagent_type`.
@@ -393,6 +392,7 @@ The proportional floor runs AFTER subsumption (Step 3.1) and the 9 filters (Step
    - Proper error handling
    - Clean abstractions or well-chosen framework conventions
    If the diff has no notable strengths, omit the "What's Working Well" section rather than fabricating praise.
+   A strength that states a fact about the tree -- a count, a test result, a line citation, an absence, or an "every"/"only"/"matches" claim -- meets the same bar as a finding's citation: it rests on a file read or a command run in this review, and says no more than that check showed. Cut it to what was checked, or drop it.
 7. **Assign a disposition to every finding.** Every finding that survives filtering carries exactly one disposition, Low findings included. Severity says how big the consequence is; disposition says what the reader does about it, and a report that states only the first leaves every Low finding unowned:
    - **Before merge** -- the change is not safe to ship without this. Critical and High start here.
    - **Follow-up** -- real, worth an issue, not worth holding the merge.
@@ -450,6 +450,12 @@ Each finding gets a short ID: severity initial + sequence number (C1, C2... for 
 
 Every finding carries a `Disposition:` line directly under its ID block, from Step 3 item 7. It is not optional and it has no default -- a finding with no disposition line is a finding whose reader has to guess.
 
+Every finding checked at Step 3.3 carries a `Verification:` line under its `Disposition:` line, `Verification: confirmed -- <evidence>` or `Verification: unverified -- <reason>`:
+
+    [H1] [HIGH] (logic-reviewer) src/list.ts:42 -- paginate() returns 0 pages when count equals page size
+    Disposition: Before merge
+    Verification: confirmed -- `npm test -- list` -> exit 1: expected 1, received 0 (passes with line 42 fixed)
+
 ### Critical
 [C1, C2, ... merged critical findings]
 
@@ -481,10 +487,11 @@ Every finding carries a `Disposition:` line directly under its ID block, from St
 
 ## Filtered Findings
 
-**{N} findings reported, {M} filtered** ({classification breakdown, e.g., "3 out-of-scope, 2 aspirational, 1 constraint-blocked, 1 subjective style"})
+**{N} findings reported, {M} filtered** ({classification breakdown, e.g., "3 out-of-scope, 2 aspirational, 1 constraint-blocked, 1 refuted-by-verification, 1 subjective style"})
 
 - [brief reason for each, e.g., "~~[M3] [Medium] (waste-detector) config/routes.rb:15 -- Consider extracting nested routes~~ -- Aspirational: working code, no concrete problem"]
 - [constraint-blocked entries name the constraint, e.g., "~~[M4] [Medium] (logic-reviewer) skills/plan/SKILL.md:212 -- Compute the newest plan inline in the shell block~~ -- Constraint-blocked: Global Constraint 2 (no new shell logic in `!` blocks)"]
+- [refuted-by-verification entries carry the evidence, e.g., "- [M2] refuted-by-verification -- README.md:12 -- README sentence restates the install command -- docs/decisions.md:14: \"keep the install line in both places\""]
 
 (Omit this section entirely if no findings were filtered.)
 
@@ -492,7 +499,47 @@ Every finding carries a `Disposition:` line directly under its ID block, from St
 [Unified verdict] -- [severity counts] -- [one-line justification]
 ```
 
-<!-- SYNC: This report format is parsed by skills/work/SKILL.md, section `#### 4c -- Review finding verification (review-fix plans only)`. If you change the report structure (section headings, finding format), update the verification parsing logic there. New sections (What's Working Well, Recommended Fix Order, Senior Assessment) are additive and do not affect Phase 4c parsing. Step 3.5 and Step 3.75 below may modify findings (remove, downgrade, rewrite, promote, add) before Step 4 saves the report; Step 3.9 modifies only the fix block inside a finding and never the finding itself. -->
+<!-- SYNC: This report format is parsed by skills/work/SKILL.md, section `#### 4c -- Review finding verification (review-fix plans only)`. If you change the report structure (section headings, finding format), update the verification parsing logic there. New sections (What's Working Well, Recommended Fix Order, Senior Assessment) are additive and do not affect Phase 4c parsing. Step 3.3 below adds a `Verification:` line under a finding or moves it to `## Filtered Findings`; Step 3.5 and Step 3.75 below may modify findings (remove, downgrade, rewrite, promote, add) before Step 4 saves the report; Step 3.9 modifies only the fix block inside a finding and never the finding itself. -->
+
+## Step 3.3 -- Verify Findings
+
+Runs in fast and deep mode. A reviewer agent's finding is a claim, and Step 3's filters judge its wording, not the code. This step checks each claim against the reviewed code with an executed check, a grep or measurement, or the project's recorded decisions, and removes the ones the code refutes.
+
+With zero findings in `## Findings`, print nothing, do nothing, and go to Step 3.5.
+
+1. **Assemble one input per finding.** Number the findings `F1`, `F2`, ... in report order and keep the mapping to their report IDs. The report ID is not passed: its letter is the severity. Each input carries:
+   - `id: F<n>`
+   - **The claim:** the finding's title and body, with the severity, the agent name, the `Flagged by:` and `Also noted:` lines, the `Disposition:` line, and confidence wording ("high confidence", "likely") removed.
+   - Its `file:line` citations, and the diff hunks of every cited file from the diff in Step 1.
+   - **Rule and decision sources to search:** `CLAUDE.md`, `AGENTS.md`, `.claude/rules/`, the Step 1.8 Global Constraints block when it is non-empty, and any decision log the project instructions name. List the paths that exist; pass the Global Constraints block as text.
+   - **Test command:** read `skills/verification/SKILL.md` and follow its `## Command Resolution` section once per run, then pass the resolved `test:` line as a literal.
+   - `execution: allowed` in Mode 3, and in Mode 2 only when `run_checks` is set; `execution: off` otherwise, Mode 1 included. A branch can be someone else's code checked out locally, and a pull request link can fall back to Mode 2, so a branch review runs project code only when the user passed `--run-checks`. Mode 3 reviews edits not yet committed in the user's own checkout, so it runs checks without the flag.
+   - `reviewed_sha`: Mode 2, the output of `git rev-parse HEAD`. Mode 3, the output of `git stash create`, which records tracked staged and unstaged changes as a commit without touching the working tree or the stash list; when it prints nothing there is no tracked change, so use `git rev-parse HEAD`. Mode 1, `none`.
+   - Mode 3 only: the main checkout path (`git rev-parse --show-toplevel`) and the cited files that `git ls-files --others --exclude-standard` lists. Untracked files are in no commit, so the check reads them from that path.
+   - **Project safety rules:** every line in the project instructions that limits what may be run or touched (devices, simulators, databases, external services, destructive commands), quoted. A checking agent does not inherit this session's rules, so the prompt is the only place they reach it.
+
+   Never pass another agent's reasoning, verdict, severity, or fix block. A checker shown a prior label tends to agree with it.
+
+2. **Run the checks.** Print `Checking each finding against the code...`. Then, in one response, spawn one `quiver:finding-verifier` per finding, each Agent call with `isolation: "worktree"`, so its checkouts and scratch files stay out of the user's tree. With more than 10 findings, group them by their first cited file and merge the smallest groups until 10 remain; each agent then receives every input in its group and returns one verdict block per finding.
+
+   If the Agent call fails because `quiver:finding-verifier` is not an available agent type, mark every finding `Verification: unverified -- the check could not run in this session`, print `Could not check the findings against the code in this session; the report marks them as unchecked.`, and go to Step 3.5.
+
+3. **Apply each verdict.** Each agent returns `### F<n> -- CONFIRMED`, `### F<n> -- REFUTED`, or `### F<n> -- UNVERIFIABLE`, each followed by `- evidence:` lines, then a closing `WORKTREE: <path>|none` line. Map `F<n>` back to the report ID.
+   - **REFUTED:** remove the finding from `## Findings` and add it to `## Filtered Findings` as `- [<report ID>] refuted-by-verification -- <file:line> -- <title> -- <one evidence line>`, where `<file:line>` is the finding's first citation as written in `## Findings`.
+   - **CONFIRMED:** add `Verification: confirmed -- <one evidence line>` under the finding's `Disposition:` line.
+   - **UNVERIFIABLE:** add `Verification: unverified -- <reason>` under the `Disposition:` line, the reason taken from its `- evidence:` line (what would settle it).
+   - A finding with no verdict block in its agent's output gets `Verification: unverified -- no result returned`.
+
+   A finding that Step 3.75 later adds carries no `Verification:` line and counts as unverified: this check covered the findings as they stood here. A REWRITE at Step 3.5 or 3.75 changes only the recommendation text, so the finding keeps its line.
+
+   Then recompute the report by applying the recalculation list in Step 3.5 item 2 ("After applying fixes, recalculate"), in fast mode as well, together with the count line at the top of `## Filtered Findings`.
+
+4. **Clean up.** A worktree whose agent left no changed files is removed when the agent ends, but each run leaves a branch named `worktree-<basename of the worktree path>` (measured on Claude Code 2.1.300: two runs left two `worktree-agent-<id>` branches and no worktree directory). For each `WORKTREE:` path an agent returned, other than `none`:
+   - If the path still exists, run `git worktree remove <path>`. Never pass `--force`: a worktree that still holds changes is the user's to inspect.
+   - If `git rev-parse --verify --quiet refs/heads/worktree-<basename>` resolves, run `git branch -d worktree-<basename>`. Never `-D`.
+   - On a failure, print `Could not remove the temporary copy at <path>; it is safe to delete by hand.` (or `Could not delete the temporary branch <name>; it is safe to delete by hand.`) and continue.
+
+5. **Report the counts.** Print `Checked <N> findings: <a> confirmed, <b> ruled out, <c> could not be checked.`, leaving out any part whose count is zero.
 
 ## Step 3.5 -- Report Quality Check
 
@@ -506,12 +553,12 @@ After synthesis, dispatch the `report-checker` agent for an independent quality 
    - Do NOT pass individual agent outputs -- the checker evaluates the report as a reader would.
 
 2. **Handle results:**
-   - **Zero issues:** Print `Quality check passed -- report is ready.` Proceed to Step 4.
+   - **Zero issues:** Print `Quality check passed -- report is ready.` Proceed to Step 3.75.
    <!-- SYNC: The apply-fixes procedure below (REMOVE/DOWNGRADE/REWRITE actions + recalculation steps) is duplicated in skills/report-check/SKILL.md Step 4 "Apply fixes" block. Keep both in sync. -->
    - **Issues found:** Apply the recommended actions:
      - REMOVE: Delete the finding from the report.
      - DOWNGRADE: Change the finding's severity and move it to the correct section.
-     - REWRITE: Replace the finding's recommendation text with the corrected version.
+     - REWRITE: Replace the finding's recommendation text with the corrected version. It changes only the recommendation text, so the finding keeps its `Verification:` line.
    - After applying fixes, recalculate:
      - Findings overview counts in `## Review Context`
      - Disposition counts in `## Review Context`, and the `**Deferred:**` line under the fix order table
@@ -521,8 +568,8 @@ After synthesis, dispatch the `report-checker` agent for an independent quality 
    - Print: `Quality check: {N} issues found and fixed.`
 
 3. **Retry (max 1).** Re-dispatch `report-checker` with the corrected report.
-   - **Zero issues on retry:** Proceed to Step 4.
-   - **Issues remain on retry:** Proceed to Step 4 anyway. Do NOT retry again. Append a `## Quality Check Notes` section to the end of the report (before Verdict) listing the unresolved items with their QA IDs and descriptions.
+   - **Zero issues on retry:** Proceed to Step 3.75.
+   - **Issues remain on retry:** Proceed to Step 3.75 anyway. Do NOT retry again. Append a `## Quality Check Notes` section to the end of the report (before Verdict) listing the unresolved items with their QA IDs and descriptions.
    - Print: `Quality check: {N} items remain after correction. Proceeding with the report.`
 
 4. The max iteration count (1 retry after initial check) is a hard limit. This prevents infinite correction loops. The same discipline that applies to the report-checker agent applies here: if the report is good enough after one correction pass, stop.
@@ -551,9 +598,9 @@ After the quality check, dispatch the `senior-reviewer` agent for a pragmatic se
    - **Modifications or new findings:** Apply the recommended actions:
      - REMOVE: Delete the finding from the report.
      - DOWNGRADE: Change the finding's severity and move it to the correct section.
-     - REWRITE: Replace the finding's recommendation text with the corrected version.
+     - REWRITE: Replace the finding's recommendation text with the corrected version. It changes only the recommendation text, so the finding keeps its `Verification:` line.
      - PROMOTE: Upgrade the finding's severity and move it to the correct section. The senior-reviewer must provide justification for promotion.
-     - ADD: Insert a new finding into the appropriate severity section, with a `Disposition:` line assigned by the Step 3 item 7 rules. New findings from senior-reviewer use the prefix SR (SR1, SR2, etc.) to distinguish them from original agent findings. The senior-reviewer must cite the file and line for each added finding.
+     - ADD: Insert a new finding into the appropriate severity section, with a `Disposition:` line assigned by the Step 3 item 7 rules and no `Verification:` line. New findings from senior-reviewer use the prefix SR (SR1, SR2, etc.) to distinguish them from original agent findings. The senior-reviewer must cite the file and line for each added finding.
    - After applying fixes, recalculate:
      - Findings overview counts in `## Review Context`
      - Disposition counts in `## Review Context`, and the `**Deferred:**` line under the fix order table
@@ -601,7 +648,8 @@ Run this step only when at least one finding carries a fix: a fenced code block,
 
 2. **Handle results.** Every action lands on the fix, never on the finding:
    - **APPROVE:** leave the finding untouched.
-   - **FLAG:** replace the fix block with the corrected version, and add a one-line `Fix corrected:` note under it naming what was wrong with the original.
+   - **FLAG with a corrected fix** (its `Suggestion:` gives replacement code or a concrete edit): replace the fix block with the corrected version, and add a one-line `Fix corrected:` note under it naming what was wrong with the original.
+   - **FLAG with no corrected fix:** keep the original fix block, and add a one-line `Fix flagged:` note under it carrying the flag's problem. Never write a replacement the fix-reviewer did not give -- an invented snippet carries the same authority as a checked one.
    - **REJECT:** delete the fix block and put `No verified fix -- {one line naming why the proposed one does not work}` in its place.
 
    Do not remove a finding, change a severity, or change a disposition at this step. A fix that does not work is not evidence that the defect is not there, and Steps 3.5 and 3.75 have already had their pass at the findings themselves.
@@ -612,7 +660,7 @@ Run this step only when at least one finding carries a fix: a fenced code block,
 
 **Status messages (plain language, no rule codes):**
 - Before dispatch: `Checking the fixes the report recommends...`
-- After completion: `Fix check: {N} proposals reviewed, {M} corrected, {K} left without a verified fix.`
+- After completion: `Fix check: {N} proposals reviewed, {M} corrected, {F} kept with a warning, {K} left without a verified fix.`
 
 ## Step 4 -- Save Review Report
 
@@ -632,7 +680,7 @@ Evaluate in order:
 
 ### 4b -- Write and summarize
 
-1. Create the chosen directory if it does not exist.
+1. Create the chosen directory if it does not exist. When it is the default `.claude/reports/` from 4a item 5, before the first write, apply the keep-local rule in `skills/local-files/SKILL.md`; a path from `--output`, `--set-output`, or a saved preference is the user's choice and is left as it is.
 2. Write the full synthesized report as `review-{timestamp}.md` (use `date '+%Y-%m-%d_%H-%M-%S'`).
 3. Draft a short terminal summary with these elements:
    - One-line verdict
@@ -643,6 +691,8 @@ Evaluate in order:
    - **Fast mode coverage advisory** (only when `review_mode = fast`): If the Diff Manifest shows 3+ `CODE`/`SCRIPT` files changed, OR the diff adds new enum cases/tiers/configuration levels, OR the diff contains UI state management code, append: `Fast review (5 agents). For full coverage including failure scenario analysis and cross-agent validation, run with --deep.` Omit the advisory on small/isolated diffs where fast mode coverage is sufficient.
 4. **Pre-print scan (mandatory gate).** Before printing the drafted summary, run the scan defined in the "Status Messages: Plain Language Required" section against the draft. The summary is a live chat-stream message and is fully covered by the plain-language rule -- it is not exempt because it appears at the end of the run. If the draft contains any rule code, hash prefix, bare commit SHA, or internal invariant name, rewrite it using the plain-English replacement named in that category's own bullet, then re-scan. Only print the summary after the scan passes.
 5. Do **not** print the full review in the terminal unless `--terminal` was used.
+
+This summary ends the review. It does not end the turn when another skill loaded `/quiver:review` through the Skill tool: check whether a skill invoked this review and follow its continuation step.
 
 ---
 

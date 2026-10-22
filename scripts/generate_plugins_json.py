@@ -22,11 +22,13 @@ import sys
 import urllib.request
 import zipfile
 from pathlib import Path, PurePosixPath
+from urllib.parse import quote, unquote
 
 README = Path(__file__).parent.parent / "README.md"
 OUTPUT = Path(__file__).parent.parent / "plugins.json"
 MARKETPLACE_OUTPUT = Path(__file__).parent.parent / ".agents" / "plugins" / "marketplace.json"
 PLUGINS_ROOT = Path(__file__).parent.parent / "plugins"
+RETIRED_BUNDLE_IDENTITIES = {("samuelbushi", "uizze"), ("waynehamadi", "datacircle-plugin")}
 REQUEST_TIMEOUT_SECONDS = 60
 MAX_RETRIES = 3
 USER_AGENT = "awesome-codex-plugins-generator"
@@ -57,12 +59,32 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Workflow MCP bootstrap loads the sibling control-plane runtime; its MCP
+    # App also reads assets/sidebar-icon.svg and Skills reference helper scripts.
+    "TohmaN233/codex-agents-workflow": ("control-plane", "scripts", "assets"),
     # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
     # invoke sibling Python scripts in the same hooks/ directory at runtime.
     "bcanfield/agentic-tech-debt": ("hooks",),
+    # Codex Attachment Manager's .mcp.json starts ./scripts/launch with
+    # ./src/plugin-server.ts; the MCP server, engine and panel all live in src/.
+    "chipfighter/codex-attachment-manager": ("scripts", "src"),
+    # Cohesivity's .mcp.json starts its local stdio server from
+    # ./mcp/project-bootstrap.mjs, which no manifest field references.
+    "cohesivity-org/cohesivity-plugin": ("mcp",),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),
+    # ZCode Bridge's .mcp.json starts dist/bridge.mjs, which launches the worker
+    # and setup hook from sibling directories; preserve the complete runtime.
+    "Sandyzzx/codex-zcode-bridge": (
+        "dist",
+        "hooks",
+        "licenses",
+        "mcp.json",
+        "NOTICE",
+        "plugin.json",
+        "worker",
+    ),
 }
 
 
@@ -96,6 +118,7 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
 
     section = lines[start:end]
     plugins: list[dict[str, str]] = []
+    local_plugins: list[dict[str, str]] = []
     current_category = "Uncategorized"
     seen: set[str] = set()
 
@@ -106,30 +129,47 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
             continue
 
         plugin_match = re.match(
-            r"^- \[([^\]]+)\]\((https://github\.com/([^/]+)/([^)#]+?))(?:#readme)?\)\s*[-–]\s*(.+)",
+            r"^- \[([^\]]+)\]\((https://github\.com/([^/]+)/([^/?#)]+)"
+            r"(?:/tree/([^?#)]+?))?/?)(?:#readme)?\)\s*[-–]\s*(.+)",
             line.strip(),
         )
         if not plugin_match:
+            local_match = re.fullmatch(
+                r"- \[([^\]]+)\]\(\./plugins/([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)/?\)\s*[-–]\s*(.+)",
+                line.strip(),
+            )
+            if local_match:
+                local_plugins.append({
+                    "owner": local_match.group(2),
+                    "repo": local_match.group(3),
+                    "_local_bundle": "true",
+                })
+            elif line.strip().startswith("- "):
+                raise ValueError(f"Unrecognized Community Plugins entry: {line.strip()}")
             continue
 
         owner, repo = plugin_match.group(3), plugin_match.group(4)
         repo = repo.removesuffix(".git")
-        key = f"{owner}/{repo}/{plugin_match.group(1)}"
+        source_ref = unquote(plugin_match.group(5)) if plugin_match.group(5) else None
+        key = f"{owner}/{repo}/{source_ref or ''}/{plugin_match.group(1)}"
         if key in seen:
             continue
         seen.add(key)
-        plugins.append(
-            {
-                "name": plugin_match.group(1),
-                "url": plugin_match.group(2),
-                "owner": owner,
-                "repo": repo,
-                "description": plugin_match.group(5).strip(),
-                "category": current_category,
-                "source": "awesome-codex-plugins",
-                "install_url": f"https://raw.githubusercontent.com/{owner}/{repo}/{RAW_DEFAULT_BRANCH_REF}/.codex-plugin/plugin.json",
-            }
-        )
+        plugin = {
+            "name": plugin_match.group(1),
+            "url": plugin_match.group(2),
+            "owner": owner,
+            "repo": repo,
+            "description": plugin_match.group(6).strip(),
+            "category": current_category,
+            "source": "awesome-codex-plugins",
+            "install_url": build_raw_manifest_url(
+                {"owner": owner, "repo": repo, "source_ref": source_ref or ""}, ""
+            ),
+        }
+        if source_ref:
+            plugin["source_ref"] = source_ref
+        plugins.append(plugin)
 
     repo_counts: dict[str, int] = {}
     for plugin in plugins:
@@ -141,15 +181,18 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
         if repo_counts[owner_repo] > 1:
             plugin["_mirror_subpath"] = "true"
 
-    return plugins
+    return plugins + local_plugins
 
 
-def fetch_repo_archive(owner: str, repo: str) -> zipfile.ZipFile:
+def fetch_repo_archive(owner: str, repo: str, source_ref: str | None = None) -> zipfile.ZipFile:
     last_error = None
     for attempt in range(MAX_RETRIES):
         try:
+            archive_ref = (
+                f"refs/heads/{quote(source_ref, safe='/')}" if source_ref else "HEAD"
+            )
             request = urllib.request.Request(
-                f"https://github.com/{owner}/{repo}/archive/HEAD.zip",
+                f"https://github.com/{owner}/{repo}/archive/{archive_ref}.zip",
                 headers={"User-Agent": USER_AGENT},
             )
             with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:
@@ -212,9 +255,11 @@ def build_raw_manifest_url(plugin: dict[str, str], plugin_root_relative: str) ->
     manifest_path = ".codex-plugin/plugin.json"
     if plugin_root_relative:
         manifest_path = f"{plugin_root_relative}/{manifest_path}"
+    source_ref = plugin.get("source_ref")
+    raw_ref = quote(source_ref, safe="/") if source_ref else RAW_DEFAULT_BRANCH_REF
     return (
         f"https://raw.githubusercontent.com/{plugin['owner']}/{plugin['repo']}/"
-        f"{RAW_DEFAULT_BRANCH_REF}/{manifest_path}"
+        f"{raw_ref}/{manifest_path}"
     )
 
 
@@ -338,7 +383,9 @@ def sanitize_metadata_only_manifest(manifest: dict[str, object], plugin: dict[st
 def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str, str]:
     owner_repo = f"{plugin['owner']}/{plugin['repo']}"
     try:
-        archive = fetch_repo_archive(plugin["owner"], plugin["repo"])
+        archive = fetch_repo_archive(
+            plugin["owner"], plugin["repo"], plugin.get("source_ref")
+        )
     except Exception as e:
         raise ValueError(f"Failed to fetch {owner_repo}: {e}") from e
     names = {name for name in archive.namelist() if not name.endswith("/")}
@@ -423,8 +470,47 @@ def write_json(path: Path, data: dict[str, object]) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def prune_unlisted_bundles(root: Path, plugins: list[dict[str, str]]) -> list[str]:
+    """Remove only explicitly reviewed retirements that are absent from README.
+
+    Omission from the parsed catalog never authorizes another retirement.
+    Keep listed repositories even if this run cannot fetch them, and preflight
+    the two-level tree for symlinks before deleting any approved bundle.
+    """
+    if not plugins:
+        raise ValueError("Refusing bundle cleanup from an empty parsed README; explicit maintainer retirement is required")
+    retained = {(plugin["owner"].casefold(), plugin["repo"].casefold()) for plugin in plugins}
+    removed: list[str] = []
+    if root.is_symlink():
+        raise ValueError("Generated plugins root must not be a symlink")
+    if not root.exists():
+        return removed
+    # Preflight the entire tree before retiring anything. A later invalid
+    # directory must not leave an earlier bundle partially retired.
+    retired: list[Path] = []
+    for owner in sorted(root.iterdir()):
+        if owner.is_symlink():
+            raise ValueError(f"Generated owner directory must not be a symlink: {owner}")
+        if not owner.is_dir():
+            continue
+        for repo in sorted(owner.iterdir()):
+            if repo.is_symlink():
+                raise ValueError(f"Generated repo directory must not be a symlink: {repo}")
+            identity = (owner.name.casefold(), repo.name.casefold())
+            if repo.is_dir() and identity in RETIRED_BUNDLE_IDENTITIES and identity not in retained:
+                retired.append(repo)
+    for repo in retired:
+        shutil.rmtree(repo)
+        removed.append(f"{repo.parent.name}/{repo.name}")
+    return removed
+
+
 def main() -> None:
     plugins = parse_plugins(README)
+    for owner_repo in prune_unlisted_bundles(PLUGINS_ROOT, plugins):
+        print(f"Removed reviewed retired bundle {owner_repo}")
+    # Local README links are retention-only; never fetch them from GitHub.
+    plugins = [plugin for plugin in plugins if plugin.get("_local_bundle") != "true"]
     mirrored_entries: list[dict[str, object]] = []
     skipped: list[str] = []
     for plugin in plugins:

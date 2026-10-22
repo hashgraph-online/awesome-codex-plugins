@@ -1,6 +1,6 @@
 # Jurisdictions Index
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 This skill covers Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA, and Philippines DPA today, and Vietnam PDPL (Law 91/2025/QH15, in force since 1 January 2026).
 

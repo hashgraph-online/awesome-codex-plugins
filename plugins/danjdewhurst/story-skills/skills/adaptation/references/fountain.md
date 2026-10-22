@@ -48,9 +48,9 @@ scene title as a `=` synopsis, and `[[Source: ...]]`, `[[Characters: ...]]`,
 story time, dilemma, and outcome notes. It holds no action or dialogue.
 
 - Headings follow the records: named times become `DAWN`, `MORNING`,
-  `DAY`, `EVENING`, or `NIGHT`, and `HH:MM` becomes `DAY` (06:00-17:59)
-  or `NIGHT`. Change a heading to `CONTINUOUS` or a more specific time as
-  the script needs.
+  `DAY`, `EVENING`, or `NIGHT`, and `HH:MM` becomes `DAY` (06:00-17:59,
+  or the middle half of a calendar's `hours-per-day`) or `NIGHT`. Change
+  a heading to `CONTINUOUS` or a more specific time as the script needs.
 - A forced heading (`.REEF - NIGHT`) has no `setting` behind it, and
   `LOCATION TBD` has no `location`. Fix the scene or location record, or
   write the heading by hand.

@@ -1,0 +1,22 @@
+{
+  "source":"input.pdf",
+  "translated":"translation.mono.pdf",
+  "output":"compatible-visual-review",
+  "purpose":"production",
+  "repair":true,
+  "dpi":144,
+  "provider":{
+    "type":"openai",
+    "base_url":"https://YOUR-PROVIDER.example/v1",
+    "model":"YOUR-VISION-MODEL",
+    "auth":"env",
+    "api_key_env":"PDF_VISION_API_KEY",
+    "vision":true,
+    "response_format":"json_schema",
+    "token_limit_field":"max_completion_tokens",
+    "timeout_seconds":240,
+    "retries":0,
+    "cache_dir":"private-api-vision-cache"
+  },
+  "limits":{"max_rounds":2,"max_model_calls":6,"max_seconds":900,"max_repairs_per_page":3}
+}

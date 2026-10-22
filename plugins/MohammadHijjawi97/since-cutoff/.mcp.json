@@ -2,7 +2,7 @@
   "mcpServers": {
     "since-cutoff": {
       "command": "uvx",
-      "args": ["since-cutoff==0.4.1", "mcp"]
+      "args": ["since-cutoff==0.5.0", "mcp"]
     }
   }
 }

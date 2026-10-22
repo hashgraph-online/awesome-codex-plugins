@@ -12,9 +12,9 @@
 
 ## Watch UIZZE before and after
 
-30-second mobile UI comparison: **No skills** on the left, **MCP + Skills** on the right.
+20-second mobile UI comparison: **Without UIZZE** on the left, **With UIZZE** on the right.
 
-https://github.com/user-attachments/assets/0137638f-d963-4e6b-a1a6-d7e2dce87600
+https://github.com/user-attachments/assets/d7ee2275-8e7f-474c-a2e4-b45759b86996
 
 [**Build your next screen with UIZZE →**](https://uizze.com/?utm_source=github&utm_medium=repository&utm_campaign=discovery&utm_content=readme_video)
 
@@ -41,9 +41,11 @@ The skills work without an account or MCP connection. Start in an existing proje
 
 | Your task | Free skill | What to ask for |
 | --- | --- | --- |
+| Build and improve UI/UX with Uizze | [`uizze-ui`](skills/uizze-ui) | The Uizze UI Pack: work with your project and use Uizze's full toolkit where it helps |
 | Build or redesign an interface | [`ui-design`](skills/ui-design) | A clear hierarchy, working interactions, and the states your users need |
 | Fix a generic first draft | [`anti-ui-slop`](skills/anti-ui-slop) | Product-specific content, deliberate layouts, and a finish review |
 | Investigate a UI decision | [`ui-radar`](skills/ui-radar) | A focused reference workflow; connect the paid MCP for live retrieval |
+| Recreate an image or screenshot | [`image-to-ui`](skills/image-to-ui) | A 1:1 implementation, checked against the reference at the same viewport |
 
 For a focused review, install `anti-ui-slop` instead:
 
@@ -51,7 +53,56 @@ For a focused review, install `anti-ui-slop` instead:
 npx skills add https://uizze.com --skill anti-ui-slop
 ```
 
-Prefer installing from GitHub? Use `npx skills add uizze/uizze --skill ui-design`. The domain packages remain canonical; this repository mirrors all three skills.
+UI Taste and iOS Design are distributed only from `https://uizze.sh`, not mirrored in this repository. The existing `uizze.com` installation source remains available for `anti-ui-slop`, `ui-design`, and `ui-radar`; Image to UI is GitHub-native.
+
+### The Uizze UI Pack
+
+The official Uizze skill for building and improving UI/UX with agents.
+
+```bash
+npx skills add uizze/uizze --skill uizze-ui
+```
+
+Work with your project's code and assets, and use Uizze for design systems,
+real app examples, licensed fonts, icons, motion and interaction details.
+Local UI/UX work does not require a Uizze account or MCP connection.
+
+### Recreate an image
+
+Have a screenshot or mockup you want implemented? Install Image to UI:
+
+```bash
+npx skills add uizze/uizze --skill image-to-ui
+```
+
+Then attach the image and ask:
+
+```text
+Use image-to-ui to implement this screenshot in our existing app.
+Match it 1:1 rather than redesigning it. Render at the same viewport,
+compare the result with the reference, and correct visible differences.
+```
+
+This is a short, self-contained skill, not another design framework. It works
+without an account or MCP connection and includes the MIT license.
+
+### Use UI Taste or native iOS guidance
+
+For a web or iOS interface that needs a clearer direction and a finish pass:
+
+```bash
+npx skills add https://uizze.sh --skill ui-taste
+```
+
+For native iPhone screens, navigation, forms, and accessibility:
+
+```bash
+npx skills add https://uizze.sh --skill ios-design
+```
+
+Both skills include their referenced playbooks, licenses, and notices. Their
+existing banners and instructions are unchanged; no account or MCP connection
+is required to use the local workflows.
 
 ## Bring real product references into the conversation
 

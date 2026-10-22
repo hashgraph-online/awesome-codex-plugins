@@ -1,0 +1,20 @@
+{
+  "name": "llm-judge",
+  "version": "1.0.0",
+  "type": "gate",
+  "description": "LLM-as-Judge 门禁：使用大模型评估产物质量（代码质量、测试完整性、架构合理性）",
+  "author": "Boss Harness Team",
+  "license": "MIT",
+  "hooks": {
+    "gate": "gate.js"
+  },
+  "config": {
+    "model": "gpt-4o-mini",
+    "dimensions": ["code-quality", "test-completeness", "architecture-soundness"],
+    "passThreshold": 0.7,
+    "maxTokens": 4096,
+    "timeout": 60000
+  },
+  "stages": [3],
+  "enabled": true
+}

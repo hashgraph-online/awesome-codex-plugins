@@ -37,13 +37,13 @@ ai-disclosure: No generative AI was used in writing this book. The cover was des
 |-------|-------|
 | `title` | Matches the cover exactly. Subtitle only if the cover shows it. |
 | `author` / `authors` | Matches the cover. Pen names are fine; be consistent across every book. |
-| `language` | The edition's language, with region only when it matters (`en-GB` spelling). |
+| `language` | The edition's language, with region only when it matters (`en-GB` spelling, `pt-BR`). Retailers file the book by it, and builds declare it. |
 | `isbn` | Belongs to this format and edition. `story validate` checks the checksum, not ownership. |
 | `publisher` | The imprint the ISBN is registered to. With a free retailer ISBN, the retailer sets it. |
 | `publication-date` | The on-sale date. Preorder platforms may lock it; moving it later can carry penalties, so check the retailer's current rules. |
 | `description` | See below. The sheet counts characters against common limits. |
 | `keywords` | Up to 7 (the sheet warns over 7). See below. |
-| `subjects` | BISAC codes. See below. |
+| `subjects` | BISAC codes. See below; Thema codes go elsewhere. |
 | `copyright` | `© YEAR NAME`. Year of first publication. |
 | `cover-alt` | One or two sentences describing the cover for screen-reader users. Describe the image, not the marketing. |
 | `ai-disclosure` | See below. |
@@ -63,9 +63,13 @@ books.
 - **Who issues them** depends on the publisher's country. The agency is
   national: for example Bowker in the US, Nielsen in the UK and Ireland,
   Thorpe-Bowker in Australia, and Library and Archives Canada, which issues
-  them free to Canadian publishers. Many countries' national libraries
-  issue them free. Find the agency for the author's country on the
-  International ISBN Agency's site. Buying ISBNs from resellers other than
+  them free to Canadian publishers. Outside the English-speaking markets,
+  for example, AFNIL issues them in France, MVB in Germany, INDAUTOR in
+  Mexico, the Cámara Argentina del Libro in Argentina, and the Câmara
+  Brasileira do Livro in Brazil. Many countries' national libraries
+  issue them free. Agencies and their fees change, so find the current
+  agency for the author's country in the International ISBN Agency's
+  directory. Buying ISBNs from resellers other than
   the national agency can register the reseller as publisher.
 - **Free retailer ISBNs** (KDP, Draft2Digital, IngramSpark in some
   countries) cost nothing but usually list the retailer or "Independently
@@ -93,7 +97,7 @@ books.
 
 ## Description
 
-- Start from `submission/blurb.md`. The first two lines show before the
+- Write it in the book's language. Start from `submission/blurb.md`. The first two lines show before the
   "read more" cut: hook first, no throat-clearing.
 - The sheet counts characters against common limits (KDP 4000). Most
   good descriptions run 150-300 words, well under any limit.
@@ -124,6 +128,25 @@ books.
   Choose those in the KDP dashboard to match these codes.
 - Category and keyword choices should agree: a book in the wrong category
   ranks badly with readers who expected something else.
+- BISAC is the North American scheme. `subjects` holds BISAC codes only;
+  `story validate` errors on any other shape.
+
+## Thema Subjects
+
+- Thema is the international, multilingual subject scheme maintained by
+  EDItEUR. Many retailers and distributors outside North America ask for
+  Thema codes instead of, or as well as, BISAC, and in the UK it replaced
+  the older BIC scheme.
+- Thema codes are letters, with optional qualifiers for place, language,
+  time period, and audience; fiction codes start with `F`. Look up the
+  current list in the book's language on EDItEUR's Thema site; codes are
+  revised.
+- `story.md` has no field for Thema. Record the chosen codes in
+  `publishing/launch-plan.md` under Decisions and enter them in each
+  distributor's form. Keep them consistent with the BISAC codes and
+  keywords.
+- Keywords work in the language of the store: write them in the book's
+  language, as its readers search.
 
 ## AI Disclosure
 

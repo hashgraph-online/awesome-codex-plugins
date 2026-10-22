@@ -1,6 +1,6 @@
 # Checklist — Responding to a Suspected Security Incident
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 **This checklist is a pointer, not the runbook.** The authoritative incident-response document is your project's `docs/INCIDENT_RESPONSE.md` (built from `templates/INCIDENT_RESPONSE.md.template`). Open it now.
 

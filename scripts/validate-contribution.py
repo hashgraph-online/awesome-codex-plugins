@@ -6,13 +6,10 @@ validator therefore checks the contribution at the same boundary a maintainer
 reviews it:
 
 * only newly added Community Plugins entries are considered;
-* each source repository is public and exposes workflow-based scanner CI; and
-* the workflow is triggered by a push or pull request and invokes the HOL AI
-  Plugin Scanner action.
+* each source repository is public and any explicit source branch resolves.
 
-The workflow that calls this script emits a matrix of source repositories.  A
-follow-up job scans each repository with the same 80-point/high-severity gate
-documented in CONTRIBUTING.md.
+The workflow that calls this script emits a matrix for the catalog-owned
+scanner. Source-repository scanner CI is optional.
 """
 
 from __future__ import annotations
@@ -28,7 +25,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, unquote, urlencode, urlsplit
 from urllib.request import Request, urlopen
 
 try:
@@ -44,7 +41,9 @@ USER_AGENT = "awesome-codex-plugins-contribution-validator"
 
 README_ENTRY_RE = re.compile(
     r"^- \[([^\]]+)\]\((https://github\.com/"
-    r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)(?:/)?(?:[?#][^)]*)?)\)\s*[-\u2013\u2014]\s*(.+)$",
+    r"([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+)"
+    r"(?:/tree/([^?#)]+?))?/?(?:[?#][^)]*)?)\)"
+    r"\s*[-\u2013\u2014]\s*(.+)$",
     re.MULTILINE,
 )
 
@@ -56,6 +55,7 @@ class Contribution:
     owner: str
     repo: str
     description: str
+    source_ref: str | None = None
 
 
 @dataclass(frozen=True)
@@ -198,7 +198,20 @@ def git(*args: str) -> str:
 def normalize_url(url: str) -> str:
     """Normalize a GitHub repository URL for change-set comparison."""
 
-    return url.rstrip("/").removesuffix(".git").lower()
+    parsed = urlsplit(url)
+    path_parts = parsed.path.rstrip("/").split("/")
+    if len(path_parts) < 3 or path_parts[0] != "":
+        return url.rstrip("/").removesuffix(".git").lower()
+
+    owner = path_parts[1].lower()
+    repo = path_parts[2].removesuffix(".git").lower()
+    normalized = f"{parsed.scheme.lower()}://{parsed.netloc.lower()}/{owner}/{repo}"
+    if len(path_parts) > 3:
+        suffix = "/".join(path_parts[3:])
+        if suffix.startswith("tree/"):
+            suffix = "tree/" + unquote(suffix.removeprefix("tree/"))
+        normalized += f"/{suffix}"
+    return normalized
 
 
 def current_readme_section(readme_lines: list[str], line_number: int) -> str:
@@ -253,7 +266,8 @@ def get_new_readme_entries_from_diff(diff: str, base_readme: str, head_readme: s
                             url=match.group(2).strip(),
                             owner=match.group(3),
                             repo=match.group(4),
-                            description=match.group(5).strip(),
+                            source_ref=unquote(match.group(5)) if match.group(5) else None,
+                            description=match.group(6).strip(),
                         )
                     )
             added_line_number += 1
@@ -357,10 +371,39 @@ def content_file(repository: str, path: str, ref: str) -> str:
         raise ValidationError(f"Could not decode {repository}/{path}") from error
 
 
-def workflow_files(owner: str, repo: str) -> list[tuple[str, str]]:
+def ensure_source_ref_exists(contribution: Contribution) -> None:
+    """Reject a branch-qualified source URL when its branch does not exist."""
+
+    if not contribution.source_ref:
+        return
+    encoded_ref = quote(contribution.source_ref, safe="")
+    url = (
+        f"https://api.github.com/repos/{contribution.owner}/{contribution.repo}"
+        f"/branches/{encoded_ref}"
+    )
+    try:
+        payload = github_json(url)
+    except ValidationError as error:
+        if "was not found" in str(error):
+            raise ValidationError(
+                f"{contribution.url} references source branch "
+                f"`{contribution.source_ref}` that does not exist"
+            ) from error
+        raise
+    if not isinstance(payload, dict) or not isinstance(payload.get("name"), str):
+        raise ValidationError(f"{contribution.url} did not resolve to a source branch")
+    if payload["name"] != contribution.source_ref:
+        raise ValidationError(
+            f"{contribution.url} resolved to branch `{payload['name']}` instead of the exact ref"
+        )
+
+
+def workflow_files(owner: str, repo: str, source_ref: str | None = None) -> list[tuple[str, str]]:
     """Return (filename, text) pairs for a source repository's workflows."""
 
     api_url = f"https://api.github.com/repos/{owner}/{repo}/contents/.github/workflows"
+    if source_ref:
+        api_url += f"?{urlencode({'ref': source_ref})}"
     payload = json.loads(request_bytes(api_url).decode("utf-8"))
     if not isinstance(payload, list):
         raise ValidationError(".github/workflows is not a directory")
@@ -372,19 +415,24 @@ def workflow_files(owner: str, repo: str) -> list[tuple[str, str]]:
         name = str(item.get("name", ""))
         if not name.lower().endswith((".yml", ".yaml")):
             continue
-        download_url = item.get("download_url")
-        if not isinstance(download_url, str) or not download_url:
-            continue
-        text = request_bytes(download_url).decode("utf-8", errors="replace")
+        if source_ref:
+            text = content_file(f"{owner}/{repo}", f".github/workflows/{name}", source_ref)
+        else:
+            download_url = item.get("download_url")
+            if not isinstance(download_url, str) or not download_url:
+                continue
+            text = request_bytes(download_url).decode("utf-8", errors="replace")
         files.append((name, text))
     return files
 
 
 def validate_scanner_ci(contribution: Contribution) -> None:
-    """Require a push/PR workflow that invokes the HOL scanner action."""
+    """Inspect optional source-owned scanner CI at the linked source ref."""
 
     try:
-        files = workflow_files(contribution.owner, contribution.repo)
+        files = workflow_files(
+            contribution.owner, contribution.repo, contribution.source_ref
+        )
     except (ValidationError, json.JSONDecodeError) as error:
         raise ValidationError(
             f"{contribution.url} does not expose readable GitHub Actions workflows: {error}"
@@ -415,6 +463,27 @@ def validate_scanner_ci(contribution: Contribution) -> None:
         raise ValidationError(
             f"{contribution.url} scanner workflow ({names}) must run on push or pull_request "
             "or be called by a push/pull_request workflow"
+        )
+
+
+def ensure_public_repository(contribution: Contribution) -> None:
+    """Require the contributed GitHub repository to exist and remain public."""
+
+    url = f"https://api.github.com/repos/{contribution.owner}/{contribution.repo}"
+    try:
+        payload = github_json(url)
+    except ValidationError as error:
+        raise ValidationError(
+            f"source repository {contribution.owner}/{contribution.repo} "
+            f"is not publicly accessible: {error}"
+        ) from error
+    if not isinstance(payload, dict) or payload.get("private") is True:
+        raise ValidationError(
+            f"source repository {contribution.owner}/{contribution.repo} is not publicly accessible"
+        )
+    if payload.get("archived") is True:
+        raise ValidationError(
+            f"source repository {contribution.owner}/{contribution.repo} is archived"
         )
 
 
@@ -566,7 +635,8 @@ def scan_open_pull_requests(
         for entry in entries:
             contribution = f"{entry.owner}/{entry.repo}"
             try:
-                validate_scanner_ci(entry)
+                ensure_public_repository(entry)
+                ensure_source_ref_exists(entry)
             except ValidationError as error:
                 failures.append(
                     {
@@ -579,15 +649,12 @@ def scan_open_pull_requests(
                 report_lines.append(f"  - `{contribution}`: **FAIL** — {error}")
                 continue
 
-            scanner_contributions.append({"owner": entry.owner, "repo": entry.repo})
-            matrix.append(
-                {
-                    "pr_number": pull_request.number,
-                    "owner": entry.owner,
-                    "repo": entry.repo,
-                }
-            )
-            report_lines.append(f"  - `{contribution}`: scanner CI present; queued for score scan")
+            contribution_row = {"owner": entry.owner, "repo": entry.repo}
+            if entry.source_ref:
+                contribution_row["ref"] = entry.source_ref
+            scanner_contributions.append(contribution_row)
+            matrix.append({"pr_number": pull_request.number, **contribution_row})
+            report_lines.append(f"  - `{contribution}`: queued for centralized score scan")
 
         results.append(
             {
@@ -607,12 +674,14 @@ def scan_open_pull_requests(
         report_lines.extend(
             [
                 "",
-                f"Scanner CI validation failures: {len(failures)}",
-                "Source repositories must add the HOL AI Plugin Scanner workflow before merge.",
+                f"Source validation failures: {len(failures)}",
+                "Source repositories must be public and any explicit source branch must resolve.",
             ]
         )
     else:
-        report_lines.extend(["", "All open contribution entries passed scanner CI validation."])
+        report_lines.extend(
+            ["", "All open contribution entries passed source validation; centralized scans are queued."]
+        )
 
     report = "\n".join(report_lines) + "\n"
     if matrix_output:
@@ -648,10 +717,12 @@ def write_matrix(path: Path, entries: list[Contribution]) -> None:
     """Write the scanner job matrix as compact JSON."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
-    matrix = [
-        {"owner": entry.owner, "repo": entry.repo}
-        for entry in entries
-    ]
+    matrix = []
+    for entry in entries:
+        contribution = {"owner": entry.owner, "repo": entry.repo}
+        if entry.source_ref:
+            contribution["ref"] = entry.source_ref
+        matrix.append(contribution)
     path.write_text(json.dumps(matrix, separators=(",", ":")), encoding="utf-8")
 
 
@@ -715,6 +786,9 @@ def main() -> int:
 
     try:
         entries = get_new_readme_entries(args.base_ref)
+        for entry in entries:
+            ensure_public_repository(entry)
+            ensure_source_ref_exists(entry)
     except ValidationError as error:
         print(f"Contribution validation failed: {error}", file=sys.stderr)
         if args.matrix_output:
@@ -726,22 +800,10 @@ def main() -> int:
             write_matrix(args.matrix_output, [])
         return 0
 
-    failures = 0
     for entry in entries:
-        print(f"Checking {entry.display_name} ({entry.owner}/{entry.repo})...")
-        try:
-            validate_scanner_ci(entry)
-        except ValidationError as error:
-            failures += 1
-            print(f"  FAIL: {error}", file=sys.stderr)
-        else:
-            print("  PASS: scanner CI is present and push/PR-triggered")
+        print(f"Queueing {entry.display_name} ({entry.owner}/{entry.repo}) for centralized scan...")
 
-    if failures:
-        print(f"\nContribution validation failed for {failures} entr{'y' if failures == 1 else 'ies'}.", file=sys.stderr)
-        return 1
-
-    print(f"\nAll {len(entries)} contribution entr{'y' if len(entries) == 1 else 'ies'} passed.")
+    print(f"\nAll {len(entries)} contribution entr{'y' if len(entries) == 1 else 'ies'} passed source validation.")
     if args.matrix_output:
         write_matrix(args.matrix_output, entries)
     return 0

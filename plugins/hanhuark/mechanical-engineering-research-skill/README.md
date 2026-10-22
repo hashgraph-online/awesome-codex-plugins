@@ -1,4 +1,7 @@
-# Thermal-Fluid Research Workflow Plugin
+# Mechanical Engineering Research Skill | Thermal-Fluid Research Workflow Plugin
+
+Repository scope, evidence, and reuse boundaries are also available in the
+[NED3 resource manifest](.ned3/resource-manifest-v0.1.json).
 
 [English](README.md) | [简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md)
 
@@ -33,6 +36,15 @@ The suite keeps task-specific instructions small and discoverable while retainin
 If this helps your research workflow, please star the repo so other mechanical-engineering researchers can find it.
 
 Want the fastest path? Start with [`QUICKSTART.md`](QUICKSTART.md).
+
+| You want to... | Start here |
+| --- | --- |
+| Try the plugin on one research task | Follow [`QUICKSTART.md`](QUICKSTART.md), then use a prompt you can independently check. |
+| Improve a recurring lab workflow | Use the focused-skill pilot table in the [Adoption Guide](ADOPTION.md#research-group-or-mentor-a-small-pilot). |
+| Teach the underlying engineering AI practices | Explore the companion [Machine Learning for Engineers](https://github.com/hanhuark/machine-learning-for-engineers) curriculum. |
+| Cite or improve the software | Use [CITATION.cff](CITATION.cff) or read [Contributing](#contributing). |
+
+The plugin assists reasoning and workflow; it does not replace the investigator's scientific judgment, source verification, authorship responsibility, or data-rights obligations.
 
 ## Two-Minute Demo
 
@@ -207,6 +219,7 @@ focused skills = task-specific guidance
 | [`me-lit-review.md`](commands/me-lit-review.md) | Develop a critical thermal-fluid literature review and gap synthesis. |
 | [`me-proposal.md`](commands/me-proposal.md) | Develop or revise a solicitation-aligned research proposal. |
 | [`me-write-section.md`](commands/me-write-section.md) | Draft or revise manuscript, proposal, report, or thesis sections. |
+| [`me-author-guided-writing.md`](commands/me-author-guided-writing.md) | Use a repeatable author-guided process for AI-assisted technical drafting and revision. |
 | [`me-han-hu-draft.md`](commands/me-han-hu-draft.md) | Draft a manuscript section using Han Hu manuscript mode and the private style corpus. |
 | [`me-han-hu-revise.md`](commands/me-han-hu-revise.md) | Revise a manuscript while preserving evidence and applying Han Hu manuscript mode. |
 | [`me-data-analysis.md`](commands/me-data-analysis.md) | Plan baseline-first thermal-fluid data analysis and hypothesis-driven DOE. |
@@ -243,6 +256,7 @@ The examples are synthetic, public-safe artifacts designed to show the plugin's 
 | Citation integrity | Claim-level support, bibliography checks, numeric citation repair | [`citation-integrity.md`](skills/mechanical-engineering-research/references/citation-integrity.md) |
 | Dataset/software reviews | Multi-channel discovery, maturity labels, benchmark and repository synthesis | [`dataset-software-review.md`](skills/mechanical-engineering-research/references/dataset-software-review.md) |
 | Paper writing style | Abstracts, methods, figure-led results, conclusions, AI/ML paper style | [`paper-writing-style.md`](skills/mechanical-engineering-research/references/paper-writing-style.md) |
+| Author-guided AI writing | Author story brief, evidence map, drafting boundaries, and reader-side revision | [`author-guided-ai-writing.md`](skills/mechanical-engineering-research/references/author-guided-ai-writing.md) |
 | Revision and submission | Reviewer responses, highlighted manuscripts, source packages, release audits | [`manuscript-revision-submission.md`](skills/mechanical-engineering-research/references/manuscript-revision-submission.md) |
 | Technical writing | Methodology detail, modeling assumptions, results discussion | [`technical-writing-analysis.md`](skills/mechanical-engineering-research/references/technical-writing-analysis.md) |
 | Experiments and uncertainty | Measurement models, DOE, calibration, synchronization, uncertainty budgets | [`experimental-design-and-uncertainty.md`](skills/mechanical-engineering-research/references/experimental-design-and-uncertainty.md) |
@@ -251,6 +265,7 @@ The examples are synthetic, public-safe artifacts designed to show the plugin's 
 | Data and release | Provenance, rights, benchmark design, reproducibility, public packages | [`data-provenance-and-release.md`](skills/mechanical-engineering-research/references/data-provenance-and-release.md) |
 | Figure and artifact QA | Final-size figures, tables, PDFs, Word, spreadsheets, and slides | [`scientific-figure-and-artifact-qa.md`](skills/mechanical-engineering-research/references/scientific-figure-and-artifact-qa.md) |
 | Proposal development | DOE/NSF/NASA-style narratives, solicitation alignment, milestones, risks | [`proposal-development.md`](skills/mechanical-engineering-research/references/proposal-development.md) |
+| Budget and justification | Sponsor budget rules, institutional workbooks, cost bases, subawards, indirect costs, reconciliation | [`budget-and-justification.md`](skills/mechanical-engineering-research/references/budget-and-justification.md) |
 | Research coding | Reproducible scripts, notebooks, plotting, simulation automation, code review | [`research-coding.md`](skills/mechanical-engineering-research/references/research-coding.md) |
 | Presentations | Graphics-first research talks, slide logic, speaker notes, backup slides | [`presentation-slides.md`](skills/mechanical-engineering-research/references/presentation-slides.md) |
 | AI/ML tools | Computer vision, sequence models, sensor fusion, surrogate modeling | [`ai-tools-thermal-fluids.md`](skills/mechanical-engineering-research/references/ai-tools-thermal-fluids.md) |
@@ -293,6 +308,17 @@ See [`CHANGELOG.md`](CHANGELOG.md). The `v0.3.1` release line adds the anti-form
 ## Contributing
 
 Contributions are welcome when they improve reusable thermal-fluid research practice: stronger validity checks, better examples, clearer workflows, more robust eval fixtures, or better installation documentation. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## Maintainer Resources
+
+- [`ADOPTION.md`](ADOPTION.md): bounded individual, lab, and mentor pilots.
+- [`OUTREACH_KIT.md`](OUTREACH_KIT.md): factual public-post, researcher-message, and pilot-feedback templates.
+- [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md): release, archival-citation, and communication checks.
+- [`assets/branding/`](assets/branding/): reproducible social-preview candidate and generation script.
+
+## Citation
+
+If this plugin informs published research, teaching, or a public research workflow, cite the repository version or commit used. GitHub can export the machine-readable metadata in [`CITATION.cff`](CITATION.cff). A DOI should be added only through a versioned archival release.
 
 ## License
 

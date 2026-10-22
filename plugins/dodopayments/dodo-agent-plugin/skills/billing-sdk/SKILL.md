@@ -1,6 +1,6 @@
 ---
 name: billing-sdk
-description: Guide for building billing UI with BillingSDK - the open-source React component library for pricing tables, subscription management, usage meters, invoice history, and customer portal flows wired to Dodo Payments.
+description: BillingSDK, the open-source React and shadcn component library for Dodo Payments billing UI. Use when building pricing tables, pricing pages, account billing pages, usage meters, credit balances, invoice history, or cancel and upgrade UI in React or Next.js, or running @billingsdk/cli init; keep Dodo API calls server-side.
 ---
 
 # BillingSDK
@@ -75,8 +75,11 @@ From the current official registry, grouped by purpose:
 | Payments | `payment-details`, `payment-details-two`, `payment-method-selector`, `payment-card`, `payment-failure` |
 | Promotion and trials | `banner`, `limited-offer-dialog`, `trial-expiry-card` |
 
-`pricing-table-one` is the only block with an officially published prop example, reproduced below. For
-every other block, run `add` and read the generated file's props type.
+Most blocks have a published usage example and props table on their page at
+[billingsdk.com/docs/components](https://billingsdk.com/docs/components) (for example `subscription-management`
+and `billing-settings`); `pricing-table-one` is reproduced in
+[references/pricing-page.md](references/pricing-page.md). The generated file's props type is still
+authoritative for the version you installed, so read it after running `add`.
 
 ## Server client
 
@@ -101,169 +104,14 @@ are `https://test.dodopayments.com` and `https://live.dodopayments.com`.
 
 ## Pricing page
 
-### 1. Plan catalogue
+Full guide: [references/pricing-page.md](references/pricing-page.md).
 
-Keep the product ids and the display copy in one module. The `price` here is a display number rendered by
-the component — the amount actually charged comes from the Dodo product catalogue, and Dodo API amounts
-are always in the smallest currency unit (cents). Treat this file as a mirror of the dashboard and
-reconcile it when you change a price.
+Covers:
 
-```typescript
-// lib/plans.ts
-export type PlanId = 'starter' | 'pro';
-
-export interface Plan {
-  id: PlanId;
-  title: string;
-  price: number;
-  period: string;
-  features: string[];
-  popular: boolean;
-}
-
-export const PLANS: readonly Plan[] = [
-  {
-    id: 'starter',
-    title: 'Starter',
-    price: 9,
-    period: 'month',
-    features: ['100 requests', 'Basic support', '1 project'],
-    popular: false,
-  },
-  {
-    id: 'pro',
-    title: 'Pro',
-    price: 29,
-    period: 'month',
-    features: ['Unlimited requests', 'Priority support', '10 projects'],
-    popular: true,
-  },
-];
-```
-
-### 2. Product id map — server only
-
-Never let the browser choose an arbitrary `product_id`. Map the public plan slug to a `pdt_` id on the
-server and reject anything else.
-
-```typescript
-// lib/plan-products.server.ts
-import 'server-only';
-import type { PlanId } from './plans';
-
-const PRODUCT_IDS: Record<PlanId, string> = {
-  starter: 'pdt_starter_monthly',
-  pro: 'pdt_pro_monthly',
-};
-
-export function productIdForPlan(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  return PRODUCT_IDS[value as PlanId] ?? null;
-}
-```
-
-### 3. Checkout route
-
-```typescript
-// app/api/checkout/route.ts
-import { NextResponse } from 'next/server';
-import { dodo } from '@/lib/dodopayments';
-import { productIdForPlan } from '@/lib/plan-products.server';
-import { getCurrentUser } from '@/lib/auth';
-
-export async function POST(request: Request) {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
-  const body: unknown = await request.json();
-  const planId = (body as { planId?: unknown }).planId;
-  const productId = productIdForPlan(planId);
-
-  if (!productId) {
-    return NextResponse.json({ error: 'Unknown plan' }, { status: 400 });
-  }
-
-  try {
-    const session = await dodo.checkoutSessions.create({
-      product_cart: [{ product_id: productId, quantity: 1 }],
-      customer: { email: user.email, name: user.name },
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/billing/return`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/pricing`,
-      metadata: { app_user_id: user.id },
-    });
-
-    if (!session.checkout_url) {
-      return NextResponse.json({ error: 'No checkout URL returned' }, { status: 502 });
-    }
-
-    return NextResponse.json({ checkoutUrl: session.checkout_url });
-  } catch (error) {
-    console.error('Checkout session creation failed', error);
-    return NextResponse.json({ error: 'Could not start checkout' }, { status: 500 });
-  }
-}
-```
-
-`checkout_url` is nullable — it is absent when the session is created with `payment_method_id` — so guard
-it rather than redirecting to `undefined`. Checkout URLs are single-use and normally expire after 24 hours.
-
-Use `checkoutSessions.create`. `payments.create` and `subscriptions.create` are deprecated for new
-integrations. Checkout parameters are covered in depth in the `checkout-integration` skill.
-
-### 4. Client component
-
-```tsx
-// components/pricing-plans.tsx
-'use client';
-
-import { useState } from 'react';
-import { PricingTableOne } from '@/components/billingsdk/pricing-table-one';
-import { PLANS } from '@/lib/plans';
-
-export function PricingPlans() {
-  const [error, setError] = useState<string | null>(null);
-
-  async function handlePlanSelect(planId: string) {
-    setError(null);
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planId }),
-      });
-
-      if (!response.ok) {
-        setError('Could not start checkout. Please try again.');
-        return;
-      }
-
-      const { checkoutUrl } = (await response.json()) as { checkoutUrl: string };
-      window.location.href = checkoutUrl;
-    } catch {
-      setError('Network error. Please try again.');
-    }
-  }
-
-  return (
-    <>
-      <PricingTableOne
-        plans={PLANS}
-        title="Choose your plan"
-        description="Select the plan that works best for you"
-        onPlanSelect={handlePlanSelect}
-        theme="classic"
-        size="medium"
-      />
-      {error ? <p role="alert">{error}</p> : null}
-    </>
-  );
-}
-```
-
-Render `<PricingPlans />` from `app/pricing/page.tsx`. Nothing secret crosses into the client component:
-it sends a plan slug and receives a URL.
+- Plan catalogue
+- Product id map — server only
+- Checkout route
+- Client component
 
 ## Subscription management and customer portal
 
@@ -458,14 +306,14 @@ signature verification is covered in the `webhook-integration` skill.
 **Accepting a raw `product_id` from the request body.** A caller can then check out against any product in
 your catalogue, including internal or discounted ones. Map an opaque plan slug to a `pdt_` id server-side.
 
-**Hardcoding prices in the client.** `PLANS[].price` is display text. When you change a price in the Dodo
+**Hardcoding prices in the client.** `plans[].monthlyPrice` / `yearlyPrice` are display text. When you change a price in the Dodo
 dashboard, the checkout charges the new amount while the pricing page keeps advertising the old one.
-Reconcile `lib/plans.ts` with the dashboard as part of any pricing change.
+Reconcile `lib/billingsdk-config.ts` with the dashboard as part of any pricing change.
 
 **`npm install billingsdk`.** The root repository package is private. Install through
 `@billingsdk/cli` or the shadcn registry instead.
 
-**Guessing prop names.** `pricing-table-one` is the only block with a published prop example. Open the
+**Guessing prop names.** Check the block's page on billingsdk.com/docs/components, then open the
 generated file under `components/billingsdk/` and read the exported props type before wiring anything else.
 
 **Using `DODO_PAYMENTS_WEBHOOK_SECRET`.** The SDK reads `DODO_PAYMENTS_WEBHOOK_KEY` for the `webhookKey`

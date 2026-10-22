@@ -38,7 +38,7 @@ vocabulary: <https://github.com/archcore-ai/cli/releases/tag/v0.8.4>.
 
 | Result | Allowed vocabulary |
 |---|---|
-| `yes` | Add `scenario` and `journey` to type filters; allow both types, the `sdd.illustrate` gate, and a `scenario` named in the subject of `document code`. |
+| `yes` | Add `scenario` and `journey` to type filters; allow both types, the `sdd.illustrate` gate, and a `scenario` named in the subject of `/archcore:document`. |
 | `no` or `__NO_CLI__` | Keep legacy type filters; the illustrate instrument is dropped from the package; the two entries write nothing. |
 
 ## Fallback

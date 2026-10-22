@@ -1,0 +1,103 @@
+{
+  "_comment": "Amazon Ads API v1 CreateReport \u2014 Sponsored Products Campaign equivalent of the v3 SP Campaign report. 21 of 24 v3 columns map to v1 fields. Three v3 columns have NO v1 equivalent: 'Retailer' (no v1 dim), 'Targeting Type' (manual/auto is not a campaign-grain field in v1), and the 'Last Year *' YoY columns (v1 has no built-in YoY metrics \u2014 run a second report for the prior-year date range and join client-side). Replace placeholders before submitting.",
+  "report_main_campaign": {
+    "accessRequestedAccounts": [
+      {
+        "advertiserAccountId": "amzn1.ads-account.g.REPLACE_ME"
+      }
+    ],
+    "reports": [
+      {
+        "format": "GZIP_JSON",
+        "query": {
+          "fields": [
+            "date.value",
+            "portfolio.portfolioId",
+            "portfolio.name",
+            "adProduct.value",
+            "campaign.id",
+            "campaign.name",
+            "campaign.deliveryStatus",
+            "campaign.country",
+            "country.code",
+            "country.name",
+            "campaign.currencyCode",
+            "campaign.budgetAmount",
+            "campaign.budgetType",
+            "campaign.bidStrategy",
+            "budgetCurrency.value",
+            "metric.impressions",
+            "metric.clicks",
+            "metric.ctr",
+            "metric.cpc",
+            "metric.totalCost",
+            "metric.purchases",
+            "metric.sales",
+            "metric.roas"
+          ],
+          "filter": {
+            "on": {
+              "comparisonOperator": "EQUALS",
+              "field": "adProduct.value",
+              "not": false,
+              "values": [
+                "SPONSORED_PRODUCTS"
+              ]
+            }
+          }
+        },
+        "periods": [
+          {
+            "datePeriod": {
+              "startDate": "START_DATE",
+              "endDate": "END_DATE"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "report_prior_year_for_yoy": {
+    "accessRequestedAccounts": [
+      {
+        "advertiserAccountId": "amzn1.ads-account.g.REPLACE_ME"
+      }
+    ],
+    "reports": [
+      {
+        "format": "GZIP_JSON",
+        "query": {
+          "fields": [
+            "date.value",
+            "campaign.id",
+            "campaign.name",
+            "adProduct.value",
+            "budgetCurrency.value",
+            "metric.impressions",
+            "metric.clicks",
+            "metric.cpc",
+            "metric.totalCost"
+          ],
+          "filter": {
+            "on": {
+              "comparisonOperator": "EQUALS",
+              "field": "adProduct.value",
+              "not": false,
+              "values": [
+                "SPONSORED_PRODUCTS"
+              ]
+            }
+          }
+        },
+        "periods": [
+          {
+            "datePeriod": {
+              "startDate": "PRIOR_YEAR_START_DATE",
+              "endDate": "PRIOR_YEAR_END_DATE"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

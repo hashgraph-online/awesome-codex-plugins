@@ -1,8 +1,17 @@
 # Consent and Lawful Bases — §§ 3(b), 12, 13 RA 10173 + §§ 19, 21–22 IRR
 
-> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](../../../../../DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
+> ⚠ **Reference material only — not legal advice.** See [DISCLAIMER.md](https://github.com/AltByteSG/personal-data-protection-skill/blob/main/DISCLAIMER.md). Verify against the official statute and consult a qualified DPO / lawyer.
 
 PH has a GDPR-shaped lawful-basis framework: **six bases for personal information** under § 12 (consent, contract, legal obligation, vital interests, public order / national emergency, legitimate interests) and a **narrower set of bases for sensitive personal information** under § 13. Consent is one option among several — engineering should pick the basis that fits the processing, not default to consent reflexively.
+
+## Contents
+
+- § 3(b) — Definition of consent
+- § 12 — Lawful bases for processing personal information (non-SPI)
+- § 13 — Lawful bases for sensitive personal information
+- § 19 IRR — Definition and elements of valid consent (operational)
+- Consent withdrawal
+- What's at stake
 
 ## § 3(b) — Definition of consent
 

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="A six-stage loop held at a gate">
+  <rect width="512" height="512" rx="112" fill="#1F2933"/>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#E5E7EB" stroke-width="54"
+          stroke-dasharray="140 27.55" stroke-linecap="butt" transform="rotate(-76 256 256)"/>
+  <rect x="352" y="233" width="128" height="46" rx="23" fill="#F59E0B"/>
+</svg>

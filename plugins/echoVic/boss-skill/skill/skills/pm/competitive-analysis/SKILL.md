@@ -11,6 +11,8 @@ triggers:
   - 需要了解市场竞争格局时
   - 寻找产品差异化机会时
   - 验证需求假设时
+metadata:
+  internal: true
 ---
 
 # 竞品调研与分析方法论

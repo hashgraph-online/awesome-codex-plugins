@@ -11,6 +11,8 @@ dependencies:
 triggers:
   - 开始测试工作时
   - 需要制定测试计划时
+metadata:
+  internal: true
 ---
 
 # 测试策略与测试金字塔

@@ -79,6 +79,8 @@ Use this when a tutorial, onboarding, tooltip, modal, focus ring, dim scrim, or 
 - If the visible target is interactive, still compare `markerRect`, `visualRect`, and `interactiveRect` before choosing; use hardcoded fallback only after target lookup fails and report it.
 - If no marker exists and the visible center differs from the interactive/root center, recommend adding a marker before changing coordinates.
 - After a failed focus/highlight/spotlight/modal patch, require runtime numeric values for target bounds, converted rect, and final drawn ring/hole/blocker rect before changing offsets, anchors, scale, timing, or fallback constants again.
+- Validate spatial accuracy using Intersection over Union (IoU >= 0.95) and sub-pixel center displacement (<= 1.0 px) according to `references/runtime-numeric-proof.md`.
+- For CanvasScaler and RectTransform layout, apply the exact logarithmic scale factor and anchor span invariants from `references/coordinate-space-conversion.md` rather than eye-balling offsets.
 
 ## Designer Focus Marker
 

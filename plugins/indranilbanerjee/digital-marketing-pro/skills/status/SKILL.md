@@ -1,20 +1,14 @@
 ---
 name: status
-description: "Print a read-only status snapshot of the active brand via scripts/dm-status.py: profile summary, engagements with current part and update age, last five insights, recent compliance violations, and Python dependency mode — with --quiet, --json, --section, and --brand variants. Triggers on \"/digital-marketing-pro:status\", \"what's my DMP status\", \"what brand am I on\", \"show engagement status\", \"status snapshot\". Never modifies state: switching brands is /digital-marketing-pro:switch-brand, advancing engagements is /digital-marketing-pro:engagement, connector status is /digital-marketing-pro:integrations, and content checks are /digital-marketing-pro:check."
+description: "Show DMP status for the active brand: profile, engagement progress, recent insights. \"what brand am I on\""
 user-invocable: true
-triggers:
-  - what's my dmp status
-  - show plugin status
-  - active brand status
-  - dm status
-  - what brand am i on
-  - show engagement status
-  - status snapshot
-  - check brand context
+argument-hint: "[--brand <slug>] [--json] [--quiet] [--section brand|engagements|insights|compliance|deps]"
 allowed-tools: Read Bash Glob Grep
 ---
 
 # /digital-marketing-pro:status — Unified Status Snapshot
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 This skill prints a complete status snapshot for the active Digital Marketing Pro brand: profile summary, all engagements with their current part and update age, recent insights, recent compliance violations, and Python dependency mode.
 
@@ -92,7 +86,7 @@ Print only the requested section. Useful when you only need one piece of state.
 
 2. **Execute the script.**
    ```
-   python ${CLAUDE_PLUGIN_ROOT}/scripts/dm-status.py [--brand <slug>] [--json] [--quiet] [--section <name>]
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/dm-status.py" [--brand <slug>] [--json] [--quiet] [--section <name>]
    ```
 
 3. **Pass through the formatted output to the user.** The script does the heavy lifting; the skill is a thin orchestration layer.

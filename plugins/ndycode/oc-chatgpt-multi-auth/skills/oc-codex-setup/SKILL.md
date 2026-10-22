@@ -5,122 +5,84 @@ description: Install or refresh oc-codex-multi-auth in OpenCode, choose the righ
 
 # oc-codex-setup
 
-Use this skill when the user wants to install, reinstall, upgrade, or troubleshoot `oc-codex-multi-auth` in OpenCode.
+Use this skill when the user wants to install, reinstall, upgrade, or troubleshoot `oc-codex-multi-auth` in OpenCode. Requires Node >= 22.19.
 
-## Default install (provider preserving)
-
-```bash
-npx -y oc-codex-multi-auth@latest
-```
-
-This is the default. It registers the OpenCode and TUI plugin entries without changing `provider.openai`.
-
-## Compact modern catalog
+## Happy path
 
 ```bash
-npx -y oc-codex-multi-auth@latest --modern
+npx -y oc-codex-multi-auth@latest   # 1. install (default: plugin entries only, provider.openai preserved)
+opencode auth login               # 2. pick a "Codex OAuth" method and sign in
+oc-codex-multi-auth doctor        # 3. verify
 ```
 
-Use this when the shipped 10 base OAuth model families and 53 OpenCode variant presets are required.
+The default install registers the OpenCode plugin and the TUI quota-status plugin without touching `provider.openai`. A config that already registers this plugin — including a path to the user's own checkout — is kept as written; the published package name is added only when nothing resolves to this plugin.
 
-## Config-safe update
+## Config modes (choose at most one)
+
+| Flag | When to use |
+| --- | --- |
+| _(none)_ / `--plugin-only` | User already manages `provider.openai` (default) |
+| `--modern` | Compact catalog: 11 base OAuth model families + variant presets |
+| `--full` | Compact bases plus 59 explicit selector IDs (e.g. `openai/gpt-5.5-medium`, `openai/gpt-6-astra-high`) |
+| `--legacy` | 59 explicit model IDs only, for OpenCode versions without variant support |
+| `--v2` | Register for OpenCode V2 (`plugins` entry; plugin-only, includes quota UI) |
+
+`--v2` cannot combine with a catalog mode; it refuses an existing `opencode.jsonc` or V1 `plugin` entries. Other installer flags: `--dry-run`, `--no-cache-clear`, `--version`, `--help`.
+
+## Refresh without touching config
 
 ```bash
-npx -y oc-codex-multi-auth@latest update
+npx -y oc-codex-multi-auth@latest update   # clears the managed package cache only; restart OpenCode after
 ```
 
-Use this to refresh an existing installation. It only clears the managed package cache and never reads or writes `opencode.json` or `tui.json`. Restart OpenCode afterward.
+`update` never reads or writes `opencode.json` or `tui.json`. Prefer it over re-running the installer when the goal is just a fresh package cache.
 
-## Plugin-only install
+## Verify
 
 ```bash
-npx -y oc-codex-multi-auth@latest install --plugin-only
+# modern/--full selectors use base + variant:
+opencode run "Explain this repository" --model=openai/gpt-5.5 --variant=medium
+opencode run "Explain this repository" --model=openai/gpt-6-astra --variant=medium
+opencode run "Explain this repository" --model=openai/gpt-5.6-sol --variant=medium
+# explicit IDs only exist after --full or --legacy:
+opencode run "Explain this repository" --model=openai/gpt-5.5-medium
 ```
-
-Use this when the user already manages `provider.openai`. It registers the OpenCode and TUI plugin entries without changing that provider configuration.
-
-## Full install (explicit selector IDs)
-
-```bash
-npx -y oc-codex-multi-auth@latest --full
-```
-
-Use this when the user needs direct selector IDs such as `openai/gpt-5.5-medium`, `openai/gpt-6-astra-high`, `openai/gpt-6-sol-high`, or `openai/gpt-5.6-sol-high` in addition to the compact bases.
-
-## Legacy install (older OpenCode)
-
-```bash
-npx -y oc-codex-multi-auth@latest --legacy
-```
-
-Use this on older OpenCode versions that do not support variant-based model entries. Installs 53 explicit model IDs only.
-
-## When OpenCode already loads a local checkout
-
-Check the existing `plugin` array before installing. An entry pointing at a
-clone of this repository means the user is running their own build on purpose.
-
-Every installer mode keeps that entry as written and adds nothing beside it, so
-running the installer is safe; it registers the published package only when no
-entry resolves to this plugin. Prefer `update` anyway when the goal is just to
-refresh a stale package cache, since it never opens either config file.
-
-## Other installer flags
-
-- `--dry-run` — show changed config paths without values or writes
-- `--no-cache-clear` — skip clearing the OpenCode plugin cache
-- `--modern` — install the compact modern catalog
-- `--plugin-only` — preserve `provider.openai`; cannot be combined with a catalog mode
 
 ## Standalone CLI (no agent cost)
 
 ```bash
 oc-codex-multi-auth status
 oc-codex-multi-auth list
-oc-codex-multi-auth warm
+oc-codex-multi-auth limits
 oc-codex-multi-auth doctor
+oc-codex-multi-auth health
+oc-codex-multi-auth warm
+oc-codex-multi-auth dashboard
+oc-codex-multi-auth diag
+oc-codex-multi-auth limits --refresh   # live reads
+oc-codex-multi-auth doctor --fix       # verified refresh + stale-marker cleanup
 ```
 
-Also available: `limits`, `dashboard`, `health`, `diag`.
+## Config knobs that matter
 
-## Login and verification
+All live in `~/.opencode/openai-codex-auth-config.json`; every boolean env override is truthy for `"1"` only.
 
-1. Run `opencode auth login`.
-2. Run a quick verification request after OpenCode or `--modern` supplies the selector:
-
-```bash
-opencode run "Explain this repository" --model=openai/gpt-5.5 --variant=medium
-```
-
-Do **not** use `openai/gpt-5.5-medium` unless the user installed with `--full` or `--legacy`.
-
-3. Optional GPT-6 Astra / GPT-5.6 smoke:
-
-```bash
-opencode run "Explain this repository" --model=openai/gpt-6-astra --variant=medium
-opencode run "Explain this repository" --model=openai/gpt-5.6-sol --variant=medium
-```
-
-4. For a Codex-focused workflow, try:
-
-```bash
-opencode run "Refactor the retry logic and update the tests" --model=openai/gpt-6-sol --variant=high
-```
-
-5. After `--full`, explicit IDs are valid:
-
-```bash
-opencode run "Explain this repository" --model=openai/gpt-5.5-medium
-```
+| Knob | Default | Purpose |
+| --- | --- | --- |
+| `perProjectAccounts` | `true` | Per-project pools under `~/.opencode/projects/<key>/` |
+| `rotationStrategy` | `hybrid` | `sticky` / `round-robin` alternatives |
+| `maskEmail` | `false` | Render emails as `us***@example.com` |
+| `quotaNotifications.autoProtectCredits` | `true` | 30-min `/wham/usage` poll that blocks spent accounts pre-429 |
+| `autoUpdate` | `true` | Daily npm version check + cache eviction |
+| `CODEX_KEYCHAIN=1` | off | Opt-in OS-keychain credential backend |
 
 ## Troubleshooting
 
-- Confirm the OpenCode config registers the plugin, as `"plugin": ["oc-codex-multi-auth"]` or as a path to the user's own checkout.
-- Re-run `opencode auth login` if tokens expired or the wrong workspace was selected.
-- Inspect `~/.opencode/logs/codex-plugin/` after a failed request.
-- Set `ENABLE_PLUGIN_REQUEST_LOGGING=1` for deeper request logging.
-- For full docs, see `docs/getting-started.md`, `docs/configuration.md`, `docs/troubleshooting.md`, and `docs/faq.md`.
+- Config must register the plugin: `"plugin": ["oc-codex-multi-auth"]` (V1) or a `plugins` entry (V2).
+- `opencode auth login` again if tokens expired or the wrong workspace was picked.
+- Failed requests: `ENABLE_PLUGIN_REQUEST_LOGGING=1`, then inspect `~/.opencode/logs/codex-plugin/` (set `CODEX_PLUGIN_LOG_BODIES=1` only for raw bodies).
+- Deeper docs: `docs/getting-started.md`, `docs/configuration.md`, `docs/troubleshooting.md`, `docs/faq.md`.
 
 ## Usage boundaries
 
-This project is for personal development use with your own ChatGPT Plus or Pro subscription. For production or shared services, prefer the OpenAI Platform API.
+Personal development use with your own ChatGPT Plus or Pro subscription. For production or shared services, prefer the OpenAI Platform API.

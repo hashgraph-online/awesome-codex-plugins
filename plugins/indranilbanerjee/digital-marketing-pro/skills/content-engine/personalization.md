@@ -1,6 +1,8 @@
 # Content Personalization — Strategy & Implementation Reference
 
-> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python scripts/benchmark_book.py --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
+
+> **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python "${CLAUDE_PLUGIN_ROOT}/scripts/benchmark_book.py" --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
 
 ## Personalization Maturity Model
 
@@ -163,7 +165,7 @@ Level 4: Predictive → Level 5: Individualized
 |----------|----------------------|------------|
 | Meta (Facebook/Instagram) | Advantage+ Creative | Upload multiple text/image/video options; Meta's AI optimizes combinations per viewer |
 | Google Ads | RSA (Responsive Search Ads) | Provide 15 headlines + 4 descriptions; Google assembles best combination per query |
-| Google Ads | Dynamic Search Ads | Google auto-generates ads from your website content to match search queries |
+| Google Ads | Dynamic Search Ads → AI Max | Google auto-generates ads from your website content to match search queries. DSA is being retired into AI Max for Search (sunset + auto-upgrade February 2027) — plan new builds on AI Max |
 | Meta | Dynamic Product Ads | Auto-show products from catalog based on viewer's browsing or purchase behavior |
 | LinkedIn | Dynamic Ads | Auto-insert viewer's profile photo, name, or company into ad creative |
 | Google | Dynamic Remarketing | Auto-show products/services the viewer previously browsed |

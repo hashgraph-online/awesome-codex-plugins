@@ -15,8 +15,10 @@ Then use one table:
 |---|---|---|---|---|
 
 Each `REQ-*` has one owner. After the table, state execution order, safe
-parallel groups, and shared sequencing once. Omit strategy prose. Command:
+parallel groups, and shared sequencing once. Omit strategy prose. Use the current
+host's command (Claude Code shown first, Codex second):
 
 ```text
+/zagrosi-forge:zagrosi-plan @{planning_dir}/01-foundation/spec.md
 Use $zagrosi-forge:zagrosi-plan on @{planning_dir}/01-foundation/spec.md
 ```

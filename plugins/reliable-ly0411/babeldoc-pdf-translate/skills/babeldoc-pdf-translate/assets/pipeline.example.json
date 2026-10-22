@@ -1,0 +1,11 @@
+{
+  "translation_job":"job.codex.example.json",
+  "output":"production-pipeline-001",
+  "review":{
+    "pages":[1],
+    "provider":{"type":"codex","model":"gpt-6-luna","vision":true,"timeout_seconds":240,"retries":0,"cache_dir":"private-production-vision-cache"},
+    "repair":true,
+    "dpi":144,
+    "limits":{"max_rounds":2,"max_model_calls":6,"max_seconds":900,"max_repairs_per_page":3}
+  }
+}

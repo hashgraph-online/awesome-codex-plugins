@@ -1,0 +1,20 @@
+{
+  "name": "kuudo-skills-dev",
+  "interface": {
+    "displayName": "Kuudo Skills Dev"
+  },
+  "plugins": [
+    {
+      "name": "kuudo-skills",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Business & Operations"
+    }
+  ]
+}

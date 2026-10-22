@@ -13,6 +13,7 @@ tool is Git Bash and the rewritten command is already shaped for it.
 click-gate status
 click-gate status --json
 click-gate verify -- <check argv>
+click-gate verify --paths '<globs>' -- <check argv with {paths}>
 click-gate verify '<request JSON>'
 click-gate receipt export
 ```

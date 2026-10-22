@@ -33,6 +33,8 @@ A LinkedIn post URL (any type: activity, share, ugcPost).
 
 1. **Parse URL.** `lib.url_parser.parse_linkedin_url` → `post_urn`.
 2. **Fetch post body.** If `APIFY_TOKEN` is set, call `lib.ApifyClient.fetch_post(url)`. Otherwise ask the user to paste the text.
+
+   **No token? Try the connector.** If the Apify MCP connector is available in this session, its tools read the same actors with no token on disk, which is the only way to read on claude.ai. Call the tool, then apply the mapping in `../../references/mcp-read-layer.md` so the record matches what the library would have returned. If neither a token nor the connector is there, ask the user to paste.
 3. **Classify.** Match against the 20 formulas using features:
    - First 2 lines: anaphoric? question? confession? number-led?
    - Body: numbered list? dated receipts? ledger? teardown?

@@ -1,10 +1,12 @@
 ---
 name: brand-setup
-description: "Create or update the brand profile every other skill reads — a quick 5-question or full 17-question interactive setup capturing identity, business model, industry and compliance markets, 4-dimension voice scales, channels, goals, and competitors, saved to ~/.claude-marketing/brands/{slug}/profile.json via scripts/setup.py. Triggers on \"/digital-marketing-pro:brand-setup\", \"set up a new brand\", \"onboard a new client\", \"switch to another brand\", \"update our brand voice\". Also handles brand switching (updates _active-brand.json) and field-level profile edits; run this first — all marketing skills auto-apply the resulting profile, voice samples, and compliance rules."
+description: "Set up or update the brand profile every skill reads: voice, audience, compliance. \"set up a new brand\""
 argument-hint: "[brand-name or --full]"
 ---
 
 # Brand Setup — Interactive Brand Profiling
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## When to Use This Skill
 
@@ -118,6 +120,21 @@ When user wants to update specific fields:
 2. Ask about the specific field(s) to update
 3. Write updated profile back
 4. Confirm changes
+
+## Profile Storage and Brand Isolation
+
+Each brand lives under `~/.claude-marketing/brands/{slug}/`: `profile.json` (full brand context), `guidelines/` (imported style guides, restrictions, approved messaging), and `templates/` (custom deliverable templates). Every skill loads these automatically. Agencies keep one profile per client; each brand gets isolated context with no cross-contamination, and `/digital-marketing-pro:switch-brand <name>` (or `--list`) changes the active one.
+
+## After Setup
+
+After creating the profile, ask:
+
+"Brand profile for [name] is ready. Would you like to:
+- Import an existing style guide? (`/digital-marketing-pro:import-guidelines`)
+- Run a competitive analysis? (`/digital-marketing-pro:competitor-analysis`)
+- Plan your first campaign? (`/digital-marketing-pro:campaign-plan`)
+- Audit your SEO? (`/digital-marketing-pro:seo-audit`)
+- Check which connectors are active? (`/digital-marketing-pro:integrations`)"
 
 ## Important Notes
 

@@ -1,0 +1,18 @@
+# Local state and generated files are not part of the plugin.
+.git/
+.dex/
+.venv/
+**/.venv/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/
+.env
+.env.*
+*.duckdb
+*.duckdb.wal
+build/
+dist/
+node_modules/
+target/
+dbt_packages/
+logs/

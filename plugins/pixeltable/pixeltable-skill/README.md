@@ -1,8 +1,10 @@
 # Pixeltable Skill
 
-Agent Skill that teaches AI coding assistants to write Pixeltable application files: `TableModel` in `app.py`, then `pxt schema update`, then `pxt service update`.
+The backend agents build with: multimodal database, orchestration, and serving in one file.
 
-Verified against Pixeltable 0.7.8 on 2026-09-19: [docs/review-2.11.0.md](docs/review-2.11.0.md).
+This plugin teaches AI coding assistants to build Pixeltable applications: tables with computed columns, embedding indexes and vector search, RAG, tool-calling agents, and video, audio, image, and document pipelines across 25+ AI providers. The agent declares the schema as `TableModel` classes in `app.py`, creates the tables with `pxt schema update`, and serves HTTP routes with `pxt service update`.
+
+Verified against Pixeltable 0.7.11 on 2026-09-28: [docs/review-2.12.0.md](docs/review-2.12.0.md).
 
 ## Install
 
@@ -17,6 +19,10 @@ npx skills add pixeltable/pixeltable-skill
 This installs `SKILL.md` and its references for supported coding assistants,
 including Cursor, Copilot, Windsurf, and the Codex IDE extension.
 
+With only Python, `pxt skills install` (Pixeltable 0.7.17 or later) writes the
+same skill into the current project's `.claude/skills/pixeltable` and
+`.agents/skills/pixeltable`; `pxt skills install -f` updates it.
+
 **Google Antigravity** is not one of them: it reads
 `~/.gemini/antigravity/skills`, which `npx skills` does not write to. Install
 there with `./install.sh --platform antigravity`.
@@ -24,7 +30,7 @@ there with `./install.sh --platform antigravity`.
 ### Full plugin
 
 Install the skill with its client-supported commands, agents, and hooks using
-[npx plugins](https://github.com/vercel-labs/plugins):
+[npx plugins](https://www.npmjs.com/package/plugins):
 
 ```bash
 npx plugins add pixeltable/pixeltable-skill
@@ -62,6 +68,12 @@ skills/pixeltable-skill/
 
 Client manifests and marketplace metadata live alongside the shared skill so
 each supported installer can discover the format it understands.
+
+## Pixeltable Cloud MCP
+
+The plugin configures no MCP server. Pixeltable Cloud users can add the hosted [Cloud MCP](https://pixeltable.com/developers/mcp-cloud) at `https://www.pixeltable.com/mcp/cloud` and sign in through the browser. It reads the organization selected at sign-in: databases, services, catalog entries, schemas, up to 25 table rows per call, and logs. It also starts a database at once. Stopping a database, restarting a service, or setting a secret returns a preview first and runs only when called again with `confirm: true`. It deletes nothing and does not deploy; use the `pxt` CLI for that. Add `?read_only=true` to the URL for the read tools only, or `?db=<name>` to limit it to one database. The Skill mentions it so an agent can suggest it to a Cloud user.
+
+The [Docs MCP](https://docs.pixeltable.com/mcp) searches public documentation. The [developer MCP](https://github.com/pixeltable/mcp-server-pixeltable-developer) is a separate local server with catalog, query, and REPL tools.
 
 ## Contributing
 

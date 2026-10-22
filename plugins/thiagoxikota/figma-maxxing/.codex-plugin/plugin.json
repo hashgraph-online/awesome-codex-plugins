@@ -1,0 +1,42 @@
+{
+  "name": "figma-maxxing",
+  "version": "1.2.0",
+  "description": "Agent skills for real Figma files: Plugin API gotchas, checks before and after every write, comments to verified fixes, handoff gate.",
+  "author": {
+    "name": "Thiago Xikota"
+  },
+  "homepage": "https://github.com/thiagoxikota/figma-maxxing",
+  "repository": "https://github.com/thiagoxikota/figma-maxxing",
+  "license": "MIT",
+  "keywords": [
+    "figma",
+    "figma-plugin-api",
+    "design-systems",
+    "design-tokens",
+    "handoff",
+    "design-qa",
+    "claude-code",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Figma Maxxing",
+    "shortDescription": "Skills for real Figma files",
+    "longDescription": "Eight Agent Skills for AI agents that work on real Figma files. figma-canon holds the Plugin API rules and gotchas and loads them piece by piece. figma-preflight checks the connection, the target, the variables, the components and the icons before any write, without touching the canvas. figma-slop-check and figma-handoff-gate review the result after a write and before handoff. figma-comment-fix-loop reads every open comment, fixes each one on the frame where it is pinned and returns the evidence. figma-orient maps a file that is new to the session, figma-click-flow draws flow arrows for static handoff, and figma-bridge-doctor checks and repairs the Figma Desktop connection. Written for the figma-console-mcp Desktop Bridge in Figma Desktop; figma-preflight also accepts the official Figma MCP use_figma tool. The comment workflow needs a Figma personal access token, and the bridge automation is macOS only. The plugin contains skills only: no MCP server and no hooks. Not affiliated with Figma.",
+    "developerName": "Thiago Xikota",
+    "category": "Creativity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/thiagoxikota/figma-maxxing",
+    "defaultPrompt": [
+      "Fix what they commented on this Figma page",
+      "Is this Figma frame ready for handoff?",
+      "What is in this Figma file?"
+    ],
+    "brandColor": "#DC000C",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

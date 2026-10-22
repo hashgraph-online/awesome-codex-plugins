@@ -20,7 +20,7 @@ Do NOT shift POV mid-scene. If a POV shift is needed, use a scene break (marked 
 
 - Dialogue should reveal character, advance plot, or both
 - Each character should have a distinct voice (reference their Voice & Speech Patterns)
-- Use dialogue tags sparingly - "said" is invisible, fancy tags distract
+- Use dialogue tags sparingly - in English, "said" is invisible and fancy tags distract. Other languages have their own neutral tags and dialogue punctuation (see `../../line-editing/references/language-conventions.md`)
 - Break up long speeches with action beats
 - Avoid exposition dumps disguised as conversation
 

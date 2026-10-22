@@ -1,0 +1,42 @@
+{
+  "name": "off-the-wall",
+  "version": "0.1.1",
+  "description": "Quotes your own past corrections back to the agent before it answers, reports how often you had to correct it, and makes the orchestrator name a model for every subagent. Claude Code and Codex.",
+  "author": {
+    "name": "Junebeom Seo",
+    "url": "https://github.com/toranalytics"
+  },
+  "hooks": "./hooks/codex.json",
+  "interface": {
+    "displayName": "Off the Wall",
+    "shortDescription": "Stop repeating the same correction to your agent",
+    "longDescription": "Keeps the messages where you corrected your coding agent and quotes the most relevant ones back, word for word, before each answer. `otw report` shows what you correct most from the history already on your machine, and subagent routing makes the orchestrator name a cheaper model for each subagent. No API key; judging runs through the codex or claude CLI you already use, and everything stays in ~/.otw.",
+    "developerName": "Junebeom Seo",
+    "category": "Productivity",
+    "capabilities": [
+      "Hooks"
+    ],
+    "websiteURL": "https://github.com/toranalytics/off-the-wall",
+    "privacyPolicyURL": "https://github.com/toranalytics/off-the-wall#privacy",
+    "termsOfServiceURL": "https://github.com/toranalytics/off-the-wall/blob/main/LICENSE",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/report.svg",
+      "./assets/context.svg"
+    ],
+    "brandColor": "#D97757"
+  },
+  "homepage": "https://github.com/toranalytics/off-the-wall",
+  "repository": "https://github.com/toranalytics/off-the-wall",
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "corrections",
+    "feedback",
+    "subagents",
+    "model-routing",
+    "claude-code",
+    "codex"
+  ]
+}

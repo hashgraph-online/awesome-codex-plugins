@@ -24,11 +24,17 @@ Read the task's `TaskStartSnapshot` and current repository state. Record:
 - `git worktree list --porcelain`;
 - branch/worktree creator, task ownership, base branch, and cleanup trigger.
 
-Stop on conflicts, detached state, failed verification, dirty/untracked state in
+Stop on conflicts, unexplained detached state, failed verification, dirty/untracked state in
 a cleanup target, or unknown ownership. Do not infer the base from the names
 `main` or `master`; use task records, repository authority, or explicit user
 direction. Never auto-stash, reset, clean, pull, rebase, amend, force-push, or
 bypass hooks.
+
+For a trusted host-managed detached checkout, follow the repository's approved
+managed-workspace contract: verify host binding, default cwd, root, and HEAD;
+then use its scoped local-commit and native handoff path. Report detached HEAD
+in the receipt. This exception does not authorize automatic deletion of the
+detached checkout or bypass unknown ownership/binding.
 
 If no task-created branch/worktree exists and integration was not requested,
 skip this workflow: report the local task commit plus `Task clean` and

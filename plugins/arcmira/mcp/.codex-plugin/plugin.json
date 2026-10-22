@@ -1,0 +1,47 @@
+{
+  "name": "arcmira",
+  "version": "0.10.7",
+  "description": "Search YouTube transcripts for timestamps, speaker appearances, sponsors and recommendations.",
+  "author": {
+    "name": "Arcmira",
+    "url": "https://arcmira.com"
+  },
+  "homepage": "https://arcmira.com/docs",
+  "repository": "https://github.com/arcmira/mcp",
+  "license": "Apache-2.0",
+  "keywords": [
+    "youtube",
+    "youtube-transcript-search",
+    "transcript-search",
+    "timestamps",
+    "speaker-attribution",
+    "sponsors",
+    "recommendations",
+    "podcast",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Arcmira: Transcript Search",
+    "shortDescription": "YouTube Transcript Search",
+    "developerName": "Arcmira",
+    "category": "Education & Research",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "What did TBPN say about stablecoins in the last 90 days?",
+      "Which sponsors do All-In Podcast and TBPN share?",
+      "Is talk about Linear accelerating or fading on podcasts?"
+    ],
+    "websiteURL": "https://arcmira.com/docs",
+    "supportURL": "https://arcmira.com/contact",
+    "longDescription": "Give your AI the ability to find who said what with timestamps, discover what’s being discussed across videos and livestreams, and distinguish organic recommendations from sponsored ad reads.\n\nSearch indexed YouTube videos and livestreams for timestamped passages, discussed people, organizations, products and topics, sponsor reads, and recommendations. Coverage depends on the index and access on your Arcmira account. Speaker attribution and sponsorship classifications can be incomplete or incorrect; inspect the cited passage and surrounding context. Connect your existing Arcmira account through OAuth. Premium transcript retrieval can use included credits or on-demand usage within your account budget. Monitor actions create, update or pause saved research. Feedback submissions save a record for the Arcmira team.",
+    "privacyPolicyURL": "https://arcmira.com/privacy",
+    "termsOfServiceURL": "https://arcmira.com/terms",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "_comment": "Settings for scripts/verify.mjs, shared by CI and local runs (references/verify.md). The URL comes from the command line. Rename to privacy-check.config.json.",
+  "pages": ["/", "/pricing", "/blog/some-post"],
+  "private": ["/account/x", "/reset/abc"],
+  "mode": "consent",
+  "banner": true,
+  "collector": "/api/k",
+  "posthog": "/ingest",
+  "consentKey": "analytics-consent",
+  "allowHosts": [],
+  "allowCookies": [],
+  "settle": 8000,
+  "previewWrites": false,
+  "expect": [
+    "footer a[href*=privacy]@href=^/privacy",
+    { "selector": "a[data-kcta=signup]", "attr": "href", "match": "^/signup$", "pages": ["/", "/pricing"] }
+  ],
+  "indexable": ["/", "/pricing"],
+  "noindex": ["/thanks"],
+  "sitemap": true,
+  "sitemapHost": "www.example.com",
+  "privacyPage": "/privacy",
+  "processors": []
+}

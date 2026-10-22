@@ -79,6 +79,9 @@ root stays on the normal plan path.
 
 ### Step 2: Execute Tasks
 
+For interface/interaction changes, compose `ui-ux-governance` before affected
+edits and verify the plan's scoped experience criteria at the relevant user seam.
+
 For each task:
 1. Mark as in_progress
 2. Follow each step exactly (plan has bite-sized steps)

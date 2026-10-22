@@ -12,6 +12,8 @@ triggers:
   - 需要定义交互行为时
   - 需要处理边界情况时
   - 需要确保无障碍访问时
+metadata:
+  internal: true
 ---
 
 # 交互规范

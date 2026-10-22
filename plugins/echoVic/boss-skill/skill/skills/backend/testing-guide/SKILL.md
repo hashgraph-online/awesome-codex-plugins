@@ -3,6 +3,8 @@ name: backend/testing-guide
 description: 后端测试编写指南，包括单元测试、集成测试和E2E测试的编写方法和最佳实践
 type: methodology
 agent: boss-backend
+metadata:
+  internal: true
 ---
 
 # 后端测试编写指南

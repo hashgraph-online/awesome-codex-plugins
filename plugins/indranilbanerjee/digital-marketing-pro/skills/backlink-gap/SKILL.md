@@ -1,11 +1,13 @@
 ---
 name: backlink-gap
-description: "Find referring domains that link to your competitors but not to you, ranked by an outreach-priority score (0.40 DR + 0.25 link-overlap + 0.20 traffic + 0.15 topical relevance) — outputs a four-gate quality scorecard, a 30-prospect outreach shortlist, broken-link candidates, and pre-filled outreach templates. Triggers on \"/digital-marketing-pro:backlink-gap\", \"where are competitors getting links we aren't\", \"plan a link-building campaign\", \"quarterly backlink audit\", \"first 50 link targets for a new client\". Consumes backlink CSV exports from the brand's connected backlink MCP, runs scripts/backlink_gap.py, reads the brand profile for DR thresholds and voice, and hands off to /digital-marketing-pro:digital-pr and /digital-marketing-pro:pr-pitch."
-argument-hint: "[brand-name]"
+description: "Find backlink gap domains linking to competitors, not you, scored by script. \"who links to our competitors but not us\""
+argument-hint: "<your-domain> <competitor-1> [competitor-2 ...]"
 user-invocable: true
 ---
 
 # /digital-marketing-pro:backlink-gap
+
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## Purpose
 
@@ -112,6 +114,14 @@ priority = 0.40 × DR_normalised
 ```
 
 **Why link_count is weighted higher than traffic:** a domain that links to 3/3 competitors is unambiguously in your space and willing to link. A high-traffic domain that only links to 1 might just be a tier-1 publisher who happens to have covered one of you in passing.
+
+## After the audit
+
+Ask: "Would you like me to:
+- Send the top 10 prospects to a digital PR workflow? (`/digital-marketing-pro:digital-pr`)
+- Draft pitches for the top 5 broken-link replacements? (`/digital-marketing-pro:pr-pitch`)
+- Schedule quarterly re-runs to track gains? (`/digital-marketing-pro:seo-drift`)
+- Open the prospect shortlist for review?"
 
 ## Chain handoffs
 

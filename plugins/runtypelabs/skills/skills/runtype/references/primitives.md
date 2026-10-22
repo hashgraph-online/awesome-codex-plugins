@@ -43,14 +43,14 @@ An LLM with a system prompt and a tool set. Reaches for tools to accomplish a go
 
 Shape:
 
-- `model` — model config reference (use `list_model_configs`)
-- `systemPrompt` — the main thing that defines the agent's behavior
-- `tools` — array of tool ids
-- `maxToolCalls` — how many tool calls the agent can make in one turn (default is 10; raise it deliberately for tool-heavy tasks)
-- `agentLoop` config (optional, advanced) — how many full turns of reflection the agent can do
+- `model`: model config reference (use `list_model_configs`)
+- `systemPrompt`: the main thing that defines the agent's behavior
+- `tools`: array of tool ids
+- `maxToolCalls`: how many tool calls the agent can make in one turn (default is 10; raise it deliberately for tool-heavy tasks)
+- `agentLoop` config (optional, advanced): how many full turns of reflection the agent can do
 - `responseFormat`, `config.tools.approval` (tools that pause for a human), etc.
 
-Lifecycle: `create_agent`, `get_agent`, `update_agent` (partial: only the fields you pass change, but a tool list you pass replaces the whole set), `delete_agent`, `execute_agent`, `list_agent_executions`.
+Lifecycle: `create_agent`, `get_agent`, `update_agent` (partial: only the fields you pass change, but a tool list you pass replaces the whole set), `delete_agent`, `execute_agent`. List an agent's runs with `list_runs` and `agent_id` (`list_agent_executions` is deprecated).
 
 Versions and releases: every save records an immutable version (`list_agent_versions`, `get_agent_version`). A release alias (`live` plus previews) points at one version: `list_agent_aliases`, `get_agent_alias`, `activate_agent_alias`, `rollback_agent_alias`, `archive_agent_alias`, and `list_agent_deployments` for the receipt history. Pass `alias` or `version_id` to `execute_agent` to run a specific pointer; a request that selects neither runs the saved agent, so a save reaches it immediately. `publish_agent_version` applies a stored version onto the saved agent.
 
@@ -64,14 +64,14 @@ The system prompt is where you spend your time on agent design. Analogy: writing
 - Tool usage guidelines
 - What NOT to do
 
-When an agent isn't doing what you want, the first reach is to improve the system prompt — not to add tools, not to switch models, not to add a flow. Be more explicit.
+When an agent isn't doing what you want, the first reach is to improve the system prompt, not to add tools, switch models, or add a flow. Be more explicit.
 
 ### `maxToolCalls` vs `agentLoop`
 
 Two different knobs that get confused.
 
 - **`maxToolCalls`**: how many tool calls the agent can make in one execution. Default is 10. Raise it deliberately when the task requires several lookups, writes, or sub-agent calls in one turn.
-- **`agentLoop`** (`loopConfig.maxTurns`): a cap on how many _full turns_ the agent may take, each re-running with the previous results as context. The loop ends as soon as the model finishes its turn; it takes another turn only when the turn was cut off by the `maxToolCalls` budget, or when a skill load / tool search expanded the tool surface (newly granted tools activate on the next turn, so skill-using agents need `maxTurns` of at least 2). It is a safety cap, not a target — a higher cap costs nothing on turns the agent never takes. The risk lives inside the loop, not in the ceiling: looping on the same goal repeats the same work unless you explicitly tell the agent to reflect or vary approach.
+- **`agentLoop`** (`loopConfig.maxTurns`): a cap on how many _full turns_ the agent may take, each re-running with the previous results as context. The loop ends as soon as the model finishes its turn; it takes another turn only when the turn was cut off by the `maxToolCalls` budget, when the model call failed and is retried, or when a skill load or tool search expanded the tool surface (newly granted tools activate on the next turn, so skill-using agents need `maxTurns` of at least 2). It is a safety cap, not a target. A higher cap costs nothing on turns the agent never takes. The risk lives inside the loop, not in the ceiling: looping on the same goal repeats the same work unless you explicitly tell the agent to reflect or vary approach.
 
 Tune `maxToolCalls` before reaching for `agentLoop`. Raise `maxTurns` when the agent genuinely needs another pass: reflection, more tool calls than one turn's budget allows, or skill capabilities that only activate on a following turn.
 
@@ -81,11 +81,11 @@ Often, **sub-agents** (agents that the orchestrator calls as tools) are better t
 
 Axes to consider:
 
-- **Intelligence** — generally correlates with size and recency.
-- **Latency** — bigger = slower.
-- **Cost** — bigger = more expensive.
-- **Compliance/governance** — data residency, region. Drives provider choice (Vertex/Gemini for GCP shops, etc.).
-- **Family-specific tools** — provider-native search, fetch, image, or research tools available only on certain model families.
+- **Intelligence**: generally correlates with size and recency.
+- **Latency**: larger models are slower.
+- **Cost**: larger models cost more.
+- **Compliance/governance**: data residency, region. Drives provider choice (Vertex/Gemini for GCP shops, etc.).
+- **Family-specific tools**: provider-native search, fetch, image, or research tools available only on certain model families.
 
 Default: use the current model catalog and routed model IDs. Pick one intelligent
 enough for the task and optimized for speed/cost. Avoid starting on the largest
@@ -102,7 +102,7 @@ A deterministic, multi-step pipeline. Use when the steps are known and you want 
 Shape:
 
 - `inputSchema` / `outputSchema`
-- `steps` — array of step objects with type and config (see `flow-steps.md`)
+- `steps`: array of step objects with type and config (see `flow-steps.md`)
 - Each step has optional `when` (skip condition), retry/fallback config, and streaming-visibility config
 
 Step results become flow variables. Reference in templates as `{{stepName.field}}`, or via the `input` object in `transform-data` JS code.
@@ -122,7 +122,7 @@ Good candidates to be a flow (not an agent):
 - API-to-API pipelines: fetch → transform → upsert
 - Anything you know happens every time, in this order
 
-Often a flow is part of an agent's tool set — the agent decides _when_ to invoke the deterministic pipeline.
+Often a flow is part of an agent's tool set, and the agent decides _when_ to invoke the deterministic pipeline.
 
 ## Tool
 
@@ -130,16 +130,16 @@ A typed callable. The agent's interface to the outside world.
 
 Three categories:
 
-1. **First-party integrations** — Firecrawl, Exa, Weaviate, Cloudflare Vectorize, Orthogonal, web search, asset generation. Preferred when they fit.
-2. **External MCP server tools** — register an external MCP server, its tools become available.
-3. **Custom tools** — HTTP/REST tool, custom JS code, or a flow exposed as a tool.
+1. **First-party integrations**: Firecrawl, Exa, Weaviate, Cloudflare Vectorize, Orthogonal, web search, asset generation, and connected apps (Slack, GitHub, Linear, Google Workspace, Granola). Preferred when they fit.
+2. **External MCP server tools**: register an external MCP server to make its tools available.
+3. **Custom tools**: HTTP/REST tool, custom JS code, or a flow exposed as a tool.
 
 Shape for custom:
 
-- `name`, `description` — what the LLM sees when deciding to call
-- `inputSchema` (or `parameters`) — typed args with descriptions
+- `name`, `description`: what the LLM sees when deciding to call
+- `inputSchema` (or `parameters`): typed args with descriptions
 - `code` (JS) or `config` (HTTP)
-- `auth.secrets` — secret keys, referenced inside config as `{{secret:KEY}}`
+- `auth.secrets`: secret keys, referenced inside config as `{{secret:KEY}}`
 
 Lifecycle: `validate_code` → `create_tool` → `update_tool` / `delete_tool` / `execute_tool`.
 
@@ -152,7 +152,7 @@ If an agent isn't calling a tool you expected it to, the first thing to fix is t
 - What each parameter means
 - What the result will look like
 
-For flow-as-tool, the platform has a "generate parameters from a description" capability — it uses a model to fill in parameter descriptions and types based on what you wrote. Use it as a first pass, then tune.
+For flow-as-tool, the dashboard tool editor's **Generate from Flow** button drafts parameter names, types, and descriptions from the flow's steps and the variables they reference. Treat the draft as a first pass and edit it.
 
 ### Surface-specific tools (auto-registered)
 
@@ -168,7 +168,7 @@ Don't manually add tools for things the surface already provides.
 
 ### Browser use / sandbox use
 
-Agents can provision a whole computer (Daytona sandbox or browser session) and take actions in it. Powerful. Expensive. Slow. Use only when there's no scoped tool that fits.
+Agents can provision a whole computer (a sandbox or a browser session) and take actions in it. Browser and sandbox tools cost more and run slower than scoped API tools, so use them only when no scoped tool fits.
 
 The right order: scoped API tool > MCP server > custom HTTP tool > sandbox/browser use.
 
@@ -178,16 +178,25 @@ Tools that run **client-side**, invoked through the SDK rather than in Runtype. 
 
 Two flavors:
 
-- **Browser-side** (Persona context): tools call browser APIs — read HTML, navigate, access front-end state.
+- **Browser-side** (Persona context): tools call browser APIs to read HTML, navigate, and access front-end state.
 - **Server-side** (Python/TS SDK on your server): tools run on your infrastructure, can call local AI models, can access data you don't want passing through Runtype.
 
 Combined with hidden parameters (below), this is the security architecture for products where the LLM orchestrates operations on data it shouldn't see.
 
 ### Hidden parameters
 
-Every tool parameter can be marked hidden from the LLM. The model sees the tool's shape minus those parameters; the SDK fills them at invocation time (typically with authenticated request context, tenant info, user-scoped credentials, etc.).
+List parameter names in a runtime tool's `hiddenParameterNames` to fill them from execution variables instead of from the model. Runtype strips them from the model-facing schema, overrides any model-supplied value, and shows `[REDACTED]` in `tool_start` / `tool_input_complete`.
 
-Pattern: the LLM sees `lookup_orders(filter)` and decides to call it. Hidden parameters add `{ user_id, tenant_id, auth_token }` that the model never sees in its context window.
+Pattern: the LLM sees `list_orders(status)`. With `hiddenParameterNames: ['_tenant']` and a header `X-Tenant-Id: {{_tenant.id}}`, the verified tenant reaches the API without entering the model's context.
+
+- `_tenant` / `_endUser` come from the execution's end-user identity (Identity Exchange or a trusted backend). `_`-prefixed hidden names resolve only from the host and fail the call closed when unset. `_internal*` names are rejected.
+- A hidden name without a leading `_` is best-effort: if no execution variable (or `_record.metadata` field) matches, it stays visible and the model supplies it. Never use one for identity.
+- Tool templates resolve only tool arguments, hidden parameters, and `{{secret:KEY}}`. `{{_record.*}}`, `{{_flow.*}}`, and `{{_user.*}}` do not resolve in a tool's url/headers/body.
+- `{{_tenant.id}}` / `{{_endUser.id}}` are host-only automatically wherever referenced: external tool templates (runtime and saved tools) and `auth.headers` of MCP servers in an agent's `tools.mcpServers`. Saved MCP servers send static auth only.
+- For identity your API verifies itself, send `Authorization: Bearer {{_identity.token}}`: a per-call Runtype-signed JWT, minted only for an agent with a `tenancyStrategy`.
+- Credentials still go in `{{secret:KEY}}`, never in a hidden parameter.
+
+Docs: https://docs.runtype.com/developer-guides/guides/tool-template-variables
 
 ## Capability
 
@@ -201,14 +210,14 @@ Tools: `add_product_capability`, `remove_product_capability`. Surfaces reference
 
 Capabilities and surfaces are **many-to-many**. Concrete examples:
 
-- One agent exposed across three surfaces (Slack, email, web chat) — same agent, three surfaces.
-- Three agents exposed on one MCP surface — three MCP tools auto-generated.
-- Three agents exposed on one web chat surface — Runtype provisions an orchestrator (see below).
+- One agent exposed across three surfaces (Slack, email, web chat).
+- Three agents exposed on one MCP surface, which generates three MCP tools.
+- Three agents exposed on one web chat surface, for which Runtype provisions an orchestrator (see below).
 - A flow exposed as both a REST endpoint and an MCP tool simultaneously.
 
 ### Auto-generated REST and MCP APIs
 
-When you bind capabilities to a `mcp` or `api` surface, the platform **automatically generates** endpoints (for REST) or tools (for MCP) from each capability. You pick the auth scheme. Hosted URL. Done.
+When you bind capabilities to a `mcp` or `api` surface, the platform **automatically generates** endpoints (for REST) or tools (for MCP) from each capability. You pick the auth scheme, and Runtype hosts the URL.
 
 You're not coding API endpoints; you're declaring which capabilities go on which surface.
 
@@ -219,7 +228,7 @@ When **more than one capability** is connected to a conversational surface (`cha
 Defaults:
 
 - Inexpensive fast model (because routing at 10-20s defeats the purpose).
-- Minimum data over the wire — usually just a short label per capability.
+- Minimum data over the wire, usually just a short label per capability.
 - Alphabetical labels (A, B, C…) for the route options.
 
 Overridable: model, system prompt, routing logic. **Run a surface eval (dashboard) on the orchestrator** to compare routing strategies before launch.
@@ -228,7 +237,7 @@ Practical implication: you don't need to write your own "router agent." Add the 
 
 ## Surface
 
-How clients (humans or machines) reach into a product. ~15 types — see `surfaces.md` for the full trait matrix.
+How clients (humans or machines) reach into a product. See `surfaces.md` for the trait matrix, and `get_platform_documentation(topic="surface-types")` for the current list of types.
 
 Each surface has:
 
@@ -251,7 +260,7 @@ Shape:
 - `id` (auto), `type` (table-like), `name` (unique within type), `metadata` (JSON), `createdAt`, `updatedAt`
 - Optional embedding for vector search
 
-The right mental model: **records are correlation keys plus agent memory**, not a full business database. The source of truth for user/business data should live in the user's existing systems; records hold the small bits Runtype needs to correlate and remember.
+Records suit data that Runtype owns: agent memory, correlation keys, and product data such as a catalog or customer list that agents read and update. When the source of truth already lives in another system, keep it there and store only what Runtype needs to correlate and remember.
 
 The simplest useful pattern: give an agent record read/write/update tools. That's how the agent "remembers" what users asked it to do.
 
@@ -265,7 +274,7 @@ Cron or one-time trigger.
 
 Shape: `target` (exactly one of `flow_id` or `agent_id`; flow schedules may add `record_ids` or `record_type`), `trigger` (`{ type: "recurring", cron, timezone }` or `{ type: "one_time", run_at }`), and `messages` passed to each run.
 
-For flows: standard "call function on schedule." For agents: the trigger looks like a message being pushed into a conversation — useful for **heartbeat patterns** ("every morning, check the todo list and decide what to do"). Schedules can also fan out as a batch over all records of a particular type.
+For flows: standard "call function on schedule." For agents: the trigger looks like a message being pushed into a conversation, which is useful for **heartbeat patterns** ("every morning, check the todo list and decide what to do"). Schedules can also fan out as a batch over all records of a particular type.
 
 Lifecycle: `create_schedule`, `update_schedule`, `delete_schedule`, `pause_schedule` / `resume_schedule`, `run_schedule_now` (manual trigger), `list_schedule_runs`.
 
@@ -288,12 +297,12 @@ Evals can also run from your own code (REST / SDK), which is useful for CI/CD.
 
 Managed secret store. Values are encrypted at rest and never returned by the API: reads return metadata (key, status, version) and a short masked preview only.
 
-Reference syntax — same everywhere (tool configs, FPO templates, runtime): `{{secret:KEY}}` — **singular `secret`, colon separator, UPPER_CASE key**. Example: `"Authorization": "Bearer {{secret:STRIPE_API_KEY}}"`.
+Reference syntax, the same everywhere (tool configs, FPO templates, runtime): `{{secret:KEY}}`, with **singular `secret`, colon separator, UPPER_CASE key**. Example: `"Authorization": "Bearer {{secret:STRIPE_API_KEY}}"`.
 
 Two adjacent syntaxes that look similar but are different:
 
-- `{{secrets:KEY}}` — **plural with colon is invalid**. The resolver rejects it.
-- `{{secrets.key}}` — plural with **dot** is RETIRED, not a managed secret: a non-empty dispatch `secrets` map is refused with 400 `RUNTIME_AGENT_TRANSIENT_SECRETS_UNSUPPORTED` on agent dispatches and 400 `RUNTIME_FLOW_TRANSIENT_SECRETS_UNSUPPORTED` on flow dispatches. Never emit it; `{{secret:KEY}}` is the only credential contract.
+- `{{secrets:KEY}}`: **plural with colon is invalid**. The resolver rejects it.
+- `{{secrets.key}}`: plural with **dot** is RETIRED, not a managed secret: a non-empty dispatch `secrets` map is refused with 400 `RUNTIME_AGENT_TRANSIENT_SECRETS_UNSUPPORTED` on agent dispatches and 400 `RUNTIME_FLOW_TRANSIENT_SECRETS_UNSUPPORTED` on flow dispatches. Never emit it; `{{secret:KEY}}` is the only credential contract.
 
 Log output is scrubbed for credential-shaped values (known API-key formats and high-entropy strings). Still keep secret values out of prompts, tool results, and record metadata.
 
@@ -304,8 +313,8 @@ Lifecycle: `create_secret`, `list_secrets`, `get_secret` (metadata only), `updat
 Best practice for setting up a product:
 
 1. Declare the tool's secret needs in `auth.secrets`.
-2. Reference them in tool config as `{{secret:KEY}}` — same syntax in stored tool configs and in FPO templates.
-3. Don't fill in the secret values yet — leave them pending.
+2. Reference them in tool config as `{{secret:KEY}}`, the same syntax in stored tool configs and in FPO templates.
+3. Don't fill in the secret values yet. Leave them pending.
 4. The user (or the product's installer) fills them in via the intake flow.
 
 This means the product architecture is set up completely without anyone needing the credential values in hand. Secrets never end up in product records or template files.
@@ -322,13 +331,13 @@ Conversations attach to surfaces with `threadModel: "threaded"` or `"reply_chain
 
 Runtype can federate **external agents** into a product as capabilities:
 
-- **A2A agents** — external agents that speak the Agent-to-Agent protocol. Register their skills, mix them with native Runtype agents in the same product, expose the combined surface set to users.
-- **Cloud-managed agents** — externally hosted agents registered as capabilities. The agent lives outside Runtype; Runtype routes traffic to it.
+- **A2A agents**: external agents that speak the Agent-to-Agent protocol. Register their skills, mix them with native Runtype agents in the same product, expose the combined surface set to users.
+- **Cloud-managed agents**: externally hosted agents registered as capabilities. The agent lives outside Runtype; Runtype routes traffic to it.
 
 Why this matters:
 
 - **Incremental migration**: if you have an existing agent in another framework (CrewAI, custom), expose it as A2A and federate it into Runtype to get the surface delivery layer (Slack/email/SMS/etc.) without rewriting.
-- **Best tool for the job**: use specialized frameworks (CrewAI is mentioned as goal-oriented and great for that) for sub-tasks, while Runtype owns the product personality and the surface delivery.
+- **Best tool for the job**: use a specialized framework such as CrewAI for a sub-task, and let Runtype own the product persona and surface delivery.
 
 The execution engine routes intelligently across native + federated capabilities. From the user's perspective, it's one product.
 

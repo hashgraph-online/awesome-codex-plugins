@@ -152,19 +152,19 @@ Summarize what was created, then make the value-loop visible and list the over-t
 
 > Done. Seeded: stack rule, run guide[, data-model, integrations, config, entry points], architecture overview, and N hotspot specs.
 >
-> Try it now: edit a file under `<top hotspot path>` — its spec auto-injects via the code-alignment hook. (No hotspot specs? Edit a file in a seeded area — the hook injects what applies.) Over time: ADRs for non-trivial dependency choices (`/archcore:document`), more specs (`/archcore:document <path>`), a task-type for any repeating extension pattern (`/archcore:review`'s experience offer).
+> Try it now: edit a file under `<top hotspot path>` — its spec auto-injects via the code-alignment hook. (No hotspot specs? Edit a file in a seeded area — the hook injects what applies.) Over time: ADRs for non-trivial dependency choices (`/archcore:document`), more specs (`/archcore:document <path>`), a task-type for any repeating extension pattern (`/archcore:review`'s durable-context capture).
 
 **Medium:**
 
 > Done. Seeded: stack rule, run guide, data-model, integrations, config, entry points, architecture overview, N hotspot specs[, M cross-cutting rules].
 >
-> Try it now: edit a file under `<top hotspot path>` — its spec auto-injects. The hook injects what applies to any path you edit. Over time: ADRs for architectural decisions (persistence, auth, observability), more specs, rules per cross-cutting concern — via `/archcore:document`, `/archcore:plan`; task-types surface via `/archcore:review`'s experience offer when branch changes repeat a pattern.
+> Try it now: edit a file under `<top hotspot path>` — its spec auto-injects. The hook injects what applies to any path you edit. Over time: ADRs for architectural decisions (persistence, auth, observability), more specs, rules per cross-cutting concern — via `/archcore:document`, `/archcore:plan`; task-types surface via `/archcore:review`'s durable-context capture when branch changes repeat a pattern.
 
 **Large:**
 
 > Done. Seeded: workspace stack rule, monorepo run guide, top-level map (T domains), entry points, data-model + integrations + config. Data-model seeded for D of T domains (every domain with a detectable schema, not only the ones you picked below). Architecture overview. Created M hotspot specs — a floor of ≥ 1 per domain you're working in now, the rest by repo-wide rank[, converted K documents from authored sources], and registered the remaining hotspots in the overview[ plus J cross-cutting rules].
 >
-> Try it now: edit a file under `<a selected-domain hotspot path>` — its spec auto-injects via the code-alignment hook. Other domains: <list>. Run `/archcore:init refresh <domain>` later to drill into any of them, and `mcp__archcore__search_documents` with the domain tag to scope queries. Over time each domain needs its own ADRs and specs via `/archcore:document`, and task-types via `/archcore:review`'s experience offer when branch changes repeat a pattern; repo-wide cross-cutting rules (logging, errors, auth, transactions, telemetry) accrue via `/archcore:document`.
+> Try it now: edit a file under `<a selected-domain hotspot path>` — its spec auto-injects via the code-alignment hook. Other domains: <list>. Run `/archcore:init refresh <domain>` later to drill into any of them, and `mcp__archcore__search_documents` with the domain tag to scope queries. Over time each domain needs its own ADRs and specs via `/archcore:document`, and task-types via `/archcore:review`'s durable-context capture when branch changes repeat a pattern; repo-wide cross-cutting rules (logging, errors, auth, transactions, telemetry) accrue via `/archcore:document`.
 
 Depth-nudge, keyed off whichever depth actually ran (never assume `standard` ran just because it is the default):
 
@@ -180,4 +180,4 @@ Depth-nudge, keyed off whichever depth actually ran (never assume `standard` ran
 
 Always end with:
 
-> Use `/archcore:review` for the dashboard, `/archcore:review deep` for a health audit.
+> Use `/archcore:review` on a branch with changes, `/archcore:review audit the knowledge base` for a health audit.

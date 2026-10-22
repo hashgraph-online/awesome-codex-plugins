@@ -6,7 +6,7 @@ really takes. Record them as research notes with `method: interview`,
 `method: site-visit`, or `method: expert-review`.
 
 ```shell
-story add research "Night shift on a cardiac ward" --method interview \
+story add research 'Night shift on a cardiac ward' --method interview \
   --accuracy must-be-accurate --risk medical --used-in chapter-07
 ```
 
@@ -41,7 +41,7 @@ instruction.
   locally, not in the repo.
 - Interviewee: charge nurse, 14 years cardiac (anonymous by request).
 - > "You hear the arrest bell before you think. Your feet are already
-  >  moving." (00:12:40)
+  > moving." (00:12:40)
 - Handover at 07:30 takes about 40 minutes; night staff rarely leave on
   time.
 - Would not say what drugs are given first; follow up with a published
@@ -91,4 +91,4 @@ specific passages under `## Findings`), record the reviewer in the
 Notes with a `risk` need this review before the chapters are final.
 
 After adding or updating interview, visit, or review notes, run
-`story reindex .`, `story links .`, and `story validate .`.
+`story reindex .`, `story wordcount . --write`, and `story check .`.

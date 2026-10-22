@@ -37,7 +37,7 @@ Field notes:
 - `created`: RFC3339 timestamp.
 - `refs`: optional list of related message ids (e.g., replies).
 - `priority`: optional (`urgent`, `normal`, `low`).
-- `kind`: optional (e.g., `review_request`, `review_response`, `question`, `answer`, `status`, `todo`).
+- `kind`: optional; one of the kinds below.
 - `labels`: optional list of tags for filtering.
 - `context`: optional JSON object for structured metadata.
 
@@ -55,39 +55,21 @@ Notes:
 - `reply_to`, `reply_project`, and `from_project` are transport metadata stamped by the CLI.
 - Delivery outcomes are tracked separately in consumer-local receipt files. `drained` means the consumer ingested the message; `dlq` means ingest failed and the message moved to DLQ.
 
-## Integration Metadata
+## Message kinds
 
-Messages emitted by `amq integration ...` commands store orchestrator-specific metadata under `context.orchestrator`.
+| Kind | Reply kind | Default priority | Purpose |
+| --- | --- | --- | --- |
+| `review_request` | `review_response` | normal | Request review. |
+| `review_response` | - | normal | Return review findings. |
+| `question` | `answer` | normal | Ask for a decision or fact. |
+| `answer` | - | normal | Answer a question. |
+| `decision` | - | normal | Record a decision. |
+| `brainstorm` | - | normal | Explore options. |
+| `status` | - | low | Report progress or state. |
+| `todo` | - | normal | Assign work. |
 
-Example:
+## Integration metadata
 
-```json
-{
-  "labels": ["orchestrator", "orchestrator:kanban", "task-state:awaiting_review", "handoff"],
-  "context": {
-    "orchestrator": {
-      "version": 1,
-      "name": "kanban",
-      "transport": "bridge",
-      "event": "task_ready_for_review",
-      "workspace": {
-        "id": "workspace-123",
-        "path": "/abs/path/to/worktree"
-      },
-      "task": {
-        "id": "task-42",
-        "prompt": "Review PR #47",
-        "column": "review",
-        "state": "awaiting_review"
-      }
-    }
-  }
-}
-```
-
-Label conventions:
-
-- Always: `orchestrator`, `orchestrator:<name>`
-- When state is known: `task-state:<state>`
-- Review-ready handoffs: `handoff`
-- Failed / interrupted work: `blocking`
+Messages emitted by `amq integration ...` commands carry orchestrator metadata
+under `context.orchestrator`; the shape and labels are in
+[integrations](integrations.md#message-shape).

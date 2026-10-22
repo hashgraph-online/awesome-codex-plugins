@@ -1,6 +1,7 @@
 import { access, readlink, rm } from "node:fs/promises";
 import { resolveGoalProgressPaths } from "../../../packages/store/src/index.js";
-import type { RestoreCdpResult } from "./cdp-controller.js";
+import { cdpPaths, type RestoreCdpResult } from "./cdp-controller.js";
+import { readCodexCdpRuntimeState, verifyCodexCdpRuntimeIdentity } from "./cdp-runtime.js";
 import type { MacosCommandInput, MacosCommandResult } from "./command-protocol.js";
 import { waitForHelperStopped } from "./helper-wait.js";
 import type { MacosCommandResultFactory } from "./install-command.js";
@@ -38,7 +39,30 @@ async function currentLinkExists(path: string): Promise<boolean> {
 }
 
 export function createMaintenanceCommands(dependencies: MaintenanceCommandDependencies) {
+  const preflight = async (command: "restore" | "uninstall") => {
+    const paths = cdpPaths(dependencies.homeDirectory);
+    let state: Awaited<ReturnType<typeof readCodexCdpRuntimeState>>;
+    try {
+      state = await readCodexCdpRuntimeState(paths.cdpRuntimePath);
+    } catch (error) {
+      if (isNotFound(error)) return null;
+      if (!stableErrorCode(error).startsWith("GOAL_PROGRESS_CDP_TIME_IDENTITY_REBUILD_REQUIRED"))
+        throw error;
+      return dependencies.commandResult(command, {
+        ok: false,
+        changed: false,
+        code: "GOAL_PROGRESS_CDP_TIME_IDENTITY_REBUILD_REQUIRED",
+        nextStep:
+          "After current tasks finish and a restart is confirmed, run install --json --restart-codex to rebuild connection identity, then retry this command.",
+      });
+    }
+    if (command === "uninstall") await verifyCodexCdpRuntimeIdentity(state);
+    return null;
+  };
+
   const restore = async (input: MacosCommandInput): Promise<MacosCommandResult> => {
+    const blocked = await preflight("restore");
+    if (blocked) return blocked;
     const restored = await dependencies.restoreCdp(input.restartCodex);
     return dependencies.commandResult("restore", {
       ok: true,
@@ -57,10 +81,9 @@ export function createMaintenanceCommands(dependencies: MaintenanceCommandDepend
   };
 
   const uninstall = async (input: MacosCommandInput): Promise<MacosCommandResult> => {
-    const basePaths = resolveGoalProgressPaths({
-      platform: "darwin",
-      homeDirectory: dependencies.homeDirectory,
-    });
+    const blocked = await preflight("uninstall");
+    if (blocked) return blocked;
+    const basePaths = cdpPaths(dependencies.homeDirectory);
     const installed = await readInstalledManifest(basePaths.installManifestPath);
     let releaseVersion = installed?.releaseVersion;
     if (!releaseVersion) {

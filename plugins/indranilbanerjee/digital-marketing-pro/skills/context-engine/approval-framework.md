@@ -10,20 +10,20 @@ Actions are classified into four risk levels. The classification determines the 
 
 | Risk Level | Approval Required | Response Time | Description |
 |---|---|---|---|
-| **Low** | Auto-confirm + execute | Immediate | Read-only operations and internal-only outputs. No external audience impact, no budget spend, no data modification. |
+| **Low** | None (nothing leaves your machine) | Immediate | Read-only queries and local-only outputs. Nothing is posted, sent or changed on any outside service. |
 | **Medium** | Review + explicit approve | User confirms once | External-facing content with limited blast radius. Moderate audience size, no budget commitment, reversible actions. |
 | **High** | Budget/data confirmation required | User confirms with specifics (amount, count) | Actions involving money, large audiences, or bulk data changes. Requires the user to acknowledge the specific scope. |
 | **Critical** | Double confirmation + compliance review | User confirms twice; compliance rules auto-checked | High-spend actions, regulated industries, large-scale sends, or irreversible operations. |
 
-### Low Risk — Auto-Confirm
+### Low Risk — No approval (read-only or local-only)
 
 | Action | Why Low |
 |---|---|
-| Slack notifications and internal messages | Internal only, no external audience |
-| Google Sheets exports and data dumps | Read/write to user's own workspace |
-| Knowledge storage and memory operations | Internal persistence, no external impact |
+| Knowledge storage and memory operations | Written to local files only |
 | Read-only analytics queries | No data modification, no audience impact |
-| Internal performance reports | Not client-facing, no external distribution |
+| Internal performance reports drafted locally | Nothing is sent until a send step runs |
+
+Anything that posts, sends or writes to an outside service is at least **Medium**, including Slack or Teams messages to your own team and exports to Google Sheets: each needs a typed `yes`, or a capped standing approval the user approved for that connector and action (`approval-manager.py --action create-standing`, at most 7 days, a daily cap, every use logged). There is no auto-confirm for live writes.
 | Brand voice scoring and content grading | Analysis only, no publishing |
 | Keyword research and competitor lookups | Research only, no execution |
 
@@ -103,7 +103,7 @@ Industry Gate Check (auto, if regulated industry)
     v
 Risk Assessment (auto)
     |
-    +-- Low Risk --------> Auto-approve --> Execute --> Verify --> Log
+    +-- Low Risk (read-only / local) --> Execute --> Log   (nothing leaves the machine)
     |
     +-- Medium Risk -----> Present summary to user
     |                          |-- User approves --> Execute --> Verify --> Log
@@ -162,9 +162,12 @@ Escalate to the user immediately (do not proceed with execution) when any of the
 |---|---|---|
 | **Budget overrun** | Actual spend exceeds planned budget by >10% | Pause campaign. Report: planned vs. actual spend, projected overage, recommended action. |
 | **Compliance flag** | Any BLOCK-level compliance violation detected (see `compliance-rules.md` severity levels) | Halt execution. Report: specific rule violated, content that triggered the flag, recommended fix. |
-| **Platform error** | API returns error on campaign creation or modification | Retry once after 60 seconds. If second attempt fails, report: error code, error message, platform status page link. |
+| **Platform error** | API returns error on campaign creation or modification | Retry once after 60 seconds only when the request provably never reached the platform (connection refused, DNS failure, or a 429 rate-limit rejection); prepare and approve the retry like any other write. If the second attempt fails, report: error code, error message, platform status page link. |
+| **Unknown outcome** | A send timed out or was cut off after the request may have reached the platform (`status: unknown_outcome`; approval status `unknown`) | Never retry. Check the platform for the post, email, contact or change; then record what happened with `approval-manager.py --action mark-executed` (`success` or `failure`). Prepare a new write only if the platform shows it did not happen. |
 | **Unexpected audience size** | Audience size differs from estimate by >50% (either direction) | Pause before send/launch. Report: expected vs. actual count, possible causes (segment definition change, list growth/decay). |
 | **Negative sentiment spike** | Social listening or engagement metrics show >3x normal negative response rate within 2 hours | Alert user. Provide: negative comment samples, sentiment score, recommended response (pause campaign, prepare statement, or monitor). |
 | **Deliverability drop** | Email bounce rate >5% or spam complaint rate >0.3% during a send | Pause remaining sends. Report: bounce/complaint count, affected ISPs, recommended list hygiene actions. |
 | **Performance anomaly** | Any primary KPI drops >50% vs. previous period with no known cause | Alert user. Provide: metric comparison, possible causes (tracking issue, platform change, competitive action, seasonality). |
 | **Data integrity issue** | CRM import validation finds >5% of records failing validation | Halt import. Report: failure count, failure reasons, sample of failed records, recommended fix. |
+
+**Retrying a write, on any path (the plugin's executor or an MCP server tool).** Retry only a write that provably never reached the platform (connection refused, DNS failure, or a 429 rate-limit rejection). After a timeout or a lost reply, look the record up on the platform first (by email, external ID or message ID) and resend only what is missing. Writes through MCP tools are outside the approval-record check, so this rule is their only guard against a duplicate contact, row, post or email. With `connector_executor.py` a retry is always a newly prepared and approved request, because a sent record is used up.

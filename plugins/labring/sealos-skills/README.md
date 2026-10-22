@@ -1,106 +1,107 @@
-# Sealos Skills
+# sealos-skills
 
-<!-- README-I18N:START -->
+Agent plugin for deploying and operating apps on [Sealos Cloud](https://sealos.io),
+packaged in the [Agent Plugins](https://agent-plugins.org/) format and as a
+[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) profile bundle.
+The same `use-sealos` skill is also installable through Codex, Claude Code,
+Cursor, Qoder, `skills.sh`, OpenClaw / ClawHub, CodeBuddy, Gemini CLI, Qwen
+Code, and generic repo importers.
 
-**English** | [简体中文](./readmes/README.zh-CN.md) | [繁體中文](./readmes/README.zh-TW.md) | [日本語](./readmes/README.ja.md) | [한국어](./readmes/README.ko.md) | [Español](./readmes/README.es.md) | [Français](./readmes/README.fr.md) | [Deutsch](./readmes/README.de.md) | [Português (Brasil)](./readmes/README.pt-BR.md) | [Русский](./readmes/README.ru.md) | [العربية](./readmes/README.ar.md) | [हिन्दी](./readmes/README.hi.md) | [Bahasa Indonesia](./readmes/README.id.md)
+Say "deploy X to Sealos" (or "帮我把 X 部署到 Sealos") in a compatible agent
+and the `use-sealos` skill handles the rest: sign-in, picking the fastest
+deploy path, databases, storage, public HTTPS, and post-deploy verification.
 
-<!-- README-I18N:END -->
+## What's inside
 
-Deploy projects to [Sealos Cloud](https://sealos.io) from your AI agent.
+```
+package.json                        # DeepSeek Harness bundle manifest (`dsh.bundle`)
+cordis.patch.yml                    # inserts the skill provider into a dsh profile
+index.js                            # registers `use-sealos` on `ctx.skills`
+CLAUDE.md                           # context-only hosts (Gemini, Qwen, Amp / Kimi)
+gemini-extension.json               # Gemini CLI extension
+qwen-extension.json                 # Qwen Code extension
+openclaw.plugin.json                # unused on OpenClaw's native package.json path; install plugins/sealos instead
+.codex-plugin/plugin.json           # root Codex import manifest
+.agents/plugins/marketplace.json    # Codex marketplace entry
+.codebuddy-plugin/marketplace.json  # CodeBuddy marketplace
+skills/                             # skills.sh entries (symlinks → plugins/sealos/skills/*)
+plugins/sealos/
+├── .codex-plugin/plugin.json       # Codex marketplace plugin manifest
+├── .claude-plugin/plugin.json      # Claude Code manifest
+├── .cursor-plugin/plugin.json      # Cursor manifest
+├── .qoder-plugin/plugin.json       # Qoder manifest
+├── commands/sealos.md              # /sealos for compatible plugin hosts
+└── skills/
+    ├── use-sealos/
+    │   ├── SKILL.md                # intent router + execution rules
+    │   ├── references/             # loaded on demand
+    │   │   ├── deploy.md           # three deploy paths (store / image / source)
+    │   │   ├── build.md            # Dockerfile, linux/amd64 build, registry push
+    │   │   ├── databases.md        # KubeBlocks clusters + credentials
+    │   │   ├── platform.md         # manifest contract (labels, Ingress, storage, quota)
+    │   │   ├── operate.md          # status, logs, debugging, deletion
+    │   │   └── recipes.md          # per-app recipes for popular self-hosted software
+    │   └── scripts/
+    │       ├── sealos-api.py       # auth (OAuth2 device flow) + Template API, stdlib only
+    │       └── wait-app.sh         # post-deploy readiness + URL verification
+    ├── sealos-deploy/SKILL.md      # Brain managed-mode entry (MCP-gated pipeline)
+    └── k8s-kaniko-job/             # sandbox build executor (Kaniko Job → GHCR)
+        ├── SKILL.md
+        └── scripts/kaniko-build.py
+```
 
-Sealos Skills is a plugin-first skill pack centered on Sealos Cloud development and deployment. It helps an AI agent inspect a project, prepare missing deployment artifacts, connect Sealos Cloud databases and object storage for development, build or reuse a container image, ship the app to Sealos Cloud, and view deployed resources in a local read-only canvas.
+## Installation
 
-The recommended Codex path is native Codex plugin installation. Cross-host plugin installs, `skills.sh`, and context-only extension hosts such as Gemini CLI and Qwen Code use the same root `skills/**` source.
+### Cursor
 
-## Quick Start
+From a published GitHub repo: **Settings → Plugins**, paste the repository
+URL in **Search or Paste Link**, open the Sealos plugin, click **Add to
+Cursor**.
 
-### Recommended: install in Codex
-
-Add this repository as a Codex marketplace, then install the Sealos plugin:
+For local development, symlink the skill into your personal skills folder:
 
 ```bash
+ln -sfn "$(pwd)/plugins/sealos/skills/use-sealos" ~/.cursor/skills/use-sealos
+```
+
+### Claude Code
+
+```text
+claude plugin marketplace add labring/sealos-skills
+claude plugin install sealos@sealos-skills
+/reload-plugins
+```
+
+Use `/sealos` for interactive work. The marketplace also accepts a local
+checkout path.
+
+### Codex
+
+```sh
 codex plugin marketplace add labring/sealos-skills
 codex plugin add sealos@sealos
 ```
 
-One Sealos plugin installs the deploy, database, S3, canvas, app-builder, and supporting cloud-native skills from root `skills/**`: `sealos-deploy`, `sealos-database`, `sealos-s3`, `sealos-canvas`, `sealos-app-builder`, `cloud-native-readiness`, `dockerfile-skill`, and `docker-to-sealos`.
+In Codex CLI, invoke `$sealos`; in Codex App, select Sealos under Plugins.
+The marketplace source is `.agents/plugins/marketplace.json`; the plugin
+manifest is `plugins/sealos/.codex-plugin/plugin.json`. A repository-root
+Codex manifest is also included for direct importers.
 
-For compatibility and local Codex testing, install the same plugin with:
+### Qoder
 
-```bash
-npx plugins add https://github.com/labring/sealos-skills --target codex
-```
+In Qoder, open the plugin **Marketplace** (Settings → Plugins → Marketplace),
+click **+ Create Plugin**, choose **import from a local folder**, and select
+`plugins/sealos` from a clone of this repository.
 
-After installation in Codex, use the plugin from Codex:
+To distribute, zip the contents of `plugins/sealos` (the zip root must
+contain `.qoder-plugin/plugin.json`) as `sealos-2.0.0.zip` and share or
+publish it through the Qoder marketplace.
 
-- **Codex CLI:** type `$sealos`
-- **Codex App:** click the **+** button in the lower-left corner of the chat input, choose **Plugins**, then choose **Sealos**
+Use `/sealos` in Qoder after installation.
 
-![Select the Sealos plugin in Codex App](./assets/codex-sealos.png)
+### DeepSeek Harness
 
-Codex examples:
-
-```text
-$sealos deploy this repo to Sealos Cloud
-$sealos deploy /path/to/project
-$sealos deploy https://github.com/labring-sigs/kite
-$sealos create a cloud Postgres database for this repo and wire DATABASE_URL
-$sealos create private S3 object storage for uploads and wire env vars
-```
-
-### Install in Claude Code
-
-Add this repository as a Claude Code marketplace, then install the Sealos plugin:
-
-```bash
-claude plugin marketplace add labring/sealos-skills
-claude plugin install sealos@sealos
-```
-
-For compatibility with cross-host plugin installers, install the same plugin with:
-
-```bash
-npx plugins add https://github.com/labring/sealos-skills --target claude-code
-```
-
-If you only use one detected agent tool on the machine, you can let `plugins` choose the target:
-
-```bash
-npx plugins add https://github.com/labring/sealos-skills
-```
-
-After installation in Claude Code, use `/sealos`:
-
-```text
-/sealos deploy this repo to Sealos Cloud
-/sealos deploy /path/to/project
-/sealos deploy https://github.com/labring-sigs/kite
-/sealos create a cloud Postgres database for this repo and wire DATABASE_URL
-/sealos create private S3 object storage for uploads and wire env vars
-```
-
-### Test in Qoder
-
-Build the Qoder plugin package from the repository root:
-
-```bash
-python3 scripts/package-qoder-plugin.py
-```
-
-Import `dist/sealos-1.2.5.zip` into Qoder. The package exposes the same eight root-level skills as the Codex plugin and provides `/sealos` as its command entry point.
-
-Qoder examples:
-
-```text
-/sealos deploy this repo to Sealos Cloud
-/sealos create a cloud Postgres database for this repo and wire DATABASE_URL
-/sealos create private S3 object storage for uploads and wire env vars
-/sealos show the resources created by the last deployment
-```
-
-### Install in DeepSeek Harness
-
-This repository is a dsh profile bundle over the same root `skills/**` source. After `npx @deepseek-ai/dsh web` works, install it into the same `web` profile (`pnpm` must be on `PATH`):
+This repository is a dsh profile bundle. After `npx @deepseek-ai/dsh web` works, install the plugin into the same `web` profile (`pnpm` must be on `PATH`):
 
 ```sh
 npx @deepseek-ai/dsh plugin --profile web add github:labring/sealos-skills
@@ -113,184 +114,112 @@ A local checkout:
 npx @deepseek-ai/dsh plugin --profile web add /path/to/sealos-skills
 ```
 
-The eight root skills appear in the session skill catalog. Ask the agent to deploy to Sealos Cloud; it loads `sealos-deploy` (and sibling skills as needed) through the `skill` tool, then runs `kubectl` / `sealos-cli` through bash.
+`use-sealos` appears in the session skill catalog. Say "deploy X to Sealos"; the model loads the skill via the `skill` tool, then runs `scripts/sealos-api.py` / `kubectl` through bash.
 
-The default bash sandbox blocks writes outside the workspace. Login writes `~/.sealos/kubeconfig`, so those commands need `sandbox_permissions: danger-full-access`.
+Login writes `~/.sealos/kubeconfig`; grant the host's required filesystem
+access when prompted.
 
-### Other supported AI tools
+Add the GitHub topic `dsh-plugin` on the public repo so it shows up in the harness plugin index.
 
-| Tool | Install | Usage |
-| --- | --- | --- |
-| Codex CLI / Codex App | `codex plugin marketplace add labring/sealos-skills` then `codex plugin add sealos@sealos` | `$sealos` in Codex CLI, or **+** → **Plugins** → **Sealos** in Codex App |
-| Claude Code | `claude plugin marketplace add labring/sealos-skills` then `claude plugin install sealos@sealos` | `/sealos` |
-| Claude Code compatibility path | `npx plugins add https://github.com/labring/sealos-skills --target claude-code` | `/sealos` |
-| Qoder | Build with `python3 scripts/package-qoder-plugin.py`, then import the ZIP | `/sealos` or automatic skill selection |
-| DeepSeek Harness | `npx @deepseek-ai/dsh plugin --profile web add github:labring/sealos-skills` | Ask the agent to use Sealos skills; there is no `/sealos` slash command |
-| OpenClaw / ClawHub | `clawhub install labring/sealos-skills` | Host command exposure depends on the ClawHub runtime |
-| CodeBuddy | `/plugin marketplace add labring/sealos-skills` | Host command exposure depends on the CodeBuddy runtime |
-| Gemini CLI | `gemini extensions install https://github.com/labring/sealos-skills` | Context-only extension; ask Gemini to use Sealos Skills |
-| Qwen Code | `qwen extensions install https://github.com/labring/sealos-skills` | Context-only extension; ask Qwen to use Sealos Skills |
-| Amp / Kimi / generic repo importers | Import `https://github.com/labring/sealos-skills.git` | Host-dependent |
+### OpenClaw
 
-Gemini CLI and Qwen Code manifests provide repository context through `CLAUDE.md`; they do not claim slash-command support.
+Install the plugin directory, not the repository root:
 
-### Alternative: install as a `skills.sh` skill pack
+```sh
+openclaw plugins install /path/to/sealos-skills/plugins/sealos
+```
 
-If your agent uses `skills.sh` directly, install the same skills pack with:
+OpenClaw loads it as a Cursor bundle and exposes `use-sealos`. Slash-command
+exposure is not claimed. Say "deploy X to Sealos".
 
-```bash
+Do not install the repo root. OpenClaw sees root `package.json` first, treats
+the checkout as a native plugin, and fails because that package has no
+`openclaw.extensions`. Root `openclaw.plugin.json` is not used on that path.
+
+### CodeBuddy
+
+```text
+/plugin marketplace add labring/sealos-skills
+```
+
+Command exposure depends on the CodeBuddy runtime.
+
+### Gemini CLI
+
+Context-only extension. Slash commands are not claimed.
+
+```sh
+gemini extensions install https://github.com/labring/sealos-skills
+```
+
+Ask Gemini to deploy to Sealos Cloud. It loads `CLAUDE.md`, which points at
+`use-sealos`.
+
+### Qwen Code
+
+Context-only extension. Slash commands are not claimed.
+
+```sh
+qwen extensions install https://github.com/labring/sealos-skills
+```
+
+### skills.sh
+
+```sh
 npx skills add labring/sealos-skills
 ```
 
-Then run the deploy skill directly:
+The pack installs three skills: `use-sealos` (the interactive entry — say
+"deploy X to Sealos"), plus `sealos-deploy` and `k8s-kaniko-job`, which are
+inert outside a managed sandbox (see below).
 
-```text
-/sealos-deploy
-/sealos-deploy /path/to/project
-/sealos-deploy https://github.com/labring-sigs/kite
-/sealos-database create a cloud Postgres database for this repo and wire DATABASE_URL
-/sealos-s3 create private object storage for uploads and wire env vars
-```
+### Brain (managed sandbox)
 
-After a project has been deployed and `.sealos/state.json` contains verified `last_deploy` runtime evidence, use the `sealos-canvas` skill through your installed plugin entry point for a local read-only view. Canvas stays plugin-pack mediated because it consumes verified deployment state.
+Brain's GitHub-deploy pipeline installs this pack into a Devbox with
+`npx skills add <repo> -y` and drives the `sealos-deploy` skill in managed
+mode (`SEALAI_DEPLOY_MODE=managed`, MCP handshake via `template_ready` /
+`deployment_completed`, source builds via a `k8s-kaniko-job` Kaniko Job).
+Point Brain's `DEPLOY_SKILL_SOURCE` env at this repository. The design and
+the full control-plane contract live in `BRAIN-ADAPTATION.md`.
 
-`/sealos-deploy`, `/sealos-database`, and `/sealos-s3` are direct `skills.sh` skill entries. Plugin usage should go through `$sealos` in Codex or `/sealos` in Claude Code.
+### Amp / Kimi / generic repo importers
 
-## Why Use the Plugin
+Import `https://github.com/labring/sealos-skills.git`. Behavior is
+host-dependent. Context is `CLAUDE.md`; the skill lives at `skills/use-sealos`
+and `plugins/sealos/skills/use-sealos`.
 
-Prefer the plugin install for Codex, Claude Code, and Qoder because it:
+### First run
 
-- installs all Sealos skills as one managed package
-- exposes the same skills across supported agent tools
-- keeps the plugin metadata, logo, prompts, commands, and capabilities together
-- avoids maintaining a separate packaged copy of the skills
+Say "deploy X to Sealos". The skill checks credentials
+(`sealos-api.py status`) and, if needed, signs you in via OAuth2 device flow —
+or paste a kubeconfig from the Sealos web console into `~/.sealos/kubeconfig`.
 
-## Plugin Distribution
+## Deploy strategy
 
-The Codex integration follows [OpenAI's Codex plugin build guide](https://developers.openai.com/codex/plugins/build):
+1. **Template store** — 200+ one-click templates, deployed via the Template
+   API (~3 min).
+2. **Official Docker image** — a generated template (workloads + KubeBlocks
+   databases + Ingress) for self-hosted apps not in the store (~5-10 min).
+3. **Source build** — Dockerfile → `docker buildx --platform linux/amd64` →
+   registry push → image deploy (for the user's own projects).
 
-- `.codex-plugin/plugin.json` contains plugin identity, discovery metadata, interface copy, default prompts, brand metadata, and asset paths relative to the repository root.
-- `.agents/plugins/marketplace.json` registers this repo-local plugin for local Codex marketplace testing.
-- `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` define the Claude Code-compatible plugin surface.
-- `.qoder-plugin/plugin.json` defines the Qoder plugin surface and explicitly exposes all eight Codex skills.
-- `qoder.md` provides Qoder-level routing and safety instructions without copying skill implementations.
-- `distribution/platforms.json` records platform support claims and evidence.
-- `marketplaces/README.md` owns marketplace rules and prevents command-support overclaims.
-- `scripts/validate-codex-plugin.py` validates the Codex manifest, Claude Code metadata, repo marketplaces, platform registry, and asset paths.
-- `scripts/package-qoder-plugin.py` builds a Qoder-compatible ZIP with the plugin manifest at the archive root.
-- `skills/**/SKILL.md` remains the only skill source; do not add a second packaged copy of the skills.
-- `package.json`, `cordis.patch.yml`, and `index.js` register that same root skill tree as a DeepSeek Harness profile bundle.
+All three paths go through the Sealos Template API, so every deployment is
+tracked as an instance: visible in the Sealos UI and removable as a unit.
 
-Validate plugin metadata before publishing or pushing manifest changes:
+## Requirements
 
-```bash
-python3 scripts/validate-codex-plugin.py
-python3 -m json.tool .codex-plugin/plugin.json >/dev/null
-python3 -m json.tool plugin.json >/dev/null
-python3 -m json.tool .agents/plugins/marketplace.json >/dev/null
-python3 -m json.tool marketplace.json >/dev/null
-python3 -m json.tool .claude-plugin/plugin.json >/dev/null
-python3 -m json.tool .claude-plugin/marketplace.json >/dev/null
-python3 -m json.tool .qoder-plugin/plugin.json >/dev/null
-python3 -m json.tool distribution/platforms.json >/dev/null
-```
+- `kubectl`, `python3` (stdlib only); `docker` + `gh` only for the source path
+- A Sealos account — the skill signs in via OAuth2 device flow, or paste a
+  kubeconfig from the Sealos web console into `~/.sealos/kubeconfig`
 
-## How Setup Works
+## Development
 
-You only need a plugin-compatible or `skills.sh` compatible AI agent and a project to deploy.
+Scratch clones, test dumps, and other local-only artifacts go in
+`validation-assets/` (gitignored).
 
-During the deploy, database, and object-storage flows, Sealos Skills will:
-
-- check whether tools such as Docker and `kubectl` are available
-- guide the user through Sealos login when needed
-- use `sealos-cli` for Sealos Cloud database creation, connection details, and database operations
-- use `sealos-cli s3` for Sealos object storage buckets, credentials, quota checks, object operations, and presigned URLs
-- use or help prepare a container registry path such as Docker Hub or GHCR
-
-For an actual deployment, you will still need a Sealos Cloud account and access to a container registry, but these do not need to be fully set up before the skill starts. For database and object-storage work, you need a Sealos Cloud account and a workspace that can create the requested resources.
-
-## What Sealos Deploy Handles
-
-On a typical deploy, the agent will:
-
-- assess the project structure and runtime needs
-- reuse an existing image or build one when needed
-- generate a Sealos template
-- deploy and verify rollout
-- verify the actual Sealos App URL, logs, login/setup flow for web apps, and resource footprint before reporting the app as usable
-
-Later runs can switch to an in-place update flow when an existing deployment is detected.
-
-## What Sealos Database Handles
-
-For a local project or Devbox that needs a cloud database, the agent will:
-
-- detect database signals such as `DATABASE_URL`, Prisma, Drizzle, MongoDB, MySQL, or Redis
-- use `sealos-cli database` to list, create, inspect, and connect Sealos Cloud databases
-- write only the required local env key without exposing secrets in chat
-- verify the app's real database path through migrations, introspection, or startup checks
-- manage public access only after confirmation
-
-## What Sealos S3 Handles
-
-For a local project or Devbox that needs S3-compatible object storage, the agent will:
-
-- detect object-storage signals such as S3 env keys, AWS SDK usage, MinIO, upload paths, or presigned URL code
-- use `sealos-cli s3` from `zjy365/sealos-cli#28` to list, create, inspect, and update object storage buckets
-- initialize S3 credentials only when needed and keep access keys out of chat
-- wire the smallest required local env keys for bucket, endpoint, access key, secret key, region, and path-style settings
-- verify upload, list, download, delete, or presigned URL behavior with the project's real storage path
-- make buckets public or rotate credentials only after confirmation
-
-## What Sealos Canvas Handles
-
-For a repository already deployed by Sealos Deploy, the agent will:
-
-1. Read `.sealos/state.json` to locate the deployed app.
-2. Query the Sealos namespace with read-only `kubectl get` commands.
-3. Start a temporary `127.0.0.1` canvas UI.
-4. Output and open the local UI address for inspection.
-
-If the project has not been deployed yet, Sealos Canvas stops and directs the user to deploy the project first.
-
-## Included Skills
-
-The plugin and `skills.sh` pack expose the same skill source:
-
-- `sealos-deploy` — deploy a local or GitHub project to Sealos Cloud
-- `sealos-database` — create, connect, and operate Sealos Cloud databases for development
-- `sealos-s3` — create buckets, connect credentials, check quota, and operate Sealos S3-compatible object storage
-- `sealos-canvas` — view deployed Sealos resources in a local read-only canvas UI
-- `sealos-app-builder` — build Sealos Desktop apps with SDK integration
-- `cloud-native-readiness` — assess deployment readiness
-- `dockerfile-skill` — generate production-ready Dockerfiles
-- `docker-to-sealos` — convert Docker Compose services into Sealos templates
-
-## Repository
-
-[`skills/`](./skills) is the single source of truth for Sealos deploy, Sealos canvas, and the supporting skills used during the deploy flow. The same root-level skills directory serves `skills.sh` installs and every plugin or extension manifest in this repository.
-
-Important distribution files:
-
-- [`.codex-plugin/plugin.json`](./.codex-plugin/plugin.json) — Codex plugin manifest
-- [`.agents/plugins/marketplace.json`](./.agents/plugins/marketplace.json) — local Codex marketplace entry
-- [`.claude-plugin/plugin.json`](./.claude-plugin/plugin.json) — Claude Code-compatible plugin manifest
-- [`.qoder-plugin/plugin.json`](./.qoder-plugin/plugin.json) — Qoder plugin manifest
-- [`qoder.md`](./qoder.md) — Qoder plugin routing and safety instructions
-- [`marketplace.json`](./marketplace.json) and [`.claude-plugin/marketplace.json`](./.claude-plugin/marketplace.json) — Claude-compatible marketplace entries
-- [`.codebuddy-plugin/marketplace.json`](./.codebuddy-plugin/marketplace.json) — CodeBuddy marketplace entry
-- [`gemini-extension.json`](./gemini-extension.json) — Gemini CLI context extension
-- [`qwen-extension.json`](./qwen-extension.json) — Qwen Code context extension
-- [`openclaw.plugin.json`](./openclaw.plugin.json) — OpenClaw / ClawHub bundle pointer
-- [`package.json`](./package.json), [`cordis.patch.yml`](./cordis.patch.yml), and [`index.js`](./index.js) — DeepSeek Harness profile bundle; registers root `skills/**` on `ctx.skills`
-- [`commands/sealos.md`](./commands/sealos.md) — `/sealos` plugin command entry for compatible hosts
-- [`distribution/platforms.json`](./distribution/platforms.json) — platform support registry
-- [`marketplaces/README.md`](./marketplaces/README.md) — marketplace rules and support-claim ownership
-- [`scripts/validate-codex-plugin.py`](./scripts/validate-codex-plugin.py) — Codex plugin validation
-- [`scripts/package-qoder-plugin.py`](./scripts/package-qoder-plugin.py) — Qoder ZIP packager
-
-Do not add a second packaged copy of the skills. Root `skills/**` is the only skill source for all installation paths.
-
-## License
-
-MIT
+This 2.0 release replaces the previous eight-skill implementation. The
+standalone Canvas, Sealos Desktop app builder, cloud-native readiness,
+Dockerfile, and Compose-conversion skills are archived on the
+`codex/backup-before-next-20260928` branch. Deployment, database, object
+storage, and operations now route through `use-sealos`; Brain's managed
+deployment has its own `sealos-deploy` and `k8s-kaniko-job` skills.

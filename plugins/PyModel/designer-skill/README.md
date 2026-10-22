@@ -10,8 +10,8 @@
 [![license](https://img.shields.io/badge/license-MIT-16a34a?style=flat-square)](LICENSE)
 [![skills.sh](https://skills.sh/b/pymodel/designer-skill)](https://skills.sh/pymodel/designer-skill)
 <br />
-[![tools](https://img.shields.io/badge/MCP_tools-14-0ea5e9?style=flat-square)](#tools)
-[![references](https://img.shields.io/badge/references-42-e11d48?style=flat-square)](#references)
+[![tools](https://img.shields.io/badge/MCP_tools-15-0ea5e9?style=flat-square)](#tools)
+[![references](https://img.shields.io/badge/references-50-e11d48?style=flat-square)](#references)
 [![detector](https://img.shields.io/badge/detector-44_rules-f59e0b?style=flat-square)](#tools)
 [![node](https://img.shields.io/badge/node-%E2%89%A522-10b981?style=flat-square)](designer-skill-mcp/package.json)
 [![api key](https://img.shields.io/badge/API_key-none-7c3aed?style=flat-square)](#setup)
@@ -27,7 +27,7 @@
 **Paste into your agent** (Claude Code, Codex, Cursor, any MCP client). It installs the skill, wires the MCP and verifies the tools:
 
 ```text
-Add designer-skill alongside Niblet Designer UI. It is optional and keyless: it routes a design request, loads the right reference, and gates the ship. Niblet supplies the real screens and materials.
+Add designer-skill alongside Niblet Designer UI. The designer core is keyless: it routes requests, loads guidance and runs supplemental static checks. Niblet optionally supplies real screens and licensed materials; the host owns implementation and rendered verification.
 
 1. Install or refresh the skill into the user skill directory (not this project):
 npx skills add PyModel/designer-skill --skill designer-skill -g -y
@@ -42,10 +42,10 @@ No API key is needed. Do not add one.
 
 3. Verify: list the designer-skill server's tools and confirm get_preflight_brief, dispatch_intent, review_and_gate are present. Do not run a sample check.
 
-When setup is complete, confirm that the designer-skill skill is installed and that the three tools are exposed. On UI work from now on: call get_preflight_brief first, use dispatch_intent to load only the references it recommends, pull screen references and materials from the niblet server, then call review_and_gate on the changed files before saying the work is done. If there is an active UI task, continue it. Otherwise say: "designer-skill is ready and paired with Niblet."
+When setup is complete, confirm the skill is installed and the three named tools are exposed. On UI work: call get_preflight_brief, use dispatch_intent and load only relevant guidance. If an unresolved visual question warrants retrieval, use the separately configured niblet server's discovered tools. Prefer its image content for inspection; designer-skill's catalogue wrappers return metadata or routing guidance only. Run review_and_gate as supplemental static evidence, then perform the required rendered, functional and accessibility checks in the host. Never treat static success as UI PASS. Preserve audit/plan scope. Continue an active authorized task; otherwise report designer-skill ready, and report Niblet paired only if its tools were actually observed.
 ```
 
-No Niblet? Drop the "pull screen references and materials from the niblet server" clause.
+No Niblet? Continue from local product evidence; catalogue retrieval is optional.
 
 **Or pick one:**
 
@@ -63,7 +63,7 @@ Canonical MCP config ([`mcp.json`](mcp.json)):
 { "mcpServers": { "designer-skill": { "command": "npx", "args": ["-y", "@pymodel/designer-skill-mcp@latest"] } } }
 ```
 
-`@latest` tracks npm; teams pin `@pymodel/designer-skill-mcp@0.21.1`. Plugin skill content updates separately (`/plugin update …`). MCP registry name: `io.github.PyModel/designer-skill-mcp`. Requires Node 22+.
+`@latest` tracks npm; teams pin `@pymodel/designer-skill-mcp@0.22.0`. Plugin skill content updates separately (`/plugin update …`). MCP registry name: `io.github.PyModel/designer-skill-mcp`. Requires Node 22+.
 
 <details>
 <summary><strong>Per-client config</strong> (VS Code, Codex TOML, Kilo, Open Code, Claude Desktop, Pythinker, Pi)</summary>
@@ -125,9 +125,22 @@ flowchart LR
 
 | 🔵 Route | 🟣 Know | 🟢 Check |
 |---|---|---|
-| `dispatch_intent` maps "make it pop" or "it feels off" to design verbs and at most four references. | 16 designer references (type, color, motion, a11y, anti-slop, redesign) plus 26 `ux/*` references (forms, collaboration, canvas, AI, i18n…). | A 44-rule deterministic detector backs `review_and_gate`, which reports each required rule as ran, unsupported, unresolved or waived. |
+| `dispatch_intent` maps "make it pop" or "it feels off" to design verbs and at most four references. | 24 designer references (type, color, motion, a11y, anti-slop, redesign, worst-case data, dependency selection…) plus 26 `ux/*` references (forms, collaboration, canvas, AI, i18n…). | A 44-rule deterministic detector backs `review_and_gate`, which reports each required rule as ran, unsupported, unresolved or waived. |
 
 The gate is static only: overall status is `FAIL` or `NOT_VERIFIED`, never a rendered-readiness pass. Rendered, accessibility and performance checks stay `NOT_RUN` until the host supplies evidence.
+
+### Niblet ecosystem
+
+| Owner | Responsibility |
+|---|---|
+| `designer-skill` | One entry point for scope, routing, craft/UX guidance and verification reporting |
+| Niblet platform | Real-screen catalogue, recorded design references and license-recorded materials |
+| Niblet MCP | Reference images and material retrieval; hosted `get_ui_component` provides React source |
+| Agent host | Authorized file/dependency changes, browser/native interaction, rendered inspection and evidence |
+
+Discover tools per server: the same `find_ui_references` name on designer-skill is a **text-only REST wrapper**, not Niblet's image-delivering tool. Prefer Niblet MCP for reference inspection and materials. Do not call both providers for the same question or infer connectivity from installation. Consult [`niblet-catalogue`](skills/designer-skill/reference/niblet-catalogue.md) for deployment differences, bounds and licensing.
+
+Use one product-grounded design contract. Niblet's surface modes (**Persuade, Operate, Read, Experience**) describe the user's job; designer-skill's execution modes (**audit, plan, refine, implement, system**) describe permitted work. They are independent: an Operate surface can receive a read-only audit or an authorized refinement. Existing product tokens, components and real content win over reference aesthetics. Component retrieval does not authorize dependency installation or source writes, and neither MCP certifies rendered quality.
 
 **Example:** *"Use designer-skill to redesign this pricing page without breaking functionality."* → `get_preflight_brief` → `dispatch_intent` → `get_reference` → edit → `review_and_gate`.
 
@@ -158,11 +171,19 @@ The gate is static only: overall status is `FAIL` or `NOT_VERIFIED`, never a ren
 | `visual-critique` | Seven-dimension critique | 🔴 extended |
 | `design-systems` | Token architecture, component specs, theming | 🔴 extended |
 | `project-init` | Discovery interview, PRODUCT.md, DESIGN.md | 🔴 extended |
-| `craft-flow` | Shape-then-build pipeline with user gates | 🔴 extended |
-| `live-mode` | Browser variant mode: select, HMR, steer, accept | 🔴 extended |
+| `craft-flow` | Scope-adaptive implementation and evidence workflow | 🔴 extended |
+| `live-mode` | Authorized source variants using host-discovered preview tools | 🔴 extended |
 | `css-techniques` | Modern CSS: container queries, `:has()`, `clamp()`, logical props | 🔴 extended |
+| `motion-vocabulary` | Map a feel word ("the bouncy thing") to the standard motion term | 🔴 extended |
+| `fluid-input-principles` | Gesture-first fluid-interface principles translated for web | 🔴 extended |
+| `native-web` | Platform-correct mobile web: tap, viewport, safe areas, zoom | 🔴 extended |
+| `worst-case-data` | Design and verify against extreme real data, not demo values | 🔴 extended |
+| `variant-prototyping` | Time-boxed side-by-side variants for genuinely open decisions | 🔴 extended |
+| `dependency-selection` | Method for choosing or adding a UI dependency, not a picks list | 🔴 extended |
+| `niblet-catalogue` | Optional real-screen references and materials via Niblet; advisory, unconfigured-safe | 🔴 extended |
+| `craft-provenance` | Historical capability mapping and attribution; load only when needed | 🔴 extended |
 
-Plus 26 `ux/*` references in [`skills/ux-designer/`](skills/ux-designer/). Each `SKILL.md` is a short router with a one-line description; references load only when a task needs them.
+Plus 26 `ux/*` references, authored in [`skills/ux-designer/`](skills/ux-designer/) and vendored at `skills/designer-skill/reference/ux/` (generated by `node scripts/sync-ux.mjs`, checked by test), so a designer-skill-only install is self-contained. Each `SKILL.md` is a short router with a one-line description; references load only when a task needs them.
 
 | Phrase | Verbs | Reads |
 |---|---|---|
@@ -192,8 +213,9 @@ Plus 26 `ux/*` references in [`skills/ux-designer/`](skills/ux-designer/). Each 
 | `get_palette_seed` | OKLCH brand seed for authorized new palette work |
 | `detect_antipatterns` | Deterministic static scan (44 rules): coverage, file hashes, gaps |
 | `review_and_gate` | Static gate per required rule; never claims rendered readiness |
-| `find_ui_references` | Optional niblet real-screen search (`NIBLET_TOKEN`) |
-| `get_design_reference` | Optional niblet structured reference (`NIBLET_TOKEN`) |
+| `find_ui_references` | Optional text-only Niblet real-screen search or selected-screen metadata (`NIBLET_TOKEN`) |
+| `get_design_reference` | Optional niblet structured reference for a web screen (`NIBLET_TOKEN`) |
+| `find_ui_materials` | Niblet materials routing guidance; retrieval runs on the Niblet MCP package or hosted MCP (`kind: pack` refused) |
 <!-- tools:end -->
 
 **Resources:** `designer://skill` · `designer://reference/{+name}` · **Prompt:** `design` (`task`, optional `aesthetic`)
@@ -208,6 +230,14 @@ npm ci
 npm run build   # syncs skills/ → assets/ (generated, gitignored), compiles TypeScript
 npm run typecheck && npm test   # tsc over src + test, then vitest; `npm run smoke` drives the packed tarball
 ```
+
+### Skill robustness checks
+
+Edit UX guidance only in `skills/ux-designer/references/`; `npm run sync-skill` regenerates the standalone mirror before bundling. Run `node scripts/sync-ux.mjs` from the repository root for filesystem-only distribution.
+
+Run reports now use **v2**, plus a host-owned verification plan. Validate both bundled JSON schemas, then run the dependency-free `skills/designer-skill/scripts/validate-report.mjs REPORT PLAN AUTHORIZED_ROOT` for evidence hashes, confinement, revision/plan matching and rendered-readiness semantics. Its own PASS means report validation, not UI certification. Legacy v1 reports fail closed and must be regenerated from real evidence; update host readers/writers together.
+
+Behavioral action-plan cases and a deterministic grader live in [`evals/designer-skill/`](evals/designer-skill/README.md). Synthetic grader tests do not count as model evaluations, and model proposals do not prove actual tool-use compliance or rendered quality. Keep model, host, skill hash and repetitions with evaluation results.
 
 **HTTP mode** (Streamable HTTP at `/mcp`):
 

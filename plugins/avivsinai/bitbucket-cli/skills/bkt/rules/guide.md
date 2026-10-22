@@ -14,7 +14,7 @@ If not installed:
 
 | Platform | Command |
 |----------|---------|
-| macOS/Linux | `brew install avivsinai/tap/bitbucket-cli` |
+| macOS/Linux | `brew install bitbucket-cli` (Homebrew core) or `brew install avivsinai/tap/bitbucket-cli` (official binary, Cloud OAuth built in) |
 | Windows | `scoop bucket add avivsinai https://github.com/avivsinai/scoop-bucket && scoop install bitbucket-cli` |
 | Go | `go install github.com/avivsinai/bitbucket-cli/cmd/bkt@latest` |
 | Binary | Download from [GitHub Releases](https://github.com/avivsinai/bitbucket-cli/releases) |

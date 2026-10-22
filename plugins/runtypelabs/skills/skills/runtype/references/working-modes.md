@@ -1,6 +1,6 @@
-# Working Modes & Deployment
+# Working modes and deployment
 
-Runtype supports a range of ways to build and deploy. They all drive the same underlying config — there's no separate "API-first vs UI-first" code path. The choice is about workflow, team practices, and constraints. Read this when helping a user pick how to work.
+Runtype supports a range of ways to build and deploy. They all drive the same underlying config. There's no separate "API-first vs UI-first" code path. The choice is about workflow, team practices, and constraints. Read this when helping a user pick how to work.
 Prefer live `sdk-reference`, `platform-catalog`, and Code Mode `search` when available.
 
 ## Contents
@@ -24,7 +24,7 @@ Best for:
 
 - First-time exploration. The playground is the lowest-friction way to see what a model/tool combination does. Sessions can be saved as agents or flows directly.
 - Visual product design where seeing the capabilities-to-surfaces graph helps.
-- Eval inspection — the comparison views are useful.
+- Eval inspection: the comparison views are useful.
 - Non-technical or semi-technical users.
 - Inspecting logs and running ad-hoc tests.
 
@@ -35,8 +35,8 @@ For driving Runtype from inside an LLM agent harness (Claude Code, Cursor, Claud
 Best for:
 
 - Building with an AI pair. The agent has full read/write access to your workspace.
-- "Use Claude Code to check Runtype logs, change an agent's prompt, run an eval, decide what to do next" — that workflow.
-- Bringing context from elsewhere (a doc, a codebase, a Granola note) into the build session.
+- "Use Claude Code to check Runtype logs, change an agent's prompt, run an eval, decide what to do next" is that workflow.
+- Bringing context from elsewhere (a doc, a codebase, meeting notes) into the build session.
 
 Setup: `mcpServers.runtype.url = "https://api.runtype.com/v1/mcp/protocol"`. OAuth on first call.
 
@@ -102,7 +102,7 @@ Every tool parameter can be marked **hidden from the LLM**. The model doesn't se
 
 Combined with local tools, this is how you let an LLM orchestrate operations on sensitive data without ever putting that data into the model's context window. The LLM sees "lookup_user_email(user_id)" and the hidden parameter is the authenticated request context.
 
-This pattern is the current best practice for AI-product security. Runtype bakes it in.
+Use this pattern whenever a tool touches sensitive data.
 
 ## On-prem deployment (enterprise)
 
@@ -113,14 +113,14 @@ The platform is built as a **library plus adapters**. The library is the agent/f
 What on-prem unlocks:
 
 - Production artifacts run on your AWS / GCP / on-prem infrastructure.
-- Connect to your own model providers — your own API keys, your own gateway, even local models.
+- Connect to your own model providers: your own API keys, your own gateway, even local models.
 - Standalone deployments can run silent by omitting or disabling telemetry. If telemetry is enabled, configure the endpoint and API key explicitly.
 - Compliance-friendly: data residency, audit, key management can all be self-managed.
 
 The expected **graduation pattern**:
 
 1. **Beta**: use the hosted Runtype runtime with all built-in adapters. Move fast, validate.
-2. **Production**: opt into your own adapters where they matter — typically a custom logging sink, a custom secret store, a custom surface that integrates with internal systems.
+2. **Production**: opt into your own adapters where they matter, typically a custom logging sink, a custom secret store, a custom surface that integrates with internal systems.
 3. **Long-term**: replace adapters as you outgrow defaults, while keeping the rest.
 
 You don't have to pick all-or-nothing.

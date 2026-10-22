@@ -13,6 +13,8 @@ triggers:
   - 使用 /boss-review 命令时
   - 需要从商业角度判断项目是否值得投入时
   - 产品方向存在争议需要高层决策时
+metadata:
+  internal: true
 ---
 
 # 战略评审（Boss Review）
