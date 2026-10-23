@@ -190,7 +190,6 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [CodeTruss](https://github.com/DeliriumPulse/codetruss-plugins) - Local-first acceptance gate that checks coding-agent scope, sensitive surfaces, deterministic analyzers, and repository verification from immutable Git snapshots, then writes signed receipts before the PR.
 - [Codex Agenteam](https://github.com/yimwoo/codex-agenteam) - Specialist AI agents (researcher, PM, architect, developer, QA, reviewer) orchestrated as a configurable team pipeline.
 - [Codex Agents Workflow](https://github.com/TohmaN233/codex-agents-workflow) - Build and run reusable agent workflows in a local Codex workbench with configurable Roles, Providers, and recoverable Runs.
-- [Codex Attachment Manager](https://github.com/chipfighter/codex-attachment-manager) - Choose which past images in a Codex desktop task go to the model with your next message; unchecked ones become short placeholders, so long image-heavy tasks keep going without starting over.
 - [Codex Full-Stack Workflow](https://github.com/kevin592/codex-full-stack-workflow) - Turns rough product requests into staged, reviewable full-stack delivery with persistent requirements, change control, visual evidence, and completion gates.
 - [Codex How To](https://github.com/Phelan164/codex-howto) - Engineering-first Codex curriculum and plugin with 9 skills, measured token-efficiency experiments, bounded orchestration, testing, review, and living knowledge maintenance.
 - [Codex Multi Auth](https://github.com/ndycode/codex-multi-auth) - Multi-account OAuth manager for the official Codex CLI with switching, health checks, and recovery tools.
@@ -204,6 +203,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Codex TUI Proof](https://github.com/bnc4vk/codex-tui-proof) - Visually validate real local terminal UIs in Codex's in-app browser with screenshots and session evidence.
 - [Codex Usage and Resets](https://github.com/joelfarthing/codex-usage-and-resets) - Turns Codex usage into planning facts with linear pace, projected exhaustion, banked-reset expirations, and conservative unexpected-reset detection.
 - [Commit Narrator](./plugins/mturac/commit-narrator) - Generate semantic commit message from staged diff, including the _why_.
+- [Context Attachment Manager](https://github.com/chipfighter/context-attachment-manager) - Manage image history in Codex desktop and Claude Desktop Code with on-demand image retrieval, pinned references, and search by description or feedback.
 - [Context Guard](https://github.com/GreenLv/codex-context-guard) - Preserves authoritative requirements and verification evidence across long-running Codex tasks and context compaction.
 - [Core Learning](https://github.com/everclear077/codex-learning-plugin) - Guided learning with Socratic practice, Feynman teach-back, spaced recall, evidence-based project assessment, and optional local Anki export.
 - [debt-ops](https://github.com/bcanfield/agentic-tech-debt) - Catches AI-introduced tech debt at write-time: hooks log every deferral to a registry in your repo and a review skill ranks paydown by file churn.

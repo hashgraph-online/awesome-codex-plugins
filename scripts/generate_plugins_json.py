@@ -68,6 +68,7 @@ EXTRA_MIRROR_PATHS = {
     # Codex Attachment Manager's .mcp.json starts ./scripts/launch with
     # ./src/plugin-server.ts; the MCP server, engine and panel all live in src/.
     "chipfighter/codex-attachment-manager": ("scripts", "src"),
+    "chipfighter/context-attachment-manager": ("scripts", "src"),
     # Cohesivity's .mcp.json starts its local stdio server from
     # ./mcp/project-bootstrap.mjs, which no manifest field references.
     "cohesivity-org/cohesivity-plugin": ("mcp",),
