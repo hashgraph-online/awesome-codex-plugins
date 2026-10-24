@@ -1,24 +1,30 @@
 ---
 name: orgx-deviation-reporting
-description: Record a skill deviation with OrgX so it feeds tomorrow's Daily Brief. Use whenever an OrgX skill fires locally on a file edit, commit, PR, chat turn, or task output.
+description: Record material skill deviations within authorized OrgX tracking without blocking routine work, PR updates, or merges.
 tools:
   - mcp__orgx__*
 ---
 
 # OrgX — skill deviation reporting
 
-Every time an OrgX skill catches a deviation during your work, record it
-with OrgX so the evidence shows up in tomorrow's Daily Brief and drives
-the confidence trajectory for that skill.
+Use this skill for a material deviation affecting work the user has authorized
+OrgX to track. Loading a skill, editing a file, or accepting a routine suggestion
+does not itself require telemetry. Reuse existing tracking authorization; do not
+ask for it again at each event. Reporting is not a prerequisite for continuing
+work, updating a PR, or carrying out an authorized merge.
 
 ## When to record
 
 You should record a deviation when:
 
-- A rule from an OrgX skill triggered on code or content you touched.
-- You accepted or rejected a skill's suggestion (pass `outcome: confirmed`
-  or `outcome: rejected`).
-- A skill surfaced a pattern in output you produced.
+- A skill found a material defect, changed assumption, or failed check.
+- Accepting or rejecting a suggestion materially changed the result (pass
+  `outcome: confirmed` or `outcome: rejected`).
+- A recurring pattern warrants a corrective action or a useful handoff note.
+
+Batch related findings at a useful milestone. If OrgX recording is outside the
+user's requested scope, summarize the finding in the task evidence instead of
+creating an external report.
 
 Do **not** record the same deviation more than once per 10-minute window —
 the server dedupes on `dedupe_key` automatically; duplicate POSTs waste
@@ -30,8 +36,9 @@ Use the documented HTTP endpoint through an already authorized OrgX runtime or
 OpenClaw bridge. This plugin's `commander` MCP profile does not expose a skill
 deviation operation. Do not invent `orgx.post_skill_deviation`, translate this
 write into an unrelated tool, or send credentials in chat. If no authorized
-transport is available, record the deviation in the task's local evidence and
-report that OrgX delivery is pending.
+transport is available, keep the deviation in the task's local evidence and
+report that OrgX delivery is pending. Continue independent work without making
+connection repair a merge or completion gate.
 
 ```
 POST /api/v1/skills/{skill_id}/deviations

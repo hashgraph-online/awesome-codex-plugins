@@ -72,17 +72,17 @@ If you add source-repository scanner CI, keep the workflow run URL for local deb
 The release metadata below is synced automatically from the latest published HOL scanner release.
 
 ```bash
-pipx install --force "plugin-scanner==3.52.0"
+pipx install --force "plugin-scanner==3.55.1"
 plugin-scanner scan . --format text
 ```
 
-Expected reviewed wheel SHA256: `75e2bc5e922297e9a3c6cbab7c319358d252855a134a85f42842ae866609c329`
+Expected reviewed wheel SHA256: `aba4dfda2ef90b1d61975bb3fed9a548f3f2cdd16b8763ae6819b64ddb813e7d`
 
 If you want to verify the exact wheel before install:
 
 ```bash
 rm -rf .hol-plugin-scanner-dist
-python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner-dist "plugin-scanner==3.52.0"
+python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner-dist "plugin-scanner==3.55.1"
 python3 -m pip hash .hol-plugin-scanner-dist/*.whl
 ```
 
@@ -121,7 +121,8 @@ Rules:
 - One plugin per line
 - Alphabetical order within each category
 - Description must be a single sentence
-- Link must point to the GitHub repository root
+- Link to the GitHub repository root when the plugin is on its default branch
+- If the plugin is on a non-default branch, link to `https://github.com/<owner>/<repo>/tree/<branch>`; validation and the centralized scan use that branch
 
 ## Scanner requirements
 
@@ -140,7 +141,7 @@ The commands below stay pinned to the same reviewed scanner release used in the 
 
 ```bash
 # Install the current reviewed release
-pipx install --force "plugin-scanner==3.52.0"
+pipx install --force "plugin-scanner==3.55.1"
 
 # Scan your plugin
 plugin-scanner scan . --format text
@@ -152,7 +153,7 @@ plugin-scanner lint . --format text
 plugin-scanner verify . --format text
 ```
 
-Expected reviewed wheel SHA256: `75e2bc5e922297e9a3c6cbab7c319358d252855a134a85f42842ae866609c329`
+Expected reviewed wheel SHA256: `aba4dfda2ef90b1d61975bb3fed9a548f3f2cdd16b8763ae6819b64ddb813e7d`
 
 ### Required in Your Plugin Repo
 

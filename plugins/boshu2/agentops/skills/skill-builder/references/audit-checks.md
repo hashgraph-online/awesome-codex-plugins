@@ -74,7 +74,11 @@ Executable thresholds and severities come from
 | WARN | A concrete usability issue should be reviewed. |
 | PASS | No configured defect was found. |
 
-`--strict` makes WARN exit nonzero. Advisory scoring never changes the verdict.
+With `--strict`, a WARN verdict exits 1 only under the `external-observation`
+profile. The canonical `repo-runtime` profile turns every Pass 2 check into a
+nonblocking WARN, so a WARN there still exits 0 with `--strict`; a FAIL, such
+as a Pass 1 structural finding on a canonical package, exits 1 either way.
+Advisory scoring never changes the verdict.
 
 ## Checks
 

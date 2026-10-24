@@ -1,0 +1,24 @@
+{
+  "workflow": "script-to-video",
+  "source": {
+    "text": "Honey never spoils. Archaeologists have opened 3,000-year-old jars from Egyptian tombs and found honey still safe to eat. The reason is chemistry: honey is roughly 80% sugar and only 18% water — too dry for bacteria to grow. Bees also add an enzyme that produces hydrogen peroxide, a natural preservative. As long as it's sealed, your honey could outlive you. So next time you find a forgotten jar in the back of the cupboard — you don't have to throw it out."
+  },
+  "aspectRatio": "9:16",
+  "voice":    { "enabled": true, "voiceId": "aria-en-us", "stability": 0.6, "speed": 1.0, "language": "en-US" },
+  "captions": { "enabled": true, "position": "middle", "autoCrop": true },
+  "music":    { "enabled": true, "syncWith": "beats" },
+  "media": {
+    "type": "stock-video",
+    "density": "medium",
+    "animation": "soft",
+    "quality": "pro",
+    "imageModel": "good",
+    "videoModel": "pro"
+  },
+  "options": {
+    "summarizationPreference": "no-summarization",
+    "soundEffects": true,
+    "hasToGenerateCover": true
+  },
+  "render": { "resolution": "1080p", "frameRate": 30 }
+}

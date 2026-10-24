@@ -23,6 +23,13 @@ Each project's `.amqrc` maps peer names to their base root paths:
 
 Both projects must register each other as peers for round-trip messaging.
 
+Route with `--project` or `--session`, not a raw `--root`. A direct `--root`
+selects which tree to operate on and carries no sender-origin metadata, so the
+recipient cannot reply. `amq send` refuses an explicit `--root` that crosses
+into a different base tree than the active session (`AM_ROOT`/`AM_BASE_ROOT`)
+when no `--project`, `--session`, or `--from-session` is given. If a send is
+genuinely local, set the target as your `AM_ROOT` instead.
+
 ## Addressing
 
 ### Flag syntax (explicit)
@@ -39,6 +46,10 @@ amq send --to codex@proj-b:auth --body "to specific session"
 
 Flags take precedence over inline syntax.
 
+After a cross-project send, `AM_ROOT` still points to your own project. Send to
+a partner in your own project with plain `amq send --to <handle>`, without
+`--project`.
+
 ## Same-Handle Messages
 
 A matching sender and recipient handle has three distinct meanings:
@@ -54,6 +65,10 @@ does not make `--root` a routing dimension, add reply metadata, or bypass the
 cross-tree and session-pin guards. To reach another instance of your handle,
 use `--project` or `--session` instead; routed same-handle sends do not require
 `--allow-self`.
+
+On receipt, a message whose `from` is your own handle but whose `from_project`
+or `reply_project` names another project is not an echo. It comes from another
+agent instance; process it normally.
 
 ## Session Defaults
 
@@ -78,9 +93,9 @@ The CLI reads `reply_project` from the message, resolves the peer, and delivers 
 
 ## Safety
 
-- `DeliverToExistingInbox`: Cross-project delivery **never creates directories** in the peer project. The target inbox must already exist (created by `amq init` or `amq coop init` in the peer project). This prevents accidental scaffolding.
-- Peer paths must be absolute (or relative to `.amqrc` directory).
-- `resolvePeer` validates the path exists before delivery.
+- Cross-project delivery **never creates directories** in the peer project. The target inbox must already exist (created by `amq init` or `amq coop init` in the peer project). This prevents accidental scaffolding.
+- Peer paths must be absolute (or relative to the `.amqrc` directory).
+- A project name with no peer entry in `.amqrc` fails and lists the known peers.
 
 ## Decision Threads
 

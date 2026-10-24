@@ -5,6 +5,7 @@
 # LinkedIn Marketing Skills for Claude Code and Codex
 
 <p align="center">
+  <a href="https://github.com/hesreallyhim/awesome-claude-code"><img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in Awesome Claude Code"></a>
   <img src="https://img.shields.io/github/v/release/sergebulaev/linkedin-skills?color=1E40AF&label=release" alt="Latest release">
   <img src="https://img.shields.io/badge/Claude_Code-Compatible-D97757?logo=anthropic&logoColor=white" alt="Claude Code Compatible">
   <img src="https://img.shields.io/badge/Codex-Compatible-111827" alt="Codex Compatible">

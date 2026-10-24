@@ -1,6 +1,6 @@
 ---
 name: craft-goal
-description: 'Draft or lint a bounded long-running goal prompt with a finish line and hard limits. Use when: selected by name; one change goes to Plan.'
+description: 'Draft or lint a bounded long-running goal prompt with a finish line and hard limits. Use when: asked to craft or lint a goal (a /goal prompt); one change goes to Plan.'
 practices:
 - lean-startup
 - design-by-contract
@@ -16,7 +16,6 @@ context_rel:
 - kind: supplier-to
   with: plan
 user-invocable: true
-disable-model-invocation: true
 context:
   window: inherit
   intent:
@@ -93,8 +92,9 @@ decisions. The caller owns revision and goal creation.
 - **Closed outcome, adaptive route.** Freeze terminal acceptance. New facts may
   change hypotheses and dependencies, never silently enlarge success.
 - **Bead graph as memory.** The tracker is durable memory, not a parallel goal
-  ledger: root epic = outer intent; child bead = one experiment and one RPI,
-  so compaction cannot erase the record. [Navigate](../navigate/SKILL.md) owns
+  ledger: root epic = outer intent; child build bead = one experiment and one
+  RPI, so compaction cannot erase the record. A decision bead resolves through
+  the method Navigate names for it, not through an RPI. [Navigate](../navigate/SKILL.md) owns
   the walk the prompt applies each wave: graph contract, edges, what counts as
   a ratchet, discovery classes and the checkpoint.
 - **RPI membrane.** One candidate gets one bounded RPI. Its checks and CI are
@@ -172,7 +172,7 @@ permission for extra experiments or helpers.
 | evidence | gives each terminal criterion as a Given/When/Then with its authoritative proof. |
 | admission | fits a goal: several related experiments, a falsifiable first question, a terminal finish. |
 | bead graph | names the root epic or its bounded bootstrap rule and ties each experiment to an unmet criterion or named blocking uncertainty. |
-| RPI boundary | makes one bead one RPI, takes checks and CI as an ordinary bead's result, limits fresh validation to the costly cases and consumes verdicts unchanged. |
+| RPI boundary | makes one build bead one RPI (decision beads resolve as Navigate names), takes checks and CI as an ordinary bead's result, limits fresh validation to the costly cases and consumes verdicts unchanged. |
 | ratchet | counts progress only as evidence tied to an unmet criterion or blocking uncertainty, never activity, counts or digests. |
 | discovery | keeps all three classes (necessary-now, linked-follow-up, HOLD/rescope) and never downgrades a necessary finding. |
 | wave budget | sets numeric RPI, concurrency, time or token and live-attempt limits per wave, with a checkpoint. |

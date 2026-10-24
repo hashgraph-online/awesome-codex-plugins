@@ -118,6 +118,7 @@ When reusing material from prior proposals, update the logic chain rather than p
    - Include narrative page limit and formatting.
    - Include all collaborator documents, letters, institutional commitments, and data-management attachments.
    - Note budget restrictions such as whether National Laboratory partners may receive funds.
+   - Build the budget and budget justification with [budget-and-justification.md](budget-and-justification.md): sponsor rules first, the institution's current workbook, a stated basis for every rate, and a reconciliation against the narrative.
    - Identify who must provide biosketches, current and pending support, collaborator/affiliation information, senior/key-personnel documents, facilities/equipment descriptions, and letters of commitment.
 
 3. Map the proposal to review criteria.
@@ -309,6 +310,7 @@ Before calling a proposal ready:
 - Check that the literature review is comprehensive enough to identify gaps, but compressed enough for page limits.
 - Make review-criteria answers visible throughout the proposal.
 - Verify senior/key-personnel documents, letters, DMSP, budget justification, facilities, and institutional commitment.
+- Reconcile the budget justification with the workbook and the narrative using the checks in [budget-and-justification.md](budget-and-justification.md).
 - Check page length with final formatting, not markdown word count.
 - Flag AI-disclosure requirements for institutional review.
 

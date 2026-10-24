@@ -19,6 +19,12 @@ objections. Do not share partial current-round responses with peers. Fresh
 contexts that receive earlier answers are **peer-informed deliberation**, not
 new independent confirmations; label them separately from the initial views.
 
+Before the next round, check each disputed factual claim that could change the
+candidate at its cited source within the authorized evidence, and mark it
+verified, contradicted or unverifiable with the location read. Every
+participant receives the same marked claims; a contradicted claim stays visible
+beside its contradiction, never quietly removed. Marking a fact is not a vote.
+
 Before debate, fix the maximum rounds and total deadline from the caller/native
 bounds; clarify missing bounds before launching. Initial independent proposals
 are round zero, outside the debate-round count. New contexts, revisions, and

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "supportpages": {
+      "command": "node",
+      "args": ["./scripts/codex-mcp.mjs"],
+      "cwd": ".",
+      "env": { "SUPPORTPAGES_PLUGIN": "wtfm" },
+      "startup_timeout_sec": 300
+    }
+  }
+}

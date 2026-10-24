@@ -12,6 +12,7 @@ Feature: Postmortem tests retrospective causal claims
     And it distinguishes delivered facts, necessary checks and avoidable rework
     And uncertain time and token accounting remains explicit
     And it returns at most three supported changes or no-change inline by default
+    And each change aims at what the next run meets, such as a check, standard, pointer or a way to expose a missing fact, or is framed as an experiment, rather than re-fixing code already repaired
 
   Scenario: Postmortem does not repeat validation
     Given an existing immutable verdict or no saved verdict

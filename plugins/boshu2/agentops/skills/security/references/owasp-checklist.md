@@ -10,8 +10,9 @@
 - [ ] No hardcoded API keys, passwords, or tokens in source
 - [ ] All secrets loaded from environment variables or secret stores
 - [ ] `.env` files in `.gitignore`
-- [ ] No secrets in log output or error messages
-- [ ] CI/CD secrets use platform-native secret management
+- [ ] No secrets in log output, error messages, or terminal echo while a person types one in
+- [ ] CI/CD secrets use platform-native secret management, and each job receives only the secrets its workflow references
+- [ ] When one operation issues several credentials, routine calls use the least-privileged one and the elevated one is kept only for the operations that need it
 
 **Detection:**
 ```bash
@@ -24,6 +25,7 @@ grep -rn 'password\s*=\s*"[^"]\+"\|api_key\s*=\s*"[^"]\+"\|secret\s*=\s*"[^"]\+"
 - [ ] Content-type validation on file uploads
 - [ ] No `eval()`, `exec()`, or dynamic code execution with user input
 - [ ] Path traversal prevention (no `../` in user-supplied paths)
+- [ ] Secret files and scratch in a shared temp directory are owner-only from the moment they exist (restrictive umask before creation, not chmod after the write); scratch takes a fresh `mktemp` path, and code that reuses a fixed, guessable name refuses it when it is a symlink or another user's entry at the open itself (exclusive no-follow create: `O_EXCL|O_NOFOLLOW`, or `set -C` in shell), not by a test before the write, since any local user can create or redirect that name first
 
 ### 3. SQL Injection
 - [ ] All database queries use parameterized statements
@@ -73,6 +75,13 @@ grep -rn 'password\s*=\s*"[^"]\+"\|api_key\s*=\s*"[^"]\+"\|secret\s*=\s*"[^"]\+"
 - [ ] Dependencies pinned to specific versions
 - [ ] Lock files committed
 - [ ] Regular dependency update process (Renovate/Dependabot)
+
+### 11. CI and Automation Definitions
+- [ ] Triggers that run contributor-controlled code (forked pull requests, comment commands) get no write token or secrets
+- [ ] Attacker-controlled fields (PR title, branch name, issue body) never expand directly into shell or script steps. The same holds wherever a script or agent instruction writes a command around text it did not author (a branch name from PR data, a model id or effort level from config): admit the value only if it matches a narrow character allowlist, or keep it out of the command text by passing it through a variable, file or stdin, and refuse a failing value rather than quoting it harder. `$(...)` still runs inside double quotes, and git accepts it in branch names
+- [ ] Third-party actions, images and scripts are pinned to an immutable commit or digest, not a moving tag
+- [ ] Each job's token permissions are the minimum it needs; default write access is off
+- [ ] Every job has an execution time limit
 
 ## Severity Classification
 

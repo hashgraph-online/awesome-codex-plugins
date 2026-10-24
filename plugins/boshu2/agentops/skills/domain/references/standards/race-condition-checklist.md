@@ -15,7 +15,8 @@ Domain-specific checklist for concurrent, parallel, or multi-process code.
 - [ ] Check-then-act on files uses atomic operations (temp file + rename)
 - [ ] File locks used for multi-process coordination
 - [ ] PID files checked with `flock` or equivalent, not just `[ -f ]`
-- [ ] Directory creation uses `mkdir -p` (idempotent), not check-then-create
+- [ ] Directory creation uses `mkdir -p` (idempotent), not check-then-create, except in a shared or world-writable location such as `/tmp`: there, creating the directory is the claim (`mktemp -d`, or `mkdir` without `-p` so an existing name fails), because `mkdir -p` adopts whatever is already there, a symlink included
+- [ ] Before writing under a reused path in a shared location, each directory the code reuses below the shared root, the entry itself included, is confirmed to be a real directory owned by the current user, not a symlink
 - [ ] Log file rotation handles concurrent writers
 
 ### Database Races

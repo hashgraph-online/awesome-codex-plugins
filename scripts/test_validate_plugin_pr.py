@@ -27,7 +27,9 @@ class ReadmeEntryRegexTests(unittest.TestCase):
         for suffix in (
             "",
             "/",
-            "/tree/main/plugins/example",
+            "/tree/main",
+            "/tree/feat+plugin",
+            "/tree/release%2Fv1",
             "?tab=readme-ov-file#setup",
         ):
             with self.subTest(suffix=suffix):
@@ -40,7 +42,18 @@ class ReadmeEntryRegexTests(unittest.TestCase):
                 assert match is not None
                 self.assertEqual(
                     match.groups(),
-                    ("Example", url, "example", "plugin", "A useful plugin."),
+                    (
+                        "Example",
+                        url,
+                        "example",
+                        "plugin",
+                        "main" if suffix == "/tree/main" else (
+                            "feat+plugin" if suffix == "/tree/feat+plugin" else (
+                                "release%2Fv1" if suffix == "/tree/release%2Fv1" else None
+                            )
+                        ),
+                        "A useful plugin.",
+                    ),
                 )
 
     def test_trailing_slash_before_query_is_not_a_new_repository(self) -> None:
@@ -106,6 +119,39 @@ class ReadmeEntryRegexTests(unittest.TestCase):
         entries = self.parse_new_entries(diff, base_readme, current_readme)
 
         self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["source_ref"], "main/plugins/foo")
+
+    def test_branch_case_changes_are_not_normalized_away(self) -> None:
+        base_readme = (
+            "## Community Plugins\n"
+            "- [Example](https://github.com/example/plugin/tree/Main) - Existing.\n"
+        )
+        current_readme = base_readme.replace("/tree/Main", "/tree/main")
+        diff = "\n".join(
+            (
+                "diff --git a/README.md b/README.md",
+                "- " + base_readme.splitlines()[-1],
+                "+" + current_readme.splitlines()[-1],
+            )
+        )
+
+        entries = self.parse_new_entries(diff, base_readme, current_readme)
+
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["source_ref"], "main")
+
+    def test_branch_ref_is_passed_to_remote_manifest_validation(self) -> None:
+        with (
+            patch.object(VALIDATOR, "fetch_repo_archive") as fetch,
+            patch.object(VALIDATOR, "find_plugin_root", return_value=None),
+        ):
+            fetch.return_value = object()
+            errors, _warnings = VALIDATOR.validate_remote_repo(
+                "example", "plugin", "feat+plugin"
+            )
+
+        fetch.assert_called_once_with("example", "plugin", "feat+plugin")
+        self.assertTrue(any("does not contain" in error for error in errors))
 
     def test_related_project_links_are_not_plugin_submissions(self) -> None:
         diff = "\n".join(

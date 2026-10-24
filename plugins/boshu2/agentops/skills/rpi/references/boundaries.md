@@ -14,8 +14,16 @@ repository policy own content/history and delivery. Native runtimes and callers
 own aggregate budgets, work selection, queues, claims, stops and subsequent
 outcomes. A skill grants no extra Git, tracker, publishing or credential
 permission. Existing caller authorization remains usable; do not invent another
-approval step merely because a phase changed. Keep one authoritative work
-account, not a parallel AgentOps ledger.
+approval step merely because a phase changed. When it covers a commit, use
+Implement's [shared-checkout commit method](../../implement/references/change-safety.md#an-authorized-commit-in-a-shared-checkout)
+and keep others' pre-run edits out of it (the method's isolated-checkout
+transfer covers a file that mixes them), naming those files in the report.
+Before an authorized push, list every commit it would publish. If any is
+neither this run's nor already under review for that branch, push nothing, keep
+this run's commits local and report what was held back. A run that stops short
+of done pushes nothing new unless the caller's authorization or repository
+policy covers pushing that partial state. Keep one authoritative work account,
+not a parallel AgentOps ledger.
 
 The runtime derives exact intent/subject identity, complete changed paths,
 receipts and observed context identities. Never invent a model/context identity

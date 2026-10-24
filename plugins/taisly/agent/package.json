@@ -1,6 +1,6 @@
 {
   "name": "@taisly/agent",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "Free AI-first agent kit for publishing short-form videos to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook through Taisly.",
   "type": "module",
   "main": "src/index.js",
@@ -33,7 +33,7 @@
     "examples"
   ],
   "scripts": {
-    "check": "node --check src/config.js && node --check src/setup.js && node --check src/index.js && node --check src/cli.js && node --check src/mcp.js"
+    "check": "node --check src/config.js && node --check src/setup.js && node --check src/index.js && node --check src/cli.js && node --check src/mcp.js && node --check src/postSettings.js"
   },
   "keywords": [
     "taisly",

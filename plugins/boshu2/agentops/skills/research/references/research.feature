@@ -19,3 +19,11 @@ Feature: Research answers one bounded question
     Then every claim preserves its report identity and evidence reference
     And agreement, contradiction, and unknown are reported separately
     And Research emits one synthesis without creating an umbrella or starting a new runtime
+
+  @covered-by:skills/research/scripts/validate.sh
+  Scenario: A claimed state gets a per-item ledger without a verdict
+    Given a claim that work is done, shipped or wired in
+    When Research audits each stated item against observable evidence
+    Then every item is confirmed, a gap or unverifiable with its evidence
+    And code no live entry point reaches is not counted as wired in
+    And the ledger carries no overall PASS, FAIL, verdict or readiness call

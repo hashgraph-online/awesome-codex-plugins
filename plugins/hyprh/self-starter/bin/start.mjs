@@ -41,7 +41,10 @@ function install() {
     const path = join(dirname(runtime), name);
     if (name.endsWith(".partial") && path !== staging && Date.now() - statSync(path).mtimeMs > 15 * 60_000) rmSync(path, { recursive: true, force: true });
   }
-  const npm = spawnSync("npm", ["install", "--prefix", staging, "--no-audit", "--no-fund", "--loglevel=error", source], { stdio: ["ignore", 2, 2] });
+  // npm 12 blocks Git and remote tarball sources by default. Permit only the
+  // runtime selected here, not Git/URL dependencies brought in by that runtime.
+  // These command-local options are also accepted by npm 10 and 11.
+  const npm = spawnSync("npm", ["install", "--prefix", staging, "--no-audit", "--no-fund", "--loglevel=error", source, "--allow-git=root", "--allow-remote=root"], { stdio: ["ignore", 2, 2] });
   if (npm.status !== 0) {
     rmSync(staging, { recursive: true, force: true });
     fail(`could not install ${source}: ${npm.error ? npm.error.message : `npm exited with code ${npm.status}`}`);

@@ -38,11 +38,11 @@ codex plugin marketplace add s977043/river-review
 
 通常のプラグイン利用では、**River Review 専用の LLM API キーは不要**です。GitHub Actions や standalone `river run` のヘッドレス実行では、設定した LLM プロバイダーの API キーが必要です。
 
-詳しい導入方法、バージョン固定、GitHub Actions 設定は [5分クイックスタート](https://river-review.the3396.com/guides/quickstart/) を参照してください。npm パッケージの公開は配布方針に含まれず、リポジトリ内の開発用 CLI は `npm run river -- ...` で実行します。
+導入手順の詳細は [プラグインを導入する](https://river-review.the3396.com/guides/plugin/install/)、GitHub Actions 設定は [5分クイックスタート](https://river-review.the3396.com/guides/quickstart/) を参照してください。npm パッケージの公開は配布方針に含まれず、リポジトリ内の開発用 CLI は `npm run river -- ...` で実行します。
 
 <!-- x-release-please-start-version -->
 
-最新リリース: [v1.132.0](https://github.com/s977043/river-review/releases/latest)
+最新リリース: [v1.133.4](https://github.com/s977043/river-review/releases/latest)
 
 <!-- x-release-please-end -->
 

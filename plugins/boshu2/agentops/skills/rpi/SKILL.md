@@ -1,6 +1,6 @@
 ---
 name: rpi
-description: 'Drive one accepted change through implementation and checks to done, with one fresh review only where a mistake is costly. Use when: selected by name.'
+description: 'Drive one accepted change through implementation and checks to done, with one fresh review only where a mistake is costly. Use when: asked to run or orchestrate work through RPI.'
 practices:
 - bdd-gherkin
 - tdd
@@ -21,7 +21,6 @@ context_rel:
   with: validate
 skill_api_version: 1
 user-invocable: true
-disable-model-invocation: true
 metadata:
   graph_root: true
   tier: meta
@@ -75,10 +74,23 @@ mistake is costly, not a scheduler.
    review, and `NOT_PROVEN` is reported with its gaps, not chased. Keep review
    cost a fraction of the cost of the work; when it approaches that cost, stop
    and report what is unchecked.
-7. Stop at completed acceptance, cancellation, refusal, a spent real bound or
-   an unresolved causal stall after the help below. Adjacent improvements are
-   not permission to expand the goal. Report them briefly only when useful;
-   do not turn them into another work batch.
+7. Stop at completed acceptance, cancellation, refusal, a spent real bound, a
+   pending caller decision or an unresolved causal stall after the help below.
+   A choice the accepted outcome depends on that lies outside existing
+   authority (changed acceptance, wider scope, an irreversible step it does not
+   cover) is the caller's decision, not a stall, so no helper applies. Finish the independent authorized work, then stop and
+   return the choice instead of waiting on it, handed over in full: what raised
+   it, what you found, the options with their tradeoffs and your
+   recommendation. A count or a link is not a handover, and the result is never
+   `done` while a choice is open. Adjacent improvements are not permission to
+   expand the goal. Report them briefly only when useful; do not turn them into
+   another work batch.
+
+These loop defaults (review only on the triggers in 5, one round in 6, one
+helper per stall below) are working assumptions about current models, not
+measured laws. Propose revising or retiring one as an owner-approved ADR-0017
+amendment, never mid-run, when a measured run shows the same outcome without it
+or a model change removes or moves the failure it guards against.
 
 ## Delegation and handoffs
 
@@ -98,8 +110,20 @@ supply content identity and check facts, not duplicate evidence bundles.
 
 ## Causal stall and bounds
 
-Unknown cause, recurrence, no progress or a wrong objective admits
-at most one bounded fresh helper for that incident within authority and bounds.
+Name a stall by what you observed, never by a count:
+
+- Unknown cause: a check fails and neither its output nor the diff points to a
+  change or assumption you can name.
+- Recurrence: a check that passed after a repair fails again for the same cause.
+- No progress: the failing check's output and the diff are unchanged since the
+  previous attempt, or a delegated worker's last observed activity has not
+  changed since you last looked.
+- Wrong objective: a caller correction, or a check of the accepted example,
+  shows the work aims at something acceptance does not ask for.
+
+Any of the four admits at most one bounded fresh helper for that incident
+within authority and bounds; if it stays unresolved, the stalled Result names
+its observed fact.
 Give it the failed assumption, evidence and one discriminating question. Resume
 only with a different testable approach; an unhelpful answer ends the attempt.
 Do not chain helpers or rename the incident. Known failures get direct repair.
@@ -137,14 +161,18 @@ optional unless a caller or declared consumer requires it. When no machine
 artifact is requested or required, return the result without creating one.
 
 ```text
-Result:      done | stopped: <cancelled, refused, bound spent or stalled> | NOT_PLANNED | NOT_BUILT
+Result:      done | stopped: <cancelled | refused | needs decision: <choice> | bound spent | stalled: <unknown cause | recurrence | no progress | wrong objective> - <observed fact>> | NOT_PLANNED | NOT_BUILT
 Subject:     <commit, branch or diff identity>
 Acceptance:  <criterion> -> <evidence: check, receipt or ref>, one line each
 Checked:     <checks run on the final subject, with results>
 Not checked: <what was not run or not covered, and why> | none
 Judgment:    none (checks and CI gate an ordinary change) | <validator context id>: PASS | FAIL | NOT_PROVEN
-Limits:      <material gaps; adjacent work noticed but not done> | none
+Limits:      <material gaps; each open decision in full; departures from the literal ask, one line with its reason each; adjacent work noticed but not done> | none
 ```
+
+A departure is a call made within authority that the caller would want to
+know: building differently than asked, declining or disputing a finding, or
+following a mid-run steer. Routine fixes stay out; with no such call, add none.
 
 `NOT_PLANNED` (stopped before an actionable slice existed) and `NOT_BUILT`
 (stopped before a candidate change existed) describe progress, not semantic

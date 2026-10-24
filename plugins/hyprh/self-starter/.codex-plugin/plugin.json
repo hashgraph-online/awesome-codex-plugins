@@ -1,6 +1,6 @@
 {
   "name": "self-starter",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Define custom events in plain language and let Codex act when they happen, with no model tokens spent while waiting.",
   "author": {
     "name": "hyprh",

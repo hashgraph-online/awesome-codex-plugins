@@ -30,7 +30,13 @@ metadata:
 
 Implement the accepted outcome. Repair ordinary known defects directly. Use the existing
 intent; no Plan, Recall or Learn worksheet is owed for a clear edit. Implement
-owns source changes and factual checks; the runtime derives identity and receipts.
+owns source changes and factual checks. Read changed paths and content identity
+from Git or `ao provenance manifest`, not from memory. Copy the author context
+ID from the session, subagent or thread ID the runtime exposes, or use the
+identity the caller supplied and label it as supplied. Report it as unknown when
+neither exists, and never make one up. Copy check results from the command
+output. `ao` records these values only as caller-supplied flags and does not
+derive them.
 
 ## Rules that decide the result
 
@@ -43,13 +49,29 @@ owns source changes and factual checks; the runtime derives identity and receipt
   docs and tests of every edited function, type, path, format or message. For
   each one, state whether the change affects it and which check covers it. When
   retiring or renaming, consumers include installations, lookups and old-name
-  invocations; preserve historical provenance.
+  invocations; preserve historical provenance. If the replaced interface never
+  merged or shipped and every consumer update fits the scope, update them and
+  delete the old version in the same change, with no alias or shim; otherwise
+  keep the old version working or report it.
 - **Name discriminating checks.** A behavioral change preserves RED
   for the expected missing behavior: name the check that fails before the edit
   and passes after, plus the check for each affected consumer.
 - **Report only what ran.** Give exact commands and results. List every check
   you did not or could not run as not run. Never call unrun work verified,
-  fixed or green.
+  fixed or green. Output can show as soon as a command runs, so keep secrets
+  out when you build it: credentials stay in the environment, output that may
+  carry tokens goes to a file, and only redacted excerpts are shown.
+
+When changing a public failure path, preserve its native failure signal and
+check that its recovery advice matches any work already performed. For uncertain
+write outcomes or unattended callers, use only the relevant checks in
+[Test's error recovery method](../test/references/error-recovery.md).
+
+For an accepted bounded shortcut, review feedback or a defect your change
+introduced, an authorized commit, history rewrite or merge conflict, dependency
+upgrade, removal, blocked operation, a decision read from another tool's state
+or your own uncertain write, use only the matching [change safety method](references/change-safety.md).
+These methods preserve existing authority; they grant no new operation.
 
 For authorized service operations, load only the relevant procedure from
 [operations methods](references/operations.md) (reliability, delivery, incident
@@ -61,7 +83,9 @@ recovery, resilience, toil); ordinary edits owe no operations phase.
    write; reuse loaded contracts. RPI [boundaries](../rpi/references/boundaries.md)
    apply when that workflow is explicitly selected. Caller-selected episode
    tracking follows the [session association reference](../agent-native/references/session-associations.md#work-to-session-associations);
-   keep unknowns explicit and invent no parentage or second tracker.
+   keep unknowns explicit and invent no parentage or second tracker. Note the
+   revision and files already modified, staged or untracked; report only your
+   own as changed, and ask the caller before editing one holding others' edits.
 2. Carry the accepted behavior examples forward unchanged. Use repository
    domain names in symbols and tests; check observable outcomes through the
    relevant interface. Run the smallest applicable check before and after
@@ -71,7 +95,9 @@ recovery, resilience, toil); ordinary edits owe no operations phase.
    preserve the consumer's existing input selection; fixing an error path does
    not authorize a wider scan. Use a negative control when exclusion matters.
    Check a representative change against existing constraints before bulk
-   propagation, and the authored source set before broad regeneration. Repair
+   propagation, and the authored source set before broad regeneration. A
+   scripted edit across files first confirms that each anchor matches exactly
+   once; on zero or several matches, write nothing and re-derive it. Repair
    known failures directly and verify the exact result with a check; a repair
    does not start another review. A disproved assumption may change the
    approach within scope; use Plan only for consequential uncertainty.
@@ -82,10 +108,18 @@ recovery, resilience, toil); ordinary edits owe no operations phase.
    environment match. Neither bypass required hooks nor replay a check just to
    rename its receipt. A required CI job's known failure is actionable before
    the run ends: repair it within scope, keep the failed subject's evidence and
-   rerun affected checks. Pending jobs do not imply success.
+   rerun affected checks. Pending jobs do not imply success. A new check, hook
+   or lint rule counts once the aggregate command or CI runs it (a Git hook needs
+   an install path; `.git/hooks` is not cloned) and it fails on a deliberate
+   violation; else list it under `gaps` as not wired. Use a local server already
+   on a port only if it provably serves this checkout; stop only processes you started.
 5. Refactor while acceptance remains green. Inspect changed tests, fixtures,
    goldens, tolerances, suppressions and specification text against original
-   intent before handoff.
+   intent before handoff. Reread that intent at its source, not a compacted
+   summary, and check the whole delta against it, untracked files included.
+   Remove leftovers of abandoned approaches, temporary probes (one shared
+   marker lets a single search prove none remain) and files your checks made;
+   list any path you cannot explain under `gaps` as a scope amendment.
 6. Have the runtime derive actual changed paths and content identity. A delegated
    increment awaiting integration returns an exact commit or runtime-derived
    content digests, author context ID and check facts in the existing handoff.
@@ -111,22 +145,33 @@ checks:    <exact command> -> <result>, one per line; before and after for a beh
 not run:   <check> -> <reason>; "none" only when every relevant check ran
 consumers: <file:line> -> <covering check, or "uncovered">
 gaps:      <missing or truncated evidence, known failures, scope amendments needed>
+cause:     <defect repairs only: trigger -> mechanism -> symptom at file:line; sites left as follow-up>
 ```
 
 Report an uncovered live consumer for a caller scope amendment and continue
-independent authorized work. Generated companions already included as scope
-require no new approval. Acceptance changes always require caller authority.
+independent authorized work. Disclose a reversible implementation choice only
+when its alternative has a material consequence the caller may want to change;
+name the choice, alternative and reason in the handoff, without a fixed worksheet.
+Generated companions already included as scope require no new approval; a change
+to accepted direction, behavior or acceptance always needs caller authority.
 
 ## Diagnosis, scaffolding and delegated work
 
 For an unexplained failure, first match the reported symptom and reduce the
-reproduction. State one causal prediction, test it with a discriminating check,
-and repair the cause supported by the result. Rerun the original scenario.
-Do not keep collecting hypotheses after the cause is understood. For intermittent
-verdicts, leaked test state or suspected races, use only the matching experiment
-in [difficult failures](references/difficult-failures.md). This compact
-diagnosis path is informed by
-[Matt Pocock's engineering skills](https://github.com/mattpocock/skills).
+reproduction. Confirm the failing run executes the code you think: revision and
+local edits, a fresh build rather than a stale artifact or installed binary,
+the resolved runtime and dependency versions, and required environment values.
+Ground the leading cause in an observation, not in how the code reads, and name
+its strongest rival. State one causal prediction, test it with a check the two
+causes predict differently, and repair the cause supported by the result.
+Change one thing per probe; when a prediction fails, revert that change, name
+what ruled the cause out and form a different cause, not a variant of it.
+Rerun the original scenario. Do not keep collecting hypotheses after the cause
+is understood. For intermittent verdicts, leaked test state, suspected races, a
+hung/crashed process, a regression from a known-good state, a failure crossing
+components or repeated disproved causes, use only the matching experiment in
+[difficult failures](references/difficult-failures.md). This compact diagnosis
+path is informed by [Matt Pocock's engineering skills](https://github.com/mattpocock/skills).
 
 When scaffolding is the requested change, start from the repository's existing
 layout and a working vertical slice. See [scaffold references](references/scaffold/agent-facing-tool-scaffolds.md)

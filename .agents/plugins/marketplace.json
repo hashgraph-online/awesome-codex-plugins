@@ -17,7 +17,7 @@
       },
       "category": "Development & Workflow",
       "description": "A complete engineering team in one folder with 26 specialist agents, 20 workflow skills, an orchestrator, and quality gates; integration and hook support vary by coding platform.",
-      "icon": "./plugins/RBraga01/a-team/assets/ATeam_full.png"
+      "icon": "./plugins/RBraga01/a-team/assets/icon.svg"
     },
     {
       "name": "aegis",
@@ -661,21 +661,6 @@
       "icon": "./plugins/TohmaN233/codex-agents-workflow/assets/icon.svg"
     },
     {
-      "name": "codex-attachment-manager",
-      "displayName": "Codex Attachment Manager",
-      "source": {
-        "source": "local",
-        "path": "./plugins/chipfighter/codex-attachment-manager"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Choose which past images in a Codex desktop task go to the model with your next message; unchecked ones become short placeholders, so long image-heavy tasks keep going without starting over.",
-      "icon": "./plugins/chipfighter/codex-attachment-manager/assets/logo.png"
-    },
-    {
       "name": "codex-howto",
       "displayName": "Codex How To",
       "source": {
@@ -836,6 +821,36 @@
       "category": "Development & Workflow",
       "description": "Turns Codex usage into planning facts with linear pace, projected exhaustion, banked-reset expirations, and conservative unexpected-reset detection.",
       "icon": "./plugins/joelfarthing/codex-usage-and-resets/assets/icon.png"
+    },
+    {
+      "name": "codex-claude-council",
+      "displayName": "Codex–Claude Council",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hamza-aziz-ai/codex-claude-council"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "ChatGPT (through the Codex CLI) and Claude (through Claude Code) answer independently, then reply to each other round after round until both agree on one answer, read-only and on your own subscriptions.",
+      "icon": "./plugins/hamza-aziz-ai/codex-claude-council/mcpb/icon.png"
+    },
+    {
+      "name": "codex-attachment-manager",
+      "displayName": "Context Attachment Manager",
+      "source": {
+        "source": "local",
+        "path": "./plugins/chipfighter/context-attachment-manager"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Manage image history in Codex desktop and Claude Desktop Code with on-demand image retrieval, pinned references, and search by description or feedback.",
+      "icon": "./plugins/chipfighter/context-attachment-manager/assets/logo.png"
     },
     {
       "name": "context-guard",
@@ -1114,7 +1129,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Full token-saving stack in one plugin - output compression, global rules, RTK hook, Caveman ultra, GitNexus config. Detects existing setup, installs only what's missing. Works on Claude Code and Codex.",
+      "description": "Concise, evidence-preserving output with bundled Ponytail, for Claude Code, Codex, Pi and OMP.",
       "icon": "./plugins/mirkobozzetto/espresso/assets/icon.svg"
     },
     {
@@ -1979,6 +1994,21 @@
       "icon": "./plugins/yyykf/spellbook-skills/assets/icon.svg"
     },
     {
+      "name": "stacked-prs",
+      "displayName": "stacked-prs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Qabbout/stacked-prs-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Agent skill for Claude Code and Codex to split large changes into reviewable PRs, carry fixes through dependent branches, and land them in dependency order with automated Git checks.",
+      "icon": "./plugins/Qabbout/stacked-prs-skill/assets/icon.svg"
+    },
+    {
       "name": "staff-engineer-mode",
       "displayName": "Staff Engineer Mode",
       "source": {
@@ -2273,6 +2303,21 @@
       "description": "Cross-agent UX and product-design marketplace with a root Codex collection plugin, five focused plugin bundles, and 137 Agent Skills for design review, accessibility, layout, interaction, cognition, and product polish."
     },
     {
+      "name": "usage-engineer",
+      "displayName": "Usage Engineer",
+      "source": {
+        "source": "local",
+        "path": "./plugins/noamshorts22-prog/usage-engineer"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Skill and zero-dependency local CLI that compacts long logs, stops identical retries, checks stale project maps and audits Codex token usage.",
+      "icon": "./plugins/noamshorts22-prog/usage-engineer/.codex-plugin/assets/composer-icon.svg"
+    },
+    {
       "name": "velith",
       "displayName": "Velith",
       "source": {
@@ -2403,6 +2448,21 @@
       },
       "category": "Development & Workflow",
       "description": "Structured AI writing workflow for planning, critique, revision, translation, style distillation, and opt-in local preference learning."
+    },
+    {
+      "name": "wtfm",
+      "displayName": "WTFM",
+      "source": {
+        "source": "local",
+        "path": "./plugins/SupportPages-io/wtfm"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Writes illustrated end-user help articles from a codebase, with screenshots rendered locally from the real interface code.",
+      "icon": "./plugins/SupportPages-io/wtfm/assets/icon.png"
     },
     {
       "name": "yylo",
@@ -3130,6 +3190,21 @@
       "description": "Full data-product lifecycle on dbt for Entropy Data: scaffold, audit, and integrate projects with ODCS, ODPS, OpenLineage, and GitHub Actions."
     },
     {
+      "name": "deed-page",
+      "displayName": "deed.page",
+      "source": {
+        "source": "local",
+        "path": "./plugins/f-o-x11/deed-page-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Publish an HTML file or static folder from Codex to a permanent `https://{slug}.deed.page/` URL through the bundled deed.page skill and remote MCP server, with no account.",
+      "icon": "./plugins/f-o-x11/deed-page-skill/assets/icon.png"
+    },
+    {
       "name": "deja-vu",
       "displayName": "deja",
       "source": {
@@ -3278,6 +3353,21 @@
       "category": "Tools & Integrations",
       "description": "Search and fetch current web sources in Codex through the official Exa MCP server with browser OAuth.",
       "icon": "./plugins/zlsbksdxl/codex-exa/assets/logo.svg"
+    },
+    {
+      "name": "exotic-car-rental-skills",
+      "displayName": "Exotic Car Rental Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/sergebulaev/exotic-car-rental-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Codex-ready bundle for people renting exotic and luxury cars in the US with a native .codex-plugin manifest and 6 skills that find who rents a given Lamborghini, Ferrari, Rolls-Royce or G-Wagon in a city at published daily rates from a free read-only market data MCP server, work out the real rental cost, compare cars, pick event cars, plan a weekend and check a rental company; also works in Claude Code.",
+      "icon": "./plugins/sergebulaev/exotic-car-rental-skills/assets/icon.svg"
     },
     {
       "name": "fantasy-football-manager",
@@ -3633,6 +3723,21 @@
       "category": "Tools & Integrations",
       "description": "Connects Codex to your own LinkedIn account through the hosted LinkMCP server for profile and company lookups, people and Sales Navigator search, inbox, posts, connection requests and work email finding (closed source; paid plans with a 7-day free trial).",
       "icon": "./plugins/linkmcp-io/linkmcp/assets/logo-512.png"
+    },
+    {
+      "name": "llmslim",
+      "displayName": "LLMSlim",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Thanatos9404/llmslim"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Long-term memory for Codex with no LLM in the loop: a local MCP server stores messages word for word in SQLite and recalls the ones that answer a question within a token budget.",
+      "icon": "./plugins/Thanatos9404/llmslim/assets/icon.png"
     },
     {
       "name": "local-mcp",
@@ -4073,6 +4178,21 @@
       "category": "Tools & Integrations",
       "description": "Tailor resumes and application text to job descriptions, or create candidate profiles from supplied career evidence.",
       "icon": "./plugins/olegvg/resume-tailor-plugin/assets/icon.svg"
+    },
+    {
+      "name": "revid",
+      "displayName": "Revid",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tmakersas/revid-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Research what goes viral, make finished short-form videos (voice, captions, music, AI footage) and post them to TikTok, YouTube, Instagram and X through Revid's hosted MCP server.",
+      "icon": "./plugins/tmakersas/revid-skills/assets/logo.png"
     },
     {
       "name": "roomcomm",

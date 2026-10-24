@@ -1,6 +1,6 @@
 ---
 name: memory
-description: 'Write, find or curate lessons and agent rules with stated evidence and limits. Use when: asked to remember something or write a rule into agent instructions.'
+description: "Find or curate supported lessons and agent rules. Use when: asked to remember, trace a corrected claim, audit instructions or write an agent rule."
 practices:
 - evidence-based-engineering
 - continuous-learning
@@ -38,12 +38,28 @@ request to turn an incident into a rule for an instruction file:
 1. **Look for an existing entry first.** Search the selected `.context/` pages,
    external topic pages or the target instruction file (`AGENTS.md`,
    `CLAUDE.md`, a team rules file). Amend the entry that already covers the
-   behavior; add a new one only when none fits.
+   behavior; add a new one only when none fits. If the final code, tests,
+   comments or a doc already explain the reasoning, point there rather than
+   save a copy; save only what they cannot show a later reader, such as
+   ruled-out causes, why the fix works and what brings the failure back.
+   Effort, a finished task or a large diff never qualifies a lesson. If nothing
+   qualifies, save nothing and say why.
 2. **Size the claim to its evidence.** One incident supports a narrow
    observation scoped to the conditions it actually had. A universal rule needs
-   repeated independent occurrences and later reapplication.
+   repeated independent occurrences and later reapplication. When a recurring
+   correction is a mechanical slip that a lint rule, test or hook could catch,
+   propose that check alongside the prose rule or in its place, as
+   [Postmortem](../postmortem/SKILL.md) does for such a miss; a check fails
+   where a rule can only ask.
 3. **State all five fields:** applicability, action, support, limits and invalidation.
-   Use the template below; an entry with no invalidation is incomplete.
+   Use the template below; an entry with no invalidation is incomplete. For an
+   incident, applicability includes the exact error text or observable symptom,
+   the words a later search will use. An instruction file such as `AGENTS.md`
+   loads into every session, so its entry is usually one line: the action and
+   when it applies, worded as information rather than an order to read, linking
+   the project `.context/` page or the doc beside the governed code (never an
+   external-bundle page from a checked-in file) that carries all five fields. A
+   line that only restates what agents already do by default earns no place.
 4. **Review before admission.** Draft outside Git. A fresh reviewer who is not
    the author checks factual support and disclosure of the exact text, paths
    and destination before it enters `.context/`, an instruction file such as
@@ -58,7 +74,7 @@ request to turn an incident into a rule for an instruction file:
 - Action: <the check or step to take>
 - Support: <cited sources; number of independent occurrences>
 - Limits: <where it is untested or may not hold>
-- Invalidate when: <the change or contrary evidence that retires it>
+- Invalidate when: <the change or contrary evidence that retires it, and how to check it>
 ```
 
 Keep rare useful constraints; age or low frequency alone is no reason to delete
@@ -72,6 +88,7 @@ them. Learning may also simplify or remove rules.
 | Capture useful evidence from selected sources, episodes or corrections | [Capture / mine / learn](references/mine-learn.md) |
 | Update, qualify, consolidate or retire a supported claim | [Curate / qualify / retire](references/curate.md) |
 | Rank repeated operational friction in supplied history | [Toil evidence](references/toil.md) |
+| Trace a corrected claim or audit the loaded instruction set | [Instruction sources](references/instruction-sources.md) |
 
 Memory owns these operations; other roles link here instead of keeping their
 own procedures. Capture includes bounded source maps, verdicts, corrections and

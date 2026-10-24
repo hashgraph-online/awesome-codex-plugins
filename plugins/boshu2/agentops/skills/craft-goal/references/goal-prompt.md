@@ -25,7 +25,8 @@ Bead graph:
 Experiment policy:
 - Apply the `navigate` skill each wave: observe, pick, ratchet, checkpoint.
   These policy lines bind with or without it.
-- One bead is one RPI experiment.
+- One build bead is one RPI experiment. A decision bead resolves through the
+  method Navigate names for it, not through an RPI.
 - Select only work tied to an unmet criterion or named blocking uncertainty.
 - Consume each verdict unchanged; useful progress needs evidence tied to an
   unmet criterion or a blocking uncertainty, not digest/count movement alone.

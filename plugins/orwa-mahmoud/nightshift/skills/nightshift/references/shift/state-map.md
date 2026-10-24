@@ -74,8 +74,10 @@ read it as empty.
 | `shift-defaults.json` | Older workspaces only | — | Never written now | `shift-policy migrate` moves its choices into the `shift` block of `rules.json` and keeps `run/shift-defaults.json.bak` | `schemas/v1/shift-defaults.json` |
 | `state-version` | The scaffold, into a `.nightshift/` it creates; `migrate-state`, last | No | On a state migration | Never | Current version `2` |
 | `run/work-target`, `run/work-mode` | Setup | Setup writes them again | When the owner re-points the workspace | Never | — |
+| `run/hook-copies` | Each host's guard, once a minute per plugin copy, while a shift or the plan room is open | No | Appended; cut back to its last day | Never filed | `epoch`, `host`, `session`, `plugin root`, `version`, tab-separated; Start's bind phase refuses and Doctor warns when one session shows two copies |
+| `run/shift-worktree` | Start's worktree phase, for a shift with `shift.isolation` set to `worktree` | Start writes it again for the next such shift | When Start adds the shift's worktree | Archive removes it with the worktree once the branch is merged; never filed | `path=`, `branch=`, `base=`, `checkout=`, `shift=` lines |
 | `run/deadline` | Start, from the composed hours | No | When a shift with hours is cut | Start drops it once it has passed; Reset drops it | UNIX epoch seconds |
-| `.gitignore` | Setup, with the receipts repository; `migrate-state` adds `run/` | Setup adds `STOP` and `run/` when missing | At Setup | Never | — |
+| `.gitignore` | Setup, with the receipts repository; `migrate-state` adds `/run/` | Setup adds `STOP` and `/run/` when missing; Setup and Archive rewrite a bare `run/` as `/run/` | At Setup | Never | — |
 | `.git/` | Setup, only when the owner asks for a receipts repository | No | Commits by the clock-out gate and Archive when `receiptsAutoCommit` is true, else by the owner | Never; never pushed | — |
 
 ### Records the runtime writes
@@ -100,7 +102,7 @@ read it as empty.
 ### Markers the runtime keeps
 
 All of them are generated, and none is archived. Every one but `STOP` lives in `run/`, which the
-receipts repository's `.gitignore` leaves out whole.
+receipts repository's `.gitignore` leaves out whole as `/run/`; archived `run/` records stay in.
 
 | File | Written by | Means | Removed |
 |---|---|---|---|

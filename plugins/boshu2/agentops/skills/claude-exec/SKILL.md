@@ -28,17 +28,17 @@ output_contract: process exit status and captured Claude output artifact
 Run one caller-supplied prompt through Claude Code print mode and capture the
 result, only when the caller selects Claude: the native agent stays the
 default and batches belong to `agent-native`. Flags match `claude --help` for
-2.1.282; recheck it on other versions.
+2.1.296; recheck it on other versions.
 
 ## Failure modes of a quick `claude -p`
 
-1. **Inherited posture.** A bare run loads the user's settings, hooks,
+1. **Inherited posture.** A plain run loads the user's settings, hooks,
    plugins, MCP servers and CLAUDE.md; a settings `bypassPermissions` default
    held even under `--safe-mode`. Use the clean flags below and set `--tools`
    and `--permission-mode` to the task's effects.
-2. **Renewed time.** One bound, from the caller's remaining time: a retry
-   spends it instead of renewing it. Make one attempt; any other is the
-   caller's decision.
+2. **Renewed time.** One deadline, fixed once by the caller: `$SECS` is the
+   time left before it, so a retry spends it instead of renewing it. Make one
+   attempt; any other is the caller's decision.
 3. **Exit 0 as proof.** A denied call still exits 0 with `is_error: false`
    and "done", and a bare file name once landed in the run's scratchpad, not
    `$WORKDIR`. Name targets by path, check effects there, and leave
@@ -57,6 +57,9 @@ kills it. Stock macOS lacks `timeout`: use GNU `timeout` or Homebrew's
 ```bash
 TO=$(command -v timeout || command -v gtimeout) || { echo "no timeout: not launching" >&2; exit 2; }
 cd "$WORKDIR" || exit 2
+# DEADLINE_EPOCH: absolute Unix time fixed once by the caller; a retry reuses it.
+SECS=$(( DEADLINE_EPOCH - $(date +%s) ))
+[ "$SECS" -gt 0 ] || { echo "deadline passed: not launching" >&2; exit 124; }
 # Read-only: review, research, questions.
 "$TO" -k 10 "$SECS" claude -p --model "$MODEL" --output-format json \
   --setting-sources "" --strict-mcp-config --disable-slash-commands \
@@ -74,7 +77,18 @@ Print mode never prompts: unapproved calls are denied and listed in
 named in `--allowedTools`, e.g. `"Bash(go test *)"`; with settings hooks
 dropped, that list is the guard. `--max-budget-usd` stops after the call that
 crosses it, and `--help` lists no turn cap, so bound a run by time and budget.
-`--no-session-persistence` keeps no transcript.
+`--no-session-persistence` keeps no transcript. Add `--bare` for a clean run
+that must not load the caller's hooks, auto-memory or CLAUDE.md; it changes
+what the run sees and how it signs in, since it reads only `ANTHROPIC_API_KEY`
+or an `apiKeyHelper` passed with `--settings`, never an OAuth login.
+
+A host shell tool may end a call sooner than `$SECS`, and that kill leaves
+`$OUT` empty because JSON is written only at exit. Before launch, compare the
+host tool's cap with `$SECS` plus the 10 s grace; when it is shorter, start the
+command as a host background job and wait for its exit through the host's
+completion notice or native wait. A run the host already killed was the one
+attempt: report it with `$OUT` empty. A quiet run is still working; the
+`timeout` bound ends it, not silence.
 
 ## Result
 

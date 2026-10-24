@@ -24,7 +24,11 @@ Two execution modes, chosen automatically:
   - Monorepo checkout (this repo): `packages/dex-core` is found above the skill,
     so the engine runs from an editable local install. This is what makes the
     wrapper work before the package is published.
-  - Installed plugin: no local package is present, so the pinned PyPI release is
+  - Installed plugin: the plugin ships `packages/dex-core` beside the skills, so
+    the engine is built from that bundled source. There is no .git in a plugin
+    cache, so the build reports hatch-vcs's fallback_version, which
+    scripts/prepare_release.sh sets to the same release as DEX_CORE_VERSION.
+  - Neither present (a skill copied on its own): the pinned PyPI release is
     installed hermetically by uv.
 
 That environment is uv's own, and `--no-project` is what keeps it that way. Without
@@ -70,7 +74,7 @@ from pathlib import Path
 # Rewritten by scripts/prepare_release.sh to the tagged version. The connector
 # extra is deliberately NOT part of this pin: it is chosen at runtime (see
 # _resolve_connector), so a release artifact is connector-neutral.
-DEX_CORE_VERSION = "1.15.1"
+DEX_CORE_VERSION = "1.15.3"
 
 # Connector id -> packaging extra. The engine's connector ids and the pyproject
 # extras share names, so this is the identity set today. An unknown or unset
@@ -266,6 +270,19 @@ _OSSIE_READING_COMMANDS = (
     ("maintain", "snapshot"),
 )
 
+# The commands that author the dbt semantic layer, as (group, subcommand).
+# Authoring validates the YAML against MetricFlow's schemas, so these take the
+# `semantic` extra even though they render nothing: without it the validation
+# degrades to a structural check and the command warns instead of refusing,
+# which is the failure #639 describes. The native document commands
+# (`semantic ossie ...`, `semantic slayer ...`) validate against their own
+# schemas and take their own extras, so they are not here.
+_SEMANTIC_AUTHORING_COMMANDS = (
+    ("semantic", "define"),
+    ("semantic", "update"),
+    ("semantic", "plan"),
+)
+
 
 # SLayer is the opposite trade. Its extra brings FastAPI, uvicorn, mcp, duckdb,
 # jafgen and tantivy, far too much to install on every `maintain` run of every
@@ -300,9 +317,18 @@ def _positionals(argv: list[str]) -> list[str]:
 def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
     """The extras this invocation needs on top of the connector's.
 
-    Two commands need more than a warehouse client, and both are resolved from the
-    command rather than installed always, so a repo that never clusters and never
-    queries a semantic layer resolves neither scikit-learn nor MetricFlow.
+    Three commands need more than a warehouse client, and each is resolved from
+    the command rather than installed always, so a repo that never clusters,
+    never authors a semantic layer and never queries one resolves neither
+    scikit-learn nor MetricFlow.
+
+    `semantic define|update|plan` author the dbt semantic layer, and authoring
+    validates the YAML against MetricFlow's schemas. Where MetricFlow is absent
+    the validation degrades to a structural check, and the warning that says so
+    reads like routine news, so the authoring commands take the `semantic` extra
+    and the schemas actually run. The native document commands
+    (`semantic ossie ...`, `semantic slayer ...`) validate against their own
+    schemas and take their own extras.
 
     `explore semantic` needs the hosted client on any of its subcommands, which is
     an httpx and nothing heavier. It needs MetricFlow only where a statement might
@@ -339,6 +365,8 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
     )
     if command in _SLAYER_COMMANDS or (vendor == _SLAYER_VENDOR and reads_layer):
         extras.append("slayer")
+    if command in _SEMANTIC_AUTHORING_COMMANDS:
+        extras.append("semantic")
     if command != ("explore", "semantic"):
         return extras
     mode = positionals[2] if len(positionals) > 2 else "list"
@@ -414,18 +442,25 @@ def _envelope(
     The wrapper prints an envelope for the few things that happen before the engine
     exists to print its own: the missing-uv refusal and the warm-up. It cannot
     import `exmergo_dex_core.envelope` for precisely that reason, so the keys are
-    mirrored here and have to stay in step with Envelope and Cost. `cost.paradigm`
-    stays null throughout, because nothing here opens a connection and `free_local`
-    is a positive claim that the connector in play bills nothing rather than a
-    stand-in for "no connector was involved". `reason` is populated only on an
-    error, the same rule the engine's Reason enum follows.
+    mirrored here and have to stay in step with Envelope, Connection, and Cost.
+    `cost.paradigm` stays null throughout, because nothing here opens a connection
+    and `free_local` is a positive claim that the connector in play bills nothing
+    rather than a stand-in for "no connector was involved". `reason` is populated
+    only on an error, the same rule the engine's Reason enum follows.
     """
 
     return json.dumps(
         {
             "status": status,
             "data": data or {},
-            "cost": {"paradigm": None, "estimate": None, "ceiling": None},
+            "connection": {"connector": None, "target": {}, "source": None},
+            "cost": {
+                "paradigm": None,
+                "estimate": None,
+                "ceiling": None,
+                "estimate_quality": None,
+                "unit": None,
+            },
             "warnings": [],
             "diffs": [],
             "errors": errors or [],

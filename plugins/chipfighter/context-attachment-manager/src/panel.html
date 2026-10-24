@@ -1,0 +1,1457 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>上下文素材</title>
+<!--
+  Purpose: P4 — the context-material panel inside Codex Desktop's side panel (an MCP App); v0.4: the same page runs for
+  a Claude Code session, served by the engine (panel-web.js stands in for the host). Nothing is sent to the model.
+  Input: the MCP Apps bridge (postMessage) — Codex's call of cam_panel, and our own calls of cam_panel, cam_image and
+  cam_set_selection. Output: selection changes through cam_set_selection. Self-contained: no network, no storage.
+  v0.1-5 — 启用插件 / 停用插件 (cam_setup): point Codex at the engine, or back to a direct connection before uninstalling.
+  The state is polled, and also re-read whenever the user moves to or touches the panel, or presses 刷新.
+  v0.1-8 / v0.1-10 — a panel opened on a new chat follows the thread the user starts there (cam_bind); when several
+  started, the user picks one. v0.1-9: the title shows the task's name. v0.1-13: a notice when an earlier part of the
+  history cannot be found.
+  v0.1-14: Simplified Chinese or English, following Codex's interface language (the host context's locale; else the
+  system's). Every call tells the plugin the language, so its answers match and the text for the model follows it.
+  v0.1-21: the page reports the height it wants (size-changed) and fits a smaller frame if that is what it gets; only
+  the list scrolls, never the panel as a whole. v0.1-22: every change is saved at once; no 确定, no 撤销.
+  v0.3: the automatic selection switch at the end of the footer; with it on, an image the user keeps on is sent every
+  turn (pinned), the others are left out unless the model fetches them.
+  v0.4 / v0.5: under Claude Code, the notices about the thinking check; images from before a compaction are marked 压缩前.
+  v0.8 (user 2026-10-19, after a clickable prototype; docs/v0.8/plan.md §2): one screen. The request card (folded by
+  default: the estimate, the bar and the next message; unfolded: the last request, what the model fetched in the latest
+  turn, the subagents' and side chats' savings); a search over the scene, the words the model noted and what was said in
+  that turn; one filter at a time (全部, 上传, 生成, then the scenes); thumbnails by turn, newest first, with small marks
+  only, gray while not sent (every turn, with automatic selection); a preview that fills the panel as in v0.7, closed by a
+  click beside the image, with the image's checkbox (每轮都发 / 发送); a checkbox at the end of each turn's line, as in
+  v0.7; in manual mode, a bar of the images the model asked for. An id button finds its thumbnail: scrolls it to the middle,
+  flashes it twice and focuses it. The v0.2 source filter and the v0.7 switch for subagents and side chats are gone.
+-->
+<style>
+  /* Fallbacks follow Codex's own widget palette; inside Codex its theme variables (MCP Apps host styles) win. */
+  :root {
+    color-scheme: light;
+    --fb-bg: rgb(255 255 255); --fb-text: rgb(26 28 31);
+    --fb-info: rgb(51 156 255); --fb-warn: rgb(226 85 7); --fb-ok: rgb(0 162 64); --fb-danger: rgb(224 46 42);
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --fb-bg: rgb(24 24 24); --fb-text: rgb(255 255 255);
+    --fb-info: rgb(131 195 255); --fb-warn: rgb(255 133 73); --fb-ok: rgb(64 201 119); --fb-danger: rgb(255 103 100);
+  }
+  :root {
+    --bg: var(--color-background-primary, var(--fb-bg));
+    --text: var(--color-text-primary, var(--fb-text));
+    --text-2: color-mix(in srgb, var(--text) 72%, transparent);
+    --text-3: var(--color-text-secondary, color-mix(in srgb, var(--text) 50%, transparent));
+    --bg-soft: color-mix(in srgb, var(--text) 5%, var(--bg));
+    --bg-hover: color-mix(in srgb, var(--text) 4%, var(--bg));
+    --border: var(--color-border-secondary, color-mix(in srgb, var(--text) 8%, transparent));
+    --border-strong: color-mix(in srgb, var(--text) 24%, transparent);
+    --accent: var(--text); --accent-text: var(--bg);
+    --info: var(--color-text-info, var(--fb-info));
+    --info-bg: color-mix(in srgb, var(--info) 9%, var(--bg));
+    --warn: var(--color-text-warning, var(--fb-warn));
+    --warn-bg: color-mix(in srgb, var(--warn) 11%, var(--bg));
+    --ok: var(--color-text-success, var(--fb-ok));
+    --danger: var(--color-text-danger, var(--fb-danger));
+    --danger-bg: color-mix(in srgb, var(--danger) 9%, var(--bg));
+    --font: var(--font-sans, -apple-system, system-ui, "Segoe UI", "Microsoft YaHei UI", sans-serif);
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  /* v0.1-21: the height this page asked Codex for (fitFrame), never less than the frame it was given. */
+  html.asks-height, html.asks-height body { height: max(var(--frame-height), 100vh); }
+  body {
+    display: flex; flex-direction: column; overflow: hidden;
+    background: var(--bg); color: var(--text); font: 13px/1.5 var(--font);
+    -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+  }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+
+  header { flex: none; padding: 14px 16px 10px; }
+  .title { display: flex; align-items: center; gap: 8px; }
+  .title h1 { flex: 0 1 auto; min-width: 0; margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .actions { flex: none; margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .icon-quiet { width: 28px; height: 28px; padding: 0; border: 0; border-radius: 999px; background: transparent; color: var(--text-3); cursor: pointer; display: grid; place-items: center; transition: background .15s, color .15s; }
+  .icon-quiet:hover { background: var(--bg-soft); color: var(--text-2); }
+  .icon-quiet svg { width: 16px; height: 16px; }
+  .icon-quiet.spinning svg { animation: spin .8s linear infinite; }
+  .icon-quiet.stale { color: var(--warn); }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .plugin { display: flex; gap: 6px; }
+  .plugin:empty { display: none; }
+  .plugin button { height: 28px; padding: 0 12px; border-radius: 999px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s, color .15s, border-color .15s, transform .1s; }
+  .plugin button:active:not(:disabled) { transform: scale(.97); }
+  .plugin button:disabled { opacity: .5; cursor: default; }
+  .plugin .on { border: 1px solid var(--accent); background: var(--accent); color: var(--accent-text); }
+  .plugin .on:hover:not(:disabled) { background: color-mix(in srgb, var(--accent) 84%, var(--bg)); }
+  .plugin .off { border: 1px solid color-mix(in srgb, var(--danger) 55%, transparent); background: transparent; color: var(--danger); }
+  .plugin .off:hover:not(:disabled) { background: var(--danger-bg); }
+
+  /* The request card: folded to the estimate, its bar and the next message; unfolded, three more lines. */
+  .card { margin-top: 10px; padding: 10px 12px 6px; border-radius: 12px; background: var(--bg-soft); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  /* A narrow panel moves the "all images" part to a line of its own rather than breaking the estimate (English). */
+  .card-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; color: var(--text-2); }
+  .card-head > span:first-child, .card-head b { white-space: nowrap; }
+  .card-head b { color: var(--text); font-size: 15px; font-weight: 600; }
+  .card-full { margin-left: auto; color: var(--text-3); white-space: nowrap; }
+  .card-full.saved { color: var(--ok); }
+  .bar { margin-top: 7px; height: 6px; border-radius: 999px; background: color-mix(in srgb, var(--text) 9%, transparent); overflow: hidden; }
+  .bar i { display: block; height: 100%; border-radius: inherit; background: var(--info); transition: width .25s ease; }
+  .line { display: flex; align-items: center; gap: 10px; min-height: 26px; padding-top: 4px; }
+  .line .k { flex: none; color: var(--text-3); white-space: nowrap; }
+  .line .v { flex: 1; min-width: 0; text-align: right; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .line .v b { color: var(--text); font-weight: 600; }
+  .line .ids { flex: 1; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+  .more { display: flex; align-items: center; justify-content: center; gap: 3px; width: 100%; margin-top: 2px; padding: 3px 0; border: 0; border-radius: 8px; background: none; color: var(--text-3); font-size: 12px; cursor: pointer; transition: background .15s, color .15s; }
+  .more:hover { background: var(--bg-hover); color: var(--text-2); }
+  .more svg { width: 13px; height: 13px; transition: transform .15s; }
+  .more[aria-expanded="true"] svg { transform: rotate(180deg); }
+  /* An image id that finds its thumbnail. */
+  .idbtn { height: 22px; padding: 0 9px; border: 1px solid color-mix(in srgb, currentColor 35%, transparent); border-radius: 999px; background: var(--bg); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; transition: border-color .15s, transform .1s; }
+  .idbtn:hover { border-color: currentColor; }
+  .idbtn:active { transform: scale(.96); }
+  .line .idbtn { color: var(--info); }
+  /* v0.1-17: stays in the header, so after jumping to one image the next one is still a click away. Manual mode only. */
+  .needs { margin-top: 8px; padding: 6px 8px 6px 12px; border-radius: 10px; background: var(--warn-bg); color: var(--warn); font-size: 12.5px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+  .needs .idbtn { color: var(--warn); }
+
+  .search { margin-top: 10px; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--bg); transition: border-color .15s; }
+  .search:focus-within { border-color: color-mix(in srgb, var(--info) 60%, transparent); }
+  .search svg { flex: none; width: 15px; height: 15px; color: var(--text-3); }
+  .search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: transparent; font-size: 13px; }
+  .search input::placeholder { color: var(--text-3); }
+  /* One filter at a time, with the search. */
+  .chips { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .chips:empty { display: none; }
+  .chip { height: 26px; padding: 0 10px; border: 1px solid var(--border-strong); border-radius: 999px; background: transparent; color: var(--text-2); font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+  .chip:hover { background: var(--bg-hover); }
+  .chip .n { margin-left: 5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+  .chip[aria-pressed="true"] { border-color: transparent; background: var(--accent); color: var(--accent-text); }
+  .chip[aria-pressed="true"] .n { color: color-mix(in srgb, var(--accent-text) 70%, transparent); }
+  .chips .sep { width: 1px; height: 16px; background: var(--border-strong); }
+  /* At most two rows (user 2026-10-21): the rest fold into 更多 N, quieter than a filter. */
+  .chip.fold { display: inline-flex; align-items: center; gap: 3px; padding: 0 6px 0 8px; border-color: transparent; color: var(--text-3); }
+  .chip.fold:hover { color: var(--text-2); }
+  .chip.fold svg { width: 13px; height: 13px; transition: transform .15s; }
+  .chip.fold[aria-expanded="true"] svg { transform: rotate(180deg); }
+
+  main { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px 16px; border-top: 1px solid var(--border); scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+  .turn { position: relative; display: flex; align-items: center; gap: 10px; margin: 14px 4px 6px; color: var(--text-3); font-size: 12px; font-weight: 500; }
+  .turn::after { content: ""; flex: 1; height: 1px; background: var(--border); order: 1; }
+  /* v0.1-18, as in v0.7 (user 2026-10-19): the turn's checkbox at the end of its line, quieter than an image's. */
+  .turn .check { flex: none; order: 2; }
+  .turn .check input:checked + .box, .turn .check input:indeterminate + .box { background: transparent; border-color: var(--text-3); }
+  .turn .check:hover .box { border-color: var(--text-2); }
+  .turn .box::after { border-color: var(--text-2); }
+  .check input:indeterminate + .box::after { opacity: 1; width: 8px; height: 0; margin-top: 0; border: 0; border-top: 2px solid var(--text-2); transform: none; }
+  /* A checkbox, as in v0.7: the turn's, and the preview's (每轮都发 / 发送), its box before its words. */
+  .check { position: relative; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+  .check input { position: absolute; opacity: 0; pointer-events: none; }
+  .box {
+    flex: none; width: 18px; height: 18px; border-radius: 6px; border: 1.5px solid var(--border-strong);
+    display: grid; place-items: center; transition: background .15s, border-color .15s;
+  }
+  .check:hover .box { border-color: var(--text-3); }
+  .box::after { content: ""; width: 8px; height: 4.5px; margin-top: -2px; border: 2px solid var(--accent-text); border-top: 0; border-right: 0; transform: rotate(-45deg); opacity: 0; transition: opacity .12s; }
+  .check input:checked + .box { background: var(--accent); border-color: var(--accent); }
+  .check input:checked + .box::after { opacity: 1; }
+  .check input:disabled + .box { opacity: .35; }
+  .check input:disabled ~ * { cursor: default; }
+  .check input:focus-visible + .box { outline: 2px solid var(--info); outline-offset: 2px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+  .tile { position: relative; aspect-ratio: 1 / 1; padding: 0; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-soft); overflow: hidden; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+  .tile:hover { border-color: var(--border-strong); box-shadow: 0 2px 8px color-mix(in srgb, var(--text) 10%, transparent); }
+  .tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: opacity .15s, filter .15s; }
+  .tile .none { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 11px; }
+  .tile.loading::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 20%, var(--bg-hover) 50%, transparent 80%) var(--bg-soft);
+    background-size: 200% 100%; animation: shimmer 1.2s linear infinite;
+  }
+  @keyframes shimmer { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+  /* As in v0.7 (user 2026-10-19): an image that does not go out every turn (automatic selection) or at all (manual) is
+     gray; checked, it takes its colors back. No longer in context: faded further. */
+  .tile.off img { opacity: .4; filter: grayscale(1); }
+  .tile.gone img { opacity: .3; filter: grayscale(1); }
+  .mark { position: absolute; padding: 0 6px; border-radius: 999px; background: color-mix(in srgb, var(--bg) 90%, transparent); color: var(--text-2); font-size: 11px; font-weight: 500; line-height: 18px; white-space: nowrap; box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent); pointer-events: none; }
+  .mark.state { top: 4px; right: 4px; }
+  .mark.when { top: 4px; left: 4px; }
+  .mark.corner { bottom: 4px; right: 4px; border-radius: 5px; }
+  .mark.pin { background: var(--info); color: var(--bg); box-shadow: none; }
+  .mark.fetched { background: var(--info-bg); color: var(--info); }
+  .mark.warn { background: var(--warn-bg); color: var(--warn); }
+  /* Two flashes on the thumbnail an id button found. */
+  .tile.flash { animation: flash 1.2s ease-in-out; }
+  @keyframes flash {
+    0%, 50%, 100% { box-shadow: 0 0 0 0 transparent; }
+    20%, 30%, 70%, 80% { box-shadow: 0 0 0 3px var(--warn); }
+  }
+  @media (prefers-reduced-motion: reduce) { .tile.flash { animation: none; box-shadow: 0 0 0 3px var(--warn); } }
+
+  /* The preview fills the panel, as in v0.7 (user 2026-10-19); a click anywhere but on the image or a control closes it. */
+  .viewer { position: fixed; inset: 0; z-index: 10; display: flex; flex-direction: column; background: rgb(19 19 19); color: rgb(245 245 245); }
+  .viewer-top, .viewer-bottom { flex: none; display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 18px; }
+  .viewer-title { flex: 1; min-width: 0; display: flex; gap: 8px; align-items: baseline; font-size: 14px; }
+  .viewer-title .vid { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .viewer-title .vname { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgb(255 255 255 / 62%); }
+  .viewer-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0 14px; }
+  .viewer-stage img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+  .viewer-stage .none { color: rgb(255 255 255 / 55%); font-size: 12.5px; }
+  .viewer-stage.loading img { filter: blur(6px); opacity: .7; }
+  .viewer-meta { flex: 1; min-width: 0; color: rgb(255 255 255 / 55%); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+  .icon-btn { flex: none; width: 32px; height: 32px; border: 0; border-radius: 999px; background: transparent; color: rgb(255 255 255 / 80%); cursor: pointer; display: grid; place-items: center; transition: background .15s; }
+  .icon-btn:hover { background: rgb(255 255 255 / 12%); }
+  .viewer .check { flex: none; color: rgb(245 245 245); font-size: 13px; font-weight: 500; }
+  .viewer .box { border-color: rgb(255 255 255 / 45%); }
+  .viewer .check:hover .box { border-color: rgb(255 255 255 / 75%); }
+  .viewer .check input:checked + .box { background: rgb(245 245 245); border-color: rgb(245 245 245); }
+  .viewer .box::after { border-color: rgb(19 19 19); }
+
+  /* A switch: the footer's (自动选图) and the preview's (每轮都发 / 发送). */
+  .switch { flex: none; position: relative; display: inline-flex; align-items: center; gap: 7px; color: var(--text-2); font-size: 12.5px; font-weight: 500; cursor: pointer; user-select: none; white-space: nowrap; }
+  .switch input { position: absolute; opacity: 0; pointer-events: none; }
+  .switch .sw { position: relative; flex: none; width: 30px; height: 18px; border-radius: 999px; background: var(--border-strong); transition: background .15s; }
+  .switch .sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); box-shadow: 0 1px 2px rgb(0 0 0 / 25%); transition: left .15s; }
+  .switch input:checked + .sw { background: var(--accent); }
+  .switch input:checked + .sw::after { left: 14px; background: var(--accent-text); }
+  .switch input:disabled + .sw { opacity: .5; }
+  .switch input:disabled ~ * { cursor: default; }
+  .switch input:focus-visible + .sw { outline: 2px solid var(--info); outline-offset: 2px; }
+
+  .notice { margin: 12px 0 0; padding: 9px 12px; border-radius: 10px; font-size: 12.5px; display: flex; gap: 10px; align-items: flex-start; }
+  .notice.warn { background: var(--warn-bg); color: var(--warn); }
+  .notice.error { background: var(--danger-bg); color: var(--danger); }
+  .notice.info { background: var(--info-bg); color: var(--text); }
+  .notice .grow { flex: 1; }
+  .notice button { flex: none; border: 0; background: none; padding: 0; font-weight: 600; cursor: pointer; color: inherit; font-size: 12.5px; }
+  .notice.chooser { flex-direction: column; align-items: stretch; gap: 6px; }
+  .notice .pick { display: flex; gap: 8px; align-items: baseline; width: 100%; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); text-align: left; font-weight: 500; transition: border-color .15s; }
+  .notice .pick:hover:not(:disabled) { border-color: var(--border-strong); }
+  .notice .pick:disabled { opacity: .5; cursor: default; }
+  .pick .pick-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick .pick-time { flex: none; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+  .empty { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; text-align: center; color: var(--text-3); }
+  .empty svg { width: 36px; height: 36px; margin-bottom: 6px; }
+  .empty strong { color: var(--text-2); font-weight: 500; font-size: 14px; }
+  .empty span { font-size: 12.5px; max-width: 260px; }
+  .nothing { padding: 28px 0; text-align: center; color: var(--text-3); font-size: 12.5px; }
+
+  footer { flex: none; display: flex; align-items: center; gap: 10px; padding: 11px 14px 11px 16px; border-top: 1px solid var(--border); background: var(--bg); }
+  .status { flex: 1; min-width: 0; color: var(--text-3); font-size: 12.5px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="title"><h1 id="title">上下文素材</h1><div class="actions"><button class="icon-quiet" id="refresh" type="button" title="刷新" aria-label="刷新"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg></button><span class="plugin" id="plugin"></span></div></div>
+  <section class="card" id="card">
+    <div class="card-head"><span id="meterLabel">正在读取…</span><b id="meterValue"></b><span class="card-full" id="meterFull"></span></div>
+    <div class="bar" id="meterBarBox"><i id="meterBar"></i></div>
+    <div class="line" id="nextLine"><span class="k" id="nextLabel"></span><span class="v" id="nextValue"></span></div>
+    <div id="details" hidden>
+      <div class="line" id="lastLine"><span class="k" id="lastLabel"></span><span class="v" id="lastValue"></span></div>
+      <div class="line" id="fetchedLine"><span class="k" id="fetchedLabel"></span><span class="ids" id="fetchedIds"></span></div>
+      <div class="line" id="childrenLine"><span class="k" id="childrenLabel"></span><span class="v" id="childrenValue"></span></div>
+    </div>
+    <button class="more" id="more" type="button" aria-expanded="false" aria-controls="details"><span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
+  </section>
+  <div class="needs" id="needs" hidden></div>
+  <label class="search" id="searchBox"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="search" type="search" autocomplete="off" spellcheck="false"></label>
+  <div class="chips" id="chips" role="group"></div>
+</header>
+<main id="main"></main>
+<footer>
+  <div class="status" id="status"></div>
+  <label class="switch" id="auto" hidden><span class="auto-label"></span><input type="checkbox" role="switch"><span class="sw"></span></label>
+</footer>
+<div class="viewer" id="viewer" hidden role="dialog" aria-modal="true" aria-label="图片预览">
+  <div class="viewer-top">
+    <div class="viewer-title"><span class="vid" id="viewerId"></span><span class="vname" id="viewerName"></span></div>
+    <button class="icon-btn" id="viewerClose" type="button" aria-label="关闭预览" title="关闭（Esc）">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M2 2l10 10M12 2 2 12"/></svg>
+    </button>
+  </div>
+  <div class="viewer-stage" id="viewerStage"></div>
+  <div class="viewer-bottom">
+    <span class="viewer-meta" id="viewerMeta"></span>
+    <label class="check" id="viewerCheck"><input type="checkbox"><span class="box"></span><span class="label"></span></label>
+  </div>
+</div>
+<!-- The panel's words (v0.1-14): Simplified Chinese and English, the same keys in both (a unit test checks it);
+  "key_one" is the English text for a count of one. -->
+<script type="application/json" id="messages">
+  {
+    "zh": {
+      "page.title": "上下文素材",
+      "title.loading": "上下文素材",
+      "title.newTask": "新任务",
+      "title.unnamed": "未命名任务",
+      "refresh": "刷新",
+      "refresh.at": "刷新（上次更新 {time}）",
+      "refresh.stale": "刷新（有一会儿没更新了；上次更新 {time}）",
+      "plugin.disable": "停用插件",
+      "plugin.enable": "启用插件",
+      "meter.loading": "正在读取…",
+      "meter.failed": "读取失败",
+      "meter.empty": "还没有图片",
+      "meter.request": "预计请求",
+      "meter.images": "预计图片数据",
+      "meter.atLeast": "{bytes} 起",
+      "meter.autoNote": "模型这一轮要取回的图不算在内（事先不知道会取哪几张）",
+      "meter.full": "全部发送 {full} · 省 {percent}%",
+      "meter.none": "没有省略任何图",
+      "next.label": "下一条消息",
+      "next.auto": "每轮都发 {sent} 张",
+      "next.manual": "照常发送 {sent} 张",
+      "next.dropped": " · 占位 {dropped} 张",
+      "next.duplicates": "（其中重复 {duplicates} 张）",
+      "next.gone": " · {gone} 张已不在上下文",
+      "card.more": "展开详情",
+      "card.less": "收起",
+      "last.label": "上一次请求 {time}",
+      "last.labelNone": "上一次请求",
+      "last.noBaseline": "还没有经过代理的完整请求，先按图片大小估算",
+      "last.skipped": "没能替换，原样发出 {bytes}",
+      "last.replaced": "替换 {count} 张 · 少发 {saved}",
+      "last.none": "没有替换，发出 {bytes}",
+      "last.resent": "补回压缩前的图 {resent} 张 · 替换 {count} 张",
+      "fetched.label": "最近一轮模型取回",
+      "fetched.none": "没有取回",
+      "children.label": "子代理和旁聊 {count} 个",
+      "children.saved": "上次共少发 {saved}",
+      "children.none": "上次没有替换",
+      "needs.title": "模型需要 {count} 张没发送的图",
+      "id.jump": "在列表里找到 {id}",
+      "search.placeholder": "画面，或你当时说过的话",
+      "search.label": "搜索图片",
+      "chips.label": "筛选图片",
+      "chip.all": "全部",
+      "chip.upload": "上传",
+      "chip.generated": "生成",
+      "chip.other": "其他",
+      "chips.more": "更多 {count}",
+      "chips.less": "收起",
+      "kind.upload": "用户上传",
+      "kind.view": "查看的图片",
+      "kind.generated": "生成的图片",
+      "kind.tool": "工具返回",
+      "kind.pdf": "PDF 页面",
+      "kind.browser": "网页截图",
+      "mark.pinned": "每轮都发",
+      "mark.fetched": "刚取回",
+      "mark.notSent": "不发送",
+      "mark.requested": "模型需要",
+      "mark.locked": "无法取消",
+      "mark.gone": "已不在上下文",
+      "mark.compacted": "压缩前",
+      "corner.pdf": "PDF 第 {page} 页",
+      "corner.pdfAny": "PDF",
+      "corner.browser": "网页",
+      "turn.n": "第 {n} 轮",
+      "turn.earlier": "更早",
+      "turn.all": "发送第 {n} 轮的全部图片",
+      "turn.allEarlier": "发送更早的全部图片",
+      "turn.shown": "发送第 {n} 轮列出的图片",
+      "turn.shownEarlier": "发送更早列出的图片",
+      "turn.pinAll": "第 {n} 轮的全部图片每轮都发",
+      "turn.pinAllEarlier": "更早的全部图片每轮都发",
+      "turn.pinShown": "第 {n} 轮列出的图片每轮都发",
+      "turn.pinShownEarlier": "更早列出的图片每轮都发",
+      "tile.open": "预览 {id}",
+      "preview.label": "图片预览",
+      "preview.close": "关闭预览",
+      "preview.closeTitle": "关闭（Esc）",
+      "preview.pin": "每轮都发",
+      "preview.send": "发送",
+      "preview.loading": "正在加载…",
+      "preview.none": "这张图无法预览",
+      "preview.sameAs": "与 {id} 相同",
+      "preview.locked": "这张图无法取消，每轮都会发送",
+      "preview.gone": "这张图已不在上下文，不会再发送",
+      "preview.compacted": "压缩前的图：打开后由插件补发",
+      "empty.title": "这个任务里还没有图片",
+      "empty.text": "上传、查看或生成的图片会按时间顺序出现在这里。",
+      "empty.search": "没有找到相关的图片",
+      "notice.retry": "重试",
+      "notice.enabled": "已启用，重启 Codex 后生效。",
+      "notice.disabled": "已停用，重启 Codex 后生效；随时可以点“启用插件”撤回。要卸载插件，现在可以去插件页面移除。",
+      "notice.notEnabled": "插件没有启用：Codex 现在直连，这里的设置不会生效。点右上角的“启用插件”，然后重启 Codex。",
+      "notice.waiting": "这个任务还没开始。发出第一条消息后，这里会自动切到这个任务。",
+      "notice.historyMissing": "这个任务前面有一段历史找不到了（它所在的任务记录可能已被删除），那一段里的图片没法在这里列出。",
+      "notice.engineDown": "代理没有在运行，这里的设置暂时不会生效。关掉 Codex 再打开，一般就能恢复。",
+      "notice.skipped": "上一次请求（{time}）没能按这里的设置替换，图片原样发给了模型。原因：{reason}。",
+      "notice.websocket": "改设置时这一轮对话还在进行，这一轮剩下的请求仍带着原图；从下一条消息起生效。",
+      "notice.thinking": "这个账号会校验思考记录：上一次请求（{time}）去掉了 {count} 段和现在的设置对不上的思考记录，模型可能要重新思考，多用一些 token。",
+      "reason.undecodable": "请求内容无法解压",
+      "reason.unparsable": "请求内容无法解析",
+      "reason.format": "请求的格式和预期不同",
+      "reason.integer": "请求里有超大整数，改写会改变它的值",
+      "reason.index": "读取这个任务的记录失败",
+      "reason.other": "改写时出错",
+      "reason.thinking": "这个账号不接受改过的对话历史（思考记录的校验），引擎改发了原始请求",
+      "chooser.title": "刚刚开始了好几个任务，这个面板要显示哪一个？",
+      "chooser.untitled": "新任务",
+      "footer.hint": "图默认都发，可在预览里关掉",
+      "footer.hintAuto": "其余图由模型按需取回",
+      "auto.label": "自动选图",
+      "auto.title": "打开后，之前各轮的图默认不发，模型需要时自己按编号取回；在预览里打开“每轮都发”的图每轮都发",
+      "error.load": "读取失败：{message}",
+      "error.save": "保存失败：{message}",
+      "error.switch": "切换失败：{message}",
+      "error.enable": "启用失败：{message}",
+      "error.disable": "停用失败：{message}",
+      "error.noReply": "Codex 没有响应",
+      "error.call": "调用失败"
+    },
+    "en": {
+      "page.title": "Context Assets",
+      "title.loading": "Context Assets",
+      "title.newTask": "New task",
+      "title.unnamed": "Untitled task",
+      "refresh": "Refresh",
+      "refresh.at": "Refresh (last updated {time})",
+      "refresh.stale": "Refresh (not updated for a while; last updated {time})",
+      "plugin.disable": "Disable plugin",
+      "plugin.enable": "Enable plugin",
+      "meter.loading": "Loading…",
+      "meter.failed": "Could not load",
+      "meter.empty": "No images yet",
+      "meter.request": "Estimated request",
+      "meter.images": "Estimated image data",
+      "meter.atLeast": "{bytes}+",
+      "meter.autoNote": "Images the model fetches this turn are not counted (they are not known beforehand)",
+      "meter.full": "All images {full} · {percent}% saved",
+      "meter.none": "Nothing left out",
+      "next.label": "Next message",
+      "next.auto": "{sent} sent every turn",
+      "next.manual": "{sent} sent",
+      "next.dropped": " · {dropped} as placeholders",
+      "next.dropped_one": " · {dropped} as a placeholder",
+      "next.duplicates": " ({duplicates} of them duplicates)",
+      "next.duplicates_one": " ({duplicates} of them a duplicate)",
+      "next.gone": " · {gone} no longer in context",
+      "card.more": "Show details",
+      "card.less": "Hide details",
+      "last.label": "Last request {time}",
+      "last.labelNone": "Last request",
+      "last.noBaseline": "No full request through the proxy yet; estimated from the image sizes",
+      "last.skipped": "Not rewritten, sent as it was ({bytes})",
+      "last.replaced": "{count} replaced · {saved} less",
+      "last.none": "Nothing replaced, {bytes} sent",
+      "last.resent": "{resent} sent again from before the compaction · {count} replaced",
+      "fetched.label": "Fetched by the model last turn",
+      "fetched.none": "None",
+      "children.label": "Subagents & side chats: {count}",
+      "children.saved": "{saved} less last time",
+      "children.none": "Nothing replaced last time",
+      "needs.title": "The model needs {count} unsent images",
+      "needs.title_one": "The model needs {count} unsent image",
+      "id.jump": "Find {id} in the list",
+      "search.placeholder": "What it shows, or what you said then",
+      "search.label": "Search images",
+      "chips.label": "Filter images",
+      "chip.all": "All",
+      "chip.upload": "Uploaded",
+      "chip.generated": "Generated",
+      "chip.other": "Other",
+      "chips.more": "{count} more",
+      "chips.less": "Show less",
+      "kind.upload": "Uploaded",
+      "kind.view": "Viewed",
+      "kind.generated": "Generated",
+      "kind.tool": "Tool result",
+      "kind.pdf": "PDF page",
+      "kind.browser": "Web page",
+      "mark.pinned": "Every turn",
+      "mark.fetched": "Just fetched",
+      "mark.notSent": "Not sent",
+      "mark.requested": "Model needs it",
+      "mark.locked": "Can't turn off",
+      "mark.gone": "Out of context",
+      "mark.compacted": "Before compaction",
+      "corner.pdf": "PDF p. {page}",
+      "corner.pdfAny": "PDF",
+      "corner.browser": "Web",
+      "turn.n": "Turn {n}",
+      "turn.earlier": "Earlier",
+      "turn.all": "Send all images from turn {n}",
+      "turn.allEarlier": "Send all earlier images",
+      "turn.shown": "Send the listed images from turn {n}",
+      "turn.shownEarlier": "Send the listed earlier images",
+      "turn.pinAll": "Send every image of turn {n} every turn",
+      "turn.pinAllEarlier": "Send every earlier image every turn",
+      "turn.pinShown": "Send the listed images of turn {n} every turn",
+      "turn.pinShownEarlier": "Send the listed earlier images every turn",
+      "tile.open": "Preview {id}",
+      "preview.label": "Image preview",
+      "preview.close": "Close preview",
+      "preview.closeTitle": "Close (Esc)",
+      "preview.pin": "Send every turn",
+      "preview.send": "Send",
+      "preview.loading": "Loading…",
+      "preview.none": "This image cannot be previewed",
+      "preview.sameAs": "Same as {id}",
+      "preview.locked": "This image can't be turned off; it is sent every turn",
+      "preview.gone": "This image is no longer in context and will not be sent again",
+      "preview.compacted": "From before the compaction: turned on, the plugin sends it again",
+      "empty.title": "No images in this task yet",
+      "empty.text": "Images you upload, and images the model views or generates, show up here in order.",
+      "empty.search": "No matching images",
+      "notice.retry": "Retry",
+      "notice.enabled": "Enabled; takes effect after you restart Codex.",
+      "notice.disabled": "Disabled; takes effect after you restart Codex. You can undo it any time with \"Enable plugin\". To uninstall, you can now remove the plugin on the plugins page.",
+      "notice.notEnabled": "The plugin is not enabled: Codex connects directly, so the settings here have no effect. Click \"Enable plugin\" at the top right, then restart Codex.",
+      "notice.waiting": "This task has not started yet. Once you send the first message, the panel switches to it.",
+      "notice.historyMissing": "An earlier part of this task's history cannot be found (the task it came from may have been deleted), so the images from that part are not listed here.",
+      "notice.engineDown": "The proxy is not running, so the settings here have no effect for now. Closing and reopening Codex usually brings it back.",
+      "notice.skipped": "The last request ({time}) could not be rewritten as set here; the images went to the model as they were. Reason: {reason}.",
+      "notice.websocket": "This turn was still running when you changed the settings, so its remaining requests still carry the originals; the change applies from the next message.",
+      "notice.thinking": "This account checks thinking records: the last request ({time}) left out {count} thinking records that no longer match the settings, so the model may think again and use more tokens.",
+      "notice.thinking_one": "This account checks thinking records: the last request ({time}) left out {count} thinking record that no longer matches the settings, so the model may think again and use more tokens.",
+      "reason.undecodable": "the request could not be decompressed",
+      "reason.unparsable": "the request could not be parsed",
+      "reason.format": "the request is not in the expected format",
+      "reason.integer": "the request holds an integer too large to rewrite safely",
+      "reason.index": "this task's records could not be read",
+      "reason.other": "an error occurred while rewriting",
+      "reason.thinking": "this account does not accept edited conversation history (the thinking check), so the engine sent the original request",
+      "chooser.title": "Several tasks just started. Which one should this panel show?",
+      "chooser.untitled": "New task",
+      "footer.hint": "Every image is sent; turn one off in its preview",
+      "footer.hintAuto": "The model fetches the rest as needed",
+      "auto.label": "Auto-select",
+      "auto.title": "When on, images from earlier turns are left out by default and the model fetches the ones it needs by id; images set to \"Send every turn\" in their preview go every turn",
+      "error.load": "Could not load: {message}",
+      "error.save": "Could not save: {message}",
+      "error.switch": "Could not switch: {message}",
+      "error.enable": "Could not enable: {message}",
+      "error.disable": "Could not disable: {message}",
+      "error.noReply": "Codex did not respond",
+      "error.call": "The call failed"
+    }
+  }
+</script>
+<script>
+(() => {
+  const THUMB_SIDE = 240;
+  const POLL_MS = 3000;
+  const STALE_MS = 30000;          // older than this, the 刷新 button turns orange
+  const $ = (id) => document.getElementById(id);
+  const main = $("main");
+
+  // ---- language (v0.1-14): Codex's interface language when the host context gives one, else the system's ----
+  const MESSAGES = JSON.parse($("messages").textContent);
+  const langOf = (tag) => (typeof tag === "string" && tag.trim() ? (tag.trim().toLowerCase().startsWith("zh") ? "zh" : "en") : null);
+  let lang = langOf(navigator.language) ?? "en";
+  let langSource = "system";
+  const template = (key, count) => {
+    const table = MESSAGES[lang];
+    return (count === 1 && table[`${key}_one`]) || table[key] || MESSAGES.en[key] || key;
+  };
+  const fill = (text, vars) => text.replace(/\{(\w+)\}/g, (all, name) => (name in vars ? String(vars[name]) : all));
+  const t = (key, vars = {}) => fill(template(key, vars.count), vars);
+  // A text with some of its values in bold, e.g. the number of images the next message sends.
+  function rich(key, vars, bold) {
+    return template(key, vars.count).split(/(\{\w+\})/).filter(Boolean).map((part) => {
+      const name = /^\{(\w+)\}$/.exec(part)?.[1];
+      if (!name || !(name in vars)) return part;
+      return name === bold ? Object.assign(document.createElement("b"), { textContent: String(vars[name]) }) : String(vars[name]);
+    });
+  }
+  function setLanguage(tag, source) {
+    const next = langOf(tag);
+    if (!next) return;
+    const changed = next !== lang;
+    lang = next;
+    langSource = source;
+    if (changed) applyLanguage();
+  }
+  // The texts outside what render() draws, and the caches that hold words.
+  function applyLanguage() {
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.title = t("page.title");
+    $("refresh").setAttribute("aria-label", t("refresh"));
+    $("search").placeholder = t("search.placeholder");
+    $("search").setAttribute("aria-label", t("search.label"));
+    $("chips").setAttribute("aria-label", t("chips.label"));
+    $("viewer").setAttribute("aria-label", t("preview.label"));
+    $("viewerClose").setAttribute("aria-label", t("preview.close"));
+    $("viewerClose").title = t("preview.closeTitle");
+    emptyState.querySelector("strong").textContent = t("empty.title");
+    emptyState.querySelector("span").textContent = t("empty.text");
+    nothingFound.textContent = t("empty.search");
+    turnParts.clear(); chipsKey = ""; needsKey = ""; fetchedKey = ""; pluginKey = "";
+    render();
+  }
+
+  // ---- MCP Apps bridge (JSON-RPC over postMessage with Codex) ----
+  let nextId = 1;
+  const waiting = new Map();
+  // v0.4: the same page also runs on its own for a Claude Code session (served by the engine), where panel-web.js stands
+  // in for the host as window.camHost.
+  const post = (message) => (window.camHost ? window.camHost.post({ jsonrpc: "2.0", ...message }) : window.parent.postMessage({ jsonrpc: "2.0", ...message }, "*"));
+  function request(method, params, timeoutMs = 30000) {
+    return new Promise((resolve, reject) => {
+      const id = nextId++;
+      const timer = setTimeout(() => { waiting.delete(id); reject(new Error(t("error.noReply"))); }, timeoutMs);
+      waiting.set(id, { resolve: (value) => { clearTimeout(timer); resolve(value); }, reject: (error) => { clearTimeout(timer); reject(error); } });
+      post({ id, method, params });
+    });
+  }
+  const textOf = (result) => (result?.content ?? []).map((part) => part?.text).filter(Boolean).join("\n");
+  // Every call says which language the panel shows, so the plugin answers in it; the panel's reads also say where the
+  // language came from, and the plugin remembers it for the text it gives the model.
+  async function callTool(name, args) {
+    const result = await request("tools/call", { name, arguments: { ...(args ?? {}), lang, ...(name === "cam_panel" ? { langSource } : {}) } });
+    if (result?.isError) throw new Error(textOf(result) || t("error.call"));
+    return result;
+  }
+  window.addEventListener("message", (event) => {
+    const message = event.data;
+    if (!message || typeof message !== "object") return;
+    if (message.id !== undefined && waiting.has(message.id) && ("result" in message || "error" in message)) {
+      const waiter = waiting.get(message.id);
+      waiting.delete(message.id);
+      if (message.error) waiter.reject(new Error(message.error.message ?? t("error.call"))); else waiter.resolve(message.result);
+      return;
+    }
+    if (message.method === "ui/notifications/tool-result") ingest(message.params?.structuredContent);
+    else if (message.method === "ui/notifications/host-context-changed") { applyHost(message.params); nudge(); }
+    else if (message.id !== undefined && message.method) post({ id: message.id, result: {} });
+  });
+  function applyHost(context) {
+    if (!context) return;
+    if (typeof context.locale === "string") setLanguage(context.locale, "codex");
+    if (context.theme === "dark" || context.theme === "light") document.documentElement.dataset.theme = context.theme;
+    const variables = context.styles?.variables;
+    if (variables && typeof variables === "object") {
+      for (const [name, value] of Object.entries(variables)) if (name.startsWith("--") && typeof value === "string") document.documentElement.style.setProperty(name, value);
+    }
+    if (context.containerDimensions) fitFrame(context.containerDimensions);
+  }
+
+  // ---- v0.1-21: the frame's height ----
+  // Codex 26.924 gives the page no fixed height, only the most it may take (containerDimensions); by MCP Apps, a page
+  // then reports the height it wants (ui/notifications/size-changed). The panel asks for all it may take; if the frame
+  // it then gets is smaller (a host may cap it), it fits that frame, so the footer stays in view.
+  const frame = { asked: 0, timer: 0 };
+  function fitFrame(dimensions) {
+    const height = Math.floor(Number(dimensions.height) || Number(dimensions.maxHeight) || 0);
+    if (height > 0) askFrame(height);
+  }
+  function askFrame(height) {
+    document.documentElement.classList.add("asks-height");
+    document.documentElement.style.setProperty("--frame-height", `${height}px`);
+    if (height === frame.asked) return;
+    frame.asked = height;
+    reportFrame();
+    settleLater();
+  }
+  const reportFrame = () => { if (frame.asked) post({ method: "ui/notifications/size-changed", params: { height: frame.asked } }); };
+  // Judged once the frame has stopped changing: a host may resize it in steps.
+  function settleLater() {
+    clearTimeout(frame.timer);
+    frame.timer = setTimeout(() => {
+      const shown = window.innerHeight;
+      if (shown > 0 && shown < frame.asked) askFrame(shown);
+    }, 1500);
+  }
+  window.addEventListener("resize", () => { if (frame.asked) settleLater(); });
+
+  // ---- state ----
+  const S = {
+    data: null, threadId: null,
+    error: null,                   // { key, message }: said in the current language when drawn
+    unsaved: new Map(),            // id -> on, switched and shown already, saved by the next call (v0.1-22)
+    thumbs: new Map(),             // id -> data URL or null
+    preview: null,                 // { id, url, loading }
+    refreshing: false, saving: false,
+    switching: false,              // a 启用插件 / 停用插件 call is under way
+    switchingTask: false,          // a cam_bind call is under way
+    manual: false,                 // the running refresh was asked for with the 刷新 button
+    query: "", chip: "all",        // v0.8: the search and the one filter picked
+    chipsOpen: false,              // the filters beyond two rows shown (user 2026-10-21)
+    cardOpen: false,               // v0.8: the request card unfolded
+    autoPending: null,             // v0.3: the switch's new state while it is being saved
+  };
+  let lastFresh = 0;               // when the panel last received the thread's state
+  // When this page was on screen (v0.1-10), sent with every read: a panel on a new chat is offered the threads started
+  // meanwhile. [from, to] pairs in ms, newest last; the first reaches back 10 s for a page Codex reloads when the chat
+  // becomes a thread. Once hidden (another chat, another window in front), the page starts a new pair when shown again.
+  const openedAt = Date.now();
+  const shown = [];
+  let screenGap = true;
+  const images = () => S.data?.images ?? [];
+  const byId = (id) => images().find((image) => image.id === id);
+  // On: sent (manual mode), or sent every turn (automatic selection). The plugin keeps the two kinds apart.
+  const isOn = (image) => (S.unsaved.has(image.id) ? S.unsaved.get(image.id) : image.checked);
+  const autoOn = () => S.autoPending ?? S.data?.auto ?? false;
+
+  function ingest(state) {
+    if (!state || !Array.isArray(state.images)) return;
+    lastFresh = Date.now();
+    // Polling mostly returns the same state; leave the page alone then.
+    const signature = JSON.stringify(state);
+    if (signature === S.signature && !S.error) return;
+    S.signature = signature;
+    if (S.threadId && state.threadId !== S.threadId) {
+      S.unsaved.clear(); S.thumbs.clear(); thumbQueue.length = 0; thumbsInFlight.clear();
+      S.preview = null; S.query = ""; S.chip = "all"; S.chipsOpen = false; $("search").value = "";
+    }
+    S.threadId = state.threadId;
+    S.data = state;
+    S.error = null;
+    for (const [id, on] of S.unsaved) {
+      const image = byId(id);
+      if (!image || !image.replaceable || image.checked === on) S.unsaved.delete(id);
+    }
+    if (S.preview && !byId(S.preview.id)) S.preview = null;
+    render();
+  }
+
+  let lastRefresh = 0;
+  async function refresh(manual = false) {
+    if (S.refreshing || S.saving) return;
+    S.refreshing = true;
+    S.manual = manual;
+    lastRefresh = Date.now();
+    renderRefresh();
+    noteScreen();
+    const started = Date.now();
+    try {
+      const state = (await callTool("cam_panel", { shown })).structuredContent;
+      // A save that began meanwhile may be missing from this state; the save's own answer, or the next read, shows it.
+      if (lastSaveStarted <= started) ingest(state);
+      followNewTask();
+    }
+    catch (error) { S.error = { key: "error.load", message: error.message }; render(); }
+    finally { S.refreshing = false; S.manual = false; renderRefresh(); }
+  }
+  // Moving to or touching the panel brings it up to date at once, whatever the host does to a background frame's
+  // timers: after a reply, the user looking over is what counts.
+  let nudged = 0;
+  function nudge() {
+    if (Date.now() - nudged < 1500) return;
+    nudged = Date.now();
+    refresh();
+  }
+
+  // ---- switching images on and off: saved at once (v0.1-22, user 2026-09-28: no 确定, no 撤销) ----
+  // A change shows at once; changes made while a save is under way go out together right after it.
+  let lastSaveStarted = 0;
+  function change(ids, on) {
+    const targets = ids.filter((id) => byId(id)?.replaceable);
+    // While the switch is being saved, a change could land in the wrong record.
+    if (!targets.length || S.autoPending !== null) return;
+    for (const id of targets) S.unsaved.set(id, on);
+    render();
+    flush();
+  }
+  async function flush() {
+    if (S.saving) return;
+    let failed = false;
+    while (S.unsaved.size && !failed) {
+      const batch = [...S.unsaved];
+      S.saving = true; lastSaveStarted = Date.now();
+      try {
+        const result = await callTool("cam_set_selection", {
+          check: batch.filter(([, on]) => on).map(([id]) => id),
+          uncheck: batch.filter(([, on]) => !on).map(([id]) => id),
+          mode: autoOn() ? "auto" : "manual",
+        });
+        // An image switched again meanwhile keeps its newer choice, which the next round saves.
+        for (const [id, on] of batch) if (S.unsaved.get(id) === on) S.unsaved.delete(id);
+        ingest(result.structuredContent);
+      } catch (error) {
+        // The panel goes back to what is saved, and the error says why.
+        failed = true;
+        S.unsaved.clear();
+        S.error = { key: "error.save", message: error.message };
+      } finally {
+        S.saving = false;
+      }
+    }
+    render();
+  }
+
+  // ---- v0.3: the automatic selection switch, saved at once like an image's ----
+  // Changes still being saved go first, in the mode they were made in; while the switch saves, no change is taken.
+  async function setAuto(on) {
+    if (S.autoPending !== null) return;
+    S.autoPending = on;
+    render();
+    try {
+      while (S.saving || S.unsaved.size) { if (!S.saving) await flush(); else await new Promise((resolve) => setTimeout(resolve, 50)); }
+      lastSaveStarted = Date.now();
+      const result = await callTool("cam_set_selection", { auto: on });
+      S.autoPending = null;
+      ingest(result.structuredContent);
+    } catch (error) {
+      S.autoPending = null;
+      S.error = { key: "error.switch", message: error.message };
+    }
+    render();
+  }
+
+  // ---- a panel opened on a new chat follows the thread its first message starts (v0.1-10) ----
+  // The plugin offers only threads started while this page was on screen, so a panel left on another new chat does not
+  // take a task started elsewhere. One: switch to it. Several (e.g. two windows side by side): the user picks one.
+  const onScreen = () => document.visibilityState === "visible" && window.innerWidth > 0 && window.innerHeight > 0;
+  function noteScreen() {
+    const now = Date.now();
+    if (!onScreen()) { screenGap = true; return; }
+    const last = shown[shown.length - 1];
+    if (last && !screenGap) last[1] = now;
+    else {
+      shown.push([shown.length ? now - 2000 : Math.min(openedAt - 10000, now), now]);
+      if (shown.length > 20) shown.shift();
+    }
+    screenGap = false;
+  }
+  const newTasks = () => (S.data?.started === false && !S.data?.switchedFrom ? S.data?.newTasks ?? [] : []);
+  function followNewTask() {
+    const tasks = newTasks();
+    if (tasks.length === 1) switchTo(tasks[0].threadId);
+  }
+  async function switchTo(threadId) {
+    if (S.switchingTask) return;
+    S.switchingTask = true; render();
+    try { ingest((await callTool("cam_bind", { target: threadId })).structuredContent); }
+    catch (error) { S.error = { key: "error.switch", message: error.message }; }
+    finally { S.switchingTask = false; render(); }
+  }
+
+  // 启用 / 停用: Codex reads the setting when it starts, so either one waits for a restart (the notices say so).
+  async function switchEngine(enable) {
+    if (S.switching) return;
+    S.switching = true; render();
+    try {
+      const result = await callTool("cam_setup", { enable });
+      ingest(result.structuredContent);
+    } catch (error) {
+      S.error = { key: enable ? "error.enable" : "error.disable", message: error.message };
+    } finally {
+      S.switching = false; render();
+    }
+  }
+
+  // ---- images: every thumbnail is queued in list order, a few at a time; tiles scrolled into view go first ----
+  // (Visibility alone is not enough: a page that is hidden or not painted yet gets no intersection updates.)
+  const thumbQueue = [];
+  const thumbsInFlight = new Set();
+  async function loadImage(id, maxSide) {
+    const result = await callTool("cam_image", { id, maxSide });
+    return result?._meta?.dataUrl ?? null;
+  }
+  function queueThumb(id, first = false) {
+    if (S.thumbs.has(id) || thumbsInFlight.has(id)) return;
+    const at = thumbQueue.indexOf(id);
+    if (at >= 0) { if (!first) return; thumbQueue.splice(at, 1); }
+    if (first) thumbQueue.unshift(id); else thumbQueue.push(id);
+    pumpThumbs();
+  }
+  function pumpThumbs() {
+    while (thumbsInFlight.size < 3 && thumbQueue.length) {
+      const id = thumbQueue.shift();
+      const thread = S.threadId;
+      thumbsInFlight.add(id);
+      loadImage(id, THUMB_SIDE)
+        .then((url) => { if (thread === S.threadId) S.thumbs.set(id, url); })
+        .catch(() => { if (thread === S.threadId) S.thumbs.set(id, null); })
+        .finally(() => { thumbsInFlight.delete(id); const tile = tiles.get(id); if (tile) paintThumb(tile, id); if (S.preview?.id === id && !S.preview.url) renderViewer(); pumpThumbs(); });
+    }
+  }
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) if (entry.isIntersecting) { observer.unobserve(entry.target); queueThumb(entry.target.dataset.id, true); }
+  }, { root: main, rootMargin: "200px 0px" });
+
+  // ---- what an image is ----
+  const formatBytes = (bytes) => bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  const sourceOf = (image) => image.source ?? image.kind;
+  const sourceLabel = (image) => (MESSAGES[lang][`kind.${sourceOf(image)}`] ? t(`kind.${sourceOf(image)}`) : image.kind);
+  // A PDF comment screenshot goes by its PDF's name when the comment says which one.
+  const nameOf = (image) => image.pdfName ?? image.name ?? null;
+  // 上传 covers PDF pages and web pages (Codex attaches both with the user's message); 生成 the generated images.
+  const uploaded = (image) => ["upload", "pdf", "browser"].includes(sourceOf(image));
+  const generated = (image) => sourceOf(image) === "generated";
+  const sceneOf = (image) => image.scene ?? null;
+  // An image switched off becomes a duplicate placeholder when a copy of the same content still goes out.
+  const sentCopyOf = (image) => image.sameAs.find((id) => { const other = byId(id); return other && other.inNextRequest && isOn(other); });
+  const changeable = (image) => image.replaceable && image.inNextRequest;
+
+  // ---- v0.8: the search and the one filter; what they find, never what is sent ----
+  // Everything an image is known by, in the panel's language and in what the model noted (never shown): its id, name,
+  // source, scene, feature line and ratings, and what was said in its turn.
+  const haystacks = new Map();
+  function haystackOf(image) {
+    const key = `${lang}|${image.search}|${image.scene}|${S.data?.turnTexts?.[image.turn] ?? ""}`;
+    const known = haystacks.get(image.id);
+    if (known?.key === key) return known.text;
+    const text = [
+      image.id, nameOf(image), image.name, sourceLabel(image), uploaded(image) ? t("chip.upload") : "", generated(image) ? t("chip.generated") : "",
+      sceneOf(image) ?? t("chip.other"), image.search, S.data?.turnTexts?.[image.turn] ?? "",
+    ].filter(Boolean).join(" ").toLowerCase();
+    haystacks.set(image.id, { key, text });
+    return text;
+  }
+  const words = () => S.query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  function inChip(image, chip = S.chip) {
+    if (chip === "all") return true;
+    if (chip === "upload") return uploaded(image);
+    if (chip === "generated") return generated(image);
+    if (chip === "other") return sceneOf(image) === null;
+    return chip === `scene:${sceneOf(image)}`;
+  }
+  const matches = (image) => inChip(image) && words().every((word) => haystackOf(image).includes(word));
+  const searching = () => S.chip !== "all" || words().length > 0;
+
+  // ---- the next message: what goes out, and the request size against sending everything (an estimate) ----
+  const PLACEHOLDER_CHARS = 700;
+  function forecast() {
+    const list = images();
+    const counted = list.filter((image) => image.inNextRequest);
+    const dropped = counted.filter((image) => image.replaceable && !isOn(image));
+    const saved = dropped.reduce((sum, image) => sum + Math.max(0, image.base64Chars - PLACEHOLDER_CHARS), 0);
+    const baseline = S.data?.send?.baseline ?? null;
+    // With a recorded request: its size plus the images added since. Without one: the images alone.
+    const full = baseline
+      ? baseline.bytes + counted.filter((image) => image.inLastRequest === false).reduce((sum, image) => sum + image.base64Chars, 0)
+      : counted.reduce((sum, image) => sum + image.base64Chars, 0);
+    return { whole: !!baseline, full, after: Math.max(0, full - saved), sent: counted.length - dropped.length, dropped: dropped.length, duplicates: dropped.filter(sentCopyOf).length, gone: list.length - counted.length };
+  }
+  function clockOf(at) {
+    const date = new Date(at);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+  }
+  // Today: 10:30; another day: 9月25日 10:30 or Sep 25, 10:30.
+  function timeOf(at) {
+    const date = new Date(at);
+    if (Number.isNaN(date.getTime())) return "";
+    const today = date.toDateString() === new Date().toDateString();
+    const time = { hour: "2-digit", minute: "2-digit", hourCycle: "h23" };
+    return new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en-US", today ? time : { month: lang === "zh" ? "long" : "short", day: "numeric", ...time }).format(date);
+  }
+
+  // ---- the request card ----
+  function renderCard() {
+    const list = images();
+    const title = !S.data ? t("title.loading") : S.data.title ?? (S.data.started === false ? t("title.newTask") : t("title.unnamed"));
+    $("title").textContent = title;
+    $("title").title = title;
+    const loaded = !!S.data && list.length > 0;
+    for (const id of ["meterBarBox", "nextLine", "details", "more"]) $(id).hidden = !loaded;
+    if (!loaded) {
+      $("meterLabel").textContent = !S.data ? (S.error ? t("meter.failed") : t("meter.loading")) : t("meter.empty");
+      $("meterValue").textContent = ""; $("meterFull").textContent = "";
+      return;
+    }
+    const f = forecast();
+    const auto = autoOn();
+    // v0.3: with automatic selection, what the model will fetch comes on top, and is not known beforehand.
+    $("meterLabel").textContent = t(f.whole ? "meter.request" : "meter.images");
+    $("meterValue").textContent = auto ? t("meter.atLeast", { bytes: formatBytes(f.after) }) : formatBytes(f.after);
+    $("card").title = auto ? t("meter.autoNote") : "";
+    const saving = f.after < f.full;
+    const percent = (1 - f.after / f.full) * 100;
+    $("meterFull").textContent = saving ? t("meter.full", { full: formatBytes(f.full), percent: percent < 1 ? "<1" : Math.round(percent) }) : t("meter.none");
+    $("meterFull").classList.toggle("saved", saving);
+    $("meterBar").style.width = `${f.full > 0 ? Math.max(2, Math.round((f.after / f.full) * 100)) : 100}%`;
+    $("nextLabel").textContent = t("next.label");
+    $("nextValue").replaceChildren(
+      ...rich(auto ? "next.auto" : "next.manual", { sent: f.sent, count: f.sent }, "sent"),
+      f.dropped ? t("next.dropped", { dropped: f.dropped, count: f.dropped }) + (f.duplicates ? t("next.duplicates", { duplicates: f.duplicates, count: f.duplicates }) : "") : "",
+      f.gone ? t("next.gone", { gone: f.gone, count: f.gone }) : "",
+    );
+    const more = $("more");
+    more.setAttribute("aria-expanded", String(S.cardOpen));
+    more.querySelector("span").textContent = t(S.cardOpen ? "card.less" : "card.more");
+    $("details").hidden = !S.cardOpen;
+    // The last request through the engine.
+    const last = S.data.send?.last;
+    $("lastLabel").textContent = last ? t("last.label", { time: timeOf(last.at) }) : t("last.labelNone");
+    $("lastValue").textContent = !last ? t("last.noBaseline")
+      : last.skipped ? t("last.skipped", { bytes: formatBytes(last.bytesBefore) })
+      : last.resent ? t("last.resent", { resent: last.resent, count: last.replaced })
+      : last.replaced ? t("last.replaced", { count: last.replaced, saved: formatBytes(last.bytesBefore - last.bytesAfter) })
+      : t("last.none", { bytes: formatBytes(last.bytesBefore) });
+    $("lastValue").title = $("lastValue").textContent;
+    renderFetched(auto);
+    // v0.7: the subagents and side chats of a Codex task, as one line.
+    const children = S.data.children ?? [];
+    $("childrenLine").hidden = !children.length;
+    if (children.length) {
+      const saved = children.reduce((sum, child) => sum + (child.last && !child.last.skipped ? Math.max(0, child.last.bytesBefore - child.last.bytesAfter) : 0), 0);
+      $("childrenLabel").textContent = t("children.label", { count: children.length });
+      $("childrenValue").textContent = saved > 0 ? t("children.saved", { saved: formatBytes(saved) }) : t("children.none");
+    }
+  }
+  // v0.3: with automatic selection on, the ids the model fetched in the latest turn, each finding its thumbnail.
+  // Rebuilt only when that list changes, so hover and focus survive the polling.
+  let fetchedKey = "";
+  function renderFetched(auto) {
+    $("fetchedLine").hidden = !auto;
+    if (!auto) return;
+    $("fetchedLabel").textContent = t("fetched.label");
+    const fetched = (S.data?.fetched ?? []).filter(byId);
+    const key = `${lang}|${fetched.join(",")}`;
+    if (key === fetchedKey) return;
+    fetchedKey = key;
+    $("fetchedIds").replaceChildren(...(fetched.length ? fetched.map(idButton) : [Object.assign(document.createElement("span"), { className: "v", textContent: t("fetched.none") })]));
+  }
+  function idButton(id) {
+    const button = Object.assign(document.createElement("button"), { type: "button", className: "idbtn", textContent: id, title: t("id.jump", { id }) });
+    button.addEventListener("click", () => jumpTo(id));
+    return button;
+  }
+
+  // ---- v0.1-17: manual mode, the images the model asked for that are not sent (the same test as their mark) ----
+  let needsKey = "";
+  function renderNeeds() {
+    const needed = autoOn() ? [] : images().filter((image) => image.requested && image.inNextRequest && image.replaceable && !isOn(image));
+    const box = $("needs");
+    const key = needed.length ? `${lang}|${needed.map((image) => image.id).join(",")}` : "";
+    box.hidden = !key;
+    if (key === needsKey) return;
+    needsKey = key;
+    box.replaceChildren(...(key ? [
+      Object.assign(document.createElement("span"), { textContent: t("needs.title", { count: needed.length }) }),
+      ...needed.map((image) => idButton(image.id)),
+    ] : []));
+  }
+
+  // 启用插件 / 停用插件 in the header switch at once (user 2026-09-25): the notice says a restart is due, and the
+  // other button undoes it. Rebuilt only when the choice changes, so hover and focus survive the polling.
+  let pluginKey = "";
+  function renderPlugin() {
+    const setup = S.data?.setup;
+    const on = !!setup?.usesEngine;
+    const key = !setup ? "" : `${on ? "on" : "off"}|${lang}`;
+    const box = $("plugin");
+    if (key !== pluginKey) {
+      pluginKey = key;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = t(on ? "plugin.disable" : "plugin.enable");
+      button.className = on ? "off" : "on";
+      button.addEventListener("click", () => switchEngine(!on));
+      box.replaceChildren(...(key ? [button] : []));
+    }
+    for (const button of box.children) button.disabled = S.switching;
+  }
+
+  function renderRefresh() {
+    const button = $("refresh");
+    const stale = lastFresh > 0 && Date.now() - lastFresh > STALE_MS;
+    button.classList.toggle("spinning", S.refreshing && S.manual);
+    button.classList.toggle("stale", stale && !S.refreshing);
+    button.title = !lastFresh ? t("refresh") : t(stale ? "refresh.stale" : "refresh.at", { time: clockOf(lastFresh) });
+  }
+
+  // ---- v0.8: the filters: 全部, 上传, 生成 (when the task has any), then the scenes the model named, and 其他 ----
+  // Rebuilt only when what they say changes, so hover and focus survive the polling and the clicks.
+  let chipsKey = "";
+  function chipList() {
+    const list = images();
+    const count = (chip) => list.filter((image) => inChip(image, chip)).length;
+    const kinds = [["all", t("chip.all")], ["upload", t("chip.upload")], ["generated", t("chip.generated")]].map(([chip, label]) => [chip, label, count(chip)]).filter(([chip, , n]) => chip === "all" || n > 0);
+    // The scenes with the most images first; a tie keeps the order they first appeared in.
+    const scenes = [...new Set(list.map(sceneOf).filter((scene) => scene !== null))].map((scene) => [`scene:${scene}`, scene, count(`scene:${scene}`)]).sort((a, b) => b[2] - a[2]);
+    // Without any scene (images from before v0.8), 其他 alone says nothing.
+    const others = scenes.length ? [["other", t("chip.other"), count("other")]].filter(([, , n]) => n > 0) : [];
+    return { kinds, scenes: [...scenes, ...others] };
+  }
+  function renderChips() {
+    const box = $("chips");
+    const { kinds, scenes } = chipList();
+    if (![...kinds, ...scenes].some(([chip]) => chip === S.chip)) S.chip = "all";
+    const key = `${lang}|${JSON.stringify([kinds, scenes])}`;
+    if (key !== chipsKey) {
+      chipsKey = key;
+      const make = ([chip, label, n]) => {
+        const button = Object.assign(document.createElement("button"), { type: "button", className: "chip" });
+        button.dataset.chip = chip;
+        button.append(label, Object.assign(document.createElement("span"), { className: "n", textContent: String(n) }));
+        // Picking one folds the filters again: the one picked stays in view.
+        button.addEventListener("click", () => { S.chip = chip; S.chipsOpen = false; render(); });
+        return button;
+      };
+      // One filter alone (全部) says nothing either.
+      const all = [...kinds, ...scenes];
+      box.replaceChildren(...(all.length < 2 ? [] : [...kinds.map(make), ...(scenes.length ? [Object.assign(document.createElement("span"), { className: "sep" })] : []), ...scenes.map(make), foldButton]));
+    }
+    for (const chip of box.querySelectorAll(".chip[data-chip]")) chip.setAttribute("aria-pressed", String(chip.dataset.chip === S.chip));
+    foldChips();
+  }
+  // ---- at most two rows of filters (user 2026-10-21): the last ones fold into 更多 N, and the one picked stays in view
+  // in front of it. Measured again only when the filters, the pick, the fold or the panel's width change. ----
+  const foldButton = Object.assign(document.createElement("button"), { type: "button", className: "chip fold" });
+  foldButton.innerHTML = '<span></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  foldButton.addEventListener("click", () => { S.chipsOpen = !S.chipsOpen; foldChips(); });
+  let foldKey = "";
+  function foldChips() {
+    const box = $("chips");
+    const key = `${chipsKey}|${S.chip}|${S.chipsOpen}|${box.clientWidth}`;
+    if (key === foldKey) return;
+    foldKey = key;
+    const chips = [...box.querySelectorAll(".chip[data-chip]")];
+    const label = foldButton.querySelector("span");
+    for (const chip of chips) chip.hidden = false;
+    foldButton.hidden = true;
+    if (!chips.length || !box.clientWidth) return;
+    const twoRows = 2 * chips[0].offsetHeight + (parseFloat(getComputedStyle(box).rowGap) || 0) + 1;
+    if (box.offsetHeight <= twoRows) return;
+    foldButton.hidden = false;
+    foldButton.setAttribute("aria-expanded", String(S.chipsOpen));
+    label.textContent = S.chipsOpen ? t("chips.less") : t("chips.more", { count: 0 });
+    if (S.chipsOpen) return;
+    let folded = 0;
+    for (let i = chips.length - 1; i >= 0 && box.offsetHeight > twoRows; i--) {
+      if (chips[i].dataset.chip === S.chip) continue;
+      chips[i].hidden = true;
+      label.textContent = t("chips.more", { count: ++folded });
+    }
+  }
+  new ResizeObserver(() => foldChips()).observe($("chips"));
+
+  // ---- the thumbnails, by turn, newest first ----
+  const tiles = new Map();
+  const turnParts = new Map();
+  const emptyState = document.createElement("div");
+  emptyState.className = "empty";
+  emptyState.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="14" height="14" rx="2.5"/><path d="M7 3h10.5A3.5 3.5 0 0 1 21 6.5V16"/><circle cx="8" cy="11" r="1.5"/><path d="m3.5 18 4.5-4.5 3 3 2-2 3.5 3.5"/></svg><strong></strong><span></span>';
+  const nothingFound = Object.assign(document.createElement("div"), { className: "nothing" });
+
+  // The mark a thumbnail carries: one for its state, one for before a compaction, one for its source's corner.
+  function marksOf(image) {
+    const marks = [];
+    let state = null;
+    if (!image.inNextRequest) state = [t("mark.gone"), ""];
+    else if (!image.replaceable) state = [t("mark.locked"), ""];
+    else if (autoOn()) {
+      if (isOn(image)) state = [t("mark.pinned"), "pin"];
+      else if (image.fetched) state = [t("mark.fetched"), "fetched"];
+    } else if (!isOn(image)) state = image.requested ? [t("mark.requested"), "warn"] : [t("mark.notSent"), ""];
+    if (state) marks.push(["state", ...state]);
+    // v0.5: from before a Claude Code compaction.
+    if (image.compacted) marks.push(["when", t("mark.compacted"), ""]);
+    const source = sourceOf(image);
+    if (source === "pdf") marks.push(["corner", image.pdfPage ? t("corner.pdf", { page: image.pdfPage }) : t("corner.pdfAny"), ""]);
+    if (source === "browser") marks.push(["corner", t("corner.browser"), ""]);
+    return marks;
+  }
+  function makeTile(id) {
+    const tile = Object.assign(document.createElement("button"), { type: "button", className: "tile" });
+    tile.dataset.id = id;
+    tile.addEventListener("click", () => openPreview(id));
+    observer.observe(tile);
+    return tile;
+  }
+  function paintThumb(tile, id) {
+    const url = S.thumbs.get(id);
+    tile.classList.toggle("loading", !S.thumbs.has(id));
+    let img = tile.querySelector("img");
+    if (url) {
+      if (!img) { img = document.createElement("img"); img.alt = ""; tile.prepend(img); tile.querySelector(".none")?.remove(); }
+      if (img.src !== url) img.src = url;
+    } else if (S.thumbs.has(id) && !tile.querySelector(".none")) {
+      img?.remove();
+      tile.prepend(Object.assign(document.createElement("span"), { className: "none", textContent: "—" }));
+    }
+  }
+  function paintTile(tile, image) {
+    tile.classList.toggle("off", image.inNextRequest && image.replaceable && !isOn(image));
+    tile.classList.toggle("gone", !image.inNextRequest);
+    tile.setAttribute("aria-label", [t("tile.open", { id: image.id }), nameOf(image)].filter(Boolean).join(" · "));
+    tile.title = [image.id, nameOf(image)].filter(Boolean).join(" · ");
+    const marks = marksOf(image);
+    const key = JSON.stringify(marks);
+    if (tile.dataset.marks !== key) {
+      tile.dataset.marks = key;
+      for (const old of tile.querySelectorAll(".mark")) old.remove();
+      for (const [place, text, tone] of marks) tile.append(Object.assign(document.createElement("span"), { className: `mark ${place} ${tone}`.trim(), textContent: text }));
+    }
+    paintThumb(tile, image.id);
+  }
+  // v0.1-18, as in v0.7 (user 2026-10-19): a turn's line ends with one checkbox for the images of it that are shown and
+  // can change. A click on a checked box turns them all off; on a mixed or empty one, all on. It shows a dash while only
+  // some are on, and stays hidden below two images (an image's own box does the same).
+  function turnPart(turn) {
+    if (turnParts.has(turn)) return turnParts.get(turn);
+    const head = Object.assign(document.createElement("div"), { className: "turn" });
+    head.append(Object.assign(document.createElement("span"), { textContent: turn === null ? t("turn.earlier") : t("turn.n", { n: turn }) }));
+    const box = Object.assign(document.createElement("label"), { className: "check" });
+    box.innerHTML = '<input type="checkbox"><span class="box"></span>';
+    const input = box.querySelector("input");
+    input.addEventListener("change", () => {
+      const targets = images().filter((image) => image.turn === turn && changeable(image) && matches(image));
+      change(targets.map((image) => image.id), input.checked);
+    });
+    head.append(box);
+    const grid = Object.assign(document.createElement("div"), { className: "grid" });
+    const part = { head, box, input, grid };
+    turnParts.set(turn, part);
+    return part;
+  }
+  function paintTurn(part, turn, targets) {
+    const on = targets.filter(isOn).length;
+    part.box.hidden = targets.length < 2;
+    const keys = autoOn() ? ["turn.pinShownEarlier", "turn.pinAllEarlier", "turn.pinShown", "turn.pinAll"] : ["turn.shownEarlier", "turn.allEarlier", "turn.shown", "turn.all"];
+    const label = turn === null ? t(searching() ? keys[0] : keys[1]) : t(searching() ? keys[2] : keys[3], { n: turn });
+    part.box.title = label;
+    part.input.setAttribute("aria-label", label);
+    part.input.checked = on > 0 && on === targets.length;
+    part.input.indeterminate = on > 0 && on < targets.length;
+    part.input.disabled = S.autoPending !== null;
+  }
+
+  // Notices are reused while their text stays the same, so re-rendering does not move the list around.
+  const notices = new Map();
+  function notice(tone, text, ...actions) {
+    const key = `${tone}|${text}|${actions.map((action) => action.label).join("|")}`;
+    if (notices.has(key)) return notices.get(key);
+    const box = document.createElement("div");
+    notices.set(key, box);
+    box.className = `notice ${tone}`;
+    const span = document.createElement("span");
+    span.className = "grow";
+    span.textContent = text;
+    box.append(span);
+    for (const action of actions) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = action.label;
+      button.addEventListener("click", action.run);
+      box.append(button);
+    }
+    return box;
+  }
+  // Several threads started since the panel was opened: which one is this panel's?
+  function chooser(tasks) {
+    const key = `chooser|${lang}|${tasks.map((task) => `${task.threadId}:${task.title ?? ""}`).join("|")}`;
+    let box = notices.get(key);
+    if (!box) {
+      box = document.createElement("div");
+      box.className = "notice info chooser";
+      const text = document.createElement("span");
+      text.textContent = t("chooser.title");
+      box.append(text);
+      for (const task of tasks) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "pick";
+        const name = Object.assign(document.createElement("span"), { className: "pick-name", textContent: task.title ?? t("chooser.untitled") });
+        const time = Object.assign(document.createElement("span"), { className: "pick-time", textContent: clockOf(task.startedAt) });
+        button.append(name, time);
+        button.addEventListener("click", () => switchTo(task.threadId));
+        box.append(button);
+      }
+      notices.set(key, box);
+    }
+    for (const button of box.querySelectorAll("button")) button.disabled = S.switchingTask;
+    return box;
+  }
+  function setupNotices() {
+    const setup = S.data?.setup;
+    if (!setup) return [];
+    if (setup.changed === "enabled") return [notice("info", t("notice.enabled"))];
+    if (setup.changed === "disabled") return [notice("warn", t("notice.disabled"))];
+    if (!setup.usesEngine) return [notice("info", t("notice.notEnabled"))];
+    return [];
+  }
+  // Only when there is something to say.
+  function noticeNodes() {
+    const nodes = [];
+    if (S.error) nodes.push(notice("error", t(S.error.key, { message: S.error.message }), { label: t("notice.retry"), run: () => { S.error = null; render(); refresh(); } }));
+    nodes.push(...setupNotices());
+    if (S.data?.started === false) {
+      const tasks = newTasks();
+      nodes.push(tasks.length > 1 ? chooser(tasks) : notice("info", t("notice.waiting")));
+    }
+    if (S.data?.historyMissing) nodes.push(notice("warn", t("notice.historyMissing")));
+    if (S.data?.engineRunning === false && S.data?.setup?.usesEngine !== false) nodes.push(notice("warn", t("notice.engineDown")));
+    const sendNotice = S.data?.send?.notice;
+    if (sendNotice?.kind === "skipped") nodes.push(notice("error", t("notice.skipped", { time: timeOf(sendNotice.at), reason: t(MESSAGES[lang][`reason.${sendNotice.reason}`] ? `reason.${sendNotice.reason}` : "reason.other") })));
+    if (sendNotice?.kind === "fallback") nodes.push(notice("error", t("notice.skipped", { time: timeOf(sendNotice.at), reason: t("reason.thinking") })));
+    if (sendNotice?.kind === "thinking") nodes.push(notice("info", t("notice.thinking", { time: timeOf(sendNotice.at), count: sendNotice.count })));
+    if (sendNotice?.kind === "websocket") nodes.push(notice("warn", t("notice.websocket")));
+    return nodes;
+  }
+
+  function renderList() {
+    const nodes = noticeNodes();
+    const list = images();
+    if (S.data && !list.length) nodes.push(emptyState);
+    else {
+      const shownImages = list.filter(matches);
+      if (S.data && !shownImages.length) nodes.push(nothingFound);
+      const turns = [...new Set(shownImages.map((image) => image.turn))].sort((a, b) => (b ?? -1) - (a ?? -1));
+      for (const turn of turns) {
+        const group = shownImages.filter((image) => image.turn === turn);
+        const part = turnPart(turn);
+        const targets = group.filter(changeable);
+        paintTurn(part, turn, targets);
+        const cells = group.map((image) => {
+          let tile = tiles.get(image.id);
+          if (!tile) { tile = makeTile(image.id); tiles.set(image.id, tile); }
+          paintTile(tile, image);
+          return tile;
+        });
+        const current = part.grid.children;
+        if (cells.length !== current.length || cells.some((cell, index) => cell !== current[index])) part.grid.replaceChildren(...cells);
+        nodes.push(part.head, part.grid);
+      }
+      for (const image of shownImages) queueThumb(image.id);
+    }
+    for (const [id, tile] of tiles) if (!byId(id)) { observer.unobserve(tile); tiles.delete(id); }
+    for (const [key, box] of notices) if (!nodes.includes(box)) notices.delete(key);
+    // Only touch the list when its items changed, so scrolling and keyboard focus are kept.
+    const current = main.children;
+    if (nodes.length !== current.length || nodes.some((node, index) => node !== current[index])) main.replaceChildren(...nodes);
+  }
+
+  // ---- the preview: it fills the panel, as in v0.7 (user 2026-10-19); the image, what it is, and its switch ----
+  function renderViewer() {
+    const viewer = $("viewer");
+    const image = S.preview && byId(S.preview.id);
+    if (!image) { viewer.hidden = true; return; }
+    viewer.hidden = false;
+    $("viewerId").textContent = image.id;
+    $("viewerName").textContent = nameOf(image) ?? "";
+    const where = sourceOf(image) === "pdf" && image.pdfPage ? t("corner.pdf", { page: image.pdfPage }) : sourceLabel(image);
+    const note = !image.inNextRequest ? t("preview.gone") : !image.replaceable ? t("preview.locked") : image.compacted ? t("preview.compacted") : image.sameAs.length ? t("preview.sameAs", { id: image.sameAs[0] }) : null;
+    $("viewerMeta").textContent = [image.turn === null ? null : t("turn.n", { n: image.turn }), where, image.width && image.height ? `${image.width}×${image.height}` : null, formatBytes(image.bytes), note].filter(Boolean).join(" · ");
+    const stage = $("viewerStage");
+    const url = S.preview.url ?? S.thumbs.get(image.id) ?? null;
+    stage.classList.toggle("loading", S.preview.loading && !!url);
+    if (url) {
+      let img = stage.querySelector("img");
+      if (!img) { img = document.createElement("img"); stage.replaceChildren(img); }
+      img.alt = nameOf(image) ?? image.id;
+      if (img.src !== url) img.src = url;
+    } else stage.replaceChildren(Object.assign(document.createElement("span"), { className: "none", textContent: t(S.preview.loading ? "preview.loading" : "preview.none") }));
+    const control = $("viewerCheck");
+    const label = t(autoOn() ? "preview.pin" : "preview.send");
+    control.querySelector(".label").textContent = label;
+    const input = control.querySelector("input");
+    input.checked = image.inNextRequest && (!image.replaceable || isOn(image));
+    input.disabled = !changeable(image) || S.autoPending !== null;
+    input.setAttribute("aria-label", `${label} ${image.id}`);
+  }
+  let returnTo = null;
+  function openPreview(id) {
+    returnTo = id;
+    S.preview = { id, url: null, loading: true };
+    renderViewer();
+    $("viewerClose").focus({ focusVisible: false });
+    const side = Math.min(2048, Math.max(800, Math.round(Math.max(window.innerWidth, window.innerHeight) * (window.devicePixelRatio || 1))));
+    loadImage(id, side)
+      .then((url) => { if (S.preview?.id === id) S.preview = { id, url, loading: false }; })
+      .catch(() => { if (S.preview?.id === id) S.preview = { id, url: null, loading: false }; })
+      .finally(() => { if (S.preview?.id === id) renderViewer(); });
+  }
+  function closePreview() {
+    if (!S.preview) return;
+    S.preview = null;
+    renderViewer();
+    const tile = returnTo && tiles.get(returnTo);
+    if (tile?.isConnected) tile.focus({ preventScroll: true });
+  }
+  // A click anywhere but on the image, a button or the checkbox closes the preview.
+  $("viewer").addEventListener("click", (event) => { if (!event.target.closest("img, button, .check")) closePreview(); });
+  $("viewerClose").addEventListener("click", closePreview);
+  $("viewerCheck").querySelector("input").addEventListener("change", (event) => { if (S.preview) change([S.preview.id], event.target.checked); });
+
+  // ---- an id button: the preview closes, a search or filter that hides the image is cleared, then its thumbnail
+  // scrolls to the middle of the list, flashes twice and takes the keyboard focus ----
+  let flashAfterScroll = null;
+  main.addEventListener("scrollend", () => flashAfterScroll?.());
+  function jumpTo(id) {
+    const image = byId(id);
+    if (!image) return;
+    if (S.preview) S.preview = null;
+    if (!matches(image)) { S.query = ""; $("search").value = ""; S.chip = "all"; }
+    render();
+    const tile = tiles.get(id);
+    if (!tile) return;
+    tile.focus({ preventScroll: true });
+    const box = tile.getBoundingClientRect();
+    const view = main.getBoundingClientRect();
+    const top = Math.max(0, Math.min(main.scrollHeight - main.clientHeight, main.scrollTop + box.top + box.height / 2 - view.top - view.height / 2));
+    if (Math.abs(top - main.scrollTop) < 2) { flash(tile); return; }
+    // Flash once the scrolling stops; a later jump replaces this one.
+    const go = () => { if (flashAfterScroll !== go) return; flashAfterScroll = null; flash(tile); };
+    flashAfterScroll = go;
+    setTimeout(go, 1000);
+    main.scrollTo({ top, behavior: "smooth" });
+  }
+  const flashTimers = new Map();
+  function flash(tile) {
+    clearTimeout(flashTimers.get(tile));
+    tile.classList.remove("flash");
+    void tile.offsetWidth;           // restarts the animation when the same tile is found again
+    tile.classList.add("flash");
+    flashTimers.set(tile, setTimeout(() => { tile.classList.remove("flash"); flashTimers.delete(tile); }, 1300));
+  }
+
+  // The search and the filters stand aside before there is anything to find.
+  function renderSearch() {
+    const hide = !images().length;
+    $("searchBox").hidden = hide;
+    $("chips").hidden = hide;
+  }
+
+  // Always the same line: a change needs no word that it was saved (user 2026-09-28). v0.3: the automatic selection
+  // switch sits next to it, and the line says what happens to the other images in each mode.
+  function renderFooter() {
+    const auto = autoOn();
+    $("status").textContent = images().length ? t(auto ? "footer.hintAuto" : "footer.hint") : "";
+    const control = $("auto");
+    control.hidden = !images().length && !S.data?.auto;
+    control.title = t("auto.title");
+    control.querySelector(".auto-label").textContent = t("auto.label");
+    const input = control.querySelector("input");
+    input.checked = auto;
+    input.disabled = S.autoPending !== null;
+    input.setAttribute("aria-label", t("auto.label"));
+  }
+
+  // The search box and the filters show before the filters are folded, which measures them.
+  function render() { renderCard(); renderNeeds(); renderPlugin(); renderRefresh(); renderSearch(); renderChips(); renderList(); renderFooter(); renderViewer(); }
+
+  $("more").addEventListener("click", () => { S.cardOpen = !S.cardOpen; renderCard(); });
+  $("search").addEventListener("input", (event) => { S.query = event.target.value; renderList(); });
+  document.addEventListener("keydown", (event) => { if (event.key === "Escape" && S.preview) closePreview(); });
+  $("auto").querySelector("input").addEventListener("change", (event) => setAuto(event.target.checked));
+  $("refresh").addEventListener("click", () => refresh(true));
+
+  // ---- start: handshake, then Codex sends its own cam_panel result; poll so new images show up ----
+  if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
+  applyLanguage();
+  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.9.0" }, appCapabilities: {} })
+    .then((init) => { applyHost(init?.hostContext); post({ method: "ui/notifications/initialized", params: {} }); reportFrame(); })
+    .catch(() => {})
+    .finally(() => setTimeout(() => { if (!S.data) refresh(); }, 1200));
+  // Slower, not stopped, while the page reports itself hidden: a host frame may report that wrongly.
+  setInterval(() => {
+    noteScreen();
+    if (!document.hidden || Date.now() - lastRefresh > 5 * POLL_MS) refresh();
+    renderRefresh();
+  }, POLL_MS);
+  document.addEventListener("visibilitychange", () => { noteScreen(); if (!document.hidden) refresh(); });
+  window.addEventListener("resize", noteScreen);
+  document.documentElement.addEventListener("pointerenter", nudge);
+  document.addEventListener("pointerdown", nudge, { capture: true });
+  window.addEventListener("focus", nudge);
+  main.addEventListener("wheel", nudge, { passive: true });
+})();
+</script>
+</body>
+</html>

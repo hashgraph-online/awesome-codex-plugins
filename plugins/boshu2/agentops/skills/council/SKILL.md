@@ -34,6 +34,8 @@ verdict is [Validate](../validate/SKILL.md).
 
 They hold for a council you run and for judgments the caller already collected
 elsewhere (several reviews, subagent reads) and asks you to synthesize.
+Judgments made against different revisions are separate subjects, never
+agreement on one.
 
 - **No verdict.** Council returns no `PASS`, `FAIL`, `NOT_PROVEN`, readiness
   or approval, even when asked to turn agreement into one. Decline, and say
@@ -69,12 +71,30 @@ elsewhere (several reviews, subagent reads) and asks you to synthesize.
    member examines, never what evidence it gets. Collect proposals or judgments
    before revealing any peer response. Reused or colliding context IDs make a
    view non-independent: repair the isolation within bounds or disclose it.
+   Admit facts tied to a cited source and the caller's stated need and stakes;
+   keep your own rankings, option-grading labels and summaries of files a
+   participant can open itself out until synthesis. Word options you drafted
+   with equal care, and say a participant may reject all of them or the
+   question as posed. Show peer work in debate or duel scoring under neutral
+   labels (A, B, C), not member or model names; the report keeps the mapping
+   in each judge's `judgment`.
 3. Require evidence, reasoning, and omissions. For brainstorming, distinguish
    new hypotheses from supported claims; novelty is not proof.
 4. Synthesize the sealed initial views, or run a caller-selected mode below.
-   Preserve dissent and changes of position.
-5. Return `council-report.v1` with a recommendation and its limits. Council
-   neither changes the subject nor grants implementation or delivery authority.
+   Preserve dissent and changes of position. Before each later round and before
+   synthesis, recompute the step 1 subject digest by the same method: one
+   sha256 over what Validate's [Subject](../validate/SKILL.md#subject) binds,
+   as `subject_digest` requires. When there is no file or candidate to bind, as
+   in a brainstorm, an open design question or an interview panel, hash the
+   frozen question text exactly as recorded in `question`. If the digest
+   changed, name the change and rerun every participant on the new subject or
+   return the incomplete outcome, never folding views of the old subject in.
+5. Return `council-report.v1` with a recommendation and its limits. Prefer one
+   option only for a reason in the evidence; when options stay close, say
+   either would serve and name the tradeoffs that separate them. Outside a
+   caller-selected voting rule, a count of pros, cons or supporters breaks no
+   tie. Council neither changes the subject nor grants implementation or
+   delivery authority.
 
 Independent comparison is the default. Multiple models can broaden the
 perspectives offered; agreement alone proves no improvement.
@@ -157,10 +177,20 @@ authority; the council must not assume either.
 
 The report ends with an explicit consensus/divergence synthesis: consensus
 points with their methodology spread, divergence points with each side's
-cited evidence, minority findings preserved in their own words,
-unresolved assumptions, and any `caller_challenge` entries. Synthesis is
-complete when every judge finding lands in exactly one of those buckets; a
-finding silently dropped from synthesis is majority laundering.
+cited evidence and whether the split is an evidence gap (name the fact or check
+that would settle it) or a judgment call the caller owns, minority findings
+preserved in their own words, unresolved assumptions, and any
+`caller_challenge` entries. Synthesis is complete when every judge finding
+lands in exactly one of those buckets; a finding silently dropped from
+synthesis is majority laundering.
+
+Two judges' defect findings are one point only when a single fix would resolve
+both, judged by reading each defect and its fix, not the wording or a shared
+location; proposals or answers are one point only when they recommend the same
+change. Findings on the same lines with different failure modes stay
+separate, opposing recommendations are divergence, and when unsure keep them
+apart, since a wrong merge inflates agreement. A merged point keeps each
+judge's own evidence.
 
 ## Output
 

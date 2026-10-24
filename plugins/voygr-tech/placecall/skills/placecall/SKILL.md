@@ -4,7 +4,7 @@ description: PlaceCall lets your agent call US businesses for reservations, inqu
 license: MIT
 compatibility: Uses the PlaceCall MCP tools when a plugin has connected them (browser sign-in, no key). Otherwise needs curl and outbound HTTPS to api.voygr.tech, the only host this skill contacts and the only place it sends PLACECALL_API_KEY. Places calls to US numbers only, except Indiana, Louisiana, Minnesota, Montana and Nebraska.
 metadata:
-  version: "6.3.0"
+  version: "6.4.0"
   author: voygr-tech
   openclaw:
     primaryEnv: PLACECALL_API_KEY
@@ -243,7 +243,10 @@ Pick the path before the first request:
   could not be read, not that nothing is waiting: check again.
 - When the call finishes, report `result`, `ended_by`, `line_kind`,
   `result_reason` and `summary`, and read the transcript. A long transcript is
-  shortened (`transcript_truncated`).
+  shortened (`transcript_truncated`). `transcript_status` reads `live` while a
+  check of the call recording can still mark a turn it heard differently or
+  add a turn the agent likely missed. It reads `final` once that check has run
+  or is no longer expected, usually a minute or two after the call ends.
 - If a tool says the server needs authentication, tell the user to sign in
   (Claude Code: `/mcp`, pick `placecall`; Codex: `codex mcp login placecall`).
   In the Gemini CLI extension the same tools send the stored API key instead
@@ -390,9 +393,10 @@ client, on a recorded line). Two optional top-level fields change it:
   Dental, calling to confirm an appointment. This call's recorded for notes."*
 - `disclosure: false` removes the opening notice: the agent opens with a short
   greeting and your request, and says who is calling only when asked.
-- `record_call: false` means no audio and no recording clause: `recording_status`
-  reads `not_recorded`, and the recording and merged-transcript endpoints
-  answer `404 {"status": "not_recorded"}` (`transcript_full` is still kept).
+- `record_call: false` means no audio and no recording clause. `recording_status`
+  reads `not_recorded` and the recording download answers
+  `404 {"status": "not_recorded"}`. `transcript_full` is still kept, and
+  `transcript_status` reads `final` as soon as the transcript exists.
 
 Refused with `422` before anything is dialed or charged: a `disclosure` object
 on a call in another language than `en`, `es` or `auto`
@@ -714,7 +718,11 @@ done
   `result_reason` + `summary` from the `data:` JSON. It also carries the
   deprecated `outcome_type` and `charge_cents`.
 - Other event types you may see: `status_change`, `recording_ready`,
-  `transcript_ready`. `503 too_many_sse_streams` → back off per `Retry-After`.
+  `transcript_ready` (the post-call check of the recording has finished;
+  `data` is `{"at", "turns_count", "duration_ms", "corrections", "unheard"}`,
+  counts only). It usually comes after the stream has closed, so don't wait
+  for it. Poll `GET /calls/{id}` for `transcript_status` instead.
+  `503 too_many_sse_streams` → back off per `Retry-After`.
 
 ### Answer a mid-call question: `POST /calls/{call_id}/answer`
 ```sh
@@ -729,8 +737,8 @@ do not treat it as success.
 ## Get the result: `GET /calls/{call_id}`
 
 Returns `status`, the four verdict fields `result`, `ended_by`, `line_kind`
-and `result_reason`, `outcome_summary`, `outcome_charge_cents`, and
-`transcript_full`.
+and `result_reason`, `outcome_summary`, `outcome_charge_cents`,
+`transcript_full` and `transcript_status`.
 
 ```sh
 curl -s -H "X-API-Key: $PLACECALL_API_KEY" https://api.voygr.tech/calls/$ID
@@ -743,13 +751,34 @@ curl -s -H "X-API-Key: $PLACECALL_API_KEY" https://api.voygr.tech/calls/$ID
 
 - **Always read `transcript_full` as well as the code.** `success_no_booking`
   is a billable success: information was obtained without a booking; the details
-  live in the transcript, so report from it. (`transcript_full` rows carry a
-  `role`; filter out `system` markers; a cleaner post-call merged transcript
-  is at `GET /calls/{id}/transcript-merged`, `202 merger_pending` until ready.)
+  live in the transcript, so report from it.
+- **`transcript_full` is the call's transcript.** Each row has `ts` (epoch
+  seconds) and `role`: `operator` (whoever answered: a person, a voicemail
+  greeting, a phone menu) or `bot` (our agent). The only other keys are
+  `text`, `confidence`, `salvaged`, `interrupted`, `heard` and `audio`.
+  `operator` rows are what the agent heard and acted on, and `bot` rows are
+  the agent's speech that actually played. After the call we check the
+  recording. Where it disagrees with the agent on a number, a yes or no, or a
+  name from your request, that `operator` row gets `audio: {"text", "kind"}`
+  (`kind` is `number`, `yes_no` or `name`). The row's own `text` is never
+  rewritten, so read the two side by side and say which one you report.
+  Speech the agent likely missed is added as a `heard: false` row with no
+  `text` and `audio.kind` `"unheard"`. Rows are in emission order, not sorted
+  by `ts`.
+- **`transcript_status`** is `live` while that check is still expected and
+  `final` once it has run or is no longer expected. It is `null` exactly when
+  `transcript_full` is. To report the complete transcript, poll
+  `GET /calls/{id}` until it reads `final`, usually a minute or two after the
+  call ends. A `final` status says nothing about whether any row was corrected.
+- **The merged-transcript endpoints are removed.**
+  `GET /calls/{id}/transcript-merged` and
+  `POST /calls/{id}/transcript-merged/rebuild` return
+  `410 {"status": "endpoint_removed", "use": "GET /calls/{call_id}"}` for now
+  and will be deleted later. Read `transcript_full` instead.
 - **`recording_declined: true` means the callee declined recording:** no
-  transcript will ever come for that call (`transcript_full` stays `null`, and
-  the recording and merged transcript are never served). Do not wait for it;
-  report from the verdict fields and `outcome_summary`.
+  transcript will ever come for that call (`transcript_full` and
+  `transcript_status` stay `null`, and the recording is never served). Do not
+  wait for it; report from the verdict fields and `outcome_summary`.
 - **Recording:** when `has_recording` is `true`, `recording_url` is a
   relative path (`/calls/{id}/recording`). Prepend the base URL and fetch
   with the same `X-API-Key` to download the audio.
@@ -1022,7 +1051,8 @@ request went out is the opposite case: the call may have been placed. See
 `pending_questions` with `answer_question`, until `in_progress` is false. Then
 report `result`, `ended_by`, `line_kind`, `result_reason`, `summary` and the
 `transcript`. Do not wait for `outcome_type`: this path leaves it out once the
-newer verdict fields are set.
+newer verdict fields are set. If you need the complete transcript, keep
+calling `get_call_result` until `transcript_status` is `final`.
 
 **On the `curl` path:**
 
@@ -1037,4 +1067,5 @@ newer verdict fields are set.
 4. On outcome, poll `GET /calls/{id}` until `outcome_type` is non-null (it is
    the column that lands last, so it is the readiness signal), then read the
    four verdict fields + `outcome_summary` + `transcript_full`. Report from the
-   transcript as well as the outcome code.
+   transcript as well as the outcome code. For the complete transcript, keep
+   polling until `transcript_status` is `final`.

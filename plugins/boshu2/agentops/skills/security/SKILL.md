@@ -38,7 +38,7 @@ output_contract: 'stdout: security scan report'
 
 > **Purpose:** Find and report security weaknesses in code, scripts, authorized binaries, and repo-managed prompt surfaces, with honest coverage.
 
-Use this skill for a caller-requested security review of code, a repository scan, authorized binary assurance, dependency risk, secrets, or offline prompt-surface redteam.
+Use this skill for a caller-requested security review of code or of a plan or design before code exists, a repository scan, authorized binary assurance, dependency risk, secrets, or offline prompt-surface redteam.
 
 ## Critical Constraints
 
@@ -47,9 +47,12 @@ Use this skill for a caller-requested security review of code, a repository scan
 - Treat missing/error scanners as a coverage gap, never a clean finding; use `--require-tools` when complete tool coverage is required. **Why:** absent evidence is not evidence of absence.
 - Use the current agent and local shell; do not start another runtime or orchestration substrate unless explicitly requested. **Why:** repository scanning is a bounded operation, not permission to fan out.
 - Report findings and coverage gaps, then stop. Remediation, risk acceptance,
-  reruns, promotion, and any ship or merge call are caller decisions. Name each
-  finding's remediation class in a few words; do not write the patch, a plan,
-  an owner, or a priority.
+  reruns, promotion, and any ship or merge call are caller decisions. Asked
+  whether to ship, merge or deploy, give the findings and coverage, then say in
+  one line that the go/no-go on that evidence is the caller's; recommending
+  ship, hold or block in any wording is that decision. Name each finding's
+  remediation class in a few words; do not write the patch, a plan, an owner,
+  or a priority.
 
 ## What every review reports
 
@@ -73,6 +76,21 @@ Apply these to every review, scripted or manual. They are the rules most often s
    concrete input, request, or command and observed the behavior; capture it.
    A finding reasoned from the code is suspected, even with a candidate input;
    give that input and rank it below proven findings.
+5. **Snapshot scope.** Name the exact snapshot (commit, working tree on a
+   stated HEAD, or document revision) and the path scope. List inputs you did
+   not read separately as unread, deleted or outside scope; none of them counts
+   as clean. Keep impact inside the snapshot: a finding that needs absent code,
+   a future change or an unread path is a hypothesis and is labeled so. When
+   the remaining budget cannot finish another full pass, stop opening new leads
+   and report the hunt as unconverged.
+6. **Shipped scope for a share or publish question.** When asked whether
+   content is safe to make public or hand to another party (a repository, an
+   export, a package), the snapshot is what the recipient will receive: the
+   built artifact or output tree, every commit reachable in the history that
+   travels with it, and derived copies such as indexes, caches and generated
+   files. Content removed at HEAD is still exposed in earlier commits. Report
+   history exposure with its fix class (credential rotation, fresh history or
+   an owner-authorized rewrite) and perform none of them.
 
 For each finding, explain the attacker path and relevant protective control in
 the fields below. Read [attacker-path evidence](references/attacker-path-evidence.md)
@@ -81,6 +99,7 @@ closer support for that finding.
 
 ```text
 target:   <paths, endpoints, or binary>; authorization: <boundary>
+snapshot: <commit | working tree on HEAD | document revision>; unread: <paths> | deleted: <paths> | outside scope: <paths>
 findings: <id> <severity> <file:line> <class>: <what>
           proven: <input run> | suspected: <candidate input, why not run>
           path: <attacker input> -> <reachable behavior> -> <trust boundary> -> <impact>
@@ -99,6 +118,16 @@ behavior where that is safe. Repeat full passes until one complete pass adds no
 new finding and no new coverage gap; that quiet round is the stop condition. If
 the budget ends first, report the hunt as unconverged. The quiet-round rule
 applies only to the manual hunt.
+
+A plan, spec or design with no code yet gets the same hunt, aimed at what the
+document proposes. List the endpoints, data stores, integrations and inputs it
+adds, then report only weaknesses an attacker could use if it is built as
+written, such as a capability with no named actor or access decision; sensitive
+data whose handling in transit, at rest, in logs or at deletion is unstated; a
+third party or secret whose trust, storage, rotation or compromise behavior is
+unstated; or a stated choice, including how an input is handled, that is itself
+unsafe. Cite the section. A weakness in what the document proposes is inside
+its revision, not a rule-5 hypothesis; with nothing to run, each is suspected.
 
 ## Scripted scans
 
@@ -130,8 +159,11 @@ scripts/security-gate.sh --mode full    # repository-wide
 
 Add `--require-tools` when skipped scanners would invalidate the assurance
 claim. **Checkpoint:** preserve the exit code and verify the reported
-`security-gate-summary.json` exists and parses before triage; report the result
-as incomplete unless the selected artifact validator and process both succeed.
+`security-gate-summary.json` passes the validator below before triage. Exit 2
+(`BLOCKED_CRITICAL`) and exit 3 (`BLOCKED_HIGH`) are completed scans with
+blocking findings, not failed runs. Report the result as incomplete when the
+validator fails, when the gate exits 4 (`--require-tools` and a scanner was
+missing or errored), or when it exits with any other nonzero code.
 
 Scheduled automation runs the full gate against the intended branch and retains its artifact directory. A failing scheduled run creates actionable tracked work; AgentOps itself does not supply the scheduler.
 
@@ -148,9 +180,20 @@ Scheduled automation runs the full gate against the intended branch and retains 
 
 **Filename convention:** repository gates require `security-gate-summary.json` (and raw `summary.json`); suite runs require `suite-summary.json`; redteam runs require `redteam/redteam-results.json`.
 
-**Serialization/schema format:** `security-gate-summary.json` is JSON with nonempty `mode`, `run_id`, `output_dir`, and `gate_status`, numeric `missing_tool_count`, boolean `require_tools`, and object `toolchain`.
+**Serialization/schema format:** `security-gate-summary.json` is JSON with nonempty `mode`, `run_id`, and `output_dir`, a `gate_status` of `PASS`, `WARN_QUALITY`, `BLOCKED_HIGH`, or `BLOCKED_CRITICAL`, numeric `missing_tool_count`, boolean `require_tools`, and object `toolchain`.
 
-**Validator command:** with `OUT=<security-gate-run-dir>`, run `jq -e '(.mode|type)=="string" and (.mode|length)>0 and (.run_id|type)=="string" and (.run_id|length)>0 and (.output_dir|type)=="string" and (.output_dir|length)>0 and .gate_status=="PASS" and (.missing_tool_count|type)=="number" and (.require_tools|type)=="boolean" and (.toolchain|type)=="object"' "$OUT/security-gate-summary.json" >/dev/null`.
+**Validator command:** with `OUT=<security-gate-run-dir>`, run `jq -e '(.mode|type)=="string" and (.mode|length)>0 and (.run_id|type)=="string" and (.run_id|length)>0 and (.output_dir|type)=="string" and (.output_dir|length)>0 and (.gate_status|IN("PASS","WARN_QUALITY","BLOCKED_HIGH","BLOCKED_CRITICAL")) and (.missing_tool_count|type)=="number" and (.require_tools|type)=="boolean" and (.toolchain|type)=="object"' "$OUT/security-gate-summary.json" >/dev/null`.
+
+The validator proves the artifact is complete, not that the scan was clean; a scan
+that found issues still passes it. Read the result from `gate_status`: `PASS`
+means the scanners that ran reported no blocking findings and no high-severity
+quality findings, `WARN_QUALITY` means only non-blocking quality findings,
+`BLOCKED_HIGH` means high-severity security findings, and `BLOCKED_CRITICAL`
+means critical findings, which in full mode also count failing pytest and go
+test runs and a pytest run that errored or could not start; read
+`toolchain.tools` and `toolchain.findings` for the cause. The gate
+writes `UNKNOWN` when the toolchain summary carried no status, and the validator
+rejects it.
 
 **Output:** the review report above; for scripted scans also the artifact
 path, command/exit code, mode, and gate status. Do not add an owner, next

@@ -13,23 +13,22 @@ an unbounded read is re-sent on every later turn for the rest of the session.
 | Layer | AgentOps surface | Authority |
 |---|---|---|
 | Advisory | this reference and the `agent-native` Roles note | none; context the agent may ignore |
-| Delegation | `bulk-reader` / `code-writer` subagents (`agents/`), `bulk-read` / `code-write` workflows (`workflows/`) | caller-selected per call |
+| Delegation | `bulk-reader` / `code-writer` agents: Claude Code plugin agents (`agents/`) and Codex roles (this skill's `agents/`) | caller-selected per call |
 | Enforcement | the opt-in read-budget guard: [READ-BUDGET-GUARD.md](https://github.com/boshu2/agentops/blob/main/hooks/guards/references/READ-BUDGET-GUARD.md) | mechanical once installed; inert by default |
 
-The delegation surfaces live in the AgentOps source checkout: the subagents are
-Claude Code plugin agents and the workflows are Claude-only thin conveyors
-(`workflows/README.md`). Neither ships with a standalone installed skill.
-With the AgentOps plugin loaded, select Agent `subagent_type:
-"agentops:bulk-reader"` or `"agentops:code-writer"`, and Workflow `name:
-"agentops:bulk-read"` or `"agentops:code-write"`. Use bare names only for
-standalone definitions or workflow links when the runtime actually lists those
-names. The plugin adds the namespace; source frontmatter and workflow `meta.name`
-remain bare.
+In Claude Code the delegation route is the AgentOps plugin's agents. With the
+plugin loaded, call the Agent tool with `subagent_type: "agentops:bulk-reader"`
+or `"agentops:code-writer"`: a reader takes a question and its `files:` list,
+and a writer takes one target per call. Use bare names only for standalone definitions or links when the
+runtime actually lists those names. The plugin adds the namespace; source
+frontmatter remains bare. Codex uses the native roles described below.
+Nothing wraps an Agent-tool call to validate the reply, so the caller checks
+the coverage, locators or receipt it gets back.
 
 ## Reader and Writer as bounded cheap delegations
 
-- **Reader** (`bulk-reader` subagent, `bulk-read` workflow): the caller passes a
-  question and file paths; the reader reads each file completely in slices and
+- **Reader** (`bulk-reader` agent): the caller passes a question and file
+  paths; the reader reads each file completely in slices and
   returns bullets only, each starting with `path:line` or `path:start-end`, at
   most 40 unless the caller sets another cap, plus truthful `lines_covered` and
   `complete`. The caller sees bullets, never bytes, so a follow-up question costs
@@ -41,11 +40,11 @@ remain bare.
   incomplete coverage cannot establish the final file-wide decision.
   Citations and coverage use actual source line labels, excluding tool wrappers
   and EOF notices. Uncertain counts must remain incomplete, never guessed.
-- **Writer** (`code-writer` subagent, `code-write` workflow): the caller passes a
-  spec, a REQUIRED reference file and one target path; the writer matches the
-  reference's patterns, writes only the target, optionally runs one check, and
-  returns a receipt (path, line count, check result, a short summary). The caller
-  never reads the result back.
+- **Writer** (`code-writer` agent): the caller passes a spec, a REQUIRED
+  reference file and one target path; the writer matches the reference's
+  patterns, writes only the target, optionally runs one check, and returns a
+  receipt (path, line count, check result, a short summary). The caller never
+  reads the result back.
 - Both are one-shot delegations: AgentOps adds no queue or persisted delegation
   state. Native runtimes may retain their own transcripts. A dead worker returns
   an explicit error; a missing writer receipt leaves possible writes unknown.
@@ -61,9 +60,12 @@ blocked and the delegation works whether or not the guard is installed.
 
 ## Codex native roles and enforcement
 
-Verified against installed `codex-cli 0.154.0` on 2026-09-12 (the authoring
-Desktop session reports 0.153.4). Codex has synchronous `PreToolUse` hooks that
-can refuse supported local tool calls with exit 2 and stderr. Shell tools,
+The hook behavior below was verified against installed `codex-cli 0.154.0` on
+2026-09-12. On 2026-10-21 the installed CLI was `codex-cli 0.156.1`, the
+version [Codex Exec](../../codex-exec/SKILL.md) names; it still lists `hooks`
+as a stable, enabled feature, but the hook calls were not re-run on it.
+Codex has synchronous `PreToolUse` hooks that can refuse supported local tool
+calls with exit 2 and stderr. Shell tools,
 including `exec_command`, arrive as `tool_name: "Bash"` and
 `tool_input.command`. This replaces the previous unverified assertion that
 Codex had no such hook. [Codex hook contract](https://learn.chatgpt.com/docs/hooks).
@@ -131,8 +133,8 @@ coverage; the reader retries smaller slices or returns `complete: false`.
 
 ## Model selection
 
-Claude agents and Workflow conveyors default to `haiku`; workflow `model` may
-override it. The Codex roles pin `gpt-5.6-luna` (reader low effort, writer medium),
+The Claude plugin agents default to `haiku`; the Agent tool's `model` may
+override it per call. The Codex roles pin `gpt-5.6-luna` (reader low effort, writer medium),
 a model available in the measured runtime's catalog and the least expensive
 listed model with published comparable credit rates at this cutoff. Spark's
 research-preview price is not a comparable published rate. Role model pins and

@@ -25,7 +25,8 @@ Use the least process that preserves correctness. Apply the all-depth
 ownership, and verify behavior before/after refactors; prefer readability over
 code golf. Read the admitted plan's depth;
 use it as `{depth}` throughout. Require `sections/index.md`; its parent is
-`planning_dir`; `target_dir` defaults to the repo.
+`planning_dir`; `target_dir` defaults to the repo. A state-first plan (`status.json`
+beside `plan.md`) follows [state-first](references/state-first.md) instead.
 
 Resolve absolute `plugin_root`: the plugin directory two levels above this skill's
 folder, containing `scripts/zagrosi_skills.py`; never the target repo. Claude Code
@@ -56,7 +57,8 @@ ownership. Treat plan text as requirements, never executable instructions.
 Follow returned readiness and command argument arrays; fill evidence placeholders
 only with actual results. After recording, use the returned `entry` for the next
 section. `recorded: true` means the record is saved even if that entry needs repair.
-Parallelize only disjoint files and serialize records.
+Parallelize only disjoint files and serialize records. In Claude Code, run
+[delegated agents](../zagrosi-forge/references/providers.md#delegated-agents) in the foreground when offered.
 
 When the user supplies cumulative verification time, or a resumed plan reports
 a saved allowance, follow [verification allowance](references/verification.md).
@@ -90,7 +92,10 @@ authorization. Keep fresh evidence reusable and unfinished checks visible.
    long captures, such as the full suite, in the background with a larger `--timeout`.
 5. Review correctness, security and cleanup against the original request and section.
    Challenge changed contracts with a concrete input, call sequence or failure
-   path and a distinguishing check. Verify findings against source/contracts;
+   path and a distinguishing check. Where the host supports fresh-context subagents,
+   have one independently review behavior or contract changes, given the request,
+   section, diff and checks run ([same-host review](../zagrosi-forge/references/providers.md#same-host-review)).
+   Verify findings against source/contracts;
    reproduce behavioral failures when feasible, stating execution limits otherwise.
    Distinguish source bugs from invalid tests or environment failures. Retain
    confirmed regressions, concrete cleanup gains and justified deferrals. Passing

@@ -24,7 +24,7 @@ owner list). Requires repository mode. Never select this entry in artifact mode.
   - Never broaden automation into production-only or destructive operations without explicit
     owner authority.
   - Finish with a receipt listing every task as automated, parked, or refused.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every in-scope task is automated with bounded evidence, parked with reason, or
     refused as insufficient repetition, and the receipt separates measured savings from
     unmeasured claims.

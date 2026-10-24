@@ -2,6 +2,8 @@
 name: start
 description: Begin the shift from the punch list without asking, so scheduled and headless runs behave like interactive ones.
 license: MIT
+metadata:
+  internal: true
 ---
 
 Start a Nightshift run in the host-opened project.
@@ -125,8 +127,17 @@ snapshot, the contract and items the gate holds this shift to, now that any cut 
 "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" start-preflight --phase snapshot
 ```
 
-Relay a `warn` line once and arm anyway; a composed shift keeps the policy it already has. Then
-create the marker:
+Relay a `warn` line once and arm anyway; a composed shift keeps the policy it already has. Then give
+a shift with `shift.isolation` set to `worktree` its own worktree:
+
+```bash
+"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" start-preflight --phase worktree
+```
+
+`ok worktree <path> branch <branch>` names where this shift works: do every item there, with
+commands run inside that path and files edited under it, never in the owner's checkout. `ok worktree
+none`, `host` or `not-applicable` means the shift works in the work target as usual. A `refuse` arms
+nothing: relay its lines and stop. Then create the marker:
 
 ```bash
 touch "$("$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" path armed)"
@@ -170,16 +181,21 @@ the live check that the filesystem can make an atomic private session claim and 
 remove `$NS/run/.shift-armed`, run Stop, and follow the stale-lease reset the preflight prints as a
 repair; do not begin item work or arm a watchman on an assumed claim.
 
-### Codex identity checkpoint — before the watchman
+### Plugin copies and Codex identity — before the watchman
 
-Codex exposes the current task identity through hook payloads, not as a shell environment variable,
-so this runs after the probe and before the watchman:
+This runs after the probe and before the watchman, on every host:
 
 ```bash
 "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" start-preflight --phase bind
 ```
 
-It classifies `$NS/run/.shift-session` line 1 with `ns_codex_identity_kind` (native Windows:
+The probe ran every installed Nightshift copy's guard, so the phase first checks that only one copy
+answers this session. `refuse copies` names each copy and its version: remove the markers and reset
+the lease exactly as for `refuse codex-identity` below, append one failed-preflight line to
+`$NS/run/shift-log.md`, and tell the owner to disable all but one copy and start a new conversation.
+
+Codex exposes the current task identity through hook payloads, not as a shell environment variable.
+The phase classifies `$NS/run/.shift-session` line 1 with `ns_codex_identity_kind` (native Windows:
 `Get-NSCodexIdentityKind` after
 `Import-Module "$NIGHTSHIFT_PLUGIN_ROOT\lib\Nightshift.psm1" -Force`).
 

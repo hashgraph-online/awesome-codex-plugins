@@ -85,13 +85,24 @@ role label, cleared summary or resumed author context is not a fresh context.
 Pass the accepted examples, applicable constraints, exact starting content,
 usable prerequisites, authorized write/output scope, relevant source pointers,
 required checks, integration responsibility and real remaining bounds. Expand
-pointers when needed; brevity cannot omit a constraint. Record observed native
-identity at startup through Agent Native's existing association procedure.
+pointers when needed; brevity cannot omit a constraint. A pointer counts only if
+the worker can open it: a link relative to a skill's own folder, or a file
+outside the worker's workspace, does not resolve from there, so pass a path it
+can read or paste the rule itself. Record observed native identity at startup
+through Agent Native's existing association procedure.
 
 [Implement](../implement/SKILL.md) owns the complete change, meaningful checks
 and direct repair. It is optional guidance for that worker, not a compulsory
 stage. The handoff returns candidate identity, changed scope, check facts,
 discoveries and gaps; prompt delivery proves neither engagement nor acceptance.
+
+When several workers apply one set of decisions, such as a batch of review
+findings or one rewrite that must read the same in many files, make each
+decision once in one context and send workers only what was decided. A worker
+returns an uncovered case, or a blocker with evidence the decider could not see,
+instead of improvising or reopening the decision; the decider settles it and
+never drops it. [Decide once, apply in parallel](references/decide-once-apply-in-parallel.md)
+covers both shapes.
 
 ## Integrate and obtain judgment
 
@@ -99,7 +110,16 @@ Name the integration responsibility before launch, and decide then whether the
 integrated candidate needs a fresh judgment at all. Follow the consumer
 repository's integration policy, include all changed paths and generated
 companions, and run affected checks on the actual integrated subject.
-Acceptance of a leaf does not establish the combined release.
+Acceptance of a leaf does not establish the combined release. Within that
+policy, combine parallel results one at a time in dependency order and run the
+affected checks after each, so a failure points at one result; a merge without
+conflicts does not show that two changes work together. A result that
+conflicts, or whose own changed paths or prerequisites changed on the target
+after it started, goes back to its author through a follow-up that authorizes
+that update (Agent Native step 5), or is redone from the current target, and
+reruns its checks; it is not merged blind. A write outside a worker's declared
+scope, or collisions that keep recurring, show the scope split cannot be
+trusted for this change: finish the rest serially.
 
 For an ordinary candidate the integrated checks and CI are the gate. Assign one
 fresh author-distinct judgment through [Validate](../validate/SKILL.md), the
@@ -160,7 +180,7 @@ authorizes delivery nor establishes acceptance. For Gas City, follow
 When reporting coordination state, return:
 
 ```text
-assignments: <worker/context id> -> <task>, state as observed (how)
+assignments: <worker/context id> -> <task>, state as observed (how); last activity <time, kind> | unobserved
 candidates:  <task> -> <exact ref>; checks <result>; judgment <ref | owed | not owed>
 next:        <free capacity> -> <dispatch>, because <observed bottleneck>
 held:        <task>, blocked by <prerequisite gap>

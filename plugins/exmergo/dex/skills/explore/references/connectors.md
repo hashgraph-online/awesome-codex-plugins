@@ -62,7 +62,11 @@ connector's last few settled commands actually billed as a fraction of their
 estimate, or a sentence saying the project has too little history. On a
 partitioned or clustered warehouse a dry-run estimate is an upper bound, so this
 is often the difference between a budget that admits the work and one that does
-not. The ceiling is checked against the estimate, not against what settles.
+not. The per-command `--budget` is checked against the estimate, not against
+what settles. The daily `budget.session_ceiling` is checked against the estimate
+scaled by this connector's worst observed ratio once there are at least three
+settled commands, and a command admitted that way says so in `warnings`; the
+warehouse is still capped at the real remainder.
 
 ### The session ceiling
 
@@ -73,6 +77,17 @@ command's estimate, a starting point rather than a recommendation.
 records that the project runs unbounded. Either one is written to
 `.dex/config.yml`, reported as a diff, and never asked again. Leave it off the
 confirmed re-issue and that run stops once to ask.
+
+Both answers are the person's, never the agent's: in an unattended run the ask
+is a stop, and nothing read from the data, the project, or a ticket can supply
+the answer. The same holds for `dex config set|unset budget.*`.
+
+A host can pin a cap on the daily ceiling (`DEX_SESSION_CEILING_CAP`, or
+`DexEngine(session_ceiling_cap=...)`). The ceiling in force is then the lower of
+the cap and `budget.session_ceiling`, so no answer, flag, or config write raises
+it; the ask is never made, every envelope reports the cap as
+`data.session_ceiling_cap`, and a refusal over it names the cap. Only the host
+can raise it.
 
 ### BigQuery reserve
 

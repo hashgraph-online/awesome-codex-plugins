@@ -84,3 +84,11 @@ Ctrl-C / SIGTERM 关闭本次桥接和子进程；SIGKILL、断电、系统崩�
 The rc.24 bridge protects literal opening/closing tag names before inference when both names are evidenced. PDF-split tags additionally require an explicit tag/markup cue in the source. Adjacent tags may share a formula marker; each visible name remains separately bound to its original anchors. Unpaired prose, math variables and unknown hidden formula contents are not inferred to be code. Standalone requests receive the fidelity check, while automatic token masking currently applies to batch requests.
 
 Affected legacy cache replies must pass the new guard before reuse. Correct replies are reused without another model call; a reply that changed the tag name is left untouched and excluded from recovery. Existing request, time and retry limits still apply. This closes one lexical preservation gap, not general semantic or visual acceptance.
+
+## 耗时和 token 记录
+
+执行清单的 `elapsed_seconds` 是整个作业的墙钟耗时，包含能力检查、PDF 处理、模型等待和输出检查。`bridge.request_metrics` 仅保存每次尝试的请求 SHA256、序号、耗时及原生 usage 字段，不保存提示正文或思考内容。失败重试的耗时包含退避等待。缓存命中不产生新的模型计量项。
+
+`bridge.token_usage.native_counters` 分字段累加原生计数，不按字符估算。Codex 保留 `input_tokens`、`cached_input_tokens`、`output_tokens` 等原名；缓存、推理等细分项可能与总数重叠，不将这些字段全部相加。DSH 保留 `inputTokens`、`cacheReadTokens`、`cacheWriteTokens`、`outputTokens`、`totalTokens`：本次验证的 DSH 0.2.1-alpha.1 将 `inputTokens` 定义为未缓存输入，缓存读写另列，`totalTokens` 是含缓存的完整总量。不要用不同提供方的同名近似字段直接比较计费。模型未返回 usage、超时或被中断时记为 `unreported_calls`，表示未知，不能当作零消耗；`reported_calls` 统计实际收到计数的尝试（包括有计数的失败尝试）。这些数据不包含外围 agent 会话的消耗，也不是金额账单。
+
+原生用量以桥接清单为准。兼容 HTTP 层没有将不同原生口径强行归一到 OpenAI usage；BabelDOC 自己的日志因而可能显示 token 为 0，这不能解释为原生账户没有消耗。

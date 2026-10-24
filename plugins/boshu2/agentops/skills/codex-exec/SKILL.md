@@ -42,7 +42,13 @@ one invocation.
 - **Sandbox from declared effects.** `-s read-only` for review or analysis,
   `workspace-write` only for authorized edits, and network or wider access only
   when the caller explicitly requires those effects. "In case it needs it" is
-  not a declared effect.
+  not a declared effect. A permission denial inside the run (`EPERM` or
+  "Operation not permitted" from a socket bind, an OS permission check or a
+  peer-credential probe) may show only what the chosen mode blocks; inside the
+  sandbox it cannot show whether the host or the code would fail. Quote it and
+  report the check as sandbox-limited under not run / `not_checked`: neither a
+  pass nor a failed check. A host-side observation of the same probe still
+  stands, and a host run is the caller's decision.
 - **Close stdin.** `codex exec` reads the prompt from stdin when no prompt
   argument is given, and appends piped stdin to a prompt argument. A non-TTY run
   (CI, a script) with an open stdin can wait forever: the **stdin hang**. Feed

@@ -1,15 +1,15 @@
 ---
 name: magic-hour-image-to-video
-description: Animate a portrait, character, artwork or scene with Magic Hour, editing and inspecting the start frame when needed before motion. Use for image-to-video, transformations, reveals and character animation when Magic Hour is requested or is the project's chosen media provider.
+description: Animate a supplied product photo, portrait, character, artwork or scene with Magic Hour. Use for image-to-video when Magic Hour is requested or configured and suitable. Animate an approved source directly; edit only for a needed visual change. Preserve an explicitly requested alternative provider.
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.6.0"
+  version: "1.6.1"
 ---
 
 # Magic Hour image to video
 
-Produce a usable short video by solving appearance in a still frame first and motion second. A project ID or queued job is incomplete unless the user asked only to submit it.
+Animate an approved supplied image directly when it already meets the brief. Edit it only for a requested visual change or a source problem that prevents the shot. A project ID or queued job is incomplete unless the user asked only to submit it.
 
 Generation consumes Magic Hour credits. Use a connected Magic Hour creation MCP at `https://mcp.magichour.ai/` when available. Otherwise read `references/setup.md` for the API route. Discover the current schemas before choosing a model, duration, resolution, or price.
 
@@ -29,23 +29,23 @@ Extract or infer:
 
 Keep a short clip to one coherent beat. If the user wants several shots, treat each shot as its own reviewed start frame and video job. Derive those frames from the same approved identity reference rather than chaining unreviewed edits. Choose motion that preserves the deliverable: a dolly changes subject scale and available copy space, while a locked camera with restrained light or environmental motion can preserve a hero layout.
 
-## Build the start frame first
+## Choose the start frame
 
 When the user names a saved character or reference, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with that type. Match the name, follow `next_cursor` as needed, and ask which item if ambiguous. Inspect its primary `IMAGE` asset and use the durable `file_path` without another upload; an item ID is not an image path. Preserve an explicitly supplied image.
 
 Choose one route:
 
-1. **A usable source image already exists:** call `ai_image_editor_create_image` when composition, wardrobe, background, lighting, product placement, or cleanup must change. State both the requested edit and everything that must remain unchanged.
-2. **No source image exists:** call `ai_image_generator_create_image`. AI Image Editor requires an input image; do not send it a prompt-only creation request.
-3. **The supplied image already satisfies the shot:** skip image generation and animate it directly.
+1. **The supplied image already satisfies the shot:** pass it directly to `image_to_video_create_video`. Preserve its product geometry, packaging, label, identity and composition; prompt for the requested motion.
+2. **The source needs a visual change:** call `ai_image_editor_create_image` only when composition, wardrobe, background, lighting, product placement, or cleanup must change for the brief. State the edit and everything that must remain unchanged.
+3. **No source image exists:** call `ai_image_generator_create_image` when a starting image is needed. AI Image Editor requires an input image; do not send it a prompt-only creation request.
 
-Create one still at the intended video aspect ratio. Use an authorized reference when exact identity, product geometry, packaging, or branding matters. Do not expect image-to-video to repair a poor source frame.
+If an image must be generated or edited, create one still at the intended video aspect ratio. Use an authorized reference when exact identity, product geometry, packaging, or branding matters. Do not expect image-to-video to repair a poor source frame.
 
-Wait for the image project with `wait_for_image_project`. Preview the completed still and reject it before animation if it has a wrong crop, anatomy problem, altered identity, malformed product, inaccurate logo or text, unintended lettering, visual artifact, or missing negative space. Fix the still with the smallest useful edit. A second paid image request requires an authorized budget.
+For a generated or edited image, wait with `wait_for_image_project`. Inspect the supplied or completed still before animation for a wrong crop, anatomy problem, altered identity, malformed product, inaccurate logo or text, unintended lettering, visual artifact, or missing required negative space. Make the smallest useful edit only when a problem prevents the requested shot. A second paid image request requires an authorized budget.
 
 ## Animate the approved frame
 
-Pass the exact approved image output to `image_to_video_create_video`. If the result is a local file, upload its raw bytes first using the flow in `references/setup.md`; a local path is not a hosted `file_path`.
+Pass the exact approved source image to `image_to_video_create_video`. If it is a local file, upload its raw bytes first using the flow in `references/setup.md`; a local path is not a hosted `file_path`.
 
 Write the motion prompt around change over time:
 

@@ -1,7 +1,7 @@
 # Resume, handoff and exact intent
 
 Plan loads this only when discovery resumes after interruption or
-replacement, when a slice goes to another context, when the caller asks for
+replacement, when a slice may go to another context, when the caller asks for
 code plus a retrospective, or when conversation intent needs an exact
 snapshot.
 
@@ -31,6 +31,19 @@ original evidence; new observations amend the approach within scope, while
 changed acceptance still needs the caller.
 
 ## Hand a slice to another context
+
+Change context at a step boundary, not midway; midway, keep going, or, where
+the caller has authorized delegation, hand a tightly scoped remainder on under
+Orchestrate. At a boundary, stay in this context when
+the next step needs its reasoning as it happened (shaping a slice right after
+the interview that settled it, say) and room remains: a summary, handoff or
+new session replaces that record with a lossy copy, worth paying for only when
+staying costs more. Before any change, make sure the intent source holds the
+settled choices the next step needs (Resume discovery's update, under the
+authority of Plan's Output write) and name what it must keep; check a
+consequential decision against that source, not a summary. A dispatched
+implementer still starts fresh under
+[Orchestrate](../../orchestrate/SKILL.md).
 
 Give it exact intent references and the evidence it needs to act, its write
 scope, and who owns integration and final review. Keep approach notes separate

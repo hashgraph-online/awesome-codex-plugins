@@ -42,6 +42,8 @@ words, before each answer. It runs on the Claude or ChatGPT plan you already pay
 
 > Off the Wall is new (0.1). The numbers below come from one person's history; run the report on yours.
 
+> Beta note: the evidence is exploratory, from one person’s text replays, not a general guarantee of fewer corrections, lower costs or better task completion. Automated host or plugin notices can be mistaken for user replies. Check source messages locally before sharing aggregate report counts.
+
 ---
 
 ## Why Off the Wall?
@@ -237,7 +239,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHA
 - [awesome-ai-plugins](https://github.com/hashgraph-online/awesome-ai-plugins)
 - [awesome-ai-agent-tools](https://github.com/michielhdoteth/awesome-ai-agent-tools)
 - [Awesome-Vibe-Coding](https://github.com/0xWelt/Awesome-Vibe-Coding)
+- [awesome-vibe-coding-resources](https://github.com/acvnace/awesome-vibe-coding-resources)
+- [awesome-coding-agents](https://github.com/kailiu42/awesome-coding-agents)
+- [awesome-agent-memory](https://github.com/mnemoverse/awesome-agent-memory)
+
+Community plugin directory: [Claude & Codex Plugins](https://claudecodexplugins.com/plugins/toranalytics/off-the-wall/off-the-wall).
 
 ## License
 
 MIT © [Junebeom Seo](https://github.com/toranalytics)
+
+[Privacy](https://github.com/toranalytics/off-the-wall#privacy)

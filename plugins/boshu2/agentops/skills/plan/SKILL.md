@@ -20,6 +20,7 @@ metadata:
   effects: [update_intent_source]
   canonical_status: canonical
   disposition: keep
+  triggers: ["write scope", "scope boundaries"]
 ---
 
 # Plan
@@ -34,7 +35,17 @@ supplied text. Planning produces no AgentOps packet.
 1. **One slice, not a roadmap.** Shape the narrowest change that produces an
    observable result end to end, through every layer it touches. No phases,
    no layer-by-layer breakdown, no backlog: later work stays one coarse line
-   each until new evidence makes it the next slice.
+   each until new evidence makes it the next slice. When several slices could
+   go first, prefer the smallest observable path that tests the approach's
+   riskiest dependency. Outcomes that are each useful and checkable alone are
+   separate plans, not slices: unless the request, the tracker or Navigate
+   already settles which comes first, ask (rule 3) and keep the rest under
+   Later. Named providers, devices or data
+   sources are coverage of one outcome; separate them only when no shared path
+   can meet a named requirement, and keep parts together when specifying one
+   alone would mean guessing behavior it shares with another. Name any
+   stand-in and what it cannot establish; a demonstration with that stand-in
+   is not proof of the real integration.
 2. **An example before any design.** Write at least one Given/When/Then with
    an observable result. Cover the boundary where a mistake is costly to
    undo, such as a repeated or external side effect, lost data or widened
@@ -48,11 +59,22 @@ supplied text. Planning produces no AgentOps packet.
    of the changed behavior, and generated companions as a class. Scope is
    authority, not a predicted file count.
 6. **A discriminating check:** what fails today and passes after the slice.
+7. **Unrequested mechanisms earn their place.** A guard, retry, fallback,
+   option or abstraction nobody asked for joins the slice only when a contract
+   requires it, when without it a traced failure would go unseen by anyone
+   able to fix it in time, or when adding it later is costly: persisted data
+   or formats, interfaces others depend on, payments, security. Use its
+   smallest form and judge each add-on the same way; when unsure, leave it out
+   and name it under Later with the evidence that would require it. If
+   a failure of the slice would reach no one who can act, making it visible is
+   part of the slice. No safeguard narrows requested behavior; a real conflict
+   is the Question.
 
 ## Output
 
-Write this block into the caller's existing intent (tracker item or
-conversation). It is the whole plan.
+Write this block into the caller's existing intent when the request or
+existing authorization covers editing it (the conversation always does);
+otherwise return it as a proposed amendment. It is the whole plan.
 
 ```text
 Outcome:  <who observes what, in the repository's terms>
@@ -64,7 +86,8 @@ Question: <one caller choice, your recommendation, its tradeoff> | none
 Later:    <deferred item and the evidence that would make it next> | none
 ```
 
-Add an Example line only for another consequential boundary, and a non-goal
+Add an Example line only for another consequential boundary, an Open line for
+a fact only a named person holds (with the drafted questions), and a non-goal
 only where it prevents a plausible scope mistake.
 
 ## Workflow
@@ -73,18 +96,25 @@ only where it prevents a plausible scope mistake.
    relevant source owners and active constraints. Reuse the
    acceptance already supplied in the conversation or bead; clarify only what
    prevents action or judgment. To resume or replace another context, hand a
-   slice on, plan code together with a requested retrospective, or keep an
-   exact snapshot of conversation intent, follow
+   slice on or weigh a context change, plan code together with a requested
+   retrospective, or keep an exact snapshot of conversation intent, follow
    [resume and handoff](references/resume-and-handoff.md).
 2. Route only the uncertainty that could change the slice (table below).
-3. Fill the block. A mechanical cross-cutting migration that cannot stay
-   working slice by slice uses expand, migrate, contract and states where
-   integration is required. Include recapture of affected bound evidence where
-   necessary; in repositories with AgentOps provenance bindings,
-   `ao provenance evidence-orphans` finds it. Across an epic,
+   If an interface choice drives that uncertainty, use the conditional
+   [caller-first design comparison](references/ground-truth-routing.md#compare-interfaces-from-the-callers-side)
+   before committing to a boundary.
+3. Fill the block. If a behavior-preserving restructuring would make the
+   slice much smaller, name it on the Slice line as a precondition through
+   [Refactor](../refactor/SKILL.md), with its own before-and-after check
+   separate from the Check line, and keep it out of the slice's diff. A
+   mechanical cross-cutting migration that cannot stay working slice by slice
+   uses expand, migrate, contract and states where integration is required. Include recapture of affected bound
+   evidence where necessary; in repositories with AgentOps provenance
+   bindings, `ao provenance evidence-orphans` finds it. Across an epic,
    [Navigate](../navigate/SKILL.md) picks the next bead; Plan shapes that bead.
 4. When evidence disproves an approach, keep the failed assumption, its
-   evidence and the revised check in the existing intent. An approach change
+   evidence and the revised check in the existing intent, under the same
+   authority as the Output write below. An approach change
    within accepted outcome and scope needs no new permission; acceptance or
    scope expansion needs the caller. Never relabel a failed acceptance
    condition as a caveat to obtain green.
@@ -99,6 +129,7 @@ reserve capacity for implementation, integration and repair.
 |---|---|
 | Fact a source can answer | Inspect the smallest authoritative source and cite it. [Research](../research/SKILL.md) owns deeper tracing; [Domain](../domain/SKILL.md) owns disputed vocabulary. Never ask the caller to recite it. |
 | Caller choice | Recover existing authorization first. What remains is the one question, with its concrete tradeoff; an agent cannot supply the caller's answer. |
+| Fact only a named other person holds | Name the person and draft the few questions the gap needs, most consequential first, one idea each, with enough context to answer; return them with the plan, and the caller decides whether and how to send them. The item stays open until answered; never guess it or recast it as a caller choice. |
 | Assumption only an observation can settle | State the competing predictions and the smallest observation that separates them, using an optional [probe or prototype](references/ground-truth-routing.md). A persuasive design or an agent vote cannot settle unobserved behavior. |
 | Safely deferred | Put it under Later with the event or evidence that would make it relevant. Deferral cannot hide an unanswered acceptance condition. |
 
@@ -113,12 +144,15 @@ evidence could change the next action.
 ## Who decides
 
 Use real undo cost, affected users and existing authority. A material
-irreversible choice outside that authority goes to the caller; prior
-authorization stays valid. Reviewer agreement is evidence, not permission to
-replace the caller's intent: explain a consequential disagreement and its
-support instead of silently changing acceptance. A proposed process artifact
-needs a concrete consumer, the decision it gates, an observed defect and a
-retirement condition; otherwise omit it.
+irreversible choice outside that authority goes to the caller, as does a slice
+that would cut against a recorded decision such as an ADR, a published
+contract or a declared non-goal: name that decision and the evidence for
+reopening it as the Question, and keep the slice within it until the caller
+answers. Prior authorization stays valid. Reviewer agreement is evidence, not
+permission to replace the caller's intent: explain a consequential
+disagreement and its support instead of silently changing acceptance. A
+proposed process artifact needs a concrete consumer, the decision it gates, an
+observed defect and a retirement condition; otherwise omit it.
 
 ## Examples and naming
 

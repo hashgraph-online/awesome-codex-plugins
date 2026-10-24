@@ -32,7 +32,7 @@ select this entry in artifact mode. Typical hours: 2–4.
     tested; record exact environmental blockers and stop with an honest ending.
   - Never skip the fresh-reader pass or treat a maintainer shortcut as documented guidance.
   - Refuse owner-only install, credential, or provisioning decisions — park them with reason.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when the documented journey completes through one verified change, or exact
     environmental or owner-only blockers remain with no undocumented prerequisite left silent.
   - Verify: the item gate is green at every commit; the journey and prerequisite receipts report a

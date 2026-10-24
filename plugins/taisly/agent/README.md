@@ -40,7 +40,7 @@ Read this guide in:
 
 Taisly handles the connected accounts and posting execution. Your agent handles planning, caption writing, campaign logic, or workflow orchestration.
 
-## Free AI-first posting
+## Optional local workflows
 
 - Install the package for free.
 - Create or connect a Taisly account from your AI agent.
@@ -71,7 +71,22 @@ https://app.taisly.com/mcp
 
 Use the plugin when you want Codex to discover both the posting workflow instructions and the Taisly MCP tools from one package. The root `SKILL.md` is the single source of truth for the agent workflow.
 
-## Install
+## Connect an AI agent through remote MCP
+
+Remote MCP is the default AI-agent connection. If Taisly tools are already available, call `taisly_auth_status` and `taisly_platforms_list` directly. OAuth provides access; do not install this package or ask for an API key for that connection.
+
+```txt
+Help me connect Taisly to this agent using the setup guide. Check access and list my connected social accounts. Do not publish anything during setup.
+
+Full documentation: https://docs.taisly.com/docs/mcp
+```
+
+The remote server URL is `https://app.taisly.com/mcp`. Add it through your client's remote MCP and OAuth settings if needed. Human authorization or administrator approval may be required. On expiry, reconnect through OAuth rather than switching to the CLI.
+
+## Optional local package installation
+
+Use the following package instructions for explicit SDK, CLI or local-file workflows. They are not remote MCP setup requirements.
+
 
 ```bash
 npm install -g @taisly/agent
@@ -95,9 +110,9 @@ For local development inside this repository:
 node packages/agent/src/cli.js help
 ```
 
-## Authentication
+## Local package authentication
 
-The easiest flow is to let your AI agent open the browser login for you. Use any short agent slug, for example `claude-code`, `codex`, `cursor`, `windsurf`, `openclaw`, `hermes-agent`, `cline`, or `aider`.
+For the local package, browser setup can store a local credential without manually copying an API key. Use any short agent slug, for example `claude-code`, `codex`, `cursor`, `windsurf`, `openclaw`, `hermes-agent`, `cline`, or `aider`.
 
 ```txt
 Help me set up Taisly Agent Kit.
@@ -174,6 +189,64 @@ Check the returned post:
 ```bash
 taisly posts:status --id <historyId>
 ```
+
+## Posting settings
+
+Discover supported options and accepted values for each destination platform:
+
+```bash
+taisly platforms:schema --platform TikTok
+taisly platforms:schema --platform YouTube
+```
+
+Group options by platform name in `settings`. For example:
+
+```bash
+taisly posts:create \
+  --video ./launch.mp4 \
+  --platforms your_tiktok_platform_id,your_youtube_platform_id \
+  --description "Product walkthrough" \
+  --settings '{"TikTok":{"status":"PUBLIC_TO_EVERYONE"},"YouTube":{"title":"Product walkthrough","status":"unlisted"}}'
+```
+
+With `--json`, put the same object in the input file's `settings` property. SDK
+calls accept `settings` as an object. For remote or local MCP, discover options
+with `taisly_platform_schema` and pass `settings` to both `taisly_posts_validate`
+and `taisly_posts_create`. The HTTP API accepts a JSON-encoded `settings` form field.
+
+| Platform | Settings | Meaning |
+| --- | --- | --- |
+| TikTok | `status` | `PUBLIC_TO_EVERYONE`, `MUTUAL_FOLLOW_FRIENDS`, `FOLLOWER_OF_CREATOR`, or `SELF_ONLY`, subject to the account's available visibility options. |
+| TikTok | `comment_disabled`, `duet_disabled`, `stitch_disabled` | Boolean switches; `true` disables the interaction. |
+| TikTok | `brand_content_toggle` | Boolean; discloses a paid partnership promoting a third-party business. Cannot be combined with `SELF_ONLY`. |
+| TikTok | `brand_organic_toggle` | Boolean; discloses promotion of the creator's own business. Both brand switches may be enabled together. |
+| TikTok | `is_aigc` | Boolean; `true` enables the native AI-generated content label. Omit to keep existing behavior, or explicitly pass `false`. |
+| YouTube | `title` | Optional video title, up to 100 characters. Omit to use the post caption. |
+| YouTube | `status` | `public`, `private`, or `unlisted`. |
+
+For example, a public TikTok post promoting your own business and an unlisted
+YouTube post with its own title can share one request:
+
+```json
+{
+  "settings": {
+    "TikTok": {
+      "status": "PUBLIC_TO_EVERYONE",
+      "brand_organic_toggle": true,
+      "comment_disabled": false
+    },
+    "YouTube": {
+      "title": "Product walkthrough",
+      "status": "unlisted"
+    }
+  }
+}
+```
+
+These settings work with `--settings`, `--json`, SDK calls, and both MCP servers,
+for immediate and scheduled posts. They apply to all selected accounts on the
+corresponding platform. Omitted fields keep the usual posting behavior. These
+options apply only to the requested post. TikTok account restrictions still apply.
 
 Every command prints JSON so agents can parse results without scraping terminal text.
 

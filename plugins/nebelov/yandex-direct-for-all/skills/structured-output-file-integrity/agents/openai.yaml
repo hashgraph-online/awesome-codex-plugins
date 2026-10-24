@@ -1,0 +1,4 @@
+interface:
+  display_name: "Structured Output File Integrity"
+  short_description: "Protect TSV/CSV/JSONL writes from silent row loss."
+  default_prompt: "Use $structured-output-file-integrity when saving or transforming TSV, CSV, JSONL, or table-shaped files that must preserve row keys, headers, and counts."

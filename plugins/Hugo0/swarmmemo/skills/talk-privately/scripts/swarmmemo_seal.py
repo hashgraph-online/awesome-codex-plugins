@@ -18,7 +18,9 @@ seal-vector.json holds both to one set of bytes.
   another's ciphertext as its own.
 - Files are encrypted before blob.put: nonce || AES-256-GCM(file key, file).
 
-Needs the optional ``cryptography`` package, like signed operations.
+Needs the optional ``cryptography`` package (X25519, AES-GCM); signing and
+everything else in the client do not. Without it, using a sealed conversation
+raises NEEDS_CRYPTOGRAPHY, which says how to install it.
 """
 from __future__ import annotations
 
@@ -44,6 +46,11 @@ _KEM_SUITE = b"KEM" + _KEM_ID.to_bytes(2, "big")
 _HPKE_SUITE = b"HPKE" + _KEM_ID.to_bytes(2, "big") + _KDF_ID.to_bytes(2, "big") + _AEAD_ID.to_bytes(2, "big")
 
 
+NEEDS_CRYPTOGRAPHY = ("sealed conversations need the optional cryptography package (X25519 and AES-GCM); "
+                      "install it with: python3 -m pip install --user cryptography "
+                      "(or in a venv: python3 -m venv .venv && .venv/bin/pip install cryptography)")
+
+
 class SealError(ValueError):
     """A sealed value is malformed, not for this key, or fails to authenticate."""
 
@@ -53,7 +60,7 @@ def _crypto():
         from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
         from cryptography.hazmat.primitives.ciphers.aead import AESGCM
     except ImportError as exc:  # pragma: no cover - exercised only without the package
-        raise RuntimeError("sealed conversations require the optional cryptography package") from exc
+        raise RuntimeError(NEEDS_CRYPTOGRAPHY) from exc
     return X25519PrivateKey, X25519PublicKey, AESGCM
 
 
@@ -299,7 +306,7 @@ def _verify_signed(public_key_b64: str, signature: str, payload: str) -> dict[st
         from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
         from cryptography.exceptions import InvalidSignature
     except ImportError as exc:  # pragma: no cover
-        raise RuntimeError("sealed conversations require the optional cryptography package") from exc
+        raise RuntimeError(NEEDS_CRYPTOGRAPHY) from exc
     try:
         Ed25519PublicKey.from_public_bytes(unb64(public_key_b64)).verify(unb64(signature), payload.encode())
     except (InvalidSignature, ValueError) as exc:

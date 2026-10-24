@@ -1,4 +1,4 @@
-# OSS Doc Pack — scaffold/audit open-source documentation (`/doc --mode=oss`)
+# OSS Doc Pack — scaffold/audit open-source documentation
 
 > Scaffold and audit the standard documentation pack for an open-source release. This is optional reference guidance for the Doc skill's OSS mode; it absorbed the former `/oss-docs` skill. Output contract: `CONTRIBUTING.md`, `CHANGELOG.md`, `AGENTS.md`, and the rest of the OSS doc tiers.
 
@@ -8,8 +8,6 @@ This mode helps prepare repositories for open source release by:
 1. Auditing existing documentation completeness
 2. Scaffolding missing standard files
 3. Generating content tailored to project type
-
-(The legacy `/oss-docs audit`, `/oss-docs scaffold`, `/oss-docs validate` triggers route here.)
 
 ## Commands
 
@@ -163,8 +161,8 @@ decide completion; repository policy and the caller own those transitions.
 
 **DON'T:**
 - Update or overwrite existing content outside the authorized request, including through `refresh`
-- Generate code documentation (use `/doc gen` — the default doc mode)
-- Generate the README hero/landing page (use `/doc --mode=readme`)
+- Generate code documentation (see [code/API guidance](default-mode.md))
+- Generate the README hero/landing page (see [README craft](readme-craft.md))
 - Create CI/CD files (out of scope — configure CI/CD separately)
 
 ---

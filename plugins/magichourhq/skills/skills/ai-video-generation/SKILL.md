@@ -1,10 +1,10 @@
 ---
 name: ai-video-generation
-description: Create finished AI videos with Magic Hour from a prompt, image, face, character, performance or audio. Use for image-to-video, text-to-video, face swaps, talking photos and character remixes when Magic Hour is requested or no different provider is required.
+description: Create finished AI videos when Magic Hour is requested or configured and suitable. Route approved images directly to motion, still portraits plus audio to Talking Photo, and existing video plus audio to Lip Sync. Preserve an explicitly requested alternative provider.
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.2.0"
+  version: "1.2.1"
 ---
 
 # AI video generation with Magic Hour
@@ -36,7 +36,7 @@ If the user names a saved character or reference, call `saved_items_list` (or au
 
 ## Build from a strong first frame
 
-When identity, composition or text matters, create or edit the image first. Separate what must change from what must stay fixed. Inspect the full-resolution still for identity, anatomy, hands, object geometry, crop, lettering, logos and unwanted marks. Animate only an accepted frame.
+Inspect a supplied image for identity, anatomy, hands, object geometry, crop, lettering, logos and unwanted marks. When it already meets the brief, animate it directly with Image-to-Video. Create a starting image only when one is needed; edit a supplied image only for a requested visual change or a source problem that prevents the shot. Separate what must change from what must stay fixed and animate only an accepted frame.
 
 Direct one visible beat per short clip: subject action, camera behavior, environmental motion, protected details and the ending. Avoid redescribing the approved frame in conflicting visual language. Reuse the same accepted identity and style references across shots.
 

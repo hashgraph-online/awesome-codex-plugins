@@ -8,7 +8,7 @@
 
 - live Direct state
 - live Direct reports
-- Roistat as primary business truth
+- sales source (CRM or Roistat) as primary business truth when connected; otherwise Direct reports and Metrika goals
 - Metrika только как вспомогательная аналитика
 
 ## Что читать
@@ -42,7 +42,7 @@
 5. После campaign-level review сделать account-level summary.
 6. Отдельно зафиксировать:
    - daily anomalies
-   - `Reports vs Roistat` discrepancies
+   - `Reports vs sales source` discrepancies (если источник продаж подключён)
    - top-3 priorities
 7. По каждой search-РК обязательно дать два слоя:
    - `что сдержать / починить`
@@ -56,7 +56,7 @@
 - `03_campaign_<cid>_review.md`
 - `03_account_weekly_summary.md`
 - `03_daily_anomalies.md`
-- `03_reports_vs_roistat.md`
+- `03_reports_vs_sales_source.md` (без подключённого источника продаж — одна строка «источник продаж не подключён»)
 - `04_validation.md`
 - `05_pre_apply_summary.md`
 
@@ -79,7 +79,7 @@
 - top clicked queries by spend
 - ad-level losers / winners
 - image-level outsiders / keepers
-- business winners / near-winners по Roistat
+- business winners / near-winners по источнику продаж (если подключён)
 - diagnosis
 - plan of changes
 - growth actions

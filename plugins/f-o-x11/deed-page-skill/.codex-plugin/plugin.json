@@ -1,0 +1,41 @@
+{
+  "name": "deed-page",
+  "version": "1.1.0",
+  "description": "Publish files to a permanent deed.page URL. No account.",
+  "author": {
+    "name": "Avatar 8 LLC",
+    "email": "ops@avatar33.com",
+    "url": "https://deed.page"
+  },
+  "homepage": "https://deed.page",
+  "repository": "https://github.com/f-o-x11/deed-page-skill",
+  "license": "MIT",
+  "keywords": [
+    "deed.page",
+    "deed-page",
+    "deed page"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "deed.page",
+    "shortDescription": "Permanent links for your sites",
+    "longDescription": "Publish an HTML file or a static folder to a permanent https://<slug>.deed.page/ URL with one request. No account, API key, or email code. Bundles the deed-page skill and the deed.page MCP server.",
+    "developerName": "Avatar 8 LLC",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://deed.page",
+    "privacyPolicyURL": "https://deed.page/privacy",
+    "termsOfServiceURL": "https://deed.page/terms",
+    "supportURL": "https://deed.page/support",
+    "defaultPrompt": [
+      "Publish this folder to deed.page and give me the link"
+    ],
+    "brandColor": "#9C2A1C",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
+  }
+}

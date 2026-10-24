@@ -10,6 +10,7 @@
 // copy the model fetched is sent in its own turn only (spec v0.3).
 // v0.4: Claude Code too (the plugin's mod points ANTHROPIC_BASE_URL here): its /v1/… requests go to api.anthropic.com,
 // everything else to chatgpt.com as before. A Claude session is told apart by x-claude-code-session-id.
+// 2026-10-22: Codex logged in with an API key goes to api.openai.com/v1 instead (see routeOf).
 // Only metadata is logged (never auth headers or conversation content).
 // Input: [--port 17891] [--stay (no auto-exit)] [--force-http] [--dump-requests (synthetic test threads only)];
 // the outbound proxy is taken from HTTPS_PROXY/HTTP_PROXY or the system proxy settings (Windows, macOS).
@@ -48,11 +49,24 @@ const here = dirname(fileURLToPath(import.meta.url));
 const UPSTREAM_HOST = "chatgpt.com";
 // v0.4: Claude Code's API host.
 export const CLAUDE_HOST = "api.anthropic.com";
+// Where Codex logged in with an API key sends its requests without the plugin (its base URL https://api.openai.com/v1).
+const OPENAI_API_HOST = "api.openai.com";
+const CODEX_BASE = "/backend-api/codex/";
 const HOP_BY_HOP = new Set(["connection", "keep-alive", "proxy-connection", "transfer-encoding", "te", "trailer", "upgrade", "host"]);
 
 // Codex's requests all start with /backend-api/ (its base URL ends in /backend-api/codex); Claude Code's with /v1/.
 export function upstreamOf(path: string): string {
   return path.startsWith("/v1/") ? CLAUDE_HOST : UPSTREAM_HOST;
+}
+
+// Codex logged in with an API key keeps the base URL the plugin set and sends its key (Bearer sk-…, no
+// chatgpt-account-id), which chatgpt.com does not take: those requests go to api.openai.com, /backend-api/codex/
+// becoming /v1/ (2026-10-22, seen with a fake key against a local server). The request bodies are the same Responses
+// requests, so they are rewritten as before.
+export function routeOf(url: string, headers: IncomingHttpHeaders): { host: string; url: string } {
+  const apiKey = /^Bearer sk-/i.test(String(headers.authorization ?? "")) && !headers["chatgpt-account-id"];
+  if (apiKey && url.startsWith(CODEX_BASE)) return { host: OPENAI_API_HOST, url: `/v1/${url.slice(CODEX_BASE.length)}` };
+  return { host: upstreamOf(url.split("?")[0]), url };
 }
 
 // Outbound proxy: environment first, then the system setting (Windows per-user, macOS); NO_PROXY is honoured for the
@@ -535,8 +549,8 @@ async function main(): Promise<void> {
   setPixelCache(pixelCacheDirOf());
   const via = outboundProxy();
   // v0.4: NO_PROXY may name one upstream host and not the other.
-  const claudeVia = outboundProxy(process.env, readSystemProxy, CLAUDE_HOST);
-  const viaOf = (upstream: string) => (upstream === CLAUDE_HOST ? claudeVia : via);
+  const vias = new Map([CLAUDE_HOST, OPENAI_API_HOST].map((host) => [host, outboundProxy(process.env, readSystemProxy, host)]));
+  const viaOf = (upstream: string) => (vias.has(upstream) ? vias.get(upstream)! : via);
   const startedAt = new Date().toISOString();
   // v0.1-3: which code this engine runs, so the plugin can tell when an update needs a new engine.
   const build = buildOf();
@@ -635,7 +649,7 @@ async function main(): Promise<void> {
   const onRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     if (req.url === "/__cam/health") {
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, upstream: UPSTREAM_HOST, upstreams: [UPSTREAM_HOST, CLAUDE_HOST], via: via ? `${via.host}:${via.port}` : "direct" }));
+      res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, upstream: UPSTREAM_HOST, upstreams: [UPSTREAM_HOST, CLAUDE_HOST, OPENAI_API_HOST], via: via ? `${via.host}:${via.port}` : "direct" }));
       return;
     }
     if (req.url === "/__cam/retire" && req.method === "POST") {
@@ -677,7 +691,8 @@ async function main(): Promise<void> {
     const id = ++sequence;
     const started = Date.now();
     const path = (req.url ?? "/").split("?")[0];
-    const upstream = upstreamOf(path);
+    const route = routeOf(req.url ?? "/", req.headers);
+    const upstream = route.host;
     const identity = requestIdentity(req.headers);
     const rewrite = req.method === "POST" && /\/responses(\/compact)?$/.test(path) && needsRewrite(identity.threadId, selectionDir, sessionsDir, identity.forkedFrom);
     // v0.4: a Claude Code request of a session's main conversation (a subagent's loop has its own); rewritten like a
@@ -721,7 +736,7 @@ async function main(): Promise<void> {
           }
         } catch { details = { kind: "unparsed" }; }
       }
-      const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...details, ...extra, error: error ?? null };
+      const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, ...(upstream === OPENAI_API_HOST ? { upstream } : {}), status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...details, ...extra, error: error ?? null };
       log(entry);
       // Image keys go to the per-thread statistics only, not to the log.
       if (/\/responses$/.test(path)) {
@@ -751,7 +766,7 @@ async function main(): Promise<void> {
       if (attempt.report) extra = { ...extra, rewrite: attempt.report };
       if (dumpDir) sentBody = attempt.edited ? attempt.body : null;
       // No `agent` option: with agent:false Node ignores createConnection and dials the host directly.
-      const outbound = http.request({ host: upstream, method: req.method, path: req.url, headers: outgoing, createConnection: () => socket }, (answer) => {
+      const outbound = http.request({ host: upstream, method: req.method, path: route.url, headers: outgoing, createConnection: () => socket }, (answer) => {
         status = answer.statusCode ?? 0;
         const headers: Record<string, string | string[]> = {};
         for (const [name, value] of Object.entries(answer.headers)) if (value !== undefined && !HOP_BY_HOP.has(name)) headers[name] = value;
@@ -852,7 +867,8 @@ async function main(): Promise<void> {
     let up = head.length;
     let down = 0;
     let upstreamStatus: string | null = null;
-    connectUpstream(via).then((socket) => {
+    const route = routeOf(req.url ?? "/", req.headers);
+    connectUpstream(viaOf(route.host), route.host).then((socket) => {
       // The client went away while the upstream connected: its close has passed, nothing would close this one.
       if (client.destroyed) { socket.destroy(); return; }
       const connection: Live = { client, socket, last: Date.now(), closedForSelection: false, activeWhileUnchecked: false, path, identity };
@@ -866,10 +882,10 @@ async function main(): Promise<void> {
       log(opened);
       recordRequest(identity.threadId, opened);
       noteChild(identity, opened.at);
-      const lines = [`${req.method} ${req.url} HTTP/1.1`];
+      const lines = [`${req.method} ${route.url} HTTP/1.1`];
       for (let i = 0; i < req.rawHeaders.length; i += 2) {
         const name = req.rawHeaders[i];
-        lines.push(`${name}: ${name.toLowerCase() === "host" ? UPSTREAM_HOST : req.rawHeaders[i + 1]}`);
+        lines.push(`${name}: ${name.toLowerCase() === "host" ? route.host : req.rawHeaders[i + 1]}`);
       }
       socket.write(`${lines.join("\r\n")}\r\n\r\n`);
       if (head.length) socket.write(head);
@@ -886,7 +902,7 @@ async function main(): Promise<void> {
         client.destroy();
         sockets.delete(connection);
         if (identity.threadId) live.get(identity.threadId)?.delete(connection);
-        const entry = { at: new Date(started).toISOString(), id, transport: "websocket", path, upstreamStatus, upBytes: up, downBytes: down, ms: Date.now() - started, closedForSelection: connection.closedForSelection, activeWhileUnchecked: connection.activeWhileUnchecked, ...identity };
+        const entry = { at: new Date(started).toISOString(), id, transport: "websocket", path, ...(route.host === OPENAI_API_HOST ? { upstream: route.host } : {}), upstreamStatus, upBytes: up, downBytes: down, ms: Date.now() - started, closedForSelection: connection.closedForSelection, activeWhileUnchecked: connection.activeWhileUnchecked, ...identity };
         log(entry);
         recordRequest(identity.threadId, entry);
       };

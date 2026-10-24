@@ -1,6 +1,6 @@
 ---
 name: postmortem
-description: 'Explain why a change, incident or session went as it did, separating proven causes from coincidence. Use when: a postmortem or retro is selected by name.'
+description: 'Explain why a change, incident or session went as it did, separating proven causes from coincidence. Use when: asked for a postmortem, retro or root-cause write-up.'
 practices:
 - sre
 - lean-startup
@@ -11,7 +11,6 @@ produces:
 context_rel: []
 skill_api_version: 1
 user-invocable: true
-disable-model-invocation: true
 metadata:
   capabilities: [postmortem]
   effects: [write_postmortem_report]
@@ -90,11 +89,23 @@ Answer inline.
    available judgment with exact ids (commits, checks, messages, an existing
    verdict); keep missing evidence explicit.
 2. Rebuild only the timeline the claims depend on, keeping delivered behavior,
-   failed or stopped work and process output distinct. Hidden author reasoning
-   is not fact; missing judgment is not a PASS or a FAIL.
+   failed or stopped work and process output distinct. For a correction or stop,
+   locate the first observable departure from the accepted behavior and the
+   instruction, tool result or missing input immediately before it. Compare a
+   successful case under similar conditions when available; otherwise name that
+   missing comparison. A pause required by the caller is expected behavior.
+   Hidden author reasoning is not fact; missing judgment is not a PASS or a FAIL.
 3. Put each causal claim through the first check above. Distinguish necessary
    validation and compatibility work from avoidable rework; repeated review
    alone proves no waste.
+   If the inputs include an earlier postmortem of the same subject, account for
+   its recommendations before issuing new ones: applied, partly applied,
+   not applied, or unknown, with evidence from the supplied work since then.
+   Preserve whether a change was authorized, held or never approved; missing
+   evidence of application is not failed adoption. Report recurrence of the
+   targeted failure only when observed. For repeated unapplied advice, name
+   known obstacles or an unresolved question instead of simply repeating it.
+   Nonapplication alone proves neither cause, blame nor that the advice helps.
 4. For time or token claims, state source, interval, units, included and
    excluded actors, and uncertainty. Separate elapsed time, overlapping work and
    accounting scopes; never equate totals with waste, savings or money without
@@ -119,6 +130,20 @@ Answer inline.
   Changes (at most three, or "no change"): <change> - <its limit, or the experiment that tests it>
   ```
 
+- Aim each change at what the next run will meet, usually the instruction,
+  tool result or missing input found in step 2, not at re-fixing code that is
+  already repaired. The kind of avoidable miss picks the lever:
+  - Mechanical slip (wrong path, skipped command, forbidden call): a lint rule,
+    test or hook. Read the repository's check commands, hooks and CI first; an
+    existing check that did not run or could not fail is the change, not a
+    duplicate. When no seam in the code can hold such a check, name
+    [Architecture](../architecture/SKILL.md) as the follow-up, with that defect
+    as its named pain.
+  - Judgment miss: one proposed standard or instruction line; writing it is
+    separately authorized [Memory](../memory/SKILL.md) work.
+  - Fact found slowly: one pointer where the search began. Fact out of reach:
+    a way to expose it next time, such as a captured log; changing access
+    needs caller authority.
 - Only when requested, save `YYYY-MM-DD-postmortem-<topic>.md` in caller-selected
   protected external non-Git storage. Missing routing does not authorize a
   repository fallback; preserve existing requested evidence under owner policy.
@@ -131,7 +156,7 @@ Answer inline.
 - [ ] The causal question and actual inputs are pinned; gaps are explicit.
 - [ ] Supported and rejected claims cite discriminating evidence.
 - [ ] Alternatives, counterfactuals, and unknowns remain visible.
-- [ ] At most three changes, each bounded or framed as an experiment.
+- [ ] At most three changes, each aimed at what the next run meets, bounded or framed as an experiment.
 - [ ] The report stops short of proof, planning, tracker, and delivery authority.
 
 Behavior examples are in [postmortem.feature](references/postmortem.feature).

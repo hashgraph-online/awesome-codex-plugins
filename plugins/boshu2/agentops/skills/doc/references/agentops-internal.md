@@ -18,7 +18,8 @@ delivery.
    working tree does not replace it. With none selected, report the missing
    routing, return the handoff in the response and create no fallback file in
    the checkout.
-2. For any other handoff, a location the caller names wins. Write there, read
+2. For any other handoff, a location the caller names wins. Write there without
+   replacing an existing handoff (see [Doc](../SKILL.md#session-handoff)), read
    it back and return the exact path.
 3. With no named location, return the handoff in the response and create no
    file.

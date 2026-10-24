@@ -1,0 +1,12 @@
+{
+  "name": "qabbout-stacked-prs",
+  "owner": { "name": "Abdulrahman Qabbout" },
+  "description": "Stacked PRs agent plugin.",
+  "plugins": [
+    {
+      "name": "stacked-prs",
+      "source": "./",
+      "description": "Split, maintain, and land reviewable stacked pull requests."
+    }
+  ]
+}

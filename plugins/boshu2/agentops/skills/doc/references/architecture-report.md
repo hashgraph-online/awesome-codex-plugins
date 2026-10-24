@@ -1,5 +1,5 @@
 
-<!-- TOC: Core | Prompt | Quick Start | Modes | Anti-Patterns | Subagent | References -->
+<!-- TOC: Core | Prompt | Quick Start | Modes | Delegation | Anti-Patterns | References -->
 
 # Codebase Report
 
@@ -9,7 +9,7 @@
 
 You explore a codebase, build a mental model, then context compacts. This skill produces **reusable artifacts** that survive.
 
-**Differs from codebase-archaeology:** Archaeology = understanding. This = producing a document.
+**Scope:** Exploration = understanding. This = producing a document.
 
 ---
 
@@ -105,11 +105,12 @@ Keep under 150 lines.
 For large codebases, delegate exploration:
 
 ```
-Use the codebase-explorer subagent to explore this codebase.
+Use a read-only subagent to explore this codebase.
 Return structured findings, then I'll compile the final report.
 ```
 
 The subagent explores in read-only mode and returns findings in report-ready format.
+On Claude Code with the AgentOps plugin, its `researcher` agent fits this role.
 
 ---
 
@@ -133,13 +134,13 @@ On a fresh clone, start the report by hand: copy the section structure from
 this reference into `ARCHITECTURE.md`, then fill it from manual exploration
 (Quick Start above). There is no auto-scaffold script.
 
-### With Other Skills
+### With Other Work
 
-| After using... | Consider... |
-|----------------|-------------|
-| codebase-archaeology | Producing this report to persist findings |
-| multi-pass-bug-hunting | Adding "Known Issues" section |
-| cross-project-pattern-extraction | Noting patterns in "Notes & Gotchas" |
+| After... | Consider... |
+|----------|-------------|
+| Exploring a codebase to understand it | Producing this report to persist findings |
+| A bug hunt or code review | Adding "Known Issues" section |
+| Comparing patterns across projects | Noting patterns in "Notes & Gotchas" |
 
 ---
 
@@ -157,11 +158,6 @@ Shipped with the doc skill (`skills/doc/scripts/`):
 | `scripts/audit-oss-docs.sh` | Audit OSS documentation coverage by tier |
 | `scripts/validate.sh` | Self-check the doc skill package structure |
 
-## Subagents
-
-| Subagent | Purpose |
-|----------|---------|
-| `subagents/explorer.md` | Parallel exploration for large codebases |
 # Example Architecture Reports
 
 ## Example 1: beads_rust (CLI Tool)

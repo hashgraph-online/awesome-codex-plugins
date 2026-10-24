@@ -1,7 +1,7 @@
 {
   "name": "agentic-readiness-assessment",
   "version": "4.5.1",
-  "description": "Evaluates a software repository for readiness to be developed and maintained by AI coding agents, and reports an evidence-based readiness scorecard.",
+  "description": "Evaluates a software repository for readiness to be developed and maintained by AI coding agents, and reports an evidence-based readiness scorecard. A second skill audits how much of your agents' run time goes to slow tool calls.",
   "author": {
     "name": "Exadel",
     "url": "https://exadel.com"
@@ -13,13 +13,14 @@
     "agentic-readiness",
     "codebase-analysis",
     "ai-agents",
-    "assessment"
+    "assessment",
+    "agent-latency"
   ],
   "skills": "./skills/",
   "interface": {
     "displayName": "Agentic Readiness Assessment",
     "shortDescription": "Score a repository's readiness for AI coding agents.",
-    "longDescription": "Inspect a software repository in place, verify its agent development feedback loops, and produce an evidence-based readiness scorecard with prioritized recommendations.",
+    "longDescription": "Inspect a software repository in place, verify its agent development feedback loops, and produce an evidence-based readiness scorecard with prioritized recommendations. A second skill, agent-tool-call-latency, measures every tool call your agents made from local session history and ranks fixes for the time they spend waiting.",
     "developerName": "Exadel",
     "category": "Developer Tools",
     "capabilities": [

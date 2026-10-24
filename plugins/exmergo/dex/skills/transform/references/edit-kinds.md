@@ -60,7 +60,8 @@ it runs against nothing and passes unconditionally.
 - **Singular tests and generic test definitions** are files under `test-paths`,
   and `test_sql` is their kind.
 
-`transform test --mutate <model>` measures all three at once, since a defect has
+`transform test --mutate <model>` measures all three at once (and, with
+`--downstream`, the tests of the models that read it), since a defect has
 to get past every one of them to reach production.
 
 ## Building what you authored

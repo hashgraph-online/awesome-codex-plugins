@@ -8,7 +8,7 @@ LinkMCP is a hosted MCP server for LinkedIn. You connect your LinkedIn account o
 
 No card. Sign in with an email code or Google. Setup takes about a minute.
 
-This repository is also a plugin with 3 skills for Claude, Codex, Gemini CLI and other AI agents. See [Plugin and skills](#plugin-and-skills).
+This repository is also a plugin with 7 skills for Claude, Codex, Gemini CLI and other AI agents. See [Plugin and skills](#plugin-and-skills).
 
 ---
 
@@ -48,14 +48,14 @@ Then run `/mcp` in Claude Code, select `linkmcp` and choose **Authenticate**.
 
 ### ChatGPT
 
-Developer mode needs ChatGPT Plus, Pro, Business, Enterprise or Edu (not Free), on the web.
+Add LinkMCP in ChatGPT on the web, in **Plugins**. We saw **Add custom MCP server** on ChatGPT Plus (2026-10-21); OpenAI's help page also names Business and Enterprise/Edu.
 
-1. Open **Settings > Security and login** and turn on **Developer mode**.
-2. Go to [chatgpt.com/plugins](https://chatgpt.com/plugins), click **+**, name it `LinkMCP` and paste `https://app.linkmcp.io/api/mcp?ref=github`.
-3. Create the connection and approve the sign-in window.
-4. In a new chat, click **+ > Developer mode** and turn on LinkMCP.
+1. Open [chatgpt.com/plugins](https://chatgpt.com/plugins), click **Add** and choose **Add custom MCP server**.
+2. Name it `LinkMCP`, choose **Server URL**, paste `https://app.linkmcp.io/api/mcp?ref=github` and leave Authentication on **OAuth**.
+3. Tick **I understand and want to continue**, click **Create** and sign in to LinkMCP in the window that opens.
+4. In a chat, type **@** and choose LinkMCP.
 
-A workspace admin can turn Developer mode off for a Business or Enterprise workspace.
+On a Business workspace, only admins and owners can add a custom MCP server; on Enterprise and Edu, admins decide who can.
 
 ### Codex
 
@@ -116,13 +116,19 @@ code --add-mcp '{"name":"linkmcp","type":"http","url":"https://app.linkmcp.io/ap
 
 ## Plugin and skills
 
-This repository is also a plugin. The plugin adds the LinkMCP server to your AI client, and it adds 3 skills. A skill is a short set of instructions that tells your AI how to do one task with the LinkMCP tools.
+This repository is also a plugin. The plugin adds the LinkMCP server to your AI client, and it adds 7 skills. A skill is a short set of instructions that tells your AI how to do one task with the LinkMCP tools.
 
-| Skill | What it does | What it sends to LinkedIn |
-|---|---|---|
-| `linkedin-account-brief` | Prepares a one-page brief before a call: the company and its recent posts, the people you will meet, shared connections, talking points and questions. | Nothing |
-| `linkedin-engagement-leads` | Turns the people who commented on or reacted to a LinkedIn post into a ranked lead list. | Nothing |
-| `linkedin-inbox-followup` | Finds LinkedIn conversations with no new message for 7 days or more, and drafts short follow-ups. | Only the messages that you approve, one message at a time |
+| Skill | What you get | Free trial | What it sends to LinkedIn |
+|---|---|---|---|
+| [`linkedin-prospect-list`](skills/linkedin-prospect-list/SKILL.md) | Paste profile links. Get a ranked prospect list: role, company size and website, a recent post topic, the work email with its status, and why each person fits. | Yes | Nothing |
+| [`linkedin-hiring-signal-leads`](skills/linkedin-hiring-signal-leads/SKILL.md) | Companies that hire for a role your product supports, a reason to contact them now, and the hiring team with their work emails when the job post shows the team. | Yes, with job links | Nothing |
+| [`linkedin-candidate-shortlist`](skills/linkedin-candidate-shortlist/SKILL.md) | Screen candidates against the must-haves of a role, with evidence from each profile, the gaps and questions for the first call. | Yes, with profile links | Only the invitations that you approve, one at a time |
+| [`linkedin-prospect-search`](skills/linkedin-prospect-search/SKILL.md) | Find people who match your ideal customer with LinkedIn or Sales Navigator search, research the best matches, and connect with notes that you approve. | No | Only the invitations that you approve, one at a time |
+| [`linkedin-account-brief`](skills/linkedin-account-brief/SKILL.md) | A one-page brief before a call: the company and its recent posts, the people you meet, shared connections, talking points and questions. | Yes, except shared connections | Nothing |
+| [`linkedin-engagement-leads`](skills/linkedin-engagement-leads/SKILL.md) | The people who commented on or reacted to a post, as a ranked lead list. | Yes, except replies to comments | Nothing |
+| [`linkedin-inbox-followup`](skills/linkedin-inbox-followup/SKILL.md) | LinkedIn conversations with no reply for 7 days or more, with short follow-up drafts. | No | Only the messages that you approve, one at a time |
+
+"No" in the free trial column means that the skill needs your own LinkedIn account, which is part of the paid LinkMCP plans.
 
 ### Install the plugin
 
@@ -150,13 +156,30 @@ Instead of the second command, you can open `/plugins` in Codex and install **Li
 
 **Gemini CLI:** the extension install command in [Gemini CLI](#gemini-cli) installs the server and the skills.
 
-**Other agents (skills only):** this command installs the 3 skills in Claude Code, Codex, Cursor, GitHub Copilot, OpenCode and many other agents. Then add the LinkMCP server to your agent as [Quick start](#quick-start) shows.
+**Other agents (skills only):** this command installs the 7 skills in Claude Code, Codex, Cursor, GitHub Copilot, OpenCode and many other agents. Then add the LinkMCP server to your agent as [Quick start](#quick-start) shows.
 
 ```bash
 npx skills add linkmcp-io/linkmcp
 ```
 
 ### Try the skills
+
+These prompts work in the free trial:
+
+```
+Rank these LinkedIn profiles as prospects for <what you sell> and find the work
+emails of the best ones: <profile links>
+```
+
+```
+Find leads from these LinkedIn job posts. We sell <what you sell>. Who is on the
+hiring team, and why should we contact them now? <job links>
+```
+
+```
+Screen these candidates for a <role> opening. Must-haves: <3 to 5 requirements>.
+<profile links>
+```
 
 ```
 Prepare me for my call with linkedin.com/company/stripe tomorrow. I will meet
@@ -168,16 +191,21 @@ Who engaged with this LinkedIn post? <post URL>. Make a lead list of marketing
 leaders at B2B software companies.
 ```
 
+With your LinkedIn account connected (paid plans):
+
+```
+Find 20 heads of sales at software companies in Germany with 50 to 500 employees.
+Show me the best matches, then draft connection notes. I approve each one.
+```
+
 ```
 Find my LinkedIn conversations with no reply for 7 days or more and draft
 follow-ups. Show me each draft before you send anything.
 ```
 
-The first prompt works in the free trial, except the shared connections. In the free trial, the second prompt reads the comments and the reactions, but not the replies to comments. The inbox skill needs a paid plan, with your LinkedIn account connected.
-
 ### What the plugin does with your data
 
-The plugin contains only text, configuration files and a logo. It runs no code on your computer. When your AI uses a LinkMCP tool, your AI client sends the tool input to `https://app.linkmcp.io/api/mcp`, for example a profile URL, a post URL, search words or the text of a message that you approved. LinkMCP gets the data or does the action, and sends back the result. Messages and other actions on LinkedIn use your connected LinkedIn account. Two skills only read LinkedIn data. The inbox skill sends a LinkedIn message only after you approve that message. Privacy policy: [app.linkmcp.io/legal/privacy](https://app.linkmcp.io/legal/privacy).
+The plugin contains only text, configuration files and a logo. It runs no code on your computer. When your AI uses a LinkMCP tool, your AI client sends the tool input to `https://app.linkmcp.io/api/mcp`, for example a profile URL, a job URL, a post URL, search words or the text of a message or invitation that you approved. LinkMCP gets the data or does the action, and sends back the result. Messages and other actions on LinkedIn use your connected LinkedIn account. Four skills only read data. Three skills can send a LinkedIn message or invitation from your account. Each one asks you to approve the exact text, for one person at a time, before it sends. Privacy policy: [app.linkmcp.io/legal/privacy](https://app.linkmcp.io/legal/privacy).
 
 If a skill says that the LinkMCP tools are missing, connect the LinkMCP server in your AI client and sign in.
 
@@ -293,7 +321,7 @@ As with any tool that acts on LinkedIn for you, a restriction cannot be ruled ou
 
 **Do I need Sales Navigator?** No. LinkMCP works with a normal LinkedIn account. If you have a Sales Navigator seat, the Sales Navigator search tool uses it.
 
-**Which AI clients work?** Every client that supports remote MCP servers: Claude (web, desktop, Claude Code), ChatGPT (Developer mode), Codex, Cursor, Gemini CLI, VS Code, Windsurf, n8n, Make and Zapier.
+**Which AI clients work?** Every client that supports remote MCP servers: Claude (web, desktop, Claude Code), ChatGPT (custom MCP server in Plugins), Codex, Cursor, Gemini CLI, VS Code, Windsurf, n8n, Make and Zapier.
 
 ---
 

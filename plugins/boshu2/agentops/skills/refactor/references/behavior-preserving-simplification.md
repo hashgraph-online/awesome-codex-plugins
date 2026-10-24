@@ -12,8 +12,8 @@ The external behavior must remain the same. The refactor `SKILL.md` owns what co
 - Over-abstracted helpers with one call site.
 - Names that hide domain meaning.
 - Deep nesting that can become guard clauses.
-- Duplicated logic that has the same inputs and outputs.
-- Comments that narrate obvious code instead of explaining constraints.
+- Duplicated logic that has the same inputs and outputs, including local code that redoes an existing helper or a standard-library facility (see Substitute Existing Code).
+- Comments that narrate obvious code instead of explaining constraints. A comment that a tool reads is code, not prose: build constraints, compiler directives, lint or type suppressions, doctests and generated-file markers stay.
 - AI-style verbose prose in docs or comments that can be made precise. User-visible messages are behavior, not prose to tidy.
 
 ## Loop and report
@@ -114,6 +114,18 @@ Safety checks:
 - avoid a generic bag that hides unrelated responsibilities;
 - preserve public API compatibility or make migration explicit.
 
+### Substitute Existing Code
+
+Use when local code redoes what the repository already defines (a helper, constant, enum or type) or what the standard library, runtime or framework provides.
+
+Safety checks:
+
+- find the existing symbol and name it in the report;
+- show equivalence for the inputs this code actually receives: ordering of equal elements, locale and case rules, rounding, encoding, and how each value type serializes;
+- replace a raw literal with a constant or type only when the emitted value stays identical;
+- when a framework or downstream layer already performs a step, delete only that step and keep any transformation it does not do; a protective check (SKILL.md, What counts as behavior) stays even then;
+- a branch that a removed guard or filter now lets through is live code; check it rather than treat it as dead.
+
 ### Remove Dead Code
 
 Use static analysis plus repository-wide search. For CLI commands, flags, or cross-language surfaces in the AgentOps repository, run the following; elsewhere, search every tracked file with the repository's own tools:
@@ -127,7 +139,8 @@ Safety checks:
 - rule out reflection, string dispatch, interfaces, plugins, build tags, generated callers, and external packages;
 - search source, shell, workflows, docs, skills, Codex skills, and tests;
 - exclude historical release material only when the removal checker documents that policy;
-- keep any remaining hit blocking unless an explicit exclusion is justified in the summary.
+- keep any remaining hit blocking unless an explicit exclusion is justified in the summary;
+- an alias, adapter or old field that only bridges a shape from earlier in the current unmerged work is not a public interface when the base branch and every release lack that shape and no dependent branch or stored data uses it. Remove it when every caller update fits the scope; otherwise report it. A shape that ever merged or shipped keeps its compatibility contract.
 
 ### Complexity Interpretation
 

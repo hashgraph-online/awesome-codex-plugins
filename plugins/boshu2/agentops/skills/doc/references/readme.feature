@@ -3,7 +3,7 @@
 # deep readers, enforcing 8 non-negotiable patterns (problem-first lead, trust block
 # near install, collapse-don't-delete depth, adoption-ordered sections), then runs
 # deterministic checks and reports evidence. Hexagon: supporting; consumes: project files
-# + interview answers; produces: documentation (README.md) and factual check results.
+# + facts only the caller can supply; produces: documentation (README.md) and factual check results.
 
 Feature: README generation converts skimmers into users and reports evidence
   As an author publishing a tool
@@ -13,11 +13,12 @@ Feature: README generation converts skimmers into users and reports evidence
   Background:
     Given a repository with manifest files and an optional existing README.md
 
-  Scenario: Mode detection routes by flags and existing README
-    When Doc readme mode runs
-    Then "--validate" with an existing README skips to deterministic review only
-    And "--rewrite" with an existing README reuses it as rewrite context
-    And no README and no flags generates from scratch after an interview
+  Scenario: The request shape and an existing README choose the path
+    When Doc handles a README request
+    Then a check-only request with an existing README skips to deterministic review only
+    And a rewrite request with an existing README reuses it as rewrite context
+    And with no README it generates from scratch, asking only for facts the repository cannot supply
+    And when an existing README's request names neither shape it asks once which the caller wants
 
   Scenario: The lead states the problem before the framework
     When the README is generated
@@ -38,11 +39,11 @@ Feature: README generation converts skimmers into users and reports evidence
   Scenario: De-slopify runs before deterministic checks
     When generation or rewrite finishes
     Then Doc runs the de-slopify pass from references/de-slopify.md on README.md
-    And applies manual recasts before validator and anti-pattern checks
+    And applies manual recasts before the repository's checks and the anti-pattern checks
 
   Scenario: Checks run before the skill reports its evidence
     When generation or rewrite finishes
-    Then Doc runs its README validator and anti-pattern checks once
+    Then Doc runs the repository's own link or docs checks, where they exist, and the anti-pattern checks once
     And reports checked and unchecked scope without a semantic verdict or continuation decision
 
   Scenario: Anti-patterns are flagged on rewrite or validate

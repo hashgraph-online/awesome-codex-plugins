@@ -64,6 +64,34 @@ Flags choose the posture. Name the one used:
 - `--mode` (`plan`, `accept-edits`): changes the execution mode; confirm its
   current meaning in `agy --help`.
 
+## Command
+
+Every `agy` flag below appears in `agy --help` for AGY 1.3.1; recheck before use.
+`DEADLINE_EPOCH` is an absolute Unix time the caller fixes once and reuses for
+every run in its scope, so a second run gets what is left rather than a new
+bound. `POSTURE` is a Bash array of the posture flags chosen above, for example
+`POSTURE=(--sandbox)`; an empty array means AGY asks for each tool.
+`PROMPT_FILE` is an absolute path. The packet goes by path, not inline: a short
+`-p` pointer plus `--add-dir`, as `scripts/lib/codex-exec.sh` does, because a
+large inline prompt can be dropped while the run still looks scoped.
+
+```bash
+TO=$(command -v timeout || command -v gtimeout) || { echo "no timeout: not launching" >&2; exit 2; }
+remaining=$(( DEADLINE_EPOCH - $(date +%s) ))
+[ "$remaining" -gt 0 ] || { echo "deadline passed; not launched" >&2; exit 124; }
+cd "$WORKSPACE" || exit 2
+"$TO" -k 10 "$remaining" \
+  agy --print-timeout "${remaining}s" --model "$MODEL" --output-format json \
+  "${POSTURE[@]}" --add-dir "$(dirname "$PROMPT_FILE")" \
+  -p "Read the task packet at $PROMPT_FILE and do what it describes." >"$OUT" 2>"$ERR"
+rc=$?  # 124, or 137 after the 10 s grace: the outer bound stopped the run
+```
+
+`--print-timeout` takes a duration with a unit, such as `300s`. Add flags before
+`-p` so none lands after the prompt text. AGY's help does not say which status
+it returns when its own print timeout fires, so a run that ends at the bound is
+a timeout unless its output shows a finished turn.
+
 ## Return
 
 ```text

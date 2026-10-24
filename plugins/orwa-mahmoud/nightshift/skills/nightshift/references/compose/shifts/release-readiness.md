@@ -40,7 +40,7 @@ claims and the in-repo claim matrix for local docs only. Fix mechanical drift; p
     or **Conditionally ready**, listing blockers, non-blockers, and every unmeasured surface.
     Preserve metric and environment provenance on every row. Green CI alone is not complete release evidence; a
     Nightshift verdict is not human acceptance.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every scoped blocker is fixed or parked with reason, non-blockers are dispositioned,
     unmeasured surfaces are recorded, containing checks are green, and the verdict is written to
     the receipt — or the owner explicitly stops.

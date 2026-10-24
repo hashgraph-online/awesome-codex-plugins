@@ -8,7 +8,7 @@
 
 Every client you take on means rebuilding the same ops stack. The Foundry is
 that stack, already built — plug in a client, plug in whichever AI tool you
-already pay for, go. **23 deterministic commands**, multi-tenant isolation,
+already pay for, go. **31 deterministic commands**, multi-tenant isolation,
 maker/checker safety, Arabic-first output.
 
 ---
@@ -168,7 +168,7 @@ Never auto-approve `live pause` or `live budget`.
 - Confirms every engine module imports cleanly
 - Re-checks the path-traversal security fix
 - Runs a real signal through the content-engine pipeline
-- Runs all 23 commands against the demo tenant
+- Runs all 31 commands against the demo tenant
 - Pins the calculator's money math to hand-computed values
 
 13+ checks, pass/fail per check, final tally. Same test CI runs on every push.
@@ -208,7 +208,7 @@ risk of one client's data leaking into another's run.
 - **Engine** (`core/engine/`) — Python state machine: signals, tasks, loops, commands, tenant isolation
 - **Context Vault** (`01_Context_Vault/`) — agents, skills, protocols, methodology
 - **Clients** (`02_Active_Clients/`) — per-tenant folders with .env, STRATEGY.md, signals, reports
-- **Foundry CLI** (`foundry.py`) — unified entry point for all 23 commands
+- **Foundry CLI** (`foundry.py`) — unified entry point for all 31 commands
 
 Every command is deterministic Python. No LLM calls in the engine. Judgment
 work stays in the AI interface layer (skills and agents). Money figures come

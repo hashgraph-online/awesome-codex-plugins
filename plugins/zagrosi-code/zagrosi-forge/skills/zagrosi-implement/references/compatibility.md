@@ -48,7 +48,10 @@ cannot claim a captured before/after pair.
 ## Derive checks honestly
 
 When delegation is available, have another agent derive missing preservation
-checks from original source/callers before seeing replacement code. Record the
+checks from original source/callers before seeing replacement code; in Claude Code,
+pass `run_in_background: false` when `Agent` offers it
+([delegated agents](../../zagrosi-forge/references/providers.md#delegated-agents))
+and use its result in the same turn. Record the
 actual author and `check_provenance.source`: `existing`, `independent`, `writer`
 or `external`. Use `independent` only for separately derived checks; reviewing
 writer-authored checks or switching providers does not make them independent.

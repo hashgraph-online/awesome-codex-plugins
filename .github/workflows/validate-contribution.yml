@@ -9,9 +9,11 @@ on:
       - "scripts/check-alphabetical.py"
       - "scripts/validate-contribution.py"
       - "scripts/validate-contribution-centralized.py"
+      - "scripts/test_validate_contribution_branch.py"
       - "scripts/publish-open-pr-checks.py"
       - "scripts/publish-open-pr-checks-centralized.py"
       - "scripts/test_publish_open_pr_checks.py"
+      - ".github/workflows/sweep-open-prs.yml"
       - ".github/workflows/validate-contribution.yml"
   workflow_dispatch:
 
@@ -40,6 +42,7 @@ jobs:
           BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/main' }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          python3 -m unittest scripts/test_validate_contribution_branch.py
           python3 -m unittest scripts/test_publish_open_pr_checks.py
           python3 -m unittest scripts/test_check_alphabetical.py
           python3 scripts/check-alphabetical.py README.md --base-ref "$BASE_REF"
@@ -67,7 +70,13 @@ jobs:
       - name: Check out contributed repository
         env:
           CONTRIBUTION_URL: https://github.com/${{ matrix.contribution.owner }}/${{ matrix.contribution.repo }}.git
-        run: git clone --depth 1 "$CONTRIBUTION_URL" "$RUNNER_TEMP/contributed"
+          CONTRIBUTION_REF: ${{ matrix.contribution.ref || '' }}
+        run: |
+          if [[ -n "$CONTRIBUTION_REF" ]]; then
+            git clone --depth 1 --branch "$CONTRIBUTION_REF" "$CONTRIBUTION_URL" "$RUNNER_TEMP/contributed"
+          else
+            git clone --depth 1 "$CONTRIBUTION_URL" "$RUNNER_TEMP/contributed"
+          fi
       - name: Run HOL AI Plugin Scanner
         uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:

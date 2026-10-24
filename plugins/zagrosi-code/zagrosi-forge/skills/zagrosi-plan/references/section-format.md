@@ -56,9 +56,17 @@ contract/Acceptance sections remain supported; detached plans use their physical
 
 Bind `REQ-*` to observable acceptance and tests: path/case, expected RED, command.
 Any language can use `Case:`/`Behavior:`, `Expected:`, and `Command:` labels.
+Start each case on its own `Case:`/`Behavior:` line with its own `Expected:`
+(other labels, such as `Expected failure now:`, are not read) and a `Command:`
+unless the text names one. Gate findings name the missing label.
 For documentation/cosmetic-only changes, use `verification_mode: inspection`,
 `Inspection: <actual check>`, `Expected: <observable result>`, and
 `test_rationale: <documentation-only/cosmetic-only/formatting-only reason>`.
+Inspection mode covers the whole section, so keep tested requirements elsewhere;
+put its `Expected:` before any `Case:`/`Behavior:` line. With a shared
+`codex-plan.md`, sections hold local deltas: a verified section contract supplies
+tests, implementation and acceptance; owned files show ownership; goal,
+dependencies, risks and rollback stated once in the plan and index count for each.
 Keep local inputs/outputs/errors explicit. List owned repo-relative paths as
 bullets or a closed `text` fence; separate read-only references. Each file has
 one owner unless edits are explicitly sequenced. Include applicable rollback

@@ -8,7 +8,7 @@
 
 - `change_tracker.py`
 - daily Direct reports
-- daily Roistat
+- daily sales source (CRM or Roistat) if connected
 - live apply docs / YouGile notes
 
 ## Что читать

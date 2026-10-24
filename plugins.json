@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-10-21",
-  "total": 316,
+  "last_updated": "2026-10-24",
+  "total": 324,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -450,16 +450,6 @@
       "install_url": "https://raw.githubusercontent.com/TohmaN233/codex-agents-workflow/HEAD/plugins/codex-agents-workflow/.codex-plugin/plugin.json"
     },
     {
-      "name": "Codex Attachment Manager",
-      "url": "https://github.com/chipfighter/codex-attachment-manager",
-      "owner": "chipfighter",
-      "repo": "codex-attachment-manager",
-      "description": "Choose which past images in a Codex desktop task go to the model with your next message; unchecked ones become short placeholders, so long image-heavy tasks keep going without starting over.",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/chipfighter/codex-attachment-manager/HEAD/plugin/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Codex How To",
       "url": "https://github.com/Phelan164/codex-howto",
       "owner": "Phelan164",
@@ -568,6 +558,26 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/joelfarthing/codex-usage-and-resets/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Codex–Claude Council",
+      "url": "https://github.com/hamza-aziz-ai/codex-claude-council",
+      "owner": "hamza-aziz-ai",
+      "repo": "codex-claude-council",
+      "description": "ChatGPT (through the Codex CLI) and Claude (through Claude Code) answer independently, then reply to each other round after round until both agree on one answer, read-only and on your own subscriptions.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hamza-aziz-ai/codex-claude-council/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Context Attachment Manager",
+      "url": "https://github.com/chipfighter/context-attachment-manager",
+      "owner": "chipfighter",
+      "repo": "context-attachment-manager",
+      "description": "Manage image history in Codex desktop and Claude Desktop Code with on-demand image retrieval, pinned references, and search by description or feedback.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/chipfighter/context-attachment-manager/HEAD/plugin/.codex-plugin/plugin.json"
     },
     {
       "name": "Context Guard",
@@ -754,7 +764,7 @@
       "url": "https://github.com/mirkobozzetto/espresso",
       "owner": "mirkobozzetto",
       "repo": "espresso",
-      "description": "Full token-saving stack in one plugin - output compression, global rules, RTK hook, Caveman ultra, GitNexus config. Detects existing setup, installs only what's missing. Works on Claude Code and Codex.",
+      "description": "Concise, evidence-preserving output with bundled Ponytail, for Claude Code, Codex, Pi and OMP.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/mirkobozzetto/espresso/HEAD/.codex-plugin/plugin.json"
@@ -1340,6 +1350,16 @@
       "install_url": "https://raw.githubusercontent.com/yyykf/spellbook-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "stacked-prs",
+      "url": "https://github.com/Qabbout/stacked-prs-skill",
+      "owner": "Qabbout",
+      "repo": "stacked-prs-skill",
+      "description": "Agent skill for Claude Code and Codex to split large changes into reviewable PRs, carry fixes through dependent branches, and land them in dependency order with automated Git checks.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Qabbout/stacked-prs-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Staff Engineer Mode",
       "url": "https://github.com/sirmarkz/staff-engineer-mode",
       "owner": "sirmarkz",
@@ -1540,6 +1560,16 @@
       "install_url": "https://raw.githubusercontent.com/HDeibler/universal-design-principles/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Usage Engineer",
+      "url": "https://github.com/noamshorts22-prog/usage-engineer",
+      "owner": "noamshorts22-prog",
+      "repo": "usage-engineer",
+      "description": "Skill and zero-dependency local CLI that compacts long logs, stops identical retries, checks stale project maps and audits Codex token usage.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/noamshorts22-prog/usage-engineer/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Velith",
       "url": "https://github.com/epicsagas/Velith",
       "owner": "epicsagas",
@@ -1628,6 +1658,17 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/xxsang/writers-loop/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "WTFM",
+      "url": "https://github.com/SupportPages-io/wtfm/tree/codex-plugin",
+      "owner": "SupportPages-io",
+      "repo": "wtfm",
+      "description": "Writes illustrated end-user help articles from a codebase, with screenshots rendered locally from the real interface code.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/SupportPages-io/wtfm/codex-plugin/.codex-plugin/plugin.json",
+      "source_ref": "codex-plugin"
     },
     {
       "name": "YYLO",
@@ -2120,6 +2161,16 @@
       "install_url": "https://raw.githubusercontent.com/entropy-data/dataproduct-builder-dbt/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "deed.page",
+      "url": "https://github.com/f-o-x11/deed-page-skill",
+      "owner": "f-o-x11",
+      "repo": "deed-page-skill",
+      "description": "Publish an HTML file or static folder from Codex to a permanent `https://{slug}.deed.page/` URL through the bundled deed.page skill and remote MCP server, with no account.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/f-o-x11/deed-page-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "deja",
       "url": "https://github.com/vshulcz/deja-vu",
       "owner": "vshulcz",
@@ -2218,6 +2269,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/zlsbksdxl/codex-exa/HEAD/plugins/exa/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Exotic Car Rental Skills",
+      "url": "https://github.com/sergebulaev/exotic-car-rental-skills",
+      "owner": "sergebulaev",
+      "repo": "exotic-car-rental-skills",
+      "description": "Codex-ready bundle for people renting exotic and luxury cars in the US with a native .codex-plugin manifest and 6 skills that find who rents a given Lamborghini, Ferrari, Rolls-Royce or G-Wagon in a city at published daily rates from a free read-only market data MCP server, work out the real rental cost, compare cars, pick event cars, plan a weekend and check a rental company; also works in Claude Code.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/sergebulaev/exotic-car-rental-skills/HEAD/.codex-marketplace/exotic-car-rental-skills/.codex-plugin/plugin.json"
     },
     {
       "name": "Fantasy Football Manager",
@@ -2458,6 +2519,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/linkmcp-io/linkmcp/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "LLMSlim",
+      "url": "https://github.com/Thanatos9404/llmslim",
+      "owner": "Thanatos9404",
+      "repo": "llmslim",
+      "description": "Long-term memory for Codex with no LLM in the loop: a local MCP server stores messages word for word in SQLite and recalls the ones that answer a question within a token budget.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Thanatos9404/llmslim/HEAD/plugins/llmslim/.codex-plugin/plugin.json"
     },
     {
       "name": "LMCP",
@@ -2758,6 +2829,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/olegvg/resume-tailor-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Revid",
+      "url": "https://github.com/tmakersas/revid-skills",
+      "owner": "tmakersas",
+      "repo": "revid-skills",
+      "description": "Research what goes viral, make finished short-form videos (voice, captions, music, AI footage) and post them to TikTok, YouTube, Instagram and X through Revid's hosted MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/tmakersas/revid-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Roomcomm",

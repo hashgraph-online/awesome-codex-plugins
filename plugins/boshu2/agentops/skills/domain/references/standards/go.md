@@ -258,8 +258,8 @@ func TestClassifyServeArg(t *testing.T) {
 - **Assert exact expected values:** Use `== expected`, never `!= wrong`. (See Exact Assertion Rule above.)
 - **Table-driven tests** preferred for multi-case functions. (See example above.)
 - **Test low-level functions directly;** don't depend on external CLIs (`bd`, `ao`) in tests. (See CI-Safe Test Pattern above.)
-- **Guard-test fixtures must use the real persisted shape.** Skip/dedup/consumed/idempotency/regression guard tests must round-trip a real persisted sample (production writer → production reader) or assert against a checked-in real example — never a hand-built in-memory constructor that sets a marker at a granularity the on-disk format never emits (e.g. `consumed` at item-level when `next-work.jsonl` marks it at batch-level). A fixture of a shape production can't produce gives a false green (ag-mjlg / PR #652). Related fixture guidance: `test-pyramid.md` → "Regression design".
-- **Test isolation — restore shared global/process state via `t.Cleanup`.** `cli/cmd/ao` tests share one `rootCmd` + package-global cobra flag vars and run inside the repo tree, so a test that mutates shared state without restoring it leaks into whatever test the `-shuffle=on` order runs next. This is a recurring flake class: goals `goalsMeasureScenariosOnly` cobra-global (`a9dab21c4`), `core.bare` git-env (ek8v), cwd floor (hvb).
+- **Guard-test fixtures must use the real persisted shape.** Skip/dedup/consumed/idempotency/regression guard tests must round-trip a real persisted sample (production writer → production reader) or assert against a checked-in real example — never a hand-built in-memory constructor that sets a marker at a granularity the on-disk format never emits (e.g. `consumed` set per item when the persisted file marks it per batch). A fixture of a shape production can't produce gives a false green. Related fixture guidance: `test-pyramid.md` → "Regression design".
+- **Test isolation — restore shared global/process state via `t.Cleanup`.** Tests in one package can share a cobra root command, its package-global flag vars and the repository working tree, so a test that mutates shared state without restoring it leaks into whatever test the `-shuffle=on` order runs next. This is a recurring flake class: package-global cobra flags, inherited git environment variables and the working directory.
   - Set a package-global cobra flag only through a self-cleaning helper, so every set-site auto-restores and no order can leak it:
 
     ```go
@@ -272,7 +272,7 @@ func TestClassifyServeArg(t *testing.T) {
     ```
 
   - Scope process state: `t.Chdir(t.TempDir())`, `t.Setenv`, and `git -C <tempRepo>` with `cmd.Dir` set. Never run a state-mutating `git` op against the real repo via an unset `cmd.Dir` / leaked `GIT_DIR`.
-  - Any package whose tests shell out to `git` MUST call `testsupport.ScrubGitDiscoveryEnv()` from its `TestMain` (`cli/internal/testsupport`). Git injects `GIT_DIR`/`GIT_WORK_TREE`/... into hook-launched processes; with `GIT_DIR` pointing at a linked worktree's gitdir, a fixture `git init` rewrites the SHARED `.git/config` to `core.bare=true`, bricking every worktree (ek8v; recurred 2026-07-18).
+  - Any package whose tests shell out to `git` MUST clear git's discovery environment (`GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE` and related variables) in its `TestMain`, through one shared test helper. Git injects `GIT_DIR`/`GIT_WORK_TREE`/... into hook-launched processes; with `GIT_DIR` pointing at a linked worktree's gitdir, a fixture `git init` rewrites the SHARED `.git/config` to `core.bare=true`, bricking every worktree.
   - Find leakers by analysis (grep set-sites for a missing reset), not by chasing reproducing seeds: order-dependent flakes are population+seed-specific, so "couldn't reproduce" ≠ fixed — close on the root (the missing cleanup).
   - The push==CI full race suite runs `-shuffle=on` as the *late* backstop; it is not the primary guard.
 
@@ -360,15 +360,17 @@ func TestRejectsPathTraversal(t *testing.T) {
 
 ### Before Committing Go Changes
 
+Run the repository's own build, vet and test commands from the Go module root. Without a wrapper, that is:
+
 ```bash
-cd cli && go build ./... && go vet ./... && go test ./...
+go build ./... && go vet ./... && go test ./...
 ```
 
-Or equivalently: `cd cli && make build && make test`
+When the repository wraps these in `make` targets or a CI script, run those instead; they may add flags such as `-race` or `-shuffle=on`, or lint steps the bare commands skip.
 
 ## HTTP Handler Security
 
-Go HTTP handlers in this codebase are localhost-only but should still follow defense-in-depth:
+Apply these patterns to every Go HTTP handler, whatever its exposure. A listener bound only to localhost still receives requests from other local processes and from pages open in the user's browser, so judge each risk by where the deployment actually listens and who can reach it:
 
 | Pattern | Risk | Fix |
 |---------|------|-----|
@@ -376,7 +378,7 @@ Go HTTP handlers in this codebase are localhost-only but should still follow def
 | `r.URL.Query().Get("param")` used in file paths | Path traversal | Reject `..`, `/`, `\` before use |
 | `fmt.Fprintf(w, userInput)` in HTML handler | XSS | Use `html/template` or `text/template` with escaping |
 | `filepath.Join(root, userInput)` | Path traversal | Validate input against allowlist pattern (e.g., `regexp`) |
-| `Access-Control-Allow-Origin: *` | CORS bypass | Acceptable for localhost-only; restrict for public APIs |
+| `Access-Control-Allow-Origin: *` | CORS bypass | Allow only the origins the deployment serves, including on localhost, since any page in the user's browser can reach a localhost listener; keep `*` only for responses that are public anyway |
 
 **Query parameter validation pattern:**
 
@@ -423,8 +425,6 @@ func gitBlobID(content []byte) string {
 ```
 
 The `G<NN>` codes differ by site: G505 flags the `crypto/sha1` import (blocklisted import), G401 flags the `sha1.New()` call (weak crypto primitive). Pass every code that fires on a given line.
-
-Canonical example in this repo: `cli/internal/drrebuild/drrebuild.go`.
 
 ## Future Features (Go 1.24+)
 

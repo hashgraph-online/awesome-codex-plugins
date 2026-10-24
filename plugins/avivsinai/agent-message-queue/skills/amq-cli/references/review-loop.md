@@ -24,11 +24,7 @@ approval does not grant permission to commit, push, merge, or expand scope.
    requires the owner. Return the result, unresolved findings, and checks that
    were not performed.
 
-When work starts, reply with `kind=status` and an ETA. Use `urgent` only for
-work that must interrupt the current activity.
-
-Reply to the initiator, preserve the existing thread, send status at start and
-phase boundaries, and finish with changes and verification.
+Report progress as in the [co-op progress protocol](coop-mode.md#progress-protocol).
 
 ## Receive without a second consumer
 

@@ -5,7 +5,7 @@
       "name": "education-agent-skills",
       "source": {
         "source": "local",
-        "path": "./../.."
+        "path": "./"
       },
       "policy": {
         "installation": "AVAILABLE",

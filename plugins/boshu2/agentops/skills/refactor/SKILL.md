@@ -53,6 +53,10 @@ Unless the caller explicitly excluded a surface, all of these must survive:
 - **Order and coverage.** Branch priority, default handling, evaluation count,
   side-effect order, and the set of tests that run. A pre-existing red that
   vanishes, or a test that stops running, is a behavior change.
+- **Protective checks.** Trust-boundary validation, data-loss guards, security
+  controls and accessibility affordances stay, even when another layer,
+  upstream or downstream, duplicates one or no test reaches it. The neutrality gates cannot see their
+  removal, so looking redundant is no reason to delete one.
 
 ## Procedure
 
@@ -64,7 +68,9 @@ Unless the caller explicitly excluded a surface, all of these must survive:
    source, build its baseline before edits and keep that binary and the
    comparison inputs.
 3. Apply one bounded transformation: extract, rename, inline, simplify,
-   encapsulate, move, or delete dead code. Judge it by what callers must
+   encapsulate, move, substitute existing code, or delete dead code; the
+   [refactoring catalog](references/behavior-preserving-simplification.md#refactoring-catalog)
+   holds per-pattern safety checks. Judge it by what callers must
    understand and where a domain rule must change, not by file size.
 4. A bug or suspicious inconsistency found on the way is reported separately
    (location, why it looks wrong) and left unfixed. Fixing it inside the
@@ -98,6 +104,20 @@ one owner and lets callers request an outcome without reproducing that rule.
 Reject a wrapper that only adds another name or pushes the same coordination
 into its callers. Existing boundaries are sufficient when no concrete caller
 problem warrants changing them.
+
+When choosing a target, prefer friction in the caller-selected area: repeated
+changes to the same rule, repeated caller setup, or defects spread across
+cooperating files. Recent history can locate that friction when the caller has
+not named it; churn alone does not justify a refactor. State the expected
+saving in concrete work, such as changing one rule in one place, against the
+caller migration and regression cost. Leave a stable, cheap boundary alone.
+
+Check a proposed extraction by imagining its removal: would callers have to
+rebuild a cohesive rule, or would only a forwarding step disappear? Keep
+internal test seams private when callers need no substitution. Exercise the
+preserved behavior through the caller-facing boundary; retain existing tests
+until equivalent coverage of their distinct cases is demonstrated. Moving a
+test is not permission to delete the behavior it protected.
 
 Use the caller's vocabulary for extracted operations and types. A naming
 ambiguity that changes behavior belongs with the existing domain definition;

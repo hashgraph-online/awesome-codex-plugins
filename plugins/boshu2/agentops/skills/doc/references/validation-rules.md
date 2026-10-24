@@ -10,7 +10,10 @@ coverage target, required section list or separate report.
 |---|---|---|
 | Are selected entities documented? | Inspect each enumerated entity and its associated documentation against a declared criterion. | A ratio needs numerator and denominator from that same checked set; unknown or unexamined status precludes a percentage. |
 | Do code references exist? | Resolve the named symbols or commands in current source. | Existence alone does not verify the prose's behavior claims. |
-| Do links resolve? | Check links in the selected documents with the repository's validator or direct inspection. | A scoped link check says nothing about unread documents. |
+| Do links resolve? | Check links in the selected documents with the repository's validator or direct inspection. After moving a document, also re-resolve the relative links inside it; their base moved with it. | A scoped link check says nothing about unread documents. |
+| Do cited commits survive? | Resolve each cited hash and confirm a long-lived upstream branch or a release tag contains it. | In a document meant to outlive the branch, a hash that exists only locally or on a branch that a squash merge will discard does not survive; cite the pull request instead. A handoff keeps the exact commit and marks it unpushed or machine-local. |
+| Do cited paths exist? | Check each path in the revision the document states. | A path the documented change removed is historical, not broken; give the revision where it existed. |
+| Is drafting scaffold gone? | Search for unfilled template tokens, placeholder headings and draft-only labels or numbering. | A placeholder shown on purpose, as in a template example, is not scaffold. |
 | Is required metadata present? | Check the fields required by the document's actual consumer. | No universal frontmatter target applies. |
 | Are configuration keys explained? | Compare the selected keys with source and the requested reference. | File presence is not key or entity coverage. |
 
@@ -79,6 +82,7 @@ another owner's state.
 | A feature is deployed or running | Read authorized native deployment state; a declaration or template alone is insufficient. |
 | A configuration value is the default | Compare with the versioned configuration source. |
 | A status observation is current | State when and against which source it was observed; use an existing freshness requirement if one applies. |
+| A change landed, merged or is fixed | Read through an authorized interface whether the pull request merged with the default branch as its base, or check that the upstream default branch reaches the fix; where squash or rebase broke ancestry, compare content (see [Research's claimed-state audit](../../research/SKILL.md#claimed-state-audit)). A local checkout may predate the merge. When neither is possible, date the claim and say it was not verified. |
 
 For status prose, distinguish observed, planned and unverified facts. A date
 records an observation, not a universal validity period. There is no generic

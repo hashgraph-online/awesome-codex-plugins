@@ -66,7 +66,10 @@ settle those expectations before the agent starts editing.
 
 | When you need to… | AgentOps adds |
 |---|---|
+| Decide what to do with an incoming report | [Triage](skills/triage/SKILL.md) reproduces a bug report, external PR or alert, checks for duplicates and earlier decisions, and recommends an outcome with the evidence behind it. Accepted work gets a brief an agent can act on without the original conversation. |
 | Get the agent to build what you meant | [Plan](skills/plan/SKILL.md) makes the expected behavior clear enough to implement and test. [Domain](skills/domain/SKILL.md) keeps the same names for concepts in the request, code and tests. |
+| Fix a design that makes every change expensive | [Architecture](skills/architecture/SKILL.md) finds where the structure makes change costly and compares at least two interface designs by the call sites they produce. [Refactor](skills/refactor/SKILL.md) then makes the chosen change without changing behavior. |
+| Build a tool that agents can use | [Ergonomics](skills/ergonomics/SKILL.md) checks whether an agent can find a CLI, API or MCP tool, read its output and recover from its errors, with the exact command and output behind each finding. |
 | Keep a project moving after the chat ends | [Interview](skills/interview/SKILL.md) settles a large goal with you. [Beads](https://github.com/gastownhall/beads) preserves its intent, decisions and results in a searchable work graph, with persistent project memories for later sessions. [Navigate](skills/navigate/SKILL.md) identifies ready work, blockers and gaps in the goal. |
 | Check whether the finished change meets the request | [Test](skills/test/SKILL.md) helps write checks for the intended behavior. Ordinary changes finish on checks and CI; [Validate](skills/validate/SKILL.md) adds one fresh review when requested, hard to undo, or uncovered by a deterministic check. |
 | Turn earlier work into useful context | [Research](skills/research/SKILL.md) traces the code and cites what it finds. [Memory](skills/memory/SKILL.md) can draw on Beads handoffs, Git changes and check results to explain a decision in a report, or curate supported lessons into reviewed project documents. Later agents can recall the lesson and follow its sources. |
@@ -341,9 +344,9 @@ catalog: **[docs/SKILL-ROUTER.md](docs/SKILL-ROUTER.md)**.
 | Autonomous | [`rpi`](skills/rpi/SKILL.md) | One outcome, end to end |
 | Goals | [`interview`](skills/interview/SKILL.md) [`craft-goal`](skills/craft-goal/SKILL.md) [`navigate`](skills/navigate/SKILL.md) | Shape, write and walk a goal over the bead graph |
 | Coordination | [`orchestrate`](skills/orchestrate/SKILL.md) [`agent-native`](skills/agent-native/SKILL.md) | Fresh workers per bead, disjoint scopes, integration |
-| On demand | [`research`](skills/research/SKILL.md) [`domain`](skills/domain/SKILL.md) [`test`](skills/test/SKILL.md) [`refactor`](skills/refactor/SKILL.md) [`review`](skills/review/SKILL.md) [`security`](skills/security/SKILL.md) [`doc`](skills/doc/SKILL.md) [`reverse-engineer`](skills/reverse-engineer/SKILL.md) | Reached for when a specific question comes up |
+| On demand | [`research`](skills/research/SKILL.md) [`domain`](skills/domain/SKILL.md) [`test`](skills/test/SKILL.md) [`refactor`](skills/refactor/SKILL.md) [`review`](skills/review/SKILL.md) [`security`](skills/security/SKILL.md) [`doc`](skills/doc/SKILL.md) [`reverse-engineer`](skills/reverse-engineer/SKILL.md) [`triage`](skills/triage/SKILL.md) [`architecture`](skills/architecture/SKILL.md) [`ergonomics`](skills/ergonomics/SKILL.md) | Reached for when a specific question comes up |
 | Learning | [`memory`](skills/memory/SKILL.md) | Curated `.context/` pages safe to commit |
-| Judgment strategies | [`council`](skills/council/SKILL.md) [`premortem`](skills/premortem/SKILL.md) [`postmortem`](skills/postmortem/SKILL.md) [`reality-check`](skills/reality-check/SKILL.md) [`idea-genie`](skills/idea-genie/SKILL.md) | Multi-model councils (debates, idea duels, interview panels), idea brainstorms, plan challenges, postmortems and claim audits |
+| Judgment strategies | [`council`](skills/council/SKILL.md) [`premortem`](skills/premortem/SKILL.md) [`postmortem`](skills/postmortem/SKILL.md) [`idea-genie`](skills/idea-genie/SKILL.md) | Multi-model councils (debates, idea duels, interview panels), idea brainstorms, plan challenges and postmortems |
 | Runtimes and factories | [`codex-exec`](skills/codex-exec/SKILL.md) [`claude-exec`](skills/claude-exec/SKILL.md) [`agy-native`](skills/agy-native/SKILL.md) [`using-gc`](skills/using-gc/SKILL.md) | Selected executors and Gas City integration |
 | Skill craft | [`skill-builder`](skills/skill-builder/SKILL.md) [`skill-eval`](skills/skill-eval/SKILL.md) | Author skills and measure whether they help |
 
@@ -352,7 +355,7 @@ catalog: **[docs/SKILL-ROUTER.md](docs/SKILL-ROUTER.md)**.
 Every skill here is a folder with one `SKILL.md`: plain instructions an agent
 loads when a task calls for them. No skill depends on the full set, and coding
 with none of them still works. That makes the library easy to take apart, and
-you should. The 29 skills are a starting point for an operating model that fits
+you should. The 31 skills are a starting point for an operating model that fits
 your work.
 
 - **Start small.** Install two or three skills that match work you already do.
@@ -373,9 +376,7 @@ your work.
   library. `ao skills link` never replaces a skill it did not install.
 - **Change the workflows too.** The [operational loop](#the-operational-loop)
   and the [goal workflow](#goals) are defaults. Skip the steps your work does
-  not need, reorder them, or write your own. The Claude Code workflow scripts in
-  [`workflows/`](workflows/) link into a project with
-  [`ao workflows link`](docs/install-day2-ops.md#workflows-claude-code-only).
+  not need, reorder them, or write your own.
 - **Measure what you change.** `claude plugin eval` compares an agent with and
   without a plugin on the same request. To measure one edit, run the old and
   the new version as two plugins. [Skill Eval](skills/skill-eval/SKILL.md)
@@ -469,24 +470,26 @@ With Go installed: `go install github.com/boshu2/agentops/cli/cmd/ao@latest`.
 ## Updating and advanced setup
 
 <details>
-<summary><strong>Upgrading to 3.10</strong></summary>
+<summary><strong>Upgrading to 3.11</strong></summary>
 
+<a id="upgrading-to-311"></a>
 <a id="upgrading-to-310"></a>
 <a id="upgrading-to-39"></a>
 <a id="upgrading-to-38"></a>
 <a id="upgrading-to-37"></a>
 
-Version 3.10 keeps every 3.9 command and skill name. It rewrites the skill
-descriptions so skills load on plain requests, adds
-[`claude-exec`](skills/claude-exec/SKILL.md) and lets Validate run without `ao`.
-Read the [3.10 release notes](docs/releases/2026-10-05-v3.10.0-notes.md). Use the
+Version 3.11 keeps every 3.10 command and skill name. It adds
+[`triage`](skills/triage/SKILL.md), [`architecture`](skills/architecture/SKILL.md)
+and [`ergonomics`](skills/ergonomics/SKILL.md), and folds methods from other
+public skill libraries into 27 skills; none of that is measured yet.
+Read the [3.11 release notes](docs/releases/2026-10-22-v3.11.0-notes.md). Use the
 [plugin update instructions](docs/install-day2-ops.md#install-and-update-runtime-plugins)
 or, for npx installs, `npx skills@latest update` ([update notes](docs/install-day2-ops.md#update)).
 For Homebrew: `brew update && brew upgrade agentops`. In a source checkout, run
 `git pull --ff-only`, then rerun `ao skills link` with the selectors you used
-before, adding `--skill claude-exec` for the new skill; without selectors it
-links every skill. Start a new session afterward; new installs do not silently
-remove obsolete copies.
+before, adding `--skill triage --skill architecture --skill ergonomics` for the
+new skills; without selectors it links every skill. Start a new session
+afterward; new installs do not silently remove obsolete copies.
 
 **Upgrading from 3.8 or earlier:** version 3.9 removed ten bundled external tool
 skills, retired three delivery workflows, deleted the old curl installers and
@@ -513,7 +516,7 @@ Skill installation does not install tool dependencies:
 | `plan` | `ao`, conditional | runs `ao provenance snapshot-intent` with an explicit evidence root when the intent source is not durable |
 | `implement` | `ao`, conditional | at an integration boundary whose changed paths affect bound evidence, runs `ao provenance evidence-orphans` |
 | `validate` | `ao`, optional | with `ao`, derives exact subject identity from a content manifest and uses `ao provenance store-verdict` when persistence is requested; without it, names the commit and changed paths |
-| `reality-check` | `ao`, conditional | inspect selected goal measurements with `ao goals` or evidence-store facts with `ao status` |
+| `research` | `ao`, conditional | inspect selected goal measurements with `ao goals` or evidence-store facts with `ao status` |
 | `using-gc` | `ao` | rig prep runs `ao gc prepare` and `ao gc check` |
 | `doc` | `ao`, optional | a requested continuity handoff may use `ao session handoff`/`rehydrate` |
 | `reverse-engineer` | `python3` | Phase 1's mechanical teardown runs `scripts/reverse_engineer.py` |

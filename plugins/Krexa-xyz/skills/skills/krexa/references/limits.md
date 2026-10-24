@@ -10,7 +10,7 @@ Krexa checks these in code on its servers. A prompt cannot change them.
 | Daily budget | `dailyBudgetUsdc` | No more buying after this much in one day. |
 | Daily loss cap | `maxDailyLossUsd` | Required. When the day's loss reaches it, the agent stops buying. Sells still run. Money withdrawn that day counts toward it. |
 | Stop-loss | `stopLossPercent` | 1 to 50. Checked at each decision; sells when the position is this far below the last buy price. |
-| Approve each order | `approvalMode: "approve"` | Every order waits for the user to approve it. |
+| Approve each order | `approvalMode: "approve"` | Off by default (`auto`: trades on its own inside the limits). Only when the user asks: every order waits 15 minutes for the user to approve it on the agent page, then expires. The user can change it on the approval page and on the agent page. |
 
 ## Limits Krexa sets
 

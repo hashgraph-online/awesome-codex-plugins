@@ -71,6 +71,7 @@ the new skill or file it wants:
 | Check package structure | `scripts/heal.sh --check [--strict] skills/<slug>` |
 | Repair owned projections | `scripts/heal.sh --fix skills/<slug>` |
 | Inspect audit evidence | `scripts/audit.sh [--profile canonical|portable|external-observation] [--json <path>] skills/<slug>` |
+| Merge overlapping skills | [Consolidate](#consolidate) |
 | Export to another platform | [Conversion](#conversion) |
 | Make repeated expertise reusable | [Distill expertise](#distill-expertise) |
 
@@ -91,14 +92,28 @@ creates a blank source package. Neither imports another skill's content.
 `SKILL.md` with `metadata.authoring_state: scaffold`; helpers, references and
 assets are conditional on the actual behavior. Replace the placeholders and
 state applicability, inputs, authority, result, completion and failure in the
-layout that makes them clear. Remove the scaffold state only after authoring
-the behavior; strict source checks reject it. Removing it is an author
-assertion, not proof of semantic completeness.
+layout that makes them clear. An ending such as "hand off" or "then stop" can
+end the caller's turn when the skill runs inline; read
+[endings](references/authoring-doctrine.md#state-authority-and-a-usable-failure-path)
+before writing one. Remove the scaffold state only after authoring the
+behavior; strict source checks reject it. Removing it is an author assertion,
+not proof of semantic completeness.
+
+Before editing a skill after a miss or a review finding, read
+[changing existing text](references/authoring-doctrine.md#change-existing-text-at-its-owning-layer);
+it decides when text stays unchanged, when a list stays explicit, and what to
+check before cutting a line.
 
 Edit `skills/<slug>/` as the source owner. Check the completed source with
 `scripts/heal.sh --check --strict skills/<slug>`, then regenerate its owned
 projections through the repository's owning commands. Inspect the generated
-diff; hand-edit no projection.
+diff; hand-edit no projection. A clean check says nothing about behavior: when
+an edit changes when the skill routes, what it asks, when it stops, what it
+commits or publishes or how it degrades, or cuts a line that recorded
+provenance protects, report that behavior as unmeasured unless a
+[Skill Eval](../skill-eval/SKILL.md) result measured that behavior, and name
+what was missing (a runner, a host or the caller's authorization). Typo, path
+and formatting edits need no such note.
 
 Creation is staged, not atomic. If a later stage fails, keep the created source
 and any report, capture the exit and diagnostic, and report source creation
@@ -115,6 +130,22 @@ behavior stay `NOT_PROVEN` because the audit runs no skill or trial. Exact check
 exit codes and the opt-in legacy schema live in [audit checks](references/audit-checks.md),
 [authoring doctrine](references/authoring-doctrine.md) and
 [Codex parity](references/codex-parity.md).
+
+## Consolidate
+
+Merge only when two skills own the same behavior; a shared passage or two is a
+cross-link, not a merge. Apply the decision rules above, then pick one owner:
+keep the skill with the stronger contract (clearer applicability, authority,
+result and failure path) and move into it only the rules the other has and it
+lacks. Before retiring the other name, search skills, references, goal prompts,
+workflows and docs for callers that invoke it by name and point each at the
+owner, then record the retired name and its new owner in `docs/MIGRATION.md`.
+Keep a skill that other skills or goals call by name until its retirement adds
+the slug to `REMOVED_SKILLS` in `scripts/check-cathedral-cut-conformance.py`,
+which fails if the skill comes back; never delete it without that tombstone.
+A merge can move routing, so report as unmeasured whether the requests the
+retired skill caught now reach the owner unless a routing or
+[Skill Eval](../skill-eval/SKILL.md) result measured it.
 
 ## Conversion
 

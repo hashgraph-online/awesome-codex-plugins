@@ -1,11 +1,11 @@
 {
   "name": "local-mcp-releases",
-  "version": "3.0.421",
+  "version": "3.0.424",
   "type": "module",
-  "description": "Local MCP — native macOS and Windows MCP server with 201+ tools",
+  "description": "Connect Claude, ChatGPT, Cursor and other AI assistants to your Mac and Windows apps: Mail, Messages, Teams, Slack, WhatsApp, Outlook, OneDrive, Google Drive and Office. The tools run on your computer.",
   "license": "SEE LICENSE IN LICENSE",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
-    "zod": "^4.6.5"
+    "zod": "^3.22.0"
   }
 }

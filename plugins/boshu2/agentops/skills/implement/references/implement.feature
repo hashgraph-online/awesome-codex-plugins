@@ -10,5 +10,5 @@ Feature: Implement runs one bounded experiment
   @covered-by:skills/implement/scripts/validate.sh::test_runtime_derives_subject
   Scenario: Incomplete changed path coverage stays honest
     Given complete changed paths cannot be established
-    Then the runtime receipt records incomplete coverage
+    Then the handoff's gaps line records incomplete coverage
     And Implement does not infer missing paths

@@ -1084,10 +1084,24 @@ def main():
     if not args.schematic:
         parser.error('--schematic is required (or pass --analysis-dir with a current run containing schematic.json)')
 
+    def _load_analyzer_json(flag, path, writer):
+        # A first-time user naturally passes the project folder or the
+        # .kicad_sch / .kicad_pcb itself; give a usage error, not a traceback.
+        if not os.path.isfile(path):
+            what = 'a directory' if os.path.isdir(path) else 'not found'
+            parser.error(f'{flag} {path}: {what}; expected the JSON file '
+                         f'{writer} writes (--output)')
+        try:
+            with open(path, 'r') as f:
+                return json.load(f)
+        except json.JSONDecodeError as e:
+            parser.error(f'{flag} {path}: not JSON ({e}); expected the JSON '
+                         f'file {writer} writes (--output)')
+
     t0 = time.time()
 
-    with open(args.schematic, 'r') as f:
-        schematic = json.load(f)
+    schematic = _load_analyzer_json('--schematic', args.schematic,
+                                    'analyze_schematic.py')
 
     if 'signal_analysis' in schematic and 'findings' not in schematic:
         print(f'Error: {args.schematic} uses the pre-v1.3 '
@@ -1098,8 +1112,7 @@ def main():
 
     pcb = None
     if args.pcb:
-        with open(args.pcb, 'r') as f:
-            pcb = json.load(f)
+        pcb = _load_analyzer_json('--pcb', args.pcb, 'analyze_pcb.py')
 
     # Build inputs provenance block (Track 1.3).
     from pathlib import Path as _Path

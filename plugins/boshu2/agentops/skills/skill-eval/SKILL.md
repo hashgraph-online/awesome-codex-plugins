@@ -42,22 +42,45 @@ mandatory review merely to run an experiment.
 
 - **Count every attempt.** Keep failed, crashed, interrupted, blocked, abandoned,
   missing and infrastructure-invalid attempts in the all-attempt accounting. A
-  rerun adds an attempt; it never overwrites the one that failed.
+  rerun adds an attempt; it never overwrites the one that failed. A run that
+  shared its host with other work still counts for completion and tokens; keep
+  its duration, labeled as measured on a shared host, rather than dropping it.
+  Its timeout is not by itself a skill failure; when timeouts fall unevenly
+  between arms, report them as a possible skill effect, not infrastructure.
 - **Vary one thing.** Equalize instructions, tools, environment, model and
   effort across arms apart from the intended variable. If one arm's task prompt
   repeats the skill's direction, attribute the result to the combined
-  instructions, not the skill alone.
+  instructions, not the skill alone. When you control launch order, alternate
+  arms run by run, swap which goes first in each pair and rerun a dead run in
+  its own slot; one whole arm and then the other turns load, rate limits and
+  time of day into an apparent skill effect.
 - **Confirm the skill loaded.** Before reading a zero or small delta as no
   benefit, check each treatment run for the skill actually being loaded or
-  injected. A run where it never loaded measures routing, not content.
+  injected. A run where it never loaded measures routing, not content. When the
+  act depends on a rule kept in a reference, also check that the run opened
+  that file; a run that did not still counts; read its miss as the body's
+  pointer to the reference failing, not the reference's rule, and report how
+  many treatment runs opened the file. The behavioral probe injects only
+  SKILL.md or a prelude, so it cannot answer this.
 - **Calibrate the grader.** Before trusting scores, confirm the judge or
   discriminator passes a response that plainly meets each criterion and fails
   one that plainly does not. A weak judge can fail correct responses wholesale.
 - **Small samples are directional.** Report uncertainty with every difference.
   A difference without it shows neither benefit nor equivalence, and a
-  zero-crossing interval is not equivalence.
+  zero-crossing interval is not equivalence. For two unpaired success rates,
+  give each arm a Wilson interval, the difference with its own interval and
+  Fisher's exact test, not a normal approximation, which breaks at 0/n, n/n and
+  a handful of runs. Beside an inconclusive result, state the runs per arm
+  needed to detect the smallest effect that would change the decision, and
+  return insufficient evidence; running them is a new measurement with its own
+  fixed stop and the caller's authorization, never an extension of this one.
 - **Fix the stop before running.** Do not add trials until the result turns
   positive, remove losing observations or relax acceptance.
+- **Know the noise before cutting.** Before trimming or retuning skill text for
+  a new model, measure how much identical arms differ on the same cases. A cut
+  must clear a bar fixed before the run, above that spread. A static read of
+  the text is not a behavioral result. Saving a result means keeping the
+  completed run; rerunning to save it adds another sample and more spend.
 
 ## Choose the question
 
@@ -75,6 +98,17 @@ behavioral question, name one observable action (a file written, tool used,
 criterion rejected); a belief such as “understands validation” needs translation
 into an action. For coding or memory questions, name unchanged task acceptance
 and the maintenance choice.
+
+Prefer cases drawn from real use when authorized session history exists: a
+caller correcting, redoing or overriding the result right after the skill ran
+is the clearest sign of a miss. Label each case as drawn from use or written
+from the skill's own text; cases written from the text test what the author
+expected, not what users hit. With no usable history, say so rather than
+presenting text-derived cases as representative.
+
+A skill whose result depends on the caller's answers, such as an interview, is
+not measured by its first turn; never run it where its questions reach a real
+person. Measure the dialogue as in [dialogue skills](references/dialogue-skills.md).
 
 ## Runners
 
@@ -137,7 +171,8 @@ another runtime to replace the missing route.
    If the existing capture/readout pipeline is new or changed, check parsing and
    scoring with a cheap known-input dry run. Consider an A/A control only when
    noise could change the decision, within the same authorized envelope; neither
-   requires a fixed trial count or a new artifact.
+   requires a fixed trial count or a new artifact. An A/A gap beyond chance is
+   a harness, labeling or scoring defect to fix before any comparison, not noise.
 4. **Run within the selected consumer's bounds.** Coding trials expose the actual
    selected package and required resources. A worktree or a prompt prohibition
    is not runtime isolation. Exclude operator home, production tracker, session
@@ -156,9 +191,14 @@ another runtime to replace the missing route.
    or causal benefit. A passing case far from a failed boundary does not prove
    the boundary is repaired. Coding and memory comparisons follow
    [coding and memory readout](references/coding-memory-readout.md).
-7. **Recommend once and stop.** A concrete reproduced defect with clean controls
-   can support a provisional narrow repair; general improvement needs held-out
-   comparison. Do not automatically publish a lesson.
+7. **Recommend once and stop.** First read a few treatment transcripts, not only
+   graded outputs: turns spent on steps that do not move the task, and a helper
+   several runs wrote for themselves, are revise targets a passing score hides.
+   A repeated helper is a candidate bundled script under
+   [Skill Builder](../skill-builder/SKILL.md)'s occurrence rule. A concrete
+   reproduced defect with clean controls can support a provisional narrow
+   repair; general improvement needs held-out comparison. Do not automatically
+   publish a lesson.
 
 Raw trials and new proof go to caller-selected protected external non-Git
 storage; only public, sanitized fixtures cleared for that destination belong in
@@ -172,7 +212,7 @@ Question: <maintenance decision and the measurement chosen>
 Setup: <runner, model, effort, grader; what differs between arms>
 Attempts: <per arm: assigned, completed, crashed or infra, interrupted, reruns>
 Outcomes: <paired by case and repetition; whether the skill loaded in each treatment run>
-Uncertainty: <interval and method, or "directional, n=<count>">
+Uncertainty: <interval and method, or "directional, n=<count>"; runs per arm needed if inconclusive>
 Cost: <measured time and cost per arm, or unknown>
 Not proven: <confounds, missing coverage, what this measurement cannot show>
 ```

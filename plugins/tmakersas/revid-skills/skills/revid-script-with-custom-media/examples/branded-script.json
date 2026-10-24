@@ -1,0 +1,30 @@
+{
+  "workflow": "script-to-video",
+  "source": {
+    "text": "Meet AeroPods Pro. Adaptive noise cancellation that learns your environment. 38 hours of total battery. IPX5 sweat-proofing. And spatial audio that puts you inside the music. $179. Free shipping today only."
+  },
+  "aspectRatio": "9:16",
+  "voice":    { "enabled": true, "voiceId": "aria-en-us", "stability": 0.6, "speed": 1.0 },
+  "captions": { "enabled": true, "position": "middle", "autoCrop": true },
+  "music":    { "enabled": true, "syncWith": "beats" },
+  "media": {
+    "type": "custom",
+    "useOnlyProvided": true,
+    "turnImagesIntoVideos": true,
+    "mergeVideos": false,
+    "animation": "soft",
+    "provided": [
+      { "url": "https://cdn.example.com/aeropods/case-open.mp4",  "type": "video" },
+      { "url": "https://cdn.example.com/aeropods/runner.mp4",     "type": "video" },
+      { "url": "https://cdn.example.com/aeropods/hero-front.jpg", "type": "image" },
+      { "url": "https://cdn.example.com/aeropods/charging.mp4",   "type": "video" }
+    ]
+  },
+  "options": {
+    "summarizationPreference": "no-summarization",
+    "useOnlyProvidedMedia": true,
+    "soundEffects": false,
+    "hasToGenerateCover": true
+  },
+  "render": { "resolution": "1080p", "frameRate": 30 }
+}

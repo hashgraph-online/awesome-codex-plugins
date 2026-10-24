@@ -1,0 +1,48 @@
+{
+  "name": "codex-claude-council",
+  "version": "0.13.4",
+  "mcpName": "io.github.hamza-aziz-ai/codex-claude-council",
+  "description": "Ask OpenAI Codex (ChatGPT) and Claude the same question through your own signed-in CLIs; they answer independently, then reply to each other until they agree on one answer. MCP server + plugin for Claude Code, Claude Cowork and Codex.",
+  "type": "module",
+  "bin": {
+    "codex-claude-council": "scripts/cli.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/config.test.mjs test/council.test.mjs test/mcp.test.mjs test/cli.test.mjs test/manifests.test.mjs test/skills.test.mjs test/share.test.mjs test/npm-readme.test.mjs test/ui.test.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "codex",
+    "chatgpt",
+    "llm-council",
+    "claude-code",
+    "plugin",
+    "second-opinion"
+  ],
+  "author": "Hamza Aziz (https://github.com/hamza-aziz-ai)",
+  "license": "MIT",
+  "homepage": "https://github.com/hamza-aziz-ai/codex-claude-council#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamza-aziz-ai/codex-claude-council.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hamza-aziz-ai/codex-claude-council/issues"
+  },
+  "files": [
+    "scripts/",
+    "src/",
+    "assets/logos/",
+    ".claude-plugin/",
+    ".codex-plugin/",
+    "mcpb/icon.png",
+    ".agents/",
+    "skills/",
+    "README.md",
+    "LICENSE"
+  ]
+}

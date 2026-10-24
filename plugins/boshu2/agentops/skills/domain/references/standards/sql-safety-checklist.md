@@ -16,6 +16,13 @@ Domain-specific checklist for code that interacts with databases.
 - [ ] Large table migrations use batched operations (not full-table locks)
 - [ ] Index creation uses `CONCURRENTLY` where supported (PostgreSQL)
 - [ ] Migration tested on production-size dataset (not just empty dev DB)
+- [ ] Both code versions work across the deploy window: old code on the new schema, new code on old rows; a column or table is renamed or dropped only after nothing reads it (expand, migrate, contract)
+- [ ] Adding NOT NULL to an existing table comes with a default, or a backfill that finishes before the constraint is enforced
+- [ ] While old and new columns coexist, writes fill both, so a rollback never reads empty values
+- [ ] Before a rename or drop ships, background jobs, serializers, reports and raw SQL are searched for the old name
+- [ ] Value or ID mappings and narrowing type changes are checked against what production stores, not fixtures: every source value maps, nothing truncates or rounds
+- [ ] A backfill across several tables has deliberate transaction boundaries
+- [ ] A risky data transform ships with a read-only query that confirms the result after deploy (rows per mapped value, unexpected NULLs)
 
 ### Query Performance
 - [ ] Queries touching >1000 rows have appropriate indexes

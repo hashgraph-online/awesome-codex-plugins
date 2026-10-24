@@ -4,10 +4,10 @@
 > quality** method under [`doc`](../SKILL.md), not a general writing skill and
 > not a standalone AgentOps skill.
 
-Use it from `doc` (required for `--mode=readme` generate/rewrite) so READMEs and
-other repo docs stay concrete, scannable, and free of LLM prefab.
+Use it from `doc` (required when a README is generated or rewritten) so READMEs
+and other repo docs stay concrete, scannable, and free of LLM prefab.
 
-Use this reference from `doc` (especially `--mode=readme`) before reporting
+Use this reference from `doc` (especially for README work) before reporting
 completion.
 
 > **Core insight #1:** You cannot do this with regex or a script. It requires a
@@ -23,8 +23,9 @@ completion.
 ## THE PROMPT — full
 
 ```
-Read the complete text line by line and remove AI-slop tells. You MUST do this by
-reading and recasting each line manually — not with regex or find-replace.
+Read the complete text line by line and remove AI-slop tells. You MUST do this
+manually, recasting only the lines that show a tell — not with regex or
+find-replace. Leave every other line exactly as written.
 
 WORD-LEVEL TELLS (recast on sight):
 - Prefabricated phrases / dying metaphors: "move the needle," "navigate the
@@ -37,6 +38,9 @@ WORD-LEVEL TELLS (recast on sight):
 - Copula avoidance: "serves as / boasts / features" where plain "is/are" works.
 - Lead-ins: "Here's why," "Here's the thing," "It's worth noting," "Let's dive
   in" — just say it.
+- Hidden actor and stacked hedges: "the token is refreshed" when the source says
+  who refreshes it; "might possibly." Name the actor; keep one hedge, and only
+  where the source is uncertain.
 
 STRUCTURAL TELLS:
 - Explicit contrast "it's not X, it's Y" / "not only X but also Y." Worst on the
@@ -50,8 +54,9 @@ STRUCTURAL TELLS:
 - Inflated importance + trailing "-ing" tail: cut to the quiet specific claim.
 
 THE DEEP ONE:
-- Each paragraph needs one concrete particular (name, number, path, command) and
-  at least one non-obvious idea. Fluent generality is still slop.
+- Each paragraph needs one concrete particular (name, number, path, command),
+  taken from the source and never invented, and at least one non-obvious idea.
+  Fluent generality is still slop.
 
 Then read the whole thing aloud. Fix every drone, stumble, and breath failure.
 ```
@@ -62,8 +67,9 @@ Then read the whole thing aloud. Fix every drone, stumble, and breath failure.
 Remove AI-slop: prefab phrases, verbal false limbs, zombie nouns, copula
 avoidance, "here's why"/"dive in" lead-ins, explicit "not X, it's Y" (≤1, never
 on the headline), reflexive rule-of-three, stacked same-shape sentences, elegant
-variation. Each paragraph needs one concrete particular. Read aloud. Recast
-manually — no regex.
+variation, hidden actors, stacked hedges. Each paragraph needs one concrete
+particular from the source, never an invented one. Read aloud. Recast only the
+lines with a tell, manually — no regex.
 ```
 
 ## Subtractive pass
@@ -81,6 +87,11 @@ manually — no regex.
 11. Lower rhetorical temperature ("pivotal," "transformative," "groundbreaking").
 12. Vague attribution ("studies show") → name the source or cut.
 13. Mechanical formatting tells (gratuitous bold, optimistic "despite challenges" closers).
+14. Passive voice that hides who acts ("the cache is cleared") → name the
+    component or person when the source says; leave it passive when the actor
+    is unknown or beside the point.
+15. Stacked hedges ("could potentially") → one hedge, only where the source is
+    uncertain; trimming never makes the claim stronger than its source.
 
 ### Em-dash: use-pattern, not frequency
 
@@ -97,7 +108,9 @@ resolved claim. Do not rebuild a self-repair as "not X, it's Y."
 
 After cuts, confirm:
 
-- One concrete particular per paragraph
+- One concrete particular per paragraph, taken from the source, the repository
+  or the caller. With none, cut the general sentence or name the missing fact as
+  a gap; never invent a name, number, example or source to meet the floor.
 - Muddy sentences rewrite the thought (clutter is unfinished thinking)
 - One non-obvious idea per section
 - Sentence-length variance (build long, land short)
@@ -124,6 +137,17 @@ After: `We chose Rust because the hot path runs 40M times a day and GC pauses sh
 "Omit needless words" means every word tells — not that every sentence is short.
 Do not chop a long sentence that earns its length into stubs.
 
+## Check or rewrite
+
+A question about a draft ("does this read generated?") asks for a check: list
+each tell with its quoted line and a short suggested fix, and leave the text
+unchanged. Report patterns, never a guess about who or what wrote the text.
+
+A request to fix or polish asks for a rewrite. Change only the sentences that
+show a tell and leave the rest as written, so a second pass finds nothing left
+to change. In the caller's own prose keep their word choice and voice; in a
+repository document match the surrounding idiom.
+
 ## What not to "fix"
 
 - Technical accuracy
@@ -135,11 +159,12 @@ Do not chop a long sentence that earns its length into stubs.
 
 - Before publishing a README, doc, or release note
 - After any AI-assisted writing session
-- During `doc --mode=readme` generate/rewrite (required) and validate (flag findings)
+- When `doc` generates or rewrites a README (required), or checks one without
+  rewriting it (flag findings)
 
-## Required from Doc readme mode
+## Required for README work in Doc
 
 After writing or rewriting `README.md`, run the full prompt above on the exact
-file and apply fixes before Step 5 deterministic checks. On `--validate`, report
-residual slop tells as evidence; do not silently rewrite unless the caller asked
-for rewrite.
+file and apply fixes before the deterministic checks (Step 5 of
+[README craft](readme-craft.md)). On a check-only request, report residual slop
+tells as evidence; do not silently rewrite unless the caller asked for a rewrite.
