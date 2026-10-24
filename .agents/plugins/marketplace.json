@@ -20,6 +20,22 @@
       "icon": "./plugins/RBraga01/a-team/assets/icon.svg"
     },
     {
+      "name": "aw1-circuit-breaker",
+      "displayName": "AW-1 Circuit Breaker",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/MvikManners/aw1-circuit-breaker"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Security & Defense",
+      "description": "Deterministic Layer 0 AST execution containment & sandbox defense for autonomous MCP agents. Neutralizes shell breakouts, eval loops, and network egress out-of-band in <0.01ms.",
+      "homepage": "https://p20.laveto.net/wisdom/",
+      "repository": "https://github.com/MvikManners/aw1-circuit-breaker"
+    },
+    {
       "name": "aegis",
       "displayName": "Aegis",
       "source": {
