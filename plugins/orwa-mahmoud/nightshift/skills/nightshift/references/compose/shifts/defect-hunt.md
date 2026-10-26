@@ -18,8 +18,8 @@ Supported on a repository-mode work target. Never select this entry in artifact 
     recent-change. Require reproduction or strong code-path evidence
     for every finding; track rejected and duplicate findings; rerun the
     containing regression surface after each fix.
-  - Each cycle: review under the current lens; dedupe every finding against snag-log.md (ALL seen —
-    fixed and rejected) and defect-cycle state so a later cycle never re-reports an earlier one or
+  - Each cycle: review under the current lens; dedupe every finding against snag-log.md under
+    Snag log discipline and defect-cycle state so a later cycle never re-reports an earlier one or
     paraphrases an explored surface; fix each behind the item gate; append dispositions; re-review.
   - Stop at the first valid ending: a full pass finds nothing NEW (converged), or quitting time.
     Zero new findings is success — stop even with time on the clock.

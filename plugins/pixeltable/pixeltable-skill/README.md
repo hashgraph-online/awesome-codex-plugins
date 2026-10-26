@@ -27,6 +27,21 @@ same skill into the current project's `.claude/skills/pixeltable` and
 `~/.gemini/antigravity/skills`, which `npx skills` does not write to. Install
 there with `./install.sh --platform antigravity`.
 
+### Gemini CLI
+
+```bash
+gemini extensions install https://github.com/pixeltable/pixeltable-skill
+```
+
+This loads `skills/pixeltable-skill/SKILL.md`, the hosted Cloud MCP
+(`pixeltable-cloud` at `https://www.pixeltable.com/mcp/cloud`), and the local
+developer MCP (`pixeltable` via `uvx mcp-server-pixeltable-developer`). Sign in
+to Cloud with `/mcp auth pixeltable-cloud` if those tools are not listed. The
+hosted server supports reads and writes; it is not read-only. The local server
+needs `uv` on PATH. Set the catalog directory with
+`gemini extensions config pixeltable` (`PIXELTABLE_HOME`; Pixeltable's default
+is `~/.pixeltable`). Restart the CLI after installing.
+
 ### Full plugin
 
 Install the skill with its client-supported commands, agents, and hooks using
@@ -67,13 +82,17 @@ skills/pixeltable-skill/
 ```
 
 Client manifests and marketplace metadata live alongside the shared skill so
-each supported installer can discover the format it understands.
+each supported installer can discover the format it understands. Gemini CLI
+reads `gemini-extension.json` and `GEMINI.md` at the repo root and loads
+`skills/*/SKILL.md`.
 
 ## Pixeltable Cloud MCP
 
-The plugin configures no MCP server. Pixeltable Cloud users can add the hosted [Cloud MCP](https://pixeltable.com/developers/mcp-cloud) at `https://www.pixeltable.com/mcp/cloud` and sign in through the browser. It reads the organization selected at sign-in: databases, services, catalog entries, schemas, up to 25 table rows per call, and logs. It also starts a database at once. Stopping a database, restarting a service, or setting a secret returns a preview first and runs only when called again with `confirm: true`. It deletes nothing and does not deploy; use the `pxt` CLI for that. Add `?read_only=true` to the URL for the read tools only, or `?db=<name>` to limit it to one database. The Skill mentions it so an agent can suggest it to a Cloud user.
+Most agents do not ship an MCP server. Pixeltable Cloud users can add the hosted [Cloud MCP](https://pixeltable.com/developers/mcp-cloud) at `https://www.pixeltable.com/mcp/cloud` and sign in through the browser. It lists the organization selected at sign-in: databases, services, catalog entries, schemas, up to 25 table rows per call, and logs. It also starts a database at once. Stopping a database, restarting a service, or setting a secret returns a preview first and runs only when called again with `confirm: true`. It deletes nothing and does not deploy; use the `pxt` CLI for that. Add `?read_only=true` to the URL for the read tools only, or `?db=<name>` to limit it to one database. The Skill mentions it so an agent can suggest it to a Cloud user.
 
-The [Docs MCP](https://docs.pixeltable.com/mcp) searches public documentation. The [developer MCP](https://github.com/pixeltable/mcp-server-pixeltable-developer) is a separate local server with catalog, query, and REPL tools.
+Gemini CLI is the exception: this repo's extension installs `pixeltable-cloud` (hosted; OAuth in the CLI, no API key in the manifest) and `pixeltable` (local developer MCP). The hosted server is not read-only; it supports the reads and writes above.
+
+The [Docs MCP](https://docs.pixeltable.com/mcp) searches public documentation. The [developer MCP](https://github.com/pixeltable/mcp-server-pixeltable-developer) is a separate local server with catalog, query, scaffold, schema, and service tools.
 
 ## Contributing
 

@@ -1,0 +1,10 @@
+interface:
+  display_name: Jetformat
+  short_description: Convert Office files to PDF and run PDF tools.
+  default_prompt: Convert this Office file to PDF with Jetformat.
+policy:
+  allow_implicit_invocation: true
+dependencies:
+  tools:
+    - type: "cli"
+      value: "jetformat"

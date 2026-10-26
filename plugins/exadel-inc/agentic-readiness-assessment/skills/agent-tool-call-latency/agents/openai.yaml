@@ -1,0 +1,6 @@
+interface:
+  display_name: "Agent Tool-Call Latency"
+  short_description: "Measure agent tool calls from local session history in any harness and rank latency fixes"
+  default_prompt: "Use $agent-tool-call-latency to measure my agent tool calls over the last 30 days and propose ranked fixes for me to approve."
+policy:
+  allow_implicit_invocation: false

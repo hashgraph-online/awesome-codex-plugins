@@ -1,6 +1,6 @@
 {
   "name": "moltnode-mcp",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "MoltNode by Chord: MCP server to read 31 blockchains over JSON-RPC and swap through Chord. No API key. Stdio bridge to the hosted server at https://moltnode.ag/mcp.",
   "type": "module",
   "bin": {
@@ -9,6 +9,7 @@
   "main": "index.mjs",
   "files": [
     "index.mjs",
+    "tools.json",
     "README.md",
     "LICENSE"
   ],
@@ -44,5 +45,8 @@
   "author": "Chord (getchord.xyz) / NullShift Labs",
   "bugs": {
     "url": "https://github.com/tuantqse90/moltnode-mcp/issues"
+  },
+  "scripts": {
+    "refresh-tools": "node scripts/refresh-tools.mjs"
   }
 }

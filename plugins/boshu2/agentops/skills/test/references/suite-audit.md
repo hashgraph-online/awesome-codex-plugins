@@ -44,10 +44,22 @@ do not establish equivalence.
 | Retain | The test provides meaningful protection, or its protection is still unknown. |
 | Rewrite | The behavior matters, but the test observes the wrong boundary or has a weak or brittle oracle; preserve its accepted protection. |
 | Consolidate | Named overlap can be expressed more clearly while stronger surviving public-contract proof preserves every real protection. |
-| Retire | The behavior was removed by an authorized contract change, or stronger surviving public-contract proof covers its real protection. |
+| Retire | The behavior was removed by an authorized contract change, stronger surviving public-contract proof covers its real protection, or the passing test protects nothing (below). |
+
+A passing test protects nothing when no observable behavior change could make
+it fail: it restates source text, an export list or a copied fixture, or it
+asserts nothing a broken implementation would violate. That shown fact is its
+retirement evidence in place of surviving proof. Keep a source-inspection check
+that pins a key, byte sequence or path users see and survives an
+identifier-only rename, and keep the only check guarding a public API, schema,
+storage format or security behavior. A failing or unrunnable test is a
+possible defect, never a protects-nothing candidate; retire it only under an
+authorized contract change.
 
 A retirement decision names the exact protected behavior, production owner and
-reachability, current callers, and meaningful surviving proof. Missing evidence
+reachability, current callers, and meaningful surviving proof, or, for a test
+that protects nothing, the shown fact that no behavior change could make it
+fail. Missing evidence
 means retain/unresolved. Do not redefine acceptance to make a failing test
 obsolete, remove a whole suite on a search result, or delete tests to meet a quota.
 Apply only the authorized named changes and run the owning suite and repository

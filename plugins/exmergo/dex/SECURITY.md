@@ -35,3 +35,9 @@ your report; a sanitized reproduction is enough.
 
 Security fixes are applied to the latest published version only. 
 Pin to a released version and upgrade promptly when a security release is announced.
+
+The engine requires `certifi>=2026.10.19`, so a fresh install never trusts the
+emSign CA roots withdrawn after the eMudhra key incident. The tool that installs
+dex has its own bundle, though, and the engine cannot raise it: use uv 0.13.4 or
+later, or pip 26.2.2 or later. The skill wrappers warn when the `uv` on `PATH` is
+older. Details: [the advisory on discuss.python.org](https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576).

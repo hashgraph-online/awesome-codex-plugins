@@ -15,4 +15,6 @@ while [[ $# -gt 0 ]]; do
  *) echo "unknown argument: $1" >&2; exit 2;;
  esac
 done
+# A plugin install has skills/ but no scripts/; refuse instead of writing into its cache.
+[[ -f "$REPO_ROOT/scripts/generate-skill-mesh.py" ]] || { echo "build.sh: $REPO_ROOT is not an AgentOps source checkout (no scripts/generate-skill-mesh.py); run from one or set SKILL_BUILDER_REPO_ROOT" >&2; exit 2; }
 exec bash "$SCRIPT_DIR/run-ao.sh" "${args[@]}"

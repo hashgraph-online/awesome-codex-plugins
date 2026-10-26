@@ -121,12 +121,16 @@ const WORDS: Record<Lang, Words> = {
     // rating needs no "记下了" (sol said so). Then the lines open the reply: Claude Desktop shows a link definition that
     // ends the latest reply; and a rating is noted even when the model disagrees (Haiku asked first, "确认后我再记下").
     // Then a bare rating gets a short reply about itself (Haiku explained what it noted, luna said nothing), and a turn
-    // with nothing to note gets no lines (Haiku wrote an empty one).
+    // with nothing to note gets no lines (Haiku wrote an empty one). 2026-10-21 (user): the first part is the place, not
+    // the "scene": in a user's MV task GPT-6 read 场景 as a film scene and named it after the scene number and what the
+    // image was for ("04场店外线稿", "04场店外局部核对"), 28 scenes for 52 images.
     featureNote: [
       "特征行说明（来自用户安装的上下文素材管理工具）：这个任务里的每张图都有编号，写在图前面的“[图片 IMG-xxx …]”里。用户装这个工具，是为了让你以后（包括对话压缩之后）还能认出每张图、记得用户对它们的评价。所以请在每一轮最后那条回复的开头（不要写在中途调用工具时说的话里），先给这一轮新出现的每张图写一行特征，空一行再写正文，格式是：",
-      "[//]: # (cam IMG-015 场景｜看得见的特征)",
-      "- 先写场景，再写看得见的特征（景别、主体、角度、光线、颜色、构图），一共 30 字以内，例如“[//]: # (cam IMG-015 深蓝雨夜｜近景，正脸，霓虹反光)”。",
-      "- 同一个场景沿用你之前用过的叫法。",
+      "[//]: # (cam IMG-015 地点｜看得见的特征)",
+      "- 先写地点，再写看得见的特征（景别、主体、角度、光线、颜色、构图），一共 30 字以内，例如“[//]: # (cam IMG-015 街头｜近景，正脸，雨夜，霓虹反光)”。",
+      "- 地点写这张画面发生在哪儿，具体到能和别处分开，比如“书房”“咖啡店外”“地铁站台”；特写看不出来时，按你知道的写。场次编号、版本、用途（首帧、线稿、检查图之类）都不写进地点；时间、天气写在后面的特征里。",
+      "- 一张图里有好几个地点的（分镜、抽帧拼图）写“多个地点”；不在任何地方的，写它是什么：角色、物品、文档、网页。",
+      "- 同一个地点沿用你之前用过的叫法。",
       "- 只写看得见的东西，不写“好看”“像谁”这类判断。每张图只写一次，以后不改。用户上传的、你生成的、你查看的、工具返回的图都要写；用 cam_view_image 取回的图和没有编号的图不用写。",
       "- 用户评价某张图时（包括隔了几轮才说），先确定是哪一张，再照用户的原话记一行，15 字以内，例如“[//]: # (cam IMG-003 评价：太暗)”。评价是用户自己的看法，你不认同也照记。拿不准是哪一张就不记，可以在正文里问用户指的是哪一张，但不要提记录的事。用户只是评价、没有提要求时，正文简短回应评价本身就行，不要说明你记了什么、对应到了哪张图。",
       "- 这些行写在正文前面，和正文之间空一行，一张图写一行；括号里不要用半角括号。这一轮没有新图、也没有评价时，不写这些行。这些行只给这个工具读，用户在界面上看不到。正文照常回答，不用提到这些行；用户评价图片时，也不用回应记录这件事，比如“记下了”“我会记住”“之后会参考”。",
@@ -188,9 +192,11 @@ const WORDS: Record<Lang, Words> = {
     },
     featureNote: [
       "Feature line note (from the context asset manager the user installed): every image in this task has an ID, written in the \"[Image IMG-xxx …]\" line before it. The user installed this tool so that you can still tell the images apart later, also after the conversation is compacted, and remember what the user said about each. So begin the last reply of every turn (not what you say between tool calls) with one feature line for each image that is new in this turn, then a blank line, then your reply, in this form:",
-      "[//]: # (cam IMG-015 scene | visible features)",
-      "- First the scene, then what can be seen (shot size, subject, angle, light, colors, composition), about 15 words at most, for example \"[//]: # (cam IMG-015 rainy blue night | close-up, facing the camera, neon reflections)\".",
-      "- For a scene you named before, reuse that name.",
+      "[//]: # (cam IMG-015 place | visible features)",
+      "- First the place, then what can be seen (shot size, subject, angle, light, colors, composition), about 15 words at most, for example \"[//]: # (cam IMG-015 street | close-up, facing the camera, rainy night, neon reflections)\".",
+      "- The place is where the picture is set, specific enough to tell it apart, such as \"study\", \"outside the café\" or \"subway platform\"; for a close-up that doesn't show it, write what you know. No scene numbers, versions or what the image is for (first frame, sketch, check); time of day and weather go in the features.",
+      "- An image of several places (a storyboard, a contact sheet) gets \"several places\"; one set nowhere gets what it is: character, object, document, web page.",
+      "- For a place you named before, reuse that name.",
       "- Only what can be seen; no judgments such as \"beautiful\" or \"looks like someone\". One line per image, written once and never changed. Write one for the images the user uploaded, the ones you generated or viewed, and those in tool results; not for images you fetched with cam_view_image or images without an ID.",
       "- When the user rates an image, even turns later, first make sure which one it is, then note the user's own words in a line of about 8 words at most, for example \"[//]: # (cam IMG-003 rated: too dark)\". The rating is the user's own view: note it even if you see it differently. If you are not sure which image it is, do not note it; you may ask the user which one they mean, without mentioning the noting. When the user only rates images and asks for nothing, a short reply to what they said is enough; do not explain what you noted or which image you matched it to.",
       "- Put these lines before your reply with a blank line after them, one image per line, and no parentheses inside them. In a turn with no new image and no rating, write none of these lines. These lines are for this tool only; the user does not see them on screen. Answer as usual and do not mention these lines; when the user rates an image, do not acknowledge the noting either, such as \"noted\", \"I'll keep that in mind\" or \"I'll refer to this later\".",

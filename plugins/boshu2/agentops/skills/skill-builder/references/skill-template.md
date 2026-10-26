@@ -26,20 +26,13 @@ state before strict source checking. Deleting a marker cannot prove the prose
 complete: fresh semantic review is still necessary.
 
 `heal.sh --check --strict skills/<slug>` checks identity, source fields,
-explicit scaffold state and required linked resources. It never mutates.
-`heal.sh --fix skills/<slug>` projects structurally valid explicit targets; it
-does not invent missing behavior. Invalid targets are refused before mutation.
-
-`audit.sh` defaults to separate conformance, effects, behavior and located
-non-gating authoring evidence with no aggregate rank. `audit.sh --legacy`
-retains eight legacy lexical check IDs and its wire schema. For
-`repo-runtime`, their findings are advisory WARNs, including under `--strict`.
-Only source defects block that audit. Other consumers of the shared
-[profile](skill-conformance-profiles.yaml), including trigger CI, keep their
-existing policy. The external-observation profile keeps its legacy strict
-WARN behavior. Static PASS/WARN/FAIL describes only that selected mechanical
-operation, not semantic completion, safety, or effectiveness.
+explicit scaffold state and required linked resources without mutating;
+`heal.sh --fix skills/<slug>` projects only structurally valid explicit targets
+and invents no behavior. What `audit.sh` and its `--legacy` option report, and
+how the shared [profile](skill-conformance-profiles.yaml) sets severities, is in
+[audit checks](audit-checks.md). No static PASS/WARN/FAIL establishes semantic
+completion, safety or effectiveness.
 
 The package-readiness and craft scores are legacy advisory compatibility data.
-Do not add content to raise them. Use [authoring doctrine](authoring-doctrine.md)
-and [context density guidance](context-density-checks.md) as judgment aids.
+Do not add content to raise them. To decide which prose earns a place, use the
+admission test in [changing existing text](authoring-doctrine.md#change-existing-text-at-its-owning-layer).

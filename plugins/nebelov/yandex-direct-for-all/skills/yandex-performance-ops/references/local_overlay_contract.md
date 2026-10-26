@@ -13,7 +13,8 @@ Global skill хранит логику. Локальный проект хран
 
 ### `analytics`
 - `source_priority`: порядок доверия данным;
-- `roistat_first`: использовать ли Roistat как первую инстанцию;
+- `sales_source`: `none | crm | roistat` — подключённый источник продаж (по умолчанию `none`: продажи не проверяются, выводы об окупаемости не делаются);
+- `roistat_first`: только если Roistat подключён — использовать ли его как первую инстанцию;
 - `manual_analysis_required`: если `true`, анализ руками мной без analysis-скриптов;
 - `roistat_attribution`: какие модели атрибуции проверять (`first_click`, `last_click`).
 
@@ -40,7 +41,7 @@ Global skill хранит логику. Локальный проект хран
 - `regions`
 - `devices`
 
-### `roistat`
+### `roistat` (необязательно, только при `enabled: true`)
 - `enabled`
 - `api_key_env`
 - `project_env`

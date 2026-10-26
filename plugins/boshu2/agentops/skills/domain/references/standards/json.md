@@ -15,7 +15,7 @@
 
 ## JSONL (newline-delimited)
 - One JSON object per line
-- No trailing newline on last line
+- Terminate every record, the last included, with `\n`; readers must tolerate a missing final newline
 - Each line must be valid JSON
 
 ## Schema Validation

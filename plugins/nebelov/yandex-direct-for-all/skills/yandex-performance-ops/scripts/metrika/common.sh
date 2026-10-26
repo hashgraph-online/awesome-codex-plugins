@@ -98,8 +98,8 @@ metrika_get() {
         return 1
     }
 
-    # Check for 429
-    _mg_status=$(head -1 "$_mg_headers" | grep -o '[0-9][0-9][0-9]' | head -1)
+    # Check for 429 (last status line: a proxy prepends "HTTP/1.1 200 Connection established")
+    _mg_status=$(grep '^HTTP/' "$_mg_headers" | tail -1 | grep -o ' [0-9][0-9][0-9]' | tr -d ' ')
     if [ "$_mg_status" = "429" ]; then
         _mg_retry=$(grep -i 'Retry-After' "$_mg_headers" | sed 's/[^0-9]//g' | head -1)
         rm -f "$_mg_headers" "$_mg_config"
@@ -151,7 +151,7 @@ metrika_get_csv() {
         return 1
     }
 
-    _mgc_status=$(head -1 "$_mgc_headers" | grep -o '[0-9][0-9][0-9]' | head -1)
+    _mgc_status=$(grep '^HTTP/' "$_mgc_headers" | tail -1 | grep -o ' [0-9][0-9][0-9]' | tr -d ' ')
     if [ "$_mgc_status" = "429" ]; then
         _mgc_retry=$(grep -i 'Retry-After' "$_mgc_headers" | sed 's/[^0-9]//g' | head -1)
         rm -f "$_mgc_headers" "$_mgc_config"

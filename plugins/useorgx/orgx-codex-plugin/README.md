@@ -57,6 +57,15 @@ workstream, milestone, task, blocker, or decision.
 Keep OrgX updated during live Codex execution with progress, artifacts,
 blockers, and completion events.
 
+After the matching MCP deployment, `commander` exposes the existing
+`orgx_update_work` operation for one reviewable output attachment: current work
+target, workspace, stable retry key, durable output location and optional plain
+answer, linked decisions and source notes. Inspect the stored artifact to read
+its canonical context, files and run receipt. Attaching leaves approval and
+completion pending. The runtime skill documents the bounded payload and retry
+behavior; Wizard continues to own passive capture, and the peer's terminal
+receipt outbox does not upload files.
+
 For reporting or daily-brief style questions, start with
 `get_operator_chronicle` when the live OrgX MCP tool map exposes it. Its
 `chronicle.reportingNarrative.briefMarkdown` is the canonical concise answer for

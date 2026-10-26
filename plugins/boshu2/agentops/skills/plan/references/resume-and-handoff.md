@@ -1,7 +1,7 @@
 # Resume, handoff and exact intent
 
 Plan loads this only when discovery resumes after interruption or
-replacement, when a slice goes to another context, when the caller asks for
+replacement, when a slice may go to another context, when the caller asks for
 code plus a retrospective, or when conversation intent needs an exact
 snapshot.
 
@@ -32,6 +32,19 @@ changed acceptance still needs the caller.
 
 ## Hand a slice to another context
 
+Change context at a step boundary, not midway; midway, keep going, or, where
+the caller has authorized delegation, hand a tightly scoped remainder on under
+Orchestrate. At a boundary, stay in this context when
+the next step needs its reasoning as it happened (shaping a slice right after
+the interview that settled it, say) and room remains: a summary, handoff or
+new session replaces that record with a lossy copy, worth paying for only when
+staying costs more. Before any change, make sure the intent source holds the
+settled choices the next step needs (Resume discovery's update, under the
+authority of Plan's Output write) and name what it must keep; check a
+consequential decision against that source, not a summary. A dispatched
+implementer still starts fresh under
+[Orchestrate](../../orchestrate/SKILL.md).
+
 Give it exact intent references and the evidence it needs to act, its write
 scope, and who owns integration and final review. Keep approach notes separate
 from frozen acceptance. Pass the next decision and relevant source references,
@@ -41,20 +54,19 @@ tool catalogs and retrieved inputs.
 
 ## Code plus a retrospective
 
-When the caller requests both, distinguish code acceptance, delivery facts and
-the later analysis in the same intent. Code judgment consumes acceptance and
-checks; the retrospective consumes the known outcome and judgment. Keep both
-deliverables required for the overall goal without making either depend on
-its own conclusion.
+When the caller requests both, keep code acceptance and the later analysis
+separate in the same intent: code judgment uses acceptance and checks, the
+retrospective uses the known outcome, and both stay required.
 
 ## Exact intent identity
 
 Use runtime-derived source identity and digest. If conversation intent needs
-an exact snapshot, the existing command
-`ao provenance snapshot-intent --source - --evidence-root <explicit-root>`
-writes it to caller-selected protected external non-Git storage. Missing
-routing permits neither a workspace fallback nor a second planning artifact.
-Preserve legacy proof.
+an exact snapshot, the `ao` CLI (not shipped with the plugin) writes it to
+caller-selected protected external non-Git storage:
+`ao provenance snapshot-intent --source - --evidence-root <explicit-root>`.
+Without `ao` or a routed root, say that no exact snapshot was taken and keep
+the intent in the conversation or tracker; never write a workspace copy or a
+second planning artifact. Preserve legacy proof.
 
 ## Sources
 

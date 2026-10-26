@@ -36,6 +36,8 @@
       "Triage this ELF or PE and tell me if it looks Rust-built."
     ],
     "brandColor": "#C96442",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
     "screenshots": []
   }
 }

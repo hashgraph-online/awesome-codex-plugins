@@ -1,0 +1,27 @@
+{
+  "workflow": "prompt-to-video",
+  "source": {
+    "prompt": "Why honey never spoils.",
+    "stylePrompt": "Open with a punchy archaeological hook. Walk through the chemistry in plain language. End with a takeaway.",
+    "durationSeconds": 35
+  },
+  "aspectRatio": "9:16",
+  "voice":    { "enabled": true, "stability": 0.6, "speed": 1.0, "language": "en-US" },
+  "captions": { "enabled": true, "position": "middle", "autoCrop": true },
+  "music":    { "enabled": true, "syncWith": "beats" },
+  "media": {
+    "type": "stock-video",
+    "density": "medium",
+    "animation": "soft",
+    "quality": "pro",
+    "videoModel": "pro",
+    "imageModel": "good"
+  },
+  "options": {
+    "promptTargetDuration": 35,
+    "summarizationPreference": "summarizeIfLong",
+    "soundEffects": true,
+    "hasToGenerateCover": true
+  },
+  "render": { "resolution": "1080p", "frameRate": 30 }
+}

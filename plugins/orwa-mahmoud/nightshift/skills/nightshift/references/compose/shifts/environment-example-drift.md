@@ -14,7 +14,7 @@ Write the work receipt from `receipts/cycle-specialist-evidence.md` using `mode:
   - Treat optional names, dynamically assembled lookups, and names that may be consumed by deployment systems outside the repository as uncertain. Never remove a template name just because a local search found no reference; park it with the reason and evidence instead.
   - Never reveal, copy, or record right-hand-side contents from `.env.example`. Never read, display, copy, or record values from `.env`, `.env.local`, process environments, secret stores, or deployment settings. Never run the application against real credentials or add, guess, or expose a credential.
   - Never change application code, runtime defaults, deployment configuration, or hosted settings. This shift only reconciles the example template; owner decisions and ambiguous references stay parked.
-  - A finding already recorded in `snag-log.md` is a `duplicate` that links to the existing record and carries forward its disposition. Preserve closed canonical dispositions (`fixed`, `ignored`, `answered`, `rejected-because`, or `accepted-tradeoff`); keep matching open snags linked and open. Duplicates are not new owner decisions and do not require a fresh disposition.
+  - A finding already recorded in `snag-log.md` is a `duplicate` under Snag log discipline; record it with that disposition in the work receipt.
   - Ends when every template name and every discovered literal reference has an evidence-linked disposition, every uncertain case is parked with a reason, and a second name-only comparison agrees with the receipt.
   - Verify: run the project's existing lint/test gate and `git diff --check`; repeat the same name-only comparison after edits. The item gate must be green at every commit.
 ```

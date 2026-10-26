@@ -13,13 +13,6 @@ produces:
 context_rel: []
 skill_api_version: 1
 user-invocable: true
-context:
-  window: fork
-  intent:
-    mode: task
-  sections:
-    exclude:
-    - HISTORY
 metadata:
   capabilities: [refactor]
   effects: [modify_source_files]
@@ -53,6 +46,11 @@ Unless the caller explicitly excluded a surface, all of these must survive:
 - **Order and coverage.** Branch priority, default handling, evaluation count,
   side-effect order, and the set of tests that run. A pre-existing red that
   vanishes, or a test that stops running, is a behavior change.
+- **Protective checks.** Trust-boundary validation, data-loss guards, security
+  controls and accessibility affordances stay, even when another layer,
+  upstream or downstream, duplicates one or no test reaches it. The neutrality
+  gates cannot see their removal, so looking redundant is no reason to delete
+  one.
 
 ## Procedure
 
@@ -60,44 +58,61 @@ Unless the caller explicitly excluded a surface, all of these must survive:
    structural problem for its callers, in the caller's domain terms.
 2. Run the focused check and the smallest regression check the changed surface
    justifies, and record that honest baseline, including reproducible ambient
-   failures. For an evaluation comparing executable behavior, pin the starting
+   failures. Add any characterization test the transformation needs now, before
+   the edit, so it is part of the baseline. For output-producing surfaces
+   (generators, serializers, formatters, reports), hash the output over fixed
+   inputs. For an evaluation comparing executable behavior, pin the starting
    source, build its baseline before edits and keep that binary and the
    comparison inputs.
-3. Apply one bounded transformation: extract, rename, inline, simplify,
-   encapsulate, move, or delete dead code. Judge it by what callers must
+3. Apply one bounded transformation: extract, move, rename, inline, simplify a
+   conditional, reduce parameters, encapsulate, substitute existing code, or
+   delete dead code; the
+   [refactoring catalog](references/behavior-preserving-simplification.md#refactoring-catalog)
+   holds per-pattern safety checks. Judge it by what callers must
    understand and where a domain rule must change, not by file size.
 4. A bug or suspicious inconsistency found on the way is reported separately
    (location, why it looks wrong) and left unfixed. Fixing it inside the
    refactor hides a behavior change the caller did not authorize.
-5. Rerun the same focused check and the smallest justified regression check
-   over the same inputs, including error paths.
+5. Rerun the same checks over the same inputs, including error paths, and
+   compare any output hashes byte-for-byte.
 6. Report, then stop. A red result is evidence for the caller; this skill does
    not revert, narrow, retry, commit, validate, or route subsequent work.
 
 When nothing can be executed (no runtime, no tests, code supplied in a
 message), neutrality is unproven: give the exact before/after commands and
 inputs the caller must run, error paths included, and list every surface under
-behavior not checked.
+`not checked`.
 
 ```text
 transformation: <the one change>
 preserved:      <behavior and surfaces from step 1>
 checks:         <command>: before -> <result>; after -> <result>   (or "not run")
 outputs:        <before/after hashes when the surface produces output>
-diff:           <files touched>; only those the transformation names
+abstraction:    <a new one and the second use or contract that justifies it, or "none">
+diff:           <files touched>; only those the transformation names, plus tests added before the change
 suspected bugs: <file:line, why>; reported, not fixed
 not checked:    <surfaces no check covered>; present even when empty
 ```
 
-## Responsibility and interface cost
+## Neutrality gates
 
-Before adding an interface or splitting a module, inspect representative callers.
-Count the concepts they must coordinate: required setup, ordering, states, error
-handling and repeated domain rules. A useful boundary puts a cohesive rule under
-one owner and lets callers request an outcome without reproducing that rule.
-Reject a wrapper that only adds another name or pushes the same coordination
-into its callers. Existing boundaries are sufficient when no concrete caller
-problem warrants changing them.
+The checks from step 2 give the same result after as before: no new red, no
+vanished red, identical output hashes. A mismatch is a behavior diff to surface
+and explain, never to shrug at; the caller decides whether to keep, narrow, or
+reverse it. A gate skipped or narrowed after the fact is the **post-hoc
+neutrality** failure mode — the diff decides what got tested. Name any surface
+the gates did not cover under `not checked`.
+
+## Boundaries and tests
+
+Choosing where to restructure, or a new module boundary, is
+[Architecture](../architecture/SKILL.md#procedure)'s job; this skill executes
+one transformation in the area the caller selected. Reject a wrapper that only
+adds another name or pushes the same coordination into its callers. Keep
+internal test seams private when callers need no substitution. Exercise the
+preserved behavior through the caller-facing boundary; retain existing tests
+until equivalent coverage of their distinct cases is demonstrated. Moving a
+test is not permission to delete the behavior it protected.
 
 Use the caller's vocabulary for extracted operations and types. A naming
 ambiguity that changes behavior belongs with the existing domain definition;
@@ -114,24 +129,7 @@ trying a third. Cutting the first imaginable seam directly into the working
 tree is the **premature seam** failure mode: the wrong boundary calcifies
 because reverting it now costs more than living with it.
 
-## Neutrality gates
-
-Gate the transformation on behavior-identical proof:
-
-- The focused check and the package-level regression check pass both before
-  and after, with the same set of pre-existing failures: no new red and no
-  vanished red.
-- For output-producing surfaces (generators, serializers, formatters, reports),
-  capture output hashes over identical inputs before the change and compare
-  byte-for-byte after. A mismatch is a behavior diff to surface and explain,
-  never to shrug at; the caller decides whether to keep, narrow, or reverse it.
-
-A neutrality gate that was skipped or narrowed after the fact is the
-**post-hoc neutrality** failure mode — the diff decides what got tested. Name
-any surface the gates did not cover under behavior not checked.
-
 ## References
 
 - [Behavior-preserving simplification](references/behavior-preserving-simplification.md) — refactoring catalog and per-pattern safety checks
-- [Behavior scenarios](references/refactor.feature)
 - [Upstream capability reference](https://github.com/mattpocock/skills/blob/main/skills/engineering/codebase-design/SKILL.md) — Matt Pocock; original AgentOps adaptation.

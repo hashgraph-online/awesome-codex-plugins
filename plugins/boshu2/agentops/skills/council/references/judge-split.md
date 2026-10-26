@@ -19,5 +19,6 @@ proven, and citing the evidence that ruling rests on.
 
 Those rulings close nothing. The verdict and the open finding set stay exactly
 as repair left them, and the rulings are there for the caller's next intent to
-read. No validator reads them as a verdict. `scripts/validate-output.sh` rejects
-verdict fields; `council-report.v1` carries no verdict.
+read. No validator reads them as a verdict. This skill's
+`scripts/validate-output.sh` rejects verdict fields; `council-report.v1`
+carries no verdict.

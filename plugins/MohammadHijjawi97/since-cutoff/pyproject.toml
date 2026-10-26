@@ -89,8 +89,9 @@ markers = [
 line-length = 100
 target-version = "py310"
 src = ["src", "tests"]
-# The example project is scanned by since-cutoff, not linted: it keeps its imports as they are.
-extend-exclude = ["examples"]
+# The example project is scanned by since-cutoff, not linted: it keeps its imports as they are. The research folder
+# holds a study's analysis scripts, published as they were run.
+extend-exclude = ["examples", "research"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "PTH", "C4"]

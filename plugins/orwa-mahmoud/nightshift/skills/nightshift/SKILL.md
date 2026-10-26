@@ -2,6 +2,8 @@
 name: nightshift
 description: Work a punch list to completion autonomously — overnight, through a todo list, or until a product is polished — parking decisions and leaving receipts.
 license: MIT
+metadata:
+  internal: true
 ---
 
 # nightshift — the brain
@@ -117,8 +119,10 @@ Top to bottom, one item:
   Whenever a gate does run, it must be green, and no suppression goes in without a written reason
   beside it.
 4. **Record it** — repository mode leaves one conventional commit per item in the work target,
-  local by default. When the contract asks for a coherent batch, one commit may cover the items it
-  belongs with, still local, still a real change. When the contract asks for no commits, finish the
+  local by default. Stage only the paths this item changed, by name, and never commit the owner's
+  pre-existing edits. A shift with its own worktree commits there, on its shift branch. When the
+  contract asks for a coherent batch, one commit may cover the items it belongs with, still local,
+  still a real change. When the contract asks for no commits, finish the
   item and leave the work in the tree — say plainly in the handoff that it is uncommitted, and
   never invent a commit to satisfy a convention. Artifact mode writes the item's receipt at
   `$NS/receipts/<NN>-<slug>-<id>.md`, with links to what it produced. Push yourself only when the punch
@@ -261,9 +265,13 @@ exist.
 ## Snag log discipline
 
 Before reporting findings in a review or walkthrough, read
-`$NS/inbox/snag-log.md` and `$NS/inbox/parking-lot.md` first. Dedupe against ALL seen
-— fixed AND rejected — so a later cycle never re-reports an earlier one. Append dispositions after
-acting. Each entry is one `- ` bullet, `finding · evidence · disposition · date`, and Archive files
+`$NS/inbox/snag-log.md` and `$NS/inbox/parking-lot.md` first. Dedupe against every entry, open
+and closed, so a later cycle never re-reports an earlier one. A finding already recorded is a
+duplicate: it links to the existing entry and carries that entry's disposition forward. A closed
+entry (`fixed`, `ignored`, `answered`, `rejected-because` or `accepted-tradeoff`) stays closed
+unless new evidence shows the behaviour changed, and then that evidence is linked to the entry; a
+matching open entry stays linked and open. A duplicate is not a new owner decision and needs no
+fresh disposition. Append dispositions after acting. Each entry is one `- ` bullet, `finding · evidence · disposition · date`, and Archive files
 an entry once it carries one of `fixed`, `ignored`, `answered`, `rejected-because` or
 `accepted-tradeoff`: write `fixed in <commit>`, or the disposition followed by its reason. An entry
 with no disposition is open and waits for the owner, and text that is not a bullet is never filed.

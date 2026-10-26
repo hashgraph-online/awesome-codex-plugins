@@ -51,7 +51,7 @@ In Claude Desktop or claude.ai you can also add it under Settings → Connectors
 
 (`npx -y github:tuantqse90/moltnode-mcp` works too.)
 
-The stdio bridge in this repo (`index.mjs`) forwards every call to the hosted server, so both give the same tools.
+The stdio bridge in this repo (`index.mjs`) forwards every call to the hosted server, so both give the same tools. Without network it still lists the tools (from `tools.json`, a snapshot of the hosted list refreshed with `npm run refresh-tools`) and each call says the server is unreachable.
 
 ## Tools
 

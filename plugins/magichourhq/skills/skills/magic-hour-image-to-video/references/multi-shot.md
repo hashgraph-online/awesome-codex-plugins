@@ -16,7 +16,7 @@ These are example shot decisions, not instructions to insert a robot into other 
 
 ## Approve appearance before motion
 
-Derive each still from the same approved identity reference with AI Image Editor; repair composition there first. For a new angle that exposes unseen details, obtain or establish an accepted view. Do not solve a changing face by describing a different face in the motion prompt.
+Reuse approved shot images directly when they already meet the brief. Derive or edit a missing shot from the same approved identity reference only when its appearance or composition must change. For a new angle that exposes unseen details, obtain or establish an accepted view. Do not solve a changing face by describing a different face in the motion prompt.
 
 Choose camera movement for a reason. A push-in emphasizes a detail but changes available crop/copy space; a pan reveals context; an orbit reveals unseen geometry and increases the identity burden. Locked framing with one subject or environmental action is often sufficient. Neither a fixed camera nor a longer prompt guarantees stability.
 

@@ -1,0 +1,31 @@
+# What a tool that bundles this plugin from a checkout should leave out (gitignore syntax).
+# Codex itself does not read this file: it installs the plugin from the release payload that
+# build/make_release.py stages, or from this folder as a local marketplace. Plugin scanners
+# and marketplace mirrors read it.
+
+# Local state, logs and secrets. None is ever committed (.gitignore), and none may be bundled.
+.env
+.env.*
+*.pem
+*.key
+config/
+logs/
+.codex/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Release build products, regenerated from source by build/make_release.py and build/make_gui.ps1.
+build/cache/
+build/stage/
+build/dist/
+build/advanced/
+build/*.exe
+build/*.VersionInfo.cs
+
+# Scratch work from other local sessions.
+comparison/
+COMPARISON_PROGRESS.md
+.github/GENERATED-BRANCH.md

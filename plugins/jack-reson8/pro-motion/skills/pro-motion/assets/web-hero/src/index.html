@@ -1,0 +1,125 @@
+<!doctype html>
+<!-- 生成自 site/src/index.html（node tools/build.js），别直接改 public/ 下的页面 -->
+<html lang="{{hreflang}}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#FF2E93">
+<link rel="icon" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<title>{{title}}</title>
+<meta name="description" content="{{desc}}">
+<meta property="og:title" content="{{title}}">
+<meta property="og:description" content="{{desc}}">
+<meta property="og:image" content="https://tutti.pics/assets/og/home.jpg">
+<meta name="twitter:card" content="summary_large_image">
+{{alternates}}
+<link rel="preload" href="{{fonturl}}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/assets/img/demo-3-cut.webp" as="image">
+<style>
+  @font-face { font-family: 'Brand'; src: url({{fonturl}}) format('woff2'); font-display: block; }
+  @font-face { font-family: 'Shantell'; src: url(/assets/fonts/ShantellDoodle-Bold.ttf); font-weight: 700; font-display: swap; }
+  :root { --ground: #FF2E93; --ink: #160F12; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--ground); transition: background-color .25s; }
+  body { overflow: hidden; color: #fff; font-family: 'Brand', system-ui, sans-serif; -webkit-font-smoothing: antialiased; touch-action: none; user-select: none; -webkit-user-select: none; }
+  #wall { position: fixed; inset: 0; width: 100%; height: 100%; }
+  #me { position: fixed; left: 50%; bottom: 0; height: min(72svh, 150vw); width: auto; max-width: none; margin-left: calc(min(72svh, 150vw) * var(--ar, .75) * var(--cx, .5) * -1); pointer-events: none; -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent); mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+        transform: translate3d(var(--px, 0), var(--py, 0), 0) scale(var(--ms, 1)); transform-origin: 50% 100%; transition: transform .5s cubic-bezier(.2, 1.4, .4, 1), filter .2s; will-change: transform; }
+  .broken #me { filter: grayscale(1) contrast(.75) brightness(1.1) blur(.6px); }
+  #me.line { filter: drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff) drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff); }
+  #flash { position: fixed; inset: 0; pointer-events: none; opacity: 0; background: radial-gradient(circle at var(--fx, 50%) var(--fy, 40%), #fff 0, #fff 18%, rgba(255,255,255,.85) 40%, rgba(255,255,255,0) 75%); }
+  #flash.go { animation: flash .55s ease-out; }
+  @keyframes flash { 0% { opacity: 1; } 12% { opacity: .95; } 100% { opacity: 0; } }
+  header { position: fixed; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: center; padding: calc(env(safe-area-inset-top) + 14px) 18px 0; font-size: 15px; mix-blend-mode: normal; }
+  .logo { font-weight: 700; font-size: 24px; letter-spacing: -.03em; color: #fff; }
+  header a { color: #fff; text-decoration: none; opacity: .92; }
+  #code { position: fixed; font: 600 12px/1 ui-monospace, 'SF Mono', Menlo, monospace; letter-spacing: .06em; color: var(--ink); background: #fff; padding: 7px 9px 6px; transform: rotate(-4deg); left: 16px; top: calc(env(safe-area-inset-top) + 58px);
+          clip-path: polygon(0 6%, 100% 0, 98% 100%, 2% 94%); transition: opacity .2s; }
+  #code { border: 0; cursor: pointer; }
+  #code b { font-weight: 600; opacity: .5; }
+  #code em { display: none; font: 600 11px/1 'Brand', system-ui; margin-left: 8px; padding-left: 8px; border-left: 1px solid rgba(0,0,0,.25); }
+  .is-code #code { font-size: 22px; padding: 12px 14px 10px; top: calc(env(safe-area-inset-top) + 54px); }
+  .is-code #code em { display: inline; font-size: 14px; }
+  .is-code .hint { display: none; }
+  .pbar { display: none; }
+  .today { display: none; position: fixed; left: 18px; top: calc(env(safe-area-inset-top) + 92px); font: 13px/1 'Brand'; color: #fff; transform: rotate(-4deg); text-shadow: 0 1px 8px rgba(0,0,0,.3); }
+  .is-today .today { display: block; }
+  .is-og .cta, .is-og .hint, .is-og header a, .is-og #code em, .is-og .today { display: none; }
+  .is-poster #me, .is-poster .cta, .is-poster #code, .is-poster .hint, .is-poster header { display: none; }
+  .is-poster .pbar { display: flex; position: fixed; left: 16px; right: 16px; bottom: calc(env(safe-area-inset-bottom) + 18px); gap: 10px; align-items: center; }
+  .is-poster .pbar span { flex: 1; font: 600 13px ui-monospace, Menlo, monospace; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.3); }
+  @media print { .pbar button, header { display: none !important; } .pbar span { font-size: 10pt; } @page { size: A4 portrait; margin: 0; } }
+  #code.bad span { text-decoration: line-through; text-decoration-color: #D13D30; text-decoration-thickness: 2px; }
+  .note a { color: #fff; margin-left: 6px; font-family: ui-monospace, Menlo, monospace; }
+  .cta { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 22px); transform: translateX(-50%); display: grid; justify-items: center; gap: 10px; }
+  .btn { display: flex; align-items: center; gap: 10px; background: #111; color: #fff; border: 1.5px solid #fff; padding: 12px 20px 12px 16px; font: 700 17px/1 'Brand', system-ui; letter-spacing: .02em; cursor: pointer; white-space: nowrap;
+         border-radius: 0; clip-path: polygon(0 4%, 100% 0, 99% 96%, 1% 100%); transition: transform .15s cubic-bezier(.3, 1.8, .5, 1); }
+  .btn:active { transform: scale(.94) rotate(-1.5deg); }
+  .btn i { width: 22px; height: 22px; display: grid; place-items: center; font-style: normal; font-size: 20px; line-height: 1; }
+  .join { font: 14px/1 'Brand', system-ui; color: #fff; text-decoration: underline; text-underline-offset: 4px; text-shadow: 0 1px 8px rgba(0,0,0,.25); }
+  #file { display: none; }
+  .row { display: flex; gap: 10px; }
+  .save { display: none; background: #fff; color: #111; border-color: #111; }
+  .has-mine .save { display: flex; }
+  .note { font: 13px/1.3 'Brand', system-ui; color: #fff; background: rgba(0,0,0,.55); padding: 6px 10px; max-width: 80vw; text-align: center; }
+  .note.bad { background: #111; }
+  .fallback { display: none; }
+  #sheet { position: fixed; inset: auto 0 0 0; min-height: 62svh; background: var(--ground); color: #fff; padding: 34px 22px calc(env(safe-area-inset-bottom) + 28px);
+           clip-path: polygon(0 3%, 38% 0, 100% 2.5%, 100% 100%, 0 100%); transform: translateY(105%); transition: transform .45s cubic-bezier(.2, 1.15, .3, 1); z-index: 5;
+           box-shadow: 0 -30px 60px rgba(0,0,0,.25); touch-action: auto; user-select: text; -webkit-user-select: text; }
+  #sheet::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .18; mix-blend-mode: overlay;
+                  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  #sheet.on { transform: none; }
+  #sheet h2 { font: 400 34px/1.15 'Brand'; margin-bottom: 26px; text-shadow: 0 2px 18px rgba(0,0,0,.18); }
+  #sheet input { width: 100%; font: 22px/1.2 'Brand', system-ui; color: #fff; background: transparent; border: 0; border-bottom: 2px solid #fff; padding: 10px 0; margin-bottom: 18px; border-radius: 0; outline: none; }
+  #sheet input::placeholder { color: rgba(255,255,255,.65); }
+  #sheet .small { font: 13px/1.4 'Brand'; opacity: .85; margin-top: 14px; }
+  #sheet .small a { color: #fff; }
+  #sheet .err { font: 15px 'Brand'; background: #111; display: inline-block; padding: 6px 10px; margin-top: 12px; }
+  #sheet .big { font: 400 min(42vw, 190px)/.9 'Brand'; letter-spacing: -.04em; text-shadow: 0 6px 40px rgba(0,0,0,.2); }
+  #sheet .big::before { content: '#'; font-size: .45em; vertical-align: .9em; margin-right: .04em; }
+  #sheet .mid { font: 18px/1.3 'Brand'; margin: 6px 0 20px; }
+  #sheet .ghost { background: transparent; }
+  #sheet [hidden] { display: none !important; }
+  #sheetClose { background: none; border: 0; cursor: pointer; position: absolute; right: 14px; top: 18px; font: 30px/1 system-ui; color: #fff; width: 44px; height: 44px; }
+  .nogl .fallback { display: block; position: fixed; top: 22%; left: 18px; right: 18px; font: 52px/1.05 'Brand'; color: #FF5A1F; }
+  .hint { position: fixed; right: 16px; top: 46%; font: 15px/1.2 'Brand'; writing-mode: vertical-rl; letter-spacing: .2em; color: #fff; opacity: .9; text-shadow: 0 1px 10px rgba(0,0,0,.25); }
+  @media (prefers-reduced-motion: reduce) { #flash.go { animation: none; } #me { transition: none; } }
+</style></head>
+<body>
+<canvas id="wall"></canvas>
+<img id="me" alt="" src="/assets/img/demo-3-cut.webp">
+<div id="flash"></div>
+<header><span class="logo">tutti</span><a href="#join">{{header_join}}</a></header>
+<button id="code" aria-label="{{code_aria}}"><b>TT·</b><span id="codeval">······</span><em>{{code_copy}}</em></button>
+<span class="today">{{today}}</span>
+<span class="hint" id="hint">{{hint_tap}}</span>
+<div class="cta">
+  <div class="row"><label class="btn" for="file"><i>＋</i><span id="btnLabel">{{cta_mine}}</span></label><button class="btn save" id="save">{{save}}</button></div>
+  <p class="note" id="note" hidden></p>
+  <a class="join" href="#join">{{join_link}}</a>
+</div>
+<input id="file" type="file" accept="image/*">
+<div class="pbar"><span id="posterUrl"></span><button class="btn" onclick="print()">{{print}}</button><button class="btn ghost" id="psave">{{save_img}}</button></div>
+<section id="sheet" hidden aria-label="{{sheet_aria}}">
+  <button id="sheetClose" aria-label="{{close}}">×</button>
+  <form id="joinForm">
+    <h2>{{sheet_h2}}</h2>
+    <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="{{email_ph}}" required>
+    <button class="btn" type="submit">{{join_btn}}</button>
+    <p class="err" id="joinErr" hidden></p>
+    <p class="small">{{join_privacy}}<a href="/privacy/">{{privacy_link}}</a></p>
+    <p class="small langs">{{langlinks}}</p>
+  </form>
+  <div id="joined" hidden>
+    <p class="small">{{rank_prefix}}</p>
+    <p class="big"><span id="pos">–</span></p>
+    <p class="mid" id="inv"></p>
+    <div class="row"><button class="btn" id="invite">{{invite_btn}}</button><button class="btn ghost" id="copyLink">{{copy_link}}</button></div>
+  </div>
+</section>
+<h1 class="fallback">{{slogan}}</h1>
+<script>window.I18N = {{i18n}};</script>{{langredirect}}
+<script src="/shortcode.js"></script>
+<script src="/hero.js"></script>
+<script src="/join.js"></script>
+</body></html>

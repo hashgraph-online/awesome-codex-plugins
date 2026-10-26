@@ -22,8 +22,9 @@ On the selected machine, confirm the AMQ executable with `command -v amq` and
 its version with `amq --version`. Record the absolute executable and project
 directory. Use the sender handle assigned to this Bot; do not select `user`
 or borrow another running agent's handle. An existing `staff` assignment can
-be retained. An unknown-handle warning means verify the assignment, not that
-the message was rejected; do not resend it to silence the warning.
+be retained. An unregistered-sender or unregistered-recipient warning means
+verify the assignment, not that the message was rejected; do not resend it to
+silence the warning.
 
 ## Resolve the context in each command invocation
 

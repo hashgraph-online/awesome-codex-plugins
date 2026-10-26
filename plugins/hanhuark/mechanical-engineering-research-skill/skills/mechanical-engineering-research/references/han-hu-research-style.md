@@ -17,6 +17,19 @@ Use this reference for manuscripts authored or supervised by Han Hu and when the
 - Use short noun phrases for section titles. Do not place conclusions in headings.
 - Refer to subfigures as `Fig. 6a`, `Fig. 6b`, and so forth. Do not use "panel" in manuscript text or captions.
 
+## Sentence Construction And Emphasis
+
+A technical sentence should carry one dominant message. Parallel construction distributes weight evenly across its members, which feels complete but leaves the reader without a signal about which claim matters. This differs from legal drafting, where enumerated parallel clauses exist to close loopholes. In research prose the purpose is to convey a message, so the distinctive claim belongs in the main clause and the supporting requirements belong in subordinate or participial constructions.
+
+- **Subordinate to emphasize.** When three clause-level actions appear in series, identify the one that is novel and promote it. "The system must read signals the record never held, act within the time the physics allows, and learn from the result" distributes weight across three equal members. "The system must recover signals the written record never contained, acting within the time the physics allows and improving from each outcome" places the novel claim in the main clause and demotes the two ordinary requirements.
+- **Distinguish enumeration from rhetorical parallelism.** A list that names a complete set of real items is legitimate and should be kept, as in "optical, acoustic, electrical, and thermal signatures" or "fabricated, packaged, operated, and driven to failure." The pattern to revise is the series of parallel clauses, each asserting a separate claim.
+- **Give short sentences specific content.** A brief sentence is acceptable when it carries a number, a mechanism, or a named object. A brief sentence that only generalizes, such as "The platform acts on the process," should be absorbed into the sentence that supplies the detail.
+- **Avoid definitional asides.** Constructions such as "X here means," "what this means is," and "in other words" read as spoken instruction. State the definition directly, as in "Embodiment in this platform refers to direct coupling with the process through sensors and actuators."
+- **Prefer formal causal connectives.** Use `since`, `thus`, `therefore`, `as a result`, and `whereas` in place of `because` and `so`. Reserve `because` for a causal claim that carries genuine weight, and avoid `so` as a sentence connective in manuscript prose.
+- **Avoid the binary contrast as a default connective.** `X rather than Y` is a legitimate contrast when the alternative is a real competing option under discussion. It becomes a tic when it replaces a plain negative or when no contrast is needed. "The deliverable is the expertise artifact itself, not a publication" is direct, whereas "the expertise artifact rather than a publication" adds a word and a pattern.
+
+**Diagnostic pass.** Before final submission, count `rather than`, `because`, `so`, and `which is` across the document, and flag any clause-level series of three. A rate above roughly one `rather than` per 300 words, or any paragraph containing two clause-level triads, indicates that emphasis has been distributed instead of placed. Use [anti-formulaic-writing.md](anti-formulaic-writing.md) for the surface-prose patterns that accompany these constructions.
+
 ## Reader-First Narrative
 
 For an abstract, introduction, conclusion, or other high-level passage, make the main story understandable before introducing a dense list of inputs, metrics, or acronyms. An informed reader outside the immediate specialty should be able to identify i) the problem, ii) what the work does, iii) what the main result is, and iv) why the result matters.

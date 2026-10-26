@@ -2,9 +2,9 @@
 <rect width="930" height="486" rx="14" fill="#16181d"/>
 <rect x="1" y="1" width="928" height="44" rx="13" fill="#1f232b"/>
 <circle cx="26" cy="23" r="7" fill="#e5604d"/><circle cx="48" cy="23" r="7" fill="#f4b24a"/><circle cx="70" cy="23" r="7" fill="#2bb3a3"/>
-<text x="465" y="29" fill="#8b93a1" font-size="14" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">otw report --claude-dir examples/claude-history --days 0</text>
-<text x="28" y="82" fill="#8b93a1" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">Reading 20 turn ends with claude (haiku), 1 calls…</text>
-<text x="28" y="104" fill="#e6e1d6" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">All history: 20 times you answered the assistant, 9 of them (45%) correcting how it worked.</text>
+<text x="465" y="29" fill="#8b93a1" font-size="14" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">SYNTHETIC EXAMPLE: archived labels, current report formatting (not a fresh run)</text>
+<text x="28" y="82" fill="#e6e1d6" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">SYNTHETIC EXAMPLE - archived labels, current formatting</text>
+<text x="28" y="104" fill="#e6e1d6" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">All history: 20 candidate user replies; the judge labelled 9 (45%) as possible corrections.</text>
 <text x="28" y="126" fill="#8b93a1" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve"></text>
 <text x="28" y="148" fill="#f4b24a" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">   3×  stopped or asked when it should have continued</text>
 <text x="28" y="170" fill="#2bb3a3" font-size="15" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" xml:space="preserve">        &quot;stop asking me to choose, just pick one&quot;</text>

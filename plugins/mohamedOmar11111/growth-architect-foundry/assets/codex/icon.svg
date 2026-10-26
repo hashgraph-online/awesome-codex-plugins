@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="fi-t fi-d">
+  <title id="fi-t">Foundry icon</title>
+  <desc id="fi-d">Orange rounded square with a white capital F, the Foundry mark.</desc>
+  <rect width="256" height="256" rx="48" fill="#eb6c36"/>
+  <path d="M84 56 H188 V88 H120 V112 H176 V144 H120 V200 H84 Z" fill="#ffffff"/>
+</svg>

@@ -5,6 +5,9 @@ site or web app** with [DropTheHassle](https://dropthehassle.com): a free HTTPS
 `yourname.dropthehassle.app` link with no account, card or DNS work, then a real domain when you
 want one.
 
+Task words it answers: **deploy website**, **buy domain**, **email on my domain**. Skills in
+`skills/`: `publish-website`, `dropthehassle-publish`, `buy-domain`, `custom-domain`, `domain-email`.
+
 Works in **Claude Code, Cursor, Codex and Windsurf**, and any other agent that reads `SKILL.md`
 skills.
 

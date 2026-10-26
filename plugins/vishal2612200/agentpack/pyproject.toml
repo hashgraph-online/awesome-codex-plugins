@@ -47,14 +47,16 @@ watch = [
 ]
 
 mcp = [
-  "mcp>=1.28.1,<2"
+  "mcp>=1.30.0,<2",
+  "certifi>=2026.10.19"
 ]
 
 tree-sitter = []
 
 all = [
   "watchdog>=4.0.0",
-  "mcp>=1.28.1,<2",
+  "mcp>=1.30.0,<2",
+  "certifi>=2026.10.19",
   "tree-sitter>=0.23.2",
   "tree-sitter-language-pack>=0.7.4"
 ]
@@ -64,7 +66,7 @@ dev = [
   "pytest-asyncio",
   "pytest-cov",
   "jsonschema>=4.20.0",
-  "Pillow>=10.0.0",
+  "Pillow>=13.0.0; python_version >= '3.11'",
   "ruff>=0.15.0,<0.16.0",
   "mypy",
   "tomli>=2.0.0; python_version < '3.11'"

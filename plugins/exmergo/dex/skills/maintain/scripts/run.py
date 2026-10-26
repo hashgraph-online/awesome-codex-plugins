@@ -24,7 +24,11 @@ Two execution modes, chosen automatically:
   - Monorepo checkout (this repo): `packages/dex-core` is found above the skill,
     so the engine runs from an editable local install. This is what makes the
     wrapper work before the package is published.
-  - Installed plugin: no local package is present, so the pinned PyPI release is
+  - Installed plugin: the plugin ships `packages/dex-core` beside the skills, so
+    the engine is built from that bundled source. There is no .git in a plugin
+    cache, so the build reports hatch-vcs's fallback_version, which
+    scripts/prepare_release.sh sets to the same release as DEX_CORE_VERSION.
+  - Neither present (a skill copied on its own): the pinned PyPI release is
     installed hermetically by uv.
 
 That environment is uv's own, and `--no-project` is what keeps it that way. Without
@@ -70,7 +74,7 @@ from pathlib import Path
 # Rewritten by scripts/prepare_release.sh to the tagged version. The connector
 # extra is deliberately NOT part of this pin: it is chosen at runtime (see
 # _resolve_connector), so a release artifact is connector-neutral.
-DEX_CORE_VERSION = "1.15.0"
+DEX_CORE_VERSION = "1.16.1"
 
 # Connector id -> packaging extra. The engine's connector ids and the pyproject
 # extras share names, so this is the identity set today. An unknown or unset
@@ -251,6 +255,15 @@ _VALUE_FLAGS = (
 # either backend and therefore never needs the renderer.
 _SEMANTIC_RENDERING_MODES = ("values", "query")
 
+# The dbt semantic layer authoring commands (#639). Each validates definitions
+# against MetricFlow's schemas before writing a plan, and therefore needs the
+# `semantic` extra (which ships MetricFlow).
+_SEMANTIC_AUTHORING_COMMANDS = (
+    ("semantic", "define"),
+    ("semantic", "update"),
+    ("semantic", "plan"),
+)
+
 # The commands that can read a native Ossie semantic layer, as (group,
 # subcommand). The `ossie` extra is `jsonschema` and nothing heavier, so it is
 # taken whenever the layer *might* be read rather than resolved from
@@ -264,6 +277,19 @@ _OSSIE_READING_COMMANDS = (
     ("maintain", "semantic"),
     ("maintain", "check"),
     ("maintain", "snapshot"),
+)
+
+# The commands that author the dbt semantic layer, as (group, subcommand).
+# Authoring validates the YAML against MetricFlow's schemas, so these take the
+# `semantic` extra even though they render nothing: without it the validation
+# degrades to a structural check and the command warns instead of refusing,
+# which is the failure #639 describes. The native document commands
+# (`semantic ossie ...`, `semantic slayer ...`) validate against their own
+# schemas and take their own extras, so they are not here.
+_SEMANTIC_AUTHORING_COMMANDS = (
+    ("semantic", "define"),
+    ("semantic", "update"),
+    ("semantic", "plan"),
 )
 
 
@@ -300,9 +326,18 @@ def _positionals(argv: list[str]) -> list[str]:
 def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
     """The extras this invocation needs on top of the connector's.
 
-    Two commands need more than a warehouse client, and both are resolved from the
-    command rather than installed always, so a repo that never clusters and never
-    queries a semantic layer resolves neither scikit-learn nor MetricFlow.
+    Three commands need more than a warehouse client, and each is resolved from
+    the command rather than installed always, so a repo that never clusters,
+    never authors a semantic layer and never queries one resolves neither
+    scikit-learn nor MetricFlow.
+
+    `semantic define|update|plan` author the dbt semantic layer, and authoring
+    validates the YAML against MetricFlow's schemas. Where MetricFlow is absent
+    the validation degrades to a structural check, and the warning that says so
+    reads like routine news, so the authoring commands take the `semantic` extra
+    and the schemas actually run. The native document commands
+    (`semantic ossie ...`, `semantic slayer ...`) validate against their own
+    schemas and take their own extras.
 
     `explore semantic` needs the hosted client on any of its subcommands, which is
     an httpx and nothing heavier. It needs MetricFlow only where a statement might
@@ -339,6 +374,8 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
     )
     if command in _SLAYER_COMMANDS or (vendor == _SLAYER_VENDOR and reads_layer):
         extras.append("slayer")
+    if command in _SEMANTIC_AUTHORING_COMMANDS:
+        extras.append("semantic")
     if command != ("explore", "semantic"):
         return extras
     mode = positionals[2] if len(positionals) > 2 else "list"
@@ -402,31 +439,76 @@ def _child_env() -> dict[str, str]:
     return {key: value for key, value in os.environ.items() if key not in withheld}
 
 
+# The first uv release whose vendored CA roots exclude the emSign ones withdrawn
+# after the eMudhra key incident. An older uv still installs dex, so this is a
+# warning and never a refusal: it is the user's toolchain, and the fix is theirs
+# to run. See https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576
+_UV_CA_FLOOR = (0, 13, 4)
+
+
+def _uv_ca_warning() -> str | None:
+    """A warning when the uv on PATH predates the emSign CA removal, else None.
+
+    Silent when the version cannot be read: a probe that guesses would warn
+    about a uv it never identified.
+    """
+
+    try:
+        # uv from PATH on purpose, like every other invocation here.
+        completed = subprocess.run(
+            ["uv", "--version"],  # noqa: S607
+            capture_output=True,
+            text=True,
+            timeout=10,
+            env=_child_env(),
+        )
+        found = tuple(int(part) for part in completed.stdout.split()[1].split(".")[:3])
+    except (OSError, subprocess.SubprocessError, IndexError, ValueError):
+        return None
+    if found >= _UV_CA_FLOOR:
+        return None
+    floor = ".".join(str(part) for part in _UV_CA_FLOOR)
+    return (
+        f"uv {'.'.join(str(part) for part in found)} trusts the emSign CA roots "
+        f"that were withdrawn after a key compromise; uv {floor} and later do "
+        "not. Update it with `uv self update` (or your package manager). An "
+        "agent relays this to the user rather than updating uv itself."
+    )
+
+
 def _envelope(
     status: str,
     *,
     data: dict[str, object] | None = None,
     errors: list[str] | None = None,
     reason: str | None = None,
+    warnings: list[str] | None = None,
 ) -> str:
     """One JSON line in the engine's envelope shape, built by hand.
 
     The wrapper prints an envelope for the few things that happen before the engine
     exists to print its own: the missing-uv refusal and the warm-up. It cannot
     import `exmergo_dex_core.envelope` for precisely that reason, so the keys are
-    mirrored here and have to stay in step with Envelope and Cost. `cost.paradigm`
-    stays null throughout, because nothing here opens a connection and `free_local`
-    is a positive claim that the connector in play bills nothing rather than a
-    stand-in for "no connector was involved". `reason` is populated only on an
-    error, the same rule the engine's Reason enum follows.
+    mirrored here and have to stay in step with Envelope, Connection, and Cost.
+    `cost.paradigm` stays null throughout, because nothing here opens a connection
+    and `free_local` is a positive claim that the connector in play bills nothing
+    rather than a stand-in for "no connector was involved". `reason` is populated
+    only on an error, the same rule the engine's Reason enum follows.
     """
 
     return json.dumps(
         {
             "status": status,
             "data": data or {},
-            "cost": {"paradigm": None, "estimate": None, "ceiling": None},
-            "warnings": [],
+            "connection": {"connector": None, "target": {}, "source": None},
+            "cost": {
+                "paradigm": None,
+                "estimate": None,
+                "ceiling": None,
+                "estimate_quality": None,
+                "unit": None,
+            },
+            "warnings": warnings or [],
             "diffs": [],
             "errors": errors or [],
             "reason": reason,
@@ -464,18 +546,21 @@ def _warm(argv: list[str]) -> int:
     )
     elapsed = round(time.monotonic() - started, 3)
     if completed.returncode != 0:
-        lines = [line.strip() for line in completed.stderr.splitlines() if line.strip()]
+        # A fixed message, never uv's stderr or the spec: an index URL, a proxy,
+        # or a `file://` path in either can carry a credential, and this wrapper
+        # is stdlib-only, so it has no redaction of its own to run them through.
         print(
             _envelope(
                 "error",
                 errors=[
-                    f"warm-up could not install {spec[1]}. uv reported: "
-                    + (" ".join(lines[-3:]) or "nothing on stderr")
+                    "warm-up could not install the connector extra; re-run with "
+                    "uv directly to see why"
                 ],
                 reason="prerequisite",
             )
         )
         return 1
+    stale_uv = _uv_ca_warning()
     print(
         _envelope(
             "ok",
@@ -485,6 +570,7 @@ def _warm(argv: list[str]) -> int:
                 "extras": extras,
                 "elapsed_seconds": elapsed,
             },
+            warnings=[stale_uv] if stale_uv else [],
         )
     )
     return 0
@@ -515,6 +601,11 @@ def main() -> int:
         return 1
     if _WARM_FLAG in argv:
         return _warm([arg for arg in argv if arg != _WARM_FLAG])
+    # The engine prints the envelope, and stdout carries that and nothing else,
+    # so a stale uv is reported on stderr here and in `--warm`'s own envelope.
+    stale_uv = _uv_ca_warning()
+    if stale_uv:
+        print(f"dex: {stale_uv}", file=sys.stderr)
     # The connector extra is always installed; `explore cluster` and
     # `explore semantic` add what only they need, so the default install stays
     # light for every repo that runs neither.

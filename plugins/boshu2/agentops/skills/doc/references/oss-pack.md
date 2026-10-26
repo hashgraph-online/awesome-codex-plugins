@@ -1,4 +1,4 @@
-# OSS Doc Pack — scaffold/audit open-source documentation (`/doc --mode=oss`)
+# OSS Doc Pack — scaffold/audit open-source documentation
 
 > Scaffold and audit the standard documentation pack for an open-source release. This is optional reference guidance for the Doc skill's OSS mode; it absorbed the former `/oss-docs` skill. Output contract: `CONTRIBUTING.md`, `CHANGELOG.md`, `AGENTS.md`, and the rest of the OSS doc tiers.
 
@@ -9,96 +9,49 @@ This mode helps prepare repositories for open source release by:
 2. Scaffolding missing standard files
 3. Generating content tailored to project type
 
-(The legacy `/oss-docs audit`, `/oss-docs scaffold`, `/oss-docs validate` triggers route here.)
-
-## Commands
-
-| Command | Action |
-|---------|--------|
-| `audit` | Check which OSS docs exist/missing |
-| `scaffold` | Create the requested missing standard files |
-| `scaffold [file]` | Create specific file |
-| `refresh` | Update existing docs within the accepted request; existing authorization is sufficient |
-| `validate` | Check docs follow best practices |
+A request can ask to audit (which OSS docs exist or are missing), scaffold
+(create the requested missing standard files, or one named file), refresh
+(update existing docs within the accepted request;
+existing authorization is sufficient) or validate (check docs against the
+style guidelines below).
 
 ---
 
-## Phase 0: Project Detection
+## Audit and project type
 
-```bash
-# Determine project type and language
-PROJECT_NAME=$(basename $(pwd))
-LANGUAGES=()
+Run `bash "<skill-dir>/scripts/audit-oss-docs.sh" --json` with the audited
+repository as the working directory (`<skill-dir>` is defined in
+[SKILL.md](../SKILL.md)); it audits the current directory. It reports the project
+type, the detected languages and per-tier presence scores as JSON. Use the type
+it reports; it checks operator markers before `cmd/`, because operators also
+have `cmd/`. Its types are `operator`, `helm`, `cli-go`, `cli-python`,
+`cli-node`, `cli-rust`, `library-go`, `library-python`, `library-node`,
+`library-rust` and `unknown`.
 
-[[ -f go.mod ]] && LANGUAGES+=("go")
-[[ -f pyproject.toml ]] || [[ -f setup.py ]] && LANGUAGES+=("python")
-[[ -f package.json ]] && LANGUAGES+=("javascript")
-[[ -f Cargo.toml ]] && LANGUAGES+=("rust")
+The script checks three tiers by file presence only:
 
-# Detect project category
-if [[ -f Dockerfile ]] && [[ -d cmd ]]; then
-    PROJECT_TYPE="cli"
-elif [[ -d config/crd ]]; then
-    PROJECT_TYPE="operator"
-elif [[ -f Chart.yaml ]]; then
-    PROJECT_TYPE="helm"
-else
-    PROJECT_TYPE="library"
-fi
-```
+- **Tier 1 (required):** `LICENSE`, `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`.
+- **Tier 2 (standard):** `SECURITY.md`, `CHANGELOG.md`, `AGENTS.md`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`.
+- **Tier 3 (enhanced):** `docs/QUICKSTART.md`, `docs/ARCHITECTURE.md`, `docs/CLI_REFERENCE.md` (or `docs/CRD_REFERENCE.md` for an operator), `docs/CONFIG.md`, `docs/TROUBLESHOOTING.md`, `examples/`.
+
+Why each file matters, a Tier 4 for specialized docs, and an adoption order:
+[oss-documentation-tiers.md](oss-documentation-tiers.md).
 
 ---
 
-## Subcommand: audit
-
-### Required Files (Tier 1 - Core)
-
-| File | Purpose |
-|------|---------|
-| `LICENSE` | Legal terms |
-| `README.md` | Project overview |
-| `CONTRIBUTING.md` | How to contribute |
-| `CODE_OF_CONDUCT.md` | Community standards |
-
-### Recommended Files (Tier 2 - Standard)
-
-| File | Purpose |
-|------|---------|
-| `SECURITY.md` | Vulnerability reporting |
-| `CHANGELOG.md` | Version history |
-| `AGENTS.md` | AI assistant context |
-| `.github/ISSUE_TEMPLATE/` | Issue templates |
-| `.github/PULL_REQUEST_TEMPLATE.md` | PR template |
-
-### Optional Files (Tier 3 - Enhanced)
-
-| File | When Needed |
-|------|-------------|
-| `docs/QUICKSTART.md` | Complex setup |
-| `docs/ARCHITECTURE.md` | Non-trivial codebase |
-| `docs/CLI_REFERENCE.md` | CLI tools |
-| `docs/CONFIG.md` | Configurable software |
-| `examples/` | Complex workflows |
-
-Full tier definitions: [oss-documentation-tiers.md](oss-documentation-tiers.md).
-
----
-
-## Subcommand: scaffold
+## Scaffold
 
 ### Template Selection
 
-| Project Type | Focus |
-|--------------|-------|
-| `cli` | Installation, commands, examples |
+| Reported type | Focus |
+|---------------|-------|
+| `cli-*` | Installation, commands, examples |
 | `operator` | K8s CRDs, RBAC, deployment |
-| `service` | API, configuration, deployment |
-| `library` | API reference, examples |
+| `library-*` | API reference, examples |
 | `helm` | Values, dependencies, upgrading |
+| a service (caller-stated; the script has no service type) | API, configuration, deployment |
 
 Per-type content templates: [oss-project-types.md](oss-project-types.md).
-
-For a machine-readable tiered audit (project type + per-tier scores + totals as JSON), run the helper script: `bash skills/doc/scripts/audit-oss-docs.sh --json`.
 
 ---
 
@@ -123,7 +76,7 @@ project/
 
 ## AGENTS.md Pattern
 
-```markdown
+````markdown
 # Agent Instructions
 
 This project uses **<tool>** for <purpose>. Run `<onboard-cmd>` to get started.
@@ -134,6 +87,7 @@ This project uses **<tool>** for <purpose>. Run `<onboard-cmd>` to get started.
 <cmd1>              # Do thing 1
 <cmd2>              # Do thing 2
 ```
+````
 
 ## Verification evidence
 
@@ -162,9 +116,9 @@ decide completion; repository policy and the caller own those transitions.
 - Validate documentation quality
 
 **DON'T:**
-- Update or overwrite existing content outside the authorized request, including through `refresh`
-- Generate code documentation (use `/doc gen` — the default doc mode)
-- Generate the README hero/landing page (use `/doc --mode=readme`)
+- Update or overwrite existing content outside the authorized request, including through a refresh
+- Generate code documentation (see [code/API guidance](default-mode.md))
+- Generate the README hero/landing page (see [README craft](readme-craft.md))
 - Create CI/CD files (out of scope — configure CI/CD separately)
 
 ---

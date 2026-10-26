@@ -2,14 +2,30 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentops.local/schemas/council-report.v1.schema.json",
   "title": "Council Report",
+  "description": "Advisory council report. scripts/validate-output.sh also checks what JSON Schema cannot: consensus methodologies and models must come from judges[].methodology and judges[].model_identity.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "question", "subject_digest", "judges", "synthesis"],
+  "$defs": {
+    "text": {"type": "string", "minLength": 1},
+    "non_verdict_text": {
+      "type": "string",
+      "minLength": 1,
+      "not": {"pattern": "^\\s*(?:[Pp][Aa][Ss][Ss]|[Ff][Aa][Ii][Ll]|[Nn][Oo][Tt]_[Pp][Rr][Oo][Vv][Ee][Nn])\\s*$"}
+    },
+    "text_list": {"type": "array", "items": {"$ref": "#/$defs/text"}},
+    "text_set": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"$ref": "#/$defs/text"}},
+    "weighs_as_one": {"required": ["weighs_as_one"], "properties": {"weighs_as_one": {"const": true}}}
+  },
   "properties": {
     "schema_version": {"const": "council-report.v1"},
-    "question": {"type": "string", "minLength": 1},
+    "question": {"$ref": "#/$defs/text"},
     "subject_digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-    "diversity_unsatisfied": {"type": "boolean"},
+    "recommendation": {"$ref": "#/$defs/non_verdict_text"},
+    "diversity_unsatisfied": {
+      "description": "true, or the requested profiles and required legs that had no authorized live adapter.",
+      "oneOf": [{"type": "boolean"}, {"$ref": "#/$defs/text_list"}]
+    },
     "judges": {
       "type": "array",
       "minItems": 2,
@@ -18,16 +34,12 @@
         "additionalProperties": false,
         "required": ["context_id", "methodology", "judgment", "evidence"],
         "properties": {
-          "context_id": {"type": "string", "minLength": 1},
-          "methodology": {"type": "string", "minLength": 1},
-          "model_identity": {"type": "string", "minLength": 1},
-          "judgment": {"type": "string", "minLength": 1},
-          "evidence": {
-            "type": "array",
-            "minItems": 1,
-            "items": {"type": "string", "minLength": 1}
-          },
-          "omissions": {"type": "array", "items": {"type": "string", "minLength": 1}}
+          "context_id": {"$ref": "#/$defs/text"},
+          "methodology": {"$ref": "#/$defs/text"},
+          "model_identity": {"$ref": "#/$defs/text"},
+          "judgment": {"$ref": "#/$defs/non_verdict_text"},
+          "evidence": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/text"}},
+          "omissions": {"$ref": "#/$defs/text_list"}
         }
       }
     },
@@ -43,13 +55,21 @@
             "additionalProperties": false,
             "required": ["claim", "methodologies"],
             "properties": {
-              "claim": {"type": "string", "minLength": 1},
-              "methodologies": {
-                "type": "array",
-                "minItems": 1,
-                "items": {"type": "string", "minLength": 1}
+              "claim": {"$ref": "#/$defs/text"},
+              "methodologies": {"$ref": "#/$defs/text_set"},
+              "models": {"$ref": "#/$defs/text_set"},
+              "weighs_as_one": {"type": "boolean"}
+            },
+            "allOf": [
+              {
+                "if": {"properties": {"methodologies": {"maxItems": 1}}},
+                "then": {"$ref": "#/$defs/weighs_as_one"}
+              },
+              {
+                "if": {"required": ["models"], "properties": {"models": {"maxItems": 1}}},
+                "then": {"$ref": "#/$defs/weighs_as_one"}
               }
-            }
+            ]
           }
         },
         "divergence": {
@@ -59,17 +79,17 @@
             "additionalProperties": false,
             "required": ["point", "positions"],
             "properties": {
-              "point": {"type": "string", "minLength": 1},
-              "positions": {
-                "type": "array",
-                "minItems": 1,
-                "items": {"type": "string", "minLength": 1}
-              }
+              "point": {"$ref": "#/$defs/text"},
+              "positions": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/text"}}
             }
           }
         },
-        "minority": {"type": "array", "items": {"type": "string", "minLength": 1}},
-        "unresolved": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "minority": {"$ref": "#/$defs/text_list"},
+        "unresolved": {"$ref": "#/$defs/text_list"},
+        "notes": {
+          "description": "Run facts: bounds, roster, threshold, tally, stop reason, non-returning judges.",
+          "$ref": "#/$defs/text_list"
+        },
         "caller_challenge": {
           "type": "array",
           "items": {
@@ -83,12 +103,12 @@
               "cost_if_wrong"
             ],
             "properties": {
-              "caller_stated": {"type": "string", "minLength": 1},
-              "judges_recommend": {"type": "string", "minLength": 1},
+              "caller_stated": {"$ref": "#/$defs/text"},
+              "judges_recommend": {"$ref": "#/$defs/text"},
               "judge_count": {"type": "integer", "minimum": 2},
-              "reasoning": {"type": "string", "minLength": 1},
-              "context_possibly_missing": {"type": "string", "minLength": 1},
-              "cost_if_wrong": {"type": "string", "minLength": 1},
+              "reasoning": {"$ref": "#/$defs/text"},
+              "context_possibly_missing": {"$ref": "#/$defs/text"},
+              "cost_if_wrong": {"$ref": "#/$defs/text"},
               "disagreement_kind": {"enum": ["preference", "security", "feasibility"]}
             }
           }

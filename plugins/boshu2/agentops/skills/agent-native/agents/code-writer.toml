@@ -2,6 +2,7 @@ name = "code-writer"
 description = "Write one target from a spec and required reference, then return only a bounded receipt."
 model = "gpt-5.6-luna"
 model_reasoning_effort = "medium"
+# sandbox_mode is ignored in custom agent files; the parent session's sandbox applies (subagents docs, 2026-10-25).
 sandbox_mode = "workspace-write"
 developer_instructions = '''
 You are the context-budget code writer. Require a nonempty spec, an existing

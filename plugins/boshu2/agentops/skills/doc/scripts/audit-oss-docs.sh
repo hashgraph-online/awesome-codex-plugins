@@ -356,7 +356,6 @@ else
     # Scaffold hint
     if [[ $TOTAL_SCORE -lt $TOTAL_POSSIBLE ]]; then
         echo ""
-        echo "To scaffold missing files:"
-        echo "  /oss-docs scaffold"
+        echo "To scaffold missing files, ask the Doc skill (OSS pack) to create the ones you need."
     fi
 fi

@@ -1,7 +1,7 @@
 {
   "name": "off-the-wall",
-  "version": "0.1.1",
-  "description": "Quotes your own past corrections back to the agent before it answers, reports how often you had to correct it, and makes the orchestrator name a model for every subagent. Claude Code and Codex.",
+  "version": "0.2.0",
+  "description": "Recalls relevant, origin-tagged correction excerpts within the same working directory, reports model-labelled correction patterns, and guides subagent model selection. Claude Code and Codex.",
   "author": {
     "name": "Junebeom Seo",
     "url": "https://github.com/toranalytics"
@@ -15,7 +15,7 @@
     "node": ">=18"
   },
   "scripts": {
-    "test": "node --test test/core.test.mjs",
+    "test": "node --test",
     "assets": "node scripts/make-assets.mjs"
   },
   "repository": {

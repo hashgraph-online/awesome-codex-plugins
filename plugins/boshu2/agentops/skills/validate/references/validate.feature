@@ -24,13 +24,6 @@ Feature: Validate returns one fresh judgment over exact content
     Then the snapshot path is its SHA-256 identity
 
   @covered-by:skills/validate/tests/test_validate.py::test_verdict_identity_floor_and_idempotence
-  Scenario: Validation stops without requiring persistence
-    Given any PASS, FAIL, or NOT_PROVEN verdict
-    When Validate returns the fresh result
-    Then Validate does not require an artifact digest or path
-    And performs no repair, retry, Git, closure, release, or delivery action
-
-  @covered-by:skills/validate/tests/test_validate.py::test_verdict_identity_floor_and_idempotence
   Scenario: Declared consumers may request durable evidence
     Given a caller or declared downstream consumer requests machine-readable evidence
     When Validate atomically persists the result

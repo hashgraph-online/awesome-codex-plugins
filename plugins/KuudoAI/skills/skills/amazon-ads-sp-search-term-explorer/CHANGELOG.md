@@ -4,6 +4,11 @@ All notable changes to this skill are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions are semver and
 must match `metadata.version` in SKILL.md.
 
+## [0.5.2] - 2026-10-20
+
+### Fixed
+- Describe the SQP companion as search-results diagnostics, without claiming that SQP is organic-only.
+
 ## [0.5.1] - 2026-10-18
 
 ### Fixed

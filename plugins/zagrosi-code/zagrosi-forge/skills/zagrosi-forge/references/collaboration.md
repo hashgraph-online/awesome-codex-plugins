@@ -2,7 +2,7 @@
 
 Use this in Codex and Claude Code at every depth when a Git repository has a
 Forge team marker or local participation, or when `team status` reports an error.
-Resolve the helper from the loaded plugin, not from the target repository.
+Use the `plugin_root` resolved by the loaded Forge skill, never the target repository.
 
 ```bash
 python3 "{plugin_root}/scripts/zagrosi_skills.py" team status --target-dir "{target_dir}"

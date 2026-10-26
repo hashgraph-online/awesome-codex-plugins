@@ -107,12 +107,15 @@ def scan_open_pull_requests(
         for entry in entries:
             try:
                 ensure_public_repository(entry)
+                VALIDATOR.ensure_source_ref_exists(entry)
             except VALIDATOR.ValidationError as error:
                 reason = str(error)
                 catalog_failures.append(reason)
                 report_lines.append(f"  - `{entry.owner}/{entry.repo}`: **FAIL** - {reason}")
                 continue
             contribution = {"owner": entry.owner, "repo": entry.repo}
+            if entry.source_ref:
+                contribution["ref"] = entry.source_ref
             contributions.append(contribution)
             matrix.append({"pr_number": pull_request.number, **contribution})
             report_lines.append(
@@ -201,6 +204,7 @@ def main() -> int:
         entries = VALIDATOR.get_new_readme_entries(args.base_ref)
         for entry in entries:
             ensure_public_repository(entry)
+            VALIDATOR.ensure_source_ref_exists(entry)
     except VALIDATOR.ValidationError as error:
         print(f"Contribution validation failed: {error}", file=sys.stderr)
         if args.matrix_output:

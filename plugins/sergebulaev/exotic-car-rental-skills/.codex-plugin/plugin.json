@@ -1,0 +1,46 @@
+{
+  "name": "exotic-car-rental-skills",
+  "description": "6 Claude Code and Codex skills for renting exotic and luxury cars in the US: find who rents a Lamborghini, Ferrari, Rolls-Royce or G-Wagon in your city at published daily rates, the real rental cost, event cars, car comparisons, weekend plans and rental company checks. Live data from the free CarRentalList MCP server.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Serge Bulaev",
+    "url": "https://github.com/sergebulaev"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/sergebulaev/exotic-car-rental-skills",
+  "keywords": [
+    "exotic-car-rental",
+    "luxury-car-rental",
+    "supercar-rental",
+    "lamborghini-rental",
+    "car-rental",
+    "travel",
+    "claude-skills",
+    "codex-skills",
+    "agent-skills",
+    "mcp",
+    "prom",
+    "wedding-car"
+  ],
+  "repository": "https://github.com/sergebulaev/exotic-car-rental-skills",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Exotic Car Rental Skills",
+    "shortDescription": "Find, price and compare exotic rental cars with live listings.",
+    "longDescription": "6 skills for renting exotic and luxury cars in the US: live listings with published daily rates, real rental cost, event cars, comparisons, weekend plans and rental company checks.",
+    "developerName": "Serge Bulaev",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://github.com/sergebulaev/exotic-car-rental-skills",
+    "defaultPrompt": [
+      "Who rents a Lamborghini Urus in Miami, and for how much?",
+      "What does renting a Ferrari for a weekend in LA really cost?",
+      "Pick a car for my wedding in Scottsdale."
+    ],
+    "brandColor": "#C9A96E",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

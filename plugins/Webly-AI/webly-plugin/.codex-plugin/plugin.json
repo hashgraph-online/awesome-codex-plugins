@@ -1,0 +1,42 @@
+{
+  "name": "webly",
+  "version": "0.14.7",
+  "description": "Publish a website, or share files and folders, at a live URL in seconds with no account. The person can claim it, edit it over MCP, and publish drafts they approve.",
+  "author": {
+    "name": "Webly",
+    "email": "contact@webly.ai",
+    "url": "https://webly.ai"
+  },
+  "homepage": "https://webly.ai",
+  "repository": "https://github.com/Webly-AI/webly-plugin",
+  "license": "Apache-2.0",
+  "keywords": [
+    "webly",
+    "website",
+    "hosting",
+    "deploy",
+    "publish",
+    "share"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Webly",
+    "shortDescription": "Website hosting for AI agents",
+    "longDescription": "Publish a website, or share files and folders, at a live URL in seconds with no account. The person can then claim it to keep it, edit it over MCP (OAuth, no API key), and publish drafts they approve. Supports custom domains and version history. Bundles the webly skill and the hosted Webly MCP server.",
+    "developerName": "Webly",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://webly.ai",
+    "privacyPolicyURL": "https://webly.ai/legal/privacy",
+    "termsOfServiceURL": "https://webly.ai/legal/terms",
+    "defaultPrompt": [
+      "Publish this folder on Webly and give me the link"
+    ],
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
+  }
+}

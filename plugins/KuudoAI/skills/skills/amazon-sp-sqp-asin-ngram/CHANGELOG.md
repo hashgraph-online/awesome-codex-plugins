@@ -1,8 +1,34 @@
 # Changelog
 
+## [2.1.0] - 2026-10-20
+
+- Use a seller-facing change/reason/next-step contract for edits, no-change decisions and evidence requests; keep complete technical diagnostics in separate supporting records.
+- Lead with theme-level decisions and exact Amazon attribute proposals; retain 2.0 query diagnostics under additive schema 2.1.
+- Add a Python 3.10+ standard-library helper for deduplicated 1/2/3-gram cohorts, disjoint comparisons, configurable gates, union totals and approximate Wilson intervals.
+- Require seller/user confirmation for factual corrections; distinguish complete listing coverage from catalog facts and make uncertainty explicit.
+- Add paired action/no-change fixtures, numerical tests and behavioral regressions; no automatic listing writes.
+
+
 All notable changes to this skill are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions are semver and
 must match `metadata.version` in SKILL.md.
+
+## [2.0.0] - 2026-10-20
+
+### Changed
+- Breaking decision-record contract: replace `data_mode: organic` with report provenance and `traffic_scope: sqp_reported_scope`; SQP does not establish organic position.
+- Replace RankScore with relevance/sufficiency priority groups and volume/click ordering. Defaults remain 200 query impressions and 20 ASIN clicks, now explicit and user-configurable.
+- Replace `ngram-keyword-framework` dependency with pinned Amazon SQP definitions, ESCI-paper relevance and COSMO-informed intent guidance.
+- Preserve reported rates with the schema discrepancy noted; derive analytical ratios from counts with named denominators. Remove unsupported ASIN shipping mix and universal cooldown.
+- Condition diagnostic recommendations on product and operational evidence. Preserve product-type and relational meaning during n-gram aggregation.
+
+### Added
+- Product-evidence acquisition through catalog/listing reads or supplied attributes, with seller identity, merchant ID and marketplace requirements.
+- Version 2.0 example, source ledger, full priority mapping, trigger cases and behavioral regressions for rates, relevance, thresholds, scope, aggregation and tool access.
+
+### Migration
+- Keep raw source rates under `reported`; use explicitly named `derived` ratios. Replace generic `median_price` with event-specific price/currency and ASIN `shipping_speed` with independently sourced evidence, if available.
+- Old scores have no numeric conversion to priority groups. Reassess each query using product evidence and effective thresholds. Replace organic/ops/ads action tags with listing/operations/advertising scopes, which describe work rather than attribution.
 
 ## [1.4.0] - 2026-10-17
 

@@ -21,14 +21,11 @@ output_contract: observed native assignments, exact candidate and judgment refer
 
 # Orchestrate
 
-Coordinate caller-authorized work through its existing tracker and runtime.
-Use the accepted task or conversation; a clear task needs zero mandatory skills.
-Selecting Orchestrate adds in-session guidance, not an AgentOps scheduler, work
-index, queue, ownership system, aggregate retry controller or delivery authority.
-The caller's tracker owns assignments and dependencies; its runtime owns running
-contexts, bounds and supervision; repository policy owns integration and delivery.
-Orchestrate decides what each worker does next.
-[Agent Native](../agent-native/SKILL.md) launches and observes workers;
+Coordinate caller-authorized work through its existing tracker and runtime; a
+clear task needs zero mandatory skills. The tracker owns assignments and
+dependencies, the runtime owns running contexts and bounds, and repository
+policy owns integration and delivery. Orchestrate decides what each worker does
+next. [Agent Native](../agent-native/SKILL.md) launches and observes workers;
 [Navigate](../navigate/SKILL.md) picks the wave on a bead graph toward frozen
 acceptance and records verdicts.
 
@@ -38,8 +35,9 @@ acceptance and records verdicts.
   worker saying "done" makes a candidate. It still owes its checks, integration
   and, when one is owed, a fresh judgment.
 - **Drain before starting.** While candidates wait on checks, repair,
-  integration or an owed judgment, free capacity goes there first. A free slot
-  alone is not a dispatch reason; start new implementation with what is left.
+  integration or an owed judgment, free capacity goes there first: candidates
+  that unblock held dependents, then the oldest. A free slot alone is not a
+  dispatch reason; start new implementation with what is left.
 - **Judges did not author.** Review or validation of a candidate goes to a
   context that did not write it.
 - **Readiness is content.** A prerequisite counts only when its bytes are in
@@ -49,19 +47,20 @@ acceptance and records verdicts.
 - **Reconcile before resuming.** Match tracker assignments against observed
   runtime state, validators included, before dispatching. Never duplicate an
   assignment because this conversation lacks it.
+- **Decisions are not build work.** A decision item goes to the resolver it
+  names ([Navigate](../navigate/SKILL.md#foggy-epics)), never to an
+  implementer; with BD, pull build work with `bd ready --exclude-type decision`.
 
 ## Recover the actual work
 
-Read the accepted outcome, examples and scope from their current owner. Recover
-settled caller choices and rationale, completed history, consequential open
-questions and the next investigation from the existing native handoff. Do not
-repeat settled interviews or require the full transcript. Missing or contradictory
-pointers require source investigation, not a guessed decision.
-
-Inspect, together: task acceptance, observed worker/context identity, workspace
-and starting content, occupied write scope, pending checks and review, current
-candidate identity, integration owner, and the actual content and evidence of
-each prerequisite. An empty ready list does not prove completion.
+Read acceptance, examples, scope, settled choices and open questions from their
+owner and the existing native handoff, without repeating settled interviews or
+requiring the full transcript; a missing or contradictory pointer needs source
+investigation, not a guess. For each task, check who holds it, its workspace and
+starting content, the write scope it occupies, pending checks and review, the
+current candidate, who integrates it, and whether each prerequisite's content
+is present. An empty ready list does not prove completion
+([Navigate](../navigate/SKILL.md#rules-that-decide-the-pick)).
 
 ## Choose the next useful dispatch
 
@@ -70,28 +69,39 @@ review and repair, and reduce new starts while candidates accumulate. Record onl
 the concrete constraint and next action in the existing native handoff, then
 reassess when evidence changes. Do not add a capacity ledger or queue.
 
-Agent Native owns runtime mechanics: executor selection, startup and engagement
-evidence, actual context identity, normalized scopes, native waits and
-follow-up, bounds and cleanup. One-shot headless runs go through
-[Codex Exec](../codex-exec/SKILL.md), [Claude Exec](../claude-exec/SKILL.md) or
-[AGY Native](../agy-native/SKILL.md). Concurrent writers require disjoint write
-scopes and separate isolation, including generated companions and transitive
-effects. Serialize shared paths. A worktree separates Git edits; it does not
-establish restricted-source or model-egress enforcement.
+[Agent Native](../agent-native/SKILL.md#before-launch-and-while-running) owns
+runtime mechanics, disjoint write scopes and isolation; one-shot headless runs
+go through [Codex Exec](../codex-exec/SKILL.md),
+[Claude Exec](../claude-exec/SKILL.md) or [AGY Native](../agy-native/SKILL.md).
+Serialize shared paths, generated companions included. A worktree separates Git
+edits; it does not enforce restricted-source or model-egress limits
+([model dispatch](../agent-native/references/model-dispatch.md)).
 
 Dispatch a genuinely fresh implementer for one coherent accepted task, without
-the coordinator's accumulated transcript or unrelated research. A new goal,
-role label, cleared summary or resumed author context is not a fresh context.
-Pass the accepted examples, applicable constraints, exact starting content,
-usable prerequisites, authorized write/output scope, relevant source pointers,
-required checks, integration responsibility and real remaining bounds. Expand
-pointers when needed; brevity cannot omit a constraint. Record observed native
-identity at startup through Agent Native's existing association procedure.
+the coordinator's transcript or unrelated research; a new goal, role label,
+cleared summary or resumed author context is not fresh. Pass the accepted
+examples, applicable constraints, exact starting content, usable prerequisites,
+authorized write/output scope, source pointers, required checks, integration
+responsibility and real remaining bounds; brevity cannot omit a constraint. A
+pointer counts only if the worker can open it: a link relative to a skill's own
+folder, or a file outside the worker's workspace, does not resolve there, so
+pass a path it can read or paste the rule itself. Record the worker's observed
+identity at startup through Agent Native's association procedure.
 
 [Implement](../implement/SKILL.md) owns the complete change, meaningful checks
-and direct repair. It is optional guidance for that worker, not a compulsory
+and direct repair; it is optional guidance for that worker, not a compulsory
 stage. The handoff returns candidate identity, changed scope, check facts,
-discoveries and gaps; prompt delivery proves neither engagement nor acceptance.
+discoveries and gaps; prompt delivery proves neither engagement
+([Agent Native](../agent-native/SKILL.md#before-launch-and-while-running)) nor
+acceptance.
+
+When several workers apply one set of decisions, such as a batch of review
+findings or one rewrite that must read the same in many files, make each
+decision once in one context and send workers only what was decided. A worker
+returns an uncovered case, or a blocker with evidence the decider could not see,
+instead of improvising or reopening the decision; the decider settles it and
+never drops it. [Decide once, apply in parallel](references/decide-once-apply-in-parallel.md)
+covers both shapes.
 
 ## Integrate and obtain judgment
 
@@ -99,68 +109,69 @@ Name the integration responsibility before launch, and decide then whether the
 integrated candidate needs a fresh judgment at all. Follow the consumer
 repository's integration policy, include all changed paths and generated
 companions, and run affected checks on the actual integrated subject.
-Acceptance of a leaf does not establish the combined release.
+Acceptance of a leaf does not establish the combined release. Within that
+policy, combine parallel results one at a time in dependency order and run the
+affected checks after each, so a failure points at one result; a merge without
+conflicts does not show that two changes work together. A result that
+conflicts, or whose own changed paths or prerequisites changed on the target
+after it started, goes back to its author through a follow-up that authorizes
+that update ([Agent Native](../agent-native/SKILL.md#launch-and-observe)), or
+is redone from the current target, and reruns its checks; it is not merged
+blind. A write outside a worker's declared scope, or collisions that keep
+recurring, show the scope split cannot be trusted for this change: finish the
+rest serially.
 
-For an ordinary candidate the integrated checks and CI are the gate. Assign one
-fresh author-distinct judgment through [Validate](../validate/SKILL.md), the
-sole skill owner of acceptance semantics, only when the caller asks, when a
-mistake cannot be cheaply undone after it lands (a published release or
-instructions users will follow, a security boundary, destroying data or tracker
-state, deleting a check that protects the product), or when no deterministic
-check covers the changed behavior. Preserve every explicitly required review
-leg. Advisory Review, Plan challenge and Council advice are not binding
-acceptance and cannot stand in for a judgment the caller requested.
-
-One round. The validator does not re-run the integrated checks. Route back as
-repairs only what fails the accepted behavior or would mislead a user, break
-install or the CLI, or remove protection for the product; confirm each repair
-with a check. Changed candidate bytes need their affected checks rerun; they
-need a new judgment only when the caller asks for one. Keep review cost a
-fraction of the cost of the work. No report format or persisted artifact is
-mandatory unless the caller or an existing consumer requires one.
+For an ordinary candidate the integrated checks and CI are the gate; assign one
+fresh author-distinct judgment only in the costly cases
+[Validate](../validate/SKILL.md#when-a-fresh-judgment-is-worth-it) names, and
+Validate owns the single round, what counts as a finding, and when a repair
+needs only its checks rerun. Preserve every explicitly required review leg;
+advisory Review, Plan challenge and Council advice cannot stand in for a
+judgment the caller requested
+([advice or acceptance](../review/references/advice-or-acceptance.md#handing-off-to-acceptance)).
 
 ## Reconcile feedback and resume
 
-Preserve successful and failed evidence in the existing native task or handoff.
-Identify affected unfinished work and update its native dependencies or handoff
-within authority. Stop or explicitly re-scope an affected active assignment
-before it continues on a disproven premise; obtain observable acknowledgment or
-stopped runtime state before treating the revision as effective. Unaffected work
-continues unchanged. Repeating reconciliation with unchanged facts creates no
-new artifact or dispatch.
+Preserve successful and failed evidence in the existing native task or handoff,
+and update affected unfinished work's native dependencies or handoff within
+authority. Stop or explicitly re-scope an affected active assignment before it
+continues on a disproven premise; the revision takes effect only on observable
+acknowledgment or stopped runtime state. Unaffected work continues unchanged;
+reconciling unchanged facts creates no new artifact or dispatch.
 
-[Plan](../plan/SKILL.md) owns consequential uncertainty, optional challenge and
-refining the next complete slice. Reuse settled decisions and accepted examples;
-new evidence may change an approach within the accepted outcome. A different
-promised outcome or authority choice returns to the caller. Agent advice cannot
-supply that choice. Preserve completed history instead of reopening accepted
-work merely to fit a revised story.
+[Plan](../plan/SKILL.md) owns consequential uncertainty and refining the next
+slice. New evidence may change an approach within the accepted outcome; a
+different promised outcome or authority choice returns to the caller, never to
+agent advice. Do not reopen accepted work to fit a revised story.
 
-Known failures return to the responsible task for direct repair. On a genuine
-causal stall, the existing operating contract permits at most one authorized
-bounded fresh helper for that incident within remaining bounds; an unhelpful
-answer ends that attempt. Cancellation, refusal or exhausted bounds skip help.
-Replacement workers, retries, new subjects and compaction never reset those
-bounds. Inspect native evidence before replacing a worker; use native waits for
-unchanged pending state instead of repeated analysis or probes.
+Known failures return to the responsible task for direct repair; a genuine
+causal stall gets [RPI's one bounded helper](../rpi/SKILL.md#causal-stall-and-bounds),
+and replacement workers, retries, new subjects and compaction never reset its
+bounds. Use native waits for unchanged pending state instead of repeated
+analysis or probes.
+
+To recover a dead worker, confirm its process stopped, not only its pane;
+capture its state and preserve its partial work recoverably; move its tracker
+assignment to the replacement rather than filing a duplicate; and start the
+fresh worker from that branch as exact starting content while dependents hold.
 
 When maintained context could change the next action, use
-[Memory find/recall](../memory/references/recall.md); coordination triggers no
-automatic capture, import or recall.
+[Memory find/recall](../memory/references/recall.md).
 
 A caller-selected external factory keeps its coordinator in control: hand it
-source intent through its supported door, never create, scale or repair its
-internal sessions by hand, and do not mirror its work in an AgentOps tracker.
-Judge the returned exact content independently; factory completion neither
-authorizes delivery nor establishes acceptance. For Gas City, follow
-[Using GC](../using-gc/SKILL.md).
+source intent through its supported door, never run its sessions by hand or
+mirror its work in a second tracker, and judge the returned content
+independently; its completion neither authorizes delivery nor establishes
+acceptance. For Gas City, follow [Using GC](../using-gc/SKILL.md).
 
 ## Status block
 
-When reporting coordination state, return:
+When the caller asks for coordination status, return this shape; answer a quick
+question in prose. No other report or persisted artifact is required unless an
+existing consumer needs one.
 
 ```text
-assignments: <worker/context id> -> <task>, state as observed (how)
+assignments: <worker/context id> -> <task>, state as observed (how); last activity <time, kind> | unobserved
 candidates:  <task> -> <exact ref>; checks <result>; judgment <ref | owed | not owed>
 next:        <free capacity> -> <dispatch>, because <observed bottleneck>
 held:        <task>, blocked by <prerequisite gap>

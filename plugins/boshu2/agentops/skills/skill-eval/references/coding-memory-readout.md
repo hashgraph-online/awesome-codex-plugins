@@ -2,7 +2,8 @@
 
 Readout rules for controlled coding comparisons and memory transfer tests. Use
 the development adapter documented in
-[`evals/skills-rpi/readout.md`](../../../evals/skills-rpi/readout.md), or the
+[`evals/skills-rpi/readout.md`](https://github.com/boshu2/agentops/blob/main/evals/skills-rpi/readout.md)
+(AgentOps source checkout only), or the
 caller's existing equivalent. Its report is a rebuildable view, not work
 authority. The pilot's default `insufficient-evidence` recommendation is an
 honest limit; the specialist may make a narrower supported maintenance
@@ -17,16 +18,15 @@ recommendation and must state its evidence and provisional scope.
   zero. Deterministic code truth may settle an experimental criterion, while a
   required native handoff or exact-subject judgment remains unproven.
 - Report raw time/cost distributions and total cost of all attempts per accepted
-  outcome. Zero accepted outcomes makes that ratio undefined. Partial Harbor
-  cost is not total billing. Native input includes cached input; native output
-  includes reasoning. Keep counters distinct and never add native totals to
-  Harbor totals or assume parents exclude children. Split producer, in-workflow
-  validation, orchestration and grading only where native identity supports it.
-  State the measurement window and excluded setup/analysis overhead.
-  Fresh contexts can still carry large startup instructions and tool catalogs;
-  use actual input accounting when available, not freshness as a cost proxy.
-- Use `evals/_stats` for paired task-cluster uncertainty after verifying its
-  dependencies and semantics. A pilot is descriptive unless sample size and
+  outcome. Zero accepted outcomes makes that ratio undefined. Keep counters
+  from different sources distinct and never sum them (the pilot readout owns
+  its Harbor and native counter rules); split cost by phase only where native
+  identity supports it. State the measurement window and excluded setup and
+  analysis overhead; use actual input accounting, not context freshness.
+- `evals/_stats` (needs numpy and scipy) computes a paired task-cluster
+  bootstrap for paired scores; it is not the Wilson/Fisher readout for two
+  unpaired rates, and its docstring still describes a removed CLI caller.
+  A pilot is descriptive unless sample size and
   decision thresholds were justified and fixed in advance. A zero-crossing
   interval or `no_change` is **not equivalence**; equivalence needs its own margin
   and test. Same numeric repetitions/seeds do not prove controlled provider
@@ -38,8 +38,7 @@ recommendation and must state its evidence and provisional scope.
   delivered, relevant action and later outcome are separate facts. Saving a page
   earns no benefit credit; coding-pilot completion does not establish compounding.
 
-Raw trials and new proof belong in caller-selected protected external non-Git
-storage. Only public/sanitized fixtures cleared for that destination belong in
-Git. Preserve legacy `.agents/` evidence. Existing independent support and
-disclosure review precedes memory import; this skill does not auto-publish
-transcripts or mutate knowledge from aggregate scores (ADR-0016).
+Storage follows [SKILL.md](../SKILL.md#procedure); preserve legacy `.agents/`
+evidence. Independent support and disclosure review precede any memory import;
+do not auto-publish transcripts or change knowledge from aggregate scores
+(ADR-0016).

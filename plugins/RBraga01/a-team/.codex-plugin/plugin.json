@@ -25,7 +25,8 @@
   "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "interface": {
-    "composerIcon": "./assets/ATeam_full.png",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
     "displayName": "A Team",
     "shortDescription": "Complete pre-configured engineering team. Not a marketplace.",
     "longDescription": "A Team enforces structured development workflows: design before code, TDD before implementation, code review after every change, and hard gates that block completion without verified evidence. Drop it into any project to get an immediately operational team of specialists.",

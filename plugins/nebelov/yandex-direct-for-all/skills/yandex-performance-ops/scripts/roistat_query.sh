@@ -2,10 +2,16 @@
 set -euo pipefail
 
 usage() {
-  echo "Использование: $0 <выход.json> <метод> [тело.json] [--project PROJECT] [--credentials-file FILE] [--base-url URL]" >&2
+  echo "Использование: $0 <выход.json> <метод> [тело.json] [--project PROJECT] [--credentials-file FILE] [--base-url URL] [--http-method POST|GET] [--if-configured]" >&2
   exit 1
 }
 
+IF_CONFIGURED=0
+ARGS=()
+for arg in "$@"; do
+  if [[ "$arg" == "--if-configured" ]]; then IF_CONFIGURED=1; else ARGS+=("$arg"); fi
+done
+set -- ${ARGS[@]+"${ARGS[@]}"}
 [[ $# -lt 2 ]] && usage
 OUTPUT_FILE="$1"
 ENDPOINT="$2"
@@ -15,12 +21,14 @@ PROJECT="${ROISTAT_PROJECT:-}"
 API_KEY="${ROISTAT_API_KEY:-}"
 BASE_URL="${ROISTAT_BASE_URL:-https://cloud.roistat.com/api/v1}"
 CREDENTIALS_FILE=""
+HTTP_METHOD="POST"
 if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then JSON_FILE="$1"; shift; fi
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --project) PROJECT="$2"; shift 2 ;;
     --credentials-file) CREDENTIALS_FILE="$2"; shift 2 ;;
     --base-url) BASE_URL="$2"; shift 2 ;;
+    --http-method) HTTP_METHOD="$2"; shift 2 ;;
     --api-key) echo "Сырой ключ в командной строке запрещён" >&2; exit 2 ;;
     *) usage ;;
   esac
@@ -37,9 +45,22 @@ if [[ -n "$CREDENTIALS_FILE" ]]; then
   [[ -z "$API_KEY" ]] && API_KEY="$FILE_API_KEY"
   [[ -n "$FILE_BASE_URL" ]] && BASE_URL="$FILE_BASE_URL"
 fi
-[[ -n "$PROJECT" ]] || { echo "Не задан проект Roistat" >&2; exit 2; }
-[[ -n "$API_KEY" ]] || { echo "Не задан ROISTAT_API_KEY или закрытый файл доступа" >&2; exit 2; }
+if [[ -z "$PROJECT" || -z "$API_KEY" ]]; then
+  if [[ "$IF_CONFIGURED" == 1 ]]; then
+    # Прежний файл результата заменяется пометкой пропуска: старые продажи не должны сойти за свежую выгрузку.
+    mkdir -p "$(dirname "$OUTPUT_FILE")"
+    SKIP_FILE="$(mktemp "$(dirname "$OUTPUT_FILE")/.roistat-skip.XXXXXX")"
+    python3 -c 'import json,sys; print(json.dumps({"status": "skipped", "source": "roistat", "reason": "not_configured", "endpoint": sys.argv[1]}, ensure_ascii=False))' "$ENDPOINT" > "$SKIP_FILE"
+    chmod 600 "$SKIP_FILE"
+    mv "$SKIP_FILE" "$OUTPUT_FILE"
+    echo "Roistat не подключён (источник необязателен): шаг пропущен, в файл результата записан status=skipped" >&2
+    exit 0
+  fi
+  echo "Не заданы проект и ключ Roistat (ROISTAT_PROJECT, ROISTAT_API_KEY или --credentials-file). Roistat необязателен: без него продажи берутся из CRM-выгрузки или целей Метрики." >&2
+  exit 2
+fi
 [[ "$ENDPOINT" =~ ^[A-Za-z0-9_./-]+$ ]] || { echo "Недопустимый метод" >&2; exit 2; }
+[[ "$HTTP_METHOD" == POST || "$HTTP_METHOD" == GET ]] || { echo "--http-method: только POST или GET" >&2; exit 2; }
 
 OUTPUT_DIR="$(dirname "$OUTPUT_FILE")"
 mkdir -p "$OUTPUT_DIR"
@@ -59,10 +80,12 @@ elif [[ ! -t 0 ]]; then
 else
   printf '{}\n' > "$BODY_FILE"
 fi
+[[ -s "$BODY_FILE" ]] || printf '{}\n' > "$BODY_FILE"  # пустой ввод — пустой объект
 python3 -m json.tool "$BODY_FILE" >/dev/null || { echo "Тело запроса не является JSON" >&2; exit 2; }
 
-printf 'silent\nshow-error\nrequest = "POST"\nurl = "%s/%s?project=%s"\nheader = "Content-Type: application/json"\nheader = "Api-key: %s"\ndata-binary = "@%s"\noutput = "%s"\nwrite-out = "%%{http_code}"\n' \
-  "${BASE_URL%/}" "$ENDPOINT" "$PROJECT" "$API_KEY" "$BODY_FILE" "$RAW_FILE" > "$CURL_CONFIG"
+printf 'silent\nshow-error\nrequest = "%s"\nurl = "%s/%s?project=%s"\nheader = "Content-Type: application/json"\nheader = "Api-key: %s"\noutput = "%s"\nwrite-out = "%%{http_code}"\n' \
+  "$HTTP_METHOD" "${BASE_URL%/}" "$ENDPOINT" "$PROJECT" "$API_KEY" "$RAW_FILE" > "$CURL_CONFIG"
+[[ "$HTTP_METHOD" == POST ]] && printf 'data-binary = "@%s"\n' "$BODY_FILE" >> "$CURL_CONFIG"
 HTTP_CODE="$(curl --config "$CURL_CONFIG")"
 [[ "$HTTP_CODE" =~ ^2[0-9][0-9]$ ]] || { echo "Roistat вернул HTTP $HTTP_CODE" >&2; exit 3; }
 python3 -m json.tool "$RAW_FILE" > "$FORMATTED_FILE" || { echo "Roistat вернул неверный JSON" >&2; exit 3; }

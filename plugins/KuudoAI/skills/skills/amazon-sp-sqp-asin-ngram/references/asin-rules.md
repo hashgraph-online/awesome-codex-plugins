@@ -1,16 +1,18 @@
-# ASIN-level IF → THEN rules (SQP / organic)
+# Evidence-conditioned ASIN findings
 
-Apply after minimum thresholds (e.g. `total_impressions ≥ 200`, `asin_clicks ≥ 20`) or shrinkage for strong claims. Include attribution scope in badges. Cooldown 7–14 days per `{search_query, asin}` unless metrics move opposite intent.
+Use these rules for analysis and supporting records. Present the recommendation using the [seller-answer contract](decision-records.md); include a technical limitation in the main answer only when it changes the decision.
 
-Every THEN is a recommendation record, not a change this skill makes. The skill that owns the action previews it and waits for the user's yes (see SKILL.md, Guardrails).
+Use [theme analysis](theme-analysis.md) for recurring comparisons and [decision records](decision-records.md) for the action queue. A funnel observation selects where to look; it does not identify the cause. Retrieve available decisive evidence before returning a hold.
 
-| Observation (IF) | Action (THEN) | Goal |
-|---|---|---|
-| High query volume but `asin_impression_share < peer_p25` | `seo_update` + `pdp_update` toward dominant n-gram intent; re-check in 7d | Lift visibility |
-| `asin_click_share > asin_impression_share` **AND** `asin_purchase_share ≤ asin_impression_share` | `pdp_update` (price vs median, ratings, delivery speed) | Reduce conversion friction |
-| `CTR` below query benchmark while `asin_impression_share ≥ peer_p50` | `pdp_update` + hero imagery/title alignment | Raise CTR |
-| `asin_purchase_share` trails `asin_click_share` by >30% and slow shipping share high | `shipping_speed_fix` + surface delivery promise; consider coupon/deal badge | Remove delivery friction |
-| Price above market median and purchase share < peer_p25 | `price_test` (bounded, 7d) and re-evaluate share deltas | Win purchases efficiently |
-| Underperforms vs brand peers on same query | `variant_mapping_fix` or re-balance on-page emphasis | Reduce cannibalization |
+| Finding | When it can produce a concrete proposal |
+|---|---|
+| Recurring localized purchase-per-click gap | Inspect complete relevant listing fields. A specific supported omission/ambiguity may produce one `listing_content_test`; otherwise no edit or one-fact hold. Report uncertainty. |
+| Listing contradicts a seller/user-confirmed variant specification | `product_fact_correction` with exact field and before/after, even with thin counts. Catalog disagreement alone yields a one-fact confirmation hold. |
+| Low impression share or CTR | Descriptive finding; inspect actual search presentation if available. Do not convert an isolated ratio into a title/image rewrite. A proposal requires a verified information problem and bounded test with the relevant denominator. |
+| Weak purchases plus independently verified ASIN delivery defect | A specific operations proposal requires ASIN delivery/availability evidence for the market/time and an actionable correction. Query-wide shipping totals cannot establish this. |
+| High event-specific median price and weak purchases | A price test needs matching event/currency/period, comparable products, current offer and profitability constraints. SQP alone supplies none of the latter; return one decisive blocker instead of a generic price investigation. |
+| Apparent variant underperformance | A mapping proposal requires actual family relationships and a specific mapping error. Underperformance is not evidence of cannibalization. |
 
-Cross-reference **conversion index** and **share funnel gaps** from `ngram-keyword-framework` / `references/rulebook-organic-sqp.md` when summarizing “why” for a row.
+Price, delivery and variant findings are secondary. Preserve legacy conditional diagnostic tags (`seo_update`, `pdp_update`, `price_test`, `shipping_speed_fix`, `variant_mapping_fix`) when appropriate, but a conditional tag is not an action. Only an evidenced defect with a concrete proposal enters the action queue. Do not fabricate peer cohorts or generate a list of possible explanations as the recommendation.
+
+Route user-selected listing work to `amazon-sp-listing-optimizer`, price work to `amazon-sp-repricing`, and Ads work to `amazon-ads-sp-search-term-explorer` when available. If unavailable, provide the reviewable draft; do not claim execution.

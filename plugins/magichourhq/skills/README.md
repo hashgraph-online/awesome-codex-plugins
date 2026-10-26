@@ -41,7 +41,7 @@ Prefer a native plugin? See [Claude Code and Codex plugin installation, plus Cur
 | Create any finished AI video                | [ai-video-generation](skills/ai-video-generation)                           | Route a plain-language brief across core tools, inspect it and deliver the finished file          |
 | Rework a reference into my creator short    | [creator-video-remix](skills/creator-video-remix)                           | Extract the hook and timing, choose an original transformation and finish a reusable vertical cut |
 | Create or recover general media             | [magic-hour-media](skills/magic-hour-media)                                 | Select the operation, finish asynchronous jobs and retrieve files without duplicate paid retries  |
-| Animate my photo or create a transformation | [magic-hour-image-to-video](skills/magic-hour-image-to-video)               | Fix and inspect the still before motion; direct the action, reveal and end state                  |
+| Animate my photo or create a transformation | [magic-hour-image-to-video](skills/magic-hour-image-to-video)               | Animate an approved image directly; edit only when the requested shot needs a visual change       |
 | Put my face into an existing clip           | [magic-hour-face-swap](skills/magic-hour-face-swap)                         | Select the intended cast, preserve the performance and inspect faces through turns                |
 | Turn an idea into a video                   | [magic-hour-text-to-video](skills/magic-hour-text-to-video)                 | Build a readable setup and payoff; choose when an identity reference is necessary                 |
 | Transform or edit my image                  | [magic-hour-image-editing](skills/magic-hour-image-editing)                 | Separate requested changes from protected features and prepare a useful animation frame           |
@@ -161,7 +161,7 @@ Before publishing, run the [quality-review skill](skills/ai-media-quality-review
 
 **Which model should I use?** Choose current supported settings for the task and budget. Model lists and pricing change; the agent reads live schemas. [Observed failures and routing decisions →](skills/magic-hour-campaign-kit/references/model-observations.md)
 
-**Why create or edit an image before video?** It lets you correct identity, composition and label problems before paying for motion. The approved still becomes the video input. [Detailed decision guide →](docs/workflow-guide.md#should-i-use-text-to-video-or-image-to-video)
+**When should I edit an image before video?** Animate an approved product photo or other supplied image directly when it already meets the brief. Edit only for a requested visual change or a source problem that prevents the shot; then use the approved still as the video input. [Detailed decision guide →](docs/workflow-guide.md#should-i-use-text-to-video-or-image-to-video)
 
 **Something failed?** Keep the project ID. A polling timeout or expired URL usually needs retrieval, not a duplicate generation. [Troubleshooting →](docs/quickstart.md#unstick-the-first-run)
 

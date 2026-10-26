@@ -22,7 +22,7 @@ select this entry in artifact mode. Do not `git init` a notes folder to make fin
     them; never perform broad refactors unattended.
   - Park ownership disputes, platform choices, and product tradeoffs in parking-lot.md with evidence.
   - Never present architectural preference as proof or claim whole-system health from one pass.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every accepted finding is dispositioned (fixed, rejected, or parked) and no open
     taste-only rows remain.
   - Verify: the item gate is green at every commit; a second inspection pass over the scoped area

@@ -1,0 +1,45 @@
+{
+  "name": "renhua",
+  "version": "1.0.0",
+  "description": "Chinese writing in a real person's voice: strips AI tells (emoji lists, slogans, 不是而是), fluent full sentences, theme line, results first, data-backed insight and one earned 金句; viral Xiaohongshu title library and optional humor patterns.",
+  "author": {
+    "name": "jack-reson8",
+    "url": "https://github.com/jack-reson8"
+  },
+  "homepage": "https://github.com/jack-reson8/renhua",
+  "repository": "https://github.com/jack-reson8/renhua",
+  "license": "MIT",
+  "keywords": [
+    "chinese",
+    "writing",
+    "copywriting",
+    "xiaohongshu",
+    "rednote",
+    "voice",
+    "de-ai",
+    "social-media"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Renhua",
+    "shortDescription": "Chinese posts in a real person's voice, without AI tells",
+    "longDescription": "Write Chinese social posts, diaries, product copy and replies that sound like a real person: removes AI tells such as emoji checklists, parallel triplets and slogan endings, with a viral Xiaohongshu title library and humor patterns.",
+    "developerName": "jack-reson8",
+    "category": "Communication",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/jack-reson8/renhua",
+    "defaultPrompt": [
+      "把这段产品介绍改成像真人写的小红书笔记",
+      "Rewrite this Chinese post so it does not sound like AI",
+      "写一条朋友圈，语气随意一点"
+    ],
+    "brandColor": "#C2410C",
+    "screenshots": [],
+    "privacyPolicyURL": "https://github.com/jack-reson8/renhua/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/jack-reson8/renhua/blob/main/LICENSE"
+  }
+}

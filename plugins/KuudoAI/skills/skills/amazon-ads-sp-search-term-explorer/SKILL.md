@@ -18,7 +18,7 @@ description: >
 compatibility: Requires an Amazon Ads MCP exposing allv1_QueryAdvertiserAccount, allv1_AdsApiv1CreateReport, and allv1_AdsApiv1RetrieveReport (such as the Kuudo Amazon Ads MCP), plus a client-side execution facility that can fetch an HTTPS URL and parse CSV.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "0.5.1"
+  version: "0.5.2"
 ---
 
 # Amazon Ads — SP Search Term Explorer
@@ -95,10 +95,10 @@ If Amazon account scope, identifier type, marketplace mapping, or account relati
 
 ## Related skills
 
-This skill owns the **paid SP search-term** lifecycle (generate → partition → segment → deliverable). For phrase-level decisions on top of the segmented output, or for the organic counterpart, chain into the trilogy:
+This skill owns the **paid SP search-term** lifecycle (generate → partition → segment → deliverable). For phrase-level decisions on top of the segmented output, or for SQP search-results diagnostics, use the related skills below:
 
 - **Optional sub-skill:** Use `ngram-keyword-framework` when it is installed and the user wants phrase-level n-gram or skip-gram bid, negative, scale, or pullback decisions from the segmented paid-search output.
-- **Related skill:** Use `amazon-sp-sqp-asin-ngram` for the organic SP-API Brand Analytics counterpart at `{search_query, asin}` grain when the user wants per-ASIN PDP, SEO, price, or shipping recommendations beside the paid keyword view.
+- **Related skill:** Use `amazon-sp-sqp-asin-ngram` for SP-API Brand Analytics SQP search-results diagnostics at `{search_query, asin}` grain when the user wants per-ASIN PDP, SEO, price, or shipping recommendations beside the paid keyword view.
 
 Trigger handoff explicitly when chaining. The boundary is clean: this skill ends at the segmented gold / negative / rising tables; `ngram-keyword-framework` picks up from there with `data_mode: ads` and emits phrase-level decision records.
 

@@ -124,8 +124,11 @@ def _read_private_json(path: Path) -> dict[str, Any]:
     return value
 
 
-def _token_from_file(path_value: str) -> str:
-    data = _read_private_json(Path(path_value).expanduser())
+def _token_from_file(path_value: str, base: Path | None = None) -> str:
+    path = Path(path_value).expanduser()
+    if not path.is_absolute() and base is not None:
+        path = base / path  # относительный путь — от папки файла доступа
+    data = _read_private_json(path)
     token = str(data.get("access_token") or data.get("token") or "").strip()
     if not token:
         raise AccessError("В защищённом файле нет access_token")
@@ -145,7 +148,7 @@ def load_direct_access(access_file: str | None = None) -> DirectAccess:
     token = str(config.get("access_token") or "").strip()
     token_file = str(config.get("token_file") or "").strip()
     if not token and token_file:
-        token = _token_from_file(token_file)
+        token = _token_from_file(token_file, Path(configured).expanduser().resolve().parent if configured else None)
     expected_env = "YANDEX_DIRECT_SANDBOX_TOKEN" if environment == "sandbox" else "YANDEX_DIRECT_PRODUCTION_READ_TOKEN"
     if not token:
         token = os.environ.get(expected_env, "").strip()
@@ -166,7 +169,7 @@ def load_metrika_access(access_file: str | None = None) -> MetrikaAccess:
         token = str(config.get("access_token") or "").strip()
         token_file = str(config.get("token_file") or "").strip()
         if not token and token_file:
-            token = _token_from_file(token_file)
+            token = _token_from_file(token_file, Path(configured).expanduser().resolve().parent)
     if not token:
         token = os.environ.get("YANDEX_METRIKA_TOKEN", "").strip()
     if not token:

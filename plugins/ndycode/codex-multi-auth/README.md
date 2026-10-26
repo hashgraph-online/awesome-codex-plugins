@@ -76,7 +76,7 @@ mcodex                          # same wrapper, shorter name
 
 | Group | Commands | Purpose |
 | --- | --- | --- |
-| Accounts | `login`, `list`, `status`, `switch <i>`, `unpin`, `workspace` | sign in, inspect the pool, pin or switch the active account, pick workspaces |
+| Accounts | `login`, `list`, `status`, `switch <i>`, `unpin`, `workspace` | sign in, inspect the pool, pin or switch the active account, select or enable/disable workspaces |
 | Selection | `forecast`, `best`, `why-selected`, `check`, `limits`, `models` | preview, explain, and probe which account serves the next request |
 | Runtime | `rotation status` `enable` `disable` `bind-app` `unbind-app` `reset-runtime` `reset-rate-limits` | inspect and control live rotation and the app bind |
 | Repair | `fix`, `doctor`, `report`, `verify`, `verify-flagged`, `uninstall` | diagnose and repair storage, flagged accounts, and install residue; machine-readable health report |
@@ -98,6 +98,13 @@ codex-multi-auth rotation status              # is live rotation enabled?
 ## Runtime rotation, in one paragraph
 
 With rotation on (the default), request-bearing wrapper commands — `exec`, `review`, `resume`, `fork`, `app`, and the bare TUI — route through a local proxy that picks the healthiest account per request, refreshes tokens as needed, and fails over across the pool on rate limits within a bounded retry budget. The proxy listens on loopback only, authenticates its own clients with a per-process token, forwards only Responses API, model-discovery, image, thread-goal, and `POST /transcribe` calls, and never writes account emails or tokens to client headers or logs. Transcription preserves the incoming multipart audio body and boundary, uses managed ChatGPT OAuth, and does not replay ambiguous audio uploads across accounts. Plain `codex` is never touched: rotation exists only inside `codex-multi-auth-codex`/`mcodex` sessions, or inside the packaged desktop app after an opt-in, reversible bind. Turn it off with `codex-multi-auth rotation disable` or `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`.
+
+### Quota cache revalidation
+
+Local rate-limit blocks are valid for at most one hour. The next request then
+rechecks upstream, including for a hard-pinned account, so an out-of-band quota
+reset does not require a manual switch. A fresh upstream rejection starts a new
+bounded wait; this does not reset quota or spend reset credits.
 
 ## Where state lives
 
@@ -141,7 +148,7 @@ Common symptoms — wrong active account, OAuth callback port `1455` already bou
 
 ## Release notes
 
-- Current stable: [v2.23.0](docs/releases/v2.23.0.md) — `npm i -g codex-multi-auth`
+- Current stable: [v2.24.0](docs/releases/v2.24.0.md) — `npm i -g codex-multi-auth`
 - Earlier stable lines: [v2.6.0](docs/releases/v2.6.0.md), [v2.5.0](docs/releases/v2.5.0.md)
 - Full release archive: [docs/README.md#release-history](docs/README.md#release-history)
 

@@ -1,6 +1,6 @@
 {
   "name": "river-review",
-  "version": "1.132.0",
+  "version": "1.136.0",
   "private": true,
   "workspaces": [
     "runners/node-api",
@@ -36,9 +36,9 @@
     "lint": "npm run format:check && npm run check:dashes && npm run lint:code && npm run lint:md && npm run lint:text && npm run lint:sh",
     "format": "prettier --write \"**/*.{js,mjs,cjs,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{js,mjs,cjs,json,md,yml,yaml}\"",
-    "check:links": "lychee --config .lychee.toml '**/*.md' --exclude-path node_modules --exclude-path '.claude/worktrees/' --exclude-path '(^|/)pages/index\\.md$' --exclude-path '(^|/)pages/index\\.en\\.md$'",
-    "check:links:quick": "lychee --config .lychee.toml --max-concurrency 16 '**/*.md' --exclude-path node_modules --exclude-path '.claude/worktrees/' --exclude-path '(^|/)pages/index\\.md$' --exclude-path '(^|/)pages/index\\.en\\.md$'",
-    "check:links:local": "lychee --config .lychee.toml --offline '**/*.md' --exclude-path node_modules --exclude-path '.claude/worktrees/' --exclude-path '(^|/)pages/index\\.md$' --exclude-path '(^|/)pages/index\\.en\\.md$'",
+    "check:links": "node scripts/check-lychee-version.mjs && lychee --config .lychee.toml '**/*.md' --exclude-path node_modules --exclude-path '.claude/worktrees/' --exclude-path '(^|/)pages/index\\.md$' --exclude-path '(^|/)pages/index\\.en\\.md$'",
+    "check:links:quick": "node scripts/check-lychee-version.mjs && lychee --config .lychee.toml --max-concurrency 16 '**/*.md' --exclude-path node_modules --exclude-path '.claude/worktrees/' --exclude-path '(^|/)pages/index\\.md$' --exclude-path '(^|/)pages/index\\.en\\.md$'",
+    "check:links:local": "node scripts/check-lychee-version.mjs && lychee --config .lychee.toml --offline '**/*.md' --exclude-path node_modules --exclude-path '.claude/worktrees/' --exclude-path '(^|/)pages/index\\.md$' --exclude-path '(^|/)pages/index\\.en\\.md$'",
     "agents:validate": "node scripts/validate-agents.mjs",
     "skills:validate": "node scripts/validate-skills.mjs",
     "skills:validate:promptfoo": "node scripts/validate-promptfoo-configs.mjs",
@@ -66,6 +66,8 @@
     "meta:validate": "node scripts/validate-meta-consistency.mjs && node scripts/check-doc-enumerations.mjs && node scripts/check-sidebar-reachability.mjs && node scripts/check-vocabulary-literals.mjs && node scripts/check-control-characters.mjs && node scripts/generate-skill-catalog.mjs --check",
     "plugin:validate": "node scripts/validate-plugin-manifest.mjs",
     "plugin:validate:official": "node scripts/validate-plugin-official.mjs",
+    "plugin:dist": "node scripts/build-plugin-dist.mjs",
+    "plugin:dist:check": "node scripts/build-plugin-dist.mjs --check",
     "plugin:sync": "node scripts/sync-plugin-fields.mjs",
     "plugin:sync:check": "node scripts/sync-plugin-fields.mjs --check",
     "eval:all": "node scripts/evaluate-all.mjs",
@@ -134,7 +136,7 @@
     "textlint-rule-prh": "^6.1.0"
   },
   "overrides": {
-    "serialize-javascript": "^7.0.6",
+    "serialize-javascript": "^7.1.3",
     "qs": "^6.15.2",
     "uuid": "^11.1.1",
     "http-proxy-middleware": "^2.0.10",

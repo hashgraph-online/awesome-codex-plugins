@@ -51,7 +51,11 @@
     "hours": null,
     "itemBudget": "",
     "execution": "review-first",
-    "toolingPolicy": "existing-tools"
+    "toolingPolicy": "existing-tools",
+    "isolation": "none",
+    "prepare": "",
+    "copyIn": [],
+    "worktreeRoot": ".nightshift/worktrees"
   },
   "handoff": {
     "enabled": true,
@@ -82,5 +86,9 @@
   "retention": {
     "runtimeLogDays": 0,
     "archiveDays": 0
+  },
+  "planRoom": {
+    "blockedTools": [],
+    "blockedCommands": "git (commit|push|tag)"
   }
 }

@@ -17,8 +17,6 @@
 - Kernel entry must reject re-entry when that env var is already present.
 - This is a two-end check: set-on-spawn plus check-at-entry. One end alone is
   not enough.
-- Source pattern: commit `97e16fe`, bead `mo-l1tyqp.23`, and
-  `MTO_SKILL_AUDIT_IN_PROGRESS` from the Mt Olympus skill-audit adapter fix.
 
 ```rust
 pub const GUARD_ENV: &str = "MY_TOOL_IN_PROGRESS";

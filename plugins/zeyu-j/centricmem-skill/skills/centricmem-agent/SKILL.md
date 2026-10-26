@@ -7,7 +7,7 @@ requirements:
 license: MIT
 compatibility: "Requires host MCP at https://mem.centricmem.com/mcp. Floors use the pre-1.0 0.21.x numbering; every 1.0.x satisfies them all. librarian >=0.21.50: a card is summary + key points (a keep stub is not a card); a folder is cm_keep card:false then cm_import items; archive zip is optional; share: shelf ids; cm_move takes whole paths (never lessons.md or #); cm_delete {file,shelf} a card, heading= for one ##; cm_rename {file,shelf,title}; omitting the cm_library id lists shelves; skipExisting and copy-aside FTS skip. >=0.21.51 Codex OAuth. >=0.21.55 applicant HTTPS callbacks. >=0.21.56 OAuth key picker and the ChatGPT Approve hop. >=1.0.6 host-ops detail (cm_ops)."
 metadata:
-  version: "1.0.32"
+  version: "1.0.33"
   compatible_cli: ">=0.21.50"
   changelog_url: https://github.com/zeyu-j/centricmem-skill/blob/main/CHANGELOG.md
 ---
@@ -50,7 +50,7 @@ Start or resume; search; file Non-Micro; connect / refresh Skill. Recipes: REFER
 
 ## 2. Start
 
-Prefer `cm_ambient` with **`shelf=`** (or `library=`) first — it already carries grants / mode / skill_latest / Recent / Session. That shapes **Recent decisions / Session tail / Curate**, not only later write routing. Ambient with only an unmatched `cwd` and no `shelf=` often shows empty Recent/Session — that is not “the shelf is empty.” Call `cm_health` only when tools are missing, connect is needed, or ambient is unhealthy / unreachable. Unreachable: say once — no bootstrap. Named shelf for writes.
+Prefer `cm_ambient` with **`shelf=`** (or `library=`) first — it already carries grants / mode / skill_latest / Recent / Session. That shapes **Recent decisions / Session tail / Curate**, not only later write routing. Ambient with only an unmatched `cwd` and no `shelf=` often shows empty Recent/Session — that is not “the shelf is empty.” When ambient/doctor returns **`suggested_shelf=`** (cwd basename matches a shelf id), **use that id on every write this session** — do not wait for the human to name it. Optional durable bind (default key): `cm_library {id, sourceDir: <absolute cwd>}` so later ambient cwd-matches. When `library=(none)` and no suggestion: pick from `libraries=` or mint (`cm_library`), same turn as the first Non-Micro write. Call `cm_health` only when tools are missing, connect is needed, or ambient is unhealthy / unreachable. Unreachable: say once — no bootstrap. Named shelf for writes.
 
 **Resume = new session.** Compress, checkpoint restore, or new chat on same task → ambient first (health only if needed).
 

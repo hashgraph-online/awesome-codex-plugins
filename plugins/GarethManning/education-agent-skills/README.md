@@ -1,48 +1,42 @@
 # Education Agent Skills Library
 
-[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-1.0-blue)](https://agentskills.io)
 [![Skills](https://img.shields.io/badge/skills-165-blue)](https://github.com/GarethManning/education-agent-skills)
 [![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 [![Last Commit](https://img.shields.io/github/last-commit/GarethManning/education-agent-skills)](https://github.com/GarethManning/education-agent-skills/commits/main)
 
-An open-source library of 165 evidence-based pedagogical skills across 20 domains — works in Claude Code, Claude.ai (via MCP), OpenAI Codex, and Hermes Agent, and is engineered for AI agent orchestration. Domains 1–19 are teacher and designer-facing. Domain 20 is the first student-facing domain: live AI interaction patterns that shape how AI responds to learners during study sessions.
+An independent open-source library of **165 education skills across 20 domains**: practical instructions that help AI agents support lesson planning, assessment, curriculum design and learning. It brings named research and clearly labelled original practitioner frameworks into reusable workflows, with limitations and educator judgement built in. Domains 1–19 support teachers and designers; Domain 20 contains **13 student-facing skills** for study interactions.
 
-> [!IMPORTANT]
-> **Hosted MCP access now requires an auth token.**
->
-> The library is still free and open source, and local/plugin/manual use remains the recommended free path. The hosted MCP server is still available for people who specifically need a remote MCP endpoint, but anonymous access is now blocked so the service stays sustainable.
->
-> **Need hosted MCP?** [Request an access token](https://mcp-server-sigma-sooty.vercel.app/request-access) or [jump to hosted MCP setup](#mcp-server).
+The library uses [Agent Skills](https://agentskills.io/home), the open format originally developed by Anthropic and adopted across an open ecosystem. Each skill is a folder with a named and described `SKILL.md`, instructions and optional supporting resources. Existing Claude/plugin and MCP integrations use the rich source files; a generated portable edition passes the official format validator. See [standards and verification](#agent-skills-format-and-verification) for exactly what was checked and [skill quality](docs/SKILL_QUALITY.md) for the educational review approach. Format compatibility is not certification of teaching effectiveness.
+
+**22 October 2026 — v3.1.0:** The library now has a portable edition checked against the official Agent Skills reference tool, 37 targeted educational revisions and eight guides with reorganized optional examples. Skill IDs and interfaces stay stable. [Read the update and its limits](docs/releases/v3.1.0.md).
+
+The library-operated public MCP service was retired with this release; public signup is no longer offered. Use the [portable download](https://github.com/GarethManning/education-agent-skills/releases/download/v3.1.0/education-agent-skills-portable-v3.1.0.zip), source plugins, manual prompts or local/self-hosted MCP below. Existing remote-only clients need a supported local route or an endpoint they operate; migration is not automatic.
 
 ---
 
 ## Get Started
 
-Works with Claude, Codex, Hermes Agent, and any tool that supports the Agent Skills standard.
+Start with the [v3.1.0 GitHub release](https://github.com/GarethManning/education-agent-skills/releases/tag/v3.1.0), choose a local integration for Claude, Codex or Hermes, or copy the portable edition into another compatible client. Client versions and activation behaviour vary; the [verification receipt](docs/audits/agent-skills-build-verification-2026-10-22.md) records the tested limits.
 
-For sustainable free use, install or copy the skills locally from GitHub where possible. The hosted MCP server is a convenience endpoint for remote clients, not a requirement for using the library.
+Local skill files need no library-operated service. MCP users can [run locally over stdio or operate their own hosted endpoint](mcp-server/README.md).
 
 ### Claude
 
-**CoWork (easiest)** — go to **Customize → (+) Add Plugin** and paste:
+**CoWork** — the repository URL for plugin import is:
 
 ```
 https://github.com/GarethManning/education-agent-skills
 ```
 
-**Claude Code CLI** — install from the repo URL:
-
-```bash
-claude plugin install https://github.com/GarethManning/education-agent-skills
-```
-
-**Claude.ai / Claude Desktop (hosted MCP)** — use only if your workflow specifically needs a remote MCP connector. Hosted access requires a token:
+**Claude Code** — for 2.1.275+ use the command recommended by the tested 2.1.307 validator:
 
 ```text
-https://mcp-server-sigma-sooty.vercel.app/mcp
+/plugin install education-agent-skills --marketplace GarethManning/education-agent-skills
 ```
 
-Request a token here: [Hosted MCP access signup](https://mcp-server-sigma-sooty.vercel.app/request-access). Free local and manual options remain available. See [Hosted MCP access](docs/HOSTED_MCP_ACCESS.md).
+Claude 2.1.307 passed local manifest validation with advisory warnings; installation and session activation were not tested. For older clients without this syntax, use manual prompt copying below or follow that client's local-plugin instructions; repository-URL CLI installation is not established by this check.
+
+**Claude Desktop (local MCP)** — follow the [local stdio setup](mcp-server/README.md#run-locally-stdio). For a client that only accepts remote MCP, operate your own authenticated endpoint using the [self-hosting guide](mcp-server/README.md#self-hosted-http). The former public connector and signup are no longer supported; its credentials do not automatically transfer to your endpoint.
 
 ### OpenAI Codex
 
@@ -52,9 +46,11 @@ Codex does **not** need the hosted MCP server. Recommended local setup:
 git clone https://github.com/GarethManning/education-agent-skills.git
 cd education-agent-skills
 codex plugin marketplace add "$PWD"
+codex plugin add education-agent-skills@education-agent-skills
+codex plugin list --marketplace education-agent-skills --json
 ```
 
-The repository includes a Codex plugin manifest at `.codex-plugin/plugin.json` pointing to `./skills/`, plus a local marketplace helper at `.agents/plugins/marketplace.json`. After installing/enabling the local plugin, restart Codex.
+The manifests list all 20 domain directories. Registration and installation are separate steps. Codex CLI 0.163.0-alpha.11.1 passed isolated registration, installation and listing with 165 source skills and their resources; actual model activation and desktop refresh were not tested. Start a new session after installation; see the full guide for refresh and cache updates.
 
 For one or two individual skills, copy them into your global Codex skills directory:
 
@@ -84,13 +80,15 @@ hermes skills install \
 
 Recommended starting point: install selected skills or a small starter pack rather than all 165 skills. That keeps your local Hermes index useful instead of noisy.
 
-If you want intelligent skill discovery and recommendation rather than local/offline installs, use the hosted MCP server's `find_skills` and `suggest_skills` tools. The MCP route and the Hermes tap serve different adopter types; a separate Hermes plugin is not currently planned.
+Hermes v0.18.0 (2026.7.1) listed all 165 portable skills and read selected main files, metadata and a moved example in an isolated local profile. Hub installation, updates and model invocation were not tested in that check.
+
+If you want intelligent skill discovery and recommendation rather than local/offline installs, run local/self-hosted MCP and use its `find_skills` and `suggest_skills` tools. The MCP route and the Hermes tap serve different adopter types; a separate Hermes plugin is not currently planned.
 
 Full Hermes guide: [docs/HERMES.md](docs/HERMES.md).
 
 ### Any Agent Skills-compatible tool
 
-Copy skill folders from `skills/` into your agent's skills directory. Each skill is a folder containing `SKILL.md` with name/description frontmatter — no dependencies, no build step.
+Download the [portable ZIP](https://github.com/GarethManning/education-agent-skills/releases/download/v3.1.0/education-agent-skills-portable-v3.1.0.zip) and extract it: `agent-skills/` contains 165 skill folders, accompanied by an installation note. For clients requiring strict standard frontmatter, copy from `agent-skills/<skill-name>/`. Maintainers can instead generate the same profile at `dist/agent-skills/` using the [isolated Python setup](docs/AGENT_SKILLS.md#generate-the-portable-edition). Copy the complete selected folder into your client's skills directory, preserving `references/`, `agents/` and other included files. Using the copied skills needs no Python or Node build. Check the client's discovery path and invocation controls; generic clients may ignore vendor policy files.
 
 ### Manual (no setup)
 
@@ -115,7 +113,7 @@ I'd love to hear your thoughts. If you have suggestions, find bugs, or want to c
 No setup required. Use the plugin, a local skill install, or manual copy-paste and start teaching.
 
 **I'm a developer or AI builder — [start here](#architecture)**
-YAML schemas, typed inputs and outputs, chaining metadata, [live MCP server](#mcp-server).
+YAML schemas, typed inputs and outputs, chaining metadata, [local/self-hosted MCP](#mcp-server).
 
 ---
 
@@ -155,7 +153,7 @@ Install the skills in Claude, Codex, or Hermes, then tell your agent what you ne
 
 **Example:** Say *"I'm planning a Year 9 science unit on cells — 6 weeks, 3 lessons a week."*
 
-Claude runs the **Backwards Design Unit Planner**, the **Spaced Practice Scheduler**, and the **Retrieval Practice Generator** in parallel. In under 90 seconds you get a complete lesson-by-lesson plan with spaced retrieval built in, evidence-grounded sequencing, and ready-to-use formative assessment activities — all calibrated to the timeline and topic list you provided.
+An agent could combine the **Backwards Design Unit Planner**, the **Spaced Practice Scheduler**, and the **Retrieval Practice Generator** to draft a lesson plan with spaced retrieval and formative assessment activities for educator review. This is an illustrative workflow, not a measured multi-agent run or a 90-second performance guarantee.
 
 ### Without the plugin (manual)
 
@@ -171,14 +169,14 @@ No API key. No technical setup. No dependencies.
 - Timeline: 8-week term, starting 3 February
 - Lessons per week: 3
 
-Claude returns a complete week-by-week schedule showing when to teach new content and when to revisit previous topics at expanding intervals — with specific retrieval activities for each review slot. The schedule follows Cepeda et al.'s (2006) meta-analysis on optimal spacing intervals, includes interleaving across topics, and comes with practical guidance on what to do when review reveals gaps.
+Claude returns a complete week-by-week schedule showing when to teach new content and when to revisit previous topics at expanding intervals — with specific retrieval activities for each review slot. Expanding intervals are a practical scheduling heuristic informed by spacing research, including Cepeda et al. (2006), rather than that meta-analysis's exact optimum for this class. Review timing should respond to the retention goal and learner evidence; the skill also offers guidance when review reveals gaps.
 
 ---
 
 ## What Makes This Different
 
 **Evidence is the filter — including knowing what to exclude.**
-Every skill is grounded in named research: specific authors, specific studies, specific findings. Frameworks that lack empirical support — including learning styles, VAK, and other widely-circulated but poorly-evidenced approaches — are not included. The library documents exactly what was excluded and why in [EXCLUSIONS.md](docs/EXCLUSIONS.md). For any school or faculty trying to separate evidence from convention, that document is worth reading on its own.
+Research-grounded skills cite named authors, studies and findings; original practitioner frameworks distinguish their own methods from the research they draw on. Frameworks that lack empirical support — including learning styles, VAK, and other widely-circulated but poorly-evidenced approaches — are not included. The library documents exactly what was excluded and why in [EXCLUSIONS.md](docs/EXCLUSIONS.md). For any school or faculty trying to separate evidence from convention, that document is worth reading on its own.
 
 **Evidence strength is rated transparently.**
 
@@ -189,7 +187,7 @@ Every skill is grounded in named research: specific authors, specific studies, s
 | **Emerging** | Promising research base with limited replication or practitioner translation |
 | **Original** | Practitioner framework; clearly labelled, not claimed as research-backed |
 
-Where original frameworks are included (Domain 14), they are labelled honestly. One important limitation: the skills encode research-grounded prompts, but the prompts themselves have not been empirically validated as AI interventions. That work is ongoing.
+Original frameworks are grouped in Domain 15 and labelled honestly. Existing metadata also records practitioner and legacy evidence labels; these have not been silently mapped to new ratings. The prompts themselves have not been empirically validated as AI interventions. The [quality guide](docs/SKILL_QUALITY.md) explains the review criteria and remaining research limits.
 
 **Built by an educator with 20 years of international school experience.**
 The pedagogical judgements embedded in every prompt, every output structure, and every known-limitations section reflect real classroom and curriculum design practice — not a reading of the literature.
@@ -228,9 +226,22 @@ YAML schema headers, typed input and output fields, chaining metadata, and compo
 
 ---
 
+## Agent Skills format and verification
+
+Two views serve different clients:
+
+- **Canonical source:** `skills/<domain>/<skill-name>/` retains typed education schemas, evidence metadata and vendor options for the existing plugins and MCP adapter. Its extended frontmatter is not claimed to pass the strict official validator.
+- **Portable edition:** `dist/agent-skills/<skill-name>/` uses standard frontmatter, preserves the source body, and stores complete original metadata in `references/education.json`. Complete folders include the licence and local resources/policies.
+
+The [22 October 2026 local verification](docs/audits/agent-skills-build-verification-2026-10-22.md) records **165/165 portable skills passing `skills-ref` 0.1.0** and all 165 included by its prompt generator, pinned to upstream commit `69ef37e9424c0a7ea9dd2293b559e43ec8176379`. This is point-in-time compatibility with the [official specification](https://agentskills.io/specification), not foundation certification, a specification version called “1.0” or “v2”, or proof of model adherence or learner outcomes. No hosted update is implied by these local checks.
+
+For developers: [format, export and version details](docs/AGENT_SKILLS.md). For educators and contributors: [quality criteria and limits](docs/SKILL_QUALITY.md).
+
+---
+
 ## Architecture
 
-This library is Layer 1 of a three-layer system. For the full design — including the Context Engine (Layer 2) and Orchestrator (Layer 3) — see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+This repository implements the skill library and MCP adapter. The Context Engine (Layer 2) and Orchestrator (Layer 3) are architectural proposals, not implemented services here. For the design, see [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ### For developers: the YAML schema
 
@@ -238,29 +249,9 @@ Every skill opens with a machine-readable YAML header including skill ID, domain
 
 ### MCP Server
 
-The skill library is available as a live MCP server for clients that specifically need remote discovery or programmatic access.
+The MCP source supports local stdio and self-hosted Streamable HTTP. The library-operated public endpoint is retiring with v3.1.0; no public access signup is offered. See [migration options](docs/HOSTED_MCP_ACCESS.md).
 
-**Production URL:** `https://mcp-server-sigma-sooty.vercel.app/mcp`
-
-Important: the hosted MCP server is a convenience endpoint, not the only way to use the library. If you can install the skills locally, prefer the free local options in [Get Started](#get-started).
-
-Hosted MCP access requires a bearer token. Request one through the [self-hosted access page](https://mcp-server-sigma-sooty.vercel.app/request-access); if the email provider accepts the request, the email contains the MCP URL, token, and setup instructions. See [Hosted MCP access](docs/HOSTED_MCP_ACCESS.md) for exact authentication, expiry, revocation, privacy, and serverless-limit details.
-
-Connect from Claude.ai by adding the URL under **Integrations > MCP Servers**. Connect from Claude Desktop:
-
-```json
-{
-  "mcpServers": {
-    "education-skills": {
-      "type": "streamable-http",
-      "url": "https://mcp-server-sigma-sooty.vercel.app/mcp",
-      "headers": {
-        "Authorization": "Bearer <paste access token here>"
-      }
-    }
-  }
-}
-```
+For local MCP, build from the source checkout and configure your client to launch it over stdio. No Vercel, access token or email-provider configuration is required. Clients restricted to remote connectors need an endpoint they operate and configure with their own origin and authentication. [Setup instructions](mcp-server/README.md) cover both routes.
 
 The server exposes:
 - **157 tools** (153 model-invocable skills + 4 discovery tools: `list_skills`, `find_skills`, `suggest_skills`, `get_skill_details`)
@@ -276,20 +267,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for inclusion criteria. The standard is h
 
 ### Workflow for adding or revising a skill
 
-After creating or editing a `SKILL.md`, run these steps before committing:
-
-```bash
-# 1. Regenerate the registry
-python3 scripts/generate-registry.py
-
-# 2. Rebuild the MCP server bundle — required after every skill addition or revision
-cd mcp-server && npm run bundle-skills && cd ..
-
-# 3. Stage both generated files alongside the skill
-git add skills/<domain>/<skill-name>/SKILL.md registry.json mcp-server/src/skills.json
-```
-
-**Why the bundle step matters:** the MCP server running on Vercel does not read `SKILL.md` files at deploy time. It serves a pre-built snapshot at `mcp-server/src/skills.json`. If you add or revise a skill without rebuilding the bundle and committing the result, the change will not appear in the live server — even after a Vercel redeploy. CI will catch this and fail the build.
+Edit the canonical skill and its resources, then regenerate `registry.json` and `mcp-server/src/skills.json`. Generate and validate the portable edition separately; generated distribution folders stay ignored. The [contributor guide](CONTRIBUTING.md#validation-before-a-pull-request) gives dependency setup, exact checks and files to include. Updating a clone does not necessarily refresh an installed plugin cache or copied skill; follow the client update instructions. A rebuilt local MCP snapshot is not a hosted release.
 
 ---
 

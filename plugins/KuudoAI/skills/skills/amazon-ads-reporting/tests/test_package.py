@@ -119,7 +119,6 @@ class TemplateContractTests(unittest.TestCase):
 class PackagePolicyTests(unittest.TestCase):
     def test_portable_package_has_no_host_or_vendor_artifacts(self):
         self.assertFalse((SKILL_ROOT / ".claude-plugin").exists())
-        self.assertFalse((SKILL_ROOT / "CHANGELOG.md").exists())
         self.assertFalse(list(SKILL_ROOT.rglob(".DS_Store")))
 
         package_text = "\n".join(

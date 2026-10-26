@@ -1,0 +1,4 @@
+interface:
+  display_name: "Analytics Dashboard Integrity"
+  short_description: "Guard cohort, forecast, and payment metrics."
+  default_prompt: "Use $analytics-dashboard-integrity when dashboards or reports need trusted cohort, payment, retention, revenue, forecast, denominator, source, or privacy checks."

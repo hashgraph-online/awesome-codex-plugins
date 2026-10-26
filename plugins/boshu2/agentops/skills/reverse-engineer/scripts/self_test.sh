@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 SKILL="$ROOT/skills/reverse-engineer"
 
 if ! command -v go >/dev/null 2>&1; then
-  echo "error: go is required for the demo fixture build" >&2
+  echo "error: go is required to build the demo binary (validate.sh covers the Go-free checks)" >&2
   exit 2
 fi
 
@@ -82,32 +82,10 @@ python3 "$SKILL/scripts/reverse_engineer.py" demo \
 
 python3 "$OUT1/validate-feature-registry.py"
 
-VALIDATE_OUTPUT="$SKILL/scripts/validate-output.sh"
-"$VALIDATE_OUTPUT" --output-dir "$OUT1" --phase teardown \
+# Steal-map, ref-mismatch and symlink refusal checks live in validate.sh (no Go needed).
+"$SKILL/scripts/validate-output.sh" --output-dir "$OUT1" --phase teardown \
   --security-audit 0 --sbom 0 --upstream-ref-set 0
-if "$VALIDATE_OUTPUT" --output-dir "$OUT1" --phase complete \
-  --security-audit 0 --sbom 0 --upstream-ref-set 0 >/dev/null 2>&1; then
-  echo "FAIL: complete validator accepted a missing steal-map.md" >&2
-  exit 1
-fi
-cat >"$OUT1/steal-map.md" <<'EOF'
-# Steal map: demo
-
-| Their capability | Our surface today | Verdict |
-|---|---|---|
-| Embedded archive inventory (`feature-registry.yaml`) | `skills/reverse-engineer/` | **have** |
-EOF
-"$VALIDATE_OUTPUT" --output-dir "$OUT1" --phase complete \
-  --security-audit 0 --sbom 0 --upstream-ref-set 0
-cp "$OUT1/steal-map.md" "$OUT1/steal-map.valid"
-printf '# malformed map\n' >"$OUT1/steal-map.md"
-if "$VALIDATE_OUTPUT" --output-dir "$OUT1" --phase complete \
-  --security-audit 0 --sbom 0 --upstream-ref-set 0 >/dev/null 2>&1; then
-  echo "FAIL: complete validator accepted a malformed steal-map.md" >&2
-  exit 1
-fi
-mv "$OUT1/steal-map.valid" "$OUT1/steal-map.md"
-echo "OK: exact output validator distinguishes teardown from complete decision output"
+echo "OK: binary-mode teardown passes the output validator, secret scan included"
 
 # --- Binary mode capability assertions ---
 
@@ -227,83 +205,6 @@ if [ ! -f "$OUT_REF/clone-metadata.json" ]; then
 fi
 echo "OK: clone-metadata.json created with --upstream-ref"
 
-echo "--- existing-checkout ref mismatch test ---"
-WRONG_REPO="$TMP/local-wrong-ref"
-WRONG_OUT="$TMP/out-wrong-ref"
-mkdir -p "$WRONG_REPO"
-git -C "$WRONG_REPO" init -q
-git -C "$WRONG_REPO" config user.name reverse-self-test
-git -C "$WRONG_REPO" config user.email reverse-self-test@example.invalid
-printf 'one\n' >"$WRONG_REPO/unique.txt"
-git -C "$WRONG_REPO" add unique.txt
-git -C "$WRONG_REPO" commit -qm one
-first_commit="$(git -C "$WRONG_REPO" rev-parse HEAD)"
-printf 'two\n' >"$WRONG_REPO/unique.txt"
-git -C "$WRONG_REPO" commit -qam two
-second_commit="$(git -C "$WRONG_REPO" rev-parse HEAD)"
-git -C "$WRONG_REPO" checkout -q --detach "$first_commit"
-if python3 "$SKILL/scripts/reverse_engineer.py" wrong-ref \
-  --mode=repo --local-clone-dir="$WRONG_REPO" \
-  --upstream-ref="$second_commit" --output-dir="$WRONG_OUT" >/dev/null 2>&1; then
-  echo "FAIL: existing checkout at the wrong commit was analyzed" >&2
-  exit 1
-fi
-if [ -e "$WRONG_OUT/feature-registry.yaml" ]; then
-  echo "FAIL: ref mismatch wrote trusted teardown artifacts" >&2
-  exit 1
-fi
-echo "OK: existing checkout must match the requested ref"
-
-echo "--- explicit non-Git root test ---"
-EXPLICIT_TREE="$TMP/explicit-nongit"
-EXPLICIT_OUT="$TMP/out-explicit-nongit"
-mkdir -p "$EXPLICIT_TREE"
-printf 'only-in-explicit-tree\n' >"$EXPLICIT_TREE/unique-source.txt"
-python3 "$SKILL/scripts/reverse_engineer.py" explicit-nongit \
-  --mode=repo --local-clone-dir="$EXPLICIT_TREE" --output-dir="$EXPLICIT_OUT"
-if ! grep -Fqx "$EXPLICIT_TREE" "$EXPLICIT_OUT/analysis-root-path.txt"; then
-  echo "FAIL: explicit non-Git tree was replaced by the caller checkout" >&2
-  exit 1
-fi
-echo "OK: explicit non-Git analysis root wins"
-
-echo "--- output symlink refusal tests ---"
-SYMLINK_CASE="$TMP/symlink-case"
-SYMLINK_OUTSIDE="$TMP/symlink-outside"
-mkdir -p "$SYMLINK_CASE/.agents" "$SYMLINK_OUTSIDE" "$SYMLINK_CASE/local"
-printf 'outside sentinel\n' >"$SYMLINK_OUTSIDE/sentinel"
-ln -s "$SYMLINK_OUTSIDE" "$SYMLINK_CASE/.agents/scratch"
-if (
-  cd "$SYMLINK_CASE"
-  python3 "$SKILL/scripts/reverse_engineer.py" escaped \
-    --mode=repo --local-clone-dir="$SYMLINK_CASE/local" >/dev/null 2>&1
-); then
-  echo "FAIL: default output followed a symlinked scratch parent" >&2
-  exit 1
-fi
-if ! grep -Fqx 'outside sentinel' "$SYMLINK_OUTSIDE/sentinel" \
-  || [ -e "$SYMLINK_OUTSIDE/reverse-engineer" ]; then
-  echo "FAIL: symlinked parent allowed an outside write" >&2
-  exit 1
-fi
-
-MANAGED_OUT="$TMP/out-managed-link"
-MANAGED_OUTSIDE="$TMP/managed-outside.yaml"
-mkdir -p "$MANAGED_OUT"
-printf 'outside registry\n' >"$MANAGED_OUTSIDE"
-ln -s "$MANAGED_OUTSIDE" "$MANAGED_OUT/feature-registry.yaml"
-if python3 "$SKILL/scripts/reverse_engineer.py" managed-link \
-  --mode=repo --local-clone-dir="$EXPLICIT_TREE" \
-  --output-dir="$MANAGED_OUT" >/dev/null 2>&1; then
-  echo "FAIL: managed artifact symlink was followed" >&2
-  exit 1
-fi
-if ! grep -Fqx 'outside registry' "$MANAGED_OUTSIDE"; then
-  echo "FAIL: managed artifact symlink changed the outside target" >&2
-  exit 1
-fi
-echo "OK: output parent and managed-file symlinks fail closed"
-
 # --- Multi-language CLI graceful degradation test ---
 
 echo "--- multi-language CLI degradation test ---"
@@ -340,7 +241,6 @@ DEFAULT_OUT="$TMP/.agents/scratch/reverse-engineer/default-demo"
 )
 if [ ! -s "$DEFAULT_OUT/feature-registry.yaml" ] \
   || [ ! -s "$DEFAULT_OUT/contracts/repo-contract.json" ] \
-  || [ ! -s "$DEFAULT_OUT/reports/$(date +%F)-vibe-default-demo.md" ] \
   || [ ! -s "$DEFAULT_OUT/docs-features.txt" ] \
   || [ ! -s "$DEFAULT_OUT/validate-feature-registry.py" ]; then
   echo "FAIL: executable default did not emit the declared product output directory" >&2

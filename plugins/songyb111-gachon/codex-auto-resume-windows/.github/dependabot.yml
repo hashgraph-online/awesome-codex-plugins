@@ -1,0 +1,28 @@
+# Proposes updates to the pinned GitHub Actions as pull requests.
+#
+# Every external action in .github/workflows is pinned to a full commit SHA with the
+# release it corresponds to in a comment (tests/test_workflow_pins.py enforces that).
+# Pins that are never revisited age into known-vulnerable versions, so Dependabot opens
+# a pull request when an action publishes a new release, updating the SHA and the
+# comment together.
+#
+# A person reviews and merges each one. Nothing here enables auto-merge, and nothing
+# should: the release workflow runs with contents: write and id-token: write, and an
+# action update is a change to the code that builds and attests what users install.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "actions"
+    # The release's build job uploads the archive and its publish job downloads it. The
+    # two actions have to agree on the artifact format, so they are only ever proposed
+    # together: merging one without the other would break the handoff at the next tag.
+    groups:
+      artifact-handoff:
+        patterns:
+          - "actions/upload-artifact"
+          - "actions/download-artifact"

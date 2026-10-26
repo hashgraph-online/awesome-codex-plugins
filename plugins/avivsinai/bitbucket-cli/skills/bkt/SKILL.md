@@ -1,7 +1,7 @@
 ---
 name: bkt
-version: 0.35.0
-description: Operate Bitbucket Cloud or Data Center repositories, pull requests, branches, issues, pipelines, permissions, and webhooks with bkt. Use when a request names Bitbucket or bkt; confirm the platform before platform-specific commands.
+version: 0.37.0
+description: Operate Bitbucket Cloud or Data Center repositories, pull requests, branches, pipelines, permissions, and webhooks with bkt. Use when a request names Bitbucket or bkt; confirm the platform before platform-specific commands.
 metadata:
   short-description: Bitbucket CLI for repos, PRs, branches
   compatibility: claude-code, codex-cli
@@ -34,8 +34,9 @@ Read only the reference for the requested command group:
 - [pull requests](rules/pr.md), [repositories](rules/repo.md),
   [branches](rules/branch.md), [commits](rules/commit.md), or
   [statuses](rules/status.md)
-- [Cloud issues](rules/issue.md), [pipelines](rules/pipeline.md), or
-  [variables](rules/variable.md)
+- [pipelines](rules/pipeline.md) or [variables](rules/variable.md)
+- Bitbucket Cloud Issues no longer exist (Atlassian removed them in August
+  2026); route issue tracking to Jira.
 - [Data Center administration](rules/admin.md),
   [projects](rules/project.md), or [permissions](rules/perms.md)
 - [authentication](rules/auth.md), [contexts](rules/context.md),
@@ -50,9 +51,8 @@ Read only the reference for the requested command group:
 - Never place tokens, OAuth secrets, or passwords in commands that could enter
   logs or committed files. Use the CLI's supported credential flow or environment
   variables described in the auth references.
-- Official release binaries embed the Cloud browser-OAuth consumer credentials.
-  Do not remove that behavior as generic hardening. Source and Nix builds may
-  require `BKT_OAUTH_CLIENT_ID` and `BKT_OAUTH_CLIENT_SECRET`.
+- Every bkt build carries its Cloud browser-OAuth consumer, so
+  `bkt auth login --kind cloud --web` needs no setup.
 - Before a merge or other consequential write, inspect the exact target,
   repository, and current checks. Report the resulting URL or identifier.
 
@@ -66,7 +66,6 @@ Read only the reference for the requested command group:
 - [commit](rules/commit.md) — Work with commits
 - [context](rules/context.md) — Manage Bitbucket CLI contexts
 - [extension](rules/extension.md) — Manage bkt CLI extensions
-- [issue](rules/issue.md) — Work with Bitbucket Cloud issues *(Cloud)*
 - [mcp](rules/mcp.md) — Model Context Protocol server for agents
 - [perms](rules/perms.md) — Manage Bitbucket permissions *(DC)*
 - [pipeline](rules/pipeline.md) — Run and inspect Bitbucket Cloud pipelines *(Cloud)*

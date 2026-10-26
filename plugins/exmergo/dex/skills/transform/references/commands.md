@@ -18,6 +18,19 @@ of or on top of hand-authored edits.
   plus `--confirm --budget`. `attributed: false` carries the reason (macro SQL, a
   jinja conditional, a renamed CTE, an unprofiled parent). Advisory: nothing here
   refuses a plan.
+- `data.declarations.<model>`: for every model the plan creates, edits or
+  declares, `drafted`, `declared` and `missing`. Free on every connector: it reads
+  the `.dex/` cache and the repository and opens no connection. Shape in
+  `declarations.md`. Absent when the plan touches no model. `drafted.precedent`
+  says what the project's other models do with each column this one filters,
+  branches on or aggregates, grouped and counted.
+- Contradiction warnings: on a model that already exists, a declared rule the
+  edit breaks, also listed under `data.declarations.<model>.contradictions`
+  (`check`, `status`, `rule`, `stale`, `prior`, `authored`, `preexisting`,
+  `row_delta`). Shape and states in `declarations.md`. Never a refusal.
+- Literal warnings: a value compared directly to a column whose cached domain is
+  complete and does not hold it, naming any case- or whitespace-insensitive
+  match. Silent on a capped domain or a PII-flagged column; never a refusal.
 - Shape warnings: the authored SELECT list against the columns `schema.yml`
   declares, in both directions, silent where the model declares none.
 - The resolved-key convention: a model exposing a raw foreign key where at least
@@ -33,7 +46,14 @@ when no id is given. If a human edited a file after planning, nothing is written
 and the divergence comes back as diffs with `needs_confirmation`. `plans` lists
 stored plans, pending and applied, newest first.
 
-## `transform references <name> [more...] [--kind <k>] [--full]`
+An apply that wrote at least one file returns `data.commit_trailer`, the line
+`Co-authored-by: Dex <dex@exmergo.com>`. End the message of the commit that
+carries those files with it, after a blank line: the forge credits Dex as a
+co-author through it. An apply that wrote nothing, or stopped at
+`needs_confirmation`, returns no trailer, because there is nothing of dex's to
+commit.
+
+## `transform references <name> [more...] [--kind <k>] [--full] [--usage]`
 
 Where each name is used across model SQL, `schema.yml`, `dbt_project.yml`,
 macros, semantic YAML, seed headers, and installed packages. Repo-only and free.
@@ -49,6 +69,12 @@ macros, semantic YAML, seed headers, and installed packages. Repo-only and free.
   `model.column` is resolved through the `ref()` graph, and same-named columns
   outside that lineage are marked `same_name_elsewhere`.
 - Capped at 200 occurrences across 50 files; `--full` lifts both.
+- `--usage` also reports how other models use each qualified `model.column`
+  (or `source_table.column`): each target gains `usage`, the same `readers`,
+  `groups` and `elided_groups` as `drafted.precedent`, and its limits fold into
+  `data.completeness`. Ask it before writing a filter. A bare column name is
+  refused, because a column of the same name on another relation is a different
+  column. `--full` lifts its caps too.
 
 ## `transform rename <kind> <old> <new> [--edits-file <f>]`
 
@@ -74,7 +100,8 @@ a seed header) and stores them as one plan. Kinds: `column`, `var`, `model`,
 Removes the definition and refuses while any read survives, naming each with a
 file and a line. Same kinds and refusals as `rename`. Hand-authored read edits
 passed with `--edits-file` are validated and stored in the same plan, so the
-removal stays atomic.
+removal stays atomic. A YAML entry is removed with the comment lines written
+directly above it at its own indent; a comment set apart by a blank line stays.
 
 ## `transform place <column> --targets <a,b> --expr "<sql>" [--explain]`
 
@@ -99,6 +126,13 @@ Runs `dbt build` against a dev target, with a cost preflight first.
   with `estimated_bytes` and a `per_table_bytes` breakdown; each statement is then
   capped server-side by the profile's `maximum_bytes_billed`, and billed bytes are
   reported afterward.
+- `data.upper_bounds` names the `per_table_bytes` lines that are upper bounds:
+  incremental models whose batch filter is a watermark subquery, which a dry run
+  cannot prune on and the job does. They will likely bill less. An over-ceiling
+  refusal names them too, so tell the user how much of the estimate they are
+  before they choose a budget. Inside committed `budget.ceiling` and
+  `budget.session_ceiling`, a build is confirmed with `--confirm` alone and needs
+  no number from anyone.
 - A refusal over the ceiling carries a calibration line from `.dex/spend.jsonl`.
   Builds over-estimate most on a partitioned or clustered warehouse.
 - dbt runs with its working directory pinned to the project dir, so relative
@@ -134,7 +168,7 @@ Plans a `unit_tests:` skeleton: a `given` block per `ref()`/`source()` input
 carrying only the columns the model reads, typed from the cache, and an `expect:`
 stub that fails until filled in.
 
-## `transform test --mutate <model> [--max-mutants <n>] [--check-equivalence|--no-check-equivalence]`
+## `transform test --mutate <model> [--max-mutants <n>] [--check-equivalence|--no-check-equivalence] [--downstream|--no-downstream]`
 
 Plants one standard analytics defect at a time in the model's compiled SQL (a
 flipped boundary, a dropped or negated filter, a swapped join type, a removed
@@ -152,6 +186,14 @@ the model's own tests against each, and reports which defects nothing caught.
   Snowflake it needs `--check-equivalence` and joins the same single estimate;
   other connectors report `not_checked`, which carries a `reason`.
 - `score` is a ratio of two small integers over one model.
+- `--downstream` also runs the tests of the models that read this one, against
+  each mutant (on by default on DuckDB, opt-in and priced into the same estimate
+  elsewhere). A defect only those caught is `caught_downstream`, named in
+  `caught_downstream_by`: it could not ship, but the model's own suite missed it,
+  so `score` still counts it as a miss and `score_with_downstream` counts it as
+  caught. `data.downstream` lists the routed models, the tests that ran, the ones
+  excluded (a unit test on a downstream model, a test that also reads a relation
+  the mutant cannot reach) and why, and a `reason` when it was off.
 - `baseline.excluded` names tests already failing against the unmutated model;
   every verdict is relative to the tests that passed.
 - Capped at 20 mutants (`--max-mutants` narrows, never widens), sampled across
@@ -160,8 +202,9 @@ the model's own tests against each, and reports which defects nothing caught.
   and no relation is created or replaced. Dev-target only. On a billed connector
   the batch is one estimate and one `--confirm`; a budget that runs out leaves
   the rest `not_run`.
-- Refused for free when the model has no tests, is a Python model, belongs to a
-  package, or has no mutable SQL.
+- Refused for free when the model has no tests (its own, or downstream ones when
+  `--downstream` is on), is a Python model, belongs to a package, or has no
+  mutable SQL.
 
 ## `transform deps`
 

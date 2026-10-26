@@ -3,9 +3,7 @@
 #
 # Baseline: a craft-rich fixture scores N/12. Mutations that strip a stop
 # condition or an anti-pattern corrective MUST drop the score and name the
-# lost element as a gap. Runs independently of test-mutation-boundaries.sh
-# (which has a known pre-existing failure at its first assertion, tracked
-# separately; do not conflate the two).
+# lost element as a gap. Runs independently of test-mutation-boundaries.sh.
 #
 # Single documented command:
 #   bash skills/skill-builder/scripts/test-craft-mutations.sh

@@ -2,12 +2,13 @@
 name: agent-memory-discipline
 description: "Teaches when to recall from long-term memory before acting and when to save durable decisions, corrections and failures afterwards. Use when a memory tool or MCP memory server is connected but the agent is not using it consistently, when the user complains that the assistant forgets preferences, conventions or past decisions between sessions, or when setting up persistent memory for a project. Works with any memory backend: a folder of Markdown files, a local MCP server, or a managed service. Trigger with \"remember this\", \"what did we decide\", \"recall\", or \"save this for next time\"."
 allowed-tools: Read, Write
-argument-hint: "[optional topic to recall or decision to save]"
-version: 1.1.0
-author: Mnemoverse <hello@mnemoverse.com>
 license: CC0-1.0
 compatibility: Designed for Claude Code
-tags: [agent-memory, long-term-memory, context-engineering, mcp, agent-skills]
+metadata:
+  version: "1.1.0"
+  author: "Mnemoverse <hello@mnemoverse.com>"
+  tags: "agent-memory, long-term-memory, context-engineering, mcp, agent-skills"
+  input-hint: "[optional topic to recall or decision to save]"
 ---
 
 # Agent memory discipline

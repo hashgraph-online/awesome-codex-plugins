@@ -1,0 +1,11 @@
+{
+  "name": "tutti-site",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler pages dev --port 8788",
+    "db:local": "wrangler d1 execute tutti-waitlist --local --file schema.sql",
+    "build": "node tools/build.js",
+    "test": "node tests/shortcode.test.js"
+  },
+  "devDependencies": { "wrangler": "4.149.0" }
+}

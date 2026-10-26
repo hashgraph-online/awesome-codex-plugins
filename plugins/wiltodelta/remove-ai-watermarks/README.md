@@ -600,3 +600,5 @@ with documented invariants. Report vulnerabilities as described in
 ## License
 
 [Apache 2.0](LICENSE). Copyright 2025-2026 wiltodelta.
+
+Made by [Victor Kuznetsov](https://wiltodelta.com/).

@@ -14,7 +14,8 @@
     "devices": ["all"]
   },
   "analytics": {
-    "source_priority": ["roistat", "metrika", "direct_reports", "wordstat"],
+    "source_priority": ["metrika", "direct_reports", "wordstat"],
+    "sales_source": "none",
     "manual_analysis_required": true
   },
   "references": {
