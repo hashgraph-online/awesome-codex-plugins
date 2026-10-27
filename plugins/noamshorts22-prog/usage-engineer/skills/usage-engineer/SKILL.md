@@ -1,11 +1,11 @@
 ---
 name: usage-engineer
-description: Cut wasted tokens in coding-agent sessions without lowering quality. Use when a command prints a long log or test output, when the same command keeps failing, when resuming work from an older project map or handoff, when AGENTS.md or other instruction files may be duplicated, or when the user asks where their Codex or OpenCode usage went, why they hit a rate limit, or how to make the agent cheaper. Runs a bundled zero-dependency Python CLI locally; no network, never reads credentials.
+description: Cut wasted tokens in coding-agent sessions without lowering quality. Use when a command prints a long log or test output, when the same command keeps failing, when resuming work from an older project map or handoff, when AGENTS.md or other instruction files may be duplicated, or when the user asks where their Codex, Claude Code or OpenCode usage went, why they hit a rate limit, or how to make the agent cheaper. Runs a bundled zero-dependency Python CLI locally; no network, never reads credentials.
 license: MIT
-compatibility: Needs Python 3.9+. Usage audit reads local Codex CLI and OpenCode data; the other commands work in any agent.
+compatibility: Needs Python 3.9+. Usage audit reads local Codex CLI, Claude Code and OpenCode data; the other commands work in any agent.
 metadata:
   author: noamshorts22-prog
-  version: "0.3.0"
+  version: "0.3.2"
   homepage: https://github.com/noamshorts22-prog/usage-engineer
 ---
 
@@ -74,7 +74,8 @@ before advising:
 python <skill-dir>/scripts/ue.py audit --days 7
 ```
 
-It reads local Codex CLI rollout files (`$CODEX_HOME/sessions`) and the OpenCode database, read-only,
+It reads local Codex CLI rollout files (`$CODEX_HOME/sessions`), Claude Code transcripts
+(`~/.claude/projects`) and the OpenCode database, read-only,
 with home paths redacted. It reports input, cached, output and reasoning tokens, incomplete turns,
 and two waste signals: oversized tool outputs (with an estimate of the tokens they cost) and
 repeated identical tool calls. It never reads `auth.json`, cookies, tokens or

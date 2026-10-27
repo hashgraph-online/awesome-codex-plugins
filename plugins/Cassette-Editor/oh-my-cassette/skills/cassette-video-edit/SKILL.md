@@ -1,5 +1,6 @@
 ---
 name: cassette-video-edit
+license: MIT
 description: Edit, trim, cut, caption, retime, combine, or export video, audio, and image files through Cassette. Use this skill whenever the user asks to change, preview, or render media in the project, even if they never say "Cassette" or name a tool, for example "trim the intro off demo.mp4", "add subtitles to this clip", "make a 30-second cut", "put a title on it", "export the video". Drives the tools of the `cassette` MCP server (oh-my-cassette), which relays a running conversation with the Cassette editing agent.
 ---
 
@@ -22,6 +23,9 @@ them, and when they disagree with anything you remember, they win.
    the editor link points come from the latest result, not from memory.
 4. **Render only when asked.** Export or render only when the user asks to export, render, download,
    or finish.
+5. **Say where the media goes.** When the user has not asked for Cassette by name in this
+   conversation, tell them before the first upload that the files they named go to the Cassette
+   service for editing, and go on once they agree.
 
 ## Local files
 
@@ -62,10 +66,10 @@ error code is Cassette's own: follow its message and the tool description.
 | `bridge.forbidden` | This account or grant cannot access Cassette. Ask the user to check that they signed in with the account of their projects. Do not repeatedly trigger login. |
 | `bridge.auth_unavailable` | Online authentication or secure credential storage is unavailable. Tell the user to restore the connection or unlock the system keyring, then retry. |
 | `bridge.unauthorized` | The service refused the token. Tell the user to run `oh-my-cassette login`. The browser handles email verification and consent. Restart the MCP host only if it cannot refresh tools. Do not repeatedly trigger login. |
-| `bridge.upgrade_required` | Tell the user to update the plugin (`uvx oh-my-cassette@latest`, or reinstall it). Do not retry. |
+| `bridge.upgrade_required` | Tell the user to update the oh-my-cassette version their MCP host runs (the message links the steps: bump the `oh-my-cassette==` pin, or update the plugin). Do not retry. |
 | `bridge.protocol_unsupported` | The service at that URL is too old for this plugin (it does not speak MCP 2026-07-28). Tell the user the Cassette service must be updated. Do not retry. |
 | `bridge.file_not_found` | Ask the user for the correct path. |
-| `bridge.file_outside_workspace` | Ask the user to copy the file into the workspace, or to add its directory to `CASSETTE_ALLOWED_ROOTS`. |
+| `bridge.file_outside_workspace` | Ask the user to copy the file into the workspace, or to add its directory to `CASSETTE_ALLOWED_ROOTS`. When the message says the host started the bridge in a folder too wide to read from (the whole disk or the home folder), ask them to set `CASSETTE_WORKSPACE` to the project folder. |
 | `bridge.file_type_rejected` | Tell the user which types this tool accepts (the message lists them). |
 | `bridge.file_too_large` | Tell the user about the size limit (`CASSETTE_MAX_UPLOAD_MB`). |
 | `bridge.ffmpeg_unavailable` | Video needs ffmpeg on this machine. Relay the install hint from the message, or ask the user to set `CASSETTE_FFMPEG` and `CASSETTE_FFPROBE`. Do not retry until it is installed. |

@@ -10,90 +10,124 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/avivsinai/bitbucket-cli.svg)](https://pkg.go.dev/github.com/avivsinai/bitbucket-cli)
 [![License](https://img.shields.io/github/license/avivsinai/bitbucket-cli?cache=none)](LICENSE)
 
-`bkt` is a stand-alone Bitbucket command-line interface that targets Bitbucket Data Center **and** Bitbucket Cloud. It mirrors the ergonomics of `gh` and delivers a consistent JSON/YAML contract for automation.
+`bkt` is one command-line interface for Bitbucket Cloud **and** Bitbucket Data Center. It follows the ergonomics of `gh`, gives every command a stable JSON/YAML output contract, and ships an agent skill and an MCP server so coding agents can work with Bitbucket too.
 
-This project (`github.com/avivsinai/bitbucket-cli`, binary `bkt`) is unrelated to the Rust [`bkt`](https://github.com/dimo414/bkt) subprocess-caching tool and to the [Bitbucket Enterprise CLI](https://github.com/swisscom/bitbucket-cli) and other same-named `bitbucket-cli` packages.
+This project (`github.com/avivsinai/bitbucket-cli`, binary `bkt`) is unrelated to the Rust [`bkt`](https://github.com/dimo414/bkt) subprocess-caching tool, the [Bitbucket Enterprise CLI](https://github.com/swisscom/bitbucket-cli), and other packages named `bitbucket-cli`.
 
 <p align="center">
   <img src="docs/demo.gif" alt="Recorded terminal: brew install avivsinai/tap/bitbucket-cli, then bkt --help" width="860">
 </p>
 
-```bash
-brew install bitbucket-cli
-bkt --help
-```
-
-Recorded from a real `bkt --help` run — no Bitbucket login or token required. Other installers: [WinGet](#winget-windows), [Scoop](#scoop-windows), [Nix](#nix-nixos--nix-darwin--linux--macos), [Go](#go-install), [binaries](#binary-downloads).
-
-**Built for AI & automation:** Drop `bkt` into Claude Code, Codex and other coding agents, or shell scripts and they inherit structured output, predictable flags, and safe defaults—no glue code required.
-
-## Installation
-
-### Homebrew (macOS/Linux)
-
-`bkt` is in [Homebrew core](https://formulae.brew.sh/formula/bitbucket-cli):
+## Quick start
 
 ```bash
 brew install bitbucket-cli
+
+# Bitbucket Cloud: log in through your browser
+bkt auth login https://bitbucket.org --kind cloud --web
+bkt context create cloud --host api.bitbucket.org --workspace myteam --set-active
+
+# Bitbucket Data Center: paste a Personal Access Token
+bkt auth login https://bitbucket.example.com --web-token
+bkt context create dc --host bitbucket.example.com --project ABC --set-active
+
+bkt pr list --mine
+bkt pr create --title "feat: cache" --source feature/cache --target main
 ```
 
-The core formula is built from source without bkt's OAuth client, so Bitbucket Cloud browser login (`bkt auth login --kind cloud --web`) needs `BKT_OAUTH_CLIENT_ID` and `BKT_OAUTH_CLIENT_SECRET` (see [Binary Downloads](#binary-downloads)). API-token login (`--web-token`) and Data Center login work as is. For the official binary with Cloud OAuth built in, use the tap:
+Inside a clone, `bkt` takes the workspace or project and the repository from the git remote when the remote points at the active context's host.
+
+## Install
+
+| Platform | Command |
+|---|---|
+| macOS / Linux ([Homebrew core](https://formulae.brew.sh/formula/bitbucket-cli)) | `brew install bitbucket-cli` |
+| Windows ([WinGet](https://github.com/microsoft/winget-pkgs)) | `winget install AvivSinai.Bitbucket-CLI` |
+| Windows ([Scoop](https://github.com/avivsinai/scoop-bucket)) | `scoop bucket add avivsinai https://github.com/avivsinai/scoop-bucket`<br>`scoop install bitbucket-cli` |
+| Go 1.26+ | `go install github.com/avivsinai/bitbucket-cli/cmd/bkt@latest` |
+| Nix (flakes) | `nix profile install github:avivsinai/bitbucket-cli` |
+| Debian / Ubuntu | `.deb` from the [latest release](https://github.com/avivsinai/bitbucket-cli/releases/latest) |
+| Any | Archive from the [latest release](https://github.com/avivsinai/bitbucket-cli/releases/latest) |
+
+Every install method supports Bitbucket Cloud browser login with no extra setup.
+
+- **Homebrew tap.** `brew install avivsinai/tap/bitbucket-cli` installs the prebuilt release binary, signed with a Developer ID and notarized, instead of Homebrew's source build. Both provide the same `bkt` command, so install only one.
+- **Nix.** `nix run github:avivsinai/bitbucket-cli -- --version` runs `master` without installing. Append a ref, such as `github:avivsinai/bitbucket-cli/v0.36.0`, to pin a release.
+- **Release archives** also contain `skills/bkt/`, so the CLI and its agent skill stay on one version.
+- **Verify a download.** Each release publishes `checksums.txt`, a CycloneDX SBOM, and GitHub build provenance: `gh attestation verify <archive> --repo avivsinai/bitbucket-cli`.
+- **From source.** `git clone https://github.com/avivsinai/bitbucket-cli && cd bitbucket-cli && make build` produces `./bin/bkt`.
+
+## Authenticate
+
+`bkt auth login` checks a credential against the host before it stores it. `bkt auth status` lists your hosts and when OAuth tokens expire.
+
+### Bitbucket Cloud
+
+**Browser OAuth (recommended).** `bkt` opens Bitbucket in your browser. After you approve access, `bkt` stores a short-lived access token and refreshes it automatically:
 
 ```bash
-brew install avivsinai/tap/bitbucket-cli
+bkt auth login https://bitbucket.org --kind cloud --web
 ```
 
-Both install the same `bkt` command, so install only one of them.
+To use your own OAuth consumer instead of bkt's, set both `BKT_OAUTH_CLIENT_ID` and `BKT_OAUTH_CLIENT_SECRET` before you log in.
 
-### WinGet (Windows)
-
-```powershell
-winget install AvivSinai.Bitbucket-CLI
-```
-
-### Scoop (Windows)
-
-```powershell
-scoop bucket add avivsinai https://github.com/avivsinai/scoop-bucket
-scoop install bitbucket-cli
-```
-
-### Go Install
+**API token.** `--web-token` opens Atlassian's token page, then prompts for the token:
 
 ```bash
-go install github.com/avivsinai/bitbucket-cli/cmd/bkt@latest
+bkt auth login https://bitbucket.org --kind cloud --web-token
+# or non-interactively
+bkt auth login https://bitbucket.org --kind cloud --username <atlassian-email> --with-token < token.txt
 ```
 
-This installs `bkt` to `$GOPATH/bin` (or `$HOME/go/bin` by default). Ensure the directory is in your `$PATH`.
+Create the token under [Atlassian account → Security → API tokens](https://id.atlassian.com/manage-profile/security/api-tokens) with **Create API token with scopes**. Choose **Bitbucket** as the app (general Atlassian tokens do not work) and grant:
 
-### Nix (NixOS / nix-darwin / Linux / macOS)
+- **Account: Read** (`read:user:bitbucket`), required
+- **Repositories: Read, Write**, plus **Admin** for `bkt repo create`
+- **Pull requests: Read, Write**
+- **Pipelines** and **Webhooks**, if you use `bkt pipeline`, `bkt variable`, or `bkt webhook`
 
-Run the latest `master` without installing:
+Log in with your Atlassian account **email**, not your Bitbucket username. Atlassian has removed app passwords; replace any you still use with an API token.
+
+### Bitbucket Data Center
 
 ```bash
-nix run github:avivsinai/bitbucket-cli -- --version
+bkt auth login https://bitbucket.example.com --web-token
+# or non-interactively
+bkt auth login https://bitbucket.example.com --username alice --with-token < pat.txt
 ```
 
-Install into your user profile:
+Create the Personal Access Token under **Profile picture → Manage account → Personal access tokens** with **Repository Read/Write** and **Project Read**.
+
+### Credential storage
+
+Tokens live in the OS keychain: macOS Keychain, Windows Credential Manager, or Secret Service/KWallet on Linux. Host metadata lives in `$XDG_CONFIG_HOME/bkt/config.yml` and never contains a token.
+
+- **No keychain** (containers, minimal Linux): pass `--allow-insecure-store` or set `BKT_ALLOW_INSECURE_STORE=1` to use an encrypted file instead.
+- **Slow unlock prompts:** raise `BKT_KEYRING_TIMEOUT`, for example `BKT_KEYRING_TIMEOUT=2m`.
+- **A passphrase prompt on every run (Linux):** some Secret Service providers, such as KWallet, create a separate wallet for bkt's `bkt` collection. Set `BKT_KEYRING_COLLECTION` to your provider's default collection (for example `kdewallet`) to share the wallet you already unlocked. Add credentials stored under the old collection again. Distributors can set the default at build time with `-ldflags -X github.com/avivsinai/bitbucket-cli/internal/secret.defaultKeyringCollection=<collection>`; the environment variable still wins.
+- **macOS Keychain prompts:** release binaries are signed with one Developer ID, so after you choose **Always Allow** once, upgrades keep access. `bkt auth doctor` explains prompts that persist; it never reads the stored secret.
+
+### CI and containers
+
+Set `BKT_TOKEN` and `BKT_HOST`, and `bkt` needs no login and no config file:
 
 ```bash
-nix profile install github:avivsinai/bitbucket-cli
+# Data Center
+export BKT_HOST=https://bitbucket.example.com BKT_TOKEN=<pat> BKT_PROJECT=MYPROJ BKT_REPO=my-service
+
+# Cloud, user API token (basic auth)
+export BKT_HOST=https://bitbucket.org BKT_TOKEN=<api-token> BKT_USERNAME=me@example.com \
+       BKT_WORKSPACE=my-workspace BKT_REPO=my-repo
+
+# Cloud, repository / project / workspace access token (bearer auth)
+export BKT_HOST=https://bitbucket.org BKT_TOKEN=<access-token> BKT_AUTH_METHOD=bearer
+
+bkt pr list
 ```
 
-Pin to a specific tag or commit by appending a ref (e.g. `github:avivsinai/bitbucket-cli/v1.2.3`).
+Resource access tokens belong to no user. Commands that need a user identity, such as `bkt pr list --mine` across repositories, still need a user API token or OAuth.
 
-Don't have Nix yet? See [nixos.asia/en/install](https://nixos.asia/en/install) for a quick setup guide (installs Nix with flakes enabled out of the box).
-
-### Binary Downloads
-
-Download pre-built binaries for your platform from the [releases page](https://github.com/avivsinai/bitbucket-cli/releases/latest).
-The `.tar.gz` and `.zip` release archives also include `skills/bkt/`, so the CLI and canonical skill files stay in sync when you install from a release artifact.
-
-Official binaries support Bitbucket Cloud OAuth (`bkt auth login --kind cloud --web`) out of the box. Source and Nix builds can use the same flow by setting `BKT_OAUTH_CLIENT_ID` and `BKT_OAUTH_CLIENT_SECRET` in the environment. API-token login via `--web-token` works without that extra setup.
-
-### Bitbucket Pipelines
-
-`bkt` supports fully config-free headless use via environment variables. Set `BKT_TOKEN` and `BKT_HOST` as secured [repository variables](https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/) — no prior `bkt auth login` or `bkt context create` step required.
+In Bitbucket Pipelines, store `BKT_TOKEN` and `BKT_HOST` as secured [repository variables](https://support.atlassian.com/bitbucket-cloud/docs/variables-and-secrets/) and install a pinned release:
 
 ```yaml
 pipelines:
@@ -101,415 +135,125 @@ pipelines:
     - step:
         name: Open PR
         script:
-          - export BKT_VERSION="0.26.0"  # pin to a released version
-          - curl -sL "https://github.com/avivsinai/bitbucket-cli/releases/download/v${BKT_VERSION}/bkt_${BKT_VERSION}_linux_x86_64.tar.gz" | tar xz -C /tmp && install /tmp/bkt /usr/local/bin/
+          - export BKT_VERSION=0.36.0  # pin the release you have tested
+          - curl -fsSL "https://github.com/avivsinai/bitbucket-cli/releases/download/v${BKT_VERSION}/bkt_${BKT_VERSION}_linux_x86_64.tar.gz" | tar xz -C /tmp && install /tmp/bkt /usr/local/bin/
           - bkt pr create --title "Auto PR" --source "$BITBUCKET_BRANCH"
 ```
 
-### Environment Variables
-
-All `bkt` behaviour can be configured via environment variables, which is especially useful in containers and CI/CD pipelines.
-
-| Variable | Description |
+| Variable | Purpose |
 |---|---|
-| `BKT_TOKEN` | Authentication token. Bypasses keyring storage entirely. |
-| `BKT_HOST` | Bitbucket server base URL (e.g. `https://bitbucket.example.com`). Required alongside `BKT_TOKEN` for config-free use. `bitbucket.org` is auto-detected as Cloud. |
-| `BKT_USERNAME` | Username for basic authentication in headless mode. Required for Cloud basic auth; not required for bearer auth. |
-| `BKT_AUTH_METHOD` | Authentication method: `basic` or `bearer`. DC defaults to `bearer` when `BKT_USERNAME` is absent; Cloud defaults to `basic`. Use `bearer` for Cloud repository, project, or workspace access tokens. |
-| `BKT_PROJECT` | Default Data Center project key (headless mode). |
-| `BKT_WORKSPACE` | Default Bitbucket Cloud workspace (headless mode). |
-| `BKT_REPO` | Default repository slug (headless mode). |
-| `BKT_CONFIG_DIR` | Override the config file directory (default: `$XDG_CONFIG_HOME/bkt`). |
-| `BKT_HTTP_DEBUG` | Set to `1` to log HTTP request URLs and response status codes. |
-| `BKT_ALLOW_INSECURE_STORE` | Set to `1` to use encrypted file fallback when no OS keychain is available. |
-| `BKT_KEYRING_COLLECTION` | Secret Service collection name override (Linux only). Defaults to the `bkt` collection; set it to your provider's default collection name to reuse an already-unlocked wallet. |
+| `BKT_TOKEN` | Token for every request; bypasses the keychain. |
+| `BKT_HOST` | Base URL, for example `https://bitbucket.example.com`. `bitbucket.org` selects Cloud. |
+| `BKT_USERNAME` | Username for basic auth. Required for Cloud user API tokens. |
+| `BKT_AUTH_METHOD` | `basic` or `bearer`. Data Center defaults to `bearer` without `BKT_USERNAME`; Cloud defaults to `basic`. |
+| `BKT_PROJECT` / `BKT_WORKSPACE` / `BKT_REPO` | Default Data Center project, Cloud workspace, and repository. |
+| `BKT_CONFIG_DIR` | Config directory (default `$XDG_CONFIG_HOME/bkt`). |
+| `BKT_OAUTH_CLIENT_ID` / `BKT_OAUTH_CLIENT_SECRET` | Your own Bitbucket Cloud OAuth consumer for `--web`; set both. |
+| `BKT_ALLOW_INSECURE_STORE` | `1` allows the encrypted file store when no keychain exists. |
+| `BKT_KEYRING_TIMEOUT` | Keychain operation timeout, for example `2m`. |
+| `BKT_KEYRING_COLLECTION` | Secret Service collection (Linux). |
+| `BKT_HTTP_DEBUG` | `1` logs each request URL and response status. |
 
-**Minimal headless example (Data Center):**
+## Use it
 
-```bash
-export BKT_HOST=https://bitbucket.example.com
-export BKT_TOKEN=my-personal-access-token
-export BKT_PROJECT=MYPROJ
-export BKT_REPO=my-service
-
-bkt pr list
-bkt pr create --title "Automated PR" --source feature/my-branch
-```
-
-**Minimal headless example (Bitbucket Cloud):**
+A context binds a host to a default workspace or project, and optionally a repository. `bkt auth status` prints the host value to pass to `--host`.
 
 ```bash
-# User API token — basic auth
-export BKT_HOST=https://bitbucket.org
-export BKT_TOKEN=my-api-token
-export BKT_USERNAME=me@example.com
-export BKT_WORKSPACE=my-workspace
-export BKT_REPO=my-repo
-
-bkt pr list
-
-# Repository, project, or workspace access token — bearer auth
-export BKT_TOKEN=my-resource-access-token
-export BKT_AUTH_METHOD=bearer
-unset BKT_USERNAME
-
-bkt pr list
+bkt context create cloud --host api.bitbucket.org --workspace myteam --set-active
+bkt context list
 ```
 
-Resource access tokens are not associated with a user. Commands that require
-authenticated-user identity, such as cross-repository `bkt pr list --mine`,
-still require user API-token or OAuth credentials.
-
-### From Source
+**Repositories**
 
 ```bash
-git clone https://github.com/avivsinai/bitbucket-cli.git
-cd bitbucket-cli
-make build   # produces ./bin/bkt
-./bin/bkt --help
+bkt repo list --limit 20
+bkt repo view platform-api
+bkt repo create data-pipeline --description "Data ingestion" --project DATA   # Data Center
+bkt repo create frontend-app --workspace myteam --cloud-project WEB          # Cloud
+bkt repo clone platform-api --project DATA --ssh
+bkt repo browse --project DATA --repo platform-api
+bkt repo downloads upload before.png after.png   # Cloud: host images for PR descriptions
 ```
 
-### Claude Code / Codex Skill
+**Pull requests**
 
-Install the `bkt` skill to give Claude Code or Codex CLI native Bitbucket knowledge:
+```bash
+bkt pr list --state OPEN --limit 10
+bkt pr create --title "feat: cache" --source feature/cache --target main --reviewer alice
+bkt pr checks 42 --wait --timeout 5m             # wait for builds, with backoff
+bkt pr comments 42 --details                     # threads with file/line anchors
+bkt pr comments resolve 42 1001
+bkt pr merge 42 --message "merge: feature/cache"
+```
 
-<details open>
-<summary><b>Via skills (Recommended)</b></summary>
+**Issues.** Atlassian removed Bitbucket Cloud Issues in August 2026, and Data Center never had them; track issues in Jira.
 
-Using [Vercel's skills CLI](https://github.com/vercel-labs/add-skill):
+**Pipelines, branches, permissions, webhooks**
+
+```bash
+bkt pipeline run --workspace myteam --repo api --ref main --var ENV=staging
+bkt pipeline run --ref master --selector-type custom --selector-pattern deploy-to-production
+bkt status pipeline {pipeline-uuid}
+bkt branch create release/1.9 --from main
+bkt perms repo list --project DATA --repo platform-api
+bkt webhook create --name "CI" --url https://ci.example.com/hook --event repo:refs_changed
+bkt status rate-limit
+```
+
+**Anything else.** `bkt api` calls any REST endpoint with your stored credentials:
+
+```bash
+bkt api /rest/api/1.0/projects --param limit=100 --json           # Data Center
+bkt api /repositories --param workspace=myteam --field pagelen=50  # Cloud
+```
+
+**Output for scripts.** Commands accept `--json`, `--yaml`, `--jq <expr>`, and `--template <go-template>`.
+
+**Extensions.** `bkt extension install <git-url>` adds a `bkt-<name>` command; `bkt extension exec <name>` runs it.
+
+**Shell completion.** `bkt completion bash|zsh|fish|powershell`. The Homebrew core formula installs completions for you.
+
+The full command reference, generated from `bkt --help`, is in [`skills/bkt/rules/`](skills/bkt/rules/).
+
+## Coding agents
+
+**Agent skill.** The `bkt` skill teaches Claude Code, Codex, and other agents to use `bkt`:
 
 ```bash
 npx skills add avivsinai/bitbucket-cli -g -y
 ```
 
-</details>
+Alternatives: `npx skild install @avivsinai/bkt -t claude -y`; the Claude Code marketplace (`/plugin marketplace add avivsinai/skills-marketplace`, then `/plugin install bkt@avivsinai-marketplace`); or copy [`skills/bkt`](skills/bkt) into `~/.claude/skills/`.
 
-<details>
-<summary><b>Via skild registry</b></summary>
+**MCP server.** `bkt mcp serve` exposes read-only Bitbucket tools over MCP stdio for one pinned context:
 
 ```bash
-npx skild install @avivsinai/bkt -t claude -y
+claude mcp add bitbucket -- bkt mcp serve
 ```
 
-</details>
-
-<details>
-<summary><b>Via Skills Marketplace</b></summary>
-
-> **Known Issue**: Claude Code uses SSH to clone marketplace repos, which fails without SSH keys configured. See [issue #14485](https://github.com/anthropics/claude-code/issues/14485). Use the skills or skild methods instead.
+**Skills hosted on Bitbucket.** `bkt skill` installs [Agent Skills](https://agentskills.io/specification) from Bitbucket repositories, mirroring [`gh skill`](https://github.com/cli/cli#agent-skills):
 
 ```bash
-/plugin marketplace add avivsinai/skills-marketplace
-/plugin install bkt@avivsinai-marketplace
-```
-
-</details>
-
-<details>
-<summary><b>Manual install</b></summary>
-
-```bash
-git clone https://github.com/avivsinai/bitbucket-cli.git
-cp -r bitbucket-cli/skills/bkt ~/.claude/skills/
-```
-
-</details>
-
-## Getting started
-
-After installation, verify it works:
-
-```bash
-bkt --help
-```
-
-### 1. Authenticate against Bitbucket Data Center or Cloud
-
-#### Bitbucket Data Center
-
-```bash
-# Guided flow: opens browser to create a Personal Access Token
-bkt auth login https://bitbucket.mycorp.example --web-token
-
-# Or provide credentials directly
-bkt auth login https://bitbucket.mycorp.example --username alice --token <PAT>
-```
-
-Create a **Personal Access Token (PAT)** in Bitbucket Data Center:
-1. Go to **Profile picture → Manage account → Personal access tokens**
-2. Click **Create a token**
-3. Grant permissions: **Repository Read**, **Repository Write**, **Project Read**
-4. Copy the token (you won't see it again)
-
-#### Bitbucket Cloud
-
-```bash
-# Browser OAuth flow for Bitbucket Cloud
-bkt auth login https://bitbucket.org --kind cloud --web
-
-# Or provide credentials directly
-bkt auth login https://bitbucket.org --kind cloud --username <email> --token <api-token>
-```
-
-Create an **API token with scopes** for Bitbucket Cloud:
-1. Go to [Atlassian Account Settings](https://id.atlassian.com/manage-profile/security/api-tokens)
-2. Click **Create and manage API tokens** → **Create API token with scopes**
-3. Name your token and set an expiry date
-4. **Select "Bitbucket" as the application** (required!)
-5. Grant scopes:
-   - **Account: Read (`read:user:bitbucket`)** — Required for authentication
-   - **Repositories: Read, Write** — For repo commands
-   - **Pull requests: Read, Write** — For PR commands
-   - **Issues: Read, Write** — For issue commands (optional)
-6. Click **Create** and copy the token immediately
-
-> **Warning:** General Atlassian API tokens won't work. You must select "Bitbucket" as the application when creating the token.
-
-> **Note:** Use your **Atlassian account email** as the username (not your Bitbucket username).
-
-<details>
-<summary>Legacy: App passwords (deprecated)</summary>
-
-App passwords are deprecated. New app passwords cannot be created since September 2025, and existing ones will stop working June 2026. If you have an existing app password:
-
-```bash
-bkt auth login https://bitbucket.org --kind cloud --username <bitbucket-username> --token <app-password>
-```
-
-Note: For app passwords, use your **Bitbucket username** (not email).
-
-</details>
-
-#### Credential storage
-
-Access tokens are stored in your OS keychain (Keychain Access on macOS, Windows Credential Manager, or
-Secret Service/KWallet on Linux) while host metadata lives in
-`$XDG_CONFIG_HOME/bkt/config.yml`. Pass `--allow-insecure-store` (or set
-`BKT_ALLOW_INSECURE_STORE=1`) to permit the encrypted file backend on systems
-without a native keychain.
-
-If your keyring requires an interactive unlock prompt, you can increase the keyring timeout via
-`BKT_KEYRING_TIMEOUT` (for example `BKT_KEYRING_TIMEOUT=2m`).
-
-On Linux, if your keyring prompts for a passphrase on *every* invocation, check whether your
-Secret Service provider creates a separate wallet per collection. `bkt` stores credentials in a
-collection named `bkt` by default, and some providers (for example KWallet) materialize that as
-its own encrypted wallet rather than using the session's default, already-unlocked one. Setting
-`BKT_KEYRING_COLLECTION` to your provider's default collection name (for example
-`BKT_KEYRING_COLLECTION=kdewallet` on KDE) makes `bkt` share that default wallet instead.
-Distributors can bake the name in via `-ldflags -X
-github.com/avivsinai/bitbucket-cli/internal/secret.defaultKeyringCollection=<collection>` so it does not depend on an
-environment variable reaching every shell and GUI-launched process; `BKT_KEYRING_COLLECTION`
-still takes precedence when set. Note that credentials stored before the change remain in the
-old collection and must be re-added.
-
-##### macOS note: Keychain prompts after `brew upgrade`
-
-On macOS, every `brew upgrade bitbucket-cli` may trigger one Keychain prompt because the
-stored item's ACL is tied to the installed binary. Re-run `bkt auth login` once
-after the upgrade to refresh the ACL, then subsequent invocations should not
-prompt. Releases pin the Designated Requirement to the bundle identifier, so
-the refresh is only needed once. Run `bkt auth doctor` to diagnose prompts
-that persist beyond that; it never reads the stored secret.
-
-### 2. Create and activate a context
-
-#### Bitbucket Data Center
-
-```bash
-bkt context create dc-prod --host bitbucket.mycorp.example --project ABC --set-active
-bkt context list
-```
-
-#### Bitbucket Cloud
-
-```bash
-bkt context create cloud-prod --host api.bitbucket.org --workspace myteam --set-active
-bkt context list
-```
-
-> **Tip:** Run `bkt auth status` to see configured hosts and the exact host value to use with `--host`.
-
-Contexts capture the host mapping, default project/workspace, and optional default repository for commands.
-
-### 3. Work with repositories
-
-```bash
-bkt repo list --limit 20
-bkt repo list --workspace myteam --limit 10   # Cloud workspace override
-bkt repo view platform-api
-bkt repo create data-pipeline --description "Data ingestion" --project DATA
-bkt repo create frontend-app --workspace myteam --cloud-project WEB
-bkt repo browse --project DATA --repo platform-api
-bkt repo clone platform-api --project DATA --ssh
-bkt repo downloads upload before.png after.png    # Cloud: host images for PR descriptions, prints URLs
-```
-
-`repo list`/`repo view` automatically target the right REST API for your active context: Data Center uses `/rest/api/1.0/projects/{projectKey}/repos`, while Cloud uses `/2.0/repositories/{workspace}`.
-For `repo create`, `--project`, `--forkable`, `--default-branch`, and `--scm` are Data Center flags; `--workspace` and `--cloud-project` are Cloud flags. Host-specific create flags are rejected when they would otherwise be ignored.
-
-### 4. Pull request workflows
-
-```bash
-bkt pr list --state OPEN --limit 10
-bkt pr create --title "feat: cache" --source feature/cache --target main --reviewer alice
-bkt pr merge 42 --message "merge: feature/cache"
-bkt pr checks 42                              # Show build/CI status
-bkt pr checks 42 --wait                       # Wait for builds to complete
-bkt pr checks 42 --wait --timeout 5m          # Wait with timeout
-bkt pr checks 42 --wait --max-interval 1m     # Custom backoff cap
-bkt pr comments 42 --details                  # Review PR comments, inline file/line anchors, and thread IDs
-bkt pr comments view 42 1001                  # Show one thread: anchor, diff context (DC), replies
-bkt pr comments resolve 42 1001               # Resolve a top-level comment thread
-bkt pr comments reopen 42 1001                # Reopen a resolved comment thread
-bkt pr comments delete 42 1001                # Delete a PR comment
-```
-
-The CLI wraps Bitbucket pull-request endpoints for creation, listing, review, and merge operations. The `checks` command displays build status with color-coded output (green for success, red for failure, yellow for in-progress) and supports polling until all builds complete. Polling uses exponential backoff with jitter to avoid overwhelming the API during long builds.
-For comment thread state changes, pass the top-level thread comment ID; replies
-cannot be resolved or reopened directly.
-
-### 5. Issue tracking (Bitbucket Cloud only)
-
-```bash
-bkt issue list --state open --kind bug           # List open bugs
-bkt issue view 42 --comments                     # View issue with comments
-bkt issue create -t "Login broken" -k bug -p major
-bkt issue edit 42 --assignee "{abc-123}" --priority critical
-bkt issue close 42                               # Close an issue
-bkt issue reopen 42                              # Reopen a closed issue
-bkt issue comment 42 -b "Fixed in v1.2.0"        # Add a comment
-bkt issue status                                 # Show your assigned/created issues
-
-# Attachments
-bkt issue attachment list 42                     # List attachments
-bkt issue attachment upload 42 screenshot.png    # Upload file(s)
-bkt issue attachment download 42 --all           # Download all attachments
-bkt issue attachment delete 42 old-file.txt      # Delete an attachment
-```
-
-Note: The issue tracker is only available for Bitbucket Cloud. Bitbucket Data Center uses Jira for issue tracking.
-
-### 6. Branch, permission, webhook, pipeline, and extension management
-
-```bash
-bkt branch list --workspace myteam           # Cloud branch listing
-bkt branch create release/1.9 --from main    # Data Center branch utils
-bkt perms repo list --project DATA --repo platform-api
-bkt webhook create --name "CI" --url https://ci.example.com/hook --event repo:refs_changed
-bkt pipeline run --workspace myteam --repo api --ref main --var ENV=staging
-bkt pipeline run --ref master --selector-type custom --selector-pattern deploy-to-production
-bkt extension install https://github.com/example/bkt-hello.git
-bkt extension exec hello -- --flag=1
-bkt status pipeline {pipeline-uuid}
-bkt status rate-limit
-```
-
-Branch utilities use Bitbucket's Branch Utils REST API for listing, creation, deletion, and default updates. Permission and webhook commands map to their respective REST endpoints for consistent automation.
-
-Extensions are cloned into `$XDG_CONFIG_HOME/bkt/extensions` (or the directory configured via `BKT_CONFIG_DIR`) and executed in-place. Binaries should follow the `bkt-<name>` naming convention so the CLI can discover them automatically.
-
-### 7. Agent skills
-
-`bkt skill` installs [Agent Skills](https://agentskills.io/specification) from Bitbucket repositories, mirroring [`gh skill`](https://github.com/cli/cli#agent-skills) so the same workflow works for skills hosted on Bitbucket Cloud and Data Center.
-
-```bash
-bkt skill install myteam/agent-skills                  # List the skills a repository publishes
-bkt skill install myteam/agent-skills code-review      # Install one skill
-bkt skill install PROJ/agent-skills code-review        # Data Center, addressed by project key
+bkt skill install myteam/agent-skills                  # list what a repository publishes
 bkt skill install myteam/agent-skills code-review@v1.2.0 --agent claude-code --scope user
-bkt skill list                                         # Show what is installed, and from where
-bkt skill preview myteam/agent-skills code-review      # Inspect before installing
-bkt skill update --all                                 # Refresh everything that changed
-bkt skill search "code review"                         # Search SKILL.md files across a Cloud workspace
+bkt skill list
+bkt skill update --all
+bkt skill publish --tag v1.2.0                         # validate and tag your own skills
 ```
 
-If your repository publishes skills, `bkt skill publish` validates them and tags a version:
-
-```bash
-bkt skill publish --dry-run                            # Validate without tagging
-bkt skill publish --fix                                # Strip committed install metadata
-bkt skill publish --tag v1.2.0                         # Tag the current commit as a version
-```
-
-Skills are discovered with the specification's conventions (`skills/*/SKILL.md`, `skills/{author}/*/SKILL.md`, `plugins/*/skills/*/SKILL.md`, root-level `*/SKILL.md`, and a `skills/` directory nested under a prefix). Use `--allow-hidden-dirs` to include copies kept in `.claude/skills/` or `.agents/skills/`.
-
-Placement follows the target agent: `--agent` selects one of the supported hosts (Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and many more; run `bkt skill install --help` for the full list) and `--scope project|user` chooses between the current repository and your home directory. The default agent, `universal`, writes to the shared `.agents/skills` directory that most agents read. `--dir` overrides both.
-
-Installed skills record their origin in `SKILL.md` frontmatter under `metadata.bitbucket-*`, which is what `bkt skill update` compares against the source repository. Because Bitbucket exposes no per-directory tree hash, the recorded version is the latest commit that touched the skill directory. Installing with `@version` or `--pin` pins the skill, and `bkt skill update` then skips it until you pass `--unpin`.
-
-`bkt skill search` is available for Bitbucket Cloud only. It searches `SKILL.md` files across the workspace selected by `--workspace` or the active context, and supports Bitbucket query terms such as `repo:agent-skills`. Bitbucket Data Center has no public workspace code-search API. Atlassian has announced that the [Cloud code-search REST endpoint](https://developer.atlassian.com/cloud/bitbucket/rest/api-group-other-operations/#api-workspaces-workspace-search-code-get) will be deprecated on November 1, 2026.
-
-### Structured output & raw API access
-
-Every command supports the global `--json` and `--yaml` flags for automation-ready output.
-
-For endpoints that are not yet wrapped, reach directly for the API escape hatch:
-
-```bash
-bkt api /rest/api/1.0/projects --param limit=100 --json
-bkt api /repositories --param workspace=myteam --field pagelen=50
-```
-
-## Security
-
-This project uses automated secret scanning ([gitleaks](https://github.com/gitleaks/gitleaks)), dependency updates ([Dependabot](https://github.com/dependabot)), and security posture tracking ([OSSF Scorecard](https://github.com/ossf/scorecard)).
-
-Found a security issue? See our [security policy](SECURITY.md) for responsible disclosure.
-
-## Development
-
-### Project Layout
-
-```
-cmd/bkt/             # CLI entry point
-internal/bktcmd/     # Main() wiring (factory + root command)
-internal/build/      # Version metadata (overridden via ldflags)
-internal/config/     # Context and host configuration
-internal/remote/     # Git remote parsing utilities
-pkg/cmd/             # Cobra command implementations (auth, repo, pr, ...)
-pkg/cmdutil/         # Shared command helpers and factory wiring
-pkg/iostreams/       # IO stream abstractions
-pkg/bbdc/            # Bitbucket Data Center client implementation
-pkg/bbcloud/         # Bitbucket Cloud client implementation
-pkg/format/          # Output rendering helpers
-pkg/httpx/           # Shared HTTP client and retry logic
-```
-
-### Building & Testing
-
-```bash
-make build      # Build the binary to ./bin/bkt
-make test       # Run unit tests
-make fmt        # Format code
-make lint       # Run linters
-make tidy       # Tidy go modules
-make check-skills # Verify generated skill mirrors
-make sync-skills  # Regenerate skill mirrors from skills/bkt
-```
-
-`go test ./...` runs fast smoke coverage that wires the CLI against an in-memory Bitbucket mock (see `pkg/cmd/smoke/cli_smoke_test.go`).
-
-`skills/bkt/` is canonical. After editing it, run `make sync-skills` to refresh
-the committed `.claude/skills/bkt/` and `.agents/skills/bkt/` mirrors.
+`--agent` selects the target agent (Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and more; see `bkt skill install --help`). The default, `universal`, writes to the shared `.agents/skills` directory. Installed skills record their source in `SKILL.md` frontmatter, and `bkt skill update` compares it with the repository; `@version` or `--pin` pins a skill until `--unpin`. `bkt skill search` uses the Bitbucket Cloud code-search API, which Atlassian has [announced for deprecation](https://developer.atlassian.com/cloud/bitbucket/rest/api-group-other-operations/#api-workspaces-workspace-search-code-get); Data Center has no equivalent API.
 
 ## Troubleshooting
 
-### Debug HTTP Requests
+- `BKT_HTTP_DEBUG=1 bkt <command>` prints each request URL and response status.
+- `bkt auth status` shows each host, its auth method, and OAuth expiry.
+- `bkt auth doctor` diagnoses keychain prompts and timeouts.
 
-To see API request URLs and response status codes, set the `BKT_HTTP_DEBUG` environment variable:
+## Project
 
-```bash
-BKT_HTTP_DEBUG=1 bkt pipeline view 10
-```
-
-This outputs request method/URL and response status, useful for diagnosing API errors.
-
-## Support
-
-- **Questions / Ideas**: File an [issue](https://github.com/avivsinai/bitbucket-cli/issues/new?template=feature_request.md)
-- **Bug Reports**: File an [issue](https://github.com/avivsinai/bitbucket-cli/issues/new?template=bug_report.md)
-
-## License
+- [Contributing](CONTRIBUTING.md): build, test, and pull request workflow
+- [Security policy](SECURITY.md) and [security operations](docs/SECURITY.md)
+- [Changelog](CHANGELOG.md) · [Versioning](docs/VERSIONING.md) · [Privacy](docs/PRIVACY.md)
+- Questions and bugs: [GitHub issues](https://github.com/avivsinai/bitbucket-cli/issues)
 
 `bkt` is available under the [MIT License](LICENSE).

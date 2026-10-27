@@ -18,7 +18,7 @@
 
 ### Advantage+ Campaigns
 
-> ⚠️ **Marketing API v25 deprecation (in effect):** standalone **Advantage+ Shopping (ASC)** and **Advantage+ App (AAC)** campaigns can no longer be created or updated via the Marketing API — the block started with v25.0 (Feb 2026) and extended to **all API versions on 19 May 2026**. Meta will **pause remaining ASC/AAC campaigns with v26 (September 2026)**. Build new campaigns with the **unified Advantage+ setup** (Advantage+ features on standard campaign types) instead. Source: [Meta Marketing API changelog](https://developers.facebook.com/blog/post/2026/02/18/introducing-graph-api-v25-and-marketing-api-v25/).
+> ⚠️ **Marketing API v25 deprecation (in effect):** standalone **Advantage+ Shopping (ASC)** and **Advantage+ App (AAC)** campaigns can no longer be created or updated via the Marketing API — the block started with v25.0 (Feb 2026) and extended to **all API versions on 19 May 2026**. **v26.0** (introduced 29 Jul 2026) blocks edits to every legacy ASC/AAC campaign and pauses the ASC campaigns that use `existing_customer_budget_percentage`. Build new campaigns with the **unified Advantage+ setup** (Advantage+ features on standard campaign types) instead. Sources: [v25 announcement](https://developers.facebook.com/blog/post/2026/02/18/introducing-graph-api-v25-and-marketing-api-v25/) · [Advantage+ campaigns](https://developers.facebook.com/documentation/ads-commerce/marketing-api/advantage-campaigns) (checked 2026-10-27).
 
 | Type | Use Case | Key Difference |
 |---|---|---|
@@ -155,7 +155,7 @@ iOS 14.5+ App Tracking Transparency reduced Meta's signal fidelity significantly
 
 ## Advantage+ Shopping Campaign Setup (legacy — existing campaigns only)
 
-> This section applies to **existing** ASC campaigns. New ASC campaigns can no longer be created via the Marketing API (all versions, since 19 May 2026), and Meta pauses remaining ASC/AAC campaigns with v26 (Sept 2026). For new builds, apply the same checklist principles to the **unified Advantage+ setup** on a standard sales campaign.
+> This section applies to **existing** ASC campaigns. New ASC campaigns can no longer be created via the Marketing API (all versions, since 19 May 2026), and v26.0 (introduced 29 Jul 2026) blocks edits to every legacy ASC/AAC campaign and pauses the ASC campaigns that use `existing_customer_budget_percentage`. For new builds, apply the same checklist principles to the **unified Advantage+ setup** on a standard sales campaign.
 
 ### Pre-Launch Checklist
 - [ ] Product catalog connected and healthy (no disapprovals)

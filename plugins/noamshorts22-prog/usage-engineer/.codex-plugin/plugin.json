@@ -1,6 +1,6 @@
 {
   "name": "usage-engineer",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Cut wasted tokens in Codex sessions: compact long logs, stop repeated failures, detect stale project maps, and audit where local Codex and OpenCode usage went. Local only, no network.",
   "author": {
     "name": "noamshorts22-prog",

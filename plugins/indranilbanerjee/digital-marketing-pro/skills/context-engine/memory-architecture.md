@@ -18,7 +18,7 @@ The plugin uses a **5-layer memory architecture**. Each layer serves a different
 | 4 | Universal Agent Memory | Permanent, cloud-hosted | Supermemory API key | Cross-agent knowledge sharing, institutional learning |
 | 5 | Knowledge Base | Permanent, human-editable | Notion or Google Drive credentials | Team documentation, style guides, SOPs |
 
-> **MCP package reality check (verify before `npx`).** Only some of the packages named below are verified-real on npm as of this release. **Verified-real:** `@pinecone-database/mcp` (Layer 2), `mcp-google-drive` (Layer 5). **Unverified / no known official npm package** — do NOT assume these exist; search npm first, and remember `npx` executes remote code, so verify any package before running it (prefer `/digital-marketing-pro:add-integration` for a custom MCP path): `mcp-server-qdrant` (a package by that name exists but is a likely name-squat — the official Qdrant MCP server ships as Python/`uvx`, not npm), `graphiti-mcp` (Layer 3), `@supermemoryai/supermemory-mcp` (Layer 4), and `@notionhq/mcp-server` (Layer 5 — Notion instead ships a hosted HTTP MCP at `https://mcp.notion.com/mcp`). **DMP bundles no memory MCP** — Layer 1 always works locally; Layers 2-5 only work if you connect your own server.
+> **Connectors for these layers.** DMP offers a runnable command only for packages the vendor itself publishes on npm, pinned to an exact version: Pinecone's `@pinecone-database/mcp@0.3.0` (Layer 2). Notion ships a hosted HTTP server (`https://mcp.notion.com/mcp`, in `.mcp.json.connectors-reference`). Qdrant, Zep Graphiti, Supermemory and Google Drive have no vendor-verified npm package: set them up from the vendor's own docs. **DMP bundles no memory MCP** — Layer 1 always works locally; Layers 2-5 only work if you connect your own server.
 
 ---
 
@@ -48,7 +48,7 @@ The plugin uses a **5-layer memory architecture**. Each layer serves a different
 
 ## Layer 2: Brand RAG (Vector Database)
 
-**Services:** Pinecone (`@pinecone-database/mcp`) or Qdrant (`mcp-server-qdrant`)
+**Services:** Pinecone (`@pinecone-database/mcp@0.3.0`) or Qdrant (set up from Qdrant's docs)
 
 **Persistence:** Permanent, cloud-hosted (Pinecone) or self-hosted (Qdrant)
 
@@ -90,7 +90,7 @@ The script prepares the payload, then the MCP store call writes it to the vector
 
 ## Layer 3: Temporal Knowledge Graph (Graphiti/Zep)
 
-**Service:** Zep Graphiti (`graphiti-mcp`)
+**Service:** Zep Graphiti (set up from Zep's docs)
 
 **Persistence:** Permanent, cloud-hosted
 
@@ -140,7 +140,7 @@ python "${CLAUDE_PLUGIN_ROOT}/scripts/memory-manager.py" --brand {slug} --action
 
 ## Layer 4: Universal Agent Memory (Supermemory)
 
-**Service:** Supermemory (`@supermemoryai/supermemory-mcp`)
+**Service:** Supermemory (set up from Supermemory's docs)
 
 **Persistence:** Permanent, cloud-hosted
 
@@ -169,7 +169,7 @@ Examples:
 
 ## Layer 5: Knowledge Base (Notion/Google Drive)
 
-**Services:** Notion (`@notionhq/mcp-server`) or Google Drive (`mcp-google-drive`)
+**Services:** Notion (hosted HTTP server, `https://mcp.notion.com/mcp`) or Google Drive (set up from Google's docs)
 
 **Persistence:** Permanent, human-editable
 

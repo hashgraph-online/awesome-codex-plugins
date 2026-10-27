@@ -1,6 +1,6 @@
 # Metamorphic Testing
 
-Use this reference when `/test` needs stronger evidence than example-based
+Use this reference when Test needs stronger evidence than example-based
 assertions can provide, especially for ranking, transforms, parsers, planners,
 and other behavior where one exact expected answer is too narrow.
 
@@ -18,7 +18,7 @@ Good targets:
 - CLI wrappers where equivalent flags or input forms should converge.
 
 Avoid metamorphic tests when the contract is a single fixed artifact. Use a
-golden artifact strategy for that case.
+[golden artifact](golden-artifacts.md) for that case.
 
 ## Relation Patterns
 
@@ -39,17 +39,9 @@ golden artifact strategy for that case.
 4. Compare the property that must hold, not private implementation details.
 5. Add any failure input as a stable regression fixture.
 
-## Output
-
-Record the invariant and generated cases in `.agents/scratch/tests/summary.md`:
-
-```markdown
-## Metamorphic Coverage
-
-| Target | Relation | Cases | Findings |
-|---|---|---:|---|
-| <target> | <relation> | <n> | <none or issue> |
-```
+Report each target's relation, case count and findings in
+[Test's handoff](../SKILL.md#output-specification); persist them only for a
+requested destination.
 
 ---
 

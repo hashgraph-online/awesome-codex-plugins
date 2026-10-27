@@ -1,0 +1,4 @@
+interface:
+  display_name: "Keys.so: реклама конкурентов"
+  short_description: "Получение и проверка CSV объявлений Keys.so (Поиск и РСЯ) для анализа конкурентов."
+  default_prompt: "Используй навык keysso-competitor-research, чтобы получить и проверить выгрузку объявлений конкурентов из Keys.so."

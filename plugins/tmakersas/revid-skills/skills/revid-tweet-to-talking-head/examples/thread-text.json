@@ -1,0 +1,28 @@
+{
+  "workflow": "script-to-video",
+  "source": {
+    "text": "Most creators are doing shorts wrong. They write a script, film it, then add captions. The pros do the opposite: they write the captions first, then build the script around them. Here's why that works — captions are what the algorithm reads. If your hook isn't on screen in the first second, the algorithm doesn't even know it exists. Try it on your next video. Caption-first scripts get 2-3x the watch time."
+  },
+  "aspectRatio": "9:16",
+  "avatar": {
+    "enabled": true,
+    "url": "https://cdn.example.com/avatars/maya.jpg",
+    "removeBackground": true
+  },
+  "voice":    { "enabled": true, "voiceId": "aria-en-us", "stability": 0.65, "speed": 1.05 },
+  "captions": { "enabled": true, "position": "middle", "autoCrop": true },
+  "music":    { "enabled": false },
+  "media": {
+    "type": "moving-image",
+    "density": "low",
+    "animation": "soft",
+    "placeAvatarInContext": true
+  },
+  "options": {
+    "targetDuration": 30,
+    "summarizationPreference": "no-summarization",
+    "hasToGenerateCover": true,
+    "coverTextType": "first-line"
+  },
+  "render": { "resolution": "1080p", "frameRate": 30 }
+}

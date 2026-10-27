@@ -5,7 +5,11 @@ Start from the caller's service promises, affected users, environment, accepted
 outcomes and action authority. Existing SLOs, observation windows, rollout rules
 and recovery limits remain caller-owned. If a missing promise or permission
 blocks a decision, report that gap; do not invent a target or authorize an action.
-Safe read-only investigation can continue within scope.
+Safe read-only investigation can continue within scope. Read-only describes
+the effect, not the intent: prefer a read-only identity or replica when one
+exists. A read still loads a live system, so run production queries one at a
+time against bounded, indexed selections, never scan a large table, and list a
+query whose cost you cannot bound as not run.
 
 Return observations, actions, failures and limits in the existing handoff.
 Persist additional evidence only for a request or declared consumer at the
@@ -21,6 +25,13 @@ the reported harm with representative inputs and compare with the caller's
 accepted outcome. Healthy processes, low CPU or backend success counters are
 diagnostic signals; they cannot establish that the user received the right
 result. Trace the failing boundary after observing the discrepancy.
+
+When logs, traces or error events already exist, follow one concrete failing
+request by its request, trace or event ID through every source in time order
+before building a reproduction. Allow for clock skew across hosts, read each
+instance an error tracker groups together, and treat an ID that stops
+propagating as a finding. Preserve the identifiers and excerpts you need before
+retention removes them.
 
 State which users or request classes were exercised, the observation window,
 eligible attempts and failures. Preserve partial or unknown coverage. A sampled

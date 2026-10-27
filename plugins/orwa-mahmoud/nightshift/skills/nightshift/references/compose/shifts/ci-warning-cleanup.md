@@ -24,8 +24,8 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to ma
     receipt from `receipts/cycle-specialist-evidence.md`: workflow/job/step, new versus recurrent, cause class, and
     the relevant log excerpt. Split
     **repository-owned** (this repo's code, scripts, config) from **external** (upstream libraries,
-    the runner image, a tool this repo does not control). Dedupe against snag-log.md (ALL seen —
-    fixed and rejected).
+    the runner image, a tool this repo does not control). Dedupe against snag-log.md under
+    Snag log discipline.
   - Work repository-owned warnings one cluster at a time: fix the cause, run the item gate,
     commit. Re-run the same capture after each cluster.
   - External warnings stay in the receipt as unresolved — name the emitter and why it is not

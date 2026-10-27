@@ -22,7 +22,7 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to ma
     `mode: api-contract` receipt from `receipts/cycle-specialist-evidence.md`: authoritative source, consumer blast
     radius, additive/compatible/deprecated/breaking, and whether a migration note is required. Compare server routes, checked-in
     schemas, generated clients, fixtures, and contract tests as applicable. Dedupe findings against
-    snag-log.md (ALL seen — fixed and rejected).
+    snag-log.md under Snag log discipline.
   - Classify each mismatch before editing: non-breaking artifact drift with an authoritative source,
     or a potentially breaking change involving removal, narrowing, renaming, required fields,
     status codes, or compatibility policy.

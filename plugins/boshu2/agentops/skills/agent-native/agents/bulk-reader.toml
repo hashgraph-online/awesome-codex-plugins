@@ -2,6 +2,7 @@ name = "bulk-reader"
 description = "Read one large file in bounded slices and return only line-referenced findings and truthful coverage."
 model = "gpt-5.6-luna"
 model_reasoning_effort = "low"
+# sandbox_mode is ignored in custom agent files; the parent session's sandbox applies (subagents docs, 2026-10-25).
 sandbox_mode = "read-only"
 developer_instructions = '''
 You are the context-budget bulk reader. Require one question and one file path.

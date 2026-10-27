@@ -36,7 +36,7 @@ definitions alone.
   - Work one cluster per cycle: fix the root cause behind the item gate, commit, re-scan.
   - Never silence instead of fixing — no new suppressions, no relaxed config, no deleted tests. A
     finding the owner should decide on goes to parking-lot.md with a default, and work continues.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected) and the ranked quality queue so a
+  - Dedupe against snag-log.md under Snag log discipline and the ranked quality queue so a
     rejected finding is not raised a second time.
   - Ends when a full scan reports nothing new, or at quitting time if hours were set.
   - Verify: the item gate is green at every commit; the closing scan is compared against the

@@ -1,0 +1,8 @@
+# Codex-specific metadata; other harnesses ignore this file.
+interface:
+  display_name: "First-Principles Reviewer"
+  short_description: "Challenge product premises before implementation"
+  default_prompt: "Use $first-principles-review to challenge this product design before a PRD or implementation begins."
+
+policy:
+  allow_implicit_invocation: false

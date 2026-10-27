@@ -67,16 +67,16 @@ few seconds, and never prints a key:
    wanted; the skill that needs it (`music`, `art`, `video`) offers it then. A "do this now" row you can
    do (`fix.run`, like `npx wrangler login` or `brew install ffmpeg`): run it yourself as part of setup. A row the person does on their own (`fix.open`) can be done any time, even while they wait
    for something else: give them the link. The optional "Clef on this computer" row is a large download:
-   say its size first (`ollama pull clef-flash`, about 11 GB) and run it only after their yes.
+   run it when they want Clef, saying its size in the same line (`ollama pull clef-flash`, about 11 GB).
 5. Run it again whenever they say they did something, and tick the row.
 6. **Homie's holds (Codex, Grok Build).** With `--client` the status has a `holds` row: whether Homie's
    hooks ran just now in this app (`"on": true`). When it is off, say so in one sentence in this first reply,
    with the row's fix. In Codex: "Homie's holds are off in this session: open `/hooks` and trust Homie's
-   three hooks. Until then I'll ask you before a deploy, a Cloudflare change, a paid call or a model
-   download." In Grok Build: "Homie's holds are off in this session: install the Homie plugin again with
-   `--trust` and start a new session. Until then I'll ask you before a deploy, a Cloudflare change, a paid
-   call or a model download." Then
-   do ask, every time, also when the app approves commands for you. When it is on, say nothing about it and
+   three hooks. Until then I'll ask you before a deploy you didn't ask for, a Cloudflare change or a paid
+   call." In Grok Build: "Homie's holds are off in this session: install the Homie plugin again with
+   `--trust` and start a new session. Until then I'll ask you before a deploy you didn't ask for, a Cloudflare
+   change or a paid call." Then
+   do ask, also when the app approves commands for you; a deploy the person asked for is already approved. When it is on, say nothing about it and
    change nothing: the hooks hold what they hold. A status with no `holds` row in Codex or Grok (a toolkit
    before 0.30.2) cannot tell: say the sentence anyway.
 
@@ -118,8 +118,8 @@ the status line only to someone who wants the line under the prompt as well.
 
 **Homie's holds in Codex.** In Codex, Homie's hooks hold what the mod holds in Claude Code: an edit to a
 file `studio.json` `"protect"` lists, a production deploy, a change to the studio's Cloudflare account
-outside its deploy, a paid call past the budget or whose cost cannot be read first, and a Clef model
-download; they refuse what the mod refuses, and take secrets out of what you read. Codex runs a plugin's
+outside its deploy, and a paid call past the budget or whose cost cannot be read first (a big file
+into git and a Clef model download only get a one-line warning); they refuse what the mod refuses, and take secrets out of what you read. Codex runs a plugin's
 hooks only after the person trusts them once: after installing Homie, tell them to open `/hooks` and
 trust Homie's three (until then nothing is held, so ask before each of those yourself). Never assume they
 are on: the setup status says which it is (item 6 above). A held call comes
@@ -134,7 +134,7 @@ and the Codex hooks ask, `hooks/lib/holds.mjs`) hold and refuse the same calls a
 of what you read. Grok runs a plugin's hooks only once the person has trusted the plugin (`grok plugin install
 homie-rocks/homie#plugins/homie --trust`, then a new session; `/hooks` lists them). Never assume they are on:
 the setup status with `--client grok` says which it is (item 6 above), and while it says off, before a
-production deploy, a Cloudflare change outside that deploy, a paid call, a model download or an edit to a file
+production deploy, a Cloudflare change outside that deploy, a paid call or an edit to a file
 `studio.json` `"protect"` lists, say what it would do in one sentence and wait for the person's yes, also when
 Grok approves commands by itself; and never repeat a key or a token you read. A held call comes back denied
 with a code, and the person answers `proceed <code>` or `cancel <code>` in their own message, as in Codex; then
@@ -280,7 +280,7 @@ Music, Videos, Rooms and Posts, each once the studio has something in it, in the
 1. `npx wrangler whoami` in the studio folder. Not signed in: run `npx wrangler login` and tell the
    person in one line that Cloudflare opened in their browser and they should approve it (their own account). That is their only step. Never ask for or write an API key.
 2. Before the first deploy, `npx --no-install homie-studio deploy --plan`, and tell them its gist in two
-   or three lines: the resources (one Worker, one D1 database, two Durable Objects; no R2), the cost
+   or three lines: the resources (one Worker with its Durable Objects and two Queues, one D1 database; no R2), the cost
    (on your account), and what the directory stores. Then go on.
 3. `npm run deploy`. It creates the Worker and the D1 database named in `studio.json`, applies
    migrations, deploys, and reads the live site once, which makes the site claim itself in the
@@ -381,7 +381,7 @@ there (checked by SHA-256, at the same addresses); `homie-studio media move --dr
 
 ## Never
 
-- Never jump ahead of the checklist, and never copy a starter or another studio's game into the studio
+- Never copy a starter or another studio's game into the studio
   unless the person asked for it.
 - Never read or copy from another studio in the same folder unless the person asks: it is somebody else's
   work.

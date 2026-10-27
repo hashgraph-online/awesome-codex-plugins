@@ -82,6 +82,9 @@ phase boundaries, and finish with changes and verification.
   text alone may match single-key shortcuts, so removing Enter is not safe.
 - `--defer-while-input` reduces collisions with recent typing but cannot detect
   modal state; an idle dialog looks like an idle composer.
+- Cursor and Grok show no signal AMQ can read for their approval prompts, so
+  their seats keep the full doorbell, and a doorbell during an approval prompt
+  can answer it (known limit).
 - For an AMQ-enforced zero-input watcher, run `amq wake --inject-mode none` or
   `amq coop exec --require-wake --wake-inject-mode none <agent>`. This mode
   writes notices to wake stderr, turns urgent interrupts into one bell plus the

@@ -59,6 +59,7 @@ dev = [
   "ruff>=0.16.3",
   "twine>=7.0.0",
   "types-PyYAML>=6.0.12.20260815",
+  "mypy==2.4.0",
 ]
 
 [project.urls]
@@ -109,7 +110,6 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-  "ANN401",
   "BLE001",
   "COM812",
   "D100",
@@ -130,6 +130,12 @@ ignore = [
 # Script tests start this repository's own scripts with fixed arguments.
 "tests/test_*_command.py" = ["S603"]
 
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.Any".msg = "Name the precise type. Any switches type checking off."
+"typing.cast".msg = "Narrow the value with isinstance or a typed parser. cast skips the check."
+"typing_extensions.Any".msg = "Name the precise type. Any switches type checking off."
+"typing_extensions.cast".msg = "Narrow the value with isinstance or a typed parser. cast skips the check."
+
 [tool.ruff.lint.isort]
 known-first-party = ["hermes_tweet"]
 
@@ -137,9 +143,40 @@ known-first-party = ["hermes_tweet"]
 notice-rgx = "(?i)SPDX-FileCopyrightText: 2026 Xquik Contributors"
 
 [tool.basedpyright]
-include = ["hermes_tweet", "scripts", "tests"]
 pythonVersion = "3.11"
 typeCheckingMode = "strict"
+enableTypeIgnoreComments = false
+
+[tool.mypy]
+files = ["."]
+explicit_package_bases = true
+python_version = "3.11"
+strict = true
+strict_bytes = true
+strict_equality_for_none = true
+warn_unreachable = true
+disallow_any_expr = true
+disallow_any_explicit = true
+disallow_any_decorated = true
+disallow_any_unimported = true
+enable_error_code = [
+  "deprecated",
+  "exhaustive-match",
+  "explicit-override",
+  "ignore-without-code",
+  "mutable-override",
+  "possibly-undefined",
+  "redundant-expr",
+  "redundant-self",
+  "truthy-bool",
+  "truthy-iterable",
+  "unimported-reveal",
+  "unused-awaitable",
+  "unused-ignore",
+]
+
+[tool.pytest.ini_options]
+pythonpath = [".", "scripts"]
 
 [tool.coverage.run]
 source = ["hermes_tweet", "tests"]

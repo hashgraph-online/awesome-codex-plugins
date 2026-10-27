@@ -59,7 +59,7 @@ stop and park the recovery for the owner — never guess forward through half-ap
     Never run destructive or production data operations without explicit owner approval for that
     exact environment.
   - Never leave a half-applied migration without a recorded recovery plan and rollback steps.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when the receipt reports a finite status for every scoped surface, compatibility tests
     cover the surfaces touched, rollback is documented, and every breaking or production blocker is
     fixed, rejected with reason, or parked.

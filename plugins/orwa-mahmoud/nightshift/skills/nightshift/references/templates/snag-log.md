@@ -1,7 +1,10 @@
 # Snag Log
 
-> Findings ledger across runs. Read this before reporting findings; dedupe against ALL seen — fixed
-> AND rejected — so no cycle re-reports an earlier one. Append dispositions after acting.
+> Findings ledger across runs. Read this before reporting findings; dedupe against every entry,
+> open and closed, so no cycle re-reports an earlier one. A finding already here is a duplicate: link
+> it to the existing entry and carry that entry's disposition forward; a closed entry stays closed
+> unless new evidence shows the behaviour changed, and an open one stays open. A duplicate is not a
+> new owner decision. Append dispositions after acting.
 > A bug found on a shift is fixed on that shift and recorded here with the fix as its disposition;
 > it is never staged for later or left for the owner to decide. Only a fix that would change
 > behaviour users rely on becomes a decision in `parking-lot.md`, with the default chosen and

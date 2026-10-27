@@ -1,0 +1,47 @@
+{
+  "name": "post",
+  "version": "1.1.0",
+  "description": "Share-image sets for Xiaohongshu and X: App Store poster layout, real screenshots, faithful app-UI mocks, charts that aren't tables, a series/IP layer for go-to-market, fluent copy.",
+  "author": {
+    "name": "jack-reson8",
+    "url": "https://github.com/jack-reson8"
+  },
+  "homepage": "https://github.com/jack-reson8/post-skill",
+  "repository": "https://github.com/jack-reson8/post-skill",
+  "license": "MIT",
+  "keywords": [
+    "xiaohongshu",
+    "rednote",
+    "twitter",
+    "carousel",
+    "cover-image",
+    "social-media",
+    "marketing",
+    "gtm",
+    "build-in-public",
+    "design"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Post",
+    "shortDescription": "Share-image sets that look native and sell",
+    "longDescription": "Make Xiaohongshu and X image sets that look like real app screens: App Store screenshot-poster layout, real screenshots, pixel-faithful app-UI mocks, charts that are not tables, a series layer for go-to-market, and copy with small jokes.",
+    "developerName": "jack-reson8",
+    "category": "Creativity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/jack-reson8/post-skill",
+    "defaultPrompt": [
+      "Make a 6-image Xiaohongshu carousel about today's launch",
+      "Design a cover and three post images for this update",
+      "Turn these numbers into a chart image for X"
+    ],
+    "brandColor": "#DB2777",
+    "screenshots": [],
+    "privacyPolicyURL": "https://github.com/jack-reson8/post-skill/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/jack-reson8/post-skill/blob/main/LICENSE"
+  }
+}

@@ -19,7 +19,7 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to ma
     dependency analyzer. Evaluate each finding in a `mode: dead-code-guard` receipt from `receipts/cycle-specialist-evidence.md`
     for public export, reflection, dynamic import, registration, configuration, generated code,
     plugin entry, serialization, and compatibility guards plus blast-radius grouping. Record its
-    exact command and findings; dedupe against snag-log.md (ALL seen — fixed and rejected). Do not
+    exact command and findings; dedupe against snag-log.md under Snag log discipline. Do not
     introduce a new analyzer without owner approval.
   - Take one coherent finding at a time. Confirm it is not reached through reflection, dynamic
     imports, registration, configuration, generated code, public exports, or external consumers.

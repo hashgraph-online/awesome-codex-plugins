@@ -1,0 +1,241 @@
+% market_research.sty - evidence-first market report styling
+% Intended for XeLaTeX or LuaLaTeX; no external images are required.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{market_research}[2026/07/23 v1.1 Evidence-first market reports]
+
+\RequirePackage[margin=1in]{geometry}
+\RequirePackage{setspace}
+\RequirePackage{helvet}
+\RequirePackage[table]{xcolor}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs}
+\RequirePackage{longtable}
+\RequirePackage{array}
+\RequirePackage{enumitem}
+\RequirePackage{parskip}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{fancyhdr}
+\RequirePackage{titlesec}
+\RequirePackage{hyperref}
+\RequirePackage{caption}
+\RequirePackage{amsmath}
+
+\renewcommand{\familydefault}{\sfdefault}
+\setstretch{1.12}
+\setlength{\parskip}{0.45em}
+
+% Colorblind-aware structural palette.
+\definecolor{mrnavy}{RGB}{0,68,100}
+\definecolor{mrblue}{RGB}{0,114,178}
+\definecolor{mrteal}{RGB}{0,128,115}
+\definecolor{mramber}{RGB}{230,159,0}
+\definecolor{mrred}{RGB}{180,52,38}
+\definecolor{mrpurple}{RGB}{97,73,149}
+\definecolor{mrdark}{RGB}{55,55,55}
+\definecolor{mrgray}{RGB}{115,115,115}
+\definecolor{mrlight}{RGB}{245,247,249}
+\definecolor{mrtable}{RGB}{241,245,247}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=mrnavy,
+  urlcolor=mrblue,
+  citecolor=mrteal,
+  pdftitle={Market Research Report},
+  pdfsubject={Evidence-first market analysis}
+}
+
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{mrnavy}}
+  {\chaptertitlename\ \thechapter}{16pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{-18pt}{32pt}
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{mrnavy}}{\thesection}{0.8em}{}
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{mrblue}}{\thesubsection}{0.8em}{}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{mrdark}}{\thesubsubsection}{0.8em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\leftmark}
+\fancyhead[R]{\small Evidence-first market report}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\captionsetup{
+  font=small,
+  labelfont={bf,color=mrnavy},
+  textfont={color=mrdark},
+  justification=raggedright,
+  singlelinecheck=false
+}
+
+\setlist[itemize]{
+  leftmargin=*,
+  label=\textcolor{mrblue}{\textbullet},
+  topsep=4pt,
+  itemsep=2pt
+}
+\setlist[enumerate]{
+  leftmargin=*,
+  label=\textcolor{mrblue}{\arabic*.},
+  topsep=4pt,
+  itemsep=2pt
+}
+
+\newtcolorbox{evidencebox}[1][Observed evidence]{
+  enhanced,
+  breakable,
+  colback=mrblue!6,
+  colframe=mrnavy,
+  colbacktitle=mrnavy,
+  coltitle=white,
+  fonttitle=\bfseries,
+  title=#1,
+  boxrule=0.9pt,
+  arc=2pt,
+  left=9pt,right=9pt,top=7pt,bottom=7pt
+}
+
+\newtcolorbox{calculationbox}[1][Calculation]{
+  enhanced,
+  breakable,
+  colback=mrteal!7,
+  colframe=mrteal,
+  colbacktitle=mrteal,
+  coltitle=white,
+  fonttitle=\bfseries,
+  title=#1,
+  boxrule=0.9pt,
+  arc=2pt,
+  left=9pt,right=9pt,top=7pt,bottom=7pt
+}
+
+\newtcolorbox{assumptionbox}[1][Assumptions and uncertainty]{
+  enhanced,
+  breakable,
+  colback=mramber!10,
+  colframe=mramber,
+  colbacktitle=mramber,
+  coltitle=black,
+  fonttitle=\bfseries,
+  title=#1,
+  boxrule=0.9pt,
+  arc=2pt,
+  left=9pt,right=9pt,top=7pt,bottom=7pt
+}
+
+\newtcolorbox{limitationbox}[1][Material limitation]{
+  enhanced,
+  breakable,
+  colback=mrred!6,
+  colframe=mrred,
+  colbacktitle=mrred,
+  coltitle=white,
+  fonttitle=\bfseries,
+  title=#1,
+  boxrule=0.9pt,
+  arc=2pt,
+  left=9pt,right=9pt,top=7pt,bottom=7pt
+}
+
+\newtcolorbox{recommendationbox}[1][Recommendation]{
+  enhanced,
+  breakable,
+  colback=mrpurple!6,
+  colframe=mrpurple,
+  colbacktitle=mrpurple,
+  coltitle=white,
+  fonttitle=\bfseries,
+  title=#1,
+  boxrule=0.9pt,
+  arc=2pt,
+  left=9pt,right=9pt,top=7pt,bottom=7pt
+}
+
+\newtcolorbox{calloutbox}[1][Context]{
+  enhanced,
+  breakable,
+  colback=mrlight,
+  colframe=mrgray,
+  colbacktitle=mrlight,
+  coltitle=mrdark,
+  fonttitle=\bfseries,
+  title=#1,
+  boxrule=0.6pt,
+  arc=2pt,
+  left=9pt,right=9pt,top=7pt,bottom=7pt
+}
+
+% Compatibility aliases for reports created with the earlier style.
+\newenvironment{keyinsightbox}[1][Key insight]
+  {\begin{evidencebox}[#1]}{\end{evidencebox}}
+\newenvironment{marketdatabox}[1][Market data]
+  {\begin{calculationbox}[#1]}{\end{calculationbox}}
+\newenvironment{riskbox}[1][Risk]
+  {\begin{limitationbox}[#1]}{\end{limitationbox}}
+\newenvironment{criticalriskbox}[1][Critical risk]
+  {\begin{limitationbox}[#1]}{\end{limitationbox}}
+\newenvironment{executivesummarybox}[1][Executive synopsis]
+  {\begin{evidencebox}[#1]}{\end{evidencebox}}
+\newenvironment{opportunitybox}[1][Opportunity]
+  {\begin{assumptionbox}[#1]}{\end{assumptionbox}}
+\newenvironment{swotbox}[1][Structured assessment]
+  {\begin{calloutbox}[#1]}{\end{calloutbox}}
+\newenvironment{porterbox}[1][Competitive assessment]
+  {\begin{calloutbox}[#1]}{\end{calloutbox}}
+
+\newcommand{\claimref}[1]{\textcolor{mrnavy}{\texttt{#1}}}
+\newcommand{\sourceref}[1]{\textcolor{mrteal}{\texttt{#1}}}
+\newcommand{\calcref}[1]{\textcolor{mrteal}{\texttt{#1}}}
+\newcommand{\assumptionref}[1]{\textcolor{mramber!70!black}{\texttt{#1}}}
+\newcommand{\metricvalue}[1]{\textbf{\textcolor{mrteal}{#1}}}
+\newcommand{\riskhigh}{\textbf{\textcolor{mrred}{HIGH}}}
+\newcommand{\riskmedium}{\textbf{\textcolor{mramber!70!black}{MEDIUM}}}
+\newcommand{\risklow}{\textbf{\textcolor{mrteal}{LOW}}}
+\newcommand{\tablerowcolor}{\rowcolor{mrtable}}
+\newcommand{\figuresource}[1]{%
+  \par\vspace{-6pt}{\footnotesize\textit{Evidence: #1}}%
+}
+
+\newenvironment{markettable}[2][htbp]{%
+  \begin{table}[#1]
+  \centering
+  \caption{#2}
+  \small
+}{%
+  \end{table}
+}
+
+\newcommand{\makemarketreporttitle}[4]{%
+  \begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\Huge\bfseries\color{mrnavy}#1\par}
+  \vspace{0.7cm}
+  {\Large #2\par}
+  \vfill
+  {\large\textbf{Retrieval cutoff:} #3\par}
+  \vspace{0.25cm}
+  {\large\textbf{Prepared by:} #4\par}
+  \vfill
+  {\footnotesize Estimates and forecasts are conditional on documented evidence
+  and assumptions. This report is not investment, legal, or financial advice.\par}
+  \end{titlepage}
+}
+
+\newcommand{\appendixsection}[1]{%
+  \section*{#1}
+  \addcontentsline{toc}{section}{#1}
+}
+
+\clubpenalty=10000
+\widowpenalty=10000
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.08}
+\renewcommand{\floatpagefraction}{0.75}
+
+\endinput

@@ -14,10 +14,10 @@ fact satisfies the item.
 | Partial or uncertain mutation | timeout after an upload began, one of five writes failed | all items; side effects and how to check the outcome are mandatory. |
 | Unexpected | crash, unhandled exception | all items, plus a pointer to the full trace (a file path, or a request id for a remote service). |
 
-Each item on each path is pass, fail, not applicable (with the reason) or not
-observed. In plan mode an item the design leaves unspecified for a path it
-introduces is a fail. In live mode a failure class you never triggered is not
-observed; do not extrapolate from the paths you did trigger.
+In a proposed design, an item left unspecified on a failure path the design
+introduces is a fail. For a built tool, a failure class you never triggered or
+saw in supplied output is not observed; do not extrapolate from the paths you
+did see.
 
 ## Channel by surface
 
@@ -57,26 +57,28 @@ Error: request failed
 
 The agent sees exit 0 and moves on, or sees the text and reruns the upload,
 creating duplicates. Findings: channel (failure reported as success), what
-(no batch named), recovery (no word on side effects), unknown-outcome (no way
-to check), code, next step.
+(no batch named), why (no underlying cause), next step, retry safety (no word
+on side effects), unknown outcome (no way to check), code, context (no version
+or config).
 
-Repaired, exit 75:
+Repaired, exit 75, with the next step on the last line:
 
 ```text
 notes push: batch 41 (12 files) timed out after 30s while uploading to notes.example.net [PUSH_TIMEOUT]
-  effects: unknown; some files may have been stored
-  check first: notes status --batch 41
-  then: if status shows "incomplete", run notes push --batch 41 --resume (safe to repeat)
+  effects: unknown; some files may be stored, so a plain rerun may duplicate them
   context: notes 3.2.0, config ./notes.toml, env NOTES_ENDPOINT set
   docs: notes explain PUSH_TIMEOUT
+  next: notes status --batch 41; if it shows "incomplete", notes push --batch 41 --resume (safe to repeat)
 ```
 
 Machine mode prints the same facts on stdout:
 
 ```json
-{"ok": false, "code": "PUSH_TIMEOUT", "message": "batch 41 timed out while uploading",
+{"ok": false, "code": "PUSH_TIMEOUT", "docs": "notes explain PUSH_TIMEOUT",
+ "message": "batch 41 (12 files) timed out after 30s while uploading to notes.example.net",
  "input": {"batch": 41, "files": 12}, "effects": "unknown", "retry_safe": false,
- "check": "notes status --batch 41", "next": "notes push --batch 41 --resume",
+ "check": "notes status --batch 41",
+ "next": {"if": "status shows incomplete", "run": "notes push --batch 41 --resume", "repeat_safe": true},
  "context": {"version": "3.2.0", "config": "./notes.toml", "env": ["NOTES_ENDPOINT"]}}
 ```
 

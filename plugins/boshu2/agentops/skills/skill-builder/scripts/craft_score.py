@@ -3,10 +3,10 @@
 
 Reports three advisory blocks over a skill's SKILL.md:
 
-1. A 12-element craft score with named gaps. Elements are the cheaply
-   machine-detectable authoring elements enumerated in
-   references/skill-template.md (section 8). Presence is detected, never
-   quality; scoring quality stays a fresh validator's judgment.
+1. A 12-element craft score with named gaps. The elements are the cheaply
+   machine-detectable authoring elements listed in detect_elements() below.
+   Presence is detected, never quality; scoring quality stays a fresh
+   validator's judgment.
 2. Provenance resolution: cited repo paths and .agents/ao verdict/intent
    digests (full or prefix...suffix abbreviated) must resolve; dead
    citations are named findings.
@@ -17,8 +17,7 @@ Reports three advisory blocks over a skill's SKILL.md:
 Everything here is advisory-only: this script never gates, and audit.sh
 embeds its output without letting it change exit codes or verdicts.
 
-HTML comments are stripped before detection so the init.sh scaffolding
-stubs (<!-- craft:... -->) never satisfy an element; only authored prose
+HTML comments are stripped before detection; only the remaining prose
 counts.
 """
 

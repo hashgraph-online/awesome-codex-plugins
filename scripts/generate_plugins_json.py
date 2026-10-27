@@ -68,9 +68,13 @@ EXTRA_MIRROR_PATHS = {
     # Codex Attachment Manager's .mcp.json starts ./scripts/launch with
     # ./src/plugin-server.ts; the MCP server, engine and panel all live in src/.
     "chipfighter/codex-attachment-manager": ("scripts", "src"),
+    "chipfighter/context-attachment-manager": ("scripts", "src"),
     # Cohesivity's .mcp.json starts its local stdio server from
     # ./mcp/project-bootstrap.mjs, which no manifest field references.
     "cohesivity-org/cohesivity-plugin": ("mcp",),
+    # Espresso inline manifest hooks run src/hooks/*.js, which load the
+    # bundled Ponytail runtime from the top-level hooks/ directory.
+    "mirkobozzetto/espresso": ("src", "hooks"),
     # Staff Engineer Mode exposes one router skill and loads routed specialist
     # files from a top-level specialists/ directory at runtime.
     "sirmarkz/staff-engineer-mode": ("specialists",),

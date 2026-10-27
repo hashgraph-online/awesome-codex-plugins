@@ -116,7 +116,7 @@ const icon = (theme: "light" | "dark", color: string) => ({
   src: `data:image/svg+xml;base64,${Buffer.from(ICON_SVG.replace("currentColor", color)).toString("base64")}`,
   mimeType: "image/svg+xml", sizes: ["any"], theme,
 });
-export const serverInfo = (lang: Lang) => ({ name: "codex-attachment-manager", title: say(lang, "server.title"), version: "0.8.2", icons: [icon("light", "#5d5d5d"), icon("dark", "#cdcdcd")] });
+export const serverInfo = (lang: Lang) => ({ name: "codex-attachment-manager", title: say(lang, "server.title"), version: "0.8.3", icons: [icon("light", "#5d5d5d"), icon("dark", "#cdcdcd")] });
 
 export function readResource(uri: string): Json {
   if (uri !== PANEL_URI) throw new Error(`unknown resource ${uri}`);

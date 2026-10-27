@@ -1,6 +1,6 @@
 {
   "schema_version": "3",
-  "skill_count": 32,
+  "skill_count": 31,
   "skills": [
     {
       "canonical_status": "canonical",
@@ -21,6 +21,10 @@
         {
           "kind": "customer-of",
           "with": "claude-exec"
+        },
+        {
+          "kind": "customer-of",
+          "with": "agy-native"
         }
       ],
       "dependencies": [],
@@ -42,7 +46,7 @@
         "worker-handoff",
         "per-packet-results"
       ],
-      "references_count": 5,
+      "references_count": 6,
       "tier": "meta",
       "user_invocable": true
     },
@@ -251,7 +255,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Draft or lint a bounded long-running goal prompt with a finish line and hard limits. Use when: selected by name; one change goes to Plan.",
+      "description": "Draft or lint a bounded long-running goal prompt with a finish line and hard limits. Use when: asked to craft or lint a goal (a /goal prompt); one change goes to Plan.",
       "disposition": "keep_strategy",
       "effects": [],
       "graph_root": false,
@@ -281,7 +285,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Write source-checked docs, READMEs, change descriptions and handoff notes. Use when: documenting a change or leaving or resuming a session handoff.",
+      "description": "Write source-checked docs, READMEs, change descriptions and handoffs. Use when: documenting a change, leaving or resuming a handoff, or drafting a questionnaire for someone else.",
       "disposition": "keep_specialist",
       "effects": [
         "write_documentation",
@@ -300,7 +304,7 @@
         "documentation",
         "session-handoff"
       ],
-      "references_count": 18,
+      "references_count": 14,
       "tier": "product",
       "user_invocable": true
     },
@@ -329,7 +333,7 @@
       "produces": [
         "domain-language-guidance"
       ],
-      "references_count": 2,
+      "references_count": 3,
       "tier": "knowledge",
       "user_invocable": true
     },
@@ -418,7 +422,7 @@
         "idea-portfolio.v1",
         "idea-challenge.v1"
       ],
-      "references_count": 2,
+      "references_count": 3,
       "tier": "execution",
       "user_invocable": true
     },
@@ -453,7 +457,7 @@
       "produces": [
         "subject-manifest.v1"
       ],
-      "references_count": 5,
+      "references_count": 4,
       "tier": "execution",
       "user_invocable": true
     },
@@ -476,7 +480,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Interview you one question at a time, each with a recommendation, to settle a big outcome before agents work alone. Use when: selected by name.",
+      "description": "Interview you one question at a time, each choice with a recommendation, to settle a big outcome before agents work alone. Use when: asked to interview you about a goal or plan.",
       "disposition": "keep_strategy",
       "effects": [
         "update_intent_source"
@@ -493,7 +497,7 @@
         "caller-outcome",
         "goal-acceptance"
       ],
-      "references_count": 0,
+      "references_count": 1,
       "tier": "execution",
       "user_invocable": true
     },
@@ -607,7 +611,7 @@
         "native-handoffs",
         "reconciled-feedback"
       ],
-      "references_count": 0,
+      "references_count": 1,
       "tier": "execution",
       "user_invocable": true
     },
@@ -636,7 +640,7 @@
         "ddd-bounded-context"
       ],
       "produces": [],
-      "references_count": 4,
+      "references_count": 3,
       "tier": "execution",
       "user_invocable": true
     },
@@ -648,10 +652,10 @@
       "consumes": [],
       "context_rel": [],
       "dependencies": [],
-      "description": "Explain why a change, incident or session went as it did, separating proven causes from coincidence. Use when: a postmortem or retro is selected by name.",
+      "description": "Explain why a change, incident or session went as it did, separating proven causes from coincidence. Use when: asked for a postmortem, retro or root-cause write-up.",
       "disposition": "keep_strategy",
       "effects": [
-        "write_postmortem_report"
+        "write_requested_postmortem_report"
       ],
       "graph_root": false,
       "hexagonal_role": "domain",
@@ -661,9 +665,9 @@
         "lean-startup"
       ],
       "produces": [
-        "postmortem-report.md"
+        "postmortem-analysis"
       ],
-      "references_count": 1,
+      "references_count": 0,
       "tier": "judgment",
       "user_invocable": true
     },
@@ -695,48 +699,7 @@
       "produces": [
         "premortem-plan-review.v1"
       ],
-      "references_count": 2,
-      "tier": "judgment",
-      "user_invocable": true
-    },
-    {
-      "canonical_status": "canonical",
-      "capabilities": [
-        "compare_claim_to_evidence",
-        "measure_declared_goals",
-        "report_native_status"
-      ],
-      "consumes": [
-        "caller-question",
-        "native-source-evidence"
-      ],
-      "context_rel": [
-        {
-          "kind": "supplier-to",
-          "with": "plan"
-        }
-      ],
-      "dependencies": [],
-      "description": "Audit claims that work is done or shipped against the diff or repo. Use when: asked whether something really got done, even if it looks obvious.",
-      "disposition": "keep_strategy",
-      "effects": [
-        "write_advisory_gap_report",
-        "write_goal_snapshot",
-        "write_requested_rendered_spec"
-      ],
-      "graph_root": false,
-      "hexagonal_role": "domain",
-      "name": "reality-check",
-      "practices": [
-        "design-by-contract",
-        "evidence-based-engineering"
-      ],
-      "produces": [
-        "reality-check-report.v1",
-        "goal-measurement-report",
-        "native-status-snapshot"
-      ],
-      "references_count": 2,
+      "references_count": 1,
       "tier": "judgment",
       "user_invocable": true
     },
@@ -766,7 +729,7 @@
       "produces": [
         "code-changes"
       ],
-      "references_count": 2,
+      "references_count": 1,
       "tier": "execution",
       "user_invocable": true
     },
@@ -775,33 +738,49 @@
       "capabilities": [
         "research",
         "codebase_recon",
-        "pattern_mining"
+        "pattern_mining",
+        "compare_claim_to_evidence",
+        "measure_declared_goals",
+        "report_native_status"
       ],
       "consumes": [
-        "research-question"
+        "research-question",
+        "native-source-evidence"
       ],
-      "context_rel": [],
+      "context_rel": [
+        {
+          "kind": "supplier-to",
+          "with": "plan"
+        }
+      ],
       "dependencies": [],
-      "description": "Answer one cited question about code, history, claims or patterns. Use when: asked how it works, why it changed, whether a claim holds or a pattern warrants a rule.",
+      "description": "Answer one cited question on code, history, claims or patterns. Use when: asked how it works, why it changed, if a claim or done/shipped report holds, or a pattern warrants a rule.",
       "disposition": "keep_specialist",
       "effects": [
         "write_research_report",
         "write_recon_pack",
-        "write_pattern_evidence"
+        "write_pattern_evidence",
+        "write_advisory_gap_report",
+        "write_goal_snapshot",
+        "write_requested_rendered_spec"
       ],
       "graph_root": false,
       "hexagonal_role": "driving-adapter",
       "name": "research",
       "practices": [
         "pragmatic-programmer",
-        "ddd-bounded-context"
+        "ddd-bounded-context",
+        "evidence-based-engineering"
       ],
       "produces": [
         "research-report",
         "codebase-recon.v1",
-        "pattern-mining.v1"
+        "pattern-mining.v1",
+        "reality-check-report.v1",
+        "goal-measurement-report",
+        "native-status-snapshot"
       ],
-      "references_count": 3,
+      "references_count": 6,
       "tier": "execution",
       "user_invocable": true
     },
@@ -855,7 +834,7 @@
         "code-complete"
       ],
       "produces": [],
-      "references_count": 1,
+      "references_count": 2,
       "tier": "judgment",
       "user_invocable": true
     },
@@ -889,17 +868,16 @@
         "implement",
         "validate"
       ],
-      "description": "Drive one accepted change through implementation and checks to done, with one fresh review only where a mistake is costly. Use when: selected by name.",
+      "description": "Drive one accepted change through implementation and checks to done, with one fresh review only where a mistake is costly. Use when: asked to run or orchestrate work through RPI.",
       "disposition": "keep_strategy",
       "effects": [
-        "dispatch_core_phases"
+        "modify_authorized_subject",
+        "dispatch_conditional_validator"
       ],
       "graph_root": true,
       "hexagonal_role": "domain",
       "name": "rpi",
       "practices": [
-        "bdd-gherkin",
-        "tdd",
         "design-by-contract"
       ],
       "produces": [
@@ -942,7 +920,7 @@
         "suite-summary.json",
         "redteam-results.json"
       ],
-      "references_count": 7,
+      "references_count": 5,
       "tier": "product",
       "user_invocable": true
     },
@@ -980,16 +958,17 @@
         "converted-skill",
         "operationalization-proposal"
       ],
-      "references_count": 11,
+      "references_count": 10,
       "tier": "meta",
       "user_invocable": true
     },
     {
       "canonical_status": "canonical",
       "capabilities": [
-        "author_seeded_probe",
-        "run_probe_tier",
-        "evaluate_skill_decision"
+        "evaluate_skill_decision",
+        "select_skill_measurement",
+        "read_skill_ab_results",
+        "author_seeded_probe"
       ],
       "consumes": [
         "skill-source-package"
@@ -1005,7 +984,7 @@
       "disposition": "keep_specialist",
       "effects": [
         "write_probe_package",
-        "dispatch_probe_producer"
+        "dispatch_authorized_trials"
       ],
       "graph_root": false,
       "hexagonal_role": "supporting",
@@ -1015,10 +994,10 @@
         "ab-testing"
       ],
       "produces": [
-        "probe-package",
-        "probe-result.v1"
+        "skill-maintenance-recommendation",
+        "probe-package"
       ],
-      "references_count": 3,
+      "references_count": 4,
       "tier": "meta",
       "user_invocable": true
     },
@@ -1051,7 +1030,7 @@
       "produces": [
         "test-evidence"
       ],
-      "references_count": 11,
+      "references_count": 10,
       "tier": "execution",
       "user_invocable": true
     },
@@ -1100,18 +1079,17 @@
     {
       "canonical_status": "canonical",
       "capabilities": [
-        "dispatch_explicit_packet",
         "observe_gc_runtime",
         "inspect_pack_registries",
         "drive_mayor_door"
       ],
       "consumes": [
-        "explicit-packets"
+        "accepted-intent"
       ],
       "context_rel": [
         {
-          "kind": "partnership",
-          "with": "agent-native"
+          "kind": "supplier-to",
+          "with": "orchestrate"
         }
       ],
       "dependencies": [],
@@ -1131,7 +1109,7 @@
       "produces": [
         "gas-city-runtime-evidence"
       ],
-      "references_count": 1,
+      "references_count": 2,
       "tier": "execution",
       "user_invocable": true
     },

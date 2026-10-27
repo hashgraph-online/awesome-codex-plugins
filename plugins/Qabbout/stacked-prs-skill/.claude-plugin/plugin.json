@@ -1,0 +1,10 @@
+{
+  "name": "stacked-prs",
+  "version": "1.1.2",
+  "description": "Split, maintain, and land reviewable stacked pull requests.",
+  "author": { "name": "Abdulrahman Qabbout" },
+  "homepage": "https://github.com/Qabbout/stacked-prs-skill",
+  "repository": "https://github.com/Qabbout/stacked-prs-skill",
+  "license": "MIT",
+  "skills": "./"
+}

@@ -26,6 +26,12 @@ counts. Init refuses if any dbt project already exists.
 Every connector discovers its connection and refuses with the fix named when
 none resolves.
 
+### `--in-place`
+
+The default layout scaffolds into a `<name>/` subdirectory. Pass `--in-place` to
+scaffold directly into the current directory instead (useful when the repository
+root is itself the dbt project).
+
 ### `--layered-schemas`
 
 When the user wants staging, intermediate, and marts isolated in their own

@@ -1,0 +1,33 @@
+{
+  "workflow": "ad-generator",
+  "source": {
+    "prompt": "AeroPods Pro — wireless earbuds with adaptive active noise cancellation, 38 hours of total battery life with the case, IPX5 sweat resistance, USB-C wireless charging, and spatial audio. $179. Designed for commuters and athletes who want studio-grade sound without the cable mess.",
+    "stylePrompt": "Lead with a sharp question hook. Then 2 short benefit beats. Close with the price and a single CTA. Voice tone: confident, calm, premium — Apple-like.",
+    "durationSeconds": 22
+  },
+  "aspectRatio": "9:16",
+  "voice":    { "enabled": true, "stability": 0.55, "speed": 1.05, "language": "en-US" },
+  "captions": { "enabled": true, "position": "middle", "autoCrop": true },
+  "music":    { "enabled": true, "syncWith": "beats", "trackName": "ad-energetic" },
+  "media": {
+    "type": "stock-video",
+    "density": "high",
+    "animation": "dynamic",
+    "quality": "ultra",
+    "imageModel": "ultra",
+    "videoModel": "ultra",
+    "turnImagesIntoVideos": true,
+    "applyStyleTransfer": false,
+    "provided": []
+  },
+  "options": {
+    "targetDuration": 22,
+    "promptTargetDuration": 22,
+    "summarizationPreference": "summarizeIfLong",
+    "soundEffects": true,
+    "addStickers": true,
+    "hasToGenerateCover": true,
+    "coverTextType": "hook"
+  },
+  "render": { "resolution": "1080p", "frameRate": 30 }
+}

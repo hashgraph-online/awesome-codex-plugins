@@ -1,0 +1,46 @@
+[project]
+name = "research-agent-skills-tools"
+version = "1.0.0"
+description = "Tooling for the Research Agent Skills repository (validation, import, catalog, security lint)."
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Sayan Chowdhury" }, { name = "Kalaris Labs" }]
+requires-python = ">=3.11"
+dependencies = ["pyyaml>=6.0.2"]
+
+[dependency-groups]
+dev = [
+    "matplotlib>=3.11.2",
+    "pytest>=9.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tools"]
+
+[tool.coverage.run]
+source = ["tools"]
+
+[tool.coverage.report]
+# Statement-coverage gate for the project's own tooling (OpenSSF Best Practices, silver: >= 80%).
+# Imported skill scripts under skills/ are upstream code and are measured by their smoke tests instead.
+fail_under = 80
+show_missing = true
+skip_covered = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["skills", ".cache", "cli", "node_modules", "site"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S"]
+ignore = ["S603", "S607", "S101"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S"]

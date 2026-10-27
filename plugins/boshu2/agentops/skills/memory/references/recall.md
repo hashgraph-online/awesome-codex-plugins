@@ -5,8 +5,8 @@ Do not recall by ritual for every task. Start with the accepted intent and curre
 source; memory cannot override either.
 
 1. Resolve the caller-selected project `.context/` or external topic-page location
-   and allowed owner, task, model/provider and destination. This lean route accepts public or
-   already-cleared inputs only; it does not enforce native restricted access.
+   and allowed owner, task, model/provider and destination under
+   [Memory's access rules](../SKILL.md#access-storage-and-honest-limits).
    Missing routing, denied access and no-match are different outcomes.
 2. For project context, start at its authored `README.md` topic map when present;
    do not create it on a read. Search metadata and relevant terms with `rg` in
@@ -17,10 +17,12 @@ source; memory cannot override either.
    CASS or native episodes are optional source locators, not an automatic raw
    transcript read. Follow their installed source contract when selected.
 3. Check the claim's applicability, action, support, limits and invalidation
-   against this task's actual versions, interfaces and evidence. Confirm the
-   exact page has the required independent support/disclosure review. Treat
-   contradictions, withdrawn claims and unavailable support as uncertainty;
-   do not paraphrase them into an authoritative rule.
+   against this task's actual versions, interfaces and evidence. A review
+   verdict lives outside the page, in a store the caller named; if no such
+   store or verdict exists, treat the claim as unreviewed and say so when you
+   apply it. Treat contradictions,
+   withdrawn claims and unavailable support as uncertainty; do not paraphrase
+   them into an authoritative rule.
 4. Return only the useful constraint, its support, limits and the action it
    changes. If none changes the next action, return no-match and continue work.
    Preserve indispensable acceptance when context is limited; drop optional

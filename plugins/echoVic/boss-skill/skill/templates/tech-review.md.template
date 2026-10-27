@@ -6,13 +6,6 @@ dependencies: [prd, architecture, ui-spec, ui-design]
 
 # 技术方案评审报告
 
-## 1. 评审概述
-
-- **项目名称**：{{PROJECT_NAME}}
-- **评审日期**：{{DATE}}
-- **评审人**：Tech Lead Agent
-- **评审文档**：
-
 ## 摘要
 
 > 下游 Agent 请优先阅读本节，需要细节时再查阅完整文档。
@@ -22,6 +15,13 @@ dependencies: [prd, architecture, ui-spec, ui-design]
 - **必须解决**：[阻塞项列表，无则填"无"]
 - **建议优化**：[非阻塞改进建议]
 - **技术债务**：[已知技术债务]
+
+## 1. 评审概述
+
+- **项目名称**：{{PROJECT_NAME}}
+- **评审日期**：{{DATE}}
+- **评审人**：Tech Lead Agent
+- **评审文档**：
 
 ---
 

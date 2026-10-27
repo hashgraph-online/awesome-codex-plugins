@@ -89,7 +89,7 @@ performance/accessibility, then editorial experiments.
   - Inherit cited-research.md: observations vs inferences, `[S1]` citations, no fabricated
     access. Keep private code, secrets, customer data, and unpublished material out of external
     fetches and out of the report.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every supplied source is `ok` or `unavailable` with a reason, the report passes
     check-report, the receipt names the evidence mode and remaining unknowable surfaces, and
     leftover local edits (direct mode only) are behind the item gate.

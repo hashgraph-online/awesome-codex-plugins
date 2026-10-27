@@ -44,7 +44,7 @@ Detect from `go.mod`. Use all features up to and including that version. Never u
 - All exported symbols must have godoc comments starting with the symbol name
 - Package-level doc in `doc.go` for non-trivial packages
 - Include runnable `Example_*` functions in `_test.go` files
-- Run `go doc ./...` to verify documentation
+- Enforce doc comments with revive's `exported` rule (through golangci-lint); `go doc` reads one package and does not accept `./...`
 
 ## Concurrency
 
@@ -276,7 +276,7 @@ func TestClassifyServeArg(t *testing.T) {
   - Find leakers by analysis (grep set-sites for a missing reset), not by chasing reproducing seeds: order-dependent flakes are population+seed-specific, so "couldn't reproduce" ≠ fixed — close on the root (the missing cleanup).
   - The push==CI full race suite runs `-shuffle=on` as the *late* backstop; it is not the primary guard.
 
-### Benchmark Tests (BF7)
+### Benchmark Tests
 
 Use Go's built-in benchmark support for hot-path functions:
 
@@ -300,7 +300,7 @@ go test -bench=. -count=10 ./... > new.txt
 benchstat old.txt new.txt
 ```
 
-### Backward Compatibility Tests (BF8)
+### Backward Compatibility Tests
 
 Maintain golden fixtures in `testdata/compat/`:
 
@@ -311,7 +311,8 @@ func TestBackwardCompat(t *testing.T) {
     require.NotEmpty(t, fixtures, "compat fixtures must exist")
     for _, f := range fixtures {
         t.Run(filepath.Base(f), func(t *testing.T) {
-            data, _ := os.ReadFile(f)
+            data, err := os.ReadFile(f)
+            require.NoError(t, err)
             result, err := ParseConfig(data)
             require.NoError(t, err, "legacy format must still parse")
             assert.NotEmpty(t, result.Name)
@@ -320,7 +321,7 @@ func TestBackwardCompat(t *testing.T) {
 }
 ```
 
-### Regression Tests (BF6)
+### Regression Tests
 
 Name after the bug ID. Reproduce the exact failure:
 
@@ -333,13 +334,15 @@ func TestBug_AG_XYZ_NilMapPanic(t *testing.T) {
 }
 ```
 
-### Security Tests (BF9)
+### Security Tests
 
-Test path traversal rejection and secrets redaction:
+Test path traversal rejection and secrets redaction. Use payloads that escape
+the base directory; `foo/../bar` and `a..b` stay inside it, and a correct
+`filepath.IsLocal` or `os.Root` check accepts them:
 
 ```go
 func TestRejectsPathTraversal(t *testing.T) {
-    payloads := []string{"../../../etc/passwd", "..\\windows", "foo/../bar"}
+    payloads := []string{"../../../etc/passwd", "foo/../../bar", "/etc/passwd"}
     for _, p := range payloads {
         t.Run(p, func(t *testing.T) {
             _, err := LoadConfig(p)
@@ -360,32 +363,35 @@ func TestRejectsPathTraversal(t *testing.T) {
 
 ### Before Committing Go Changes
 
+Run the repository's own build, vet and test commands from the Go module root. Without a wrapper, that is:
+
 ```bash
-cd cli && go build ./... && go vet ./... && go test ./...
+go build ./... && go vet ./... && go test ./...
 ```
 
-Or equivalently: `cd cli && make build && make test`
+When the repository wraps these in `make` targets or a CI script, run those instead; they may add flags such as `-race` or `-shuffle=on`, or lint steps the bare commands skip.
 
 ## HTTP Handler Security
 
-Go HTTP handlers in this codebase are localhost-only but should still follow defense-in-depth:
+Apply these patterns to every Go HTTP handler, whatever its exposure. A listener bound only to localhost still receives requests from other local processes and from pages open in the user's browser, so judge each risk by where the deployment actually listens and who can reach it:
 
 | Pattern | Risk | Fix |
 |---------|------|-----|
 | `innerHTML = userInput` in embedded HTML | XSS | Use DOM construction (`createElement` + `textContent`) |
-| `r.URL.Query().Get("param")` used in file paths | Path traversal | Reject `..`, `/`, `\` before use |
+| `r.URL.Query().Get("param")` used in file paths | Path traversal | Reject unless `filepath.IsLocal`, or open it through `os.Root` (1.24+); never ban a `..` substring |
 | `fmt.Fprintf(w, userInput)` in HTML handler | XSS | Use `html/template` or `text/template` with escaping |
 | `filepath.Join(root, userInput)` | Path traversal | Validate input against allowlist pattern (e.g., `regexp`) |
-| `Access-Control-Allow-Origin: *` | CORS bypass | Acceptable for localhost-only; restrict for public APIs |
+| `Access-Control-Allow-Origin: *` | CORS bypass | Allow only the origins the deployment serves, including on localhost, since any page in the user's browser can reach a localhost listener; keep `*` only for responses that are public anyway |
 
-**Query parameter validation pattern:**
+**Query parameter validation pattern** (a single file name under `root`, from `os.OpenRoot(baseDir)`):
 
 ```go
-param := strings.TrimSpace(r.URL.Query().Get("id"))
-if param != "" && (strings.Contains(param, "..") || strings.Contains(param, "/") || strings.Contains(param, "\\")) {
+name := strings.TrimSpace(r.URL.Query().Get("id"))
+if !filepath.IsLocal(name) || strings.ContainsAny(name, `/\`) {
     http.Error(w, "invalid parameter", http.StatusBadRequest)
     return
 }
+f, err := root.Open(name) // os.Root also refuses a symlink that escapes baseDir
 ```
 
 **DOM construction instead of innerHTML:**
@@ -407,24 +413,22 @@ When a security-lint finding is a false positive on intentional crypto (e.g. SHA
 | Scanner | What it ignores | What suppresses it |
 |---------|-----------------|--------------------|
 | gosec (standalone) | `//nolint:gosec` (golangci-lint-only) | `// #nosec G<NN>` directive, e.g. `// #nosec G401 G505` |
-| semgrep | qualified `nosemgrep: <rule-id>` (does NOT suppress) | a **bare** `// nosemgrep` |
+| semgrep | `#nosec` and `nolint` directives | `nosemgrep: <rule-id>` suppresses only the named rule; a bare `nosemgrep` suppresses every rule on the line |
 
-Combine both into one comment and place it on **both** the import line and the usage/call site — each is flagged independently:
+Prefer the qualified form, copying the rule id from the finding. Combine both into one comment and place it on **both** the import line and the usage/call site — each is flagged independently:
 
 ```go
 import (
-    "crypto/sha1" // #nosec G505 nosemgrep -- git object IDs are SHA-1 by definition; not a security primitive here.
+    "crypto/sha1" // #nosec G505 nosemgrep: <rule-id> -- git object IDs are SHA-1 by definition; not a security primitive here.
 )
 
 func gitBlobID(content []byte) string {
-    h := sha1.New() // #nosec G401 nosemgrep -- git blob IDs are SHA-1; matching git.
+    h := sha1.New() // #nosec G401 nosemgrep: <rule-id> -- git blob IDs are SHA-1; matching git.
     // ...
 }
 ```
 
 The `G<NN>` codes differ by site: G505 flags the `crypto/sha1` import (blocklisted import), G401 flags the `sha1.New()` call (weak crypto primitive). Pass every code that fires on a given line.
-
-Canonical example in this repo: `cli/internal/drrebuild/drrebuild.go`.
 
 ## Future Features (Go 1.24+)
 
@@ -434,7 +438,7 @@ This section tracks features by first-supported Go version and can be used to pl
 |---------|---------|------------------|
 | `t.Context()` | 1.24+ | `context.WithCancel(context.Background())` in tests |
 | `b.Loop()` | 1.24+ | `for i := 0; i < b.N; i++` in benchmarks |
-| `omitzero` JSON tag | 1.24+ | `omitempty` (which fails for `time.Duration`, structs, slices, maps) |
+| `omitzero` JSON tag | 1.24+ | `omitempty` where a zero struct or `time.Time` must be omitted (`omitempty` never omits them); `omitzero` omits only nil slices and maps, so an empty non-nil one now encodes as `[]` or `{}` |
 | `strings.SplitSeq` / `FieldsSeq` | 1.24+ | `strings.Split` when iterating (avoids intermediate slice) |
 | `wg.Go(fn)` | 1.25+ | `wg.Add(1)` + `go func() { defer wg.Done(); ... }()` |
 | `new(val)` | 1.26+ | `x := val; &x` for pointer creation |

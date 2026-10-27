@@ -58,9 +58,11 @@ def main() -> int:
     elif not groups:
         lines.append("  {}")
     else:
+        # The script has not looked at the code, so it claims neither local
+        # (client/mixed) nor hosted (control-plane); the caller classifies.
         for g in groups:
             lines.append(f"  {g!s}:")
-            lines.append("    impl: control-plane")
+            lines.append("    impl: unclassified")
             lines.append("    anchors: []")
             lines.append("    notes: \"\"")
 

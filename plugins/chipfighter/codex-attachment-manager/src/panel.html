@@ -1435,7 +1435,7 @@
   // ---- start: handshake, then Codex sends its own cam_panel result; poll so new images show up ----
   if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) document.documentElement.dataset.theme = "dark";
   applyLanguage();
-  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.8.2" }, appCapabilities: {} })
+  request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "codex-attachment-manager", version: "0.8.3" }, appCapabilities: {} })
     .then((init) => { applyHost(init?.hostContext); post({ method: "ui/notifications/initialized", params: {} }); reportFrame(); })
     .catch(() => {})
     .finally(() => setTimeout(() => { if (!S.data) refresh(); }, 1200));

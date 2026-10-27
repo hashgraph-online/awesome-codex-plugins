@@ -1,0 +1,62 @@
+{
+  "name": "codex-auto-resume",
+  "version": "0.6.19",
+  "description": "Auto-resume and auto-retry for interrupted Codex tasks on Windows. Waits out a usage limit (until the reset time Codex reports, e.g. for a 5-hour or weekly window), a rate limit or a temporary failure, then continues the exact same conversation, so long-running or overnight work keeps going while that conversation is open in the Codex app. Setup downloads a checksum-verified release from GitHub; after that the watcher runs locally, read-only against Codex state, conservative by design.",
+  "author": {
+    "name": "songyb111-gachon",
+    "url": "https://github.com/songyb111-gachon"
+  },
+  "homepage": "https://github.com/songyb111-gachon/codex-auto-resume-windows",
+  "repository": "https://github.com/songyb111-gachon/codex-auto-resume-windows",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "codex auto resume",
+    "codex auto retry",
+    "auto resume",
+    "auto retry",
+    "auto continue",
+    "usage limit",
+    "usage limit reset",
+    "codex 5 hour limit",
+    "resume after reset",
+    "same conversation",
+    "rate limit",
+    "overnight codex",
+    "unattended recovery",
+    "automatic recovery",
+    "interrupted task",
+    "watcher",
+    "windows",
+    "developer tools"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Codex Auto Resume",
+    "shortDescription": "Auto-resume an interrupted Codex task",
+    "longDescription": "When a Codex task stops because you hit a usage limit, a rate limit, a dropped connection or a temporary server error, this waits until it is safe again and continues that exact conversation. A small local watcher does the waiting, so it keeps working after you close the app, and Windows notifications tell you what it is doing. Settings are available here in Codex, from a Windows settings window, and from the command line. It acts only on failures it can classify, only on the exact interrupted conversation, and does nothing while anything is uncertain. It is not a general retry tool: an unclassified failure, a cancellation, a permission or policy failure and a permanent authentication failure are never retried.",
+    "developerName": "songyb111-gachon",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/songyb111-gachon/codex-auto-resume-windows",
+    "privacyPolicyURL": "https://github.com/songyb111-gachon/codex-auto-resume-windows/blob/main/docs/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/songyb111-gachon/codex-auto-resume-windows/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Set up auto resume",
+      "Show auto resume status",
+      "Open auto resume settings"
+    ],
+    "brandColor": "#1257B8",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo-dark.png",
+    "screenshots": [
+      "./assets/screenshot-panel.png",
+      "./assets/screenshot-settings.png"
+    ]
+  }
+}

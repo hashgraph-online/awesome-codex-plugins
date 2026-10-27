@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 
 
-ALLOWED_IMPL = {"client", "mixed", "control-plane"}
+# "unclassified" is the scaffold default: the script has not inspected the code.
+ALLOWED_IMPL = {"client", "mixed", "control-plane", "unclassified"}
 
 
 def _group_from_slug(slug: str, docs_features_prefix: str) -> str | None:

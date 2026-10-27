@@ -1,0 +1,4 @@
+interface:
+  display_name: "Work Status Reporting"
+  short_description: "Prepare truthful periodic work reports."
+  default_prompt: "Use $work-status-reporting to prepare or review a weekly or periodic work report without overstating completion or double-counting work."

@@ -275,6 +275,13 @@ def validate_pullups(ctx: AnalysisContext) -> list[dict]:
                 continue
             if net in checked_nets:
                 continue
+            # A no-connect marker on the pin is the designer saying it is
+            # unused on purpose (KiCad ERC honours it). Only trust the net
+            # flag when the pin is alone on the net, as the pin-level
+            # NO_CONNECT logic in analyze_schematic.py does.
+            _net_info = ctx.nets.get(net, {})
+            if _net_info.get('no_connect') and len(_net_info.get('pins', [])) <= 1:
+                continue
 
             # Get pin name
             pin_name = ''

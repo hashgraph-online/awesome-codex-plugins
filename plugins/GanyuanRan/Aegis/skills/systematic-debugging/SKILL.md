@@ -30,7 +30,8 @@ Bug, failure, or unexpected behavior:
    RED/GREEN cycle. Three failed fixes means stop and question architecture.
 5. **Repair and close** — fix minimally at the canonical owner, verify in
    proportion to risk, review architecture, and close both repair and
-   retirement tracks. If any symptom remains, stop and diagnose it separately.
+   retirement tracks. If a symptom remains or shifts, reopen the causal model;
+   do not assume it is a separate defect.
 
 Done: confidence ≥ B, causal status matches recurrence evidence or an external
 terminal, tracks explicit, no H signal, and required D evidence passes.
@@ -39,13 +40,18 @@ terminal, tracks explicit, no H signal, and required D evidence passes.
 
 Find root cause and fix the bug class at its canonical owner. A minimal fix is
 not the smallest textual diff; it is the smallest sufficient owner-level repair.
+Apply the same causal-sufficiency standard to every bug. Trace relevant
+influences and justify exclusions; resolve repair-changing unknowns before
+retaining a solution. Experiments may precede closure. Evidence gaps, not
+apparent size or risk, determine investigation depth.
 
 ## Quick bug lane
 
-For a low-risk, reproducible, single-owner bug with no patch-shape signal, keep
+For an evidenced local, reproducible, single-owner bug with no patch-shape signal, keep
 the readback compact: `Symptom`, `Reproduction`, `Root Cause`, `Change
 Necessity`, `Fix Boundary`, and `Verification`. Skip the causal card only when
-the causal-proof owner's `Quick Exit Proof` passes.
+the causal-proof owner's `Quick Exit Proof` passes. This reduces readback, not
+the causal coverage or evidence standard.
 Quick bug lane must surface Change Necessity before source edits. One sentence
 may cover the user-visible need, no-change/non-code option, why code must
 change, minimum boundary, and an explicit decision token such as
@@ -146,7 +152,8 @@ changes the approved shape, update the plan/spec first.
 
 ## Repair and proportional verification
 
-Implement one owner fix; no bundled “while here” work. Under strict TDD, create
+Repair each evidenced cause needed for the scoped outcome at its responsible
+owner; do not force independent causes into one owner or bundle “while here” work. Under strict TDD, create
 the smallest failing test first. With TDD off, a reproduction is diagnostic
 evidence, not a RED gate or a prerequisite for production edits.
 
@@ -174,14 +181,9 @@ outside-repo authority; unmigrated
 published-contract break; undefined spec; missing permission/info. They route H/T/D;
 detail is not causal proof.
 
-For non-trivial debugging with configured workspace support:
-
-```bash
-python <aegis-workspace-helper> init --root <target-project-root>
-python <aegis-workspace-helper> new-work --root <target-project-root> ...
-python <aegis-workspace-helper> add-evidence --root <target-project-root> --work <YYYY-MM-DD-slug> ...
-python <aegis-workspace-helper> check --root <target-project-root>
-```
+For non-trivial debugging with configured workspace support, use
+`<aegis-workspace-helper>` to `init`, `new-work`, `add-evidence`, and `check`
+the target project. Command details belong to long-task-continuation.
 
 Failed attempts use `<aegis-workspace-helper> add-attempt`; `add-evidence` is terminal-only.
 

@@ -1,6 +1,6 @@
 # Loomaly plugin
 
-Remote MCP at `https://loomaly.com/mcp` (version **2.1.1**).
+Remote MCP at `https://loomaly.com/mcp` (version **2.2.0**).
 
 ## Skills
 

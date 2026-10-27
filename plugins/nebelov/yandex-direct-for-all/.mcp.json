@@ -6,46 +6,49 @@
         "run",
         "--frozen",
         "--project",
-        "./mcp/yandex-direct",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/yandex-direct",
         "python",
-        "./mcp/yandex-direct/server.py",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/yandex-direct/server.py",
         "stdio"
       ],
       "env": {
-        "YANDEX_DIRECT_ENVIRONMENT": "${YANDEX_DIRECT_ENVIRONMENT}",
-        "YANDEX_DIRECT_SANDBOX_TOKEN": "${YANDEX_DIRECT_SANDBOX_TOKEN}",
-        "YANDEX_DIRECT_PRODUCTION_READ_TOKEN": "${YANDEX_DIRECT_PRODUCTION_READ_TOKEN}",
-        "YANDEX_DIRECT_CLIENT_LOGIN": "${YANDEX_DIRECT_CLIENT_LOGIN}",
-        "YANDEX_DIRECT_OUTPUT_DIR": "${YANDEX_DIRECT_OUTPUT_DIR}"
+        "YANDEX_DIRECT_ACCESS_FILE": "${YANDEX_DIRECT_ACCESS_FILE:-}",
+        "YANDEX_DIRECT_ENVIRONMENT": "${YANDEX_DIRECT_ENVIRONMENT:-sandbox}",
+        "YANDEX_DIRECT_SANDBOX_TOKEN": "${YANDEX_DIRECT_SANDBOX_TOKEN:-}",
+        "YANDEX_DIRECT_PRODUCTION_READ_TOKEN": "${YANDEX_DIRECT_PRODUCTION_READ_TOKEN:-}",
+        "YANDEX_DIRECT_CLIENT_LOGIN": "${YANDEX_DIRECT_CLIENT_LOGIN:-}",
+        "YANDEX_DIRECT_OUTPUT_DIR": "${YANDEX_DIRECT_OUTPUT_DIR:-${CLAUDE_PLUGIN_DATA}/direct-output}",
+        "UV_PROJECT_ENVIRONMENT": "${CLAUDE_PLUGIN_DATA}/venv-direct"
       }
     },
-        "yandexSearch": {
-            "command": "uv",
-            "args": [
-                "run",
-                "--frozen",
-                "--project",
-                "./mcp/yandex-search",
-                "python",
-                "./mcp/yandex-search/server.py"
-            ],
+    "yandexSearch": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--frozen",
+        "--project",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/yandex-search",
+        "python",
+        "${CLAUDE_PLUGIN_ROOT}/mcp/yandex-search/server.py"
+      ],
       "env": {
-        "YANDEX_SEARCH_API_KEY": "${YANDEX_SEARCH_API_KEY}",
-        "YANDEX_SEARCH_FOLDER_ID": "${YANDEX_SEARCH_FOLDER_ID}",
-        "YANDEX_SEARCH_ROUTE": "${YANDEX_SEARCH_ROUTE}",
-        "YANDEX_SEARCH_APPROVAL_FILE": "${YANDEX_SEARCH_APPROVAL_FILE}",
-        "YANDEX_SEARCH_USAGE_LEDGER": "${YANDEX_SEARCH_USAGE_LEDGER}"
+        "YANDEX_SEARCH_API_KEY": "${YANDEX_SEARCH_API_KEY:-}",
+        "YANDEX_SEARCH_FOLDER_ID": "${YANDEX_SEARCH_FOLDER_ID:-}",
+        "YANDEX_SEARCH_ROUTE": "${YANDEX_SEARCH_ROUTE:-disabled}",
+        "YANDEX_SEARCH_APPROVAL_FILE": "${YANDEX_SEARCH_APPROVAL_FILE:-}",
+        "YANDEX_SEARCH_USAGE_LEDGER": "${YANDEX_SEARCH_USAGE_LEDGER:-}",
+        "UV_PROJECT_ENVIRONMENT": "${CLAUDE_PLUGIN_DATA}/venv-search"
       }
     },
     "yandexWordstat": {
-      "command": "node",
+      "command": "bash",
       "args": [
-        "./mcp/yandex-wordstat/src/index.mjs"
+        "${CLAUDE_PLUGIN_ROOT}/mcp/yandex-wordstat/start.sh"
       ],
       "env": {
-        "YANDEX_WORDSTAT_API_KEY": "${YANDEX_WORDSTAT_API_KEY}",
-        "YANDEX_WORDSTAT_FOLDER_ID": "${YANDEX_WORDSTAT_FOLDER_ID}",
-        "YDFALL_STATE_ROOT": "${YDFALL_STATE_ROOT}"
+        "YANDEX_WORDSTAT_API_KEY": "${YANDEX_WORDSTAT_API_KEY:-}",
+        "YANDEX_WORDSTAT_FOLDER_ID": "${YANDEX_WORDSTAT_FOLDER_ID:-}",
+        "YDFALL_STATE_ROOT": "${YDFALL_STATE_ROOT:-}"
       }
     }
   }

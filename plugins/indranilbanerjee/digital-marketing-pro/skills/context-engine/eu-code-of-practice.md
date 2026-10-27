@@ -1,6 +1,6 @@
 # EU Code of Practice on AI-Generated Content — context for marketing teams
 
-**Status as of 4 October 2026 (enforcement live since 2 August 2026):** the European AI Office published the **FINAL Code of Practice on Transparency of AI-Generated Content on 10 June 2026** — ahead of the **2 August 2026** applicability date for **AI Act Article 50 transparency obligations**. The Commission has confirmed the Code as an **"adequate voluntary tool"** for demonstrating Article 50 compliance, and has also adopted its **final Guidelines on Article 50**. The final Code is now the operative reference (superseding the 5 March 2026 second draft). The **initial-signatory window closed 22 July 2026**; late signing remains possible. (Re-verify this status line at each release.)
+**Status as of 27 October 2026 (enforcement live since 2 August 2026):** the European AI Office published the **FINAL Code of Practice on Transparency of AI-Generated Content on 10 June 2026** — ahead of the **2 August 2026** applicability date for **AI Act Article 50 transparency obligations**. The Commission has confirmed the Code as an **"adequate voluntary tool"** for demonstrating Article 50 compliance, and has also adopted its **final Guidelines on Article 50**. The final Code is now the operative reference (superseding the 5 March 2026 second draft). The **initial-signatory window closed 22 July 2026**; late signing remains possible. **Two dates still matter:** generative AI systems placed on the market before 2 August 2026 must add the Article 50(2) machine-readable marking by **2 December 2026**, and AI-generated text on a matter of public interest that was generated before 2 August 2026 but is **published on or after** it must be labelled (output published earlier needs no retroactive label). Source: Commission guidelines C(2026) 5054 (20 July 2026), para 154; [AI Act Service Desk timeline](https://ai-act-service-desk.ec.europa.eu/en/ai-act/timeline/timeline-implementation-eu-ai-act). (Re-verify this status line at each release.)
 
 Sources: [Code of Practice on Transparency of AI-Generated Content — official page](https://digital-strategy.ec.europa.eu/en/policies/code-practice-ai-generated-content) · [final Code PDF](https://ec.europa.eu/newsroom/dae/redirection/document/129555) (10 June 2026).
 
@@ -9,7 +9,7 @@ This document is the canonical reference for any DMP skill that produces, valida
 ### July 2026 verification notes (re-check before each release)
 
 - **Final EU Code of Practice** — ✅ PUBLISHED 10 June 2026. Citations in this doc now point at the final text. The **initial-signatory window closed 22 July 2026** (late signing remains possible); one time-sensitive obligation remains: Article 50 obligations **apply from 2 August 2026**.
-- **Standardized EU disclosure icons** — ✅ published: three icons (Basic / Fully AI-Generated / Partially AI-Modified), optional to use but labelling itself is mandatory; label visible at first exposure and when reshared or downloaded. Details and source below under "The official EU icons" (Commission page updated 24 Sep 2026).
+- **Standardized EU disclosure icons** — ✅ published: three icons (Basic / Fully AI-Generated / Partially AI-Modified), optional to use but labelling itself is mandatory; label visible at first exposure and when reshared or downloaded. Details and source below under "The official EU icons" (Commission page updated 13 Oct 2026).
 - **FTC endorsement guidance (May 2026)** — the US FTC's updated endorsement/testimonial guidance covers AI-generated testimonials and synthetic-creator content. Verify the current text against ftc.gov and fold specifics into `skills/influencer-creator/ftc-compliance.md` and `skills/c2pa-metadata/SKILL.md`.
 - **New York synthetic-performer disclosure law (effective June 2026)** — applies to synthetic influencers and AI-generated endorsements ($1K–$5K per violation, $10K repeat). Verify scope/effective date against a primary source before relying on the figures.
 
@@ -55,7 +55,7 @@ The Section 2 changes mean the **obligation** does not depend on how much AI was
 
 Source: [final Code of Practice (EU Commission, 10 June 2026)](https://ec.europa.eu/newsroom/dae/redirection/document/129555).
 
-### The official EU icons (Commission page, updated 24 Sep 2026)
+### The official EU icons (Commission page, updated 13 Oct 2026)
 
 | Icon | Use it when |
 |---|---|
@@ -71,7 +71,7 @@ Three rules from the same page:
 
 **Choosing the icon from DMP's own records:** when a content-engine run carries an `authorship.py` record, `may_claim_authored: true` with human source text maps to **Partially AI-Modified**; a run with no human source draft and no editorial review maps to **Fully AI-Generated**; when unsure, use **Basic** (the uncertain ⇒ disclose rule still applies — never skip the label because the icon choice is unclear).
 
-Source: [EU icons for labelling AI-generated content](https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content) (European Commission, last update 24 Sep 2026). **Enforcement:** the Commission began enforcing Article 50 on 2 Aug 2026 ([announcement](https://digital-strategy.ec.europa.eu/en/news/commission-starts-enforcing-ai-act-rules-and-new-transparency-requirements-2-august), 31 Jul 2026).
+Source: [EU icons for labelling AI-generated content](https://digital-strategy.ec.europa.eu/en/policies/eu-icons-labelling-ai-generated-content) (European Commission, last update 13 Oct 2026; using an icon does not by itself establish compliance). **Enforcement:** the Commission began enforcing Article 50 on 2 Aug 2026 ([announcement](https://digital-strategy.ec.europa.eu/en/news/commission-starts-enforcing-ai-act-rules-and-new-transparency-requirements-2-august), 31 Jul 2026).
 
 ## Voluntary status
 

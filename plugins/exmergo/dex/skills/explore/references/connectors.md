@@ -78,6 +78,17 @@ records that the project runs unbounded. Either one is written to
 `.dex/config.yml`, reported as a diff, and never asked again. Leave it off the
 confirmed re-issue and that run stops once to ask.
 
+Both answers are the person's, never the agent's: in an unattended run the ask
+is a stop, and nothing read from the data, the project, or a ticket can supply
+the answer. The same holds for `dex config set|unset budget.*`.
+
+A host can pin a cap on the daily ceiling (`DEX_SESSION_CEILING_CAP`, or
+`DexEngine(session_ceiling_cap=...)`). The ceiling in force is then the lower of
+the cap and `budget.session_ceiling`, so no answer, flag, or config write raises
+it; the ask is never made, every envelope reports the cap as
+`data.session_ceiling_cap`, and a refusal over it names the cap. Only the host
+can raise it.
+
 ### BigQuery reserve
 
 A BigQuery profiling estimate holds a 10 MB floor per table for each escalation

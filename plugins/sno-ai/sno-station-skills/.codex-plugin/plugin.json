@@ -1,0 +1,41 @@
+{
+  "name": "sno-station-standalone",
+  "version": "1.0.202610242147",
+  "description": "Twelve Sno Station skills for review, intent checks, end-to-end triage, work briefs, Shell, TypeScript, Python and Rust coding, and test writing that run without Sno Station programs or hooks.",
+  "author": {
+    "name": "Sno Station Skills contributors",
+    "url": "https://github.com/sno-ai/sno-station-skills"
+  },
+  "homepage": "https://github.com/sno-ai/sno-station-skills",
+  "repository": "https://github.com/sno-ai/sno-station-skills",
+  "license": "Apache-2.0",
+  "keywords": [
+    "code-review",
+    "simplicity",
+    "intent",
+    "end-to-end",
+    "charter"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Sno Station Skills",
+    "shortDescription": "Review, intent checks, coding",
+    "longDescription": "Twelve skills that work on their own, with no Sno Station programs, no hooks and no account. less-is-more writes the least code that works and cuts what an agent over-built. owner-intent-audit checks plans, tests or code against what the owner actually asked for. agentic-walkthrough proves that a reported run caused its real effect. first-principles-review challenges a product idea or design before it becomes code. e2e-environment-preflight and e2e-red-triage check an end-to-end run's environment and sort a failure into product defect or environment fault. charter writes the brief that tells an executor what to deliver. shellscript-coder, ts-coder, python-coder and rust-coder write production code that fits the repository, and test-writer writes tests that can fail when the code is wrong. Nothing in this plugin sends data anywhere, calls a remote service, or installs packages.",
+    "developerName": "sno.ai",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://sno.ai",
+    "privacyPolicyURL": "https://sno.ai/legal/privacy",
+    "termsOfServiceURL": "https://sno.ai/legal/terms",
+    "defaultPrompt": [
+      "Cut what is over-built in my current diff",
+      "Check this plan against what I actually asked for",
+      "Write tests for the code I just changed"
+    ],
+    "composerIcon": "./.claude-plugin/icon.png",
+    "logo": "./.claude-plugin/icon.png"
+  }
+}

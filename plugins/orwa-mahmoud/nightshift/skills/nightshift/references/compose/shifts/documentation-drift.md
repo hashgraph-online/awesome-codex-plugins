@@ -51,7 +51,7 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to ma
     that as a code fix; this shift only repairs docs (or restores a file the docs still name).
   - A reference that cannot be verified locally (third-party URL, marketplace listing) is out of
     scope: record it in snag-log.md as skipped, not as a pass.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when a full local pass reports no remaining in-repo drift, or every leftover is parked
     with a reason.
   - Verify: the item gate is green at every commit; a second local-link/command pass is clean

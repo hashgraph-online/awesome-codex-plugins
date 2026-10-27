@@ -14,6 +14,8 @@ unknowns need observations, and caller choices need the caller.
    [model-dispatch](../../agent-native/references/model-dispatch.md) for actual
    authorization, same-family default, explicit cross-model selection and real
    remaining bounds. Method selection itself grants no dispatch authority.
+   Without it, do not stand in as your own challenger: mark the claim as
+   inference and return it with the check that would settle it.
 2. The challenger gives the strongest counterexample or contrary evidence,
    identifies the assumption it attacks, and names what would change its view.
    Unsupported possibilities remain hypotheses; seek a concrete defeating
@@ -37,10 +39,11 @@ or requested audit under the existing storage rules.
 ## Other selected strategies
 
 When independent alternatives themselves matter, two sealed positions may be
-selected: each author receives the same accepted question and source evidence
-without seeing the other's proposal. Compare only after both initial positions
-are fixed; later replies are peer-informed and no longer independent. Give both
-the same newly discovered decisive source, or disclose the unequal evidence.
+selected: both authors get the same accepted question and source evidence, both
+initial positions are fixed before comparison as
+[Council](../../council/SKILL.md#rules-that-decide-the-synthesis) seals views,
+later replies are peer-informed, and a newly found decisive source goes to both
+or the unequal evidence is disclosed.
 An independent derivation can also be compared with an already fixed proposal.
 
 [Premortem](../../premortem/SKILL.md) owns a requested plan-failure examination,
@@ -52,5 +55,4 @@ required; a cheaper challenge cannot replace them.
 Challenge produces advisory evidence. Agreement is neither caller approval nor
 independent confirmation of correctness. It cannot issue acceptance, change
 work ownership, admit context, close work or replace fresh author-distinct
-Validate over exact content and unchanged acceptance. No general improvement
-in outcomes or resource use is claimed without comparable task evidence.
+Validate over exact content and unchanged acceptance.

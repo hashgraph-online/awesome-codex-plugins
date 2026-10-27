@@ -14,7 +14,6 @@ import sys
 from pathlib import Path
 
 
-REPO_ROOT = Path.cwd()
 SKILL_DIR = Path(__file__).resolve().parents[1]
 TEMPLATES_DIR = SKILL_DIR / "references" / "templates"
 
@@ -1912,7 +1911,9 @@ def main() -> int:
     )
     analysis_root = local_clone_dir
 
-    tmp_dir = _lexical_absolute(REPO_ROOT / ".tmp" / f"reverse-engineer-{product_slug}")
+    # Scratch (fetched sitemaps, binary help and strings) stays inside the
+    # declared output dir, where the teardown validator's secret scan covers it.
+    tmp_dir = output_dir / "scratch"
     _ensure_real_directory(local_clone_dir)
     output_identity = _ensure_real_directory(output_dir)
     _ensure_real_directory(tmp_dir)
@@ -2146,8 +2147,6 @@ def main() -> int:
     for tmpl, out_name in [
         ("spec-architecture.md.tmpl", "spec-architecture.md"),
         ("spec-code-map.md.tmpl", "spec-code-map.md"),
-        ("spec-clone-vs-use.md.tmpl", "spec-clone-vs-use.md"),
-        ("spec-clone-mvp.md.tmpl", "spec-clone-mvp.md"),
     ]:
         _render_template(TEMPLATES_DIR / tmpl, output_dir / out_name, vars)
 
@@ -2257,34 +2256,10 @@ def main() -> int:
                 check=False,
             )
 
-        # Scaffold-time safety check: scan the generated output for leaked
-        # secrets. The full certifying gate (validate-security-audit.sh) is NOT
-        # run here — the audit is still a scaffold with unfilled _TBD
-        # placeholders, and that gate rightly refuses to certify an unfilled
-        # audit. The caller fills the findings, then runs the gate to certify.
-        _run([str(sec_dir / "scan-secrets.sh"), str(output_dir)], check=True)
-
-    # 9) Reports (vibe-style + postmortem), confined under output_dir so every
-    #    write stays inside the caller-declared --output-dir. These used to be
-    #    rooted at Path.cwd()/.agents/council, landing outside output_dir, and a
-    #    sibling write to .agents/learnings/ (a directory never created here)
-    #    crashed with FileNotFoundError on a fresh checkout while also emitting a
-    #    canned, run-independent "learning" into the Learn corpus. Both are gone.
-    reports_dir = output_dir / "reports"
-    _ensure_dirs([reports_dir])
-    vibe_path = reports_dir / f"{_today_ymd()}-vibe-{product_slug}.md"
-    post_path = reports_dir / f"{_today_ymd()}-postmortem-{product_slug}.md"
-
-    _render_template(
-        TEMPLATES_DIR / "vibe-report.md.tmpl",
-        vibe_path,
-        {**vars, "OUTPUT_DIR": str(output_dir)},
-    )
-    _render_template(
-        TEMPLATES_DIR / "postmortem.md.tmpl",
-        post_path,
-        {**vars, "OUTPUT_DIR": str(output_dir)},
-    )
+        # The certifying gate (validate-security-audit.sh) is NOT run here: the
+        # audit is still a scaffold with unfilled _TBD placeholders. The caller
+        # fills the findings, then runs the gate. The secret scan runs in the
+        # teardown validator below, in every mode.
 
     # Phase 1 deliberately stops at a validated teardown.  The evidence-backed
     # steal-map is a caller-authored Phase-2 judgment over this output and the

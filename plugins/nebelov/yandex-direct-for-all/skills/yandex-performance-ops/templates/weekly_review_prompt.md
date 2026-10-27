@@ -9,7 +9,7 @@ Goal:
 Inputs:
 - local client context
 - last raw dumps or weekly exports
-- Roistat period comparison
+- Sales-source period comparison (CRM or Roistat) if connected; otherwise Metrika goals
 - Direct Reports summary
 
 Output:

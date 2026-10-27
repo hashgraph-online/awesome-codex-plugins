@@ -32,6 +32,16 @@ def resolve_raw_path(base_dir: Path, raw_dir_value: str, mask: str) -> Path:
     raw_dir = Path(raw_dir_value)
     if not raw_dir.is_absolute():
         raw_dir = (base_dir / raw_dir).resolve()
+    manifest = raw_dir / "_manifest.json"
+    if manifest.is_file():
+        # Сборщики (Yandex Cloud и XMLRiver) пишут имя с хешем маски; путь берётся из их манифеста.
+        for entry in json.loads(manifest.read_text(encoding="utf-8")):
+            kind = str(entry.get("artifact") or entry.get("type") or "")
+            if kind == "top_requests" and entry.get("status") in ("success", "partial") and \
+                    normalize_text(entry.get("source_mask") or entry.get("mask") or "") == mask:
+                found = raw_dir / Path(str(entry.get("file", ""))).name
+                if found.is_file():
+                    return found
     return raw_dir / f"top_requests_{slugify_mask(mask)}.json"
 
 
@@ -49,7 +59,8 @@ def render_rows(base_dir: Path, config_rows: list[dict[str, str]]) -> list[dict[
                 "cluster": config["cluster"],
                 "mask": mask,
                 "wave": config["wave"],
-                "total_count": int(payload.get("totalCount", 0) or 0),
+                # Нет totalCount (например, XMLRiver без страницы history) — пусто, а не ноль спроса.
+                "total_count": int(payload["totalCount"]) if payload.get("totalCount") is not None else "",
                 "request_phrase": normalize_text(payload.get("requestPhrase", "")),
                 "note": normalize_text(config.get("note", "")),
                 "source_file": raw_path.name,

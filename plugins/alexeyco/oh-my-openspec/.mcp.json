@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "openspec": {
+      "type": "stdio",
+      "title": "OpenSpec validate",
+      "description": "Mechanical OpenSpec artifact validation gate (openspec_validate).",
+      "command": "node",
+      "args": [
+        "./assets/mcp-server.mjs"
+      ],
+      "cwd": "./"
+    }
+  }
+}

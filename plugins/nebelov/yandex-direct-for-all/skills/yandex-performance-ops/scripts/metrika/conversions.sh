@@ -85,6 +85,13 @@ if [ -z "$_metrics" ]; then
     exit 1
 fi
 
+# Metrika allows max 20 metrics per request = 6 goals x 3 metrics
+_goal_count=$(echo "$_metrics" | tr ',' '\n' | grep -c 'conversionRate')
+if [ "$_goal_count" -gt 6 ]; then
+    echo "Error: $_goal_count goals requested, Metrika limit is 6 per request (20 metrics). Split --goals into chunks of 6." >&2
+    exit 1
+fi
+
 DIMENSIONS="ym:s:${ATTRIBUTION}TrafficSource"
 
 # Cache key

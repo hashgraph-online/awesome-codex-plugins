@@ -1,22 +1,24 @@
-<img width="1920" height="1080" alt="Video 2" src="https://github.com/user-attachments/assets/f9c8c052-32fb-4b2f-8b89-a6f484b55035" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/preview-dark.png" />
+  <img alt="Dex: analytics engineering for your coding agent. Explore, transform, maintain." src="assets/preview-light.png" />
+</picture>
 
-# dex
+# Dex
 
-**Analytics engineering for your coding agent, with the guardrails built into the engine.**
+**Analytics engineering for your coding agent, with guardrails and lifecycle built into the engine.**
 
-dex is analytics engineering for Claude Code and any agent: data warehouse
-exploration, dbt transformation and semantic modeling, and schema-drift
-maintenance.
+Dex lets your agent build your analytics: data warehouse exploration, dbt data transformation and semantic modeling, 
+and schema-drift maintenance.
 
-**Built by [Exmergo](https://exmergo.com)** · **Documentation: [docs.exmergo.com/dex](https://docs.exmergo.com/dex)**
+**Built by [Exmergo](https://www.exmergo.com)**
 
-[![Docs](https://img.shields.io/badge/docs-docs.exmergo.com%2Fdex-165dfc?logo=readthedocs&logoColor=white)](https://docs.exmergo.com/dex)
 [![PyPI](https://img.shields.io/pypi/v/exmergo-dex-core?logo=pypi&logoColor=white&color=165dfc)](https://pypi.org/project/exmergo-dex-core/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-165dfc)](LICENSE)
 [![data-eng-bench](https://img.shields.io/badge/data--eng--bench-57%25-33cf56)](benchmarks/data-eng-bench/README.md)
 [![ADE-bench](https://img.shields.io/badge/ADE--bench-76%25-33cf56)](benchmarks/ade_bench/README.md)
 [![CI](https://github.com/exmergo/dex/actions/workflows/ci.yml/badge.svg)](https://github.com/exmergo/dex/actions/workflows/ci.yml)
 
+[![Docs](https://img.shields.io/badge/docs-docs.exmergo.com%2Fdex-165dfc?logo=readthedocs&logoColor=white)](https://docs.exmergo.com/dex)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Exmergo-165dfc?logo=linkedin&logoColor=white)](https://www.linkedin.com/company/exmergo/)
 [![X](https://img.shields.io/badge/Follow-%40exmergo-165dfc?logo=x&logoColor=white)](https://x.com/exmergo)
 [![Star the repo!](https://img.shields.io/github/stars/exmergo/dex?style=flat&label=Star%20the%20repo!%20%E2%AD%90&labelColor=555&logo=github&logoColor=white&color=165dfc)](https://github.com/exmergo/dex)
@@ -46,23 +48,25 @@ npx skills add exmergo/dex --agent codex
 ```
 
 > [!IMPORTANT]
-> **dex needs [`uv`](https://docs.astral.sh/uv/) on your `PATH`.** No agent installs
+> **Dex needs [`uv`](https://docs.astral.sh/uv/) on your `PATH`.** No agent installs
 > it for you. Run `brew install uv` or `pipx install uv`, or see the
 > [uv installation docs](https://docs.astral.sh/uv/getting-started/installation/)
-> for other platforms. `uv` supplies Python and the engine.
+> for other platforms. `uv` supplies Python and the engine. Use uv 0.13.4 or
+> later (`uv self update`): earlier releases still trust the emSign CA roots
+> withdrawn after their keys were compromised.
 
 In Claude Code the skills appear as `/dex:explore`, `/dex:transform`, and
 `/dex:maintain` and trigger on matching intent. Update later with
 `/plugin marketplace update exmergo`. Codex also gets a native plugin, with no MCP
 server needed. Any other agent can be pointed at [`AGENTS.md`](AGENTS.md).
 
-Run dex from your project directory, so it finds your `.dex/config.yml` and keeps
-its cache next to your project. dex needs an agent with a local shell, so it does
+Run Dex from your project directory, so it finds your `.dex/config.yml` and keeps
+its cache next to your project. Dex needs an agent with a local shell, so it does
 not run in claude.ai chat.
 
 > [!TIP]
 > **Skip the first-run wait.** The first command installs the engine, which takes
-> tens of seconds on a cold `uv` cache. Ask your agent to warm dex once after
+> tens of seconds on a cold `uv` cache. Ask your agent to warm Dex once after
 > installing, or run the command below in a CI or container build step. Add
 > `--connector snowflake` (or any connector) to warm one before a project exists.
 
@@ -76,8 +80,8 @@ What you get:
 - **Transform** your dbt project and semantic layer. Models, tests, docs, and metrics arrive as reviewable plans and build only on a dev target.
 - **Maintain** it as the world changes. Schema, volume, grain, and metric-definition drift, each with a proposed fix.
 
-Read-only against your data. Cost quoted before any spend. Every change is a diff
-you review. Works in Claude Code, Codex, or any agent that loads Agent Skills.
+Your source data is never written to, and builds run on a dev target only. Cost
+quoted before any spend. Every change is a diff you review. Works in Claude Code, Codex, or any agent that loads Agent Skills.
 
 ## Why
 
@@ -93,7 +97,7 @@ A general coding agent is a good SQL author and a poor analytics engineer. It:
 - will happily pull personal data into its context,
 - does not treat a dbt project or a semantic layer as an object to keep coherent over time.
 
-dex owns exactly that loop, and enforces its rules in the engine rather than in a prompt.
+Dex owns exactly that loop, and enforces its rules in the engine rather than in a prompt.
 
 ## Try it in three commands
 
@@ -136,7 +140,7 @@ dex explore relationships --verify
 dex explore query "select email from customers"
 ```
 
-- **A broken grain.** A batch was loaded twice, so `order_item_id` is unique for only 92.9% of rows. dex reports the duplicates and leaves the grain unknown rather than guessing a key.
+- **A broken grain.** A batch was loaded twice, so `order_item_id` is unique for only 92.9% of rows. Dex reports the duplicates and leaves the grain unknown rather than guessing a key.
 - **A key that mixes id schemes.** `sku` is `90% numeric, 10% 32-character hexadecimal (md5-shaped)`. Cast it to a number and you silently drop 10% of products.
 - **A join that looks right and is not.** `web_events.customer_id` shares a name with the CRM's key, but verification finds 100% of its values have no match.
 - **A refusal.** The query firewall will not put `customers.email` into context. `select count(distinct email) from customers` runs, because a statistic is not a value.
@@ -154,9 +158,10 @@ type contradicts their content, and two designed PII false positives. See the
 
 ```mermaid
 flowchart LR
-  Agent[Coding agent] --> Skills[dex skills]
+  Agent[Coding agent] --> Skills[Dex skills]
   Skills --> Engine[exmergo-dex-core engine]
-  Engine -->|read-only SQL, cost-capped| Warehouse[(Your warehouse)]
+  Engine -->|SELECT-only SQL, cost-capped| Warehouse[(Your warehouse)]
+  Engine -->|dbt builds, dev target only| Warehouse
   Engine -->|one sanitized JSON envelope| Agent
   Engine -->|plans as diffs| Repo[Your repository: dbt project + semantic layer]
   Engine <--> Cache[.dex/ cache and snapshot]
@@ -181,7 +186,7 @@ and draw the map as a Mermaid ER diagram. Fully read-only.
 Author and refactor dbt models from staging to marts, with tests and docs, plus the
 semantic layer on top. Every change is a stored plan you review, then apply. Builds
 run against a dev target only.
-[Skill](skills/transform/SKILL.md) · [what dex writes](https://docs.exmergo.com/dex/concepts/dbt-project) · [commands](https://docs.exmergo.com/dex/cli/transform)
+[Skill](skills/transform/SKILL.md) · [what Dex writes](https://docs.exmergo.com/dex/concepts/dbt-project) · [commands](https://docs.exmergo.com/dex/cli/transform)
 
 <img width="504" height="271" alt="Transform" src="https://github.com/user-attachments/assets/fda40e48-b481-424c-adc7-d79c0ede346b" />
 
@@ -194,9 +199,43 @@ checks a project as it stands, with no baseline needed.
 
 <img width="484" height="344" alt="Maintain" src="https://github.com/user-attachments/assets/ff714eaf-f0b2-46d6-8a4b-c69791740f18" />
 
-### What dex will never do
+### What to commit in `.dex/`
 
-- **Write to your data.** Warehouse access is read-only, and generated SQL is SELECT-only.
+Dex keeps its working state in `.dex/`. Most of it is safe to commit; the
+exception is any file that can carry data values. Commit the lockfile and the
+config, and keep the exploration cache out of a repo that must not publish
+data values:
+
+| File | Commit? | Can it contain data values? |
+| --- | --- | --- |
+| `.dex/config.yml` | Yes | No: connector targets, `pii_overrides` (column names, not values), budgets and limits. Credentials live in environment variables or dbt profiles, never in this file. |
+| `.dex/snapshot.json` | Yes, like a lockfile | Yes: when snapshotted from a cache it pins the cache's datasets wholesale, including each non-PII column's capped value domain and min/max. A metadata-only baseline (no cache) carries schema and volume only. PII-flagged columns never carry value domains. |
+| `.dex/cache.json` | Only if values may be public | Yes: column profiles with capped value domains (actual values with counts). Never for PII-flagged columns. |
+| `.dex/plans/*.json` | Optional, as an audit trail | No warehouse values: the proposed contents of project files. |
+| `.dex/queries.jsonl` | Optional, as a ledger | SQL text, which may hold literals. |
+| `.dex/drift.json` | No: regenerate with `maintain check` | Aggregates only: counts, names and schema metadata in drift findings. |
+
+For a repo that must not publish data values, ignore the rest:
+
+```gitignore
+# Dex state that can publish data values, or is local-only output.
+.dex/cache.json
+.dex/dex.db
+.dex/dex.db-journal
+.dex/queries.jsonl
+.dex/drift.json
+.dex/spend.jsonl
+.dex/spend.lock
+```
+
+`.dex/dex.db` is the SQLite backend's equivalent of `cache.json`, so it gets
+the same caution. `.dex/spend.jsonl` is the billed-command ledger: byte
+counts, job ids and statement hashes only, never SQL values or credentials,
+but it is local spend history, so there is no reason to commit it.
+
+### What Dex will never do
+
+- **Write to your source data.** Dex's own SQL is SELECT-only. The only writes to your warehouse are the dbt builds you confirm, on a dev target.
 - **Put personal data in your agent's context.** PII is flagged by column, category, and confidence, and never surfaced. Only a human clears a flag. ([PII policy](https://docs.exmergo.com/dex/guardrails/pii-policy))
 - **Spend before quoting.** A metered scan returns an estimate and runs only with your confirmation and a budget. ([cost controls](https://docs.exmergo.com/dex/guardrails/cost-controls))
 - **Change your project behind your back.** Every edit is a diff, and a human edit made since planning is never overwritten. ([source of truth](https://docs.exmergo.com/dex/concepts/source-of-truth))
@@ -221,7 +260,7 @@ recorded in a local ledger ([cost controls](https://docs.exmergo.com/dex/guardra
 Self-hosted databases bill no dollars and are still gated, because an unbounded
 scan on a production Postgres primary is a real cost too.
 
-**Coming next:** Starburst Galaxy, Azure Synapse, Microsoft Fabric.
+**Coming next:** MotherDuck, Starburst Galaxy, Microsoft Fabric.
 
 ## Semantic layers
 
@@ -230,19 +269,24 @@ With Ossie or SLayer, it needs no dbt project at all. ([overview](https://docs.e
 
 | Semantic layer | Hosted | Queryable | `vendor` / `deployment` | Read through |
 | --- | :---: | :---: | --- | --- |
-| <img src="https://www.exmergo.com/connectors/dbt.png" width="20" height="20" alt=""> **dbt** | ✅ | ✅ | `dbt` / `local` or `dbt_cloud` | MetricFlow locally, run through the dex connector and its cost guard, or the hosted dbt Cloud Semantic Layer API |
+| <img src="https://www.exmergo.com/connectors/dbt.png" width="20" height="20" alt=""> **dbt** | ✅ | ✅ | `dbt` / `local` or `dbt_cloud` | MetricFlow locally, run through the Dex connector and its cost guard, or the hosted dbt Cloud Semantic Layer API |
 | <img src="https://www.exmergo.com/connectors/ossie.png" width="20" height="20" alt=""> **[Apache Ossie](https://github.com/apache/ossie)** (incubating) | ❌ | ❌ | `ossie` / `local` | Native documents in the repository, no dbt or MetricFlow in the path |
-| **[SLayer](https://github.com/MotleyAI/slayer)** | ❌ | ✅ | `slayer` / `local` | SLayer model files, validated by one pinned release; SLayer renders, dex runs it under the cost guard |
+| **[SLayer](https://github.com/MotleyAI/slayer)** | ❌ | ✅ | `slayer` / `local` | SLayer model files, validated by one pinned release; SLayer renders, Dex runs it under the cost guard |
 
 Ossie is catalog-first because the format specifies interchange metadata and no
-query runtime, so dex reads, authors, and checks an Ossie layer but refuses a metric
+query runtime, so Dex reads, authors, and checks an Ossie layer but refuses a metric
 query by name rather than inventing semantics. See the
 [Ossie page](https://docs.exmergo.com/dex/semantic-layers/ossie) and the
 [Ossie tutorial](https://docs.exmergo.com/dex/guides/ossie-semantic-layer).
 
-**Coming next:** Cube.
+**Coming next:** Cube, Snowflake Semantic Views, Looker / LookML, and Databricks Metric Views.
 
-## Use it as a Python library
+## See it on a real project
+
+**[github-repo-analytics](https://github.com/exmergo/github-repo-analytics)** is a template that tracks GitHub traffic, stars, downloads and contributors for your open-source projects, free on GitHub Actions.   
+Every model and metric was built and is maintained with Dex. Its [audit trail](https://github.com/exmergo/github-repo-analytics/blob/main/.dex/review/README.md) holds the raw envelopes, including the drift Dex blocked.
+
+## The Core Python Library you can use
 
 The engine is a plain Python package, `exmergo-dex-core`:
 
@@ -267,7 +311,7 @@ unconfirmed billed call raises `ConfirmationRequiredError` carrying the estimate
 By default nothing is written to disk; `DexEngine.from_repo("path/to/repo")` opts in
 to a project on disk, the way the CLI does.
 
-For hosts embedding dex:
+For hosts embedding Dex:
 
 - **Values-free mode** keeps every table value out of the model's view, aggregates only. ([values-free mode](https://docs.exmergo.com/dex/guardrails/values-free-mode))
 - **Per-user credentials**: pass a `ConnectionSource` so each request reaches the warehouse as its own principal.
@@ -278,37 +322,31 @@ More in the [package README](packages/dex-core/README.md).
 
 ## Benchmarks
 
-We run dex on two public analytics-engineering benchmarks and commit every run's
+We run Dex on two public analytics-engineering benchmarks and commit every run's
 raw per-task results, including the ones that flatter us least.
 
-| Benchmark | Setup | Result | dex ran on | Details |
-|---|---|---|---|---|
-| **data-eng-bench** (Snowflake, 103 tasks) | dex + Claude Sonnet 5 | **57.3%** resolved, 89.7% of assertions pass | 98% of trials | [README](benchmarks/data-eng-bench/README.md) |
-| **ADE-bench** (dbt Labs, 75 tasks) | dex + Claude Sonnet 5 | **76%** resolved, at 2.5x lower cost than Fable 5 | 15 of 75 trials | [README](benchmarks/ade_bench/README.md) |
+| Benchmark | Setup | Result | Details |
+|---|---|---|---|
+| **data-eng-bench** (Snowflake, 103 tasks) | Dex + Claude Sonnet 5 | **57.3%** resolved, 89.7% of assertions pass | [README](benchmarks/data-eng-bench/README.md) |
+| **ADE-bench** (dbt Labs, 75 tasks) | Dex + Claude Sonnet 5 | **76%** resolved, at 2.5x lower cost than Fable 5 | [README](benchmarks/ade_bench/README.md) |
 
 <img width="719" height="283" alt="ADE-bench accuracy and cost by model" src="https://github.com/user-attachments/assets/9f8bca64-6508-4590-9fa7-bb1ac077263d" />
 
-**How to read these.** Both are single runs, one attempt per task, so small gaps
-are noise. On data-eng-bench, 57.3% is statistically indistinguishable from the
-56.6% Snowflake published for Sonnet 5: read it as parity, not a win. On ADE-bench,
-dex fired on only 15 of 75 trials, so the 76% is mostly a statement about the model.
-We report how often dex actually ran next to every score for exactly this reason.
+We believe that benchmarks are important, but not as important as user/agent experience.  
+Trust in a diff, cost surfaced before spend, and sensitive data kept out of context. We optimize for that experience
+and treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/dex/reference/evaluation))
 
-A pass rate also misses what matters most: trust in a diff, cost surfaced before
-spend, and sensitive data kept out of context. We optimize for that experience and
-treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/dex/reference/evaluation))
+## What Dex sends where
 
-## What dex sends where
-
-- **On install**, `uv` downloads the pinned engine (and a Python 3.11+ if you have none) from PyPI or your configured index.
-- **Your warehouse** gets read-only SQL, with credentials from your existing credential chain.
+- **On install**, `uv` downloads the pinned engine (and a Python 3.11 to 3.14 if you have none) from PyPI or your configured index.
+- **Your warehouse** gets SELECT-only SQL from Dex, plus the dbt builds you confirm on a dev target, with credentials from your existing credential chain.
 - **dbt Cloud** is contacted only if you enable the hosted semantic layer.
-- **dbt-core**, when dex runs it, sends dbt Labs its own anonymous usage statistics unless you turn them off. `transform deps` downloads the packages your `packages.yml` declares.
-- **Your repository** holds dex's state in `.dex/`. dbt writes its usual `target/` and `logs/`.
+- **dbt-core**, when Dex runs it, sends dbt Labs its own anonymous usage statistics unless you turn them off. `transform deps` downloads the packages your `packages.yml` declares.
+- **Your repository** holds Dex's state in `.dex/`. dbt writes its usual `target/` and `logs/`.
 
 > [!IMPORTANT]
-> **dex sends nothing to Exmergo.** No telemetry, analytics, license check, or
-> update ping. See the [dex privacy policy](https://www.exmergo.com/privacy/dex).
+> **Dex sends nothing to Exmergo.** No telemetry, analytics, license check, or
+> update ping. See the [Dex privacy policy](https://www.exmergo.com/privacy/dex).
 
 ## Further reading
 
@@ -323,7 +361,7 @@ treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/dex/re
 
 ## Dex Enterprise
 
-Dex Enterprise runs dex as automated workflows in your own CI. It turns tickets into
+Dex Enterprise runs Dex as automated workflows in your own CI. It turns tickets into
 draft pull requests with `explore` and `transform`, and runs `maintain` on a schedule
 to turn drift into draft pull requests for your engineers to review. No Exmergo
 service sits in the request path, and everything in this repository stays
@@ -334,7 +372,7 @@ Apache-2.0. [Learn more](https://www.exmergo.com/dex/enterprise).
 ### Community Integrations
 
 **[dagster-dex](https://github.com/catincloud-labs/dagster-dex)**, maintained by
-CatInCloud Labs, lets dex read a Dagster asset graph instead of a dbt project, so
+CatInCloud Labs, lets Dex read a Dagster asset graph instead of a dbt project, so
 exploration and drift maintenance run natively against your orchestrated assets.
 
 ### Connect with the Community

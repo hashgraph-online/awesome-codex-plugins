@@ -4,14 +4,20 @@
 # Domain's AgentOps lookup returns definitions from the two cited contract
 # files. This check covers that lookup's source integrity, not the semantic
 # quality of caller-domain modeling. It detects a moved contract path or a
-# definition that no longer resolves. This is the entry point audit.sh looks for.
+# definition that no longer resolves. tests/skills/run-all.sh runs it.
 set -euo pipefail
 
-# pwd -P: this skill is invoked through a symlink (~/.claude/skills/domain ->
-# the checkout); a logical pwd would resolve ../.. against the symlink's parent
-# (.claude) and false-report the cited contracts as missing.
+# The contracts live in the AgentOps checkout, not in the skill. Resolve that
+# checkout through git from the skill's real location (pwd -P follows a linked
+# skill dir), so skills/domain and a projected plugin/skills/domain both find
+# it. A copy outside any AgentOps checkout (a plugin install) has no contracts
+# to check, so it skips. A hook-injected GIT_DIR would point git elsewhere.
 skill_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-repo_root="$(cd "$skill_dir/../.." && pwd -P)"
+repo_root="$(env -u GIT_DIR -u GIT_WORK_TREE git -C "$skill_dir" rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ -z "$repo_root" || ! -f "$repo_root/skills/domain/SKILL.md" ]]; then
+  echo 'domain skill contract: SKIP (not inside an AgentOps checkout)'
+  exit 0
+fi
 
 lang="$repo_root/docs/contracts/ubiquitous-language.md"
 contexts="$repo_root/docs/contracts/bounded-contexts.yaml"

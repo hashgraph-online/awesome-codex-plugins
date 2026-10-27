@@ -1,0 +1,4 @@
+interface:
+  display_name: "SERP Rank Verification"
+  short_description: "Verify search result positions and blockers."
+  default_prompt: "Use $serp-rank-verification when checking organic search presence, indexing, SERP positions, snippets, or search blockers with region and result-type proof."

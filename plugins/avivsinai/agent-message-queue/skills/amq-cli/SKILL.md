@@ -1,10 +1,10 @@
 ---
 name: amq-cli
-version: 0.103.0 # x-release-please-version
+version: 0.115.2 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
-  compatibility: claude-code, codex-cli, grok-cli
+  compatibility: claude-code, codex-cli, grok-cli, antigravity-cli
 ---
 
 # AMQ CLI
@@ -81,6 +81,21 @@ Send status when work starts, a state, decision, or result changes, or an agreed
 escalation is due. Avoid file-by-file completion notices and unchanged check-ins.
 Automated callers own duplicate suppression by item, revision, and event;
 AMQ threads correlate messages, but do not deduplicate repeated sends.
+
+Use an explicit reply kind for task updates. A reply to a `todo` otherwise
+inherits `todo` and can open another request. Progress uses `--kind status`;
+completion uses `--kind status --labels done`; cancellation uses
+`--kind decision --labels withdrawn`. State the result or cancellation
+honestly: withdrawing a request does not mean its feature shipped.
+The last `--refs` entry is the direct reply target; a list of refs is lineage,
+not a batch-close operation. Close independent requests separately.
+
+An unanswered message is a reply obligation, not evidence that work started.
+Use the host harness's task and turn records when activity matters. Keep
+declared task state, actual execution, approval waits, and delivery presence
+separate. A live wake, a recent message, or an assigned tracker item does not
+prove a task is running. Do not create work items from old coordination
+messages without confirming an actual requested outcome and remaining gap.
 
 ## Route the task
 

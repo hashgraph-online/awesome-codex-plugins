@@ -1,6 +1,6 @@
 # Shipped macros
 
-`transform macro` lists the macros dex ships. `transform macro <name>` proposes
+`transform macro` lists the macros Dex ships. `transform macro <name>` proposes
 scaffolding one into the project's macro directory as a plan, applied with
 `transform apply` like any other. The user's copy is theirs to edit; re-running
 the command diffs it against the shipped version (a warning says whether it is

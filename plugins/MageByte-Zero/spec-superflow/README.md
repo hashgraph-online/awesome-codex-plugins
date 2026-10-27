@@ -16,7 +16,7 @@
 
 spec-superflow 把 OpenSpec 的结构化规划与 Superpowers 的验证纪律组合成一个自包含插件。v2 将新任务收敛为两个入口：明确的小改动直接执行，需要共同确认范围的改动先形成一份短计划再执行。
 
-当前版本：`v2.0.1`
+当前版本：`v2.1.0`
 
 默认行为偏向低成本：当前会话内执行、最终审查一次、最终验证一次、普通调试留在执行阶段。子代理、逐波审查和 worktree 都需要显式选择。
 
@@ -38,7 +38,7 @@ v2 删除新任务的模式问卷和手写 `execution-contract.md`，一份执�
 | 调试切换独立状态 | 普通诊断留在 `executing` |
 | 多处缓存可阻塞计划 | 已批准的 schema v2 执行计划是唯一判断依据 |
 
-已有变更继续按原来的状态、审批记录和审查结果恢复，不会被自动迁移或重置。
+已有变更继续按原来的状态、审批记录和审查结果恢复，不会被自动迁移或重置。默认 Skill 只保留 v2 流程；识别到旧版收据或执行计划时，才按需读取[旧流程恢复规则](docs/legacy-workflow.md)。
 
 ## 快速开始
 
@@ -183,7 +183,7 @@ ssf isolate changes/example --worktree
 ### OpenAI Codex CLI / App
 
 ```bash
-codex plugin marketplace add MageByte-Zero/spec-superflow --ref v2.0.1
+codex plugin marketplace add MageByte-Zero/spec-superflow --ref v2.1.0
 codex plugin add spec-superflow@spec-superflow
 ```
 
@@ -208,7 +208,15 @@ copilot plugin install spec-superflow@spec-superflow
 gemini extensions install https://github.com/MageByte-Zero/spec-superflow
 ```
 
-项目支持 19 个 AI 编程平台。其他平台的安装器、目录和卸载方式见 [INSTALL.md](INSTALL.md)，能力差异见 [平台矩阵](docs/platform-matrix.md)。
+### CatPaw（妙手，导入包预览）
+
+```bash
+node scripts/spec-superflow.mjs package-catpaw ./catpaw-spec-superflow
+```
+
+在妙手「技能」中导入生成的文件夹。包内包含同版本 CLI 和九个流程技能，升级时一起重新导入。此命令随下一版本发布；目前已验证包结构与本地 CLI，尚未完成妙手客户端验收。
+
+项目另支持 19 个 AI 编程平台。其他平台的安装器、目录和卸载方式见 [INSTALL.md](INSTALL.md)，能力差异见 [平台矩阵](docs/platform-matrix.md)。
 
 ## 命令
 
@@ -223,6 +231,7 @@ gemini extensions install https://github.com/MageByte-Zero/spec-superflow
 | `ssf sync <dir>` | 原子同步 delta spec 到发布基线 |
 | `ssf doctor` | 检查安装、版本和资源一致性 |
 | `ssf finish <dir>` | 验证并合并已记录的隔离分支 |
+| `ssf package-catpaw <new-dir>` | 生成妙手可导入的完整技能文件夹 |
 
 运行 `ssf --help` 查看完整命令。`workflow recommend/select/accept`、旧 execution plan 和八状态路由只用于恢复 v1 变更。
 

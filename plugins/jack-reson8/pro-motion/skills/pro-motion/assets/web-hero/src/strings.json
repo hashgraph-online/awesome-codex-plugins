@@ -1,0 +1,615 @@
+{
+  "_note": "官网六语文案。标语与「同款码」叫法对齐 App 的 Localizable.xcstrings；字墙用词和营销句为初稿，上线前请母语者看一遍（ja/ko/vi/zh-Hant/en）。",
+  "zh-Hans": {
+    "path": "/",
+    "hreflang": "zh-Hans",
+    "font": "marker",
+    "title": "Tutti · 出片，从未如此简单。",
+    "desc": "一张照片，一秒出神图。复制同款码，做同款。",
+    "header_join": "内测 →",
+    "code_aria": "复制同款码",
+    "code_copy": "复制",
+    "code_copied": "复制好了",
+    "code_hold": "长按复制",
+    "hint_tap": "按一下 出片",
+    "hint_fix": "按一下 修好它",
+    "cta_mine": "用我的照片",
+    "cta_again": "再放一张",
+    "cta_retry": "再试一次",
+    "cta_other": "换一张",
+    "save": "存这张",
+    "join_link": "先排队内测",
+    "finding": "正在找你…",
+    "finding_note": "第一次要下载抠图工具，几秒钟。照片只在你手机里处理，不上传",
+    "no_person": "没找到人，换一张有人的照片试试",
+    "seg_fail": "这台手机没跑起来抠图，换个浏览器试试",
+    "code_typo": "码好像抄错了一位，是不是这个？",
+    "code_bad": "这串码读不出来，再核对一下",
+    "code_other": "这个玩法在 App 里，网页先看个大概",
+    "print": "打印",
+    "save_img": "存图",
+    "sheet_aria": "内测",
+    "close": "关闭",
+    "sheet_h2": "内测名额不多。<br>叫朋友来，往前插队。",
+    "email_ph": "你的邮箱",
+    "join_btn": "排上",
+    "joining": "排队中…",
+    "join_privacy": "只用来发内测邀请，不发广告。",
+    "privacy_link": "隐私",
+    "rank_prefix": "你排第",
+    "rank_boost": "每叫来 1 个朋友，往前 {n} 位",
+    "rank_invites": "已经叫来 {n} 个朋友",
+    "invite_btn": "叫朋友插队",
+    "copy_link": "复制链接",
+    "copied": "复制好了",
+    "err_email": "邮箱好像不对，再看一眼",
+    "err_busy": "现在排不上，过一会儿再试",
+    "share_text": "我在排 Tutti 内测，一张照片一秒出神图。用我的链接排队，我们都往前插 → {url}",
+    "save_text": "{code} 复制这串码，打开 Tutti 做同款 → {url}",
+    "n404": "这一页找不到了",
+    "fixed": "没坏，出片了。",
+    "walls": [
+      [
+        "出片",
+        "出片出片",
+        "出片",
+        "出片出片"
+      ],
+      [
+        "神图",
+        "神图神图",
+        "神图",
+        "神图神图"
+      ],
+      [
+        "一秒出片",
+        "一秒",
+        "一秒一秒一秒",
+        "出片"
+      ],
+      [
+        "玩一下",
+        "玩一下玩一下",
+        "就来",
+        "玩一下"
+      ],
+      [
+        "出片",
+        "从未如此",
+        "简单",
+        "出片出片出片"
+      ],
+      [
+        "神图",
+        "神图神图神图",
+        "玩一下",
+        "就来"
+      ]
+    ],
+    "broken": [
+      "404",
+      "坏了",
+      "这张图",
+      "坏了坏了"
+    ],
+    "today": "今日玩法",
+    "tnames": {
+      "cover-star": "封面人物",
+      "star-punch": "星星穿孔",
+      "only-me-color": "只有我是彩色",
+      "white-outline": "白线描边",
+      "red-special": "红色特刊",
+      "mirrored-sparkles": "镜像闪星"
+    }
+  },
+  "zh-Hant": {
+    "path": "/zh-hant/",
+    "hreflang": "zh-Hant",
+    "font": "wenkai",
+    "title": "Tutti · 出片，從未如此簡單。",
+    "desc": "一張照片，一秒出神圖。複製同款碼，做同款。",
+    "header_join": "內測 →",
+    "code_aria": "複製同款碼",
+    "code_copy": "複製",
+    "code_copied": "複製好了",
+    "code_hold": "長按複製",
+    "hint_tap": "按一下 出片",
+    "hint_fix": "按一下 修好它",
+    "cta_mine": "用我的照片",
+    "cta_again": "再放一張",
+    "cta_retry": "再試一次",
+    "cta_other": "換一張",
+    "save": "存這張",
+    "join_link": "先排隊內測",
+    "finding": "正在找你…",
+    "finding_note": "第一次要下載去背工具，幾秒鐘。照片只在你手機裡處理，不上傳",
+    "no_person": "沒找到人，換一張有人的照片試試",
+    "seg_fail": "這台手機沒跑起來去背，換個瀏覽器試試",
+    "code_typo": "碼好像抄錯了一位，是不是這個？",
+    "code_bad": "這串碼讀不出來，再核對一下",
+    "code_other": "這個玩法在 App 裡，網頁先看個大概",
+    "print": "列印",
+    "save_img": "存圖",
+    "sheet_aria": "內測",
+    "close": "關閉",
+    "sheet_h2": "內測名額不多。<br>叫朋友來，往前插隊。",
+    "email_ph": "你的信箱",
+    "join_btn": "排上",
+    "joining": "排隊中…",
+    "join_privacy": "只用來發內測邀請，不發廣告。",
+    "privacy_link": "隱私",
+    "rank_prefix": "你排第",
+    "rank_boost": "每叫來 1 個朋友，往前 {n} 位",
+    "rank_invites": "已經叫來 {n} 個朋友",
+    "invite_btn": "叫朋友插隊",
+    "copy_link": "複製連結",
+    "copied": "複製好了",
+    "err_email": "信箱好像不對，再看一眼",
+    "err_busy": "現在排不上，過一會兒再試",
+    "share_text": "我在排 Tutti 內測，一張照片一秒出神圖。用我的連結排隊，我們都往前插 → {url}",
+    "save_text": "{code} 複製這串碼，打開 Tutti 做同款 → {url}",
+    "n404": "這一頁找不到了",
+    "fixed": "沒壞，出片了。",
+    "walls": [
+      [
+        "出片",
+        "出片出片",
+        "出片",
+        "出片出片"
+      ],
+      [
+        "神圖",
+        "神圖神圖",
+        "神圖",
+        "神圖神圖"
+      ],
+      [
+        "一秒出片",
+        "一秒",
+        "一秒一秒一秒",
+        "出片"
+      ],
+      [
+        "玩一下",
+        "玩一下玩一下",
+        "就來",
+        "玩一下"
+      ],
+      [
+        "出片",
+        "從未如此",
+        "簡單",
+        "出片出片出片"
+      ],
+      [
+        "神圖",
+        "神圖神圖神圖",
+        "玩一下",
+        "就來"
+      ]
+    ],
+    "broken": [
+      "404",
+      "壞了",
+      "這張圖",
+      "壞了壞了"
+    ],
+    "today": "今日玩法",
+    "tnames": {
+      "cover-star": "封面人物",
+      "star-punch": "星星穿孔",
+      "only-me-color": "只有我是彩色",
+      "white-outline": "白線描邊",
+      "red-special": "紅色特刊",
+      "mirrored-sparkles": "鏡像閃星"
+    }
+  },
+  "ja": {
+    "path": "/ja/",
+    "hreflang": "ja",
+    "font": "marker",
+    "title": "Tutti · いい写真、かんたんに。",
+    "desc": "写真1枚、1秒で神写真。コードをコピーして、同じ風に。",
+    "header_join": "ベータ →",
+    "code_aria": "コードをコピー",
+    "code_copy": "コピー",
+    "code_copied": "コピーした",
+    "code_hold": "長押しでコピー",
+    "hint_tap": "タップで 映え",
+    "hint_fix": "タップで 直す",
+    "cta_mine": "自分の写真で",
+    "cta_again": "もう一枚",
+    "cta_retry": "もう一回",
+    "cta_other": "別の写真で",
+    "save": "保存",
+    "join_link": "先にベータに並ぶ",
+    "finding": "あなたを探してる…",
+    "finding_note": "初回だけ切り抜きツールを読み込みます。写真は端末の中だけで処理、アップロードしません",
+    "no_person": "人が見つからない。人が写ってる写真でどうぞ",
+    "seg_fail": "このスマホでは切り抜きが動かなかった。別のブラウザで試してみて",
+    "code_typo": "コード、1文字まちがえてるかも。これ？",
+    "code_bad": "このコードは読めません。もう一度確認して",
+    "code_other": "このスタイルはアプリで。ここではざっくりプレビュー",
+    "print": "印刷",
+    "save_img": "保存",
+    "sheet_aria": "ベータ",
+    "close": "閉じる",
+    "sheet_h2": "ベータ枠は少なめ。<br>友だちを呼んで、前に割り込もう。",
+    "email_ph": "メールアドレス",
+    "join_btn": "並ぶ",
+    "joining": "並んでます…",
+    "join_privacy": "ベータの招待にだけ使います。広告は送りません。",
+    "privacy_link": "プライバシー",
+    "rank_prefix": "あなたの順番",
+    "rank_boost": "友だち1人で {n} 人ぶん前へ",
+    "rank_invites": "もう {n} 人呼んだ",
+    "invite_btn": "友だちを呼ぶ",
+    "copy_link": "リンクをコピー",
+    "copied": "コピーした",
+    "err_email": "メールアドレスをもう一度見て",
+    "err_busy": "いまは並べません。少しあとでもう一度",
+    "share_text": "Tuttiのベータに並んでる。写真1枚、1秒で神写真。このリンクから並ぶと、ふたりとも前に行ける → {url}",
+    "save_text": "{code} これをコピーしてTuttiを開くと同じ風に → {url}",
+    "n404": "このページは見つからない",
+    "fixed": "壊れてない、映えた。",
+    "walls": [
+      [
+        "映え",
+        "映え映え",
+        "映え",
+        "映え映え"
+      ],
+      [
+        "神写真",
+        "神写真",
+        "エモい",
+        "神写真"
+      ],
+      [
+        "一瞬で映え",
+        "一瞬",
+        "一瞬一瞬",
+        "映え"
+      ],
+      [
+        "あそぼ",
+        "あそぼあそぼ",
+        "すぐ",
+        "あそぼ"
+      ],
+      [
+        "映え",
+        "いい写真",
+        "かんたん",
+        "映え映え映え"
+      ],
+      [
+        "神写真",
+        "エモいエモい",
+        "あそぼ",
+        "すぐ"
+      ]
+    ],
+    "broken": [
+      "404",
+      "壊れた",
+      "この写真",
+      "壊れた壊れた"
+    ],
+    "today": "今日の一枚",
+    "tnames": {
+      "cover-star": "表紙の人",
+      "star-punch": "星のパンチ穴",
+      "only-me-color": "わたしだけカラー",
+      "white-outline": "白い線のふちどり",
+      "red-special": "赤い特集号",
+      "mirrored-sparkles": "ミラーのキラ星"
+    }
+  },
+  "ko": {
+    "path": "/ko/",
+    "hreflang": "ko",
+    "font": "hansans",
+    "title": "Tutti · 인생샷, 이렇게 쉽게.",
+    "desc": "사진 한 장, 1초면 인생샷. 코드를 복사해서 똑같이.",
+    "header_join": "베타 →",
+    "code_aria": "코드 복사",
+    "code_copy": "복사",
+    "code_copied": "복사했어요",
+    "code_hold": "길게 눌러 복사",
+    "hint_tap": "눌러서 인생샷",
+    "hint_fix": "눌러서 고치기",
+    "cta_mine": "내 사진으로",
+    "cta_again": "한 장 더",
+    "cta_retry": "다시",
+    "cta_other": "다른 사진",
+    "save": "저장",
+    "join_link": "베타 먼저 줄 서기",
+    "finding": "너를 찾는 중…",
+    "finding_note": "처음 한 번만 누끼 도구를 받아요. 사진은 폰 안에서만 처리하고 올리지 않아요",
+    "no_person": "사람을 못 찾았어요. 사람이 나온 사진으로 해봐요",
+    "seg_fail": "이 폰에서는 누끼가 안 돌아가요. 다른 브라우저로 해봐요",
+    "code_typo": "코드 한 글자 틀린 것 같아요. 이거예요?",
+    "code_bad": "읽을 수 없는 코드예요. 다시 확인해요",
+    "code_other": "이 스타일은 앱에서. 여기선 대충 미리보기",
+    "print": "인쇄",
+    "save_img": "저장",
+    "sheet_aria": "베타",
+    "close": "닫기",
+    "sheet_h2": "베타 자리는 많지 않아요.<br>친구를 부르면 앞으로 새치기.",
+    "email_ph": "이메일",
+    "join_btn": "줄 서기",
+    "joining": "줄 서는 중…",
+    "join_privacy": "베타 초대에만 써요. 광고 안 보내요.",
+    "privacy_link": "개인정보",
+    "rank_prefix": "내 순서",
+    "rank_boost": "친구 1명마다 {n}칸 앞으로",
+    "rank_invites": "벌써 {n}명 불렀어요",
+    "invite_btn": "친구 부르기",
+    "copy_link": "링크 복사",
+    "copied": "복사했어요",
+    "err_email": "이메일을 다시 봐요",
+    "err_busy": "지금은 줄을 못 서요. 잠시 후 다시",
+    "share_text": "Tutti 베타 줄 서는 중. 사진 한 장으로 1초 인생샷. 이 링크로 줄 서면 우리 둘 다 앞으로 → {url}",
+    "save_text": "{code} 복사해서 Tutti 열면 똑같이 → {url}",
+    "n404": "이 페이지를 찾을 수 없어요",
+    "fixed": "안 망가졌어요, 인생샷이에요.",
+    "walls": [
+      [
+        "인생샷",
+        "인생샷",
+        "인생샷",
+        "인생샷"
+      ],
+      [
+        "갬성",
+        "갬성갬성",
+        "갬성",
+        "갬성갬성"
+      ],
+      [
+        "1초",
+        "1초 1초",
+        "인생샷",
+        "1초"
+      ],
+      [
+        "놀자",
+        "놀자놀자",
+        "바로",
+        "놀자"
+      ],
+      [
+        "인생샷",
+        "이렇게",
+        "쉽게",
+        "인생샷"
+      ],
+      [
+        "갬성",
+        "인생샷",
+        "놀자",
+        "바로"
+      ]
+    ],
+    "broken": [
+      "404",
+      "망했다",
+      "이 사진",
+      "망했다"
+    ],
+    "today": "오늘의 룩",
+    "tnames": {
+      "cover-star": "표지 모델",
+      "star-punch": "별 펀칭",
+      "only-me-color": "나만 컬러로",
+      "white-outline": "흰 선 테두리",
+      "red-special": "레드 스페셜",
+      "mirrored-sparkles": "거울 반짝별"
+    }
+  },
+  "vi": {
+    "path": "/vi/",
+    "hreflang": "vi",
+    "font": "shantell",
+    "title": "Tutti · Ảnh đẹp, dễ chưa từng thấy.",
+    "desc": "Một tấm ảnh, một giây ra ảnh xịn. Chép mã để làm giống vậy.",
+    "header_join": "Beta →",
+    "code_aria": "Chép mã",
+    "code_copy": "Chép",
+    "code_copied": "Đã chép",
+    "code_hold": "Nhấn giữ để chép",
+    "hint_tap": "Chạm để lên hình",
+    "hint_fix": "Chạm để sửa",
+    "cta_mine": "Dùng ảnh của mình",
+    "cta_again": "Thêm ảnh",
+    "cta_retry": "Thử lại",
+    "cta_other": "Ảnh khác",
+    "save": "Lưu",
+    "join_link": "Xếp hàng thử trước",
+    "finding": "Đang tìm bạn…",
+    "finding_note": "Lần đầu cần tải công cụ tách nền. Ảnh chỉ xử lý trong máy bạn, không tải lên",
+    "no_person": "Không thấy người. Thử ảnh có người nhé",
+    "seg_fail": "Máy này chưa chạy được tách nền. Thử trình duyệt khác nhé",
+    "code_typo": "Mã hình như sai một ký tự. Có phải mã này?",
+    "code_bad": "Không đọc được mã này. Kiểm tra lại nhé",
+    "code_other": "Kiểu này có trong app. Ở đây xem đại khái thôi",
+    "print": "In",
+    "save_img": "Lưu ảnh",
+    "sheet_aria": "Beta",
+    "close": "Đóng",
+    "sheet_h2": "Suất beta không nhiều.<br>Rủ bạn để chen lên trước.",
+    "email_ph": "Email của bạn",
+    "join_btn": "Xếp hàng",
+    "joining": "Đang xếp…",
+    "join_privacy": "Chỉ dùng để gửi lời mời beta. Không gửi quảng cáo.",
+    "privacy_link": "Quyền riêng tư",
+    "rank_prefix": "Bạn đang ở vị trí",
+    "rank_boost": "Mỗi người bạn rủ, lên trước {n} chỗ",
+    "rank_invites": "Đã rủ {n} người",
+    "invite_btn": "Rủ bạn chen lên",
+    "copy_link": "Chép link",
+    "copied": "Đã chép",
+    "err_email": "Email có vẻ sai, xem lại nhé",
+    "err_busy": "Giờ chưa xếp được, lát thử lại nhé",
+    "share_text": "Mình đang xếp hàng beta Tutti: một tấm ảnh, một giây ra ảnh xịn. Xếp qua link này cả hai cùng lên trước → {url}",
+    "save_text": "{code} Chép rồi mở Tutti để làm giống vậy → {url}",
+    "n404": "Không tìm thấy trang này",
+    "fixed": "Không hỏng đâu, lên hình rồi.",
+    "walls": [
+      [
+        "sống ảo",
+        "sống ảo",
+        "ảnh đẹp",
+        "sống ảo"
+      ],
+      [
+        "xịn xò",
+        "ảnh xịn",
+        "xịn",
+        "xịn xò"
+      ],
+      [
+        "1 giây",
+        "1 giây",
+        "lên hình",
+        "1 giây"
+      ],
+      [
+        "chơi",
+        "chơi thử",
+        "ngay",
+        "chơi"
+      ],
+      [
+        "ảnh đẹp",
+        "dễ",
+        "chưa từng thấy",
+        "ảnh đẹp"
+      ],
+      [
+        "xịn",
+        "sống ảo",
+        "chơi",
+        "ngay"
+      ]
+    ],
+    "broken": [
+      "404",
+      "hỏng",
+      "ảnh này",
+      "hỏng rồi"
+    ],
+    "today": "Hôm nay",
+    "tnames": {
+      "cover-star": "Nhân vật bìa",
+      "star-punch": "Đục lỗ hình sao",
+      "only-me-color": "Chỉ mình tôi có màu",
+      "white-outline": "Viền trắng",
+      "red-special": "Số đặc biệt đỏ",
+      "mirrored-sparkles": "Sao lấp lánh đối xứng"
+    }
+  },
+  "en": {
+    "path": "/en/",
+    "hreflang": "en",
+    "font": "shantell",
+    "title": "Tutti · Great shots, made easy.",
+    "desc": "One photo, one second, a great shot. Copy the code to get the same look.",
+    "header_join": "Beta →",
+    "code_aria": "Copy code",
+    "code_copy": "Copy",
+    "code_copied": "Copied",
+    "code_hold": "Hold to copy",
+    "hint_tap": "Tap to shoot",
+    "hint_fix": "Tap to fix",
+    "cta_mine": "Use my photo",
+    "cta_again": "Another one",
+    "cta_retry": "Try again",
+    "cta_other": "Another photo",
+    "save": "Save",
+    "join_link": "Join the beta first",
+    "finding": "Finding you…",
+    "finding_note": "First time only: loading the cutout tool. Your photo stays on your phone, never uploaded",
+    "no_person": "No one found. Try a photo with a person in it",
+    "seg_fail": "Cutout didn't run on this phone. Try another browser",
+    "code_typo": "One character looks off. Did you mean",
+    "code_bad": "Can't read this code. Check it again",
+    "code_other": "This look lives in the app. Here's a rough preview",
+    "print": "Print",
+    "save_img": "Save",
+    "sheet_aria": "Beta",
+    "close": "Close",
+    "sheet_h2": "Beta spots are few.<br>Bring friends, cut the line.",
+    "email_ph": "Your email",
+    "join_btn": "Join",
+    "joining": "Joining…",
+    "join_privacy": "Only for beta invites. No ads, ever.",
+    "privacy_link": "Privacy",
+    "rank_prefix": "You're number",
+    "rank_boost": "Each friend moves you up {n}",
+    "rank_invites": "{n} friends joined so far",
+    "invite_btn": "Bring friends",
+    "copy_link": "Copy link",
+    "copied": "Copied",
+    "err_email": "That email looks off",
+    "err_busy": "Can't join right now. Try again soon",
+    "share_text": "I'm in line for the Tutti beta: one photo, one second, a great shot. Join with my link and we both move up → {url}",
+    "save_text": "{code} copy this and open Tutti for the same look → {url}",
+    "n404": "This page is gone",
+    "fixed": "Not broken. Just shot.",
+    "walls": [
+      [
+        "SHOT",
+        "ONE TAP",
+        "SHOT",
+        "ONE TAP"
+      ],
+      [
+        "SLAY",
+        "SO GOOD",
+        "SLAY",
+        "SLAY"
+      ],
+      [
+        "1 SEC",
+        "ONE SEC",
+        "POST IT",
+        "1 SEC"
+      ],
+      [
+        "PLAY",
+        "PLAY PLAY",
+        "NOW",
+        "PLAY"
+      ],
+      [
+        "GREAT",
+        "SHOTS",
+        "MADE EASY",
+        "GREAT"
+      ],
+      [
+        "SO GOOD",
+        "SLAY",
+        "PLAY",
+        "NOW"
+      ]
+    ],
+    "broken": [
+      "404",
+      "BROKEN",
+      "THIS PIC",
+      "BROKEN"
+    ],
+    "today": "Today's look",
+    "tnames": {
+      "cover-star": "Cover star",
+      "star-punch": "Star punch-outs",
+      "only-me-color": "Only I am colour",
+      "white-outline": "White outline",
+      "red-special": "Red special",
+      "mirrored-sparkles": "Mirrored sparkles"
+    }
+  }
+}

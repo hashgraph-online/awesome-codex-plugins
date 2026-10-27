@@ -22,7 +22,7 @@ Google rolled out a new **GSC AI Performance Report** on **3 June 2026** ([Searc
 | Device breakdown | NEW |
 | Date range filtering | NEW |
 | **Click data** | **NOT INCLUDED** (Google explicitly excluded — important caveat for attribution) |
-| Opt-out toggle in Search Console | NEW (replaces having to ship robots.txt / meta tags for AI-specific exclusion) |
+| Search generative AI control | Settings → Search generative AI: excludes the site from AI Overviews, AI Mode and Discover's AI features. Google: not a ranking or inclusion signal for the rest of Search, no effect on AI training; worldwide since 31 Aug 2026 ([help](https://support.google.com/webmasters/answer/16908024), read 2026-10-27). Opting out also drops the "preferred" badge in AI features; see `/digital-marketing-pro:aeo-geo` before recommending it |
 | API surface | **NOT YET PUBLISHED** — UI only (last checked July 2026; re-check the Search Console API release notes before automating) |
 | **Discover generative surfaces** | **NEW (June–July 2026)** — the report family now also covers generative AI features in Discover ([Google announcement](https://developers.google.com/search/blog/2026/06/gen-ai-performance-reports)) |
 | Data availability | Backfilled from **18 May 2026**; access expanded broadly in July 2026, with a companion deep-dive help doc on AI controls |
@@ -54,14 +54,14 @@ Google's [AI optimization guide](https://developers.google.com/search/docs/funda
 
 - Setting baseline AI visibility for a new brand (first 30-day capture of AI Overview + AI Mode impressions)
 - Comparing brand AI visibility against `aeo-audit` synthetic results — the GSC report shows ACTUAL impressions vs `aeo-audit`'s probe queries
-- Deciding whether to flip the in-SC AI opt-out toggle for a brand (regulated industry, brand-safety concern, or paywall/login content)
+- Deciding whether to use the Search generative AI control (Settings → Search generative AI) for a brand (regulated industry, brand-safety concern, or paywall/login content)
 - Quarterly business review evidence — "AI search impressions grew X%" using authoritative Google data
 
 ## Brand context (auto-applied)
 
 1. Read `~/.claude-marketing/brands/_active-brand.json` for the active slug, then load `~/.claude-marketing/brands/{slug}/profile.json`
 2. If no brand exists: ask "Set up a brand first (/digital-marketing-pro:brand-setup)?" — or proceed with defaults
-3. Apply industry-specific guidance from `skills/context-engine/industry-profiles.md` (YMYL industries may want opt-out toggled ON until E-E-A-T audit is clean)
+3. Apply industry-specific guidance from `skills/context-engine/industry-profiles.md` (YMYL industries may want to exclude the site with the Search generative AI control until the E-E-A-T audit is clean)
 4. Reference `skills/context-engine/compliance-rules.md` for jurisdiction-specific rules (EU markets — see `skills/context-engine/eu-code-of-practice.md` for Article 50 transparency context)
 
 ## Numbered output convention
@@ -74,7 +74,7 @@ All outputs go to `${CLAUDE_PLUGIN_DATA}/{brand}/seo/gsc-ai-performance/{YYYY-MM
 02-export.csv                raw CSV export from GSC (preserved for reproducibility)
 03-script-output.json        gsc-ai-performance.py parsed output (impressions, pages, countries, devices)
 04-reconciliation.md         vs aeo-audit synthetic probe results — gap analysis
-05-opt-out-decision.md       y/n on the in-SC opt-out toggle, with rationale
+05-opt-out-decision.md       y/n on the Search generative AI control, with rationale
 06-quality-scorecard.md      the gates below
 PLAN.md                      single-page summary with tracking cadence
 ```
@@ -114,7 +114,7 @@ If the property still doesn't see the report after the worldwide rollout (31 Aug
 4. **Reconcile against `aeo-audit`** — synthetic queries from `/digital-marketing-pro:aeo-audit` test what AI engines *might* surface; the GSC report shows what they *actually* surfaced. Significant gaps either way are signals:
    - GSC shows much more than aeo-audit found → your test query set is too narrow; expand it
    - aeo-audit found brand in synthetic results but GSC shows few impressions → low query volume for those topics; redirect AEO effort to higher-volume topics
-5. **Opt-out decision** — if any of the following apply, consider the in-SC opt-out toggle:
+5. **Opt-out decision** — if any of the following apply, consider excluding the site with the Search generative AI control. Weigh the cost first: exclusion gives up every AI-feature impression in this report and the "preferred" badge in AI features; Google says it is not a ranking signal for the rest of Search and does not affect AI training:
    - Industry has YMYL / regulatory risk and brand E-E-A-T isn't fully audited yet
    - Brand's content is paywalled or login-gated (AI surfacing of partial content can damage funnel)
    - Brand is the subject of active reputation management — surfacing in AI answers amplifies whatever sentiment AI models have absorbed

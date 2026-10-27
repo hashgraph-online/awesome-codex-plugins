@@ -28,6 +28,10 @@ Depth is `lean` by default; honor requested
 `standard`/`deep` using [depth standards](references/depth-standards.md).
 When detached execution is requested, select the
 [physical authoring route](references/detached-plan-format.md) before writing.
+Only when the user asks for state-first lean, or the planning directory has
+`status.json`, follow [state-first](../zagrosi-implement/references/state-first.md)
+instead: write `plan.md`, run setup with `--state-first`, and skip the contract and
+postflight below.
 
 Resolve absolute `plugin_root`: the plugin directory two levels above this skill's
 folder, containing `scripts/zagrosi_skills.py`; never the target repo. Claude Code

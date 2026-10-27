@@ -13,6 +13,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 from contextlib import nullcontext
 from urllib.parse import urlparse
 
@@ -297,6 +298,7 @@ def validate_outputs(job, source, output, inspection):
             "note": "Checks structure, requested variants, page counts and dimensions; visual/content QA is still required."}
 
 def run_job(job_path, engine, execute=False, native_observer=None):
+    started = time.monotonic()
     job, source, output, args = prepare(job_path)
     engine = executable(engine)
     available, version = probe(engine)
@@ -366,6 +368,7 @@ def run_job(job_path, engine, execute=False, native_observer=None):
         plan["status"] = "interrupted-or-failed"
         raise
     finally:
+        plan["elapsed_seconds"] = round(time.monotonic() - started, 3)
         if bridge:
             plan["bridge"] = dict(bridge.stats)
             plan["bridge"]["native_item_types"] = getattr(bridge.client, "event_types", [])

@@ -1,0 +1,46 @@
+{
+  "name": "pro-launch",
+  "version": "1.0.0",
+  "description": "Build a product 0→1 taste-first: references, naming and trademark checks, style bible, UI loop, launch video, GTM and shipping, with phase gates that force real artifacts.",
+  "author": {
+    "name": "jack-reson8",
+    "url": "https://github.com/jack-reson8"
+  },
+  "homepage": "https://github.com/jack-reson8/pro-launch",
+  "repository": "https://github.com/jack-reson8/pro-launch",
+  "license": "MIT",
+  "keywords": [
+    "product",
+    "app-development",
+    "naming",
+    "branding",
+    "ui-design",
+    "gtm",
+    "launch",
+    "indie-hacker",
+    "claude-code"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Pro Launch",
+    "shortDescription": "Build a product 0 to 1 with taste and phase gates",
+    "longDescription": "Take an app or product from idea to launch: positioning, naming and domain checks, reference hunting, style bible and style frames, feature map, UI build loop, asset generation, device QA, launch video, GTM and shipping, with gates that force real artifacts at each phase.",
+    "developerName": "jack-reson8",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/jack-reson8/pro-launch",
+    "defaultPrompt": [
+      "Help me name this product and check domains",
+      "Find references and make three style frames for this app",
+      "Plan the launch and GTM for my app"
+    ],
+    "brandColor": "#2563EB",
+    "screenshots": [],
+    "privacyPolicyURL": "https://github.com/jack-reson8/pro-launch/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/jack-reson8/pro-launch/blob/main/LICENSE"
+  }
+}

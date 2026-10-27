@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-10-21",
-  "total": 319,
+  "last_updated": "2026-10-27",
+  "total": 338,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -270,6 +270,17 @@
       "install_url": "https://raw.githubusercontent.com/BB-84C/bgs-modding-superpowers/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Bindry",
+      "url": "https://github.com/bindryai/Plugins/tree/codex-distribution",
+      "owner": "bindryai",
+      "repo": "Plugins",
+      "description": "Compiles public or workspace Binders into version-pinned agent skills, checks instruction drift, and supports optional MCP-based live mode.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/bindryai/Plugins/codex-distribution/.codex-plugin/plugin.json",
+      "source_ref": "codex-distribution"
+    },
+    {
       "name": "Boss",
       "url": "https://github.com/echoVic/boss-skill",
       "owner": "echoVic",
@@ -450,14 +461,14 @@
       "install_url": "https://raw.githubusercontent.com/TohmaN233/codex-agents-workflow/HEAD/plugins/codex-agents-workflow/.codex-plugin/plugin.json"
     },
     {
-      "name": "Codex Attachment Manager",
-      "url": "https://github.com/chipfighter/codex-attachment-manager",
-      "owner": "chipfighter",
-      "repo": "codex-attachment-manager",
-      "description": "Choose which past images in a Codex desktop task go to the model with your next message; unchecked ones become short placeholders, so long image-heavy tasks keep going without starting over.",
+      "name": "Codex Auto Resume",
+      "url": "https://github.com/songyb111-gachon/codex-auto-resume-windows",
+      "owner": "songyb111-gachon",
+      "repo": "codex-auto-resume-windows",
+      "description": "Unofficial Windows app and Codex plugin that waits out Codex usage limits, rate limits and temporary failures, then continues the exact interrupted conversation by itself, with a Dashboard and a tray icon.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/chipfighter/codex-attachment-manager/HEAD/plugin/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/songyb111-gachon/codex-auto-resume-windows/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Codex How To",
@@ -568,6 +579,26 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/joelfarthing/codex-usage-and-resets/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Codex–Claude Council",
+      "url": "https://github.com/hamza-aziz-ai/codex-claude-council",
+      "owner": "hamza-aziz-ai",
+      "repo": "codex-claude-council",
+      "description": "ChatGPT (through the Codex CLI) and Claude (through Claude Code) answer independently, then reply to each other round after round until both agree on one answer, read-only and on your own subscriptions.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hamza-aziz-ai/codex-claude-council/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Context Attachment Manager",
+      "url": "https://github.com/chipfighter/context-attachment-manager",
+      "owner": "chipfighter",
+      "repo": "context-attachment-manager",
+      "description": "Manage image history in Codex desktop and Claude Desktop Code with on-demand image retrieval, pinned references, and search by description or feedback.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/chipfighter/context-attachment-manager/HEAD/plugin/.codex-plugin/plugin.json"
     },
     {
       "name": "Context Guard",
@@ -754,7 +785,7 @@
       "url": "https://github.com/mirkobozzetto/espresso",
       "owner": "mirkobozzetto",
       "repo": "espresso",
-      "description": "Full token-saving stack in one plugin - output compression, global rules, RTK hook, Caveman ultra, GitNexus config. Detects existing setup, installs only what's missing. Works on Claude Code and Codex.",
+      "description": "Concise, evidence-preserving output with bundled Ponytail, for Claude Code, Codex, Pi and OMP.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/mirkobozzetto/espresso/HEAD/.codex-plugin/plugin.json"
@@ -1044,7 +1075,7 @@
       "url": "https://github.com/toranalytics/off-the-wall",
       "owner": "toranalytics",
       "repo": "off-the-wall",
-      "description": "Quotes your own past corrections back to Codex, word for word, before each answer; `otw report` shows what you correct most from your local history, and subagent routing names a cheaper model per subagent. No API key.",
+      "description": "Quotes your own past corrections back to Codex, word for word, before each answer; `otw report` shows what you correct most from your local history, and a routing rule asks the orchestrator to name a model for each subagent. No API key.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/toranalytics/off-the-wall/HEAD/.codex-plugin/plugin.json"
@@ -1058,6 +1089,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "oh-my-openspec",
+      "url": "https://github.com/alexeyco/oh-my-openspec",
+      "owner": "alexeyco",
+      "repo": "oh-my-openspec",
+      "description": "Spec-driven development workflow for Codex CLI and OpenCode, with planning, parallel task execution, and mechanical OpenSpec validation.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/alexeyco/oh-my-openspec/HEAD/plugins/oh-my-openspec/.codex-plugin/plugin.json"
     },
     {
       "name": "Ontoly",
@@ -1118,6 +1159,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/ouonet/praxis/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Pro Launch",
+      "url": "https://github.com/jack-reson8/pro-launch",
+      "owner": "jack-reson8",
+      "repo": "pro-launch",
+      "description": "Takes an app or product from idea to launch with phase gates for naming and domain checks, references, style frames, UI loop, GTM and shipping.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jack-reson8/pro-launch/HEAD/plugins/pro-launch/.codex-plugin/plugin.json"
     },
     {
       "name": "Project Autopilot",
@@ -1220,6 +1271,16 @@
       "install_url": "https://raw.githubusercontent.com/MykytaStel/repopilot/HEAD/integrations/claude-code/repopilot/.codex-plugin/plugin.json"
     },
     {
+      "name": "Research Agent Skills",
+      "url": "https://github.com/KalarisLabs/research-agent-skills",
+      "owner": "KalarisLabs",
+      "repo": "research-agent-skills",
+      "description": "280+ Agent Skills that turn Codex, Claude Code, Cursor and other agents into a research co-scientist across the academic research lifecycle: literature and PRISMA reviews, hypotheses, experimental design, data analysis in biology, chemistry, medicine, physics and ML, paper writing, citation verification and peer review.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/KalarisLabs/research-agent-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Reviewable HTML Workbench",
       "url": "https://github.com/u-ichi/reviewable-html-workbench",
       "owner": "u-ichi",
@@ -1300,6 +1361,16 @@
       "install_url": "https://raw.githubusercontent.com/MohammadHijjawi97/since-cutoff/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Skill Skill",
+      "url": "https://github.com/jack-reson8/skill-skill",
+      "owner": "jack-reson8",
+      "repo": "skill-skill",
+      "description": "Writes agent skills that change the output and lints SKILL.md against the Agent Skills spec with a 0-100 health score.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jack-reson8/skill-skill/HEAD/plugins/skill-skill/.codex-plugin/plugin.json"
+    },
+    {
       "name": "skill-sync-publisher",
       "url": "https://github.com/liuyewang/skill-sync-publisher",
       "owner": "liuyewang",
@@ -1308,6 +1379,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/liuyewang/skill-sync-publisher/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Sno Station Skills",
+      "url": "https://github.com/sno-ai/sno-station-skills",
+      "owner": "sno-ai",
+      "repo": "sno-station-skills",
+      "description": "Peer review, delegation, handoff and self-improvement skills that give Codex and Claude Code the working habits of a real team.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/sno-ai/sno-station-skills/HEAD/plugins/sno-station-standalone/.codex-plugin/plugin.json"
     },
     {
       "name": "Spec-Driven Development",
@@ -1324,7 +1405,7 @@
       "url": "https://github.com/MageByte-Zero/spec-superflow",
       "owner": "MageByte-Zero",
       "repo": "spec-superflow",
-      "description": "Lean spec workflow with direct or planned execution, optional specifications, one final review by default, recoverable state, and a bundled same-version CLI runtime.",
+      "description": "Lean spec workflow with direct or planned execution, optional specifications, one final review, recoverable state, a bundled same-version CLI, Windows-compatible Qoder/WorkBuddy installers, and a CatPaw (妙手) import-package preview.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/MageByte-Zero/spec-superflow/HEAD/.codex-plugin/plugin.json"
@@ -1340,14 +1421,14 @@
       "install_url": "https://raw.githubusercontent.com/yyykf/spellbook-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "Staff Engineer Mode",
-      "url": "https://github.com/sirmarkz/staff-engineer-mode",
-      "owner": "sirmarkz",
-      "repo": "staff-engineer-mode",
-      "description": "Routes engineering design, delivery, reliability, security, operations, and maintenance prompts to focused staff-level specialist guidance for AI coding agents.",
+      "name": "stacked-prs",
+      "url": "https://github.com/Qabbout/stacked-prs-skill",
+      "owner": "Qabbout",
+      "repo": "stacked-prs-skill",
+      "description": "Agent skill for Claude Code and Codex to split large changes into reviewable PRs, carry fixes through dependent branches, and land them in dependency order with automated Git checks.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/sirmarkz/staff-engineer-mode/HEAD/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/Qabbout/stacked-prs-skill/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Stark",
@@ -1681,6 +1762,16 @@
       "install_url": "https://raw.githubusercontent.com/Sandyzzx/codex-zcode-bridge/HEAD/plugins/codex-zcode-bridge/.codex-plugin/plugin.json"
     },
     {
+      "name": "/call-me",
+      "url": "https://github.com/radres/call-me",
+      "owner": "radres",
+      "repo": "call-me",
+      "description": "Lets Codex agents ring or text your iPhone through a hosted MCP server and read your spoken or typed reply back as text; the iPhone app is a paid subscription.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/radres/call-me/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "AbuzzHive",
       "url": "https://github.com/kubec/abuzzhive.com",
       "owner": "kubec",
@@ -1729,6 +1820,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jerryfane/agentgram/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AgentMart",
+      "url": "https://github.com/mustafaakmese/agentmart-plugins",
+      "owner": "mustafaakmese",
+      "repo": "agentmart-plugins",
+      "description": "Hosted webhook inbox, memory locker, wake-up calls, uptime and heartbeat watch and ask-my-human utilities for agents over remote MCP with OAuth sign-in, paid from a prepaid balance the human tops up.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/mustafaakmese/agentmart-plugins/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Aident Loadout",
@@ -1819,6 +1920,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/reliable-ly0411/babeldoc-pdf-translate/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "BankBridge",
+      "url": "https://github.com/bankbridge-money/bankbridge-plugin",
+      "owner": "bankbridge-money",
+      "repo": "bankbridge-plugin",
+      "description": "Remote MCP server and skill that give Codex read-only access to your own US bank, credit card and investment accounts, fetched live, for questions about spending, subscriptions, cashflow and holdings; paid, $5/month per connected bank.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/bankbridge-money/bankbridge-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Bitbucket CLI",
@@ -2051,16 +2162,6 @@
       "install_url": "https://raw.githubusercontent.com/cometchat/cometchat-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "Command Code Usage",
-      "url": "https://github.com/Jovan1666/commandcode-usage",
-      "owner": "Jovan1666",
-      "repo": "commandcode-usage",
-      "description": "Show your Command Code plan usage inside Codex: a per-turn quota line, plus a /quota command for the full panel.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/Jovan1666/commandcode-usage/HEAD/plugins/codex/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Computer Usage Summary",
       "url": "https://github.com/liuyewang/computer-usage-summary-skill",
       "owner": "liuyewang",
@@ -2139,6 +2240,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/entropy-data/dataproduct-builder-dbt/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "deed.page",
+      "url": "https://github.com/f-o-x11/deed-page-skill",
+      "owner": "f-o-x11",
+      "repo": "deed-page-skill",
+      "description": "Publish an HTML file or static folder from Codex to a permanent `https://{slug}.deed.page/` URL through the bundled deed.page skill and remote MCP server, with no account.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/f-o-x11/deed-page-skill/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "deja",
@@ -2241,6 +2352,16 @@
       "install_url": "https://raw.githubusercontent.com/zlsbksdxl/codex-exa/HEAD/plugins/exa/.codex-plugin/plugin.json"
     },
     {
+      "name": "Exotic Car Rental Skills",
+      "url": "https://github.com/sergebulaev/exotic-car-rental-skills",
+      "owner": "sergebulaev",
+      "repo": "exotic-car-rental-skills",
+      "description": "Codex-ready bundle for people renting exotic and luxury cars in the US with a native .codex-plugin manifest and 6 skills that find who rents a given Lamborghini, Ferrari, Rolls-Royce or G-Wagon in a city at published daily rates from a free read-only market data MCP server, work out the real rental cost, compare cars, pick event cars, plan a weekend and check a rental company; also works in Claude Code.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/sergebulaev/exotic-car-rental-skills/HEAD/.codex-marketplace/exotic-car-rental-skills/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Fantasy Football Manager",
       "url": "https://github.com/krmisystems/fantasy-football-manager",
       "owner": "krmisystems",
@@ -2329,6 +2450,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/avivsinai/jenkins-cli/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Jetformat",
+      "url": "https://github.com/jetformat/jetformat-agent",
+      "owner": "jetformat",
+      "repo": "jetformat-agent",
+      "description": "Converts Word, Excel, and PowerPoint to PDF, PDF to Word, extracts text, and merges, extracts, or renders PDFs through the locally installed Jetformat CLI.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jetformat/jetformat-agent/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Jev Social",
@@ -2495,7 +2626,7 @@
       "url": "https://github.com/colibird-ai/local-mcp-releases",
       "owner": "colibird-ai",
       "repo": "local-mcp-releases",
-      "description": "Local tools that let Codex use Mail, Calendar, Contacts, Teams, Slack, WhatsApp (Mac), OneDrive, Google Drive, Notion, Outlook (Windows) and Office files on Mac and Windows.",
+      "description": "Local tools that let Codex use Mail, Calendar, Contacts, Teams, Slack, WhatsApp, OneDrive, Google Drive, Notion, Outlook and Microsoft 365 mail and calendar, and Office files on Mac and Windows.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/colibird-ai/local-mcp-releases/HEAD/.codex-plugin/plugin.json"
@@ -2601,6 +2732,16 @@
       "install_url": "https://raw.githubusercontent.com/nowork-studio/notfair-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "NPMScan",
+      "url": "https://github.com/salemalem/npmscan-mcp-plugin",
+      "owner": "salemalem",
+      "repo": "npmscan-mcp-plugin",
+      "description": "Check npm packages for malware, known vulnerabilities, typosquats and maintainer takeovers before installing, via npmscan.com's free, read-only MCP server (23 tools, no API key).",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/salemalem/npmscan-mcp-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Nullcost",
       "url": "https://github.com/johnvouros/nullcost-plugin",
       "owner": "johnvouros",
@@ -2691,6 +2832,16 @@
       "install_url": "https://raw.githubusercontent.com/plori-ai/codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Post",
+      "url": "https://github.com/jack-reson8/post-skill",
+      "owner": "jack-reson8",
+      "repo": "post-skill",
+      "description": "Makes Xiaohongshu and X share-image sets that look native, with App Store poster layouts, real screenshots and app-UI mocks.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jack-reson8/post-skill/HEAD/plugins/post/.codex-plugin/plugin.json"
+    },
+    {
       "name": "PostEverywhere",
       "url": "https://github.com/posteverywhere/codex-plugin",
       "owner": "posteverywhere",
@@ -2709,6 +2860,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/PriceDotWin/pricewin-agent-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Pro Motion",
+      "url": "https://github.com/jack-reson8/pro-motion",
+      "owner": "jack-reson8",
+      "repo": "pro-motion",
+      "description": "Plans a launch film audio first, then renders motion graphics in code from an HTML canvas to MP4, cut to the beat.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jack-reson8/pro-motion/HEAD/plugins/pro-motion/.codex-plugin/plugin.json"
     },
     {
       "name": "prompt-to-asset",
@@ -2781,6 +2942,16 @@
       "install_url": "https://raw.githubusercontent.com/wiltodelta/remove-ai-watermarks/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Renhua",
+      "url": "https://github.com/jack-reson8/renhua",
+      "owner": "jack-reson8",
+      "repo": "renhua",
+      "description": "Writes Chinese posts and product copy in a real person's voice, removing AI tells and adding humor.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jack-reson8/renhua/HEAD/plugins/renhua/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Resume Tailor",
       "url": "https://github.com/olegvg/resume-tailor-plugin",
       "owner": "olegvg",
@@ -2789,6 +2960,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/olegvg/resume-tailor-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Revid",
+      "url": "https://github.com/tmakersas/revid-skills",
+      "owner": "tmakersas",
+      "repo": "revid-skills",
+      "description": "Research what goes viral, make finished short-form videos (voice, captions, music, AI footage) and post them to TikTok, YouTube, Instagram and X through Revid's hosted MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/tmakersas/revid-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Roomcomm",
@@ -3149,6 +3330,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/WaveSpeedAI/codex-plugin-wavespeed-cli/HEAD/plugins/wavespeed-cli/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Webly",
+      "url": "https://github.com/Webly-AI/webly-plugin",
+      "owner": "Webly-AI",
+      "repo": "webly-plugin",
+      "description": "Publish a website or share files and folders from Codex at a live URL in seconds with no account, through the bundled Webly skill and remote MCP server, then let the person claim it, edit it over MCP, and publish drafts they approve.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Webly-AI/webly-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "X (Twitter) Skills",

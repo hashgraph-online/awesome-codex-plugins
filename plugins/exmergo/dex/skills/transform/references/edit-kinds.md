@@ -34,7 +34,7 @@ Hand content over with `--edits-file <path>` (or `-` to read stdin):
 | `analysis_sql` | analysis paths | a single read-only SELECT, even though dbt only compiles it |
 | `packages_yml` | project root | the guarded way to declare a dbt package |
 | `project_yml` | project root `dbt_project.yml` | keeps a `name` |
-| `profiles_yml` | project root `profiles.yml` | every secret as `{{ env_var('NAME') }}`; a literal credential is refused so none reaches the diff |
+| `profiles_yml` | project root `profiles.yml` | every secret as exactly `{{ env_var('NAME') }}` (an empty default at most); a literal credential, a non-empty default, or anything beside the reference is refused so none reaches the diff |
 
 Config kinds, snapshots, and seeds are all parsed by dbt at plan time.
 
@@ -60,7 +60,8 @@ it runs against nothing and passes unconditionally.
 - **Singular tests and generic test definitions** are files under `test-paths`,
   and `test_sql` is their kind.
 
-`transform test --mutate <model>` measures all three at once, since a defect has
+`transform test --mutate <model>` measures all three at once (and, with
+`--downstream`, the tests of the models that read it), since a defect has
 to get past every one of them to reach production.
 
 ## Building what you authored
@@ -81,6 +82,6 @@ a refactor is one plan rather than a plan plus a manual `rm`.
 Deletes are guarded: the plan is refused if any surviving file still `ref()`s a
 deleted model, naming the offenders. Carry the edits that remove those
 references in the same plan, so the post-change project is validated as one
-unit. A surviving reference dex cannot resolve statically is warned about rather
+unit. A surviving reference Dex cannot resolve statically is warned about rather
 than refused. An unconfirmed delete against a file a human edited after planning
 surfaces as `needs_confirmation`, never a silent removal.

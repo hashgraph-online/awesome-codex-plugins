@@ -1,6 +1,6 @@
 {
   "name": "oh-my-cassette",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Edit video with the Cassette agent from Codex: import local media, send editing turns, read the timeline, export.",
   "author": {
     "name": "Oh My Cassette contributors",
@@ -22,7 +22,7 @@
     "cassette": {
       "command": "uvx",
       "args": [
-        "oh-my-cassette==0.5.0"
+        "oh-my-cassette==0.6.0"
       ],
       "env": {},
       "env_vars": [
@@ -32,10 +32,15 @@
         "CASSETTE_ALLOWED_ROOTS",
         "CASSETTE_DOWNLOAD_DIR",
         "CASSETTE_MAX_UPLOAD_MB",
+        "CASSETTE_MAX_DOWNLOAD_MB",
+        "CASSETTE_UPLOAD_ANY_TYPE",
         "CASSETTE_LOCAL_WAIT_SEC",
+        "CASSETTE_CONNECT_TIMEOUT_SEC",
         "CASSETTE_FFMPEG",
         "CASSETTE_FFPROBE",
         "CASSETTE_TEMP_DIR",
+        "CASSETTE_MCP_HOST",
+        "CASSETTE_AUTH_DIRECTORY",
         "OH_MY_CASSETTE_LOG"
       ],
       "startup_timeout_sec": 120,
@@ -58,7 +63,6 @@
     "termsOfServiceURL": "https://cassette-editor.github.io/oh-my-cassette/terms",
     "logo": "./assets/logo-400.png",
     "composerIcon": "./assets/logo-400.png",
-    "screenshots": [],
     "defaultPrompt": [
       "Edit this project video with Cassette.",
       "Let me choose the Cassette model for this edit.",

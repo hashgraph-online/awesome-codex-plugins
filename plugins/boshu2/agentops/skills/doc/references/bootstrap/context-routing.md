@@ -67,9 +67,10 @@ Unknown, duplicate, missing or incompatible policy fields are errors. The
 selected policy and supplied purpose are checked before private anchor comments
 are read. The individual policy references must resolve to existing regular
 files; this command selects and checks their locators, not their prose or native
-permission enforcement. It always reports `access_enforcement: not_attested`.
-T39 owns measured native enforcement; this route result grants no new access,
-model transmission, disclosure or Git ingestion permission.
+permission enforcement. It always reports `access_enforcement: not_attested`:
+enforcing the access policy is left to the native systems it names, and this
+route result grants no new access, model transmission, disclosure or Git
+ingestion permission.
 
 Both evidence and staging must be external to the bundle, the explicitly named
 consumer checkout, each other, ordinary/bare/linked Git repositories and active
@@ -126,8 +127,11 @@ Loss of the policy or anchor is unavailable, not permission to start over.
 
 ## Native withdrawal and resolution facts
 
-BD 1.2.2 is the presently checked compatibility contract. Its `context` schema is
-1, and native comment `id` and `issue_id` are strings. Lookup first verifies the
+The route accepts native BD 1.x from 1.2.2 on, the range
+`ao config context --help` names. It reads the version from the `bd_version`
+field of `bd context --json`, not from `bd --version`; check that field
+before relying on a route. Its `context` schema is 1, and native comment `id`
+and `issue_id` are strings. Lookup first verifies the
 native project/source identity and anchor existence with `show --json`, then
 reads **`bd --readonly comments ANCHOR --json`** directly. It never uses
 `show --include-comments` or child listings to infer absence. Native process,
@@ -147,8 +151,8 @@ Resolution comment text:
 {"type":"context.resolution.v1","fact_id":"resolution-stable-id","bundle_id":"fixture-bundle-id","page_id":"page-id","page_digest":"<withdrawn SHA256>","resolves_fact_id":"withdrawal-stable-id","review_ref":"<exact fresh resolution/correction review>","review_digest":"<review SHA256>","successor_digest":"<explicitly covered successor SHA256>"}
 ```
 
-A parser success is a fact-shape check, never semantic readmission. T14/T18
-consumers must keep missing, ambiguous or unverified resolution pending. Only a
+A parser success is a fact-shape check, never semantic readmission. Consumers
+of these facts must keep missing, ambiguous or unverified resolution pending. Only a
 matching exact fresh resolution/correction review can cover the withdrawal and
 its named successor. New page bytes, unrelated commits, timestamps, closed or
 deleted investigation children, and knowledge-bundle Git rollback do not clear

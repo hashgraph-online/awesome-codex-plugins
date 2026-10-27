@@ -27,7 +27,7 @@ metadata:
   effects: [write_verdict_artifact]
   canonical_status: canonical
   disposition: keep
-output_contract: 'PASS | FAIL | NOT_PROVEN with criteria, evidence, checked/not_checked, identity, and freshness; optional schemas/verdict.v2.schema.json persistence'
+output_contract: 'PASS | FAIL | NOT_PROVEN with criteria, evidence, checked/not_checked, identity, and freshness; optional verdict.v2 persistence (draft shape in references/mechanics.md)'
 ---
 
 # Validate
@@ -35,7 +35,7 @@ output_contract: 'PASS | FAIL | NOT_PROVEN with criteria, evidence, checked/not_
 Freshly judge one finished candidate against its original acceptance, return
 `PASS`, `FAIL`, or `NOT_PROVEN` with criterion-level evidence, and stop.
 Neighbours: advice or a second look is [Review](../review/SKILL.md); whether a
-stated claim holds is [Reality Check](../reality-check/SKILL.md). This file
+stated claim holds is [Research](../research/SKILL.md#claimed-state-audit). This file
 carries every rule the judgment needs. Linked files, including
 [RPI boundaries](../rpi/references/boundaries.md) and
 [mechanics](references/mechanics.md), add depth only: if one cannot be read,
@@ -43,9 +43,10 @@ judge from this file and say which was unavailable.
 
 ## Rules that decide the verdict
 
-- The author cannot issue a binding PASS, and advisory findings cannot stand in
-  for this judgment. An author's summary, confidence or assurance is a claim to
-  check, not evidence; explanation alone is not proof.
+- The author cannot issue a binding PASS, and advisory findings, such as a
+  Review or Council report, cannot stand in for this judgment: test them as
+  claims. An author's summary, confidence or assurance is a claim to check,
+  not evidence; explanation alone is not proof.
 - Each criterion needs its own evidence on the exact candidate. A criterion
   nobody demonstrated goes in `not_checked` and never counts toward PASS.
 - A changed test, tolerance, golden, suppression or acceptance text must still
@@ -75,11 +76,10 @@ Decide in this order:
 
 An explicit request for Validate, an acceptance verdict or independent proof
 that original acceptance is met selects this skill, even when phrased as
-"review this". Generic checking or readiness questions, even with criteria
-supplied, do not: ask once whether the caller wants advice or an acceptance
-judgment, and wait. Issue no verdict or readiness approval meanwhile; missing
-intent is not a `NOT_PROVEN` verdict. Shared routing:
-[advice or acceptance](../review/references/advice-or-acceptance.md).
+"review this"; a request for a look or opinion goes to Review, and when the
+purpose is open, ask once and issue no verdict meanwhile, since missing intent
+is not a `NOT_PROVEN` verdict
+([advice or acceptance](../review/references/advice-or-acceptance.md#ambiguous-requests)).
 
 ## When a fresh judgment is worth it
 
@@ -107,7 +107,7 @@ means FAIL on that subject; do not review a moving repair. Bind its identity at
 the start and again at the end of judgment:
 
 - With AgentOps installed: `ao provenance manifest --root "$REPO_ROOT" --include "$CHANGED_PATH"`,
-  one `--include` per changed path.
+  one `--include` per changed path ([helper commands](references/mechanics.md#helper-commands)).
 - In any Git repository: the commit SHA (`git rev-parse HEAD`) and the changed
   paths (`git diff --name-only <base>...HEAD`); for uncommitted work, the
   `git status --porcelain` listing and a `shasum -a 256` of each changed file.
@@ -115,30 +115,21 @@ the start and again at the end of judgment:
   described change, is exactly what was supplied; anything it does not show is
   unverified.
 
-A requested retrospective follows the code judgment and is not evidence for it.
-When intent bundles both, judge the code criteria separately and keep the
-overall request incomplete until the retrospective exists; issue no overall
-PASS early. An explicitly requested review of the retrospective judges that
-document on its own scope.
-
 ## Identity and freshness
 
 Author and validator identities must be explicit and distinct, and freshness
-must be attested by the runtime or the caller, naming the attester. An
-attestation is a declared trust fact, not cryptographic isolation. In ordinary
-use these count:
+attested by the runtime or the caller, naming the attester; an attestation is
+a declared trust fact, not cryptographic isolation. In ordinary use these count:
 
 - **Author:** the identity the caller gives for whoever produced the candidate:
   a person, a session or agent ID, or the commit author.
-- **Validator:** this context's runtime ID when the runtime exposes one, such
-  as a subagent or session ID; otherwise the handle the dispatcher holds for
-  it, such as the agent ID returned at launch, or "this conversation" when the
-  caller opened it for the judgment.
-- **Freshness:** a statement from the runtime, the dispatcher or the caller,
-  naming who makes it, that this context did not produce the candidate and was
-  given intent, subject and evidence rather than the author's working history.
-  When the caller opened this conversation for the judgment and supplied the
-  candidate, the caller is the attester.
+- **Validator:** this context's runtime ID, such as a subagent or session ID;
+  otherwise the dispatcher's handle for it, such as the agent ID returned at
+  launch, or "this conversation" when the caller opened it for the judgment.
+- **Freshness:** a statement, naming who makes it, that this context did not
+  produce the candidate and was given intent, subject and evidence rather than
+  the author's working history. When the caller opened this conversation for
+  the judgment and supplied the candidate, the caller is the attester.
 
 A role name, a persona switch inside the author's conversation, or the
 validator vouching for itself does not count. Never invent an identity. An
@@ -146,22 +137,24 @@ identity gap makes the result NOT_PROVEN; keep every finding in the report.
 
 ## Reviewers
 
-Default to one fresh reviewer in the author's model family: Codex/OpenAI for
-Codex/OpenAI, Claude/Anthropic for Claude/Anthropic, on the runtime's
-configured capable model unless pinned. Supply task-specific intent, scope,
-exact subject and relevant evidence, without full author history, desired
-verdict or peer conclusions. Concise input must not omit necessary evidence;
-retrieve more source when a criterion requires it.
+Default to one fresh reviewer in the author's model family (Codex/OpenAI for
+Codex/OpenAI, Claude/Anthropic for Claude/Anthropic), on the runtime's
+configured capable model unless pinned. If this context produced the
+candidate, it cannot be that reviewer: dispatch one and return its result, or
+return NOT_PROVEN with the identity gap when none can run. Give the reviewer
+intent, scope, exact subject, the evidence each criterion needs and one
+question written before it starts, never full author history, the author's
+confidence, a desired verdict or peer conclusions.
 
 Cross-model review is opt-in: `--cross-model [model]` is a skill prompt
 selection, not an AO flag, adding a fresh other-family reviewer through
 [model-dispatch](../agent-native/references/model-dispatch.md). A required leg
-that cannot run yields `diversity_unsatisfied` and NOT_PROVEN for the combined
-request, even if another leg passed; optional diversity that is unavailable is
-disclosed without erasing findings. Delivered FAILs and dissent stand; neither
-voting nor model preference makes a split PASS, and agreement is not proof of
-truth. No fixed ten-minute cap applies; respect real caller/native bounds
-without renewing them. A timeout is missing judgment, not FAIL.
+that cannot run is a `diversity_unsatisfied` finding and makes the combined
+result NOT_PROVEN, even if another leg passed; unavailable optional diversity
+is disclosed without erasing findings. Delivered FAILs and dissent stand;
+neither voting nor model preference makes a split PASS, and agreement is not
+proof of truth. Respect real caller and native time bounds without renewing
+them; a timeout is missing judgment, not FAIL.
 
 ## Judgment
 
@@ -178,7 +171,8 @@ without renewing them. A timeout is missing judgment, not FAIL.
    policy. Unknown risk merits examination, not extra reviewers.
 3. Classify commands before running any. Regeneration, synchronization,
    formatting and `--force` mutate the subject until proven otherwise; run them
-   only on a disposable copy or a committed subject, never the judged tree.
+   only on a disposable copy, such as a fresh worktree or clone at the committed
+   SHA, never the judged checkout.
 4. Bind the subject again; a mismatch is NOT_PROVEN.
 5. Return one result in the shape below, promptly, and stop.
 
@@ -202,17 +196,17 @@ note the author may ignore. Give each new finding a short stable `class`,
 reused on recurrence, and say whether it is pre-existing, introduced or unknown
 from before/after evidence; counts and timestamps alone do not establish cause.
 Keep prior findings visible. `not_checked` holds in-scope acceptance that was
-not verified; other limits stay in criterion reasoning, declared non-goals or
-residual-risk prose, never hidden to obtain PASS. Delivery inside acceptance
-stays unverified until its evidence exists; never remove that criterion to
-reach PASS. [Mechanics](references/mechanics.md) covers report proportion and
-where each scope limit lives.
+not verified, including delivery inside acceptance whose evidence does not yet
+exist; never remove a criterion or hide a limit to reach PASS. Other limits
+stay in criterion reasoning, declared non-goals or residual-risk prose
+([homes](references/mechanics.md#where-each-scope-limit-lives-inside-a-pass)).
 
 Validate is the sole semantic author of `verdict.v2`.
 Only when the caller requests machine-readable evidence or a declared consumer
 requires it, persist through `ao provenance store-verdict`
-([mechanics](references/mechanics.md)); Go verifies structure and storage, not
-truth. Otherwise return the result through the caller's existing channel,
-without hidden machine artifacts. Validate owns no repair, retry, delivery or tracker transition:
-known findings go back to the author for direct repair, and a causal stall uses
-the RPI single-helper rule.
+([draft shape](references/mechanics.md#store-verdict-draft)); Go verifies
+structure and storage, not truth. Otherwise return the result through the
+caller's channel, without hidden machine artifacts. Validate owns no repair,
+retry, delivery or tracker transition: findings go back to the author for
+direct repair, and a causal stall gets at most one bounded fresh helper
+([RPI](../rpi/references/boundaries.md#direct-repair-and-help)).

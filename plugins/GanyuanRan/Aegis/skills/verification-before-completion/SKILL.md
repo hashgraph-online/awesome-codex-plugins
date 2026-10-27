@@ -16,8 +16,8 @@ evidence and run a fresh falsifying check when it is missing or invalidated;
 read the complete result/scope; select L0/L1/L2. Downgrade for partial,
 stale, failing, or narrower evidence; never claim complete then verify later.
 
-This Method Pack grants no authoritative `GateDecision`, `PolicySnapshot`,
-evidence sufficiency, requirement acceptance, or completion authority.
+This pack grants no `GateDecision`, `PolicySnapshot`, evidence sufficiency,
+requirement acceptance, or completion authority.
 
 ## Stop Signals
 
@@ -48,9 +48,12 @@ carry results and uncovered user criteria here, keeping one closeout owner.
 - `B`: target evidence; bounded residual risk.
 - `C`: partial only; no full-completion claim.
 
+For repairs/optimization, distinguish cause, closure and verified outcome.
+Check interactions and preserved behavior; investigate consequential unknowns.
+
 Claims need target test and related regression evidence at the triggering seam.
 A missing seam is an architecture gap; blocked automation needs reproducible
-manual steps. Both lower confidence.
+manual steps. Both limit confidence.
 
 Read the smallest source for each explicit baseline/artifact/owner/contract/evidence
 reference. Mark it preserved, rebound to its canonical owner, retired with reason,
@@ -61,15 +64,14 @@ Readback proves no complete graph, referential integrity, or authoritative linea
 Check omissions and unsupported additions within authorized transformations;
 reuse sufficient evidence without exhaustive traces or a separate report.
 
-Match conclusions to checked properties, objects and conditions. Resolve known
-counterexamples or qualify the result. Parsing proves neither required fields nor
-semantic accuracy; success labels do not dismiss material warnings. Supplied or
-omitted settings do not prove effective behavior; changed conditions limit causal
-comparisons. Check measurable requirements deterministically. Attribute supplied
-observations; claim execution only for checks you ran. Use existing review without
-new model calls, mandatory reports or acceptance requirements. A finished
-investigation may deliver negative or qualified findings without acceptance of
-the investigated result.
+Match conclusions to checked properties, objects and conditions. Resolve
+counterexamples or qualify results. Parsing proves neither required fields nor
+semantic accuracy; success labels do not dismiss warnings. Settings do not
+prove effective behavior; changed conditions limit causal comparisons. Check
+measurable requirements deterministically. Attribute observations; claim only
+executed checks. Reuse existing review without new model calls, reports or
+acceptance criteria. Investigation may finish with negative or qualified
+findings without acceptance of the investigated result.
 
 ## Inherited-Claim Closeout
 
@@ -150,13 +152,13 @@ On a match read `expanded-closeout.md` for detail; this file owns routing/receip
 | material complexity pressure | Expanded Complexity Detail |
 | high-risk or explicit user request for expanded closeout | applicable cards |
 
-Use configured Aegis workspace support; commands live in the expanded owner.
+Workspace commands belong to the expanded owner.
 
 ## Completion Boundary
 
-Reconcile the current authorized request/context with plan/spec, `TaskIntentDraft`
-or `Slice Card`; stale plans cannot override it. Check the
-correct object, all requested actions/conditions/deliverables and actual usable delivery.
+Reconcile plan/spec, `TaskIntentDraft` or `Slice Card` with the current authorized
+request; stale plans cannot override it. Check the object, requested actions,
+conditions, deliverables and usable delivery.
 Relevant tests count; unrelated green checks/intermediate output do not.
 Report remaining work and cause explicitly.
 A slice cannot close the whole task or prove project-wide reliability.

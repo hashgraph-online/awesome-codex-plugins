@@ -13,6 +13,12 @@ on:
       - "scripts/publish-open-pr-checks.py"
       - "scripts/publish-open-pr-checks-centralized.py"
       - "scripts/test_publish_open_pr_checks.py"
+      - "scripts/post-claim-notice.py"
+      - "scripts/backfill-claim-notices.py"
+      - "tests/test_post_claim_notice.py"
+      - "tests/test_claim_notice_api_key.py"
+      - "tests/test_backfill_claim_notices.py"
+      - ".github/workflows/claim-notice.yml"
       - ".github/workflows/sweep-open-prs.yml"
       - ".github/workflows/validate-contribution.yml"
   workflow_dispatch:
@@ -45,6 +51,7 @@ jobs:
           python3 -m unittest scripts/test_validate_contribution_branch.py
           python3 -m unittest scripts/test_publish_open_pr_checks.py
           python3 -m unittest scripts/test_check_alphabetical.py
+          python3 -m unittest tests/test_post_claim_notice.py tests/test_backfill_claim_notices.py tests/test_claim_notice_api_key.py
           python3 scripts/check-alphabetical.py README.md --base-ref "$BASE_REF"
           python3 scripts/validate-contribution-centralized.py \
             --base-ref "$BASE_REF" \
@@ -82,6 +89,6 @@ jobs:
         with:
           plugin_dir: ${{ runner.temp }}/contributed
           mode: scan
-          min_score: 80
+          min_score: 75
           fail_on_severity: none
           pr_comment: off

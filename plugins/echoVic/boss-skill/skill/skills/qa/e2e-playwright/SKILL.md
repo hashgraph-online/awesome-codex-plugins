@@ -1,4 +1,5 @@
 ---
+
 name: qa/e2e-playwright
 description: Playwright E2E 测试完整方法论，涵盖项目初始化、Page Object Model、认证复用、API Mock、视觉回归、多浏览器测试、CI 集成和调试技巧
 version: 1.0.0
@@ -7,14 +8,15 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
-  - shared/tech-stack-detection
-triggers:
-  - 需要编写或执行 E2E 测试时
-  - 需要配置 Playwright 测试环境时
-  - 门禁要求 E2E 测试通过时
-  - 需要视觉回归测试时
-metadata:
+- shared/tech-stack-detection
+  triggers:
+- 需要编写或执行 E2E 测试时
+- 需要配置 Playwright 测试环境时
+- 门禁要求 E2E 测试通过时
+- 需要视觉回归测试时
+  metadata:
   internal: true
+
 ---
 
 # Playwright E2E 测试方法论
@@ -103,13 +105,13 @@ export default defineConfig({
 
 **关键配置说明**：
 
-| 配置项 | 作用 | 建议值 |
-|--------|------|--------|
-| `fullyParallel` | 测试文件间并行执行 | `true` |
-| `workers` | 并行 worker 数 | CI 为 1，本地默认 |
-| `retries` | 失败重试次数 | CI 为 1，本地为 0 |
-| `trace` | 失败时生成可视化时间线 | `on-first-retry` |
-| `webServer` | 自动启动开发服务器 | 必须配置 |
+| 配置项          | 作用                   | 建议值            |
+| --------------- | ---------------------- | ----------------- |
+| `fullyParallel` | 测试文件间并行执行     | `true`            |
+| `workers`       | 并行 worker 数         | CI 为 1，本地默认 |
+| `retries`       | 失败重试次数           | CI 为 1，本地为 0 |
+| `trace`         | 失败时生成可视化时间线 | `on-first-retry`  |
+| `webServer`     | 自动启动开发服务器     | 必须配置          |
 
 ### 1.3 目录结构
 
@@ -215,14 +217,14 @@ export class NavbarComponent {
 
 选择定位器时遵循以下优先级（可靠性从高到低）：
 
-| 优先级 | 方法 | 示例 | 说明 |
-|--------|------|------|------|
-| 1 | `getByRole` | `getByRole('button', { name: '提交' })` | 无障碍语义，最稳定 |
-| 2 | `getByLabel` | `getByLabel('邮箱')` | 表单元素首选 |
-| 3 | `getByPlaceholder` | `getByPlaceholder('请输入邮箱')` | 备选 |
-| 4 | `getByText` | `getByText('欢迎回来')` | 静态文本 |
-| 5 | `getByTestId` | `getByTestId('submit-btn')` | 无语义标记时的兜底 |
-| 6 | CSS/XPath | `page.locator('.btn-primary')` | **尽量避免** |
+| 优先级 | 方法               | 示例                                    | 说明               |
+| ------ | ------------------ | --------------------------------------- | ------------------ |
+| 1      | `getByRole`        | `getByRole('button', { name: '提交' })` | 无障碍语义，最稳定 |
+| 2      | `getByLabel`       | `getByLabel('邮箱')`                    | 表单元素首选       |
+| 3      | `getByPlaceholder` | `getByPlaceholder('请输入邮箱')`        | 备选               |
+| 4      | `getByText`        | `getByText('欢迎回来')`                 | 静态文本           |
+| 5      | `getByTestId`      | `getByTestId('submit-btn')`             | 无语义标记时的兜底 |
+| 6      | CSS/XPath          | `page.locator('.btn-primary')`          | **尽量避免**       |
 
 ---
 
@@ -362,13 +364,13 @@ test('部分 API Mock', async ({ page }) => {
 
 ### 4.4 何时用 Mock vs 真实 API
 
-| 场景 | 建议 |
-|------|------|
-| 核心用户路径 | **真实 API**（关键路径证据规则） |
-| 第三方服务（支付、邮件） | Mock |
-| 错误/边界状态 | Mock |
-| 加载状态、空数据 | Mock |
-| 数据量大的列表/分页 | Mock + 至少一条真实路径 |
+| 场景                     | 建议                             |
+| ------------------------ | -------------------------------- |
+| 核心用户路径             | **真实 API**（关键路径证据规则） |
+| 第三方服务（支付、邮件） | Mock                             |
+| 错误/边界状态            | Mock                             |
+| 加载状态、空数据         | Mock                             |
+| 数据量大的列表/分页      | Mock + 至少一条真实路径          |
 
 ⚠️ **Boss 门禁规则**：核心用户路径只由 Mock 证明的，必须标记为**未验证**，不能作为发布证据。
 
@@ -424,7 +426,7 @@ test.describe('用户管理 CRUD', () => {
   test('空列表提示', async ({ page }) => {
     // 使用 route mock 空数据场景
     await page.route('/api/users*', (route) =>
-      route.fulfill({ status: 200, body: JSON.stringify({ data: [], total: 0 }) })
+      route.fulfill({ status: 200, body: JSON.stringify({ data: [], total: 0 }) }),
     );
     await page.reload();
     await expect(page.getByText('暂无数据')).toBeVisible();
@@ -549,7 +551,7 @@ projects: [
 
   // 平板
   { name: 'tablet', use: { ...devices['iPad Pro 11'] } },
-]
+];
 ```
 
 ### 7.2 按 project 运行
@@ -636,11 +638,11 @@ export default globalTeardown;
 
 ### 8.4 原则
 
-| 原则 | 说明 |
-|------|------|
-| **测试隔离** | 每个测试独立运行，不依赖其他测试的数据 |
-| **可重复** | 多次运行结果一致 |
-| **快速清理** | 使用 API 清理而非 UI 操作 |
+| 原则              | 说明                                    |
+| ----------------- | --------------------------------------- |
+| **测试隔离**      | 每个测试独立运行，不依赖其他测试的数据  |
+| **可重复**        | 多次运行结果一致                        |
+| **快速清理**      | 使用 API 清理而非 UI 操作               |
 | **避免硬编码 ID** | 使用动态创建的数据，不依赖数据库自增 ID |
 
 ---
@@ -711,12 +713,12 @@ CMD ["npx", "playwright", "test"]
 
 ### 9.3 CI 关键配置
 
-| 配置 | CI 值 | 原因 |
-|------|-------|------|
-| `workers` | 1 | CI 资源有限，避免争抢 |
-| `retries` | 1 | 减少 flaky 误报 |
+| 配置       | CI 值             | 原因                           |
+| ---------- | ----------------- | ------------------------------ |
+| `workers`  | 1                 | CI 资源有限，避免争抢          |
+| `retries`  | 1                 | 减少 flaky 误报                |
 | `reporter` | `github` + `html` | GitHub PR 行内注释 + HTML 归档 |
-| `trace` | `on-first-retry` | 只在重试时录制，节省空间 |
+| `trace`    | `on-first-retry`  | 只在重试时录制，节省空间       |
 
 ---
 
@@ -771,13 +773,13 @@ npx playwright codegen http://localhost:3000
 
 ### 10.6 常见 Flaky 原因及修复
 
-| 原因 | 症状 | 修复 |
-|------|------|------|
-| 动画未完成 | 元素找到但点击无效 | 等待动画完成或禁用动画 |
-| 网络请求延迟 | 元素内容未更新 | 使用 `waitForResponse` |
-| 竞态条件 | 间歇性失败 | 使用 `expect().toBeVisible()` 自动等待 |
-| 数据未就绪 | 列表为空 | 使用 `waitForLoadState('networkidle')` |
-| 时间依赖 | 日期/时间相关断言失败 | Mock 时间或使用范围断言 |
+| 原因         | 症状                  | 修复                                   |
+| ------------ | --------------------- | -------------------------------------- |
+| 动画未完成   | 元素找到但点击无效    | 等待动画完成或禁用动画                 |
+| 网络请求延迟 | 元素内容未更新        | 使用 `waitForResponse`                 |
+| 竞态条件     | 间歇性失败            | 使用 `expect().toBeVisible()` 自动等待 |
+| 数据未就绪   | 列表为空              | 使用 `waitForLoadState('networkidle')` |
+| 时间依赖     | 日期/时间相关断言失败 | Mock 时间或使用范围断言                |
 
 ---
 
@@ -787,12 +789,12 @@ npx playwright codegen http://localhost:3000
 
 Boss 流水线的 Gate 1 门禁要求 E2E 测试满足：
 
-| 检查项 | 要求 | 说明 |
-|--------|------|------|
-| E2E 测试存在 | `e2e/` 或 `tests/e2e/` 目录非空 | 不能只有单元测试 |
-| 关键路径覆盖 | CRUD + 认证 + 核心业务流程 | 至少 5 个核心用户操作 |
-| 全部通过 | 无失败用例 | 失败则门禁不通过 |
-| 真实 API 证据 | 核心路径不能只有 Mock | Mock-only 标记为未验证 |
+| 检查项        | 要求                            | 说明                   |
+| ------------- | ------------------------------- | ---------------------- |
+| E2E 测试存在  | `e2e/` 或 `tests/e2e/` 目录非空 | 不能只有单元测试       |
+| 关键路径覆盖  | CRUD + 认证 + 核心业务流程      | 至少 5 个核心用户操作  |
+| 全部通过      | 无失败用例                      | 失败则门禁不通过       |
+| 真实 API 证据 | 核心路径不能只有 Mock           | Mock-only 标记为未验证 |
 
 ### 11.2 执行命令
 
@@ -812,10 +814,18 @@ npx playwright test
 使用标签标记测试优先级，门禁可按标签选择性执行：
 
 ```typescript
-test('@critical 登录流程', async ({ page }) => { /* ... */ });
-test('@critical 核心业务流程', async ({ page }) => { /* ... */ });
-test('@smoke 首页加载', async ({ page }) => { /* ... */ });
-test('@regression 边界情况', async ({ page }) => { /* ... */ });
+test('@critical 登录流程', async ({ page }) => {
+  /* ... */
+});
+test('@critical 核心业务流程', async ({ page }) => {
+  /* ... */
+});
+test('@smoke 首页加载', async ({ page }) => {
+  /* ... */
+});
+test('@regression 边界情况', async ({ page }) => {
+  /* ... */
+});
 ```
 
 ```bash
@@ -831,7 +841,6 @@ npx playwright test
 ## 12. 检查清单
 
 Agent 编写 E2E 测试时，对照以下清单确认完整性：
-
 - [ ] `playwright.config.ts` 已配置（baseURL、webServer、projects）
 - [ ] Page Object Model 已建立（每个核心页面一个 POM）
 - [ ] 定位器使用语义化方法（`getByRole` > `getByTestId` > CSS）
@@ -846,7 +855,6 @@ Agent 编写 E2E 测试时，对照以下清单确认完整性：
 ## 输出要求
 
 使用本方法论后，Agent 应产出：
-
 1. **`playwright.config.ts`**：完整配置
 2. **`e2e/pages/*.page.ts`**：Page Object Model
 3. **`e2e/specs/**/*.spec.ts`**：测试用例（覆盖关键路径）

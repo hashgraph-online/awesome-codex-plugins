@@ -90,6 +90,26 @@
           "label": "security skill contract",
           "require_groups": [
             {
+              "label": "repository gate entry point",
+              "patterns": [
+                "scripts/security-gate\\.sh"
+              ]
+            },
+            {
+              "label": "runbook link",
+              "patterns": [
+                "references/security-suite-runbook\\.md"
+              ]
+            }
+          ]
+        },
+        {
+          "globs": [
+            "skills/security/references/security-suite-runbook.md"
+          ],
+          "label": "security gate runbook",
+          "require_groups": [
+            {
               "label": "quick gate command",
               "patterns": [
                 "scripts/security-gate\\.sh --mode quick"
@@ -102,9 +122,9 @@
               ]
             },
             {
-              "label": "canonical runbook wording",
+              "label": "blocking exit codes are completed scans",
               "patterns": [
-                "canonical security runbook"
+                "completed scans with blocking findings"
               ]
             }
           ]
@@ -167,27 +187,32 @@
       "targets": [
         {
           "globs": [
-            "skills/security/SKILL.md"
+            "skills/security/references/security-suite-runbook.md"
           ],
           "label": "security-suite contract",
           "require_groups": [
             {
-              "label": "policy gating",
+              "label": "policy primitive",
               "patterns": [
-                "policy gating"
+                "`enforce-policy`"
               ]
             },
             {
-              "label": "machine-consumable outputs",
+              "label": "policy gating flag",
               "patterns": [
-                "machine-consumable"
+                "--fail-on-policy-fail"
               ]
             },
             {
               "label": "policy artifact",
               "patterns": [
-                "policy-verdict\\.json",
-                "policy file"
+                "policy/policy-verdict\\.json"
+              ]
+            },
+            {
+              "label": "suite summary artifact",
+              "patterns": [
+                "suite-summary\\.json"
               ]
             }
           ]

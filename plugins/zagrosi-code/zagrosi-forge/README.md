@@ -90,7 +90,7 @@ Optional [verification allowances](skills/zagrosi-implement/references/verificat
 
 ## Multiple models
 
-Request independent Codex, Claude or Gemini reviews of the same bounded packet:
+Request independent Codex, Claude or Gemini reviews; the host reviews in a fresh subagent:
 
 ```text
 Implement this feature with independent Codex and Claude reviews. Keep one writer; report missing access.
@@ -196,8 +196,8 @@ retain failures; adapter support proves neither speed nor quality.
 
 ## Contribute
 
-Shared workflows: `skills/`; runtime: `scripts/forge/`; checks: `tests/` and
-`examples/`; host metadata: `.codex-plugin/` and `.claude-plugin/`.
+Workflows: `skills/`, `agents/`; runtime: `scripts/forge/`; checks: `tests/`,
+`examples/`; host metadata: `.codex-plugin/`, `.claude-plugin/`.
 
 Runtime/test edits: run `python3 tools/update_runtime_manifest.py`.
 Package membership changes: stage intended files, then run

@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "usage-engineer"
 dynamic = ["version"]
-description = "Cut wasted work in Codex CLI and OpenCode sessions: usage audits, log compaction, context packs, stale-map checks and paired A/B benchmarks. Local only, no network."
+description = "See where your Codex CLI, Claude Code and OpenCode tokens go, per day and per model, and cut wasted work: usage audits, log compaction, context packs and paired A/B benchmarks. Local only, no network."
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
 authors = [{ name = "Noam" }]
-keywords = ["codex", "codex-cli", "opencode", "ai-agents", "tokens", "developer-tools", "benchmark"]
+keywords = ["codex", "codex-cli", "claude-code", "opencode", "ai-agents", "tokens", "token-usage", "developer-tools", "benchmark"]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Environment :: Console",
@@ -20,6 +20,11 @@ classifiers = [
   "Topic :: Software Development",
 ]
 dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/noamshorts22-prog/usage-engineer"
+Issues = "https://github.com/noamshorts22-prog/usage-engineer/issues"
+Changelog = "https://github.com/noamshorts22-prog/usage-engineer/blob/main/CHANGELOG.md"
 
 [project.scripts]
 ue = "usage_engineer.ue:main"

@@ -58,7 +58,7 @@ get_exception_details(trace_id="<trace_id from the file results>")
 fetch_trace(trace_id="<trace_id>", include_observations=true)
 ```
 
-The exception tools detect errors by observation `level == "ERROR"` (strict; a non-empty `status_message` alone does not count). Counts describe error-level observations, not individual exception events — `get_error_count` returns `exception_count: null` for that reason. Exception details come from recorded metadata (`exception.type` / `exception.message` / `exception.stacktrace`, top-level or under `metadata.attributes`); absent values are null. Results are not a point-in-time snapshot.
+The exception tools detect errors by observation `level == "ERROR"` (strict; a non-empty `status_message` alone does not count). Counts describe error-level observations, not individual exception events — `get_error_count.exception_count` is the same error-observation total reported by `find_exceptions.metadata.observation_count` (including groups beyond the top 50). Exception details come from recorded metadata (`exception.type` / `exception.message` / `exception.stacktrace`, top-level or under `metadata.attributes`); absent values are null. Results are not a point-in-time snapshot.
 
 ## Project Links
 

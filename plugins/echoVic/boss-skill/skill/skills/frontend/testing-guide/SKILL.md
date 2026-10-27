@@ -1,10 +1,11 @@
 ---
+
 name: frontend/testing-guide
 description: 前端测试编写指南，包括单元测试、集成测试和E2E测试的编写方法和最佳实践
 type: methodology
 agent: boss-frontend
 metadata:
-  internal: true
+internal: true
 ---
 
 # 前端测试编写指南
@@ -15,10 +16,10 @@ metadata:
 
 ### 测试金字塔
 
-| 测试类型 | 占比 | 要求 |
-|----------|------|------|
-| **单元测试** | ~70% | 每个组件/Hook 必须有测试 |
-| **集成测试** | ~20% | 组件交互、状态管理测试 |
+| 测试类型     | 占比 | 要求                       |
+| ------------ | ---- | -------------------------- |
+| **单元测试** | ~70% | 每个组件/Hook 必须有测试   |
+| **集成测试** | ~20% | 组件交互、状态管理测试     |
 | **E2E 测试** | ~10% | **必须编写**，覆盖用户流程 |
 
 ## 单元测试编写
@@ -99,13 +100,13 @@ describe('LoginForm', () => {
     render(<LoginForm onSubmit={onSubmit} />);
     
     await userEvent.type(screen.getByLabelText('Email'), 'user@example.com');
-    await userEvent.type(screen.getByLabelText('Password'), 'password123');
+    await userEvent.type(screen.getByLabelText('Password'), '<PASSWORD>');
     await userEvent.click(screen.getByRole('button', { name: 'Login' }));
     
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledWith({
         email: 'user@example.com',
-        password: 'password123',
+        password: '<PASSWORD>',
       });
     });
   });
@@ -160,17 +161,17 @@ import { useStore } from './store';
 describe('Store integration', () => {
   it('updates user state across components', () => {
     const { result } = renderHook(() => useStore());
-    
+
     act(() => {
       result.current.setUser({ id: '1', name: 'Alice' });
     });
-    
+
     expect(result.current.user).toEqual({ id: '1', name: 'Alice' });
-    
+
     act(() => {
       result.current.updateUserName('Bob');
     });
-    
+
     expect(result.current.user?.name).toBe('Bob');
   });
 });
@@ -203,9 +204,15 @@ export class UserListPage {
     this.table = page.getByRole('table');
   }
 
-  async goto() { await this.page.goto('/users'); }
-  async clickAddUser() { await this.addButton.click(); }
-  getTable() { return this.table; }
+  async goto() {
+    await this.page.goto('/users');
+  }
+  async clickAddUser() {
+    await this.addButton.click();
+  }
+  getTable() {
+    return this.table;
+  }
 
   async editUser(name: string) {
     await this.page.getByRole('row', { name }).getByRole('button', { name: '编辑' }).click();
@@ -262,27 +269,30 @@ test.describe('用户管理 CRUD', () => {
 
 ### 定位器优先级
 
-| 优先级 | 方法 | 说明 |
-|--------|------|------|
-| 1 | `getByRole` | 无障碍语义，最稳定 |
-| 2 | `getByLabel` | 表单元素首选 |
-| 3 | `getByText` | 静态文本 |
-| 4 | `getByTestId` | 无语义标记时兜底 |
-| 5 | CSS/XPath | **尽量避免** |
+| 优先级 | 方法          | 说明               |
+| ------ | ------------- | ------------------ |
+| 1      | `getByRole`   | 无障碍语义，最稳定 |
+| 2      | `getByLabel`  | 表单元素首选       |
+| 3      | `getByText`   | 静态文本           |
+| 4      | `getByTestId` | 无语义标记时兜底   |
+| 5      | CSS/XPath     | **尽量避免**       |
 
 ## 测试最佳实践
 
 ### 测试命名
+
 - 使用描述性的测试名称
 - 格式：`it('should [expected behavior] when [condition]')`
 - 示例：`it('should show error message when email is invalid')`
 
 ### 测试隔离
+
 - 每个测试独立运行，不依赖其他测试
 - 使用 beforeEach 设置初始状态
 - 使用 afterEach 清理副作用
 
 ### Mock 策略
+
 - Mock 外部依赖（API、第三方库）
 - 不要 Mock 被测试的代码
 - 使用 MSW（Mock Service Worker）Mock API
@@ -297,19 +307,21 @@ export const handlers = [
       ctx.json([
         { id: '1', name: 'Alice' },
         { id: '2', name: 'Bob' },
-      ])
+      ]),
     );
   }),
 ];
 ```
 
 ### 边界条件测试
+
 - 空数据：列表为空时的展示
 - 错误状态：API 失败时的处理
 - 加载状态：数据加载中的展示
 - 极限值：最大/最小输入值
 
 ### 无障碍测试
+
 ```typescript
 it('is accessible', async () => {
   const { container } = render(<Button>Click</Button>);
@@ -335,11 +347,11 @@ npm test -- --coverage
 实现完成后，在输出中包含：
 
 **测试添加**：
-| 类型 | 文件 | 描述 |
-|------|------|------|
-| 单元测试 | `src/components/Button.test.tsx` | Button 组件渲染和交互测试 |
-| 集成测试 | `src/features/users/UserList.test.tsx` | 用户列表增删改查集成测试 |
-| **E2E 测试** | `e2e/user-management.spec.ts` | 用户管理完整流程 E2E 测试 |
+| 类型         | 文件                                   | 描述                      |
+| ------------ | -------------------------------------- | ------------------------- |
+| 单元测试     | `src/components/Button.test.tsx`       | Button 组件渲染和交互测试 |
+| 集成测试     | `src/features/users/UserList.test.tsx` | 用户列表增删改查集成测试  |
+| **E2E 测试** | `e2e/user-management.spec.ts`          | 用户管理完整流程 E2E 测试 |
 
 **测试结果**：
 - 通过：25 / 失败：0

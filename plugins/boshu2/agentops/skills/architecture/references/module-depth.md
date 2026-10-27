@@ -6,22 +6,26 @@ skill root.
 
 ## Gathering evidence from history
 
-These reads are read-only. Pick a window that matches the pain (the last
-release, the last quarter) and report it with the result. Scope `<path>` to
-the area under suspicion when one is known.
+These reads are read-only. Pick a window that matches the pain and report it
+with the result: `<window>` is `--since='3 months ago'` for a period, or
+`<tag>..HEAD` for the last release (`--since` takes a date; given a tag it
+filters nothing). Scope `<path>` to the area under suspicion when one is known.
 
 ```bash
 # Churn: files changed most often in the window.
-git log --since=<window> --format= --name-only -- <path> | sort | uniq -c | sort -rn | head -20
+git log <window> --format= --name-only -- <path> | sort | uniq -c | sort -rn | head -20
 
 # Co-change: file pairs that land in the same commit (pairs seen 3+ times).
-git log --since=<window> --format='@%h' --name-only -- <path> \
+# The pathspec selects commits; --full-diff keeps every file they touched,
+# so partners outside <path> show up.
+git log <window> --full-diff --format='@%h' --name-only -- <path> \
   | awk 'function flush(){for(i in f)for(j in f)if(i<j)p[i" "j]++; delete f}
          /^@/{flush(); next} NF{f[$0]=1}
          END{flush(); for(k in p)if(p[k]>2)print p[k], k}' | sort -rn | head -20
 
-# Fix clusters: files touched by commits whose subject says fix.
-git log --since=<window> -i --grep='^fix' --format= --name-only -- <path> | sort | uniq -c | sort -rn | head -20
+# Fix clusters: files touched by commits whose subject starts with fix.
+git log <window> --format='@%s' --name-only -- <path> \
+  | awk '/^@/{fix = tolower($0) ~ /^@fix/; next} fix && NF' | sort | uniq -c | sort -rn | head -20
 ```
 
 Read the numbers as leads. Generated files, lockfiles, changelogs and mass
@@ -40,6 +44,7 @@ calling something a defect cluster.
 | Decision repeated across modules | One rule (a format, a threshold, a mapping) is edited in several files per change | The copies belong to different contexts and are meant to diverge |
 | Option growth | Flags added one caller at a time; branches on the flag throughout | Options are independent and each is tested at the interface |
 | Tests mocking internals | Tests construct collaborators the caller never sees, or assert call sequences | The mocked thing is an adapter at a real seam |
+| Helper extracted to be testable | The helper has its own tests and one caller, yet fixes keep landing in that caller's wiring, which no test reaches | The helper holds a rule several callers share, or the caller is itself tested through its interface |
 
 ## Where a boundary belongs
 
@@ -107,3 +112,11 @@ Expand, migrate, contract keeps every step shippable:
 
 Name the step where reversal stops being cheap in each proposal. Persisted or
 published shapes need a compatibility plan before contract, not after.
+
+Once callers sit on the new interface, the next change can import straight
+past it again. When the friction was callers reaching into a module's
+internals or importing against the dependency direction, say under Migration
+whether an import rule that runs with the build should hold the new shape, or
+why not; [Research](../../research/SKILL.md#evidence-rules) sets when a
+blocking check is earned. State such a rule over the tree's layout rather than
+per named package, so adding a package needs no edit to the rule.

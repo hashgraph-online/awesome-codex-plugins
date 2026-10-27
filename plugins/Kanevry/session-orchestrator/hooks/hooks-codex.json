@@ -44,6 +44,11 @@
           },
           {
             "type": "command",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/pre-tool-state-md-path-guard.mjs\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
             "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/pre-bash-issue-budget.mjs\"",
             "timeout": 5
           },

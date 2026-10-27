@@ -16,7 +16,7 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to ma
   - Discovery: search tracked, human-authored source and tests for TODO, FIXME, HACK, and XXX
     markers. Classify each in a `mode: todo-classify` receipt from `receipts/cycle-specialist-evidence.md` using
     age, blame, and surrounding context: actionable, or an ambiguous product decision. Exclude generated, vendored, dependency,
-    build, and archive paths. Dedupe against snag-log.md (ALL seen — fixed and rejected), then
+    build, and archive paths. Dedupe against snag-log.md under Snag log discipline, then
     inventory the marker, path, and nearby contract for each finding.
   - Never select this entry when work mode is artifact.
   - Classify each finding before editing. Actionable means existing behaviour, tests, issue links,

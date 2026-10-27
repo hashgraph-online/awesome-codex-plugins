@@ -35,7 +35,7 @@ Supported on any repository or artifact folder that can hold the deliverable. Fo
     named in the report; it never publishes or deploys.
   - Inherit cited-research.md. Keep private code, secrets, customer data, and unpublished
     material out of external fetches and out of the deliverable.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every supplied source is `ok` or `unavailable` with a reason, check-report passes,
     and named links/examples in the deliverable resolve or are marked unavailable.
   - Verify: `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" check-report

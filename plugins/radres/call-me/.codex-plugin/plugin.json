@@ -1,0 +1,45 @@
+{
+  "name": "call-me",
+  "version": "1.0.0",
+  "description": "Let a Codex agent ring or text your iPhone through the /call-me app and read your spoken or typed reply back as text.",
+  "author": {
+    "name": "Serdar Oztetik",
+    "url": "https://github.com/radres"
+  },
+  "homepage": "https://callmemcp.com",
+  "repository": "https://github.com/radres/call-me",
+  "license": "MIT",
+  "keywords": [
+    "phone",
+    "call",
+    "text",
+    "iphone",
+    "notifications",
+    "human-in-the-loop",
+    "approval",
+    "mcp"
+  ],
+  "skills": "./plugin/skills/",
+  "mcpServers": "./plugin/.mcp.json",
+  "interface": {
+    "displayName": "/call-me",
+    "shortDescription": "Your agent rings or texts your iPhone and hears your answer.",
+    "longDescription": "/call-me gives you a private 10-digit number for your AI agents. The agent rings your iPhone with a real incoming-call screen, reads its question aloud and gets your spoken answer back as text, or texts you and waits for the reply. It works hands free in the car or with AirPods. The MCP server is hosted at callmemcp.com with no credentials; the iPhone app needs a paid subscription.",
+    "developerName": "Serdar Oztetik",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://callmemcp.com",
+    "privacyPolicyURL": "https://callmemcp.com/privacy",
+    "termsOfServiceURL": "https://callmemcp.com/terms",
+    "defaultPrompt": [
+      "Call me if you get stuck and need a decision from me.",
+      "Text my phone when this task is done."
+    ],
+    "brandColor": "#2F7FC6",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

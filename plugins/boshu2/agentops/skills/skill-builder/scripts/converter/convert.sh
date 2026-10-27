@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # convert.sh — Cross-platform skill converter pipeline
-# Usage: bash skills/skill-builder/scripts/converter/convert.sh <skill-dir> <target> [output-dir]
-#        bash skills/skill-builder/scripts/converter/convert.sh --all <target> [output-dir]
+# Usage: bash "<skill-dir>/scripts/converter/convert.sh" <source-skill-dir> <target> [output-dir]
+#        bash "<skill-dir>/scripts/converter/convert.sh" --all <target> [output-dir]
 set -euo pipefail
 
 # This script uses namerefs (`local -n`), which require Bash >= 4.3. On stock
@@ -15,7 +15,9 @@ if (( BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 3) ))
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+# The source checkout holding this script, unless SKILL_BUILDER_REPO_ROOT names
+# another. Relative skill and output paths resolve against the caller's $PWD.
+REPO_ROOT="${SKILL_BUILDER_REPO_ROOT:-$(cd "$SCRIPT_DIR/../../../.." && pwd)}"
 SKILL_PATTERN=""
 CODEX_LAYOUT="modular"
 ARGS_SKILL_DIR_OR_FLAG=""
@@ -26,19 +28,30 @@ ARGS_OUTPUT_DIR=""
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
+# The default output lives under REPO_ROOT. A plugin install has skills/ but no
+# scripts/, and its cache is wiped on update: refuse (exit 2) rather than export there.
+require_source_checkout() {
+  [[ -f "$REPO_ROOT/scripts/generate-skill-mesh.py" ]] && return 0
+  echo "ERROR: $REPO_ROOT is not an AgentOps source checkout; pass an output dir or set SKILL_BUILDER_REPO_ROOT" >&2
+  exit 2
+}
+
 usage() {
   cat <<'EOF'
 Usage:
-  bash skills/skill-builder/scripts/converter/convert.sh [--codex-layout modular|inline] <skill-dir> <target> [output-dir]
-  bash skills/skill-builder/scripts/converter/convert.sh [--codex-layout modular|inline] --all <target> [output-dir]
+  bash "<skill-dir>/scripts/converter/convert.sh" [--codex-layout modular|inline] <source-skill-dir> <target> [output-dir]
+  bash "<skill-dir>/scripts/converter/convert.sh" [--codex-layout modular|inline] --all <target> [output-dir]
 
 Targets: codex, cursor, test
 
-Examples:
+Examples (from an AgentOps source checkout root):
   bash skills/skill-builder/scripts/converter/convert.sh skills/council codex
   bash skills/skill-builder/scripts/converter/convert.sh --codex-layout inline skills/council codex
   bash skills/skill-builder/scripts/converter/convert.sh --all codex
-  bash skills/skill-builder/scripts/converter/convert.sh skills/vibe test /tmp/out
+  bash skills/skill-builder/scripts/converter/convert.sh skills/plan test /tmp/out
+
+Without [output-dir] the export goes under the source checkout's
+.agents/projections/converter/; outside a checkout, name an output dir.
 EOF
   exit 1
 }
@@ -715,9 +728,9 @@ convert_one_skill() {
   local target="$2"
   local output_dir="$3"
 
-  # Resolve skill_dir to absolute if relative
+  # Resolve a relative skill_dir against the caller's working directory
   if [[ "$skill_dir" != /* ]]; then
-    skill_dir="$REPO_ROOT/$skill_dir"
+    skill_dir="$PWD/$skill_dir"
   fi
 
   [[ -d "$skill_dir" ]] || die "Skill directory not found: $skill_dir"
@@ -729,9 +742,10 @@ convert_one_skill() {
 
   # Default output dir (ADR-0016 closed set: generated projection tier)
   if [[ -z "$output_dir" ]]; then
+    require_source_checkout
     output_dir="$REPO_ROOT/.agents/projections/converter/$target/$BUNDLE_NAME"
   elif [[ "$output_dir" != /* ]]; then
-    output_dir="$REPO_ROOT/$output_dir"
+    output_dir="$PWD/$output_dir"
   fi
 
   # Reset output variables
@@ -764,7 +778,7 @@ main() {
       if [[ -n "$out" ]]; then
         # Per-skill subdir under the provided output dir
         if [[ "$out" != /* ]]; then
-          out="$REPO_ROOT/$out/$sname"
+          out="$PWD/$out/$sname"
         else
           out="$out/$sname"
         fi

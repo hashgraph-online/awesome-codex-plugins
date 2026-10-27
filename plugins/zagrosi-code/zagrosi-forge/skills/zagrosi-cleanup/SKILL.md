@@ -68,8 +68,11 @@ with arbitrary fragments, forwarding wrappers, a new framework, or compressed
 one-liners. Separate intentional behavior changes from behavior-preserving work.
 
 Run targeted regression checks before and after each meaningful change. Review
-the actual structural gain and regressions; use an
-[independent model](../zagrosi-forge/references/providers.md) when requested or
+the actual structural gain and regressions. Where the host supports fresh-context
+subagents, have one independently check the diff and affected callers for preserved
+behavior ([same-host review](../zagrosi-forge/references/providers.md#same-host-review)).
+In Claude Code, run [delegated agents](../zagrosi-forge/references/providers.md#delegated-agents) in the foreground when offered.
+Use [another provider](../zagrosi-forge/references/providers.md) when requested or
 useful for a concrete risk. Resolve findings rather than counting approvals.
 Run the integration suite once after the final changes and capture its receipt.
 If any later fix changes checked inputs, refresh the affected evidence.

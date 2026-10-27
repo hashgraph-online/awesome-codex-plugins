@@ -1,0 +1,33 @@
+{
+  "name": "jetformat",
+  "version": "0.1.0",
+  "description": "Word, Excel, and PowerPoint to PDF, PDF to Word, text extraction, and PDF tools through the local Jetformat CLI.",
+  "author": {
+    "name": "Jetformat",
+    "url": "https://jetformat.com"
+  },
+  "homepage": "https://jetformat.com/for-agents",
+  "repository": "https://github.com/jetformat/jetformat-agent",
+  "license": "MIT",
+  "keywords": [
+    "pdf",
+    "docx",
+    "xlsx",
+    "pptx",
+    "word-to-pdf",
+    "office"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Jetformat",
+    "shortDescription": "Office to PDF and PDF tools on your machine",
+    "developerName": "Jetformat",
+    "category": "Productivity",
+    "websiteURL": "https://jetformat.com",
+    "privacyPolicyURL": "https://jetformat.com/privacy",
+    "termsOfServiceURL": "https://jetformat.com/terms",
+    "defaultPrompt": "Convert this Office file to PDF with Jetformat.",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  }
+}

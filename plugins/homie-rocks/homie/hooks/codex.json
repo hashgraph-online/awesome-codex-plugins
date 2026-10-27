@@ -1,5 +1,5 @@
 {
-  "description": "Homie's holds in Codex (hooks/codex.mjs, deciding with lib/holds.mjs, the module the Claude Code mod asks): an edit to a file the studio protects, a production deploy, a change to the studio's Cloudflare account outside its deploy, a paid call past the budget or whose cost cannot be read first, and a Clef model download wait for the person's own \"proceed <code>\"; a change to a locked art decision, an unlicensed asset in a public game's deploy, a file over 5 MB under games/ into git and a Stripe write that would hand back a webhook secret are refused; and secrets come out of every tool result the model reads.",
+  "description": "Homie's holds in Codex (hooks/codex.mjs, deciding with lib/holds.mjs, the module the Claude Code mod asks): an edit to a file the studio protects, a production deploy, a change to the studio's Cloudflare account outside its deploy and a paid call past the budget or whose cost cannot be read first wait for the person's own \"proceed <code>\"; a change to a locked art decision, an unlicensed asset in a public game's deploy, a file over 5 MB under games/ into git and a Stripe write that would hand back a webhook secret are refused; and secrets come out of every tool result the model reads.",
   "hooks": {
     "PreToolUse": [
       {

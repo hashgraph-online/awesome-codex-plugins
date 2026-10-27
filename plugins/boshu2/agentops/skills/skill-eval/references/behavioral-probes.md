@@ -1,6 +1,7 @@
 # Behavioral probes: preserve their existing meaning
 
-`scripts/probe-skill.sh` remains the runner for small behavioral regression
+The AgentOps source checkout's `scripts/probe-skill.sh` remains the runner for
+small behavioral regression
 probes and immutable replay. It exposes an empty workspace and one injected
 SKILL.md, not a complete installed-package coding trial. Its verdict measures
 **behavior change**, never quality uplift or productive engineering completion.
@@ -26,15 +27,30 @@ with equal scenario and repetitions. An unavailable or unauthorized route is
 UNMEASURED, not permission to substitute another runtime. Effort levels are a
 declared experimental choice, not a prerequisite for every question.
 
-Choose a caller-selected protected external non-Git result path and repetitions
-within the accepted envelope before a live run:
+Take the replay and live commands from the
+[skill-probes README](https://github.com/boshu2/agentops/blob/main/evals/skill-probes/README.md#running)
+(AgentOps source checkout only). Three
+facts decide whether one runs and what it shows (checked 2026-10-25):
 
-```bash
-bash scripts/probe-skill.sh --probe <id> --replay
-# Only within an already authorized live envelope:
-bash scripts/probe-skill.sh --probe <id> --live --capture --reps "$PROBE_REPS" --output "$PROBE_RESULT_PATH"
-bash scripts/check-skill-probe-headroom.sh
-```
+- **Replay needs a dated set.** Pass `--replay --fixtures <set>` naming a
+  directory that holds `fixture-set.json`; no probe has a usable default
+  `fixtures/` set, and `premortem-self-validation` (LEGACY-UNVERIFIED) has no
+  replayable set at all.
+- **Exit 0 is not reproduction.** A replay reproduces a stored result only when
+  its scorecard reports `evaluator_matches_capture: true`. Every committed set
+  replays with `false`, which the coverage gate labels `evaluator-stale`, so
+  treat the committed sets as historical.
+- **Live reps and names are bound.** A live capture, only inside an authorized
+  envelope, takes `--reps` equal to `probe.json` `reps` (2 on every committed
+  probe) or omits it, plus a new `--fixtures` name and `--output` path each
+  time; the runner refuses another rep count, an existing fixture set or an
+  existing scorecard before dispatch.
+
+AgentOps source checkout only: from the repository root,
+`bash scripts/check-skill-probe-headroom.sh` reports the classes below.
+Authoring a probe means supplying the package the runner reads (`probe.json`,
+`question.md`, `discriminator.sh`, a prelude only in `injected-prelude` mode)
+and its replay result.
 
 ## Headroom classifications
 
@@ -54,16 +70,10 @@ the rule in a new report. Read and report the actual answer:
 
 ## Legacy ledger
 
-Legacy behavioral ledger rows cite the headroom result, model, effort and
-sample size. Append one row only under that ledger's existing admissibility
-rules; preserve a valid INERT or losing result. Small samples remain
-directional. If producer failure or truncation makes a rep `infra`
-(discriminator exit 2), exclude it from the legacy **usable behavioral rate**
-and report its count in the all-attempt accounting. Zero usable treatment reps
-is UNMEASURED, never INERT. This rate convention does not authorize dropping
-infrastructure attempts from coding-cohort accounting.
-
-Use the legacy ledger and RUNBOOK only for their existing consumers:
-[`LEDGER.md`](../../../evals/skill-probes/LEDGER.md),
-[`RUNBOOK.md`](../../../evals/skill-probes/RUNBOOK.md) and
-[`evals/skill-probes/README.md`](../../../evals/skill-probes/README.md).
+[`LEDGER.md`](https://github.com/boshu2/agentops/blob/main/evals/skill-probes/LEDGER.md) and
+[`RUNBOOK.md`](https://github.com/boshu2/agentops/blob/main/evals/skill-probes/RUNBOOK.md)
+(AgentOps source checkout only) keep the historical
+verdicts under their own admissibility rules; keep a valid INERT or losing
+result. A rep scored `infra` (discriminator exit 2) leaves the usable
+behavioral rate but stays in the all-attempt count; zero usable treatment reps
+is UNMEASURED, never INERT.

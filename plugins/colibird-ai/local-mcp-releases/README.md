@@ -8,7 +8,7 @@
 
 Use it with **Claude, ChatGPT, Codex, Cursor** and other compatible MCP clients. Available integrations and connection methods vary by assistant, platform and permissions.
 
-**[Download for Mac or Windows →](https://www.local-mcp.com/download?ref=github-releases)** · **[Explore the product](https://www.local-mcp.com/mcp-context)** · **[Setup guides](https://www.local-mcp.com/guides)**
+**[Download for Mac or Windows →](https://www.local-mcp.com/download?ref=github-releases)** · **[Explore the product](https://www.local-mcp.com/en#explore)** · **[Setup guides](https://www.local-mcp.com/guides)**
 
 This repository contains release information, documentation and the npm wrapper. The core binary is proprietary; documentation and scripts have their own license — see [LICENSE](LICENSE).
 
@@ -60,7 +60,7 @@ This repository is also a Cursor plugin. It adds the `local-mcp` MCP server, a r
 
 LMCP must be installed first (step 1 above): the plugin starts the LMCP server on your computer and does not work without it.
 
-Supports **macOS 13+** and **Windows 10+ (64-bit)**. Linux, iOS and Android are not supported.
+Supports **macOS 13+** and **Windows 10+ (64-bit)**.
 
 Choose one installation path:
 

@@ -28,7 +28,7 @@ import time
 import unittest
 from pathlib import Path
 
-VERSION = "0.3.0"
+VERSION = "0.3.2"
 TOOL_DIR = Path(__file__).resolve().parent
 _LEGACY_STATE = TOOL_DIR.parent / "state"  # pre-0.2 checkouts kept state next to ue.py
 STATE_DIR = Path(os.environ.get("UE_STATE_DIR")
@@ -124,6 +124,13 @@ def codex_home() -> Path:
     if env:
         return Path(env)
     return HOME / ".codex"
+
+
+def claude_home() -> Path:
+    env = os.environ.get("CLAUDE_CONFIG_DIR")
+    if env:
+        return Path(env)
+    return HOME / ".claude"
 
 
 def opencode_share_dir() -> Path:
@@ -392,6 +399,239 @@ def audit_codex(sessions_root: Path, since: str | None, max_files: int | None,
     return out
 
 
+_CLAUDE_TOKEN_KEYS = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens",
+                      "output_tokens")
+
+
+def _tool_result_size(block: dict) -> int:
+    content = block.get("content")
+    if isinstance(content, list):
+        # text blocks only; image blocks are priced by pixels, not characters
+        return sum(len(str(b.get("text") or "")) for b in content
+                   if isinstance(b, dict) and b.get("type") == "text")
+    return len(str(content or ""))
+
+
+def parse_claude_transcript(path: Path, max_file_mb: int = 40) -> dict:
+    """Tolerant, streaming parse of one Claude Code transcript JSONL. Never raises for bad lines.
+
+    Claude Code writes one line per content block, so a single API response can appear on
+    several lines that share message.id and carry the same usage; each id is counted once.
+    """
+    rec = {
+        "file": str(path),
+        "session_id_hash": short_hash(path.name),
+        "is_subagent": "subagents" in path.parts,
+        "date": None,
+        "usage": None,
+        "requests": 0,
+        "models": {},
+        "parse_errors": 0,
+        "oversized": {str(b): 0 for b in WASTE_CHAR_BUCKETS},
+        "oversized_chars_total": 0,
+        "outputs_total_chars": 0,
+        "largest_output_chars": 0,
+        "repeated_calls": {},
+        "skipped_reason": None,
+    }
+    try:
+        size_mb = path.stat().st_size / (1024 * 1024)
+        if size_mb > max_file_mb:
+            rec["skipped_reason"] = f"file_too_large_mb={size_mb:.1f}"
+            return rec
+    except OSError as e:
+        rec["skipped_reason"] = f"stat_failed: {e}"
+        return rec
+
+    by_msg: dict[str, tuple[str, dict]] = {}
+    call_counts: dict[str, int] = {}
+    seen_calls: set = set()
+    seen_results: set = set()
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as f:
+            for line in f:
+                if '"assistant"' not in line and '"tool_result"' not in line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    rec["parse_errors"] += 1
+                    continue
+                if not isinstance(obj, dict):
+                    continue
+                if rec["date"] is None and isinstance(obj.get("timestamp"), str):
+                    rec["date"] = obj["timestamp"][:10] or None
+                msg = obj.get("message")
+                if not isinstance(msg, dict):
+                    continue
+                content = msg.get("content")
+                blocks = content if isinstance(content, list) else []
+                if obj.get("type") == "assistant":
+                    model = msg.get("model") or "unknown"
+                    usage = msg.get("usage")
+                    mid = msg.get("id") or obj.get("requestId") or obj.get("uuid")
+                    if model != "<synthetic>" and isinstance(usage, dict) and mid:
+                        by_msg[mid] = (model, usage)  # last line of a response wins
+                    for b in blocks:
+                        if isinstance(b, dict) and b.get("type") == "tool_use":
+                            if b.get("id") in seen_calls:
+                                continue
+                            seen_calls.add(b.get("id"))
+                            try:
+                                raw = json.dumps(b.get("input"), sort_keys=True, ensure_ascii=False)
+                            except Exception:
+                                raw = str(b.get("input"))
+                            key = f"{b.get('name') or 'tool'}|{short_hash(raw, 10)}"
+                            call_counts[key] = call_counts.get(key, 0) + 1
+                elif obj.get("type") == "user":
+                    for b in blocks:
+                        if not (isinstance(b, dict) and b.get("type") == "tool_result"):
+                            continue
+                        if b.get("tool_use_id") in seen_results:
+                            continue
+                        seen_results.add(b.get("tool_use_id"))
+                        olen = _tool_result_size(b)
+                        rec["outputs_total_chars"] += olen
+                        if olen > rec["largest_output_chars"]:
+                            rec["largest_output_chars"] = olen
+                        if olen >= WASTE_CHAR_BUCKETS[0]:
+                            rec["oversized_chars_total"] += olen
+                        for bk in WASTE_CHAR_BUCKETS:
+                            if olen >= bk:
+                                rec["oversized"][str(bk)] += 1
+    except OSError as e:
+        rec["skipped_reason"] = f"read_failed: {e}"
+        return rec
+
+    if rec["date"] is None:
+        try:
+            rec["date"] = _dt.date.fromtimestamp(path.stat().st_mtime).isoformat()
+        except OSError:
+            rec["date"] = "unknown"
+
+    if by_msg:
+        totals = {k: 0 for k in _CLAUDE_TOKEN_KEYS}
+        unknown = set()
+        for model, usage in by_msg.values():
+            m = rec["models"].setdefault(model, {"requests": 0, **{k: 0 for k in _CLAUDE_TOKEN_KEYS}})
+            m["requests"] += 1
+            for k in _CLAUDE_TOKEN_KEYS:
+                v = usage.get(k)
+                if isinstance(v, int):
+                    totals[k] += v
+                    m[k] += v
+                else:
+                    unknown.add(k)
+        rec["requests"] = len(by_msg)
+        rec["usage"] = totals
+        rec["usage_unknown_fields"] = sorted(unknown)
+
+    rec["repeated_calls"] = {k: v for k, v in call_counts.items() if v >= 2}
+    return rec
+
+
+def _iter_claude_transcripts(root: Path, since: str | None, max_files: int | None):
+    files = []
+    for p in root.rglob("*.jsonl"):
+        try:
+            mtime = p.stat().st_mtime
+        except OSError:
+            continue
+        # a transcript last written before `since` cannot have started on or after it
+        if since and _dt.date.fromtimestamp(mtime).isoformat() < since:
+            continue
+        files.append((mtime, p))
+    files.sort()
+    if max_files:
+        files = files[-max_files:]
+    return [p for _, p in files]
+
+
+def audit_claude(projects_root: Path, since: str | None, max_files: int | None,
+                 max_file_mb: int) -> dict:
+    out = {
+        "source": redact(str(projects_root)),
+        "generated_at": now_iso(),
+        "since": since,
+        "available": projects_root.is_dir(),
+        "files_total": 0,
+        "files_skipped": 0,
+        "subagent_files": 0,
+        "sessions_with_usage": 0,
+        "sessions_without_usage": 0,
+        "parse_errors_total": 0,
+        "usage_totals": {k: 0 for k in _CLAUDE_TOKEN_KEYS},
+        "requests_total": 0,
+        "models": {},
+        "by_day": {},
+        "unknown_fields": set(),
+        "oversized_buckets": {str(b): 0 for b in WASTE_CHAR_BUCKETS},
+        "oversized_chars_total": 0,
+        "outputs_total_chars": 0,
+        "largest_output_chars": 0,
+        "sessions_with_repeated_calls": 0,
+        "top_repeated_calls": {},
+        "notes": [],
+    }
+    if not out["available"]:
+        out["reason"] = "projects directory not found"
+        out["unknown_fields"] = []
+        return out
+    top_repeats: dict[str, int] = {}
+    for p in _iter_claude_transcripts(projects_root, since, max_files):
+        rec = parse_claude_transcript(p, max_file_mb=max_file_mb)
+        if since and rec["date"] not in (None, "unknown") and rec["date"] < since:
+            continue
+        out["files_total"] += 1
+        if rec["is_subagent"]:
+            out["subagent_files"] += 1
+        if rec["skipped_reason"]:
+            out["files_skipped"] += 1
+        out["parse_errors_total"] += rec["parse_errors"]
+        if rec["largest_output_chars"] > out["largest_output_chars"]:
+            out["largest_output_chars"] = rec["largest_output_chars"]
+        out["oversized_chars_total"] += rec["oversized_chars_total"]
+        out["outputs_total_chars"] += rec["outputs_total_chars"]
+        for b in WASTE_CHAR_BUCKETS:
+            out["oversized_buckets"][str(b)] += rec["oversized"][str(b)]
+        if rec["usage"] is None:
+            out["sessions_without_usage"] += 1
+        else:
+            out["sessions_with_usage"] += 1
+            out["requests_total"] += rec["requests"]
+            out["unknown_fields"].update(rec["usage_unknown_fields"])
+            day = out["by_day"].setdefault(rec["date"], {
+                **{k: 0 for k in _CLAUDE_TOKEN_KEYS}, "sessions": 0, "requests": 0})
+            day["sessions"] += 1
+            day["requests"] += rec["requests"]
+            for k in _CLAUDE_TOKEN_KEYS:
+                out["usage_totals"][k] += rec["usage"][k]
+                day[k] += rec["usage"][k]
+            for model, m in rec["models"].items():
+                agg = out["models"].setdefault(model, {"requests": 0, **{k: 0 for k in _CLAUDE_TOKEN_KEYS}})
+                for k, v in m.items():
+                    agg[k] += v
+        if rec["repeated_calls"]:
+            out["sessions_with_repeated_calls"] += 1
+            for k, v in rec["repeated_calls"].items():
+                top_repeats[k] = max(top_repeats.get(k, 0), v)
+    out["top_repeated_calls"] = dict(sorted(top_repeats.items(), key=lambda kv: -kv[1])[:10])
+    out["unknown_fields"] = sorted(out["unknown_fields"])
+    if out["sessions_with_usage"] == 0:
+        out["usage_totals"] = {k: None for k in _CLAUDE_TOKEN_KEYS}
+        out["requests_total"] = None
+        out["notes"].append("No transcript in range had usable token usage; totals are UNKNOWN, not 0.")
+    if out["sessions_without_usage"]:
+        out["notes"].append(f"{out['sessions_without_usage']} transcript(s) had no assistant usage; "
+                            "they are counted as UNKNOWN usage, not zero.")
+    return out
+
+
+def _claude_total(row: dict):
+    vals = [row.get(k) for k in _CLAUDE_TOKEN_KEYS]
+    return None if any(v is None for v in vals) else sum(vals)
+
+
 def audit_opencode(db_path: Path) -> dict:
     out = {
         "source": redact(str(db_path)),
@@ -458,6 +698,7 @@ def _fmt_int(n) -> str:
 
 def cmd_audit(args) -> int:
     sessions_root = Path(args.sessions) if args.sessions else codex_home() / "sessions"
+    claude_root = Path(args.claude_projects) if args.claude_projects else claude_home() / "projects"
     since = args.since
     if since is None and not args.all_time:
         since = (_dt.date.today() - _dt.timedelta(days=args.days)).isoformat()
@@ -465,6 +706,8 @@ def cmd_audit(args) -> int:
         "tool_version": VERSION,
         "codex_home": redact(str(codex_home())),
         "codex": audit_codex(sessions_root, since, args.max_files, args.max_file_mb),
+        "claude": audit_claude(claude_root, since, args.max_files, args.max_file_mb)
+                  if not args.no_claude else None,
         "opencode": audit_opencode(opencode_share_dir() / "opencode.db") if not args.no_opencode else None,
         "method_notes": [
             "Session totals are taken from the last cumulative token_count event per rollout, "
@@ -474,6 +717,9 @@ def cmd_audit(args) -> int:
             "Request count = number of token_count events (one per model call).",
             "Oversized tool output buckets are character thresholds; token equivalents are "
             "ESTIMATED at ~4 chars/token and are heuristic only.",
+            "Claude Code usage is summed per API response (message.id counted once). Its "
+            "input_tokens EXCLUDE cache reads and cache writes, unlike Codex, where cached "
+            "input is a subset of input.",
         ],
     }
     c = report["codex"]
@@ -505,6 +751,62 @@ def cmd_audit(args) -> int:
     for k, v in c["top_repeated_calls"].items():
         name, ahash = k.split("|")
         lines.append(f"  repeat {v}x: {name} args#{ahash}")
+    if args.by_day:
+        lines.append("")
+        lines.append("per day (each session counted on the day it started):")
+        lines.append(f"  {'date':<10} {'sessions':>8} {'requests':>8} {'input':>13} {'cached':>13}"
+                     f" {'output':>10} {'total':>13}")
+        for day, v in sorted(c["by_day"].items()):
+            lines.append(f"  {day:<10} {v['sessions']:>8} {v['requests']:>8} {v['input_tokens']:>13,}"
+                         f" {v['cached_input_tokens']:>13,} {v['output_tokens']:>10,} {v['total_tokens']:>13,}")
+        if not c["by_day"]:
+            lines.append("  UNKNOWN: no session in range had usable token usage")
+    if report["claude"]:
+        cl = report["claude"]
+        lines.append("")
+        lines.append(f"=== Claude Code audit ({cl['source']}) ===")
+        if not cl["available"]:
+            lines.append(f"UNKNOWN: {cl.get('reason')}")
+        else:
+            lines.append(f"period: since {cl['since'] or 'ALL'} | transcripts scanned: {cl['files_total']}"
+                         f" (subagent: {cl['subagent_files']}) | skipped(large): {cl['files_skipped']}"
+                         f" | parse errors (bad lines): {cl['parse_errors_total']}")
+            if cl["unknown_fields"]:
+                lines.append(f"fields missing in some responses (not counted): {', '.join(cl['unknown_fields'])}")
+            lines.append(f"transcripts with usage: {cl['sessions_with_usage']}"
+                         f" | without usable usage: {cl['sessions_without_usage']}")
+            lines.append(f"requests (API responses): {_fmt_int(cl['requests_total'])}")
+            cu = cl["usage_totals"]
+            lines.append(f"input (uncached): {_fmt_int(cu['input_tokens'])}"
+                         f" | cache read: {_fmt_int(cu['cache_read_input_tokens'])}"
+                         f" | cache write: {_fmt_int(cu['cache_creation_input_tokens'])}")
+            lines.append(f"output (incl. thinking): {_fmt_int(cu['output_tokens'])}"
+                         f" | total: {_fmt_int(_claude_total(cu))}")
+            for m, agg in sorted(cl["models"].items(), key=lambda kv: -kv[1]["requests"]):
+                lines.append(f"  model {m}: requests={agg['requests']:,} total={_claude_total(agg):,}"
+                             f" out={agg['output_tokens']:,}")
+            cob = cl["oversized_buckets"]
+            lines.append("oversized tool results (chars): "
+                         + " | ".join(f">={k}: {v}" for k, v in cob.items())
+                         + f" | largest: {_fmt_int(cl['largest_output_chars'])}")
+            lines.append(f"tool result chars total: {_fmt_int(cl['outputs_total_chars'])}"
+                         f" | in oversized results (>={WASTE_CHAR_BUCKETS[0]}): {_fmt_int(cl['oversized_chars_total'])}"
+                         f" (~{cl['oversized_chars_total'] // 4:,} tokens ESTIMATED at 4 chars/token)")
+            lines.append(f"transcripts with repeated identical tool calls: {cl['sessions_with_repeated_calls']}")
+            for k, v in cl["top_repeated_calls"].items():
+                name, ahash = k.split("|")
+                lines.append(f"  repeat {v}x: {name} args#{ahash}")
+            if args.by_day:
+                lines.append("")
+                lines.append("per day (each transcript counted on the day it started, UTC):")
+                lines.append(f"  {'date':<10} {'sessions':>8} {'requests':>8} {'input':>11} {'cache_read':>13}"
+                             f" {'cache_write':>12} {'output':>10} {'total':>13}")
+                for day, v in sorted(cl["by_day"].items()):
+                    lines.append(f"  {day:<10} {v['sessions']:>8} {v['requests']:>8} {v['input_tokens']:>11,}"
+                                 f" {v['cache_read_input_tokens']:>13,} {v['cache_creation_input_tokens']:>12,}"
+                                 f" {v['output_tokens']:>10,} {_claude_total(v):>13,}")
+                if not cl["by_day"]:
+                    lines.append("  UNKNOWN: no transcript in range had usable token usage")
     if report["opencode"]:
         o = report["opencode"]
         lines.append("")
@@ -1562,15 +1864,18 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--version", action="version", version=f"ue {VERSION}")
     sub = p.add_subparsers(dest="command")
 
-    a = sub.add_parser("audit", help="read-only usage baseline from local Codex/OpenCode metadata")
+    a = sub.add_parser("audit", help="read-only usage baseline from local Codex/Claude Code/OpenCode metadata")
     a.add_argument("--sessions", help="sessions root (default CODEX_HOME/sessions)")
     a.add_argument("--since", help="YYYY-MM-DD lower bound (from folder names)")
     a.add_argument("--days", type=int, default=30, help="default window if --since omitted")
     a.add_argument("--all-time", action="store_true", help="ignore the default window (slow)")
     a.add_argument("--max-files", type=int, default=800)
     a.add_argument("--max-file-mb", type=int, default=40, help="skip rollout files larger than this")
+    a.add_argument("--claude-projects", help="Claude Code transcripts root (default CLAUDE_CONFIG_DIR/projects)")
+    a.add_argument("--no-claude", action="store_true")
     a.add_argument("--no-opencode", action="store_true")
     a.add_argument("--json-out", help="write redacted JSON report to this path")
+    a.add_argument("--by-day", action="store_true", help="also print Codex token totals per day")
     a.set_defaults(func=cmd_audit)
 
     s = sub.add_parser("summarize-log", help="compact tool-result view; full copy retained on disk")

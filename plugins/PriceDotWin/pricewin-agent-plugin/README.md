@@ -66,7 +66,7 @@ OpenCode needs no plugin: add the server to `opencode.json` (in the project, or
   "mcp": {
     "pricewin": {
       "type": "remote",
-      "url": "https://mcp.price.win/mcp"
+      "url": "https://mcp.price.win/mcp?src=opencode"
     }
   }
 }
@@ -92,7 +92,7 @@ because Cline otherwise assumes the legacy SSE transport:
   "mcpServers": {
     "pricewin": {
       "type": "streamableHttp",
-      "url": "https://mcp.price.win/mcp",
+      "url": "https://mcp.price.win/mcp?src=cline",
       "disabled": false,
       "autoApprove": []
     }

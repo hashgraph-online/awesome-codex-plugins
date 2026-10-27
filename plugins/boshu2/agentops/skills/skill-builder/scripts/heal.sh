@@ -48,7 +48,17 @@ fi
 
 if [[ "$MODE" == fix && $rc -eq 0 ]]; then
   # Source behavior remains human-authored. Repair only owned projections.
-  python3 "$REPO_ROOT/scripts/generate-skill-mesh.py"
+  # A plugin install has skills/ but no scripts/; refuse instead of writing there.
+  if [[ ! -f "$REPO_ROOT/scripts/generate-skill-mesh.py" ]]; then
+    echo "heal.sh: --fix needs an AgentOps source checkout; $REPO_ROOT has no scripts/generate-skill-mesh.py (set HEAL_REPO_ROOT)" >&2
+    exit 2
+  fi
+  # Exit 3, not the generator's own status, so a failed projection never reads
+  # as a finding (1) or an invalid target (2).
+  if ! python3 "$REPO_ROOT/scripts/generate-skill-mesh.py"; then
+    echo "heal.sh: projection failed after a clean source check; source unchanged, projections may be partial" >&2
+    exit 3
+  fi
 fi
 
 if [[ $rc -ne 0 && ( $STRICT -eq 1 || "$MODE" == fix ) ]]; then

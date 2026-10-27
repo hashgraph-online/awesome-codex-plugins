@@ -14,7 +14,9 @@ curl -s -X POST https://api.voygr.tech/calls \
 
 The raw API, as above, takes your key in the `X-API-Key` header. Get one at
 <https://api.voygr.tech/checkout>; it arrives by email. The plugins and MCP
-connectors below sign you in through a browser instead.
+connectors below sign you in through a browser instead. If your agent has no
+browser, it can sign you up with an email code: see
+[Sign up by email code](#sign-up-by-email-code).
 
 ## What PlaceCall does
 
@@ -318,13 +320,14 @@ a paid Apify plan is needed. Agents connected to the
 Signed in through a plugin or connector? You need a key only for the options
 the MCP tools lack: switching off recording or changing the opening notice,
 canceling a call, and listing your calls. The skill-only routes and the raw
-API need a key to place calls at all. You don't need to contact anyone:
+API need a key to place calls at all. You don't need to contact anyone. With no
+browser, your agent can [sign you up by email code](#sign-up-by-email-code).
+Otherwise:
 
 1. Open <https://api.voygr.tech/checkout?src=gh-repo> and click **"Get free API key"**
    (name + email).
-2. The key arrives by email (it is never shown in the browser or API
-   response). What a new key includes, and the current credit rates, are
-   shown on the checkout page.
+2. The key arrives by email. What a new key includes, and the current credit
+   rates, are shown on the checkout page.
 3. Lost the key? <https://api.voygr.tech/recover> emails you a new one.
 4. Need more credits? Top up on the same <https://api.voygr.tech/checkout?src=gh-repo>
    page (Stripe-hosted payment).
@@ -360,6 +363,68 @@ curl -s -H "X-API-Key: $PLACECALL_API_KEY" https://api.voygr.tech/users/me
 ```
 Never commit `~/.codex/placecall.env` or paste the key into chat. Keep it in the
 env var or the `600` file above.
+
+### Sign up by email code
+An agent with the PlaceCall MCP tools uses them and their browser sign-in first.
+Sign up by email code only when the agent has no browser to sign in with, or the
+user needs something only a key does, such as listing or canceling calls or
+turning recording off.
+
+1. Ask the user for their name and email.
+2. Send the sign-up request:
+   ```sh
+   curl -s -X POST https://api.voygr.tech/signup -H "Content-Type: application/json" \
+     -d '{"name":"<name>","email":"<email>","delivery":"code","src":"gh-repo"}'
+   ```
+   The reply has a `verification_id` and looks the same for every address. If it
+   has none, the sign-up did not start (for example `DISPOSABLE_EMAIL_DOMAIN` for
+   a throwaway address, or `SIGNUP_IP_RATE_LIMITED`): tell the user what the
+   reply says. If the name has a quote mark or a non-ASCII letter, write the JSON
+   to a file and use `--data-binary @payload.json`.
+3. Ask the user for the 6-digit code in the email "Your Voygr sign-up code". It
+   is valid for 10 minutes. The user chooses to give you this sign-up code, which
+   is their own. It is not the "one-time code" a business may ask for on a call.
+   Never pass that one on. If the email doesn't arrive, ask the user to check
+   spam. An address gets at most 3 codes in 24 hours.
+4. Swap the code for the key and save it without printing it:
+   ```bash
+   ( umask 077; dest=~/.codex/placecall.env; tmp=
+     if ! { mkdir -p ~/.codex && [ ! -d "$dest" ] && tmp=$(mktemp "$dest.XXXXXX") && chmod 600 "$tmp"; }; then
+       [ -n "$tmp" ] && rm -f "$tmp"; echo "SAVE_UNAVAILABLE: cannot write $dest; the code was not used"; exit 1
+     fi
+     resp=$(curl -s -X POST https://api.voygr.tech/signup/verify \
+       -H "Content-Type: application/json" -d '{"verification_id":"<id>","code":"<code>"}')
+     key=$(printf '%s' "$resp" | sed -nE 's/.*"api_key"[[:space:]]*:[[:space:]]*"([^"]*)".*/\1/p')
+     if [ -z "$key" ]; then st=hidden
+     elif printf 'export PLACECALL_API_KEY=%s\n' "$key" > "$tmp" && mv "$tmp" "$dest"; then st=saved
+     else st=hidden; echo "SAVE_FAILED: the key was issued but could not be saved"; fi
+     rm -f "$tmp"
+     printf '%s\n' "$resp" | sed -E "s/\"api_key\"[[:space:]]*:[[:space:]]*\"[^\"]*\"/\"api_key\":\"($st)\"/" )
+   ```
+5. If the output shows `"api_key":"(saved)"`, tell the user the key is saved
+   in `~/.codex/placecall.env` and that entering the code accepted the API Terms
+   (https://voygr.tech/terms-api). If the reply has `"replaced_previous_key":true`,
+   tell them their old key stopped working.
+
+If step 4 returns an error, read its `error_code`:
+
+- `CODE_INCORRECT`: ask the user to read the code again. `attempts_remaining`
+  says how many tries are left.
+- `CODE_INVALID_OR_EXPIRED`: start again at step 2.
+- `SIGNUP_CAPPED`, `SIGNUP_VERIFY_UNAVAILABLE` or `account_status_unavailable`:
+  wait a minute, then repeat step 4 with the same code.
+- `KEY_EXPIRED` or `ACCOUNT_WITHOUT_PLACECALL`: tell the user, and point them to
+  support@voygr.tech.
+- `ROTATION_FAILED`, or anything else: tell the user what the reply says.
+
+If step 4 prints a `SAVE_` line instead, the key is not saved:
+
+- `SAVE_UNAVAILABLE`: the code was not used. Fix the folder or disk, then repeat
+  step 4 with the same code.
+- `SAVE_FAILED`: the key was issued but could not be saved. Tell the user, and
+  add that their old key stopped working if the reply has
+  `"replaced_previous_key":true`. Fix the problem, then start again at step 2.
+  The new code replaces the lost key.
 
 ## Installed this before August 2026?
 This project was called Callwright until 2026-08, and the repo lived at
@@ -432,12 +497,15 @@ Nothing is sent anywhere else.
   plain words, plus the name and callback number when you give them.
 - Account: `GET /users/me`, `GET /v1/usage`, `GET /checkout/packs`,
   `GET /skills/{id}/manifest` and `PUT /users/me/limits`.
+- Sign-up by email code: `POST /signup` sends your name and email, and
+  `POST /signup/verify` sends the code from the email.
 
 On the MCP server, the Claude Code, Codex
 and Cursor plugins sign you in with OAuth, and your client sends the resulting
 access token, not a key. The Gemini CLI extension sends your key in the
-`X-API-Key` header instead. Every `curl` request carries your key in the
-`X-API-Key` header. Either way, `PLACECALL_API_KEY` goes only to
+`X-API-Key` header instead. Every `curl` request except the two sign-up
+calls carries your key in the `X-API-Key` header; those send no key, and
+`POST /signup/verify` returns one. Either way, `PLACECALL_API_KEY` goes only to
 `api.voygr.tech`. `POST /calls`
 also sends three headers that never affect auth or billing: an
 `Idempotency-Key` so a retry cannot dial twice, `X-Client-Surface` naming the
@@ -447,9 +515,10 @@ from which of `CLAUDECODE`, `CURSOR_AGENT`, `CODEX_SANDBOX` and `GEMINI_CLI` is
 set; only the name is sent, never a variable's value).
 
 The only local file the skill reads is `~/.codex/placecall.env`, your saved
-key, and only when `PLACECALL_API_KEY` is unset. `install.sh` makes no network
-calls. The checkout, recovery and docs links in this README are pages for you
-to open; the skill does not fetch them.
+key, and only when `PLACECALL_API_KEY` is unset. The email-code sign-up also
+writes that file. `install.sh` makes no network calls. The checkout, recovery
+and docs links in this README are pages for you to open; the skill does not
+fetch them.
 
 On our side, a call rings a real phone and is recorded. Recordings and
 transcripts are kept for 90 days. Security reports: [SECURITY.md](./SECURITY.md).

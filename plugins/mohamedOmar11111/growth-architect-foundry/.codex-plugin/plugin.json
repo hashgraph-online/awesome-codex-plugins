@@ -1,7 +1,7 @@
 {
   "name": "foundry",
   "description": "Growth ops kernel for ad agencies: deterministic account audit, diagnose, EN/AR client reports and COD-aware ROAS maths. Live Google/Meta changes need a human typing the campaign key at a real terminal.",
-  "version": "1.4.1",
+  "version": "1.4.3",
   "author": {
     "name": "Mohamed Omar",
     "url": "https://github.com/mohamedOmar11111"

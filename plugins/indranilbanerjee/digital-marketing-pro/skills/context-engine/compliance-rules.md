@@ -2,6 +2,27 @@
 
 This file is the canonical compliance ruleset for the Digital Marketing Pro plugin. All marketing modules MUST check outputs against these rules before delivery. Rules are structured for programmatic consumption by the context engine.
 
+## Dated obligations (check before each date)
+
+Every date below was read at the source named, and each Section 1 entry carries a **Verified** row saying when it was last checked. `tests/test_compliance_dates.py` fails when a date in this table passes while its row still says `upcoming`, and when a Verified stamp goes stale; the weekly dated-checks job runs it. When a date arrives, update the section it points to and mark the row `in force`.
+
+| Date | Jurisdiction | What changes | Section | Source | Status |
+|---|---|---|---|---|---|
+| 2026-02-05 | United Kingdom | PECR: new cookie exceptions (analytics to improve your own service, appearance), charity soft opt-in, PECR fines at the UK GDPR higher maximum | 1.7 | The Data (Use and Access) Act 2025 (Commencement No. 6) Regulations 2026, reg. 2 | in force |
+| 2026-08-01 | California | Delete Act: registered data brokers process DROP deletion requests at least every 45 days | 1.3 | cppa.ca.gov/data_brokers (Civ. Code 1798.99.86(c)) | in force |
+| 2026-08-02 | European Union | AI Act Article 50 transparency obligations apply | 1.1b | AI Act Service Desk timeline | in force |
+| 2026-08-02 | California | AI Transparency Act (SB 942 as amended by AB 853) operative | 1.3 | AB 853, Ch. 674 (leginfo) | in force |
+| 2026-11-13 | India | DPDP Rule 4: Consent Manager registration opens (one year after the 13 Nov 2025 notification) | 1.11 | DPDP Rules 2025, rule 1(3), G.S.R. 846(E) | upcoming |
+| 2026-11-25 | United States (FCC) | TCPA: a revocation may be treated as covering only the category of informational calls or texts it answered; callers may designate an exclusive means to revoke | 1.2 | 91 FR 67214 (FCC, 26 Oct 2026) | upcoming |
+| 2026-12-02 | European Union | Article 50(2) marking deadline for generative AI systems already on the market before 2 Aug 2026; new prohibition on AI that generates non-consensual sexual deepfakes or CSAM | 1.1b | AI Act Service Desk timeline; Commission guidelines C(2026) 5054 | upcoming |
+| 2027-01-01 | California | AB 566 browser opt-out preference signal; AI Transparency Act duties for large online platforms; CPPA automated decision-making (ADMT) compliance | 1.3 | AB 566, Ch. 465; AB 853, Ch. 674; CPPA regulations | upcoming |
+| 2027-01-01 | Oklahoma | SB 546 consumer data privacy law takes effect | 1.4 | SB 546 enrolled text, section 22 | upcoming |
+| 2027-05-01 | Alabama | HB 351 consumer data privacy law takes effect | 1.4 | HB 351 enrolled text, section 12 | upcoming |
+| 2027-05-13 | India | DPDP Rules 3, 5-16, 22 and 23 (notice, security, breach notification, children's verifiable consent, rights, retention) apply | 1.11 | DPDP Rules 2025, rule 1(4) | upcoming |
+| 2027-12-02 | European Union | AI Act high-risk rules for Annex III systems apply (moved by the Digital Omnibus on AI) | 1.1b | AI Act Service Desk timeline | upcoming |
+| 2028-01-01 | California | AI Transparency Act duties for capture-device makers | 1.3 | AB 853, Ch. 674 | upcoming |
+| 2028-08-02 | European Union | AI Act high-risk rules for Annex I regulated products apply | 1.1b | AI Act Service Desk timeline | upcoming |
+
 ---
 
 ## Section 1: Geographic Privacy Laws
@@ -13,11 +34,12 @@ This file is the canonical compliance ruleset for the Digital Marketing Pro plug
 | **Region** | European Union / European Economic Area (27 EU member states + Iceland, Liechtenstein, Norway) |
 | **Law** | General Data Protection Regulation (GDPR) |
 | **Year Enacted** | 2016 (enforced May 25, 2018) |
-| **Consent Model** | Opt-in. Explicit, informed, freely given, specific, and unambiguous consent required before processing personal data. Consent must be as easy to withdraw as to give. Legitimate interest may apply in narrow B2B contexts but requires a documented balancing test. |
-| **Email Rules** | Prior opt-in required for all marketing emails. Soft opt-in exception: existing customers may be emailed about similar products/services if given an easy opt-out at collection and in every message. Every email must include sender identity, physical address, and a functional unsubscribe mechanism honored within 30 days. |
-| **Cookie/Tracking Rules** | Prior consent required for all non-essential cookies and trackers (ePrivacy Directive). Cookie banners must allow granular choice (accept/reject by category). Pre-ticked boxes are invalid. Analytics cookies require consent unless strictly necessary. Server-side tracking of personal data still requires a lawful basis. |
+| **Consent Model** | Consent is one of six lawful bases (GDPR Art 6(1)). Valid consent is "freely given, specific, informed and unambiguous" (Art 4(11)). Silence or pre-ticked boxes are not consent (Recital 32). "Explicit" consent applies only to special-category data (Art 9(2)(a)). Direct marketing "may be regarded as carried out for a legitimate interest" after a balancing test (Recital 47). Consent must be as easy to withdraw as to give (Art 7(3)). |
+| **Email Rules** | Set by ePrivacy Directive Art 13 as each country applies it. Prior consent is needed for marketing email to individuals (Art 13(1)). Soft opt-in: own similar products, with an opt-out at collection and in every message (Art 13(2)). Email to businesses as legal persons is left to each member state (Art 13(5)). Never hide the sender, and always give a valid address for opt-out requests (Art 13(4)). After an objection, stop direct marketing (GDPR Art 21(3)). |
+| **Cookie/Tracking Rules** | Consent is needed before storing or reading anything on a device, except what is "strictly necessary" for a service the user requested (ePrivacy Art 5(3)). Consent must meet the GDPR standard, with separate consent for each purpose (Recital 32). Pending: the Digital Omnibus (Commission proposal 19 Nov 2025; Council position 21 Oct 2026) would add consent-free purposes such as audience measurement and device security. It is not law yet. |
 | **Penalty Range** | Up to EUR 20 million or 4% of global annual turnover, whichever is higher. Supervisory authorities may also issue warnings, bans on processing, and orders to erase data. |
-| **Key Marketing Impact** | Double opt-in is industry standard. All lead forms need clear consent checkboxes (not bundled). Data Processing Agreements required with every martech vendor. Privacy policy must disclose all data recipients. Cross-border data transfers require adequacy decisions, SCCs, or BCRs. Right to erasure means suppression lists must be maintained. Profiling for ad targeting requires explicit consent or legitimate interest with opt-out. |
+| **Key Marketing Impact** | Have a contract with every processor (Art 28(3)). Privacy notices list "the recipients or categories of recipients" (Art 13(1)(e)). People may object at any time to direct marketing, including profiling linked to it (Art 21(2)), and an objection triggers erasure (Art 17). Transfers outside the EEA need an adequacy decision, SCCs or BCRs (Arts 45–46), or a derogation (Art 49). Double opt-in is good practice, not law. |
+| **Verified** | 2026-10-27: every row against the GDPR and ePrivacy texts on EUR-Lex and the Council press release of 21 Oct 2026 (Digital Omnibus still a proposal) |
 
 ### 1.1b EU/EEA — AI Act Article 50 (Generative AI Disclosure)
 
@@ -25,16 +47,18 @@ This file is the canonical compliance ruleset for the Digital Marketing Pro plug
 |---|---|
 | **Region** | European Union / European Economic Area |
 | **Law** | Regulation (EU) 2024/1689 — Artificial Intelligence Act, Article 50 (Transparency obligations for providers and deployers of certain AI systems) |
-| **Applicable** | **2 August 2026** (transparency obligations); general-purpose AI obligations applied 2 Aug 2025; high-risk system obligations 2 Aug 2027 |
+| **Applicable** | **2 August 2026** (transparency obligations). Generative AI systems placed on the market before 2 Aug 2026 have until **2 December 2026** to add the Article 50(2) machine-readable marking; the disclosure duty for systems that interact with people applied from 2 Aug 2026 either way. General-purpose AI obligations applied 2 Aug 2025. High-risk rules, as moved by the Digital Omnibus on AI: Annex III systems from 2 Dec 2027, Annex I regulated products from 2 Aug 2028. From 2 Dec 2026, AI systems that generate non-consensual sexual deepfakes or child sexual abuse material are prohibited. |
+| **Existing and republished content** | Output generated or manipulated before 2 Aug 2026 need not be marked or labelled retroactively. But AI-generated text on a matter of public interest that was generated before 2 Aug 2026 and **published on or after** that date must be labelled (Commission guidelines C(2026) 5054, 20 Jul 2026, para 154). Republishing old AI copy is a new publication. |
 | **Scope** | All generative-AI outputs distributed in EU markets — no minimum spend threshold, advertising not exempted. Both providers (AI developers) and deployers (advertisers, brands) bear obligations. |
 | **Disclosure Requirements** | (a) AI-generated or AI-manipulated content **must be marked in a machine-readable format** using open, interoperable standards. **C2PA (Coalition for Content Provenance and Authenticity) is the emerging backbone.** Marking must be technically robust and survive routine processing. (b) Deepfakes (synthetic audio/image/video resembling real persons, objects, places, or events) must be **visibly disclosed**. (c) AI-generated text on matters of public interest must be disclosed unless human-reviewed and the brand assumes editorial responsibility. |
 | **Carve-outs** | Genuine artistic, satirical, or fictional works are narrowly exempt — applies in limited cases and does not blanket-exempt marketing. |
 | **Penalty Range** | Up to **EUR 15 million or 3% of global annual turnover**, whichever is higher (transparency obligations). High-risk system breaches up to EUR 35M or 7%. |
+| **Verified** | 2026-10-27: dates and the retroactivity rule above, against the AI Act Service Desk timeline and guidelines C(2026) 5054 |
 | **Key Marketing Impact** | Any AI-generated ad creative, social image, AI-narrated video, or AI-written long-form copy distributed in the EU must carry machine-readable provenance metadata. Use `/digital-marketing-pro:c2pa-metadata` to embed a C2PA manifest in any AI-generated image / video / audio / PDF before EU publication. Deepfakes need an additional visible disclosure overlay or audio cue. AI-written editorial pieces need an "AI-assisted" byline unless the human editor assumes full editorial accountability. The pre-publish gate (`/digital-marketing-pro:check`) verifies C2PA presence on AI-flagged assets in EU-targeted campaigns. |
 
 #### 1.1b.i — Article 50 implementing guidelines (FINAL, 2026)
 
-The European Commission published draft implementing guidelines for Article 50 on 8 May 2026 (consultation closed 3 June) and has since **adopted the final Guidelines**, alongside the AI Office's **final Code of Practice on Transparency of AI-Generated Content (10 June 2026)** — both ahead of the 2 August 2026 applicability date. The clarifications below carried through from the draft into the final interpretation:
+The European Commission published draft implementing guidelines for Article 50 on 8 May 2026 (consultation closed 3 June) and has since **adopted the final Guidelines** (C(2026) 5054, 20 July 2026), alongside the AI Office's **final Code of Practice on Transparency of AI-Generated Content (10 June 2026)** — both ahead of the 2 August 2026 applicability date. The clarifications below carried through from the draft into the final interpretation:
 
 | Topic | Final guidance (2026) | What this means for marketing |
 |---|---|---|
@@ -62,7 +86,9 @@ The European Commission published draft implementing guidelines for Article 50 o
 | **Consent Model** | Opt-out. No prior consent required to send commercial email. Recipients must be given a clear way to opt out, and opt-out requests must be honored within 10 business days. |
 | **Email Rules** | No deceptive subject lines. "From" and "Reply-To" must accurately identify the sender. Every commercial email must include: a clear identification as an advertisement (if applicable), the sender's valid physical postal address, and a conspicuous opt-out mechanism. Purchased lists are legal but opt-out obligations still apply. Transactional emails are exempt if their primary purpose is transactional. |
 | **Cookie/Tracking Rules** | No federal cookie consent law. Tracking pixels in email are legal. The FTC enforces against deceptive tracking practices under Section 5 of the FTC Act. |
-| **Penalty Range** | Civil penalties per violation (per email), inflation-adjusted annually (~$53K+ as of 2026). ISPs and state attorneys general may also bring actions. |
+| **Penalty Range** | Civil penalties per violation (per email): $53,088, the 2025 level, which the FTC kept unchanged for 2026 (notice published 15 Sep 2026). ISPs and state attorneys general may also bring actions. |
+| **SMS and calls (TCPA)** | Marketing texts and autodialed or prerecorded marketing calls need prior express written consent; informational ones need prior express consent. Consumers may revoke consent by any reasonable means, and revocations must be honoured within 10 business days (FCC 2024 rule). **From 25 Nov 2026** (91 FR 67214): a caller may treat a revocation as applying only to the category of informational calls or texts it answered, and may designate an exclusive means to revoke consent. A STOP to marketing messages still ends marketing messages. The FCC is consulting on shortening the 10-day window (comments due 25 Nov 2026). |
+| **Verified** | 2026-10-27: penalty level (FTC notice, 15 Sep 2026) and the TCPA rule (Federal Register, 26 Oct 2026) |
 | **Key Marketing Impact** | Lower bar than GDPR but strict on opt-out honoring. Affiliate and partner emails count — the brand whose product is promoted is liable. "Sender" definition includes the entity whose product is advertised. Suppression list management is critical. Header manipulation is a criminal offense. |
 
 ### 1.3 California — CCPA / CPRA
@@ -75,7 +101,9 @@ The European Commission published draft implementing guidelines for Article 50 o
 | **Consent Model** | Opt-out for sale/sharing of personal information. Opt-in required for consumers under 16 (under 13 requires parental consent). "Sharing" includes cross-context behavioral advertising. |
 | **Email Rules** | CAN-SPAM governs email. CCPA/CPRA layer on top: consumers can opt out of the "sale" or "sharing" of personal information used for email targeting and personalization. Honoring Global Privacy Control (GPC) signals is required. |
 | **Cookie/Tracking Rules** | Third-party cookies and ad pixels that share data with ad platforms constitute "sharing" under CPRA. A "Do Not Sell or Share My Personal Information" link must be on the website. GPC browser signals must be honored as a valid opt-out. |
-| **Penalty Range** | $2,500 per unintentional violation; $7,500 per intentional violation. Private right of action for data breaches ($100–$750 per consumer per incident). Enforced by the California Privacy Protection Agency (CPPA). |
+| **Penalty Range** | Up to $2,663 per violation; $7,988 per intentional violation or violation involving consumers under 16 (inflation-adjusted from 1 Jan 2025; the CPPA adjusts in odd years). Private right of action for data breaches ($107–$799 per consumer per incident). Business threshold: $26,625,000 annual gross revenue. Enforced by the California Privacy Protection Agency (CPPA). |
+| **AI, signals and brokers** | **AI Transparency Act** (SB 942 as amended by AB 853, Ch. 674): operative 2 Aug 2026 for providers of generative AI systems with over 1,000,000 monthly users (an AI-detection tool and provenance disclosures); large online platforms must detect and surface provenance data from 1 Jan 2027; capture-device makers from 1 Jan 2028; $5,000 per violation, each day a separate violation. **AB 566** (Ch. 465): from 1 Jan 2027 every browser must offer an opt-out preference signal, so expect more GPC-style signals to honour. **CPPA automated decision-making (ADMT) rules:** compliance from 1 Jan 2027 for significant decisions made with ADMT. **Delete Act:** from 1 Aug 2026 registered data brokers process deletion requests from the DROP platform at least every 45 days, so broker-sourced lists will shrink. |
+| **Verified** | 2026-10-27: penalties (cppa.ca.gov inflation-adjustment page), AB 853 and AB 566 (chaptered text on leginfo), DROP (cppa.ca.gov) |
 | **Key Marketing Impact** | Retargeting audiences using third-party data requires opt-out mechanism. Service provider agreements needed with all martech vendors. 12-month lookback on data collection disclosures. "Sensitive personal information" (e.g., geolocation, race, health) triggers additional restrictions — limit use to what is necessary. |
 
 ### 1.4 US State Privacy Laws (Multi-State Summary)
@@ -83,12 +111,14 @@ The European Commission published draft implementing guidelines for Article 50 o
 | Field | Detail |
 |---|---|
 | **Region** | United States — 20+ states with enacted comprehensive privacy laws |
-| **Laws** | Virginia (VCDPA, 2023), Colorado (CPA, 2023), Connecticut (CTDPA, 2023), Utah (UCPA, 2023), Iowa (ICDPA, 2025), Indiana (ICDPA, 2026), Tennessee (TIPA, 2025), Montana (MCDPA, 2024), Texas (TDPSA, 2024), Oregon (OCPA, 2024), Delaware (DPDPA, 2025), New Hampshire (SB 255, 2025), New Jersey (SB 332, 2025), Nebraska (NDPA, 2025), Maryland (MODPA, 2025), Minnesota (MCDPA, 2025), Rhode Island (RIDPA, 2026), Kentucky (KCDPA, 2026), Vermont (VDPA, 2025), and others pending. |
+| **Laws** | Virginia (VCDPA, 2023), Colorado (CPA, 2023), Connecticut (CTDPA, 2023), Utah (UCPA, 2023), Iowa (ICDPA, 2025), Indiana (ICDPA, 2026), Tennessee (TIPA, 2025), Montana (MCDPA, 2024), Texas (TDPSA, 2024), Oregon (OCPA, 2024), Delaware (DPDPA, 2025), New Hampshire (SB 255, 2025), New Jersey (SB 332, 2025), Nebraska (NDPA, 2025), Maryland (MODPA, 2025), Minnesota (MCDPA, 2025), Rhode Island (RIDPA, 2026), Kentucky (KCDPA, 2026), Oklahoma (SB 546, effective 1 Jan 2027), Alabama (HB 351, effective 1 May 2027), Vermont (S.71, signed 16 Jun 2026; reported as Act 145, effective 1 Jan 2028), and others pending. Connecticut's amended CTDPA applies at 35,000 consumers, or to any processing of sensitive data, or to any sale of data; a controller may not process a minor's data for targeted advertising or sale, and needs consent before profiling a minor (Attorney General's CTDPA page). The amending act (SB 1295, reported as PA 25-113, effective 1 Jul 2026) was not read in its enacted text. |
 | **Year Enacted** | Rolling: 2021–2026. Most operative between 2023–2026. |
 | **Consent Model** | Generally opt-out for sale of data and targeted advertising. Opt-in for sensitive data processing. Most follow the VCDPA template. Maryland and Minnesota are more restrictive (closer to GDPR's data minimization standard). |
 | **Email Rules** | Defer to CAN-SPAM federally. State laws add data rights (access, deletion, correction, portability) that affect CRM and email list management. |
 | **Cookie/Tracking Rules** | Most require opt-out rights for targeted advertising (which implicates ad cookies and pixels). Universal opt-out mechanisms (like GPC) are mandated in Colorado, Connecticut, Texas, Montana, Oregon, Delaware, and others. |
-| **Penalty Range** | Typically $7,500–$10,000 per violation. Most enforced by the state Attorney General. Few have private rights of action. Cure periods (30–60 days) are common in early-enacted laws but are being removed in newer laws. |
+| **Penalty Range** | Set state by state, mostly enforced by the state Attorney General. Connecticut: up to $5,000 per violation (Attorney General's CTDPA page). Many other states allow up to $7,500 per violation (not re-read state by state on 2026-10-27; check the statute before quoting a figure). Few have private rights of action. Cure periods (30–60 days) are common in early-enacted laws but are being removed in newer laws. |
+| **AI laws** | Colorado SB 26-189 (signed 14 May 2026) repeals and re-enacts the SB 24-205 AI Act as an automated decision-making law. From 1 Jan 2027, deployers using it in consequential decisions (education, employment, housing, lending, insurance, health care, government services) must give advance notice, explain adverse outcomes within 30 days, and offer data correction and human review on request. AG-only enforcement; 60-day cure notice until 1 Jan 2030; no new private right of action (leg.colorado.gov). |
+| **Verified** | 2026-10-27: Oklahoma and Alabama effective dates (enrolled texts); Colorado SB 26-189 (the signed act, leg.colorado.gov); Vermont's signing (the Governor's 2026 bill-action page); Connecticut's threshold, minors rule and penalty (the Attorney General's CTDPA page). Vermont's act number and effective date and Connecticut's act number and date are reported: legislature.vermont.gov and cga.ct.gov refused connections from here |
 | **Key Marketing Impact** | Treat the US as a patchwork. The safest approach is to build to the most restrictive standard (currently Maryland or CPRA) and apply nationally. Universal opt-out signal support is becoming table stakes. Data mapping is essential to know which state laws apply to which consumers. |
 
 ### 1.5 Canada — CASL
@@ -97,12 +127,13 @@ The European Commission published draft implementing guidelines for Article 50 o
 |---|---|
 | **Region** | Canada |
 | **Law** | Canada's Anti-Spam Legislation (CASL) |
-| **Year Enacted** | 2014 |
-| **Consent Model** | Opt-in. Express consent required for commercial electronic messages (CEMs). Implied consent exists in limited cases: existing business relationship (within 2 years of purchase, 6 months of inquiry), conspicuous publication of address (if relevant to role), or disclosure via referral. |
-| **Email Rules** | Every CEM must include: sender identification, contact information (physical and digital), and a functional unsubscribe mechanism processed within 10 business days. Consent records must be retained with proof of how and when consent was obtained. Consent requests themselves cannot contain marketing. |
-| **Cookie/Tracking Rules** | CASL requires consent for installation of programs on devices. Cookie consent is governed by PIPEDA (federal privacy law) — implied consent may suffice for functional/analytics cookies, but tracking for ad targeting should use express consent. |
-| **Penalty Range** | Up to CAD $10 million per violation (individuals: $1 million). CRTC enforces. Private right of action was enacted but enforcement is through administrative monetary penalties. |
+| **Year Enacted** | Royal Assent 15 Dec 2010 (S.C. 2010, c. 23). Most provisions in force 1 July 2014; the software-installation rule (s.8) from 15 Jan 2015. |
+| **Consent Model** | Express consent is required. Implied consent applies to an existing business relationship (purchase within 2 years, inquiry within 6 months, s.10(10)); a conspicuously published address relevant to the person's role (s.10(9)(b)); or an address the person gave you without saying no (s.10(9)(c)). One message after a named referral is exempt (SOR/2013-221 s.4). |
+| **Email Rules** | Identify the sender and give a mailing address plus a phone number, email or web address (SOR/2012-36 s.2), valid for 60 days (s.6(3)). Unsubscribe requests are honoured within 10 business days (s.11(3)). A message asking for consent is itself a commercial message (s.1(3)), so you cannot email to ask. Keep proof of consent (s.13). |
+| **Cookie/Tracking Rules** | Installing software needs express consent (s.8). Cookies, HTML and JavaScript count as consented to where the person's conduct shows consent (s.10(8); CRTC FAQ). Under PIPEDA, the privacy regulator (OPC) says opt-out consent may be acceptable for behavioural ads if strict conditions are met. |
+| **Penalty Range** | Up to $1M per violation for individuals and $10M for businesses (s.20(4)), enforced by the CRTC. There is no private right of action: sections 47–51 were "Repealed before coming into force". |
 | **Key Marketing Impact** | One of the strictest email laws globally. Implied consent windows are short — CRM must track consent expiry. "Conspicuous publication" is narrow and does not cover scraping. B2B cold outreach is heavily restricted. Referral/tell-a-friend programs require careful structuring. |
+| **Verified** | 2026-10-27: every row against the Act on laws-lois.justice.gc.ca (current to 2026-09-30), its regulations and the CRTC FAQ |
 
 ### 1.6 Brazil — LGPD
 
@@ -111,11 +142,12 @@ The European Commission published draft implementing guidelines for Article 50 o
 | **Region** | Brazil |
 | **Law** | Lei Geral de Protecao de Dados (LGPD) |
 | **Year Enacted** | 2018 (enforced September 2020; penalties from August 2021) |
-| **Consent Model** | Opt-in. Consent must be free, informed, and unambiguous for a specific purpose. Legitimate interest is available as an alternative basis but requires a Legitimate Interest Assessment (LIA). |
+| **Consent Model** | Consent must be "livre, informada e inequívoca" (Art 5 XII). Legitimate interest is an alternative (Art 7 IX); ANPD may request an impact report (Art 10 §3). The ANPD guide of 2 Feb 2024 gives a three-stage balancing-test model. |
 | **Email Rules** | Consent or legitimate interest required. Unsubscribe must be easy and immediate. Data subjects have rights to access, correction, deletion, and portability. Marketing communications must identify the sender and purpose. |
-| **Cookie/Tracking Rules** | ANPD (National Data Protection Authority) guidance requires consent for non-essential cookies. Cookie banners with accept/reject options are standard practice. |
-| **Penalty Range** | Up to 2% of revenue in Brazil, capped at BRL 50 million (~USD 10 million) per violation. ANPD may also issue warnings, publicize violations, and block or delete data. |
-| **Key Marketing Impact** | Similar structure to GDPR but with a revenue cap specific to Brazilian operations. Data Protection Officer (DPO) appointment is mandatory. Cross-border transfers require adequacy, contractual safeguards, or consent. Portuguese-language privacy notices required. |
+| **Cookie/Tracking Rules** | The ANPD cookie guide (v1.0, Oct 2022) accepts legitimate interest for strictly necessary cookies and, in some contexts, aggregated audience measurement. It says legitimate interest "dificilmente será" right for advertising cookies, so ad cookies effectively need consent. It recommends a reject-all button on the first-layer banner and consent cookies switched off by default. |
+| **Penalty Range** | Up to 2% of Brazilian revenue, capped at R$50M per infraction (Art 52 II), set by the ANPD fine-calculation rules (Resolution 4/2023). Also warnings, publicising the breach, blocking or deleting data, and suspension or prohibition of processing. |
+| **Key Marketing Impact** | Appoint a DPO (Art 41). Small businesses are exempt unless their processing is high-risk or their revenue exceeds the legal limit, but they must offer a contact channel (Resolution 2/2022 Arts 3 and 11). Transfers rely on Art 33, ANPD standard contractual clauses (Resolution 19/2024), or adequacy; the EU and EEA have been adequate since 26 Jan 2026 (Resolution 32/2026). ANPD is now the Agência Nacional de Proteção de Dados (Lei 15.352/2026). |
+| **Verified** | 2026-10-27: every row against Lei 13.709 on planalto.gov.br and the ANPD resolutions and guides on gov.br/anpd |
 
 ### 1.7 United Kingdom — UK GDPR + PECR
 
@@ -124,10 +156,11 @@ The European Commission published draft implementing guidelines for Article 50 o
 | **Region** | United Kingdom |
 | **Law** | UK General Data Protection Regulation (UK GDPR) + Privacy and Electronic Communications Regulations (PECR) |
 | **Year Enacted** | UK GDPR: 2018 (retained post-Brexit, 2021). PECR: 2003. |
-| **Consent Model** | Opt-in for marketing. PECR requires prior consent for unsolicited marketing emails to individuals. Soft opt-in exception (similar to EU): existing customers can be emailed about similar products if opt-out was offered at collection and in each message. B2B exception: corporate email addresses (e.g., info@company.com) may be contacted without prior consent under PECR, but UK GDPR still requires a lawful basis. |
+| **Consent Model** | Opt-in for marketing. PECR requires prior consent for unsolicited marketing emails to individuals. Soft opt-in exception (similar to EU): existing customers can be emailed about similar products if opt-out was offered at collection and in each message; since 5 Feb 2026 charities may use the soft opt-in for supporters (Data (Use and Access) Act 2025, s.114). B2B exception: corporate email addresses (e.g., info@company.com) may be contacted without prior consent under PECR, but UK GDPR still requires a lawful basis. |
 | **Email Rules** | Same structural requirements as GDPR: sender identity, physical address, unsubscribe. ICO enforces. Unsolicited B2C email without consent is a PECR violation. |
-| **Cookie/Tracking Rules** | PECR requires prior consent for non-essential cookies. ICO has signaled stricter enforcement. Legitimate interest is not a valid basis for ad cookies under PECR. |
-| **Penalty Range** | UK GDPR: up to GBP 17.5 million or 4% of global turnover. PECR: up to GBP 500,000. ICO enforcement. |
+| **Cookie/Tracking Rules** | PECR requires prior consent for non-essential cookies, with two exceptions since 5 Feb 2026 (Data (Use and Access) Act 2025, s.112 and Sch 12): cookies used **solely** to collect statistics about how your own service or website is used in order to improve it (shared only with someone helping make those improvements), and cookies that adapt or enhance the site's appearance or functionality. Both need clear and comprehensive information and a simple, free way to object. Advertising and cross-site tracking cookies still need consent, and legitimate interest is not a basis for them. |
+| **Penalty Range** | UK GDPR: up to GBP 17.5 million or 4% of global turnover. PECR: since 5 Feb 2026 the same higher maximum applies to PECR breaches (s.115 and Sch 13, applying Data Protection Act 2018 s.157); before that, up to GBP 500,000. ICO enforcement. |
+| **Verified** | 2026-10-27: PECR changes and dates against the Act's Schedules 12 and 13 and SI 2026/82 (legislation.gov.uk) |
 | **Key Marketing Impact** | Post-Brexit, UK adequacy decision from the EU allows data flows, but this is subject to review. Data Protection Impact Assessments required for high-risk processing (profiling, large-scale marketing). ICO publishes direct marketing guidance — treat as binding. International transfers require UK-specific transfer mechanisms (UK SCCs, IDTA). |
 
 ### 1.8 Australia — Privacy Act + Spam Act
@@ -137,11 +170,12 @@ The European Commission published draft implementing guidelines for Article 50 o
 | **Region** | Australia |
 | **Law** | Privacy Act 1988 (Australian Privacy Principles) + Spam Act 2003 |
 | **Year Enacted** | Privacy Act: 1988 (APPs added 2014). Spam Act: 2003. |
-| **Consent Model** | Opt-in under the Spam Act for commercial electronic messages. Consent can be express or inferred (from an existing business relationship or conspicuous publication). The Privacy Act uses a "reasonable expectation" standard for use of personal information. |
-| **Email Rules** | Spam Act requires: consent (express or inferred), accurate sender identification, functional unsubscribe honored within 5 business days. Address harvesting and list selling are prohibited. |
-| **Cookie/Tracking Rules** | No specific cookie consent law currently. The Privacy Act requires transparency about data collection. The government's Privacy Act Review (2023–2025) is expected to introduce stronger consent requirements for tracking — monitor for changes. |
-| **Penalty Range** | Spam Act: up to AUD 2.22 million per day for body corporates. Privacy Act: up to AUD 50 million, 3x the benefit obtained, or 30% of adjusted turnover (whichever is greater) following 2022 amendments. ACMA and OAIC enforce. |
-| **Key Marketing Impact** | Spam Act prohibits address harvesting software and purchased scraped lists. Inferred consent from business relationships is relatively broad but must be documented. The Privacy Act's 2022 penalty increase makes Australia a high-consequence jurisdiction. Cross-border disclosure to overseas recipients requires reasonable steps to ensure compliance. |
+| **Consent Model** | Spam Act: express or inferred consent. ACMA says inferred consent needs a provable ongoing relationship and directly related marketing, and "does not cover sending messages after someone has just bought something". Privacy Act APP 7: direct marketing allowed if reasonably expected with a simple opt-out; otherwise consent is required (APP 7.3). |
+| **Email Rules** | Identify the sender with contact details valid for 30 days. Unsubscribe must be free, need no login, work for 30 days, and be honoured within 5 working days (ACMA). Address-harvesting software and harvested lists are banned. Bought lists are legal, but the sender still needs consent (ACMA). |
+| **Cookie/Tracking Rules** | No specific cookie consent law. The Privacy and Other Legislation Amendment Act 2024 (assented 10 Dec 2024) brought in: a statutory tort for serious invasions of privacy (from 10 June 2025); automated-decision disclosure in privacy policies (from 10 Dec 2026); and a Children's Online Privacy Code that must be registered by 10 Dec 2026. Tranche 2 has not been introduced (OAIC). |
+| **Penalty Range** | Spam Act: ACMA (17 Oct 2024) gave court maximums of $626,000 a day without a prior record and $3,130,000 a day with one; they are set in penalty units, which have risen since, so current maximums are higher. Privacy Act: s.13G up to the greater of $50M, 3× the benefit, or 30% of turnover; s.13H up to 2,000 penalty units; infringement notices up to 200 units (OAIC). |
+| **Key Marketing Impact** | Inferred consent is narrow, so get express consent. Keep consent records, since the sender must prove consent. Take reasonable steps before disclosing data overseas (APP 8.1). Individuals can now sue for serious privacy invasions. |
+| **Verified** | 2026-10-27: every row against OAIC and ACMA pages; the Spam Act's penalty units were not read in the statute (legislation.gov.au timed out), so the row quotes ACMA's dated figures |
 
 ### 1.9 Singapore — PDPA
 
@@ -150,11 +184,12 @@ The European Commission published draft implementing guidelines for Article 50 o
 | **Region** | Singapore |
 | **Law** | Personal Data Protection Act (PDPA) |
 | **Year Enacted** | 2012 (significant amendments 2021) |
-| **Consent Model** | Opt-in for marketing. Deemed consent applies in limited situations (e.g., voluntarily providing data for a clear purpose). 2021 amendments added "legitimate interest" and "business improvement" exceptions. |
-| **Email Rules** | Do Not Call (DNC) Registry: mandatory to check before sending marketing messages to Singapore numbers/addresses. Opt-out must be free and processed within 10 business days. Sender must be identified. |
+| **Consent Model** | Express opt-in consent expected for direct marketing; deemed consent by notification, legitimate interests and business improvement cannot be used to send it (PDPC Key Concepts guidelines, rev. 29 Apr 2026). |
+| **Email Rules** | DNC Registry check (or clear, recorded consent) before marketing calls, texts or faxes to Singapore numbers (PDPA s. 43). Bulk commercial email/SMS: unsubscribe facility honoured within 10 business days, "<ADV>" label, accurate subject and header, sender contact (Spam Control Act, Second Schedule). |
 | **Cookie/Tracking Rules** | No specific cookie consent law. PDPA's consent obligation applies if cookies collect personal data. PDPC advisory guidelines recommend transparency and consent for tracking. |
-| **Penalty Range** | Up to SGD 1 million or 10% of annual turnover in Singapore (whichever is higher, following 2021 amendments). PDPC enforces. |
-| **Key Marketing Impact** | DNC Registry check is mandatory and unique to Singapore — scrub all contact lists. Data breach notification mandatory within 3 days. Data Protection Officers must be appointed. Consent withdrawal must be easy. Cross-border transfers require comparable protection. |
+| **Penalty Range** | Up to 10% of Singapore turnover for organisations above S$10m, otherwise S$1m (PDPA s. 48J, from 1 Oct 2022). DNC breaches: S$200k for individuals, S$1m for others. PDPC enforces. |
+| **Key Marketing Impact** | Check the DNC Registry before marketing calls, texts or faxes to Singapore numbers. Notify the PDPC within 3 calendar days of assessing a breach as notifiable (s. 26D). Appoint a Data Protection Officer (s. 11(3)). Consent withdrawal must be easy. Cross-border transfers require comparable protection (s. 26). |
+| **Verified** | 2026-10-27: every row against the PDPA and Spam Control Act on sso.agc.gov.sg (current version as at 27 Oct 2026) and PDPC guidelines |
 
 ### 1.10 China — PIPL
 
@@ -164,23 +199,25 @@ The European Commission published draft implementing guidelines for Article 50 o
 | **Law** | Personal Information Protection Law (PIPL) |
 | **Year Enacted** | 2021 (effective November 1, 2021) |
 | **Consent Model** | Opt-in. Separate consent required for: sensitive personal information, cross-border transfers, public disclosure, and processing by third parties. Consent must be informed, voluntary, and explicit. |
-| **Email Rules** | Marketing requires consent. Individuals have the right to refuse and withdraw. All processing purposes must be disclosed. No specific email-format statute like CAN-SPAM, but general consent and transparency obligations apply. |
-| **Cookie/Tracking Rules** | Consent required for collection of personal information via cookies and trackers. Automated decision-making (algorithmic recommendations, targeted ads) must offer an opt-out and a non-personalized alternative. |
-| **Penalty Range** | Up to RMB 50 million (~USD 7 million) or 5% of prior year's revenue. Responsible individuals can be fined up to RMB 1 million and banned from serving as directors/officers. CAC (Cyberspace Administration of China) enforces. |
-| **Key Marketing Impact** | Data localization: personal information of Chinese residents must be stored in China unless a security assessment, standard contract, or certification is completed for cross-border transfer. Separate consent for each purpose. Personal Information Protection Impact Assessments required for sensitive data, automated decision-making, and cross-border transfers. Local DPO or representative required if processing from outside China. |
+| **Email Rules** | Commercial email needs prior express consent and "广告" or "AD" at the front of the subject; stop on refusal; opt-out contact valid 30 days (MII Order No. 38, 2006, Arts. 13–14; gov.cn). Electronic ads need consent, the sender's real identity and a refusal method; fine RMB 5,000–30,000 (Advertising Law Arts. 43, 63). Commercial SMS needs proof of consent and an opt-out in every message (MIIT SMS Rules, revised by Order 74, in force 1 May 2026). |
+| **Cookie/Tracking Rules** | No cookie statute; consent rules apply. Automated push or marketing must offer a non-personalised option or an easy refusal (PIPL Art. 24). Platforms must provide a personalised-recommendation off switch and tag deletion (Network Data Security Management Regulations Art. 42, from 1 Jan 2025). |
+| **Penalty Range** | Up to RMB 50 million or 5% of prior year's revenue; responsible individuals up to RMB 1 million and a ban from serving as directors or officers (PIPL Art. 66). The CAC coordinates; other State Council departments enforce within their remits (Art. 60). |
+| **Key Marketing Impact** | Mandatory in-China storage applies only to critical information infrastructure operators and handlers above CAC volume thresholds (PIPL Art. 40). Transfers needed for a contract with the person, or of under 100k people's non-sensitive data a year, are exempt; 100k–1m (or under 10k sensitive): standard contract or certification; above that: security assessment (CAC Order 16, 22 Mar 2024; certification under CAC/SAMR Order 20, from 1 Jan 2026). Impact assessments required (Art. 55). Overseas handlers need a China agency or representative (Art. 53). Handlers of 1m+ people must name a protection officer; 10m+ must audit every 2 years (CAC Order 18, from 1 May 2025). |
+| **Verified** | 2026-10-27: every row against the PIPL on cac.gov.cn and the CAC/MIIT orders cited |
 
 ### 1.11 India — DPDPA
 
 | Field | Detail |
 |---|---|
 | **Region** | India |
-| **Law** | Digital Personal Data Protection Act (DPDPA) 2023, operationalised by the Digital Personal Data Protection Rules 2025 (notified by MeitY 3 Jan 2025; phased commencement through 2025-2026). |
-| **Year Enacted** | 2023 (Rules 2025 finalised; consult MeitY notification for the phase-by-phase commencement schedule before designing for India). |
+| **Law** | Digital Personal Data Protection Act (DPDPA) 2023, operationalised by the Digital Personal Data Protection Rules 2025: notification G.S.R. 846(E) dated 13 Nov 2025 (PIB reports notification on 14 Nov). The 3 Jan 2025 text (G.S.R. 02(E)) was the consultation draft. |
+| **Year Enacted** | Act 2023. The Rules phase in (rule 1): rules 1, 2 and 17-21 (definitions and the Data Protection Board) from publication in Nov 2025; **rule 4 (Consent Manager registration) one year later, from 13 Nov 2026**; rules 3, 5-16, 22 and 23 (notice, security safeguards, breach notification, children's verifiable consent, rights, retention, cross-border and research rules) eighteen months later, **from 13 May 2027**. Build to the full rules now; most obligations are enforceable only from May 2027. |
 | **Consent Model** | Opt-in. Consent must be free, specific, informed, unconditional, and unambiguous, and must be requested in clear, plain language. Notice must accompany or precede the consent request (Rule 3). "Deemed consent" was removed in the 2023 Act and replaced with "Certain Legitimate Uses" (Section 7) — narrower than the 2022 draft. |
-| **Email Rules** | Marketing requires verifiable consent. Withdrawal must be as easy as giving consent. The Consent Manager framework (registered entities that intermediate consent on behalf of Data Principals) is now live under Rule 4 — Data Fiduciaries handling material volumes should integrate with at least one registered Consent Manager. |
+| **Email Rules** | Marketing requires verifiable consent. Withdrawal must be as easy as giving consent. Consent Managers (registered entities that let a Data Principal give, manage, review or withdraw consent on one platform) can register from 13 Nov 2026 under rule 4 and must be companies incorporated in India; integrate with one once registered managers exist. Data Principals' access, correction and erasure requests must be answered within 90 days. |
 | **Cookie/Tracking Rules** | Cookie / SDK-based tracking that identifies a Data Principal is processing of personal data and requires DPDPA-compliant consent. The Rules do not carve out cookies; rely on the general processing-with-consent obligation. EU-style banner UX is the safest pattern. |
-| **Penalty Range** | Up to INR 250 crore (~USD 30 million) per instance of non-compliance. No percentage-of-revenue calculation. The Data Protection Board of India (constituted under Rule 16 et seq) enforces and adjudicates. |
-| **Key Marketing Impact** | Children's data (under 18) requires verifiable parental consent, and the Act prohibits targeted advertising and behavioural tracking directed at children — design age-gating and parental-consent flows before launching India campaigns to under-18 audiences. Cross-border transfers are permitted by default; Government may notify restricted countries by gazette (none broadly restricted as of July 2026 — verify before launch). Significant Data Fiduciaries (designated by the Government based on volume / sensitivity / risk) carry additional obligations: appoint an India-resident Data Protection Officer, conduct annual Data Protection Impact Assessments, and undergo periodic audits. Breach notification to the Board and affected Data Principals is mandatory without delay (Rule 7). |
+| **Penalty Range** | Up to INR 250 crore for failing to keep reasonable security safeguards; up to INR 200 crore for failing to notify a breach or for violating obligations on children's data; up to INR 50 crore for any other violation of the Act or Rules (PIB, 17 Nov 2025). No percentage-of-revenue calculation. The Data Protection Board of India (four members, fully digital; rules 17-21, in force from Nov 2025) enforces and adjudicates; appeals go to TDSAT. |
+| **Key Marketing Impact** | Children's data (under 18) requires verifiable parental consent (rule 10, from 13 May 2027), and the Act prohibits targeted advertising and behavioural tracking directed at children — design age-gating and parental-consent flows before launching India campaigns to under-18 audiences. Cross-border transfers are permitted by default; Government may notify restricted countries by gazette (none broadly restricted as of July 2026 — verify before launch). Significant Data Fiduciaries (designated by the Government based on volume / sensitivity / risk) carry additional obligations: appoint an India-resident Data Protection Officer, conduct annual Data Protection Impact Assessments, and undergo periodic audits. Breach notification to the Board and affected Data Principals is mandatory without delay (rule 7, from 13 May 2027). |
+| **Verified** | 2026-10-27: notification, commencement (rule 1) and rules 4 and 10 against the Rules text on meity.gov.in; penalties against PIB (17 Nov 2025) |
 
 ### 1.12 Japan — APPI
 
@@ -188,12 +225,13 @@ The European Commission published draft implementing guidelines for Article 50 o
 |---|---|
 | **Region** | Japan |
 | **Law** | Act on the Protection of Personal Information (APPI) |
-| **Year Enacted** | 2003 (major amendments 2017, 2022) |
-| **Consent Model** | Opt-in for provision to third parties and for use beyond the stated purpose. Opt-out mechanism available for third-party provision if registered with the PPC (Personal Information Protection Commission). 2022 amendments tightened opt-out rules and expanded individual rights. |
-| **Email Rules** | Specified Electronic Mail Act: opt-in required for commercial email. Sender ID and unsubscribe required. APPI requires specifying the purpose of use at collection. |
-| **Cookie/Tracking Rules** | 2022 amendments: "individually referable information" (e.g., cookie IDs that can be linked to personal info by a recipient) requires consent when provided to third parties. Cookie walls are discouraged. |
-| **Penalty Range** | Criminal penalties for certain violations (up to JPY 100 million for corporations). PPC can issue orders and recommendations. Reputational enforcement is significant in Japan. 2022 amendments increased penalties. |
+| **Year Enacted** | 2003 (Act No. 57); the 2020 amendment fully in force 1 Apr 2022; Act No. 56 of 2026 (promulgated 17 Jul 2026) comes into force within two years, on a date not yet set (PPC). |
+| **Consent Model** | Opt-in for provision to third parties and for use beyond the stated purpose. Opt-out third-party provision is available only after a filing with the PPC, and never for sensitive data (APPI Art. 27(2)). Cross-border transfer needs consent unless an exception applies (Art. 28). |
+| **Email Rules** | Specified Electronic Mail Act: opt-in (exceptions: business relationship, address given to sender, published business address); keep consent records; honour opt-outs; show sender name and an opt-out address (Arts. 3–4). Corporations up to JPY 30m (Art. 37). |
+| **Cookie/Tracking Rules** | Providing cookie-linked "personally referable information" that the recipient will tie to a person: the provider must confirm the recipient got the person's consent (APPI Art. 31). Sites and apps covered by the Telecommunications Business Act must notify or publish (or get consent / offer opt-out) what tags send, to whom and why (MIC, from 16 Jun 2023). The 2026 amendment bans improper use or acquisition of data carrying Cookie IDs and other contact identifiers (Art. 31-2, not yet in force). |
+| **Penalty Range** | Criminal: breaching a PPC order, up to 1 year or JPY 1m; corporations up to JPY 100m (APPI Arts. 178, 184). Act No. 56 of 2026 adds a surcharge equal to the gain from serious violations, aimed at large cases (1,000-person benchmark); in force within 2 years (PPC). |
 | **Key Marketing Impact** | Japan has an EU adequacy decision (mutual), facilitating EU-Japan data flows. Pseudonymized data has a specific legal regime — can be used for internal analytics without consent but cannot be provided to third parties. Breach notification to PPC and affected individuals is mandatory. "Individually referable information" concept means cookie syncing and DMP practices need consent. |
+| **Verified** | 2026-10-27: every row against the APPI (Japanese Law Translation), e-Gov, MIC and PPC pages; re-check when the cabinet order sets the 2026 amendment's in-force date |
 
 ### 1.13 South Korea — PIPA
 
@@ -201,12 +239,13 @@ The European Commission published draft implementing guidelines for Article 50 o
 |---|---|
 | **Region** | South Korea |
 | **Law** | Personal Information Protection Act (PIPA) |
-| **Year Enacted** | 2011 (major amendments 2023, effective 2024) |
-| **Consent Model** | Opt-in. Among the strictest globally. Consent must be separate from other terms, clearly distinguishable, and specific. Separate consent required for: collection, use, third-party provision, and cross-border transfer. |
-| **Email Rules** | Opt-in required. The Act on Promotion of Information and Communications Network Utilization governs electronic marketing — consent must be verifiable, and opt-out must be honored immediately. Nighttime marketing (9 PM–8 AM) is restricted. |
-| **Cookie/Tracking Rules** | 2023 amendments introduced a framework for pseudonymized data and behavioral advertising. Consent required for tracking that constitutes personal information processing. Online behavioral advertising requires notice and opt-out. |
-| **Penalty Range** | Up to 3% of relevant revenue or KRW 600 million. Criminal penalties possible (up to 5 years imprisonment). PIPC (Personal Information Protection Commission) enforces. |
-| **Key Marketing Impact** | Very granular consent requirements — separate checkboxes for each purpose and each third-party recipient. Nighttime contact restrictions are unique and must be coded into send-time logic. Resident Registration Numbers are highly restricted. 2023 amendments expanded extraterritorial reach and data subject rights. Cross-border transfer rules tightened. |
+| **Year Enacted** | 2011; major amendments in force 15 Sep 2023 and 11 Sep 2026 (Act No. 21445) (law.go.kr; PIPC) |
+| **Consent Model** | Each consent item must be presented and obtained separately, marketing included; service cannot be refused for declining marketing consent (PIPA Art. 22). Cross-border transfer: separate consent, or law/treaty, contract necessity with disclosure, certification, or PIPC adequacy (Art. 28-8). |
+| **Email Rules** | ICNA Art. 50: explicit prior opt-in (exception: own customers, same kind of goods, within 6 months of the transaction ending). Separate consent for 21:00–08:00, except email (Decree Art. 61). "(광고)" at the start of the subject line; sender name and contact; opt-out instructions in Korean and English (Decree Annex 6). Stop on refusal; confirm the outcome within 14 days; re-confirm consent every 2 years (Decree Arts. 62-2, 62-3). |
+| **Cookie/Tracking Rules** | No cookie statute. PIPC policy (31 Jan 2024): behavioural data processed so no one can be identified needs no consent; identifying processing needs notice, consent and a later opt-out; ad media must list third-party collection in their privacy policy. |
+| **Penalty Range** | Up to 3% of total revenue (KRW 2bn if revenue can't be calculated); up to 10% (KRW 5bn) for repeat intentional or grossly negligent violations within 3 years, intentional or grossly negligent harm to 10m+ people, or a leak after ignoring a corrective order. Revenue unrelated to the violation is excluded (PIPA Art. 64-2, in force 11 Sep 2026). Criminal: up to 10 years / KRW 100m (Art. 70). PIPC enforces. |
+| **Key Marketing Impact** | Very granular consent: a separate item for each purpose and recipient (Art. 22). Night-time advertising messages need separate consent, except email, so code send-time rules per channel. Resident Registration Numbers are highly restricted. Cross-border transfer grounds were widened (Art. 28-8), and PIPC can order a transfer stopped (Art. 28-9). |
+| **Verified** | 2026-10-27: every row against PIPA and the ICNA on law.go.kr (in force 2026-09-11) and PIPC pages |
 
 ### 1.14 Saudi Arabia — PDPL
 
@@ -214,25 +253,27 @@ The European Commission published draft implementing guidelines for Article 50 o
 |---|---|
 | **Region** | Kingdom of Saudi Arabia |
 | **Law** | Personal Data Protection Law (PDPL) |
-| **Year Enacted** | 2021 (implementing regulations 2023; grace period until September 2024) |
-| **Consent Model** | Opt-in. Consent must be explicit, informed, and freely given. Legitimate interest basis available but narrow. Sensitive data (health, financial, location, biometric, religious/ethnic data) requires explicit consent. |
-| **Email Rules** | Marketing requires consent. Data subjects must be informed of the purpose before collection. Right to object to direct marketing. |
-| **Cookie/Tracking Rules** | General consent obligation applies to collection of personal data via cookies. Specific cookie regulations expected as implementing rules evolve. |
-| **Penalty Range** | Up to SAR 5 million (~USD 1.3 million). Criminal penalties for unauthorized disclosure of sensitive data (up to 2 years imprisonment). SDAIA (Saudi Data and Artificial Intelligence Authority) and NCC enforce. |
-| **Key Marketing Impact** | Data localization: personal data of Saudi residents must be stored and processed in Saudi Arabia unless transfer conditions are met (adequacy, appropriate safeguards, or consent with risk disclosure). Arabic-language privacy notices likely required. DPO appointment required for certain controllers. Data breach notification within 72 hours. |
+| **Year Enacted** | 2021 (Royal Decree M/19, 16 Sep 2021; amended by M/148, 2023). SDAIA's Implementing Regulation and Transfer Regulation (v2.0, Aug 2024). Grace period reported to have ended 14 Sep 2024 (law firms). Draft amendments to the Implementing Regulation consulted 6 Oct–5 Nov 2026 (Clyde & Co; not adopted). |
+| **Consent Model** | Consent is the default basis (PDPL Art 5), with exceptions including the controller's legitimate interests, never for sensitive data (Art 6(4)). Consent must be free, documented and given separately for each purpose; withdrawing it must be as easy as giving it (Implementing Regulation Arts 11–12). Explicit consent is needed for sensitive data, credit data and fully automated decisions (Art 11(2)). Sensitive data = ethnic origin, religious or political belief, criminal or security data, biometric, genetic and health data, unknown parentage (PDPL Art 1). |
+| **Email Rules** | Advertising sent to postal or email addresses needs the recipient's consent and an opt-out (PDPL Art 25). Under Implementing Regulation Art 28, consent is required where there is no prior dealing with the recipient; the sender must be named, and opt-out must be free, as easy as opting in, and acted on at once. Direct marketing needs consent plus opt-out (Art 29). Marketing may use only data collected directly from the person, never sensitive data (PDPL Art 26). |
+| **Cookie/Tracking Rules** | The general consent rule applies to personal data collected through cookies. Neither the PDPL nor its regulations has a cookie-specific rule. |
+| **Penalty Range** | Warning or fine up to SAR 5M per violation, doubled for repeat violations (PDPL Art 36), imposed by SDAIA committees and appealable to court. Unlawfully disclosing sensitive data with intent to harm or for gain: up to 2 years and/or SAR 3M (Art 35, prosecuted by the Public Prosecution). SDAIA is the competent authority; SAMA keeps its own powers (Art 30). |
+| **Key Marketing Impact** | There is no localisation rule in force. Transfers abroad are allowed to countries on SDAIA's adequacy list, or under standard contractual clauses, binding common rules or an accreditation certificate, with a transfer risk assessment in set cases (Transfer Regulation Arts 3, 4, 7). Watch: the Oct 2026 draft would require storage in the Kingdom and notices in the language used to serve customers. DPO needed for public bodies processing at large scale, systematic monitoring, or sensitive data as a core activity (Art 32). Notify SDAIA of a breach within 72 hours where harm is likely (Art 24). |
+| **Verified** | 2026-10-27: every row against the PDPL, its Implementing Regulation and the Transfer Regulation (v2.0, Aug 2024) on SDAIA's platform; the end of the grace period and the Oct 2026 draft come from law firms (Clyde & Co, 8 Oct 2026) |
 
 ### 1.15 UAE — Federal Decree-Law No. 45
 
 | Field | Detail |
 |---|---|
-| **Region** | United Arab Emirates (federal, outside free zones) |
+| **Region** | United Arab Emirates, federal. Outside the law (Art 2): free zones with their own data protection law (e.g. DIFC, ADGM), government data, and health and banking data covered by their own laws. |
 | **Law** | Federal Decree-Law No. 45 of 2021 on the Protection of Personal Data |
-| **Year Enacted** | 2021 (implementing regulations issued 2023–2024) |
-| **Consent Model** | Opt-in. Consent must be clear, specific, informed, and unambiguous. Legitimate interest basis available. Sensitive data requires explicit consent. |
-| **Email Rules** | Marketing requires consent or a legitimate interest basis. Right to object to direct marketing at any time. Free zone regulations (DIFC, ADGM) have their own data protection laws that may apply instead. |
-| **Cookie/Tracking Rules** | General consent obligation for personal data processing extends to cookies and tracking. Await implementing regulations for specifics. |
-| **Penalty Range** | Up to AED 20 million (~USD 5.4 million). UAE Data Office enforces. DIFC Commissioner and ADGM have separate penalty regimes for free zone entities. |
-| **Key Marketing Impact** | Three overlapping regimes: federal law, DIFC (own law modeled on GDPR), and ADGM (own regulations). Determine which applies based on entity registration and data subject location. Cross-border transfer requires adequacy, contractual safeguards, or consent. Arabic-language notices advisable. Free zone entities should follow zone-specific rules which may be stricter. |
+| **Year Enacted** | 2021 (issued 20 Sep 2021; in force 2 Jan 2022). No Executive Regulation is listed on uaelegislation.gov.ae as of 26 Oct 2026. Firms get six months from its issue to comply (Art 29). |
+| **Consent Model** | Consent is required unless an Article 4 exception applies: public interest, data the subject made public, legal claims, health care, public health, research, the subject's interests, employment duties, contract, legal obligation. There is no legitimate-interest basis. Consent must be provable, clear, unambiguous and withdrawable (Art 6). |
+| **Email Rules** | Marketing needs consent or another Article 4 ground; there is no legitimate-interest route. People may object to and stop direct marketing, including related profiling (Art 17). Free-zone entities with their own data law (e.g. DIFC, ADGM) are outside the federal law (Art 2). |
+| **Cookie/Tracking Rules** | The general consent rule (Arts 4 and 6) covers personal data collected through cookies and tracking. There is no cookie-specific rule, and the Executive Regulation that could add detail has not been issued. |
+| **Penalty Range** | The Decree-Law sets no fine amounts; a Cabinet decision is to set violations and penalties (Art 26), and none is listed on the official portal. Regulator: UAE Data Office (Decree-Law 44/2021). DIFC and ADGM have separate penalty regimes. |
+| **Key Marketing Impact** | Three regimes: the federal Decree-Law, DIFC's own data protection law and ADGM's own regulations; which applies depends on where the entity is registered. Transfers abroad go to countries with adequate protection or under the other routes in Arts 22–23; the consent route needs explicit consent. Until the Executive Regulation and the Cabinet penalty decision are issued, build to the Decree-Law itself and check the official portal before quoting a penalty. |
+| **Verified** | 2026-10-27: every row against Decree-Law 45/2021 on uaelegislation.gov.ae (portal updated 26 Oct 2026) and the u.ae data protection page (updated 4 Dec 2025); the DIFC and ADGM regimes were not re-read |
 
 ### 1.16 Thailand — PDPA
 
@@ -240,12 +281,13 @@ The European Commission published draft implementing guidelines for Article 50 o
 |---|---|
 | **Region** | Thailand |
 | **Law** | Personal Data Protection Act (PDPA) |
-| **Year Enacted** | 2019 (fully enforced June 1, 2022) |
+| **Year Enacted** | 2019 (Government Gazette, 27 May 2019). Full enforcement from 1 June 2022 after two postponements (UNVERIFIED: the postponement decrees were not on the PDPC decree page, and the Royal Gazette site refused the request on 2026-10-27). |
 | **Consent Model** | Opt-in. Consent must be freely given, specific, informed, and unambiguous. Legitimate interest available as an alternative basis. Explicit consent required for sensitive data. Consent must be as easy to withdraw as to give. |
-| **Email Rules** | Direct marketing requires consent or legitimate interest with opt-out. Right to object to marketing at any time. Sender identification required. |
-| **Cookie/Tracking Rules** | Consent required for non-essential cookies. Thailand PDPA Committee guidance recommends cookie banners with granular choice. Functional and strictly necessary cookies may rely on legitimate interest. |
-| **Penalty Range** | Administrative fines up to THB 5 million (~USD 140,000). Criminal penalties up to THB 1 million and/or 1 year imprisonment for certain violations. Punitive damages up to 2x actual damages in civil cases. PDPA Committee and Expert Committee enforce. |
-| **Key Marketing Impact** | Structure is very similar to GDPR. DPO required for certain controllers. Data breach notification within 72 hours. Cross-border transfers require adequacy, appropriate safeguards, or consent. Thai-language privacy notices for Thai data subjects. Record of processing activities required. |
+| **Email Rules** | The PDPA has no rule specific to marketing channels. Marketing needs a lawful basis (consent, or legitimate interest under s.24(5)), and people may object to direct marketing at any time (s.32(2)). |
+| **Cookie/Tracking Rules** | The PDPA has no cookie-specific rule: cookies that collect personal data need a lawful basis like any other processing (s.24), and consent for advertising cookies is common practice. UNVERIFIED: the PDPC's guideline list (checked 2026-10-27) has no cookie guideline, so do not cite one. |
+| **Penalty Range** | Administrative fines up to THB 1M, 3M or 5M (ss.82–90). Up to 1 year and/or THB 1M for misusing sensitive data for unlawful gain (s.79). Punitive damages up to twice actual compensation (s.78). Expert committees had issued 9 fine orders in 6 cases, totalling over THB 21.5M, by 1 Aug 2025; the largest was THB 7M against a retailer with no adequate security, no breach report and no DPO (PDPC). |
+| **Key Marketing Impact** | Structure is close to the GDPR. A DPO is required for certain controllers (s.41). Notify the PDPC of a breach within 72 hours where feasible (s.37(4)). Transfers abroad need adequate protection in the destination or an exception (s.28). Keep a record of processing (s.39). |
+| **Verified** | 2026-10-27: every row against the official English translation of the PDPA and PDPC pages on pdpc.or.th (press release of 1 Aug 2025); the 2022 enforcement date and the cookie practice are marked UNVERIFIED |
 
 ---
 

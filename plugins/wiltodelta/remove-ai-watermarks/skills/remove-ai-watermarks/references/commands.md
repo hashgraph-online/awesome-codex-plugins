@@ -58,6 +58,17 @@ only when `identify` found no signal and the user still wants a guess, and
 report it as a guess.
 
 ```bash
+remove-ai-watermarks classify-source image.png
+remove-ai-watermarks classify-source image.png --json
+```
+
+Abstaining 10-provider source-pipeline classifier (`openai`, `google`,
+`bytedance`, `flux`, `stable_diffusion`, `meta`, `midjourney`, `ideogram`,
+`firefly`, `xai`) with Stage-2 model-version attribution, needs the
+`source-classify` extra. Like `classify`, it is NOT provenance and NOT a SynthID
+detector (`watermark_truth` is always `unknown`), and `identify` never runs it.
+
+```bash
 remove-ai-watermarks metadata image.png --check
 remove-ai-watermarks metadata image.png --remove -o clean.png
 ```

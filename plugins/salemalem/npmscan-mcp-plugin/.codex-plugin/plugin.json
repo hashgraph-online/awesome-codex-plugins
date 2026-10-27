@@ -1,0 +1,62 @@
+{
+  "name": "npmscan",
+  "version": "3.1.2",
+  "description": "Detect malicious, vulnerable, or typosquatted npm packages from a conversation. Search the npm registry, or compare 2-5 candidates side-by-side before adding a new dependency; inspect maintainers, install scripts, and Sigstore publish provenance before installing; audit a whole package.json/lockfile/SBOM/GitHub repo — including transitive dependencies, license compliance, and before/after PR diffs or npm audit output — against OSV.dev / GitHub Security Advisories / NIST NVD (with CISA KEV and FIRST EPSS enrichment); then get a prioritized remediation ranking, concrete incident-response playbooks, a CI-ready PASS/WARN/FAIL merge gate, safer-alternative suggestions, and a generated CycloneDX/SPDX SBOM — via npmscan.com's free, read-only MCP server.",
+  "author": {
+    "name": "BlockHacks.io",
+    "email": "shyngys@blockhacks.io",
+    "url": "https://npmscan.com"
+  },
+  "homepage": "https://npmscan.com/docs/mcp",
+  "repository": "https://github.com/salemalem/npmscan-mcp-plugin",
+  "license": "MIT",
+  "keywords": [
+    "npm",
+    "security",
+    "supply-chain",
+    "vulnerability",
+    "dependency-audit",
+    "malware",
+    "typosquatting",
+    "osv",
+    "github-advisories",
+    "cve",
+    "nvd",
+    "provenance",
+    "sigstore",
+    "license-compliance",
+    "sbom",
+    "maintainer-takeover",
+    "ci-cd",
+    "incident-response",
+    "remediation"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "NPMScan",
+    "shortDescription": "Detect malicious & vulnerable npm packages",
+    "longDescription": "Check npm packages for known vulnerabilities, malware, typosquats, maintainer takeovers, and risky install scripts before you install, upgrade, or ship them. Backed by npmscan.com's free, read-only MCP server (23 tools, no API key): npm registry search and side-by-side comparison, OSV.dev / GitHub Security Advisories / NIST NVD lookups enriched with CISA KEV and FIRST EPSS, Sigstore provenance and maintainer-history checks, whole-repo and transitive-dependency audits, license compliance, PR dependency diffs, npm audit enrichment, remediation ranking, and CycloneDX/SPDX SBOM generation. Bundles five skills: dependency-audit (audit a package.json, lockfile, SBOM, or GitHub repo), package-trust-check (is one package safe or compromised), new-dependency-evaluation (pick between candidate packages), incident-response (concrete playbooks for a flagged package), and ci-pr-gate (a deterministic PASS/WARN/FAIL merge verdict). Official page: https://npmscan.com",
+    "developerName": "BlockHacks.io",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://npmscan.com",
+    "privacyPolicyURL": "https://npmscan.com/privacy",
+    "termsOfServiceURL": "https://npmscan.com/terms",
+    "defaultPrompt": [
+      "Check if the npm package lodash is safe to install",
+      "Audit the package.json in my project for vulnerabilities",
+      "Compare axios vs node-fetch before I add a dependency"
+    ],
+    "composerIcon": "./icon.png",
+    "logo": "./assets/logo-400.png",
+    "screenshots": [
+      "./assets/screenshot-1.png",
+      "./assets/screenshot-2.png"
+    ],
+    "brandColor": "#ef4444"
+  }
+}

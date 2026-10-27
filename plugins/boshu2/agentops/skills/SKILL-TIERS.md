@@ -12,7 +12,7 @@
 
 ## judgment
 
-`architecture`, `council`, `craft-goal`, `postmortem`, `premortem`, `reality-check`, `review`, `validate`
+`architecture`, `council`, `craft-goal`, `postmortem`, `premortem`, `review`, `validate`
 
 ## knowledge
 
@@ -51,18 +51,17 @@
 | `navigate` | execution | `keep_strategy` | - | `observe_work_graph`, `select_next_wave`, `ratchet_work_graph`, `report_graph_hygiene` | `update_native_graph` |
 | `orchestrate` | execution | `keep` | - | `coordinate_native_work`, `recover_assignments`, `reconcile_feedback` | `dispatch_authorized_workers`, `update_native_handoffs` |
 | `plan` | execution | `keep` | - | `shape_intent`, `define_acceptance`, `bound_write_scope`, `resume_discovery` | `update_intent_source` |
-| `postmortem` | judgment | `keep_strategy` | - | `postmortem` | `write_postmortem_report` |
+| `postmortem` | judgment | `keep_strategy` | - | `postmortem` | `write_requested_postmortem_report` |
 | `premortem` | judgment | `keep_strategy` | - | `challenge_plan` | `write_advisory_plan_review` |
-| `reality-check` | judgment | `keep_strategy` | - | `compare_claim_to_evidence`, `measure_declared_goals`, `report_native_status` | `write_advisory_gap_report`, `write_goal_snapshot`, `write_requested_rendered_spec` |
 | `refactor` | execution | `keep_specialist` | - | `refactor` | `modify_source_files` |
-| `research` | execution | `keep_specialist` | - | `research`, `codebase_recon`, `pattern_mining` | `write_research_report`, `write_recon_pack`, `write_pattern_evidence` |
+| `research` | execution | `keep_specialist` | - | `research`, `codebase_recon`, `pattern_mining`, `compare_claim_to_evidence`, `measure_declared_goals`, `report_native_status` | `write_research_report`, `write_recon_pack`, `write_pattern_evidence`, `write_advisory_gap_report`, `write_goal_snapshot`, `write_requested_rendered_spec` |
 | `reverse-engineer` | execution | `keep_specialist` | - | `reverse_engineer` | `clone_upstream_repo`, `authorized_binary_execution`, `write_teardown_artifacts` |
 | `review` | judgment | `keep` | - | `review_advisory`, `identify_supported_findings`, `report_review_gaps` | - |
-| `rpi` | meta | `keep_strategy` | `plan`, `implement`, `validate` | `own_authorized_outcome`, `report` | `dispatch_core_phases` |
+| `rpi` | meta | `keep_strategy` | `plan`, `implement`, `validate` | `own_authorized_outcome`, `report` | `modify_authorized_subject`, `dispatch_conditional_validator` |
 | `security` | product | `keep_specialist` | - | `security` | `write_scan_artifacts` |
 | `skill-builder` | meta | `keep_specialist` | - | `skill_builder`, `heal_skill`, `export_skill`, `distill_expertise` | `write_skill_source`, `write_build_report`, `regenerate_skill_projections`, `repair_skill_projections`, `write_converted_skill_projection`, `write_advisory_proposal` |
-| `skill-eval` | meta | `keep_specialist` | - | `author_seeded_probe`, `run_probe_tier`, `evaluate_skill_decision` | `write_probe_package`, `dispatch_probe_producer` |
+| `skill-eval` | meta | `keep_specialist` | - | `evaluate_skill_decision`, `select_skill_measurement`, `read_skill_ab_results`, `author_seeded_probe` | `write_probe_package`, `dispatch_authorized_trials` |
 | `test` | execution | `keep_specialist` | - | `test` | `write_test_files`, `write_test_evidence`, `modify_source_files` |
 | `triage` | execution | `keep_specialist` | - | `observe_reported_behavior`, `find_duplicates_and_prior_decisions`, `classify_with_evidence`, `write_agent_ready_brief`, `reconcile_batch_by_id` | `write_authorized_tracker_updates` |
-| `using-gc` | execution | `keep_optional_adapter` | - | `dispatch_explicit_packet`, `observe_gc_runtime`, `inspect_pack_registries`, `drive_mayor_door` | `operate_gas_city`, `configure_codex_trust` |
+| `using-gc` | execution | `keep_optional_adapter` | - | `observe_gc_runtime`, `inspect_pack_registries`, `drive_mayor_door` | `operate_gas_city`, `configure_codex_trust` |
 | `validate` | judgment | `keep` | - | `compute_subject_identity`, `judge_acceptance`, `return_validation_result`, `persist_verdict` | `write_verdict_artifact` |

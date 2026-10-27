@@ -74,6 +74,11 @@ Change one relevant factor when causal attribution matters; compare with the
 identified baseline under equivalent conditions and the correctness guards
 below. Retain a candidate as an improvement only when its useful effect is
 supported beyond the observed noise. An inconclusive result is not a win.
+When several retained changes accumulate, report the overall gain from one
+comparison of the original baseline with the final candidate on the same
+workload. Gains measured one change at a time do not add up, because changes
+overlap or interfere; a change measured alone has not shown its contribution in
+combination.
 
 After an unsuccessful experiment, remove only its own changes when safe and
 within authority; preserve other edits and useful evidence. A legitimate

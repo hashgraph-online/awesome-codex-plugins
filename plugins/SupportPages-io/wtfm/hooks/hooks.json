@@ -4,7 +4,8 @@
       { "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/plugin-session.mjs\"" }] }
     ],
     "PostToolUse": [
-      { "matcher": "*", "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/engine/generate-illustrated-article/scripts/trace_hook.js\"" }] }
+      { "matcher": "*", "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/engine/generate-illustrated-article/scripts/trace_hook.js\"" }] },
+      { "matcher": "Bash", "hooks": [{ "type": "command", "command": "node \"${CLAUDE_PLUGIN_ROOT}/scripts/article-reminders.mjs\" after-bash" }] }
     ]
   }
 }

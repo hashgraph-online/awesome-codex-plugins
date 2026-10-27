@@ -62,7 +62,8 @@ npx skills add avivsinai/agent-message-queue -g -y
 ```
 
 Restart the agents after installing. [Other skill installation methods](INSTALL.md)
-are available if you do not use npm.
+are available if you do not use npm. agy (Antigravity CLI) reads skills from
+`~/.gemini/config/skills`, so copy the skill there as INSTALL.md shows.
 
 ### 3. Set up the project
 
@@ -74,6 +75,9 @@ amq setup
 
 Select the agents and launcher, then confirm the preview. Setup writes the
 project configuration and creates the default session and its mailboxes.
+An agent's handle is its harness name (`claude`, `codex`) unless you enter
+`handle=harness`, for example `reviewer=claude`. Only the handle goes into the
+roster and the mailboxes.
 
 ### 4. Start both agents
 
@@ -88,7 +92,9 @@ required). Paste each complete command into a separate terminal; do not
 shorten or rebuild it.
 
 Optional, for Claude Code: `amq wake install-dialog-hook` keeps the wake from
-typing into an open AskUserQuestion, plan, or permission dialog.
+typing into an open AskUserQuestion, plan, or permission dialog. Add
+`--harness codex` or `--harness cursor` (or `--harness all`) for their
+approval prompts.
 
 Start both agents before sending the first message. Messages that arrive
 before a recipient's wake starts remain unread but do not trigger that new

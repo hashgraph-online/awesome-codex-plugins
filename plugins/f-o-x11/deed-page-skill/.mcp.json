@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "deed-page": {
+      "type": "http",
+      "url": "https://deed.page/mcp"
+    }
+  }
+}

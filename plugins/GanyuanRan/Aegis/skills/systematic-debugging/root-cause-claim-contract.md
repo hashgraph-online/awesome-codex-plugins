@@ -7,7 +7,7 @@ condition is a self-judged, non-falsifiable claim. The moment an agent decides
 "no deeper why remains" is the moment it has selected itself as the authority
 on absence. That is structurally biased toward premature closure.
 
-This document defines the **Pre-Claim Gate**: a small set of mechanical,
+This document defines the **Pre-Claim Gate**: a bounded set of evidence-backed,
 falsifiable checks an agent must satisfy *before* it is allowed to claim a root
 cause and enter Phase 4 (Implementation). It also defines the **Causal
 Topology Gate**, which replaces the implicit "single-root" default with an
@@ -29,15 +29,16 @@ Run the Pre-Claim Gate when **any** of these is true:
   root?", "you stopped too early")
 - a fix was attempted and the symptom persisted or shifted
 
-Do **not** run it for the quick bug lane when the fix is at the canonical owner
-of a single-component, single-owner bug and no patch-shape signal fires. Keep
-simple tasks cheap.
+The quick bug lane may use its compact proof instead of the full card only
+after evidence establishes locality and excludes relevant other paths. The
+causal standard applies to every repair; a small diff is not locality evidence.
 
 ## Deeper Cause Challenge
 
-Before any non-trivial root claim, account for the mechanism that can regenerate
-the failure. A locally effective intervention proves that the selected point is
-causal; it does not prove that the point is the recurrence generator.
+Before any root claim, account for the mechanism that can regenerate the
+failure. A controlled intervention can support a causal relationship; it
+does not prove that the point is the recurrence generator. Uncontrolled
+changes or a passing sample alone do not establish causality.
 
 Run the full challenge when an upstream producer, configuration, default,
 contract, policy, or specification dependency has not been excluded. Record:
@@ -92,30 +93,42 @@ substitute for this proof.
 
 ## The Five Gate Checks
 
-A root-cause claim passes only when all five are satisfied. Each turns a
-subjective judgment into a mechanical, checkable condition.
+A root-cause claim requires all five checks within an explicit version, input
+and environment scope. These are evidence-backed judgments, not mechanical
+certification: a filled card proves neither completeness nor correctness.
 
 ### Gate 1 — Causal Closure
 
-Every causal edge from symptom back to claimed root has an evidence anchor
-(file:line, test, log, reproduction). A link that is "probably" or "I think"
-breaks the chain. The chain is closed or it is not — there is no partial pass.
+Trace actual data, control and state from inputs through decisions and effects
+to the observed outcome. Explain key intermediate observations and derive
+coverage from relevant upstream, downstream, shared-source, bypass, timing and
+feedback influences. Each causal relation needs evidence (code, log, experiment
+or execution semantics); a list of inspected modules is not coverage.
+
+For each relevant path or interaction, record confirmation, evidence-backed
+exclusion, bounded influence, or an unresolved question. Missing observations
+exclude a mechanism only when observation coverage is established. Check
+independent and joint causes, including paths masked by an earlier failure.
+A scoped model is closed only when no unresolved question could change the
+cause, intervention or sufficiency judgment. Explain why the investigated
+paths cover the outcome; do not claim absence of all unknowns or enumerate all
+technical dependencies. An assumption limiting the claim cannot exclude the
+conditions of the reported failure.
 
 ### Gate 2 — Falsifier Checked
 
-The claim must state: "If X were *not* the root cause, then observable F would
-appear." Then F must have been checked and found absent. No falsifier, or a
-falsifier that was never checked, blocks the claim.
-
-This converts "X is the root" from an assertion into a proposition that could
-have been wrong.
+Identify an observation that would refute the proposed explanation or
+distinguish it from a plausible alternative, then obtain that evidence.
+Control other causes when testing a member: an independent path can preserve
+the overall failure after that member is removed. Neither disappearance nor
+persistence alone proves the complete topology. Diagnostic instrumentation and
+reversible experiments may precede closure; they are not retained repairs.
 
 ### Gate 3 — Adversarial Self-Refutation
 
 Before claiming, generate the strongest single argument for why this root cause
-is wrong, and show why it does not hold. Self-refutation activates a different
-reasoning path than self-confirmation and is the cheapest known correction for
-the selection bias at the stop point.
+is wrong, and test it against evidence. Revise the explanation when it survives;
+do not manufacture a rejected alternative merely to complete the card.
 
 ### Gate 4 — Causal Topology Gate (see below)
 
@@ -124,18 +137,20 @@ The claim must carry an explicit topology classification, not an implicit
 
 ### Gate 5 — Layer Ceiling Proof
 
-If the claimed root sits at layer L?, the agent must show why L?+1 is *not*
-reachable — with a concrete constraint, not "I didn't go there." Reaching L7
-(Spec Gap) or a T-class terminal counts as a valid ceiling; stopping at L2 with
-"looks deep enough" does not.
+Justify the investigation boundary with evidence about mechanisms that could
+change the conclusion, not a layer number or "I did not go there." A spec-gap
+label is not automatic closure. An external terminal limits the claim; it does
+not prove the user outcome repaired. Deeper inquiry may stop when exclusions
+and coverage support the scoped intervention, without inventing higher-layer
+defects.
 
 ```text
 Pre-Claim Gate Pass:
 Topology: <single-root | single-root-multi-symptom | chain | independent-compound | conjunctive-cluster | disjunctive-or>
 CausalClosure: <closed | open-edge: <edge>>
-Falsifier: <if not-X then F; F checked: yes/no>
+Falsifier: <discriminating observation; evidence checked: yes/no>
 SelfRefutation: <strongest objection> -> <why it does not hold>
-LayerCeiling: <L?> -> <why L?+1 unreachable>
+LayerCeiling: <scope and conditions> -> <coverage and exclusion evidence>
 Verdict: pass | fail-<which-gate>
 ```
 
@@ -144,7 +159,9 @@ This card is an advisory readback. It is not a `GateDecision`,
 
 ## Causal Topology Gate
 
-Bugs have one of six causal topologies. Diagnostic layers (L1-L7) are
+The six classifications below describe bounded acyclic cases, not every
+possible failure. Inspect feedback and timing explicitly; do not force them
+into an acyclic classification. Diagnostic layers (L1-L7) are
 observation altitudes, not causal shapes: any topology can occur at any stop
 layer. These topologies assume convergence on discrete mechanisms within an
 acyclic incident graph; when member-by-member repair keeps regenerating the
@@ -157,11 +174,11 @@ before it may collapse to a single-root claim.
 | Topology | Structure | Stop condition | Repair shape |
 | --- | --- | --- | --- |
 | `single-root` | A → symptom | Layer Ceiling Proof at A | fix A |
-| `single-root-multi-symptom` | A → B, C, D | Layer Ceiling Proof at A | fix A, symptoms self-resolve |
+| `single-root-multi-symptom` | A → B, C, D | Layer Ceiling Proof at A | repair A and propagate required implementation changes; verify each affected outcome |
 | `chain` | A → B → C → symptom | Layer Ceiling Proof at A | drill to A, fix A |
 | `independent-compound` | A and Y are both active in the same incident; each independently produces an anchored manifestation; A ⊥ Y | prove same-incident activity, each root's Gate 1/2/5, and no shared upstream | fix **all active roots**; missing one leaves its causal path |
 | `conjunctive-cluster` | A ∧ B ∧ C → symptom (each necessary, none sufficient) | enumerate members, necessity test each, sufficiency test the set, anti-disguise check | break the conjunction at the correct defective owner; removing any necessary condition stops this path |
-| `disjunctive-or` | A ∨ B can cause symptom; current evidence shows one or an unknown active disjunct | identify the incident's active root and enumerate alternatives | fix the observed active root; enumerate alternatives for defense-in-depth |
+| `disjunctive-or` | A ∨ B can cause symptom; current evidence shows one or an unknown active disjunct | identify the active root and check other paths within the claimed repair scope | cover every in-scope sufficient failure path or exclude it with evidence; an earlier abort can mask a later one |
 
 Classification boundary: `independent-compound` requires evidence that two or
 more causally independent roots are active in the same observed incident. If
@@ -210,9 +227,12 @@ TopologyEvidence:
 - Repair obligation:
 ```
 
-These are **conceptual proofs**, not empirical removals. Complete topology proof
-may require runtime coverage that a method pack cannot grant; state that ceiling
-honestly when member completeness remains uncertain.
+Use execution semantics or controlled experiments as evidence for member
+claims; conceptual removal alone is a hypothesis. Separate cause confirmation,
+scoped causal closure and verified repair. Verify the original end-to-end
+outcome, relevant interactions and counterexamples, and preserved behavior.
+Reopen diagnosis when the error changes without the goal being achieved.
+A method pack cannot certify runtime coverage; state remaining limits honestly.
 
 ### Anti-disguise check (the step most often skipped)
 
@@ -246,12 +266,11 @@ Running the Pre-Claim Gate against that stop:
 
 - **Gate 1 Causal Closure:** open edge. No evidence linked the "missing
   contract" to the specific 10-row cutoff in the projection layer.
-- **Gate 2 Falsifier:** none stated. No claim of the form "if this were not
-  the cause, F would appear."
+- **Gate 2 Falsifier:** no discriminating observation was stated or checked.
 - **Gate 4 Topology:** implicit `single-root`, but the projection layer's use
   of visible-answer text as artifact source was an independent causal path —
   topology had not been classified, let alone reduced to single-root.
-- **Gate 5 Layer Ceiling:** no proof that L5+ was unreachable.
+- **Gate 5 Layer Ceiling:** relevant upstream influences remained unexcluded.
 
 Verdict: `fail-open-edge / fail-topology / fail-layer-ceiling`. The agent may
 not claim root cause. It must drill upward.
@@ -278,7 +297,10 @@ Running the Topology Gate against that stop:
   a first-class workflow with a completeness obligation — an L7 Spec Gap. A
   and B are two manifestations of that single deeper cause.
 
-Final classification: topology collapses from `independent-compound` to
+This collapse requires evidence that the shared specification gap generates
+both paths; a common architectural label alone is insufficient. Without that
+evidence, keep the shared upstream and final classification unknown. When
+that evidence exists, the final classification collapses from `independent-compound` to
 `single-root-multi-symptom` rooted at the L7 Spec Gap, with two ripple paths
 (A, B) that must both be repaired when the spec gap is addressed.
 
@@ -296,8 +318,8 @@ the projection-layer second member.
 
 ## Key Principle
 
-The stop condition must be something the agent has to *buy*, not something it
-*defaults to*. Five mechanical checks plus an explicit topology turn "I think
-this is deep enough" into "here is the evidence chain, the falsifier I checked,
-the objection I survived, the topology I proved, and the ceiling I reached."
-That is a claim worth acting on.
+A closure claim needs a bounded explanation, coverage and exclusion evidence,
+and checked counterexamples. The retained intervention must cover relevant
+failure paths and preserve required behavior. A method-pack card is a review
+aid, not certification; unresolved consequential unknowns block a repair claim,
+not diagnostic experiments.

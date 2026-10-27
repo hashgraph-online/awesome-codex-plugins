@@ -158,6 +158,19 @@ amq session resume feature-x
 approved `sha256:<hex>` digest matches. It is mutually exclusive with `-y`;
 `--preview` is also mutually exclusive with `-y`.
 
+`--agents` takes adapter names (`claude,codex`) or `handle=adapter` pairs
+(`reviewer=claude,codex`). The handle names the agent and its mailbox; the
+adapter selects the harness; a bare name is both. Setup keeps an existing
+launch.json entry unchanged unless a pair names a different adapter for its
+handle. `amq session create` declares the launch.json handles in the new
+session's own roster.
+
+A handle is declared when the base or session roster lists it, and observed
+when it is not declared but its mailbox holds an identity record from a harness
+that ran under it. Removing a handle from the roster can leave it observed; to
+forget it fully, remove the declaration and clean up its mailbox with
+`amq cleanup`.
+
 For Cursor, setup uses the `agent` command when it is on `PATH`; otherwise it
 falls back to the legacy `cursor-agent` command and the preview says so.
 
@@ -425,7 +438,8 @@ Users refer to sessions using many words: "session", "stream", "squad", "team", 
 ```bash
 # Step 1: Discover active sessions and agents
 amq who --json
-# Returns: [{"name":"collab","agents":[...]},{"name":"stream1","agents":[...]},{"name":"auth","agents":[...]}]
+# Returns: [{"name":"collab","scope":"session","agents":[...]},{"name":"stream1","scope":"session","agents":[...]}, ...]
+# An entry with "scope":"base" (and "name":"") is the base queue itself, not a session.
 
 # Step 2: Match the user's name against session names in the output, then send
 amq send --to codex --session stream1 --body "Message for stream1"

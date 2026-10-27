@@ -1,0 +1,47 @@
+{
+  "name": "pro-motion",
+  "version": "1.3.0",
+  "description": "Audio-first motion-graphics launch, brand and TVC films and the unconventional campaign around them, rendered in code (canvas → MP4) with 40+ AE / Blender-style effects and cut to the music.",
+  "author": {
+    "name": "jack-reson8",
+    "url": "https://github.com/jack-reson8"
+  },
+  "homepage": "https://github.com/jack-reson8/pro-motion",
+  "repository": "https://github.com/jack-reson8/pro-motion",
+  "license": "MIT",
+  "keywords": [
+    "motion-graphics",
+    "video",
+    "launch-video",
+    "brand-film",
+    "animation",
+    "music",
+    "sonic-logo",
+    "suno",
+    "canvas",
+    "ffmpeg"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Pro Motion",
+    "shortDescription": "Audio-first motion-graphics launch films rendered in code",
+    "longDescription": "Plan a launch, brand or promo film audio first (campaign mechanism, sonic logo, music prompts), then render it in code from an HTML canvas to MP4, cut to the analysed beat, with AE and Blender-style effects and multi-language cuts.",
+    "developerName": "jack-reson8",
+    "category": "Creativity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/jack-reson8/pro-motion",
+    "defaultPrompt": [
+      "Plan and render a 20-second launch film for my app, cut to this track",
+      "Write a music prompt and sonic logo for our product launch",
+      "Re-cut this film to the new music and make a Japanese version"
+    ],
+    "brandColor": "#E8452C",
+    "screenshots": [],
+    "privacyPolicyURL": "https://github.com/jack-reson8/pro-motion/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/jack-reson8/pro-motion/blob/main/LICENSE"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "workflow": "article-to-video",
+  "source": {
+    "url": "https://soundlabs.shop/products/aeropods-pro",
+    "scrapingPrompt": "Extract the product name, hero image, 3 key features, and price. Ignore reviews, related products, footer, and navigation."
+  },
+  "aspectRatio": "9:16",
+  "voice":    { "enabled": true, "stability": 0.55, "speed": 1.05, "language": "en-US" },
+  "captions": { "enabled": true, "position": "middle", "autoCrop": true },
+  "music":    { "enabled": true, "syncWith": "beats", "trackName": "uplifting-pop" },
+  "media": {
+    "type": "stock-video",
+    "density": "high",
+    "animation": "dynamic",
+    "quality": "pro",
+    "imageModel": "good",
+    "videoModel": "pro",
+    "turnImagesIntoVideos": true,
+    "applyStyleTransfer": false
+  },
+  "options": {
+    "targetDuration": 35,
+    "summarizationPreference": "summarize",
+    "hasToGenerateCover": true,
+    "coverTextType": "product-name",
+    "soundEffects": true,
+    "addStickers": false
+  },
+  "render": { "resolution": "1080p", "frameRate": 30 }
+}

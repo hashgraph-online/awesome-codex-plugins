@@ -25,9 +25,13 @@ line is a chance to corrupt a definition. Send only what changes:
 `kind` is `semantic_model` or `metric`, and `content` is that definition's YAML
 body with no leading `- `. The name comes from the content, and `path` can be
 omitted for anything the project already declares (the engine rewrites it where
-it lives). Everything else in the file, comments included, is preserved byte for
-byte. Use `--edits-file` to create a file, move a definition between files, or
-empty one, and when the engine refuses a layout it will not splice into.
+it lives). A new definition can omit it too when every existing definition of
+its kind lives in one file or, when none of that kind exists yet, the project's
+only semantic file: it is added to that file, and the plan's `warnings` say so.
+With no such file, or more than one, give it a `path`. Everything else in the
+file, comments included, is preserved byte for byte. Use `--edits-file` to
+create a file, move a definition between files, or empty one, and when the
+engine refuses a layout it will not splice into.
 
 ### Removing a definition
 
@@ -62,6 +66,16 @@ Layered so a plan that validates will build:
 dbt cannot parse semantic models without a MetricFlow **time spine**. The engine
 warns when one is missing and defers the parse gate until one exists.
 
+A semantic model **derived** from a declared mart (`data.semantic_proposal`, see
+[declarations.md](declarations.md#derived-semantic-model-datasemantic_proposal))
+passes the same three layers before it is offered or added to a plan. Its parse
+is never skipped: not by `--no-parse`, and not for a missing time spine, which
+the throwaway copy alone borrows so dbt can parse it.
+
+A `cumulative` metric that omits `cumulative_type_params.period_agg` plans with a
+warning. MetricFlow defaults it to `first`, so at week or month grain the metric
+reports each period's first day. Set `period_agg: last` for a running total.
+
 ## Native Apache Ossie: `semantic ossie define|update|plan`
 
 Pass `--edits-file <path|->` with whole documents whose paths are listed in
@@ -75,7 +89,7 @@ transformation project.
   layer already has, `update` one it does not, and `plan` accepts both. Neither
   removes a model. A configured file may be absent before `define`, so a new
   document is planned once its path is committed to config.
-- There is no external parser to gate on. dex checks the document's structure
+- There is no external parser to gate on. Dex checks the document's structure
   against the Ossie schema it pins (needs `[ossie]`), its internal consistency,
   and each SQL expression's syntax through the dialect engine (needs `[sql]`,
   which every connector extra carries). Without `[sql]` the third layer degrades
@@ -88,7 +102,7 @@ transformation project.
 - An unknown key is refused as incompatible with the pinned schema: it may be a
   typo or written for a newer Ossie draft. The diagnostic names the pinned spec
   version.
-- On apply, dex does not re-serialize the document, so comments, key order,
+- On apply, Dex does not re-serialize the document, so comments, key order,
   quoting, and whitespace survive, and a configured document the payload did not
   mention is untouched. A target file that changed after planning refuses the
   whole apply unless the overwrite is confirmed deliberately.
@@ -99,7 +113,7 @@ A worked end-to-end example on a local warehouse, for a human reader:
 ## SLayer models: `semantic slayer define|update|plan`
 
 Under `semantic.vendor: slayer`, the configured SLayer model files are the
-semantic layer and dex authors them directly. Do not generate them with
+semantic layer and Dex authors them directly. Do not generate them with
 `slayer import-dbt`: it is one-way and drops custom schemas and aliases. SLayer
 sits beside a dbt project the way Ossie does: `transform plan` still authors the
 models, and SLayer is the repository's one semantic layer.
@@ -167,7 +181,7 @@ and re-plan.
 - **An edited model's keys.** Every key, at every level (model, column and its
   `format`, saved measure, aggregation and its `params`, join), is a field the
   pinned release declares there. SLayer itself ignores any other key, so it
-  would be written byte for byte and do nothing; dex refuses it as
+  would be written byte for byte and do nothing; Dex refuses it as
   `[unknown_key]`, naming the file, the element (`measures['revenue'].agg`) and
   the pinned release. Where the key is a MetricFlow habit (`entities`, `agg`,
   `agg_time_dimension`, `expr`, `create_metric`, ...), the refusal says what
@@ -181,7 +195,7 @@ instead.
 
 ### What SLayer does not declare
 
-dex's catalog is shaped by MetricFlow; SLayer is not. Do not carry MetricFlow
+Dex's catalog is shaped by MetricFlow; SLayer is not. Do not carry MetricFlow
 habits into a SLayer file:
 
 - **No entities.** Keys are columns flagged `primary_key: true` (several make one
@@ -196,7 +210,7 @@ habits into a SLayer file:
   which every saved measure on that model is bucketed by.
 - **No `model_ref`, label, or primary entity on a model.** A model sits on the
   warehouse relation `sql_table` names; write it fully qualified for the
-  connector, or dex can resolve no relation for it. A model backed by `sql` or
+  connector, or Dex can resolve no relation for it. A model backed by `sql` or
   `source_queries` has none either, and the schema axis skips it.
 
 `explore semantic list` declares the same gaps in `unavailable`. Read it rather
@@ -204,7 +218,7 @@ than inferring an element kind from an empty list.
 
 ### When SLayer tooling wrote the file
 
-**dex owns the configured model files; SLayer tooling must not write them.**
+**Dex owns the configured model files; SLayer tooling must not write them.**
 `slayer serve`, `slayer ingest`, `slayer validate-models --persist-cardinality`
 and a storage migration on open all rewrite model files. If one did after you
 planned, apply refuses with a conflict that says so. Tell the user what

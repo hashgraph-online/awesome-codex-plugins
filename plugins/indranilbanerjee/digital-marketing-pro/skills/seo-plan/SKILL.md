@@ -1,6 +1,6 @@
 ---
 name: seo-plan
-description: "Build a 12-month SEO plan that scores four pillars and phases the roadmap. \"build an SEO strategy\""
+description: "Build a 12-month organic SEO plan: four scored pillars, phased year roadmap. \"build an SEO strategy\""
 argument-hint: "[business-type]"
 user-invocable: true
 ---

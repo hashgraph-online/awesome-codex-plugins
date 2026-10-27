@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rust Coder"
+  short_description: "Production Rust with correctness-first design"
+  default_prompt: "Use $rust-coder to implement this Rust change with repository-grounded types, ownership, and verification."

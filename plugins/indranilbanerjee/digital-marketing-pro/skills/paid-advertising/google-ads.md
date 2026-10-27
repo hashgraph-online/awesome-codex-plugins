@@ -4,23 +4,44 @@
 
 > **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python "${CLAUDE_PLUGIN_ROOT}/scripts/benchmark_book.py" --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
 
-## API version notes (July 2026)
+## API version notes (checked 2026-10-27)
 
-If you're writing code or constructing API requests against the Google Ads API, target **v24.2** (released 24 June 2026) — DMP's deliberate stable target. v24.1 and v24.2 are non-breaking additive releases on the v24 line; **v25 (July 2026)** is the new major release and contains breaking changes — adopt it deliberately, not by default.
+DMP's request templates use the Google Ads API version in `scripts/connector_resolver.py` API_VERSIONS (currently v26, released 14 Oct 2026; Google lists its sunset as November 2027). Change the version there, never in prose: `tests/test_api_versions.py` fails 30 days before a listed sunset and checks that docs naming a target version agree with the table. Google now ships minor releases about twice a month. Sources: [sunset dates](https://developers.google.com/google-ads/api/docs/sunset-dates) · [release notes](https://developers.google.com/google-ads/api/docs/release-notes).
 
-### Google Ads API v25 (July 2026)
+**No developer token.** Google sunset developer tokens on 9 Sep 2026. API access now comes from the Google Cloud project that owns the OAuth client (or the service account), and the `developer-token` header "is optional and ignored by the API servers"; Google says a future major version will reject it. DMP's templates no longer send it. Source: [developer-token guide](https://developers.google.com/google-ads/api/docs/api-policy/developer-token).
+
+### Google Ads API v26 (14 Oct 2026) — breaking changes
+
+| What | Change | Effect |
+|---|---|---|
+| `LocalServicesPmaxCampaignSettings.country_code` | Now required when creating a Local Services Performance Max campaign | Creation requests without it fail |
+| `ConversionTrackingSetting.enhanced_conversions_for_leads_enabled` | REMOVED | Use `enablement_setting` |
+| Hotel `AdGroupBidModifier` fields and `HotelDateSelectionType` | Renamed to vertical-agnostic names (`user_set_dates`, `length_of_booking`; `min_nights`/`max_nights` → `min_days`/`max_days`; `DateSelectionType`) | Re-check any GAQL that selects `segments.user_set_dates` |
+| Hotel-specific `CriterionError` reasons | Replaced by vertical-agnostic reasons | Update error handling |
+
+DMP's own templates (a GAQL search over `campaign` and a `campaigns:mutate` status change) touch none of these.
+
+### Dated changes outside the version cycle
+
+| When | Change | Source |
+|---|---|---|
+| 23 Sep 2026 | New Smart campaigns can't be created; existing ones keep serving and can be updated | [deprecations](https://developers.google.com/google-ads/api/docs/deprecations) (updated 16 Oct 2026) |
+| Sep 2026 | Manual language targeting (`CampaignCriterion.language`) can't be added or updated on Search, AI Max for Search, or Performance Max on Search; ads match on creative and landing-page language | same |
+| 4 Dec 2026 | Changes to image extraction for new Performance Max campaigns. Reported: extraction is on by default even when the account setting is off. Check the post for the opt-out field before relying on it | [Ads Developer Blog](https://ads-developers.googleblog.com/2026/10/upcoming-changes-to-image-extraction-in.html) (21 Oct 2026) |
+| Feb 2027 | Existing call-only ads (`CallAdInfo`) stop serving, then API support is removed; use Responsive Search Ads with call assets | [deprecations](https://developers.google.com/google-ads/api/docs/deprecations) |
+| Feb 2027 | Dynamic Search Ads sunset and auto-upgrade to AI Max | [blog.google](https://blog.google/products/ads-commerce/dsa-upgrade-to-ai-max-2026/) |
+
+### Google Ads API v25 (22 July 2026)
 
 Major release with breaking changes:
 
 | What | Change | Why it matters for ads ops |
 |---|---|---|
-| `CustomerLifecycleGoal` / `CampaignLifecycleGoal` | REMOVED — legacy lifecycle-goal resources are gone | Migrate to the unified `Goal` + `CampaignGoalConfig` schema before moving any integration to v25 |
+| `CustomerLifecycleGoal` / `CampaignLifecycleGoal` | REMOVED — legacy lifecycle-goal resources are gone | Integrations that used them migrate to the unified `Goal` + `CampaignGoalConfig` schema |
 | Loyalty-retention optimization goal | New goal type | Retention-focused campaigns can optimize directly for loyalty outcomes |
 | Social-engagement metrics for Shorts ads | New reporting metrics | First-class engagement reporting for YouTube Shorts inventory |
 
-**v24.2 remains DMP's deliberate stable target** (v24 line supported into 2027) — move to v25 only with a migration plan for the lifecycle-goal removal.
-
-### v24.2 (24 June 2026 — stable target)
+### v24.2 (24 June 2026)
 
 Non-breaking additions:
 
@@ -56,9 +77,9 @@ Source: [Google Ads API release notes](https://developers.google.com/google-ads/
 
 ### Adoption recommendation
 
-If you have time before your next ship:
-- **Upgrade clients to v24.2** to unlock Local Services Ads + landing-page-text generation
+Everything added in v24.1 and v24.2 is in the current version. When building on the API:
 - **Wire `ADOPT_AI_MAX` experiments** (v24.1) into any AI Max migration plan — Google's preferred lift-measurement path
+- **Use `AssetGroup.google_local_services_info`** (v24.2) for Local Services Ads alongside Performance Max
 - **Add `mobile_device_platform` segmentation** to any iOS-vs-Android performance reports (v24.1)
 
 ## Campaign Types Overview
