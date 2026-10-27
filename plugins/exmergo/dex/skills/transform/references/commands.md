@@ -38,6 +38,13 @@ of or on top of hand-authored edits.
   passes one through, and the project holds a parent to resolve against. It names
   its precedent and its parent, judges only models the plan authors, and is the
   one check a project can decline (`conventions.resolved_keys: false`).
+- `data.semantic_proposal`: for a declared model under `transform.marts_paths`
+  (default `[models/marts]`), the MetricFlow semantic model its declaration
+  states. Added to the plan (`mode: included`) where the project has a dbt
+  semantic layer and a time spine; offered for `semantic plan --definitions-file`
+  (`mode: proposed`) where it does not. Validated by MetricFlow's schemas, the
+  metric-input check and dbt's parse of a throwaway copy, never skipped. Absent
+  when no declared mart was touched. Shape and statuses in `declarations.md`.
 
 ## `transform apply [plan-id]` and `transform plans`
 

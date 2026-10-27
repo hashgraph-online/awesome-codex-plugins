@@ -1,6 +1,6 @@
 ---
 name: keyword-cluster
-description: "Cluster keywords into pillar and spoke pages by SERP overlap via script. \"cluster these keywords\""
+description: "Cluster keywords or queries into topic hubs and spoke pages by SERP overlap. \"cluster these keywords\""
 argument-hint: "<seed-keywords or path/to/seeds.csv> [target-country]"
 user-invocable: true
 ---

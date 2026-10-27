@@ -11,7 +11,6 @@ skill/skills/<domain>/<name>/SKILL.md
 ```
 
 Examples:
-
 - `skill/skills/pm/requirement-penetration/SKILL.md`
 - `skill/skills/architect/tech-research/SKILL.md`
 - `skill/skills/shared/tech-stack-detection/SKILL.md`
@@ -33,7 +32,6 @@ available_skills:
 ```
 
 The declaration and the actual calls must stay in sync:
-
 - Declared skills must exist at `skill/skills/<domain>/<name>/SKILL.md`.
 - Referenced skills must be listed in `available_skills`.
 - Declared skills should be referenced by the prompt so the agent knows when to load them.

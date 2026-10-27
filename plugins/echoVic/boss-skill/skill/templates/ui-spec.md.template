@@ -6,12 +6,6 @@ dependencies: [prd]
 
 # UI/UX 规范文档
 
-## 文档信息
-- **功能名称**：{{FEATURE_NAME}}
-- **版本**：1.0
-- **创建日期**：{{DATE}}
-- **作者**：UI Designer Agent
-
 ## 摘要
 
 > 下游 Agent 请优先阅读本节，需要细节时再查阅完整文档。
@@ -21,6 +15,12 @@ dependencies: [prd]
 - **核心组件**：[关键 UI 组件列表]
 - **响应式断点**：[Mobile / Tablet / Desktop]
 - **设计系统**：[是否使用现有 UI 库]
+
+## 文档信息
+- **功能名称**：{{FEATURE_NAME}}
+- **版本**：1.0
+- **创建日期**：{{DATE}}
+- **作者**：UI Designer Agent
 
 ---
 

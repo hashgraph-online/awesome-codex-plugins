@@ -228,7 +228,7 @@ By default, skills draft content for you to copy-paste into LinkedIn. If you wan
 
 ### What is Publora?
 
-[Publora](https://publora.com) is a publishing API that handles LinkedIn's quirks (3 different URL formats, reaction type mismatches, thread flattening bugs). The free tier gives you 15 posts/month.
+[Publora](https://publora.com/?utm_source=github&utm_medium=readme&utm_campaign=linkedin-skills) is a publishing API that handles LinkedIn's quirks (3 different URL formats, reaction type mismatches, thread flattening bugs). The free tier gives you 15 posts/month.
 
 Publora also ships [official MCP skills](https://github.com/publora/skills) (`npx skills add publora/skills`): one skill per platform, covering the publish side only. This bundle is the layer above them, adding the reading, the writing craft and the approval flow.
 
@@ -252,7 +252,7 @@ It reports each of Apify, Publora and Pixfaro separately, using free endpoints t
 They are not exclusive and neither is second-class. One caveat worth knowing: `scripts/check_config.py` and `scripts/selftest.py` read `.env` and the shell, so a connector is invisible to them. If they say "manual" while your posts are going out, the connector is doing the work and nothing is wrong.
 
 
-**Step 1.** Sign up at https://app.publora.com/signup (free)
+**Step 1.** Sign up at https://app.publora.com/signup?utm_source=github&utm_medium=readme&utm_campaign=linkedin-skills (free)
 
 **Step 2.** Connect LinkedIn: click **Channels** in the left sidebar, then **Add Channel**, pick **LinkedIn**, authorize.
 
@@ -415,7 +415,7 @@ python lib/url_parser.py "https://www.linkedin.com/posts/<author-handle>_activit
 
 ## References
 
-- [Publora API docs](https://docs.publora.com) — endpoint reference for the publishing layer
+- [Publora API docs](https://docs.publora.com/?utm_source=github&utm_medium=readme&utm_campaign=linkedin-skills) — endpoint reference for the publishing layer
 - [Apify console](https://console.apify.com) — manage actors, tokens, and usage for the read layer
 - [360Brew paper](https://arxiv.org/abs/2501.16450) — LinkedIn's ranking foundation model
 - [AuthoredUp 2026 reach data](https://authoredup.com/) — format-level reach benchmarks
@@ -432,7 +432,7 @@ This repo is the thin top layer of that stack, open-sourced. The engine undernea
 
 ## License
 
-MIT. Powered by [Publora](https://publora.com).
+MIT. Powered by [Publora](https://publora.com/?utm_source=github&utm_medium=readme&utm_campaign=linkedin-skills).
 
 ## Related open-source skill bundles
 

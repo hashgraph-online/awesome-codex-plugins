@@ -18,6 +18,8 @@
   <a href="https://github.com/lacs-project/sysknife/discussions"><img src="https://img.shields.io/github/discussions/lacs-project/sysknife?style=flat-square&label=discuss" alt="Discussions"></a>
   <a href="https://www.npmjs.com/package/sysknife-setup"><img src="https://img.shields.io/npm/v/sysknife-setup?style=flat-square&logo=npm&label=npx%20setup" alt="npm version"></a>
   <a href="https://glama.ai/mcp/servers/lacs-project/sysknife"><img src="https://glama.ai/mcp/servers/lacs-project/sysknife/badges/score.svg" alt="Glama MCP server quality score"></a>
+  <a href="https://github.com/lacs-project/sysknife/blob/main/tests/evidence/workspace-tests.json"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Flacs-project%2Fsysknife%2Fmain%2Ftests%2Fevidence%2Fworkspace-tests.json&query=$.tests&label=Rust%20tests&style=flat-square&color=2f855a" alt="Rust test count, read from the recorded baseline"></a>
+  <a href="https://github.com/lacs-project/sysknife/blob/main/tests/evidence/workspace-tests.json"><img src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Flacs-project%2Fsysknife%2Fmain%2Ftests%2Fevidence%2Fworkspace-tests.json&query=$.frontend_tests&label=frontend%20tests&style=flat-square&color=2f855a" alt="Frontend test count, read from the recorded baseline"></a>
 </p>
 
 <p align="center">
@@ -234,9 +236,9 @@ privilege boundary is worse than none:
 sudo make uninstall
 ```
 
-All three Ubuntu LTS releases record a live-VM run of 79 stories from the Ubuntu
-suite (which has since grown to 96), and each run has a replay twin that reproduces it: 22.04, 24.04 and 26.04
-all at 79/79, every twin serving every call with zero misses. The runs are in
+All three Ubuntu LTS releases record a live-VM run of <!-- fig:lts_story_total -->79<!-- /fig --> stories from the Ubuntu
+suite (which has since grown to <!-- fig:stories_ubuntu floor=10 -->90+<!-- /fig -->), and each run has a replay twin that reproduces it: 22.04, 24.04 and 26.04
+all at <!-- fig:lts_story_rate -->79/79<!-- /fig -->, every twin serving every call with zero misses. The runs are in
 `tests/evidence/story-runs/`. The suite grew from 50 when every Debian-only
 action got a story, `GetHostState` first.
 Fedora Atomic is the rpm-ostree target; `make install` does not complete on
@@ -342,18 +344,18 @@ milestone.
 | Component | State |
 |---|---|
 | `sysknife-brain` — LLM planner, tool loop, safety fence | ✅ |
-| `sysknife-daemon` — 192 typed actions, auth, preview, transactions | ✅ |
+| `sysknife-daemon` — <!-- fig:typed_actions floor=10 -->190+<!-- /fig --> typed actions, auth, preview, transactions | ✅ |
 | Live IPC + streaming + atomic-host rollback (rpm-ostree) | ✅ |
 | Terminal approval gate — one-time, TTL-bounded receipts | ✅ |
 | MCP server (Claude Code / Cursor / any MCP client) | ✅ |
 | Tamper-evident Ed25519-signed audit chain | ✅ |
 | RFC 5424 syslog forwarding (Splunk / Sentinel / QRadar) | ✅ |
 | Postgres backend (RDS / Cloud SQL / Neon / Supabase) | ✅ |
-| **Ubuntu support** — 79/79 stories on a live 22.04 VM, recorded in `tests/evidence/story-runs/` | ✅ |
-| **Every Ubuntu LTS validated** — 22.04, 24.04 and 26.04 all at 79/79, each with a replay twin that reproduces it | ✅ |
+| **Ubuntu support** — <!-- fig:story_run:ubuntu-22.04-gpt-oss-120b -->79/79<!-- /fig --> stories on a live 22.04 VM, recorded in `tests/evidence/story-runs/` | ✅ |
+| **Every Ubuntu LTS validated** — 22.04, 24.04 and 26.04 all at <!-- fig:lts_story_rate -->79/79<!-- /fig -->, each with a replay twin that reproduces it | ✅ |
 | Telegram approval interface | 📋 roadmap |
 
-**2,002 Rust tests and 72 frontend tests** form the current deterministic
+**<!-- fig:rust_tests floor=1000 -->2,000+<!-- /fig --> Rust tests and <!-- fig:frontend_tests floor=10 -->70+<!-- /fig --> frontend tests** form the current deterministic
 release baseline.
 
 ## Configure your LLM
@@ -399,8 +401,8 @@ All config files that may contain API keys are created with `chmod 0600`.
 
 See [ROADMAP.md](ROADMAP.md) for the full milestone breakdown.
 
-- ✅ **Ubuntu 22.04** — 79/79 stories on a live VM (recorded in `tests/evidence/story-runs/`)
-- ✅ **Ubuntu 24.04 and 26.04** — 79/79 and 79/79 on live VMs; every LTS run has a replay twin that reproduces it
+- ✅ **Ubuntu 22.04** — <!-- fig:story_run:ubuntu-22.04-gpt-oss-120b -->79/79<!-- /fig --> stories on a live VM (recorded in `tests/evidence/story-runs/`)
+- ✅ **Ubuntu 24.04 and 26.04** — <!-- fig:story_run:ubuntu-24.04-gpt-oss-120b -->79/79<!-- /fig --> and <!-- fig:story_run:ubuntu-26.04-gpt-oss-120b -->79/79<!-- /fig --> on live VMs; every LTS run has a replay twin that reproduces it
 - ✅ `sysknife audit export` — stored signed chain rows as JSON with `--since` / `--limit`
 - 📋 Telegram inline-button approvals
 - 📋 CEF / NDJSON output modes for SIEM ingest

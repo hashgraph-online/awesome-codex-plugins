@@ -1,6 +1,6 @@
 ---
 name: seo-drift
-description: "Compare two SEO snapshots by script: gainers, losers, drift classes. \"what moved after the core update\""
+description: "Compare two SEO exports (Search Console, two dates): gainers, losers, drift classes. \"what moved after the core update\""
 argument-hint: "<baseline.csv> <current.csv> [--noise 5]"
 user-invocable: true
 ---

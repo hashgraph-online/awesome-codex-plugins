@@ -27,13 +27,11 @@ KINDS = {"run_command": "shell", "command_status": "wait", "send_command_input":
 
 def _varint(b, i):
     result = shift = 0
-    while True:
-        c = b[i]
-        i += 1
-        result |= (c & 0x7F) << shift
+    while b[i] & 0x80:
+        result |= (b[i] & 0x7F) << shift
         shift += 7
-        if c < 0x80:
-            return result, i
+        i += 1
+    return result | b[i] << shift, i + 1
 
 
 def _fields(b):

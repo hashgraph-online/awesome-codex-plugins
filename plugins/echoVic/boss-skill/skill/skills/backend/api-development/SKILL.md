@@ -1,10 +1,11 @@
 ---
+
 name: backend/api-development
 description: 后端API开发方法论，包括RESTful/GraphQL设计、请求验证、错误处理和安全实现
 type: methodology
 agent: boss-backend
 metadata:
-  internal: true
+internal: true
 ---
 
 # 后端 API 开发方法论
@@ -30,13 +31,13 @@ metadata:
 
 ### 资源命名规范
 
-| 操作 | HTTP 方法 | 路径 | 说明 |
-|------|-----------|------|------|
-| 列表 | GET | `/api/users` | 获取用户列表 |
-| 详情 | GET | `/api/users/:id` | 获取单个用户 |
-| 创建 | POST | `/api/users` | 创建新用户 |
-| 更新 | PUT/PATCH | `/api/users/:id` | 更新用户 |
-| 删除 | DELETE | `/api/users/:id` | 删除用户 |
+| 操作 | HTTP 方法 | 路径             | 说明         |
+| ---- | --------- | ---------------- | ------------ |
+| 列表 | GET       | `/api/users`     | 获取用户列表 |
+| 详情 | GET       | `/api/users/:id` | 获取单个用户 |
+| 创建 | POST      | `/api/users`     | 创建新用户   |
+| 更新 | PUT/PATCH | `/api/users/:id` | 更新用户     |
+| 删除 | DELETE    | `/api/users/:id` | 删除用户     |
 
 ### 统一响应格式
 
@@ -56,9 +57,7 @@ metadata:
   "error": {
     "code": "VALIDATION_ERROR",
     "message": "Invalid input data",
-    "details": [
-      { "field": "email", "message": "Invalid email format" }
-    ]
+    "details": [{ "field": "email", "message": "Invalid email format" }]
   }
 }
 ```
@@ -139,14 +138,14 @@ app.post('/api/users', async (req, res) => {
 
 ### 错误分类
 
-| 错误类型 | HTTP 状态码 | 错误码 | 说明 |
-|----------|-------------|--------|------|
-| 验证错误 | 400 | VALIDATION_ERROR | 输入数据不合法 |
-| 认证错误 | 401 | UNAUTHORIZED | 未登录或 Token 无效 |
-| 权限错误 | 403 | FORBIDDEN | 无权限访问资源 |
-| 资源不存在 | 404 | NOT_FOUND | 请求的资源不存在 |
-| 冲突错误 | 409 | CONFLICT | 资源冲突（如重复创建） |
-| 服务器错误 | 500 | INTERNAL_ERROR | 服务器内部错误 |
+| 错误类型   | HTTP 状态码 | 错误码           | 说明                   |
+| ---------- | ----------- | ---------------- | ---------------------- |
+| 验证错误   | 400         | VALIDATION_ERROR | 输入数据不合法         |
+| 认证错误   | 401         | UNAUTHORIZED     | 未登录或 Token 无效    |
+| 权限错误   | 403         | FORBIDDEN        | 无权限访问资源         |
+| 资源不存在 | 404         | NOT_FOUND        | 请求的资源不存在       |
+| 冲突错误   | 409         | CONFLICT         | 资源冲突（如重复创建） |
+| 服务器错误 | 500         | INTERNAL_ERROR   | 服务器内部错误         |
 
 ### 统一错误处理中间件
 
@@ -154,7 +153,7 @@ app.post('/api/users', async (req, res) => {
 // errorHandler.ts
 export function errorHandler(err: Error, req: Request, res: Response, next: NextFunction) {
   console.error(err);
-  
+
   if (err instanceof ValidationError) {
     return res.status(400).json({
       success: false,
@@ -165,7 +164,7 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
       },
     });
   }
-  
+
   if (err instanceof NotFoundError) {
     return res.status(404).json({
       success: false,
@@ -175,7 +174,7 @@ export function errorHandler(err: Error, req: Request, res: Response, next: Next
       },
     });
   }
-  
+
   // 默认 500 错误
   res.status(500).json({
     success: false,
@@ -205,14 +204,14 @@ export function generateToken(userId: string): string {
 // 验证 Token 中间件
 export function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const token = req.headers.authorization?.replace('Bearer ', '');
-  
+
   if (!token) {
     return res.status(401).json({
       success: false,
       error: { code: 'UNAUTHORIZED', message: 'No token provided' },
     });
   }
-  
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!);
     req.user = decoded;
@@ -283,7 +282,7 @@ export class UserController {
       next(error);
     }
   }
-  
+
   async createUser(req: Request, res: Response) {
     const validatedData = CreateUserSchema.parse(req.body);
     const user = await userService.create(validatedData);
@@ -305,14 +304,14 @@ export class UserService {
     }
     return user;
   }
-  
+
   async create(data: CreateUserDto): Promise<User> {
     // 检查邮箱唯一性
     const existing = await userRepository.findByEmail(data.email);
     if (existing) {
       throw new ConflictError('Email already exists');
     }
-    
+
     // 创建用户
     return userRepository.create(data);
   }
@@ -328,11 +327,11 @@ export class UserRepository {
   async findById(id: string): Promise<User | null> {
     return db.user.findUnique({ where: { id } });
   }
-  
+
   async findByEmail(email: string): Promise<User | null> {
     return db.user.findUnique({ where: { email } });
   }
-  
+
   async create(data: CreateUserDto): Promise<User> {
     return db.user.create({ data });
   }
@@ -343,12 +342,12 @@ export class UserRepository {
 
 ### 日志级别
 
-| 级别 | 使用场景 |
-|------|----------|
-| ERROR | 错误和异常 |
-| WARN | 警告信息 |
-| INFO | 关键操作（登录、创建、删除） |
-| DEBUG | 调试信息 |
+| 级别  | 使用场景                     |
+| ----- | ---------------------------- |
+| ERROR | 错误和异常                   |
+| WARN  | 警告信息                     |
+| INFO  | 关键操作（登录、创建、删除） |
+| DEBUG | 调试信息                     |
 
 ### 日志示例
 
@@ -391,13 +390,13 @@ async function getUserWithCache(id: string): Promise<User> {
   if (cached) {
     return JSON.parse(cached);
   }
-  
+
   // 从数据库获取
   const user = await userRepository.findById(id);
-  
+
   // 写入缓存（5 分钟过期）
   await redis.setex(`user:${id}`, 300, JSON.stringify(user));
-  
+
   return user;
 }
 ```
@@ -421,6 +420,7 @@ async function getUserWithCache(id: string): Promise<User> {
 - [ ] 实现请求验证
 - [ ] 实现统一错误处理
 - [ ] 添加认证和授权
+- [ ] TDD：每个 Service/Controller 先有失败测试，已验证 RED
 - [ ] 编写单元测试（Service 层）
 - [ ] 编写集成测试（API 端点）
 - [ ] 编写 E2E 测试（完整流程）

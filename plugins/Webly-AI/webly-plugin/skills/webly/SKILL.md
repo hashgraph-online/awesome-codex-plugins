@@ -544,14 +544,19 @@ Needs a signed-in account (MCP) on Hobby (5 domains) or Pro (25). On Free,
    manual records (TXT first) to move without downtime. When you
    `remove_domain` and the response has `dnsCleanup`, ask whether to delete the
    records Webly added too, and if yes give them `dnsCleanup.url`.
-   Otherwise, or as the fallback, give the required `dns.records` **exactly as
-   returned**, as a Type / Name / Value table. For a www domain, also give the
-   `apexForward` forwarding rule. Provider tips:
+   Otherwise (name.com, Squarespace, Google and most other providers), or as
+   the fallback, give **every** required `dns.records` entry **exactly as
+   returned**, as a Type / Name / Value table: the CNAME **and** the
+   `_acme-challenge` TXT records. The TXT issues the HTTPS (SSL) certificate
+   and is always needed; without it HTTPS can take hours. If it isn't in
+   `dns.records` yet, call `verify_domain` a few seconds later and give it then.
+   For a www domain, also give the `apexForward` forwarding rule. Provider tips:
    - Type only the Name shown (`www`, or `@` for the root). GoDaddy and
      Namecheap add the domain themselves.
    - On Cloudflare, set the record to "DNS only" (grey cloud).
    - Moving a domain that is live elsewhere? Keep its current record and add
-     only the optional TXT records. Then:
+     only the TXT records (the certificate ones and the optional ownership
+     one). Then:
      1. Poll `verify_domain` until the domain is `active`. That means ownership
         is verified and the certificate is deployed. Step 2 isn't enough.
         `domain-watch` can't show this yet, because the old host still answers.

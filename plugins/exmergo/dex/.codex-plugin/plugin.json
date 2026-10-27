@@ -1,6 +1,6 @@
 {
   "name": "dex",
-  "version": "1.16.2",
+  "version": "1.16.3",
   "description": "Analytics engineering for Claude Code and any agent: data warehouse exploration, dbt transformation and semantic modeling, and schema-drift maintenance on dbt.",
   "author": {
     "name": "Exmergo, Inc.",
@@ -35,7 +35,7 @@
   "interface": {
     "displayName": "Exmergo Dex",
     "shortDescription": "Analytics engineering",
-    "longDescription": "Explore warehouses, author dbt transformations and semantic models, and reconcile schema drift through three skills backed by the dex engine. Requires a local shell and uv; the first command downloads the pinned engine from PyPI.",
+    "longDescription": "Explore warehouses, author dbt transformations and semantic models, and reconcile schema drift through three skills backed by the dex engine, which ships inside the plugin. Requires a local shell and uv; the first command builds that engine with uv, which downloads its Python dependencies from PyPI.",
     "developerName": "Exmergo, Inc.",
     "category": "Productivity",
     "capabilities": [
@@ -52,7 +52,6 @@
       "Explore my warehouse and map its tables and joins.",
       "Help me build dbt models from my source tables.",
       "Check my project for schema and semantic drift."
-    ],
-    "screenshots": []
+    ]
   }
 }

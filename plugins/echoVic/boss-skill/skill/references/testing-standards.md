@@ -2,11 +2,11 @@
 
 ## 测试金字塔
 
-| 测试类型 | 占比 | 要求 | 测试目录 |
-|----------|------|------|----------|
+| 测试类型     | 占比 | 要求                                 | 测试目录                 |
+| ------------ | ---- | ------------------------------------ | ------------------------ |
 | **单元测试** | ~70% | 每个函数/组件必须有测试，覆盖率 ≥70% | `tests/` 或 `__tests__/` |
-| **集成测试** | ~20% | API 端点、组件交互、数据库操作 | `tests/integration/` |
-| **E2E 测试** | ~10% | **必须编写**，覆盖核心用户流程 | `tests/e2e/` 或 `e2e/` |
+| **集成测试** | ~20% | API 端点、组件交互、数据库操作       | `tests/integration/`     |
+| **E2E 测试** | ~10% | **必须编写**，覆盖核心用户流程       | `tests/e2e/` 或 `e2e/`   |
 
 ## E2E 测试必须覆盖
 
@@ -38,23 +38,23 @@ npx playwright test 或 npx cypress run
 
 ### 配置要求
 
-| 要求 | 说明 |
-|------|------|
-| `playwright.config.ts` | 必须配置 `baseURL`、`webServer`、至少一个 project |
-| Page Object Model | 每个核心页面必须有 POM 类，不直接在 spec 中写 CSS 选择器 |
-| 定位器 | 优先 `getByRole` > `getByLabel` > `getByTestId`，禁止裸 CSS/XPath |
-| 认证复用 | 使用 `storageState` 避免每个测试重复登录 |
-| CI 集成 | 必须有 CI 配置，失败上传 trace + 报告 artifact |
+| 要求                   | 说明                                                              |
+| ---------------------- | ----------------------------------------------------------------- |
+| `playwright.config.ts` | 必须配置 `baseURL`、`webServer`、至少一个 project                 |
+| Page Object Model      | 每个核心页面必须有 POM 类，不直接在 spec 中写 CSS 选择器          |
+| 定位器                 | 优先 `getByRole` > `getByLabel` > `getByTestId`，禁止裸 CSS/XPath |
+| 认证复用               | 使用 `storageState` 避免每个测试重复登录                          |
+| CI 集成                | 必须有 CI 配置，失败上传 trace + 报告 artifact                    |
 
 ### 覆盖标准
 
-| 场景 | 要求 |
-|------|------|
-| 认证 | 登录/注册/退出/未登录重定向 |
-| CRUD | 创建/读取/更新/删除完整流程 |
-| 核心业务 | 至少 3 个关键用户操作路径 |
-| 错误处理 | API 失败、表单验证、空数据 |
-| 响应式 | 至少一个移动端视口验证 |
+| 场景     | 要求                        |
+| -------- | --------------------------- |
+| 认证     | 登录/注册/退出/未登录重定向 |
+| CRUD     | 创建/读取/更新/删除完整流程 |
+| 核心业务 | 至少 3 个关键用户操作路径   |
+| 错误处理 | API 失败、表单验证、空数据  |
+| 响应式   | 至少一个移动端视口验证      |
 
 ### 门禁集成（Gate 1）
 
@@ -90,12 +90,12 @@ npx playwright test --grep @critical --reporter=json
 
 ## Mock 策略
 
-| 原则 | 说明 |
-|------|------|
-| **Mock 边界** | 只 Mock 外部依赖（网络、文件系统、数据库），不 Mock 被测模块内部 |
-| **避免过度 Mock** | 如果需要 Mock 超过 3 个依赖，考虑重构被测代码 |
-| **真实优先** | 能用真实实现就不用 Mock（如内存数据库代替 Mock DB） |
-| **Mock 验证** | Mock 的返回值应反映真实行为，定期与实际依赖同步 |
+| 原则              | 说明                                                             |
+| ----------------- | ---------------------------------------------------------------- |
+| **Mock 边界**     | 只 Mock 外部依赖（网络、文件系统、数据库），不 Mock 被测模块内部 |
+| **避免过度 Mock** | 如果需要 Mock 超过 3 个依赖，考虑重构被测代码                    |
+| **真实优先**      | 能用真实实现就不用 Mock（如内存数据库代替 Mock DB）              |
+| **Mock 验证**     | Mock 的返回值应反映真实行为，定期与实际依赖同步                  |
 
 ## 异步测试模式
 
@@ -113,13 +113,13 @@ npx playwright test --grep @critical --reporter=json
 
 ## 多语言测试命令
 
-| 语言 | 单元测试 | 集成测试 | 覆盖率 |
-|------|---------|---------|--------|
-| Node.js | `vitest run` / `jest` / `mocha` | `vitest run tests/integration` | `vitest run --coverage` |
-| Python | `pytest` | `pytest tests/integration` | `pytest --cov` |
-| Go | `go test ./...` | `go test -tags=integration ./...` | `go test -coverprofile=coverage.out ./...` |
-| Rust | `cargo test` | `cargo test --test integration` | `cargo tarpaulin` |
-| Java | `mvn test` / `gradle test` | `mvn verify` | `mvn jacoco:report` |
+| 语言    | 单元测试                        | 集成测试                          | 覆盖率                                     |
+| ------- | ------------------------------- | --------------------------------- | ------------------------------------------ |
+| Node.js | `vitest run` / `jest` / `mocha` | `vitest run tests/integration`    | `vitest run --coverage`                    |
+| Python  | `pytest`                        | `pytest tests/integration`        | `pytest --cov`                             |
+| Go      | `go test ./...`                 | `go test -tags=integration ./...` | `go test -coverprofile=coverage.out ./...` |
+| Rust    | `cargo test`                    | `cargo test --test integration`   | `cargo tarpaulin`                          |
+| Java    | `mvn test` / `gradle test`      | `mvn verify`                      | `mvn jacoco:report`                        |
 
 ## 关键路径证据规则
 

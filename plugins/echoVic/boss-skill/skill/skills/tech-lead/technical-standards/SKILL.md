@@ -1,4 +1,5 @@
 ---
+
 name: tech-lead/technical-standards
 description: 技术规范和最佳实践，确保代码质量和一致性
 version: 1.0.0
@@ -7,25 +8,26 @@ type: guideline
 user-invocable: false
 agent-invocable: true
 dependencies:
-  - shared/tech-stack-detection
-triggers:
-  - 需要定义技术规范时
-  - 需要统一代码风格时
-metadata:
+- shared/tech-stack-detection
+  triggers:
+- 需要定义技术规范时
+- 需要统一代码风格时
+  metadata:
   internal: true
+
 ---
 
 # 技术规范与最佳实践
 
 ## 命名规范
 
-| 类型 | 规范 | 示例 |
-|------|------|------|
-| 变量 | camelCase | `userName`, `isActive` |
-| 常量 | UPPER_SNAKE_CASE | `MAX_COUNT`, `API_URL` |
-| 函数 | camelCase | `getUserById`, `calculateTotal` |
-| 类 | PascalCase | `UserService`, `OrderController` |
-| 文件 | kebab-case | `user-service.ts`, `order-controller.ts` |
+| 类型 | 规范             | 示例                                     |
+| ---- | ---------------- | ---------------------------------------- |
+| 变量 | camelCase        | `userName`, `isActive`                   |
+| 常量 | UPPER_SNAKE_CASE | `MAX_COUNT`, `API_URL`                   |
+| 函数 | camelCase        | `getUserById`, `calculateTotal`          |
+| 类   | PascalCase       | `UserService`, `OrderController`         |
+| 文件 | kebab-case       | `user-service.ts`, `order-controller.ts` |
 
 ## 代码组织
 

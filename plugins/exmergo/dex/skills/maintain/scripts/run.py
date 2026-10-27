@@ -74,7 +74,7 @@ from pathlib import Path
 # Rewritten by scripts/prepare_release.sh to the tagged version. The connector
 # extra is deliberately NOT part of this pin: it is chosen at runtime (see
 # _resolve_connector), so a release artifact is connector-neutral.
-DEX_CORE_VERSION = "1.16.2"
+DEX_CORE_VERSION = "1.16.3"
 
 # Connector id -> packaging extra. The engine's connector ids and the pyproject
 # extras share names, so this is the identity set today. An unknown or unset
@@ -442,7 +442,7 @@ def _child_env() -> dict[str, str]:
 # The first uv release whose vendored CA roots exclude the emSign ones withdrawn
 # after the eMudhra key incident. An older uv still installs dex, so this is a
 # warning and never a refusal: it is the user's toolchain, and the fix is theirs
-# to run. See https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576
+# to run. SECURITY.md links the advisory.
 _UV_CA_FLOOR = (0, 13, 4)
 
 
@@ -590,8 +590,8 @@ def main() -> int:
                 errors=[
                     "dex runs its engine through uv, which was not found on "
                     "PATH. Install it with `brew install uv` or `pipx install uv` "
-                    "(other platforms: "
-                    "https://docs.astral.sh/uv/getting-started/installation/), "
+                    "(other platforms: see the installation page in uv's "
+                    "documentation), "
                     "then re-run. An agent relays this to the user rather than "
                     "running an installer itself."
                 ],

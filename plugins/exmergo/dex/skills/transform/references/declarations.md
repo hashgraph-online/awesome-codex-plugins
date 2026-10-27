@@ -270,6 +270,93 @@ A population filter's values are compared as text when the declared values and
 the column's type disagree. A unit's range is withheld for a column that looks
 like personal data.
 
+## Read back by `explore --use-project`
+
+`explore profile` and `explore map` with `--use-project` return each declared
+model's declaration as `declaration` on the relation it builds: grain (with
+`grain_status` comparing it with the measured keys), population, and each
+column's role, unit, additivity and `references`. A `references` is also a
+declared join, `declared_by: declaration <model>.<column>`. It is read from the
+YAML on every run and never cached, so a later session reads the rule the
+project records rather than one remembered from the conversation that wrote it.
+
+## Derived semantic model: `data.semantic_proposal`
+
+When `transform plan` or `semantic define|update|plan` creates, edits or declares a
+model under `transform.marts_paths` (`.dex/config.yml`, default `[models/marts]`,
+relative to the dbt project, subfolders included) and the model's post-change YAML
+carries a declaration, the engine derives the MetricFlow semantic model the
+declaration already states:
+
+| Declaration | Semantic model |
+| --- | --- |
+| a single-column `grain` | the primary entity (`order_id` becomes entity `order`) |
+| a composite `grain`, or none | no primary entity, and none guessed: MetricFlow needs one for any dimension or measure, so the derivation is `failed` with the limitation named. Add `primary_entity:` and pass it to `semantic plan` yourself |
+| `foreign_key` | a foreign entity. With `references`, it takes the entity name the referenced model's semantic model already gives that column, so the join resolves; otherwise the column's name less `_id`, with a note |
+| `dimension` | a categorical dimension |
+| `time` | a time dimension: `day` for a date, `day` for a timestamp (noted, since finer is the author's choice), the truncated grain where the SQL truncates (`date_trunc('month', ...)`), `day` with a note where the type cannot be read. A column whose type is known not to be temporal is left out. The first time column is `defaults.agg_time_dimension`, and a note names the others |
+| `measure` with `aggregation` | a measure: `sum`, `count`, `count_distinct`, `min`, `max`, `average` (`avg`, `mean`), `median`, `sum_boolean`. Anything else (`percentile` needs parameters a declaration does not carry), a missing aggregation, or `non_additive` with a summing aggregation is left out and named. A model with no time column carries no measure, since MetricFlow aggregates over one |
+| `semi_additive` | `non_additive_dimension: {name: <default time dimension>, window_choice: max}`: each period reports its last value, which suits a balance or a season-to-date total. MetricFlow's own default is `min`; the note asks you to confirm |
+| `description` | carried onto the semantic model, dimensions and measures (MetricFlow's schema has no entity description, and a note says so) |
+
+Metrics are never derived. A measure is what a column holds; a metric is a
+business definition, and it stays the author's.
+
+What happens to the derivation depends on the project:
+
+- **With a dbt semantic layer** (a semantic model is declared and a time spine
+  is present), a derivation that passes every check is added to the same plan,
+  spliced into the project's one semantic-model file (or
+  `<mart folder>/<model>_semantic.yml` where there is none, or several) with
+  every other byte untouched. `mode` is `included`, and a warning names the file.
+- **Without one**, nothing is added. `mode` is `proposed`, `time_spine` says
+  whether a spine exists, and `definitions` holds each derivation ready to pass:
+  save the whole `data.semantic_proposal` object as a file and run
+  `semantic plan --definitions-file <file>`. Adopting MetricFlow and a time spine
+  is the project owner's decision, so the engine never bootstraps either.
+
+Before a derivation is offered or included it passes MetricFlow's schemas, the
+metric-input check, and dbt's parse of a throwaway copy of the project. In a
+project with no time spine, that copy alone gets a temporary spine so dbt can
+parse it at all; the project never sees it. The parse runs for a derivation even
+under `semantic plan --no-parse`, which still applies to the rest of the plan,
+because a semantic YAML dbt cannot parse breaks every dbt command in the project.
+
+```json
+"semantic_proposal": {
+  "mode": "proposed",
+  "time_spine": "missing",
+  "definitions": [{"kind": "semantic_model", "path": "models/marts/fct_orders_semantic.yml", "content": "name: fct_orders\n..."}],
+  "models": {
+    "fct_orders": {
+      "status": "proposed",
+      "semantic_model": "fct_orders",
+      "path": "models/marts/fct_orders_semantic.yml",
+      "content": "name: fct_orders\n...",
+      "validation": {"schema": {"result": "passed"}, "references": {"result": "passed"}, "parse": {"result": "passed", "detail": "parsed with a throwaway time spine in the copy only; the project has none"}},
+      "notes": ["..."],
+      "limitations": []
+    }
+  },
+  "next": "save this object as a file and pass it to `semantic plan --definitions-file <file>` ...",
+  "notes": ["the project has no dbt semantic layer and no MetricFlow time spine ..."]
+}
+```
+
+Per model, `status` is one of:
+
+| `status` | Meaning |
+| --- | --- |
+| `included` | in this plan |
+| `proposed` | passed every check; in `definitions` |
+| `failed` | a check failed, the grain is composite, or a semantic model or measure name is already declared (renaming is yours, never the engine's); `reason` or `validation` says which. `content` is kept for you to fix, never offered |
+| `unvalidated` | a check could not run (dbt absent, or the plan's own edits do not parse), so it is neither offered nor included |
+| `skipped` | an authored semantic model already sits on the mart (never overwritten), or the declaration names nothing a semantic model carries |
+
+The key is absent when the plan touches no declared mart. Under `semantic.vendor:
+ossie` or `slayer` nothing is derived and a warning names the vendor's own
+authoring verb.
+
 ## `data.decisions`
 
 The plan, apply and build envelopes carry `data.decisions`: every assumption

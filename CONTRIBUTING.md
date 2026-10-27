@@ -124,6 +124,14 @@ Rules:
 - Link to the GitHub repository root when the plugin is on its default branch
 - If the plugin is on a non-default branch, link to `https://github.com/<owner>/<repo>/tree/<branch>`; validation and the centralized scan use that branch
 
+### Multiple plugins from one source repository
+
+If a repository contains several independently installable Codex plugin bundles, add **one README line per plugin**, with each line linking to the same GitHub repository root. Use the plugin's own name or display name from its nested `.codex-plugin/plugin.json` so the generator can select the correct bundle. Keep the entries alphabetized in their category.
+
+The generator matches each README display name against the nested plugin manifests and, when the same source repository has multiple entries, mirrors the matched bundles into separate installable paths. A source `.agents/plugins/marketplace.json` does not automatically create one catalog entry per bundle. Remove any generic umbrella README entry when replacing it with separately named plugins, because it can otherwise resolve to the wrong bundle.
+
+For a non-default source branch, a `/tree/<branch>` URL is supported. Do **not** append `/plugins/<bundle>` to that URL: the parser treats the remainder as the branch ref, not a directory selector. Each bundle still needs its own valid manifest, centralized source scan meeting the 80-point threshold, ordinary checks, and independent reviewer approval before publication.
+
 ## Scanner requirements
 
 All plugins submitted to this list **must pass the HOL AI Plugin Scanner**.

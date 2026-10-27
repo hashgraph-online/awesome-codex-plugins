@@ -126,7 +126,10 @@ fetches the engine's dependencies from PyPI or your configured index.
    is what Dex measured, `declared` is what the YAML says, `missing` is the intent
    still owed. Supply the intent, confirm or override each drafted fact in the
    `declarations` entry, and re-plan until `missing` holds only what you decided
-   to leave open.
+   to leave open. For a declared mart, also read `data.semantic_proposal`: the
+   semantic model the declaration implies, already in the plan
+   (`mode: included`) or offered for `semantic plan --definitions-file`
+   (`mode: proposed`), with every gap it could not fill named.
 5. **Read the plan** (rules below), then `transform apply <plan-id>`.
 6. **Build and verify:** `transform build --target dev --verify`.
 7. **Measure the tests** right after you author or scaffold them, and before
@@ -235,7 +238,12 @@ a field, flag, or macro you need is not described here.
   you remove, add that reader's own delete or update to the same payload.
 - A project with no MetricFlow time spine cannot parse semantic models. Author
   one (a day-grain date model plus a `time_spine:` config) in the same or a
-  separate plan.
+  separate plan, when the user has chosen to adopt a semantic layer.
+- Do not hand-write the semantic model for a declared mart: `transform plan`
+  derives it from the declaration (`data.semantic_proposal`). Where the project
+  has no semantic layer the derivation is only offered; ask before adopting one.
+  Metrics are never derived: author each metric yourself, on the derived
+  measures, with `semantic plan --definitions-file`.
 - Semantic YAML is validated against MetricFlow's schemas, so the wrapper
   installs the `[semantic]` extra for `semantic define|update|plan`. A document
   the schemas refuse is refused with the schema's own message; a refusal
