@@ -1,0 +1,334 @@
+---
+name: flowio
+description: Read, inspect, and write Flow Cytometry Standard (FCS) 2.0, 3.0, and 3.1 files with FlowIO. Use for low-level FCS metadata and channel inspection, NumPy event extraction, multi-dataset files, table export, and FCS 3.1 creation; use FlowKit for compensation, cytometry transforms, gating, or FlowJo workspaces.
+license: BSD-3-Clause license
+compatibility: Requires Python 3.9-3.13, uv, and FlowIO 1.4.0. NumPy is installed with FlowIO; pandas is optional for DataFrame workflows. Runtime parsing is local and needs no credentials or network access.
+allowed-tools: Read Write Bash
+metadata:
+  version: '2.1'
+  category: life-sciences
+  maintainer: Kalaris Labs
+  tags: flow cytometry, FCS files, cytometry, immunology, bioinformatics
+---
+
+# FlowIO
+
+## Purpose
+
+Use FlowIO as a lightweight, low-level reader and writer for Flow Cytometry
+Standard files. Examples in this skill target **FlowIO 1.4.0**, the current
+stable release verified on 2026-07-23.
+
+FlowIO is appropriate for:
+
+- Reading FCS 2.0, 3.0, and 3.1 files
+- Inspecting HEADER, TEXT, ANALYSIS, and channel metadata
+- Retrieving event data as a two-dimensional NumPy array
+- Reading legacy files that contain multiple datasets
+- Writing list-mode, single-precision FCS 3.1 files
+- Preparing data for pandas, machine-learning, or downstream cytometry tools
+
+FlowIO does **not** perform compensation, logicle/biexponential transforms,
+gating, clustering, or FlowJo workspace processing. Use FlowKit or another
+analysis package for those tasks.
+
+## Install
+
+Create or activate a Python environment, then install the verified release:
+
+```bash
+uv pip install "flowio==1.4.0"
+```
+
+Confirm the runtime version:
+
+```bash
+uv run python -c "import flowio; print(flowio.__version__)"
+```
+
+FlowIO 1.4.0 supports Python 3.9 through 3.13 and depends on NumPy.
+
+## Operating Workflow
+
+1. **Clarify the operation.** Distinguish metadata inventory, event extraction,
+   file repair, conversion, and downstream biological analysis.
+2. **Inspect before loading events.** Use `only_text=True` for metadata-only
+   work, especially with large or unfamiliar files.
+3. **Choose event semantics explicitly.** Use `as_array(preprocess=True)` for
+   gain/log/time scaling from FCS metadata, or `preprocess=False` for values as
+   encoded in the DATA segment. Record the choice.
+4. **Keep parsing strict by default.** Do not automatically suppress offset
+   errors. Relax checks only for a known vendor-format defect, and review the
+   resulting event data.
+5. **Treat metadata as potentially sensitive.** FCS TEXT values can include
+   sample, subject, operator, and instrument identifiers. Export only fields
+   needed for the task.
+6. **Validate writes by reopening them.** Check event/channel counts, labels,
+   metadata, and representative values after any FCS export.
+
+## Critical Semantics
+
+### TEXT keys are normalized
+
+`FlowData.text` stores keys in lowercase and strips the leading `$` from
+standard FCS keywords:
+
+```python
+from flowio import FlowData
+
+flow = FlowData("sample.fcs", only_text=True)
+acquisition_date = flow.text.get("date")
+instrument = flow.text.get("cyt")
+next_dataset = int(flow.text.get("nextdata", "0"))
+```
+
+Do not look up `"$DATE"`, `"$CYT"`, or other uppercase dollar-prefixed keys.
+TEXT values remain strings. FlowIO 1.4.0 also removes every `$` character from
+the decoded TEXT segment, including `$` characters inside values; preserve the
+original file when exact metadata fidelity matters.
+
+### Events have two representations
+
+- `flow.events` is the unprocessed, flattened one-dimensional event array.
+- `flow.as_array()` returns shape `(event_count, channel_count)` as a NumPy
+  `float64` array.
+- `flow.as_array(preprocess=True)` applies FCS gain, logarithmic, and time
+  scaling. It does not apply compensation or logicle/biexponential display
+  transforms.
+- `flow.as_array(preprocess=False)` reshapes the encoded event values without
+  those scaling steps.
+
+`as_array()` creates another in-memory array. FlowIO does not provide chunked
+or memory-mapped event access.
+
+### Channel numbering uses two conventions
+
+- NumPy columns and `fluoro_indices`, `scatter_indices`, and `time_index` use
+  zero-based indices.
+- `flow.channels` uses FCS parameter numbers beginning at 1.
+- `null_channels` contains the PnN label strings supplied through
+  `null_channel_list`, including supplied labels that were not found.
+- `pns_labels` always matches `pnn_labels` in length; missing optional PnS
+  labels appear as empty strings.
+
+### Writing is intentionally limited
+
+`create_fcs()` requires:
+
+- An already-open binary file handle
+- Flattened one-dimensional event data in row-major event/channel order
+- One PnN name per channel
+- Optional PnS names and string-valued metadata via `metadata_dict`
+
+It writes FCS 3.1 list-mode (`$MODE=L`) single-precision float
+(`$DATATYPE=F`) data. Required interpretation keywords are generated by
+FlowIO and cannot be overridden through metadata.
+
+## Quick Start: Read an FCS File
+
+```python
+from pathlib import Path
+
+from flowio import FlowData
+
+flow = FlowData(Path("sample.fcs"))
+events = flow.as_array(preprocess=True)
+
+print(
+    {
+        "version": flow.version,
+        "events": flow.event_count,
+        "channels": flow.channel_count,
+        "shape": events.shape,
+        "pnn": flow.pnn_labels,
+        "pns": flow.pns_labels,
+        "date": flow.text.get("date"),
+        "instrument": flow.text.get("cyt"),
+    }
+)
+```
+
+For metadata only:
+
+```python
+from flowio import FlowData
+
+flow = FlowData("sample.fcs", only_text=True)
+print(flow.version, flow.event_count, flow.pnn_labels)
+```
+
+Do not call `as_array()` on a metadata-only instance because its event data was
+not loaded.
+
+Prefer a path or `Path` over a caller-owned file handle. `FlowData` closes a
+provided handle after parsing. In FlowIO 1.4.0,
+`read_multiple_data_sets(handle)` can fail after the first dataset because the
+handle has been closed; pass a filesystem path for multi-dataset files.
+
+## Quick Start: Read Multiple Datasets
+
+Use the standalone helper rather than manually interpreting `$NEXTDATA`
+offsets:
+
+```python
+from flowio import read_multiple_data_sets
+
+datasets = read_multiple_data_sets("legacy-multi-dataset.fcs")
+for index, dataset in enumerate(datasets):
+    values = dataset.as_array(preprocess=True)
+    print(index, dataset.event_count, dataset.pnn_labels, values.shape)
+```
+
+The FCS 3.1 specification deprecated multiple datasets in one file, but FlowIO
+can read legacy files that use them.
+
+## Quick Start: Create an FCS 3.1 File
+
+```python
+from pathlib import Path
+
+import numpy as np
+from flowio import FlowData, create_fcs
+
+values = np.asarray(
+    [[100.0, 200.0, 50.0], [150.0, 180.0, 60.0]],
+    dtype=np.float32,
+)
+pnn_labels = ["FSC-A", "SSC-A", "FITC-A"]
+pns_labels = ["Forward scatter", "Side scatter", "CD3"]
+
+output = Path("output.fcs")
+with output.open("xb") as handle:
+    create_fcs(
+        handle,
+        values.ravel(order="C"),
+        pnn_labels,
+        opt_channel_names=pns_labels,
+        metadata_dict={
+            "date": "23-JUL-2026",
+            "cyt": "Example instrument",
+            "src": "Validated NumPy array",
+        },
+    )
+
+roundtrip = FlowData(output)
+assert roundtrip.event_count == values.shape[0]
+assert roundtrip.pnn_labels == pnn_labels
+np.testing.assert_allclose(
+    roundtrip.as_array(preprocess=False),
+    values,
+    rtol=1e-6,
+    atol=1e-6,
+)
+```
+
+Metadata keys may be supplied in mixed case or with `$`, but lowercase keys
+without `$` match FlowIO's normalized representation and are less error-prone.
+Metadata values must be strings.
+
+## Copy or Rewrite an Existing File
+
+Use `write_fcs()` when the event data does not need to change:
+
+```python
+from flowio import FlowData
+
+flow = FlowData("source.fcs")
+
+# Preserve selected source metadata (cyt, date, and spill/spillover when present).
+flow.write_fcs("copy.fcs")
+
+# Write only required metadata plus the custom fields supplied here.
+flow.write_fcs("deidentified.fcs", metadata={"src": "Deidentified export"})
+```
+
+Passing `metadata=None` preserves FlowIO's selected defaults. Passing any
+dictionary, including `{}`, replaces those defaults rather than merging with
+them. `write_fcs()` always produces FCS 3.1 floating-point output; non-float
+source events are preprocessed before writing. It opens the destination for
+overwrite, so reject an existing output path before calling it unless
+replacement is intentional. For floating-point sources it can preserve encoded
+events while dropping PnG or `timestep`, changing later
+`as_array(preprocess=True)` results. Validate both raw and preprocessed
+round-trips.
+
+Use `create_fcs()` instead when event values, event count, or channel layout
+changes.
+
+## Bundled Inspector
+
+`scripts/inspect_fcs.py` inventories one or more datasets without network
+access. By default it reads metadata only, emits structural fields and channel
+labels without full TEXT/ANALYSIS values, and refuses files above a
+configurable size limit.
+
+Set `FLOWIO_SKILL_DIR` to the installed skill directory. From this repository's
+root, use `skills/flowio`:
+
+```bash
+FLOWIO_SKILL_DIR="skills/flowio"
+
+# Metadata and channel inventory
+uv run --no-project --with "flowio==1.4.0" \
+  python "$FLOWIO_SKILL_DIR/scripts/inspect_fcs.py" sample.fcs
+
+# Include all normalized TEXT metadata; review output for identifiers
+uv run --no-project --with "flowio==1.4.0" \
+  python "$FLOWIO_SKILL_DIR/scripts/inspect_fcs.py" sample.fcs --include-text
+
+# Load events and compute finite-value statistics using FlowIO preprocessing
+uv run --no-project --with "flowio==1.4.0" \
+  python "$FLOWIO_SKILL_DIR/scripts/inspect_fcs.py" sample.fcs --stats
+
+# Compute statistics from encoded values instead
+uv run --no-project --with "flowio==1.4.0" \
+  python "$FLOWIO_SKILL_DIR/scripts/inspect_fcs.py" sample.fcs --stats --raw
+```
+
+Use `--help` for output files, input/array memory limits, null-channel labels,
+and controlled offset-recovery options.
+
+## References
+
+Read only the reference needed for the current task:
+
+- `references/api_reference.md` — exact FlowIO 1.4.0 public API and signatures
+- `references/workflows.md` — inventory, DataFrame/CSV, batch, write, and
+  round-trip patterns
+- `references/fcs_semantics.md` — FCS structure, metadata normalization,
+  preprocessing equations, indexing, and writer behavior
+- `references/troubleshooting.md` — offset failures, multi-dataset files,
+  memory limits, validation, security, and privacy
+- `references/sources.md` — authoritative upstream docs, release notes, source,
+  and FCS 3.1 publications used for this refresh
+
+## Non-Negotiable Checks
+
+- Never claim FlowIO applies compensation or gating.
+- Never treat `as_array(preprocess=True)` as raw acquisition values.
+- Never pass a two-dimensional array or a path directly to `create_fcs()`.
+- Never assume TEXT keys retain `$` or uppercase spelling.
+- Never silence offset errors without documenting why and validating the data.
+- Never describe FlowIO event loading as streaming or chunked.
+
+## Agent operating procedure
+
+1. **Check the environment.** Confirm tool versions, the reference genome/annotation build and the input formats (FASTQ, BAM, VCF, h5ad).
+2. **Pin down the inputs.** Confirm formats, identifiers and parameters from the data or the user. Ask rather than guess any value that changes the result.
+3. **Run a small version first.** Run the pipeline on a small subset (one sample, one chromosome, a few thousand cells) first.
+4. **Execute the full task** using the instructions and references above.
+5. **Validate the result.** Check QC metrics, sample identities, genome build consistency and batch effects before interpreting results.
+6. **Report.** State what was run (versions, commands, parameters), what was checked, and what is still uncertain.
+
+| If this happens | Do this |
+|---|---|
+| Genome builds or identifiers do not match between inputs | Stop and harmonize (liftover, ID mapping) before continuing. |
+| A function, flag or endpoint in these instructions is missing in the installed version | Check the installed version's own documentation (`help()`, `--help`, official docs), adapt, and tell the user. Never invent an API. |
+| A required input, identifier or parameter is ambiguous | Ask the user, or state the assumption explicitly before running. |
+
+**Integrity rules**
+
+- Never fabricate results, parameters, identifiers, citations or statistics. If something cannot be run or verified, say so plainly.
+- Do not interpret biological significance beyond what the statistics support; report multiple-testing correction.
+- Treat version-specific details here as possibly outdated: confirm them against the official documentation for the installed version.
+- Ask before actions that cost money, consume shared GPUs or cloud quota, touch personal or patient data, or cannot be undone.

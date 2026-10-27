@@ -32,7 +32,7 @@ Typical hours: 2–4.
     source, and samples on both sides — park the surface as unmeasured instead.
   - Finish with a receipt listing every scoped surface as measured or unmeasured, with the
     provenance of each number.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when the scoped change is verified against distributions, correctness is preserved,
     unsafe load is refused or bounded, and every surface is recorded measured or unmeasured.
   - Verify: the item gate is green at every commit; the same measurement source reruns on the

@@ -1,7 +1,10 @@
 import type { MacosCommandResult } from "./command-protocol.js";
 import type { MacosCommandResultFactory } from "./install-command.js";
 import type { InstallationState } from "./installation-state.js";
-import { inspectDisplayVerification } from "./installed-inspection.js";
+import {
+  inspectDisplayVerification,
+  inspectHelperDiagnosticFailure,
+} from "./installed-inspection.js";
 import { inspectOperationalHealth } from "./operational-health.js";
 
 export interface DoctorCommandDependencies {
@@ -37,6 +40,7 @@ export function createDoctorCommand(dependencies: DoctorCommandDependencies) {
         if (!helper) {
           throw new Error("GOAL_PROGRESS_HELPER_INSPECTION_MISSING");
         }
+        const diagnosticFailure = inspectHelperDiagnosticFailure(helper);
         const code = !helper.socketPathExists
           ? "DOCTOR_HELPER_SOCKET_MISSING"
           : !helper.protocolMatches && helper.code === "PROTOCOL_VERSION_MISMATCH"
@@ -47,14 +51,20 @@ export function createDoctorCommand(dependencies: DoctorCommandDependencies) {
                 ? "DOCTOR_HELPER_PID_MISMATCH"
                 : !helper.singleOwner
                   ? "DOCTOR_HELPER_OWNER_INVALID"
-                  : !helper.storeReadOnly
-                    ? "DOCTOR_STORE_READ_FAILED"
-                    : "DOCTOR_HELPER_UNAVAILABLE";
+                  : diagnosticFailure
+                    ? diagnosticFailure === "timeout"
+                      ? "DOCTOR_DIAGNOSTIC_TIMEOUT"
+                      : "DOCTOR_DIAGNOSTIC_FAILED"
+                    : !helper.storeReadOnly
+                      ? "DOCTOR_STORE_READ_FAILED"
+                      : "DOCTOR_HELPER_UNAVAILABLE";
         return dependencies.commandResult("doctor", {
           ok: false,
           code,
           changed: false,
-          nextStep: "Run install --json to repair and restart the Helper.",
+          nextStep: code.startsWith("DOCTOR_DIAGNOSTIC_")
+            ? "Retry doctor --json; the diagnostic request did not complete."
+            : "Run install --json to repair and restart the Helper.",
           details: {
             helperJobLoaded: facts.helperJobLoaded,
             helper,

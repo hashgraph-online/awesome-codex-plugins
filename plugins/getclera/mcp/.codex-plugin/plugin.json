@@ -1,0 +1,41 @@
+{
+  "name": "clera",
+  "version": "1.0.0",
+  "description": "Hire from Codex: search 210,000+ vetted startup candidates, review Clera's picks, and request intros through the Clera MCP.",
+  "author": {
+    "name": "Clera Labs, Inc.",
+    "email": "hello@getclera.com",
+    "url": "https://www.getclera.com"
+  },
+  "homepage": "https://www.getclera.com/mcp",
+  "repository": "https://github.com/getclera/mcp",
+  "license": "MIT",
+  "keywords": [
+    "clera",
+    "mcp",
+    "recruiting",
+    "hiring",
+    "talent",
+    "candidates",
+    "startups"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Clera",
+    "shortDescription": "Find talent and manage hiring",
+    "developerName": "Clera Labs, Inc.",
+    "category": "Productivity",
+    "websiteURL": "https://www.getclera.com/mcp",
+    "privacyPolicyURL": "https://www.getclera.com/privacy",
+    "termsOfServiceURL": "https://www.getclera.com/terms",
+    "brandColor": "#034C52",
+    "logo": "./assets/logo.svg",
+    "longDescription": "Clera connects startups with vetted candidates who are open to opportunities. Hiring teams search the candidate pool against a role, review the candidates Clera picked, request introductions and track their pipeline. Candidates search Clera's roles, update preferences and follow their applications.",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "composerIcon": "./assets/logo.svg"
+  }
+}

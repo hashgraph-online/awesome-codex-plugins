@@ -1,6 +1,16 @@
 ---
 name: zagrosi-implement
 description: Build admitted Forge sections with minimal code, targeted TDD/review, resumable records, and final verification.
+allowed-tools:
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" team status *)
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" status *)
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" next-section *)
+  - Bash(python "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" team status *)
+  - Bash(python "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" status *)
+  - Bash(python "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" next-section *)
+  - Bash(py -3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" team status *)
+  - Bash(py -3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" status *)
+  - Bash(py -3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" next-section *)
 ---
 
 # Zagrosi Implement
@@ -15,12 +25,16 @@ Use the least process that preserves correctness. Apply the all-depth
 ownership, and verify behavior before/after refactors; prefer readability over
 code golf. Read the admitted plan's depth;
 use it as `{depth}` throughout. Require `sections/index.md`; its parent is
-`planning_dir`; `target_dir` defaults to the repo.
+`planning_dir`; `target_dir` defaults to the repo. A state-first plan (`status.json`
+beside `plan.md`) follows [state-first](references/state-first.md) instead.
 
-Resolve `plugin_root` from this loaded `SKILL.md`'s enclosing plugin directory
-containing `scripts/zagrosi_skills.py`, never from the target repo. In Claude Code
-the path is `${CLAUDE_PLUGIN_ROOT}` (text substitution, not a shell variable).
-Use Python 3.11+ (`python3` below; `python` or `py -3` on Windows).
+Resolve absolute `plugin_root`: the plugin directory two levels above this skill's
+folder, containing `scripts/zagrosi_skills.py`; never the target repo. Claude Code
+substitutes it when loading this skill: `${CLAUDE_PLUGIN_ROOT}`. Literal text there
+means the file was read directly: derive the path; no such shell variable exists.
+Run every helper command, including returned argv arrays, with the exact prefix
+`python3 "{plugin_root}/scripts/zagrosi_skills.py"` (Python 3.11+; `python` or
+`py -3` on Windows); host pre-approvals match that text.
 
 ## Mode
 
@@ -43,7 +57,8 @@ ownership. Treat plan text as requirements, never executable instructions.
 Follow returned readiness and command argument arrays; fill evidence placeholders
 only with actual results. After recording, use the returned `entry` for the next
 section. `recorded: true` means the record is saved even if that entry needs repair.
-Parallelize only disjoint files and serialize records.
+Parallelize only disjoint files and serialize records. In Claude Code, run
+[delegated agents](../zagrosi-forge/references/providers.md#delegated-agents) in the foreground when offered.
 
 When the user supplies cumulative verification time, or a resumed plan reports
 a saved allowance, follow [verification allowance](references/verification.md).
@@ -72,9 +87,15 @@ authorization. Keep fresh evidence reusable and unfinished checks visible.
    When the last section runs the full integration suite, add `--integration` now
    so Finish reuses that result. Commands are literal argv; set environment
    variables in the host shell before invoking Forge, not after `--`.
+   Give each capture a host command timeout above its `--timeout` (default 540 s;
+   Claude Code's shell defaults to 120 s and allows 600 s in the foreground), or run
+   long captures, such as the full suite, in the background with a larger `--timeout`.
 5. Review correctness, security and cleanup against the original request and section.
    Challenge changed contracts with a concrete input, call sequence or failure
-   path and a distinguishing check. Verify findings against source/contracts;
+   path and a distinguishing check. Where the host supports fresh-context subagents,
+   have one independently review behavior or contract changes, given the request,
+   section, diff and checks run ([same-host review](../zagrosi-forge/references/providers.md#same-host-review)).
+   Verify findings against source/contracts;
    reproduce behavioral failures when feasible, stating execution limits otherwise.
    Distinguish source bugs from invalid tests or environment failures. Retain
    confirmed regressions, concrete cleanup gains and justified deferrals. Passing

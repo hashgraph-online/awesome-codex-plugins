@@ -137,6 +137,10 @@ class ValidateReportTests(unittest.TestCase):
     def test_accepts_a_report_with_the_required_contract(self) -> None:
         self.assertEqual(self.validate(report()), [])
 
+    def test_accepts_a_closing_line_after_the_last_section(self) -> None:
+        closing = "---\n\nThis report covers one repository. See [Exadel](https://exadel.com/)."
+        self.assertEqual(self.validate(report() + "\n\n" + closing), [])
+
     def test_rejects_a_missing_required_section(self) -> None:
         sections = tuple(section for section in SECTIONS if section != "Probe")
         self.assertIn("missing section: Probe", self.validate(report(sections=sections)))

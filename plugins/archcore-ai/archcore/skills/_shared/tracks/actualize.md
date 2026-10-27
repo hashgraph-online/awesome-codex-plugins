@@ -1,14 +1,13 @@
 # Actualize Track — Diff-Scoped Drift Detection and Confirmed Fixes
 
 Plugin runtime asset. Loaded by the `review` skill — this track's primary
-executor — when the `/archcore:review drift` or `deep` mode or drift-shaped wording ("are any
-docs out of date?", "check if documentation matches the code") routes here.
+executor — when a branch review, a staleness signal, or drift-shaped wording ("are any
+docs out of date?", "check if documentation matches the code", "audit all docs") routes here.
 Gate record shape, state rules, and execution rules:
 `skills/_shared/gate-contract.md`. Interview mechanics and question budget:
 `skills/_shared/elicitation-contract.md`. Verdict vocabulary:
-`skills/_shared/verdict-contract.md`. Each `budget` knob is the per-gate
-maximum, reached only in expert invocation; in auto mode every question draws
-from the shared per-invocation ceiling in `skills/_shared/elicitation-contract.md`.
+`skills/_shared/verdict-contract.md`. Each `budget` knob caps its gate inside the
+5-question per-invocation ceiling of `skills/_shared/elicitation-contract.md`.
 
 ## Track state
 
@@ -26,7 +25,7 @@ clarifications on this track.
 WHEN the calling skill pre-fills the scope — a zone's documents and paths —
 the executing skill runs `actualize.scope` question-free under its
 skip_when. The conductor (`skills/_shared/delta-routing.md`) uses this mode
-as the staleness precondition on a touched zone.
+as the staleness precondition on a claim's owner.
 
 ## Detection procedure
 
@@ -89,11 +88,12 @@ unavailable, skip the code-drift check and run cascade and temporal only.
    its body does not say it is superseded, even in part. A `plan` belongs to the closeout track; an `idea`, `prd`, or
    `rfc` records intent, not shipped state. A draft the branch created or
    changed is not a finding: the closeout track offers its acceptance, and
-   the `review` skill names `/archcore:review closeout` when no `plan`
+   the `review` skill names `/archcore:review close out <feature>` when no `plan`
    matched. Age alone never flags it. A draft that carries an
    `archcore:track` state block is unfinished work, never a shipped draft.
 
-**Deep checks.** WHEN the mode is `deep`, also run these, within one budget:
+**Deep checks.** WHEN the request asks for a full documentation audit ("audit
+all docs", "full audit", "deep review"), also run these, within one budget:
 at most 20 documents, chosen in proportion to the document count of each
 type, and at most 3 claims per document.
 
@@ -144,12 +144,12 @@ Offer fixes one document at a time, in the source's forms:
 
 - Code drift, `spec-wrong`: read the current code; propose the document
   update that matches it. For an `adr` whose decision the code no longer
-  follows, propose a new decision through `/archcore:document decision`
+  follows, propose a new decision through `/archcore:document <decision>`
   that supersedes it; correct a path or a name in place.
 - Cascade, `spec-wrong`: read the source and its updated target; identify
   discrepancies; propose the reconciling update.
 - Temporal, `spec-wrong`: propose a status change or TODO-marker removal via
-  `update_document`; for an `rfc`, name `/archcore:document decision` to
+  `update_document`; for an `rfc`, name `/archcore:document <rfc title>` to
   resolve it instead of a status change; when the user chooses removal of a long-stale draft,
   use `remove_document` under the same per-document confirmation.
   [assumption] Removal derives from the source report's "consider accepting

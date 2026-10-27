@@ -1,0 +1,6 @@
+# Keep CI and editor files out of the published Codex plugin bundle.
+.github/
+.DS_Store
+*.log
+*.tmp
+*.swp

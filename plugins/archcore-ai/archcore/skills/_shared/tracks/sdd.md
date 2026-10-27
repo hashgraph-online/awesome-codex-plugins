@@ -19,15 +19,22 @@ hosts. Gate execution, state block, and resume rules:
 - Under the illustrate condition of `skills/_shared/delta-routing.md`,
   `sdd.require` also produces a `journey` beside the `prd` — a recorded
   exception to single-type production, on the pattern of `decision.cascade`.
-  No `/archcore:document` mode reaches `sdd.require`.
+  `/archcore:document` never reaches `sdd.require`.
 - Both actor-subject types are gated on
   `skills/_shared/actor-subject-compatibility.md`; the conductor runs the probe
   before invoking either production.
 - `skills/_shared/delta-routing.md` owns the sequence between instruments; no
   gate here chains into another instrument — each gate exits to the conductor.
-- Each `budget` knob states this track's per-gate maximum, reached only in
-  expert invocation. Auto mode draws every question from the shared
-  per-invocation ceiling in `skills/_shared/elicitation-contract.md`.
+- Each `budget` knob caps its gate inside the 5-question per-invocation
+  ceiling of `skills/_shared/elicitation-contract.md`.
+- The conductor selects artifacts by claim ownership (owner table of
+  `skills/_shared/delta-routing.md`): a `prd` only for an outcome beyond one
+  contract, never an `idea` beside a `prd`, and a settled choice with named
+  alternatives as an `adr` through `skills/_shared/tracks/decision.md`.
+- Vision exits, named in each closing report: an `idea` closes when a `prd`,
+  `rnd`, or `adr` takes over its concept or the user rejects it; a `prd` when
+  its specs are accepted and its outcome delivered; a `plan` at review closeout
+  once every task is verified.
 - Content voice for produced documents: `skills/_shared/precision-rules.md`
   Rule 6.
 - Before the first gate, the `plan` skill calls `list_documents` for the types
@@ -37,20 +44,15 @@ hosts. Gate execution, state block, and resume rules:
 - WHEN a `brd` or `urd` covers the topic, `sdd.require` composes Goals and
   Success Metrics from the `brd`'s success metrics and Requirements from the
   `urd`'s acceptance criteria — recorded requirements are never re-asked.
-- WHEN a check-existing search returns a global document (`source_kind:
-  "global"`), the executing skill loads `skills/_shared/globals.md`.
-  WHEN no result is global, the gates proceed unchanged.
-- The `task-type` offer that followed the plan in the source feature flow
-  belongs to the experience track (`skills/_shared/tracks/experience.md`),
-  not to `sdd`.
-- A route can produce several documents on one topic through these
+- WHEN a check-existing search returns a global document, the executing skill
+  loads `skills/_shared/globals.md`; absent any global match, it proceeds as usual.
+- The `task-type` offer belongs to `skills/_shared/durable-context-selection.md`.
+- One selection can produce several documents on one topic through these
   instruments. The content-kind ownership table in
   `skills/_shared/prd-contract.md` names the one document that owns each kind
   of statement; the `sdd.require`, `sdd.design`, and `sdd.decompose` exit
   checks apply it.
-- [assumption] Taxonomy knob values are mapped from each source step's
-  composed sections; the source flows predate
-  `skills/_shared/coverage-taxonomy.md`.
+- [assumption] Taxonomy knob values map each source step's composed sections.
 - Per-type content contracts for the actor-subject types:
   `skills/_shared/scenario-contract.md` (`scenario`) and
   `skills/_shared/journey-contract.md` (`journey`).
@@ -63,9 +65,10 @@ hosts. Gate execution, state block, and resume rules:
   - skip_when: an `idea`, `prd`, `rnd`, or `research` covering the topic
     exists in `.archcore/` — an `rnd`'s Recommendation or a `research`'s
     Synthesis frames the topic the way an `idea` does; a complete sources set (`mrd`, `brd`, `urd`) on the topic
-    also closes this gate — the `urd` records the concept's beneficiary.
+    also closes this gate — the `urd` records the concept's beneficiary; or the
+    selection of this invocation includes a `prd`.
   - The conductor invokes this gate per sequencing rule 2 of
-    `skills/_shared/delta-routing.md` (the high-uncertainty portfolio).
+    `skills/_shared/delta-routing.md` (an unsettled concept).
   - The request text names the core concept and who benefits from it.
 - Elicitation knobs:
   - trigger: the request does not name the core concept or the beneficiary.
@@ -79,6 +82,7 @@ hosts. Gate execution, state block, and resume rules:
 - Exit checks:
   - blocking: the idea draft contains the sections Idea, Value, Possible
     Implementation, and Risks and Constraints.
+  - advisory: the closing report names the idea's exit (Track notes).
 - Next: exit — the conductor names the next instrument per
   `skills/_shared/delta-routing.md`.
 
@@ -92,6 +96,8 @@ hosts. Gate execution, state block, and resume rules:
     request is feature-scoped and an `idea`, `rnd`, `research`, or `adr`
     covering the topic already records the problem and the goals — the compression path in
     `skills/_shared/prd-contract.md`.
+  - The selection names a product outcome, beneficiary, or measurable goal
+    beyond one contract (selection rule 2 of `skills/_shared/delta-routing.md`).
   - The concept and beneficiary are recorded — in an `idea`, `rnd`, or
     `research` document, in a `urd` or `srs` covering the topic (recorded requirement
     sources), under `## Clarifications`, or in the request text.
@@ -123,6 +129,7 @@ hosts. Gate execution, state block, and resume rules:
   - advisory: a feature-scoped prd draft holds the body target the scope rule
     in `skills/_shared/prd-contract.md` sets; a product-level prd carries no
     line target.
+  - advisory: the closing report names the prd's exit (Track notes).
 - Next: exit — the conductor names the next instrument per
   `skills/_shared/delta-routing.md`.
 
@@ -236,7 +243,8 @@ hosts. Gate execution, state block, and resume rules:
   grounding — a matching `task-type`'s Steps seed the task breakdown.
 - Entry conditions:
   - skip_when: a `plan` covering the topic exists in `.archcore/`.
-  - A `prd` or a `spec` on the topic exists.
+  - A `prd` or a `spec` on the topic exists, or the claim ledger holds two or
+    more dependent tasks.
 - Elicitation knobs:
   - trigger: none — the executing skill MUST NOT ask questions at this gate.
   - taxonomy: none.
@@ -245,7 +253,8 @@ hosts. Gate execution, state block, and resume rules:
   - type: plan
   - status: draft
   - relations: `implements` → the `spec` from `sdd.design` when it exists;
-    `implements` → the `prd` from `sdd.require` otherwise.
+    `implements` → the `prd` from `sdd.require` otherwise; none when neither
+    exists.
 - Exit checks:
   - blocking: the plan draft contains the sections Goal, Tasks (phased),
     Acceptance Criteria, and Dependencies.
@@ -254,15 +263,16 @@ hosts. Gate execution, state block, and resume rules:
     content-kind ownership table in `skills/_shared/prd-contract.md` assigns
     each statement to one document.
   - blocking: the plan draft carries a `## Declared Delta` section recording
-    the declared Δ and the route rationale, per sequencing rule 9 of
-    `skills/_shared/delta-routing.md`.
+    the claim ledger, one claim per line with its action, per sequencing rule 9
+    of `skills/_shared/delta-routing.md`.
+  - advisory: the closing report names the plan's exit (Track notes).
   - advisory: the closing report lists candidate `add_relation` targets among
     existing `adr`, `rule`, `spec`, and `plan` documents, or states that none
     match.
 - Next: exit — the conductor names the next instrument per
-  `skills/_shared/delta-routing.md`. WHEN decomposition surfaces a capability
-  outside the declared Δ, the executing skill revises Δ and re-announces per
-  `skills/_shared/delta-routing.md` before continuing.
+  `skills/_shared/delta-routing.md`. WHEN decomposition surfaces a claim
+  outside the claim ledger, the executing skill adds it and re-reports the
+  selection line per `skills/_shared/delta-routing.md` before continuing.
 
 ### gate: sdd.runbook
 
@@ -270,7 +280,7 @@ hosts. Gate execution, state block, and resume rules:
   introduces an operational procedure — install, migrate, operate, or verify
   steps.
 - Entry conditions:
-  - skip_when: the declared Δ introduces no operational procedure, or a
+  - skip_when: no claim in the ledger introduces an operational procedure, or a
     `guide` covering the procedure exists in `.archcore/`.
   - A `spec` or `plan` draft on the topic exists.
 - Elicitation knobs:

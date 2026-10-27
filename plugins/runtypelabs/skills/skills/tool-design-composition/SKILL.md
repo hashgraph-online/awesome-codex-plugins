@@ -201,7 +201,7 @@ Cache the status briefly.
   `get_platform_documentation(topic="builtin-tools")` the catalog. A `tool-call` step
   that names a catalog id nobody answers to is rejected as
   `TOOL_CALL_STEP_UNKNOWN_CATALOG_TOOL`.
-- **Traces and verification.** Find real sequences with `list_runs` (filtered by `agentId`) and
+- **Traces and verification.** Find real sequences with `list_runs` (filtered by `agent_id`) and
   `trace_execution`. Test one tool with `execute_tool`, then run the agent with
   `execute_agent` and read the trace to confirm the tool choice.
 - **Versioning.** Agents and flows are versioned (`publish_agent_version`,

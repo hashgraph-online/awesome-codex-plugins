@@ -1,0 +1,48 @@
+version: 2
+
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    # The `all` extra must remain jointly resolvable. PaddleX 3.7 (the OCR
+    # extra) requires NumPy <2.4, mirrored by `constraint-dependencies` in
+    # pyproject.toml, and this project keeps tokenizers below 0.23 for the stable
+    # Transformers path. Keep Dependabot on the compatible lines until those
+    # constraints move. Transformers 5.16+ requires tokenizers 0.23.1+,
+    # and Diffusers requires huggingface-hub <2. Mirror the manifest bounds.
+    ignore:
+      - dependency-name: "numpy"
+        versions:
+          - ">=2.4"
+      - dependency-name: "transformers"
+        versions:
+          - ">=5.16"
+      - dependency-name: "huggingface-hub"
+        versions:
+          - ">=2"
+      - dependency-name: "tokenizers"
+        versions:
+          - ">=0.23"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      actions:
+        patterns:
+          - "*"

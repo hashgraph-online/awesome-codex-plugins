@@ -1,0 +1,42 @@
+{
+  "name": "remove-ai-watermarks",
+  "version": "1.0.13",
+  "description": "Identify and remove AI provenance marks from images and video the user generated or edited, using the remove-ai-watermarks CLI.",
+  "author": {
+    "name": "wiltodelta",
+    "url": "https://github.com/wiltodelta"
+  },
+  "homepage": "https://raiw.cc",
+  "repository": "https://github.com/wiltodelta/remove-ai-watermarks",
+  "license": "Apache-2.0",
+  "keywords": [
+    "ai-watermark",
+    "watermark-removal",
+    "c2pa",
+    "synthid",
+    "provenance",
+    "gemini",
+    "sora"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Remove AI Watermarks",
+    "shortDescription": "Identify and remove AI watermarks and provenance metadata",
+    "longDescription": "Runs the open-source remove-ai-watermarks CLI locally to identify C2PA, IPTC, EXIF and TC260 provenance, visible AI-generator labels and supported invisible watermarks, then removes them from images and video the user generated or edited. It does not remove stock, agency or other third-party marks.",
+    "developerName": "wiltodelta",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/wiltodelta/remove-ai-watermarks",
+    "defaultPrompt": [
+      "Check this image for AI watermarks and provenance metadata",
+      "Remove the AI metadata from my generated video without re-encoding it",
+      "Remove the visible AI label from the corner of my image"
+    ],
+    "brandColor": "#A78BFA",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

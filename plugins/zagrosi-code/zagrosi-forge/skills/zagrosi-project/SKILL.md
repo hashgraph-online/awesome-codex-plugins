@@ -1,6 +1,16 @@
 ---
 name: zagrosi-project
 description: Split broad software briefs into dependency-ordered specs for Zagrosi Plan; keep coherent features together.
+allowed-tools:
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" team status *)
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" status *)
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" next-section *)
+  - Bash(python "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" team status *)
+  - Bash(python "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" status *)
+  - Bash(python "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" next-section *)
+  - Bash(py -3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" team status *)
+  - Bash(py -3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" status *)
+  - Bash(py -3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" next-section *)
 ---
 
 # Zagrosi Project
@@ -22,10 +32,13 @@ ownership, dependency, or risk uncertainty; record actual answers using
 
 ## Run
 
-Resolve `plugin_root` from this loaded `SKILL.md`'s enclosing plugin directory
-containing `scripts/zagrosi_skills.py`, never from the target repo. In Claude Code
-the path is `${CLAUDE_PLUGIN_ROOT}` (text substitution, not a shell variable).
-Use Python 3.11+ (`python3` below; `python` or `py -3` on Windows).
+Resolve absolute `plugin_root`: the plugin directory two levels above this skill's
+folder, containing `scripts/zagrosi_skills.py`; never the target repo. Claude Code
+substitutes it when loading this skill: `${CLAUDE_PLUGIN_ROOT}`. Literal text there
+means the file was read directly: derive the path; no such shell variable exists.
+Run every helper command, including returned argv arrays, with the exact prefix
+`python3 "{plugin_root}/scripts/zagrosi_skills.py"` (Python 3.11+; `python` or
+`py -3` on Windows); host pre-approvals match that text.
 
 ```bash
 python3 "{plugin_root}/scripts/zagrosi_skills.py" project-setup --file "{requirements_file}" --depth lean

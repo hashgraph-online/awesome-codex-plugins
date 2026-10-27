@@ -41,19 +41,22 @@ Areas that do not apply to the repository's archetype are marked N/A and subtrac
 
 The run produces a status of **Ready**, **Partially ready** or **Not ready**, paired with a verification confidence of High, Medium or Low, so a weak score and a weakly-evidenced score never read the same.
 
-The plugin ships a single Agent Skill, [`agentic-readiness-assessment`](skills/agentic-readiness-assessment/SKILL.md). The skill runs entirely locally: it reads the repository in your working directory, requires no backend or MCP server, and sends no repository contents anywhere.
+The plugin ships two Agent Skills, both of which run entirely locally, need no backend or MCP server, and send nothing anywhere:
+
+- [`agentic-readiness-assessment`](skills/agentic-readiness-assessment/SKILL.md) audits the repository in your working directory: can an agent work in it?
+- [`agent-tool-call-latency`](skills/agent-tool-call-latency/SKILL.md) audits the agents' own tool calls on your machine: how much of their run time is waste? See [Agent tool-call latency](#agent-tool-call-latency).
 
 ## Supported clients
 
-This is a skill written in the open [Agent Skills](https://agentskills.io/specification) format. It includes native manifests for Cursor-compatible Agent Plugins, Codex, and Claude Code:
+This is a skill written in the open [Agent Skills](https://agentskills.io/specification) format. It includes native manifests for Cursor-compatible Agent Plugins, Google Antigravity, Codex, and Claude Code:
 
-- [`plugin.json`](plugin.json) for the portable [Agent Plugins](https://agent-plugins.org/specification) format used by Cursor;
+- [`plugin.json`](plugin.json) for the portable [Agent Plugins](https://agent-plugins.org/specification) format used by Cursor and Google Antigravity;
 - [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) for ChatGPT and Codex;
 - [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) for Claude Code.
 
-The three packages point to the same skill and require no backend or MCP server.
+The three packages point to the same skills and require no backend or MCP server.
 
-Clients that read the Agent Skills format directly, including Gemini CLI, Antigravity, Zed, Warp, Windsurf and Amp, load the skill from `skills/agentic-readiness-assessment/` with no conversion. A [`gemini-extension.json`](gemini-extension.json) manifest is present for Gemini CLI's extension installer.
+Clients that read the Agent Skills format directly, including Google Antigravity, Zed, Warp, Windsurf and Amp, load each skill from its folder under `skills/` with no conversion.
 
 ## Installation
 
@@ -76,16 +79,18 @@ To try it without adding a marketplace, clone the repository and load it directl
 
 Public installation will be available after OpenAI review and publication. The native Codex package is already present in the repository for submission and local packaging.
 
-### Gemini CLI
+### Google Antigravity
+
+Install the plugin from GitHub with the Antigravity CLI:
 
 ```sh
-gemini extensions install https://github.com/exadel-inc/agentic-readiness-assessment
+agy plugin install https://github.com/exadel-inc/agentic-readiness-assessment
 ```
 
-Or install the skill on its own, without the extension manifest:
+Or from a local clone:
 
 ```sh
-gemini skills install https://github.com/exadel-inc/agentic-readiness-assessment --path skills/agentic-readiness-assessment
+agy plugin install /path/to/agentic-readiness-assessment
 ```
 
 ### GitHub Copilot CLI
@@ -104,7 +109,7 @@ Open `/extensions`, go to the Marketplaces tab, choose Add marketplace and paste
 npx skills add exadel-inc/agentic-readiness-assessment
 ```
 
-For Zed, Warp, Windsurf, Amp and anything else that discovers skills on the filesystem, copy `skills/agentic-readiness-assessment/` into the client's skills directory, usually `.agents/skills/` in the repository you want to assess.
+For Zed, Warp, Windsurf, Amp and anything else that discovers skills on the filesystem, copy `skills/agentic-readiness-assessment/` into the client's skills directory, usually `.agents/skills/` in the repository you want to assess. `skills/agent-tool-call-latency/` audits the machine rather than one repository, so it belongs in the user-level skills directory, such as `~/.agents/skills/`.
 
 ### From source
 
@@ -150,14 +155,43 @@ Nothing else in your repository is changed. The one exception is the probe, a si
 
 More runs, and what was redacted before publishing, in [`examples/`](examples/README.md).
 
+## Agent tool-call latency
+
+Modern coding agents run for hours. Part of that is by design: we hand them genuinely large tasks and expect them to take time. But part of every long run is the agent waiting on its own tools, and some of those tools are slow for reasons nobody chose:
+
+- a poll loop that blocks the agent's turn until the tool's 10-minute cap kills it, and is then run again;
+- an end-to-end harness with a fixed debug port or a global lock, so agents in parallel checkouts queue behind each other;
+- an approval check or an automatic reviewer that adds a fraction of a second to a few seconds to every cheap command;
+- a client release in which a file edit took a second instead of 50 ms;
+- a heavy process, such as a headless browser or a renderer, launched again for every screenshot or render.
+
+None of these shows up in a single session. They show up when every tool call of the last month is lined up and measured, which is what this skill does. A repository can pass the readiness assessment and still lose hours a month in its agents' feedback loop; this skill measures that loop as the agents actually ran it.
+
+Ask for it by name: `/agent-tool-call-latency` in Claude Code, `$agent-tool-call-latency` in Codex, or "audit my agents' tool-call latency" elsewhere. Add a window or a focus, such as `14 days` or a project name. The default is the last 30 days.
+
+The skill:
+
+1. **Takes inventory** of the agent clients on the machine and their local session history. Claude Code, Codex, T3 Code, Cursor and Antigravity are read by built-in adapters. For any other client the agent writes an adapter to one shared call-record format, and checks that adapter against the client's raw log. A client whose history carries no per-call timing can be recorded live through its pre-tool and post-tool hooks.
+2. **Measures** every call: time by client, category and command pattern, calls ending at a timeout cap, cheap operations compared across clients, permission modes and releases, and automatic-review time.
+3. **Diagnoses** each large pattern, separating the time the work needs from the time it wastes, and confirms each cause on the machine with a benchmark, the client's documentation or the line of code responsible.
+4. **Stops for your decisions**, with fixes ranked by the hours they recover each month and grouped by owner: the repository, the agent environment or the client vendor.
+5. **Applies the fixes you approve**: each config file is backed up first, and each repository change goes through that repository's own workflow.
+6. **Writes a report** to `~/.cache/agent-tool-call-latency/<date>/report.md`.
+
+[`examples/agent-tool-call-latency/report.md`](examples/agent-tool-call-latency/report.md) is a full run on a developer laptop: 120,896 calls and 282 hours of tool time in 30 days across five clients. Between 24 and 53 of those hours were waste, and another 34 were agents waiting for the user to answer.
+
+It reads session history read-only and never changes or deletes it. The call records it builds keep commands, so calls can be classified, with anything that looks like a secret masked, and point back to the session file each call came from. Records, summaries and the report go to `~/.cache/agent-tool-call-latency/`; overhead benchmarks run short headless agent sessions under `/tmp/agent-latency-bench/`. The scripts need Python 3.9 or later and use the standard library only.
+
 ## System Requirements
 
 - An agent client that reads the Agent Skills format (see [Supported clients](#supported-clients)).
-- No additional runtime dependencies. The skill uses prompt-driven analysis only.
+- No additional runtime dependencies for the readiness assessment, which is prompt-driven.
+- Python 3.9 or later for the scripts of `agent-tool-call-latency` (standard library only).
 
 ## Data handling and privacy
 
-- The skill performs read-only analysis of the repository in the current working directory.
+- The readiness assessment performs read-only analysis of the repository in the current working directory.
+- `agent-tool-call-latency` reads your agent clients' local session history read-only, and writes its records and report under `~/.cache/agent-tool-call-latency/`. Its overhead benchmarks run headless agent sessions under `/tmp/agent-latency-bench/`, which use your model quota and appear in your clients' history. It changes a client's configuration or a repository only to apply a fix or a hook capture that you approved.
 - No repository contents are transmitted to any external service by the plugin itself. Your agent client's own model requests are subject to that client's privacy policy.
 - The plugin contains no credentials and requires none.
 
@@ -189,7 +223,15 @@ Bump it as follows:
 | The prompt changes while the report contract holds | minor | `4.5.0` → `4.6.0` |
 | Packaging, README, or manifest changes only, with no change to prompt semantics | patch | `4.5.0` → `4.5.1` |
 
+Set the canonical version and every platform manifest version together:
+
+```sh
+python3 .github/scripts/sync_versions.py X.Y.Z
+```
+
 Scores are directly comparable across reports sharing the same `MAJOR.MINOR`. A minor bump may shift scores, so compare across one with care; a major bump breaks the contract, so do not compare across it at all.
+
+A change to `agent-tool-call-latency` leaves readiness reports comparable, so it is a patch bump. Latency reports record the same version as `plugin_version`; a change to their sections is called out in [CHANGELOG.md](CHANGELOG.md).
 
 Describe what changed in the commit message and in [CHANGELOG.md](CHANGELOG.md), not inside `SKILL.md`. The revision history lives in git:
 
@@ -200,6 +242,7 @@ git log --follow skills/agentic-readiness-assessment/SKILL.md
 ## Documentation
 
 - [Skill definition](skills/agentic-readiness-assessment/SKILL.md)
+- [Agent tool-call latency skill](skills/agent-tool-call-latency/SKILL.md), its [call-record format](skills/agent-tool-call-latency/references/SCHEMA.md) and [adapter guide](skills/agent-tool-call-latency/references/ADAPTERS.md)
 - [Example reports](examples/README.md)
 - [Publishing guide](docs/PUBLISHING.md)
 - [Changelog](CHANGELOG.md)

@@ -1,6 +1,16 @@
 ---
 name: zagrosi-plan
 description: Produce compact, reviewed implementation contracts and ordered sections, with the user's requested analysis depth.
+allowed-tools:
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" team status *)
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" status *)
+  - Bash(python3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" next-section *)
+  - Bash(python "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" team status *)
+  - Bash(python "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" status *)
+  - Bash(python "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" next-section *)
+  - Bash(py -3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" team status *)
+  - Bash(py -3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" status *)
+  - Bash(py -3 "${CLAUDE_PLUGIN_ROOT}/scripts/zagrosi_skills.py" next-section *)
 ---
 
 # Zagrosi Plan
@@ -18,13 +28,20 @@ Depth is `lean` by default; honor requested
 `standard`/`deep` using [depth standards](references/depth-standards.md).
 When detached execution is requested, select the
 [physical authoring route](references/detached-plan-format.md) before writing.
+Only when the user asks for state-first lean, or the planning directory has
+`status.json`, follow [state-first](../zagrosi-implement/references/state-first.md)
+instead: write `plan.md`, run setup with `--state-first`, and skip the contract and
+postflight below.
 
-Resolve absolute `plugin_root` from this loaded `SKILL.md`'s enclosing plugin directory
-containing `scripts/zagrosi_skills.py`, never from the target repo. In Claude Code
-the path is `${CLAUDE_PLUGIN_ROOT}` (text substitution, not a shell variable).
+Resolve absolute `plugin_root`: the plugin directory two levels above this skill's
+folder, containing `scripts/zagrosi_skills.py`; never the target repo. Claude Code
+substitutes it when loading this skill: `${CLAUDE_PLUGIN_ROOT}`. Literal text there
+means the file was read directly: derive the path; no such shell variable exists.
+Run every helper command, including returned argv arrays, with the exact prefix
+`python3 "{plugin_root}/scripts/zagrosi_skills.py"` (Python 3.11+; `python` or
+`py -3` on Windows); host pre-approvals match that text.
 Resolve `target_dir` separately to the absolute project root and run these
 helpers from that directory. Use absolute `spec_file` and `planning_dir` paths.
-Use Python 3.11+ (`python3` below; `python` or `py -3` on Windows).
 For a chat-only brief, first save the user's requirements unchanged as `spec.md`
 in the chosen planning directory; keep the implementation contract separate.
 

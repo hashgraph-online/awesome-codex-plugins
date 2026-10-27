@@ -8,6 +8,12 @@
 Not all documentation is created equal. This tiered approach ensures
 critical files are prioritized while allowing progressive enhancement.
 
+The [OSS pack](oss-pack.md#audit-and-project-type) audit script checks Tiers 1-3
+by file presence. For Tier 3 it counts `docs/QUICKSTART.md`,
+`docs/ARCHITECTURE.md`, `docs/CLI_REFERENCE.md` (or `docs/CRD_REFERENCE.md`),
+`docs/CONFIG.md`, `docs/TROUBLESHOOTING.md` and an `examples/` directory; it
+does not check `docs/FAQ.md`.
+
 ---
 
 ## Tier 1: Required (Legal + Essential)
@@ -27,17 +33,6 @@ critical files are prioritized while allowing progressive enhancement.
 - **README.md**: First file GitHub displays, defines project identity
 - **CONTRIBUTING.md**: Reduces friction for new contributors
 - **CODE_OF_CONDUCT.md**: Sets expectations, required by many organizations
-
-### Audit Check
-
-```bash
-TIER1_SCORE=0
-[[ -f LICENSE ]] && ((TIER1_SCORE++))
-[[ -f README.md ]] && ((TIER1_SCORE++))
-[[ -f CONTRIBUTING.md ]] && ((TIER1_SCORE++))
-[[ -f CODE_OF_CONDUCT.md ]] && ((TIER1_SCORE++))
-echo "Tier 1: $TIER1_SCORE/4"
-```
 
 ---
 
@@ -60,18 +55,6 @@ echo "Tier 1: $TIER1_SCORE/4"
 - **AGENTS.md**: AI assistants (Claude, Copilot) work better with context
 - **Issue Templates**: Reduce noise, get structured reports
 - **PR Template**: Ensure consistency, remind of checklist items
-
-### Audit Check
-
-```bash
-TIER2_SCORE=0
-[[ -f SECURITY.md ]] && ((TIER2_SCORE++))
-[[ -f CHANGELOG.md ]] && ((TIER2_SCORE++))
-[[ -f AGENTS.md ]] && ((TIER2_SCORE++))
-[[ -d .github/ISSUE_TEMPLATE ]] && ((TIER2_SCORE++))
-[[ -f .github/PULL_REQUEST_TEMPLATE.md ]] && ((TIER2_SCORE++))
-echo "Tier 2: $TIER2_SCORE/5"
-```
 
 ---
 
@@ -98,19 +81,6 @@ echo "Tier 2: $TIER2_SCORE/5"
 | Library | API.md, examples/ |
 | Complex config | CONFIG.md, TROUBLESHOOTING.md |
 | Large codebase | ARCHITECTURE.md, INTERNALS.md |
-
-### Audit Check
-
-```bash
-TIER3_SCORE=0
-[[ -f docs/QUICKSTART.md ]] && ((TIER3_SCORE++))
-[[ -f docs/ARCHITECTURE.md ]] && ((TIER3_SCORE++))
-[[ -f docs/CLI_REFERENCE.md ]] && ((TIER3_SCORE++))
-[[ -f docs/CONFIG.md ]] && ((TIER3_SCORE++))
-[[ -f docs/TROUBLESHOOTING.md ]] && ((TIER3_SCORE++))
-[[ -d examples ]] && ((TIER3_SCORE++))
-echo "Tier 3: $TIER3_SCORE/6"
-```
 
 ---
 
@@ -164,39 +134,3 @@ As project grows:
 2. Add troubleshooting for common issues
 3. Document architecture for contributors
 4. Create comprehensive examples
-
----
-
-## Examples from Beads
-
-Beads (chronicle) demonstrates excellent documentation coverage:
-
-**Tier 1 (all present):**
-- LICENSE (MIT)
-- README.md (comprehensive overview)
-- CONTRIBUTING.md (detailed guide)
-- CODE_OF_CONDUCT.md (Contributor Covenant)
-
-**Tier 2 (all present):**
-- SECURITY.md (vulnerability reporting)
-- CHANGELOG.md (Keep a Changelog format)
-- AGENTS.md (AI workflow guide)
-- Issue templates (bug report, feature request)
-- PR template
-
-**Tier 3 (extensive):**
-- docs/QUICKSTART.md
-- docs/ARCHITECTURE.md
-- docs/CLI_REFERENCE.md (~800 lines)
-- docs/CONFIG.md (~615 lines)
-- docs/TROUBLESHOOTING.md (~845 lines)
-- docs/FAQ.md
-- docs/GIT_INTEGRATION.md
-- docs/WORKTREES.md
-- examples/ directory with multiple patterns
-
-**Key Patterns:**
-- Clear separation between user docs and developer docs
-- Extensive troubleshooting documentation
-- Multiple integration guides (MCP, Claude Code, etc.)
-- Active CHANGELOG with detailed version notes

@@ -22,7 +22,8 @@ compound conjunction stays whole|no|"потому что" is one unit; comma bef
 negation + что|no|fixed expression: "не то что обидно"
 semantically whole phrase|no|"делай что хочешь" -- indivisible
 что = interrogative pronoun|no|"что случилось?" -- not a conjunction
-two conjunctions without "то"|no|no comma between "что" and "если" when "то" follows
+two conjunctions, "то" follows|no|"я знаю, что если он придёт, то поможет" -- no comma between "что" and "если"
+two conjunctions, no "то"|yes|"я знаю, что, если он придёт, всё решится" -- comma between "что" and "если"
 parallel subordinates with "и"|no|"я знаю, что он придёт и что поможет" -- no comma before second "что"
 
 Compound conjunctions -- where to place the comma:
@@ -116,7 +117,8 @@ construction|comma?|rule
 в свою очередь (= ответно)|no|circumstance
 к сожалению|yes|introductory, emotional evaluation
 к счастью|yes|introductory, emotional evaluation
-по крайней мере|yes (usually)|introductory, limitation
+по крайней мере (= во всяком случае)|yes|introductory, limitation: "он, по крайней мере, пытался"
+по крайней мере (= не меньше чем)|no|circumstance: "пришли по крайней мере десять человек"
 впрочем|yes, after (start); both sides (mid)|introductory, caveat
 итак|yes, after|introductory, conclusion
 следовательно|yes|introductory, conclusion

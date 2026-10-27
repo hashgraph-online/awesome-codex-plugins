@@ -6,17 +6,20 @@
 // v0.2 — each image's source, which the panel filters by.
 // v0.3 — automatic selection: the switch, the checkboxes meaning "pinned" while it is on (kept apart from the manual
 // checks), and the images the model fetched in the latest turn.
-// v0.7 — a Codex task's subagents and side chats (children.ts), each with its last request and whether automatic
-// selection manages it, and the task's switch for them.
+// v0.7 — a Codex task's subagents and side chats (children.ts), each with its last request. v0.8: always managed by
+// automatic selection; the task's switch for them is gone.
+// v0.8 — what the panel searches and groups by, and never shows (docs/v0.8/plan.md): each image's scene (its feature
+// line's first part) and the feature line and ratings the model noted; and per turn, what was said in it.
 // Input: thread id, the sessions directory (rollouts are only read) and the tool's data directory.
 // Output: PanelState as plain JSON; selection changes are written to <data dir>/selection/.
 
 import { readChildren } from "./children.ts";
-import { claudeHome, claudeImageData, claudeStartedAt, loadClaudeIndex, type ClaudeIndex } from "./claude-index.ts";
+import { claudeHome, claudeImageData, claudeStartedAt, isPrompt, loadClaudeIndex, type ClaudeIndex, type ClaudeRecord } from "./claude-index.ts";
 import type { ImageSource } from "./images.ts";
+import { sceneOf, withoutRecords } from "./notes.ts";
 import { childrenDirOf, claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, requestStatsDirOf, selectionDirOf } from "./paths.ts";
 import { readRequestStats, type RequestStats } from "./request-stats.ts";
-import { claudeSelection, effectiveSelection, sideChatSelection, writeSelection, type Mark, type Selection } from "./selection.ts";
+import { claudeSelection, effectiveSelection, writeSelection, type Mark, type Selection } from "./selection.ts";
 import { buildIndex, imageData, readThreadHistory, sessionMetaOf, type IndexedImage, type ThreadIndex } from "./thread-index.ts";
 import { threadTitle } from "./thread-names.ts";
 import { pngThumbnail } from "./thumbnail.ts";
@@ -36,6 +39,9 @@ export type PanelImage = {
   inLastRequest: boolean | null; inNextRequest: boolean;
   // v0.5: from before a Claude Code compaction: Claude Code no longer sends it, the engine sends it again if checked.
   compacted: boolean;
+  // v0.8: the scene the model named in its feature line (null: none noted), and the line and ratings themselves, for
+  // the search only.
+  scene: string | null; search: string;
 };
 export type SendInfo = {
   // The last full HTTP request as Codex built it, before any rewrite: the baseline of the estimate.
@@ -53,17 +59,19 @@ export type SendInfo = {
 // historyMissing: an earlier part of the history is gone for good (e.g. the task a fork came from was deleted), so the
 // images in it are not listed (v0.1-13).
 // auto: automatic selection is on (v0.3); fetched: the ids the model fetched in the latest turn.
-// childrenAuto: the task's switch for its subagents and side chats; children: those the engine has seen (v0.7).
+// children: the subagents and side chats the engine has seen (v0.7).
+// turnTexts: v0.8, what each turn said, by turn number, for the search only (turnTexts below).
 export type PanelState = {
   threadId: string; title: string | null; started: boolean; historyMissing: boolean; turns: number; images: PanelImage[]; requested: string[];
   auto: boolean; fetched: string[];
   totals: { images: number; unchecked: number; checkedBytes: number; allBytes: number };
   send: SendInfo;
-  childrenAuto: boolean; children: ChildInfo[];
+  children: ChildInfo[];
+  turnTexts: Record<string, string>;
 };
-// v0.7: a subagent (name: its nickname in Codex) or side chat, when it first sent a request, whether automatic selection
-// manages it now, and its last full request (images: how many it carried, as Codex built it).
-export type ChildInfo = { threadId: string; kind: "subagent" | "side"; name: string | null; startedAt: string; auto: boolean; images: number | null; last: SendInfo["last"] };
+// v0.7: a subagent (name: its nickname in Codex) or side chat, when it first sent a request, and its last full request
+// (images: how many it carried, as Codex built it).
+export type ChildInfo = { threadId: string; kind: "subagent" | "side"; name: string | null; startedAt: string; images: number | null; last: SendInfo["last"] };
 
 // The engine's reasons for forwarding a request unchanged, as codes the panel says in its language (v0.1-14).
 export type SkipReason = "undecodable" | "unparsable" | "format" | "integer" | "index" | "other";
@@ -147,14 +155,62 @@ export function sameContent(index: ThreadIndex, image: IndexedImage): string[] {
     .map((other) => other.id);
 }
 
+// v0.8: what each turn said, for the search only: the user's own words, the model's replies without their record
+// lines, and what the tools were called with (a generation's prompt, a viewed path); each piece and each turn cut short,
+// so a long task does not make every read of the panel large. The turns are numbered as in the index.
+const PIECE = 200;
+const TURN_TEXT = 600;
+const joinTurns = (texts: Map<number, string[]>): Record<string, string> =>
+  Object.fromEntries([...texts].map(([turn, pieces]) => [String(turn), pieces.join(" ").slice(0, TURN_TEXT)]));
+const piece = (texts: Map<number, string[]>, turn: number, text: unknown) => {
+  // Text the client adds (instructions, the environment, an image's tag) starts with a tag or the AGENTS.md heading.
+  if (typeof text !== "string" || /^\s*(?:<|# AGENTS\.md)/.test(text)) return;
+  const said = withoutRecords(text).replace(/\s+/g, " ").trim().slice(0, PIECE);
+  if (said) texts.set(turn, [...(texts.get(turn) ?? []), said]);
+};
+export function codexTurnTexts(history: Record_[]): Record<string, string> {
+  const numbers = new Map<string, number>();
+  const texts = new Map<number, string[]>();
+  let turn: number | null = null;
+  for (const record of history) {
+    if (record.type === "event_msg" && record.payload.type === "task_started" && record.payload.turn_id) {
+      if (!numbers.has(record.payload.turn_id)) numbers.set(record.payload.turn_id, numbers.size + 1);
+      turn = numbers.get(record.payload.turn_id)!;
+    }
+    if (turn === null || record.type !== "response_item") continue;
+    const item = record.payload;
+    if (item.type === "message" && (item.role === "user" || item.role === "assistant") && Array.isArray(item.content)) for (const part of item.content) piece(texts, turn, part?.text);
+    else if (item.type === "function_call") piece(texts, turn, item.arguments);
+    else if (item.type === "custom_tool_call") piece(texts, turn, item.input);
+    else if (item.type === "image_generation_call") piece(texts, turn, item.revised_prompt);
+  }
+  return joinTurns(texts);
+}
+export function claudeTurnTexts(chain: ClaudeRecord[]): Record<string, string> {
+  const texts = new Map<number, string[]>();
+  let turn = 0;
+  for (const record of chain) {
+    if (record.type === "user" && isPrompt(record)) turn++;
+    const content = record.message?.content;
+    if (!turn || (record.type !== "user" && record.type !== "assistant") || record.isMeta || record.isCompactSummary) continue;
+    if (typeof content === "string") { piece(texts, turn, content); continue; }
+    if (!Array.isArray(content)) continue;
+    for (const block of content) {
+      if (block?.type === "text") piece(texts, turn, block.text);
+      else if (block?.type === "tool_use" && record.type === "assistant") piece(texts, turn, JSON.stringify(block.input ?? {}));
+    }
+  }
+  return joinTurns(texts);
+}
+
 // `unchecked`: the keys whose box is not ticked (v0.3: with automatic selection on, every image not pinned).
 export function panelState(threadId: string, history: Record_[], index: ThreadIndex, unchecked: Set<string>, stats: RequestStats | null, title: string | null = null, auto = false): PanelState {
-  return panelStateOf(threadId, index, unchecked, stats, title, auto, requestedIds(history), history.length > 0);
+  return panelStateOf(threadId, index, unchecked, stats, title, auto, requestedIds(history), history.length > 0, codexTurnTexts(history));
 }
 
 // v0.4: the same for any index: Codex's (from a rollout) or Claude Code's (claude-index.ts), with the ids the model's
 // latest reply asked for and whether the conversation has started.
-export function panelStateOf(threadId: string, index: ThreadIndex, unchecked: Set<string>, stats: RequestStats | null, title: string | null, auto: boolean, requested: string[], started: boolean): PanelState {
+export function panelStateOf(threadId: string, index: ThreadIndex, unchecked: Set<string>, stats: RequestStats | null, title: string | null, auto: boolean, requested: string[], started: boolean, turnTexts: Record<string, string> = {}): PanelState {
   const fetched = [...new Set([...index.copies.values()].filter((copy) => copy.turn !== null && copy.turn === index.turns).map((copy) => copy.of))];
   const carried: Record<string, number> | null = stats?.lastHttp?.imageSizes ?? null;
   // Images after the last one that request carried, or from a later turn, were added since and go out next time.
@@ -164,6 +220,7 @@ export function panelStateOf(threadId: string, index: ThreadIndex, unchecked: Se
     const inLast = carried ? image.key in carried : null;
     // v0.5: Claude Code's images from before a compaction (claude-index.ts) go out again from the engine when checked.
     const compacted = "compacted" in image && image.compacted === true;
+    const notes = index.notes?.get(image.id);
     return {
       id: image.id, kind: image.kind, name: image.name, label: image.label, turn: image.turn,
       source: image.source, pdfPage: image.pdfPage, pdfName: image.pdfName,
@@ -176,6 +233,8 @@ export function panelStateOf(threadId: string, index: ThreadIndex, unchecked: Se
       inLastRequest: inLast,
       inNextRequest: compacted || inLast !== false || position > lastCarried || (lastTurn !== null && image.turn !== null && image.turn > lastTurn),
       compacted,
+      scene: sceneOf(notes?.line ?? null),
+      search: [notes?.line, ...(notes?.ratings ?? []).map((rating) => rating.text)].filter(Boolean).join(" "),
     };
   });
   return {
@@ -187,24 +246,22 @@ export function panelStateOf(threadId: string, index: ThreadIndex, unchecked: Se
       allBytes: images.reduce((sum, image) => sum + image.bytes, 0),
     },
     send: sendInfo(stats),
-    childrenAuto: true, children: [],
+    children: [],
+    turnTexts,
   };
 }
 
 // v0.7: oldest first, as the engine first saw each one.
-function childrenOf(taskId: string, selection: Selection, options: PanelOptions): Pick<PanelState, "childrenAuto" | "children"> {
+function childrenOf(taskId: string, options: PanelOptions): ChildInfo[] {
   const root = options.dataRoot ?? dataDir();
-  const dir = selectionDirOf(root);
-  const children = Object.entries(readChildren(taskId, childrenDirOf(root)))
+  return Object.entries(readChildren(taskId, childrenDirOf(root)))
     .sort(([, a], [, b]) => a.at.localeCompare(b.at))
     .map(([threadId, child]): ChildInfo => {
       const stats = readRequestStats(threadId, requestStatsDirOf(root));
       const spawn = child.kind === "subagent" ? sessionMetaOf(options.sessionsDir, threadId)?.source?.subagent?.thread_spawn : null;
-      const auto = child.kind === "side" ? sideChatSelection(child.from, options.sessionsDir, dir) !== null : !!effectiveSelection(threadId, options.sessionsDir, dir).auto;
       const images = stats?.lastHttp?.images;
-      return { threadId, kind: child.kind, name: spawn?.agent_nickname ?? spawn?.agent_path?.split("/").pop() ?? null, startedAt: child.at, auto, images: typeof images === "number" ? images : null, last: sendInfo(stats).last };
+      return { threadId, kind: child.kind, name: spawn?.agent_nickname ?? spawn?.agent_path?.split("/").pop() ?? null, startedAt: child.at, images: typeof images === "number" ? images : null, last: sendInfo(stats).last };
     });
-  return { childrenAuto: selection.childrenAuto !== false, children };
 }
 
 // A thread with no rollout yet (new, or the panel opened outside a thread) simply has no images. An earlier part of
@@ -239,24 +296,23 @@ function offKeys(index: ThreadIndex, selection: Selection): Set<string> {
 
 export function loadPanelState(threadId: string, options: PanelOptions): PanelState {
   const { history, index, selection, stats, title, historyMissing } = load(threadId, options);
-  return { ...panelState(threadId, history, index, offKeys(index, selection), stats, title, !!selection.auto), historyMissing, ...childrenOf(threadId, selection, options) };
+  return { ...panelState(threadId, history, index, offKeys(index, selection), stats, title, !!selection.auto), historyMissing, children: childrenOf(threadId, options) };
 }
 
 // v0.3: `auto` switches automatic selection; with `mode: "auto"` a tick pins an image instead of sending it, each kept
-// in its own record, so switching back finds the manual checks as they were. v0.7: `childrenAuto` switches it for the
-// task's subagents and side chats.
-export type SelectionChange = { uncheck?: string[]; check?: string[]; checkAll?: boolean; auto?: boolean; mode?: "manual" | "auto"; childrenAuto?: boolean };
+// in its own record, so switching back finds the manual checks as they were.
+export type SelectionChange = { uncheck?: string[]; check?: string[]; checkAll?: boolean; auto?: boolean; mode?: "manual" | "auto" };
 export function applySelection(threadId: string, change: SelectionChange, options: PanelOptions): PanelState {
   const { root, history, index, selection, stats, title, historyMissing } = load(threadId, options);
   const next = changedSelection(threadId, index, selection, change);
   writeSelection(next, selectionDirOf(root));
-  return { ...panelState(threadId, history, index, offKeys(index, next), stats, title, !!next.auto), historyMissing, ...childrenOf(threadId, next, options) };
+  return { ...panelState(threadId, history, index, offKeys(index, next), stats, title, !!next.auto), historyMissing, children: childrenOf(threadId, options) };
 }
 
 // The selection after a change; nothing is written.
 export function changedSelection(threadId: string, index: ThreadIndex, selection: Selection, change: SelectionChange): Selection {
   const now = new Date().toISOString();
-  let next: Selection = { ...selection, threadId, ...(typeof change.childrenAuto === "boolean" ? { childrenAuto: change.childrenAuto } : {}) };
+  let next: Selection = { ...selection, threadId };
   // Switched on for the first time, the thread is marked: from then on its history may hold copies the model fetched.
   if (typeof change.auto === "boolean" && change.auto !== !!selection.auto) next = { ...next, auto: change.auto, autoAt: now, autoSince: selection.autoSince ?? now };
   const pins = change.mode === "auto";
@@ -308,7 +364,7 @@ function loadClaude(sessionId: string, options: ClaudePanelOptions) {
 }
 
 const claudeState = (sessionId: string, index: ClaudeIndex, selection: Selection, stats: RequestStats | null): PanelState =>
-  panelStateOf(sessionId, index, offKeys(index, selection), stats, index.title, !!selection.auto, [...new Set(index.replies.flatMap(askedIn))], index.chain.length > 0);
+  panelStateOf(sessionId, index, offKeys(index, selection), stats, index.title, !!selection.auto, [...new Set(index.replies.flatMap(askedIn))], index.chain.length > 0, claudeTurnTexts(index.chain));
 
 export function loadClaudePanelState(sessionId: string, options: ClaudePanelOptions = {}): PanelState {
   const { index, selection, stats } = loadClaude(sessionId, options);

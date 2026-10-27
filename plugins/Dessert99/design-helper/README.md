@@ -139,7 +139,7 @@ ln -sfn ~/src/design-helper/skills/design-helper ~/.codex/skills/design-helper  
 ```
 
 Both agents read the `description` in `SKILL.md` when a session starts, and the rest
-(`SKILL.md`, `worker.md`, `references/`) when the skill runs. Edits to the body apply
+(`SKILL.md`, `worker.md`, `references/`, `assets/`) when the skill runs. Edits to the body apply
 immediately; a changed `description` needs a new session.
 
 A symlinked skill has no plugin agent, so Claude Code hands the work to a general-purpose
@@ -231,6 +231,10 @@ and so on) need to change too.
   - [`controls.md`](skills/design-helper/references/controls.md): optional sliders: when to add one and the rules it has to follow
   - [`motion.md`](skills/design-helper/references/motion.md): comparing animation
   - [`liveview.md`](skills/design-helper/references/liveview.md): the temporary folder, local server, browser tabs, cleanup
+- [`assets/`](skills/design-helper/assets/): fixed files the worker copies instead of writing them each time
+  - [`sheet.html`](skills/design-helper/assets/sheet.html): the empty comparison sheet with its style, table of contents and auto-reload
+  - [`serve.py`](skills/design-helper/assets/serve.py): the local server that cleans itself up after two idle minutes
+  - [`check.cjs`](skills/design-helper/assets/check.cjs): reads computed styles and takes a screenshot with Playwright in one run
 - [`docs/flows.ko.md`](docs/flows.ko.md): usage flows by situation (Korean)
 - [`scripts/bump-version.sh`](scripts/bump-version.sh): sets the version in every plugin manifest, then commits and tags the release
 

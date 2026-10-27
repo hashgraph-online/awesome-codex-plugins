@@ -14,7 +14,7 @@ phase: [upstream, midstream, downstream]
 severity: major
 applyTo: ['**/*']
 tags: [entry, routing, multi-agent, parallel, consensus, team, orchestration]
-version: '0.1.0'
+version: '0.1.1'
 license: MIT
 ---
 
@@ -111,6 +111,18 @@ Step 4: Tech Lead レポートの生成（追加 LLM コストなし）
   }
 }
 ```
+
+## Convergence Handoff / レビュー収束の判断
+
+`consensusLevel` はレビュアー間の合意度です。指摘の真偽やループ終了を証明しません。
+
+- 初回は変更範囲と必要な依存箇所を確認する。再レビューでは新しい差分を優先する。ただし認証や権限などの高リスク境界は省略しない。
+- 前回と同じ指摘にはfinding identityと元の証拠を結び付ける。新しい証拠のない重複指摘を増やさない。未解決のcritical/majorは消さない。
+- `reviewCoverage` が `partial` または `not_executed` の場合、指摘がゼロでも完了扱いしない。`llmNotExecuted: true` も同様に扱う。
+- 3ラウンド続いて修正が必要なら、callerへ再計画を提案する。論点、再現手順、繰り返し指摘、レビュー対象を見直す。3ラウンドという値は停止条件ではない。
+- `STOP_OSCILLATED` と `ESCALATE_HUMAN` は人間へ引き継ぐ。callerは `STOP_MAX_ITERATIONS` や費用上限を別途執行する。
+
+River Reviewの役割は判定素材の提供までです。停止と再計画はcaller（PlanGate等）が担当します。判断規則は[ループ収束コントラクト](https://github.com/s977043/river-review/blob/main/pages/reference/loop-convergence-contract.md)を参照してください。
 
 ## How to Run / 実行方法
 

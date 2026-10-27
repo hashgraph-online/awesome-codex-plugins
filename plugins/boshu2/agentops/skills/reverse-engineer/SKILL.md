@@ -12,13 +12,6 @@ produces:
 context_rel: []
 skill_api_version: 1
 user-invocable: true
-context:
-  window: fork
-  intent:
-    mode: task
-  sections:
-    exclude:
-    - HISTORY
 metadata:
   dependencies: []
   capabilities: [reverse_engineer]
@@ -31,8 +24,8 @@ output_contract: validated phase-1 teardown directory, followed by a caller-auth
 ---
 # Reverse Engineer
 
-Reverse-engineer an external system into two things: a **teardown** (the
-evidence: feature inventory, machine-checkable registry and specs, optionally a
+Reverse-engineer an external system into two things: a **teardown** (feature
+inventory, a registry of where to read, CLI and contract specs, optionally a
 security audit) and a **steal-map** (the decision: what to adopt into our
 surfaces and what to leave behind). A decision row that must cite evidence can
 be re-checked by anyone; a decision made from impressions cannot be re-checked
@@ -44,44 +37,60 @@ skill exists to prevent.
 - Only operate on code/binaries you own or have **explicit written authorization** to analyze — this matters because unauthorized teardown is the legal/IP line.
 - Do not provide steps to bypass protections/ToS or to extract proprietary source/system prompts.
 - Do not output reconstructed proprietary source or embedded prompts (index only; redact in reports) — to prevent reproducing protected IP.
-- Redact secrets/tokens/keys if encountered; run the secret-scan gate over outputs to prevent credential leakage.
+- Redact secrets/tokens/keys if encountered. The output validator runs this skill's `scripts/security/scan_secrets.sh` over the whole output dir in every phase; a hit fails it until you redact.
 - Always separate **docs say** vs **code proves** vs **hosted/control-plane**.
 
 ## Evidence rules
 
-- **Tag every capability by its source.** `code`: their source, binary or
-  teardown registry shows it; cite the file:line or registry entry and record
-  what the code actually does, which is often narrower than the claim. `docs`:
-  a README, doc page or announcement says it; unverified. `hosted`: a service
-  or control plane you cannot inspect.
+- **Tag every capability by its source.** `code`: their source or binary
+  shows it; cite the file:line (for a binary, the teardown output line) you
+  opened and record what the code actually does, which is often narrower than
+  the claim. `docs`: a README, doc page or announcement says it; unverified.
+  `hosted`: a service or control plane you cannot inspect.
+- **The registry is an index, not evidence.** It lists where to read. In repo
+  mode its groups start `impl: unclassified` (binary mode writes `client` groups
+  anchored to `binary-symbols.txt`, still not `code` evidence); `client` or
+  `mixed` needs anchors, and `control-plane` means `hosted`. A registry entry
+  alone never makes a row `code`.
 - **No code access, no steal.** With only docs, a README or a landing page,
   every row about their implementation is `docs` and unverified. It can be
   `gap`, `park` or `reject`, never `steal`.
 - **Prove our side on the live tree.** A `have` row cites our file. Every
   "missing" row carries the search that proved it (command and scope). Check
   what our current stack already offers before calling anything missing.
-- **Independently checked, not self-report.** Facts on how they implement a
-  capability come from code, cross-checked by a fresh reader, never from one
-  context's summary. Model family is optional metadata, not a trust requirement.
+- **Re-open before a steal.** Re-open each cited file before marking `steal`;
+  a summary from memory is not evidence.
 - **The steal is the pattern, not the platform.** Their robustness is usually
   one idea (unification, a gate, a reconcile loop). Re-express it in our
   primitives; never vendor their runtime or storage engine.
 
 ## Phase 1 — teardown
 
+`<skill-dir>` is the directory that contains this SKILL.md. Claude Code shows it
+as "Base directory for this skill"; Codex lists this skill's SKILL.md path; in
+an AgentOps source checkout it is `skills/reverse-engineer`. Replace
+`<skill-dir>` with that absolute path before running a command. The working
+directory stays the user's repository. If the host did not show where this
+skill is installed, use the directory of the SKILL.md you read. If you cannot
+determine it, do not guess a path or run a same-named script from the current
+repository; say the bundled script is unavailable and build the inventory and
+steal-map by hand as in docs-only mode below.
+
 With an authorized clone or binary, the script clones (pinned), scans the
 CLI/config/artifact surface, writes the inventory, registry and specs, and
 validates the teardown:
 
 ```bash
-python3 skills/reverse-engineer/scripts/reverse_engineer.py <product> --mode=repo \
+python3 "<skill-dir>/scripts/reverse_engineer.py" <product> --mode=repo \
   --upstream-repo="https://github.com/org/repo.git" --upstream-ref=v1.0.0 \
   --output-dir=".agents/scratch/reverse-engineer/<product>/"
 ```
 
-Binary mode requires `--authorized`; use the bundled demo fixture if you lack
-authorization for a real binary. Flags, output inventory, earlier output paths,
-fixtures and the self-test are in [the invocation reference](references/invocation.md).
+The clone lands in `.tmp/<product>/` under the current directory unless
+`--local-clone-dir` names another place; keep it out of your commits. Binary
+mode requires `--authorized`; without authorization for a real binary, run
+`bash "<skill-dir>/scripts/self_test.sh"`, which builds a demo binary (needs Go). Flags, the full
+output list, fixtures and tests are in [the invocation reference](references/invocation.md).
 
 Without code access (only a README, docs site or landing page), skip the
 script: build the inventory and steal-map by hand with each row tagged `docs`
@@ -95,12 +104,12 @@ Map each capability onto **our** surfaces in
 `.agents/scratch/reverse-engineer/<product>/steal-map.md`. The script stops
 after validating Phase 1; it cannot truthfully decide whether our live tree
 has, lacks, or should adopt a capability. The caller authors the map from the
-registry plus a fresh read of our repository. A missing or malformed map is an
+teardown, the code it points to, and a fresh read of our repository. A missing or malformed map is an
 incomplete skill result, not a script success relabelled as a decision.
 
 | Their capability | Our surface today | Verdict |
 |---|---|---|
-| `<feature>` (code: `<registry entry>`, or docs, or hosted) | `<our file / skill / CLI>`, or "none" plus the search that proved it | **have** / **gap** / **steal** / **park** / **reject** |
+| `<feature>` (code: `<file:line>`), (docs) or (hosted) | `<our file / skill / CLI>`, or "none" plus the search that proved it | **have** / **gap** / **steal** / **park** / **reject** |
 
 Each row gets exactly one verdict:
 
@@ -120,51 +129,33 @@ Each row gets exactly one verdict:
 When two seem to fit, reject beats park, and park beats steal or gap; between
 steal and gap, the evidence rules decide.
 
-## Route one-way-door adoptions into planning
-
-If adopting a steal is a **one-way door** (an architecture fork, a new bounded
-context, a storage or data migration), do not decide it here. Hand the
-steal-map to Plan. Dueling Idea Genies or Premortem may challenge the choice as
-advisory evidence. Plan alone shapes the selected option in the existing intent
-source; neither strategy grants readiness or continuation authority.
-
-## Validation
+## Validation and handoff
 
 After authoring `steal-map.md`, validate the complete output with
 `$output_dir`, `$security_audit`, `$sbom`, and `$upstream_ref_set` (each
 numeric flag `0|1`):
 
 ```bash
-bash skills/reverse-engineer/scripts/validate-output.sh \
+bash "<skill-dir>/scripts/validate-output.sh" \
   --output-dir "$output_dir" --phase complete \
   --security-audit "$security_audit" --sbom "$sbom" \
   --upstream-ref-set "$upstream_ref_set"
 ```
 
-Give the validated `steal-map.md` to Plan for one-way-door candidates; ordinary
-`have`, `park`, and `reject` rows remain evidence-backed terminal decisions.
+It fails any table row without a source tag or one of the five verdicts, and
+any `steal` without `code` evidence; with an upstream ref it requires the
+resolved commit in `clone-metadata.json`. It must exit 0 before handoff, or the
+report says it did not run (docs-only mode).
 
-## Quality Rubric
+If adopting a steal is a **one-way door** (an architecture fork, a new bounded
+context, a storage or data migration), do not decide it here: hand the
+validated steal-map to [Plan](../plan/SKILL.md), which shapes the selected
+option in the existing intent source. [Idea Genie](../idea-genie/SKILL.md) duel
+mode or [Premortem](../premortem/SKILL.md) may challenge it as advisory
+evidence; neither grants readiness or continuation authority. Ordinary `have`,
+`park` and `reject` rows are evidence-backed terminal decisions.
 
-- [ ] With an upstream ref, `feature-registry.yaml` and `clone-metadata.json` record the resolved commit.
-- [ ] Every row tags `code`/`docs`/`hosted` and cites teardown evidence **and** our matching surface, or "none" with the search that proved it.
-- [ ] Verdicts use the full set — `have`/`gap`/`steal`/`park`/`reject` — and no `docs` or `hosted` row is `steal`.
-- [ ] One-way-door adoptions are supplied to Plan, not decided here.
-- [ ] Secret-scan gate passed over all outputs; no proprietary source/prompts reproduced.
-- [ ] The complete-output validator exits 0 before handoff, or the report says it did not run (docs-only mode).
-
-| Problem | Cause | Solution |
-|---|---|---|
-| Steal-map is all "steal" | Skipped the park/reject rules | Substrate we delegate is **park**; doctrine conflicts are **reject** — not everything novel is worth adopting. |
-
-## See Also
-
-- [plan](../plan/SKILL.md) — shape selected steals in the existing intent source
-- [idea-genie](../idea-genie/SKILL.md) — optional advisory challenge (duel mode)
-- [premortem](../premortem/SKILL.md) — optional advisory challenge of the exact plan
-- [research](../research/SKILL.md) — general exploration; this is its external-system specialization
-
-## Reference Documents
-
-- [references/invocation.md](references/invocation.md) — flags, outputs, earlier output paths, fixtures, self-test, script troubleshooting
-- [references/reverse-engineer.feature](references/reverse-engineer.feature) — executable spec: repo-mode feature catalog + code map, binary-mode security audit, durable spec artifacts
+For general exploration rather than one external system, use
+[Research](../research/SKILL.md). The scenarios in
+[reverse-engineer.feature](references/reverse-engineer.feature) document the
+behavior; this skill's `scripts/validate.sh` and `scripts/self_test.sh` check it.

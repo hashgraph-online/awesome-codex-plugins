@@ -1,0 +1,42 @@
+{
+  "skill_name": "sirv-360-spin",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I have 36 photos of a watch shot on a turntable, currently named IMG_4501.jpg through IMG_4536.jpg. Get them working as a 360 spin on our Sirv account and embed it on the product page.",
+      "expected_output": "Renames files to a clean ascending sequence in one folder per product, uploads to Sirv so the .spin auto-generates, embeds with Sirv JS + class=Sirv markup, adds preconnect and layout space, and verifies rotation order, zoom, and mobile swipe behavior.",
+      "files": [],
+      "expectations": [
+        "Places frames in one folder with a clean single ascending number sequence",
+        "Relies on Sirv auto-generation of the .spin file",
+        "Embeds with Sirv JS and class=Sirv markup, with preconnect for above-fold use",
+        "Warns about extra digit groups in filenames being read as rows",
+        "Verifies rotation order, zoom, and mobile scroll vs swipe"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our spin feels sluggish and heavy on mobile - it has 120 frames at 5000px each. Improve it.",
+      "expected_output": "Reduces to ~36 frames, keeps masters 2500-4000px and lets Sirv handle delivery compression, checks autospin/zoom settings, keeps spinOnAnyDrag off on mobile, and verifies weight and interaction after changes.",
+      "files": [],
+      "expectations": [
+        "Reduces frame count toward the 24-36 sweet spot",
+        "Does not destroy masters; relies on Sirv delivery resizing/compression",
+        "Keeps mobile vertical scrolling working (spinOnAnyDrag off)",
+        "Verifies load weight and interaction after the change"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We only have a video of the product rotating - can we get a 360 spin from it programmatically for 200 SKUs?",
+      "expected_output": "Uses the video2spin API with sensible frame count (36) and JPEG output, respects plan hourly conversion limits and the 512MB/300MB video size guidance, organizes one folder per SKU, and spot-checks converted spins.",
+      "files": [],
+      "expectations": [
+        "Uses POST /v2/files/video2spin via the sirv-api skill rather than manual conversion",
+        "Chooses a sensible frame count and JPEG output for weight",
+        "Accounts for hourly conversion limits per plan and file size limits",
+        "Verifies converted spins by spot-checking frames and rotation"
+      ]
+    }
+  ]
+}

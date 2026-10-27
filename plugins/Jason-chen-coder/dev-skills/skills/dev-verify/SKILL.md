@@ -37,6 +37,10 @@ Use focused checks for local changes. Broaden for shared contracts, state transi
 
 Unavailable hardware, credentials, production access, or test tooling limits the claim. Complete all feasible checks and report missing proof without presenting a local substitute as equivalent.
 
+## Reuse project verification
+
+Prefer existing project scripts, tests, and CI entrypoints. For recurring setup or behavior checks, read [references/project-verification.md](references/project-verification.md) to reuse or maintain a concise project recipe. A missing recipe does not block verification or authorize creating documentation. Create or repair a recipe or harness only in the main execution lane with existing task authorization; an independent verifier keeps source and index unchanged. A newly recorded recipe is executable only after its stated path has actually run; otherwise label it draft.
+
 ## SDD alignment and completion
 
 Use the current request and relevant existing SDD artifacts as acceptance criteria. If present, `.claude/artifacts/{designs,plans,fixes}/` may contain the source contract; select by actual task/file relevance, not the number of artifacts. Later user corrections override stale artifacts.

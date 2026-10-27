@@ -1,130 +1,111 @@
-# Delta Routing — Conductor Contract for Route Computation
+# Delta Routing — Conductor Contract for Claim-Level Selection
 
-Plugin runtime asset. Loaded by the `plan` skill (`/archcore:plan`) at its Route
-step. Gate execution, state block, and resume rules:
-`skills/_shared/gate-contract.md`. Interview mechanics and ceilings:
+Plugin runtime asset. Loaded by the `plan` skill (`/archcore:plan`) at its Select
+step. The context record it reads is defined in `skills/_shared/gate-contract.md`,
+section Context resolution. Gate execution, state block, and resume rules:
+`skills/_shared/gate-contract.md`. Interview mechanics and the ceiling:
 `skills/_shared/elicitation-contract.md`. Capability sizing:
-`skills/_shared/capability-granularity.md`. The conductor computes the route and
-owns every cross-instrument sequence; instruments produce the documents.
+`skills/_shared/capability-granularity.md`. The conductor selects the documents
+a change needs and owns every cross-instrument sequence; instruments produce the
+documents.
 
 ## Vocabulary
 
 One term per concept. Do not introduce synonyms.
 
-- **canon** — the accepted document graph in `.archcore/`.
+- **canon** — the accepted document graph in `.archcore/`, local and global.
 - **capability** — one behavior an external consumer relies on, recordable as
   one `spec`; sizing rules in `skills/_shared/capability-granularity.md`.
-- **zone** — the canon documents and code areas the request touches.
-- **Δ (canon delta)** — five fields derived at Route: `creates`, `modifies`,
-  `retires` (capability lists), `decision` (settled-choice delta),
-  `intent_gap` (`yes` when the work adds product intent no canon document
-  records).
-- **Π (gap profile)** — one source per information need: `machine`, `user`,
-  `world`, `undecided`, `empirical`.
-- **M (maturity)** — one value per zone: `stone` when an accepted document
-  covers the zone or a dependent consumes it; `pencil` otherwise.
-- **R (risk flags)** — `external-contract`, `data-migration`,
-  `security-compliance`, `irreversibility`, `multi-team`.
-- **operational procedure** — a human-performed sequence the delta introduces:
+- **claim** — one unit of intended or observed change: subject and consumer,
+  baseline owner, proposed claim, evidence, verification, and one action —
+  `create`, `amend`, `retire`, or `none`.
+- **claim ledger** — the list of claims of one invocation; the plan records it
+  under `## Declared Delta`, and closeout reconciles it.
+- **unknown** — one material open question with its kind (`fact`, `choice`,
+  `feasibility`, `acceptance`), evidence state (`supported`, `missing`,
+  `conflicted`), candidate sources, and next action.
+- **hazard** — one evidenced risk: trigger → consequence → required check →
+  owner of the check.
+- **document need** — a future reader task that no existing document serves.
+- **operational procedure** — a human-performed sequence the change introduces:
   install, migrate, operate, or verify steps.
-- **route** — the computed package composition: `null`, `decision`,
-  `amendment`, `capability`, `umbrella`.
-- **size label** — `S`, `M`, `L`, `XL`; derived from the route table, never
-  asked.
-- **expert invocation** — the first word of the arguments is a mode (definition in `skills/_shared/gate-contract.md`, Entry terms); computation is bypassed.
 
-## Derivation
+The retired route names (`null`, `decision`, `amendment`, `capability`,
+`umbrella`), the size labels `S`–`XL`, and the Δ, Π, M, and R fields are not
+computed, printed, or asked.
 
-Run after grounding, before any question and any document creation:
+## Selection
 
-1. Derive Δ: compare the request's intended end state against the canon and
-   the code. List each capability the work creates, modifies, or retires;
-   record a settled choice as `decision`; set `intent_gap: yes` when the work
-   adds product intent no canon document records.
-2. IF a zone document carries a staleness flag, THEN resolve it through the
+Run after context resolution, before any question and any document creation:
+
+1. Read the claim ledger, unknowns, hazards, authority, and conflicts from the
+   context record.
+2. IF a claim's owner carries a staleness flag, THEN resolve it through the
    actualize instrument in callable mode (`skills/_shared/tracks/actualize.md`,
-   entry `actualize.scope`, pre-filled zone scope), or mark each dependent Δ
-   entry `[assumption]` and continue.
-3. IF grounding cannot settle a Δ field, THEN record it as a `user`-source Π
-   need. Do not guess.
-4. Derive Π: list the information needs the package's documents require and
-   assign each need one source. A `machine` claim cites its artifact — a file
-   path, a document, a commit. A `task-type` or `cpat` precedent de-escalates
-   only the technical needs its recorded behavior and relevant constraints
-   cover; cite that match. It does not settle a new `user`-source product choice
-   without target-specific evidence from the request or accepted canon.
-5. Derive M per touched zone and R from the request and the grounding
-   evidence. WHEN any touched zone is `stone`, the escalators read M as
-   `stone`. Record an R flag per capability when the flag names one
-   capability; record it initiative-wide otherwise.
-6. Announce the route (format below), then execute the package.
+   entry `actualize.scope`, pre-filled scope), or mark each dependent claim
+   `[assumption]` and continue.
+3. IF accepted canon contradicts a claim, THEN report the authority conflict
+   before any verdict or write, per `skills/_shared/verdict-contract.md`. An
+   extension that contradicts no accepted clause is an `amend` claim on its
+   owner, not a conflict.
+4. Run the document-need test on each claim with an action other than `none`:
+   name the future reader task, the missing content kind, the owning type or
+   existing owner, the evidence, and why no existing document holds it. A
+   need without a named reader, consumer, or observable use in the request,
+   code, or graph fails the test. The result can be zero documents.
+5. Merge claims that share one owner and one verification.
+6. Map each passing need to an owner per the owner table, then to its
+   instrument per the instrument registry.
+7. Map each unknown to its next action per the unknown table. A `task-type` or
+   `cpat` precedent resolves only the technical unknowns its recorded behavior
+   and relevant constraints cover; cite that match. It does not settle a new
+   user-owned `choice` without target-specific evidence from the request or
+   accepted canon.
+8. Map each hazard to its required check; engage a document only when that
+   check needs a durable owner.
+9. Report the selection line, then execute the instruments in conductor order.
 
-## Route table
+## Owner table
 
-Each non-empty Δ field contributes package members; the package is the union
-of the matching contributions.
-
-| Δ field | Contribution to the package |
+| Observed need | Owner |
 |---|---|
-| every capability list empty ∧ `decision: none` ∧ `intent_gap: no` | nothing — no documents beyond the instrument outputs Π engages |
-| `decision` non-empty | decision instrument (`adr` / `rfc`) |
-| `modifies` non-empty | per modified capability: one code-wrong/spec-wrong verdict against the covering `spec`, per `skills/_shared/verdict-contract.md` |
-| `retires` non-empty | per retired capability: a retirement entry reported for closeout discharge |
-| `intent_gap: yes` | one `prd` through the intent instrument WHEN the gap names goals or metrics beyond one capability's purpose; a gap that fits one capability's purpose records in that capability's `spec` instead; a product-scale gap engages the acquisition instrument (sequencing rule 3) |
-| `creates` = 1 capability | one `spec` + one `plan` |
-| `creates` ≥ 2 capabilities | one umbrella `prd` + one `spec` per capability + one `plan` |
-| a capability meets the illustrate condition | one `scenario` for that capability through the illustrate instrument, after its `spec`; the intent instrument additionally produces one `journey` beside the `prd` |
-| implementation spanning two or more tasks, on a `decision` or `amendment` route | one `plan` through the decompose instrument |
+| Unsettled concept with a distinct value question | `idea` or a bounded `rnd` |
+| Product outcome, beneficiary, or measurable goal beyond one contract | `prd` |
+| Depended-on behavior, interface, invariant, or failure response | `spec` — amend the covering `spec` when one exists |
+| User path before a covering contract | `journey`; a confirmed example after the contract is a `scenario` |
+| Settled choice with alternatives and reasons named in the request or evidence | `adr` |
+| Open choice the team still debates | `rfc`, or a bounded `rnd` when evidence is missing |
+| Two or more dependent tasks, a coordination need, or a handoff | `plan` |
+| A market, business, or user source question | `mrd`, `brd`, or `urd` for that source question only |
+| A formal traceability obligation named in the request or accepted canon | only the `brs`, `strs`, `syrs`, or `srs` levels that obligation names |
+| A repeatable human operation the work introduces | `guide` |
 
-Route name and base size label come from the highest matching line:
+Selection rules:
 
-| Highest match | Route | Base label |
-|---|---|---|
-| `creates` ≥ 2 | `umbrella` | L |
-| `creates` = 1 | `capability` | M |
-| `modifies` or `retires` | `amendment` | S |
-| `decision` | `decision` | S |
-| `intent_gap` only | `null` — intent recorded, no build package | S |
-| nothing | `null` | S |
+1. A `plan` needs no `spec` or `prd`: a non-capability migration with a fixed
+   task order receives a `plan` alone.
+2. A `prd` is created only for an outcome beyond one contract; a need that fits
+   one capability's purpose records in that capability's `spec`.
+3. The conductor MUST NOT create an `idea` beside a `prd` in one invocation.
+4. A security hazard engages its required check. It engages requirement
+   documents only under a named traceability obligation.
+5. WHEN the request names alternatives with reasons for a settled choice, the
+   conductor MUST create an `adr` through the decision instrument.
 
-Escalators, applied after the row match:
+## Unknown table
 
-- WHEN M is `stone` or R is non-empty, raise the size label one step and name
-  the raising flag in the announcement. WHEN iso links engage, raise one
-  additional step. Cap the label at `XL`.
-- WHEN R carries `security-compliance`, escalate each flagged capability into
-  iso links (`requirements-cascade.brs` → `srs`). Do not escalate an
-  unflagged capability.
-- WHEN a capability's delta introduces an operational procedure, add one
-  `guide` to the package through the runbook instrument.
-- WHEN R carries `data-migration`, add a migration runbook `guide` to the
-  package; drop it only on the user's decline.
-- Report `retires` entries for closeout discharge; the conductor performs no
-  status transition.
-
-**Illustrate condition.** A capability meets it when its Δ names a user-facing
-surface — a UI, a conversational skill, an operator-facing flow — or when
-grounding finds `features/*.feature` or a BDD runner in the test-runner slot of
-`skills/_shared/grounding/detect-stack.md`. The conductor reads Δ and grounding
-only; it never asks the user whether to illustrate. IF grounding cannot decide
-the condition, THEN record it as a `user`-source Π need. The condition binds only
-when `skills/_shared/actor-subject-compatibility.md` returned `yes`; otherwise the
-conductor drops the instrument and reports the required version once.
-
-## Π engagement
-
-| Source | Action |
+| Unknown | Next action |
 |---|---|
-| `machine` | compose without a question; cite the artifact |
-| `user` | interview within the ceiling of `skills/_shared/elicitation-contract.md` |
-| `world` | research instrument |
-| `undecided` | decision instrument |
-| `empirical` | spike |
+| `fact` answerable from the repository, canon, or git | read it; cite the artifact; no question |
+| `fact` about the outside world | research instrument |
+| `choice` the user owns | interview within the ceiling of `skills/_shared/elicitation-contract.md` |
+| `choice` with competing options and missing evidence | decision instrument, or a bounded `rnd` |
+| `feasibility` | spike |
+| `acceptance` | interview; record the answer under `## Clarifications` |
 
-WHEN two or more needs name `world`, `undecided`, or `empirical` sources,
-compose one instrument per uncertainty kind — a portfolio, not a funnel —
-ordered cheapest kill shot first: conversation, then research, then spike,
-then formal document.
+WHEN two or more unknowns need research, a spike, or a decision, compose one
+instrument per kind, ordered cheapest first: conversation, then research, then
+spike, then a formal document.
 
 ## Instrument registry
 
@@ -139,14 +120,15 @@ then formal document.
 | decision | `adr`, `rfc` | `skills/_shared/tracks/decision.md`, gate `decision.classify` |
 | research | `research`, `rnd`; optional `evidence` | `skills/_shared/tracks/research.md`, gate `research.frame` |
 | spike | timeboxed `rnd` | `skills/_shared/tracks/research.md`, gate `research.spike` |
-| describe | `spec`, `doc`, `guide` | `skills/_shared/tracks/describe.md`, gate `describe.read` |
+| describe | `spec`, `doc`, `guide`, `task-type` | `skills/_shared/tracks/describe.md`, gate `describe.read` |
 | acquisition | `mrd`, `brd`, `urd` | `skills/_shared/tracks/requirements-cascade.md`, gate `requirements-cascade.mrd` |
 | iso links | `brs`, `strs`, `syrs`, `srs` | `skills/_shared/tracks/requirements-cascade.md`, gate `requirements-cascade.brs` |
 
 The research instrument fixes its product by the closing test: a named pending
-decision or candidate set closes on a recommendation (`rnd`); any other
-investigation closes on scope coverage (`research`). Its gather gate may also
-produce evidence; one external material supplied to `/archcore:document research`
+decision or candidate set to choose between closes on a recommendation (`rnd`);
+any other investigation closes on scope coverage (`research`). A request that
+leads with the slug `research` asks for the type `research`. Its gather gate may
+also produce evidence; one external material supplied to `/archcore:document`
 enters gather directly. This is an exception to single-type production. Apply
 `skills/_shared/research-compatibility.md` before using new vocabulary.
 
@@ -157,79 +139,72 @@ production, not a `Next:` chain. The intent instrument's `journey` beside the
 `prd` under the illustrate condition is a second recorded exception of the same
 kind.
 
+**Illustrate condition.** A capability meets it when its claim names a
+user-facing surface — a UI, a conversational skill, an operator-facing flow — or
+when grounding finds `features/*.feature` or a BDD runner in the test-runner slot
+of `skills/_shared/grounding/detect-stack.md`. The conductor reads the claim and
+grounding only; it never asks the user whether to illustrate. IF grounding cannot
+decide the condition, THEN record it as a `choice` unknown. The condition binds
+only when `skills/_shared/actor-subject-compatibility.md` returned `yes`;
+otherwise the conductor drops the instrument and reports the required version once.
+
 Sequencing rules:
 
 1. The conductor names each next instrument; a gate's `Next: exit` returns
    control to the conductor.
-2. Invoke the concept instrument only from the high-uncertainty portfolio,
-   never as a default first step.
-3. Invoke the acquisition instrument only on a product-scale `intent_gap` or
-   an expert invocation.
-4. WHEN a spike resolves its question, re-enter Derivation with the revised Δ.
-5. WHEN decomposition surfaces a capability outside the declared Δ, revise Δ,
-   re-announce, and continue.
-6. WHEN a produced draft fails a blocking exit check, stop the route at that
-   instrument and report per `skills/_shared/gate-contract.md`.
-7. WHEN the user declines an offered instrument, record the decline in the
-   route rationale and continue the remaining sequence.
+2. Invoke the concept instrument only for an unsettled concept, never as a
+   default first step.
+3. Invoke the acquisition instrument only for a market, business, or user
+   source question that the request or a gate names.
+4. WHEN a spike resolves its question, re-run Selection with the revised claims.
+5. WHEN decomposition surfaces a claim outside the ledger, add it, re-report
+   the selection line, and continue.
+6. WHEN a produced draft fails a blocking exit check, stop at that instrument
+   and report per `skills/_shared/gate-contract.md`.
+7. WHEN the user declines an offered instrument, record the decline under
+   `## Clarifications` of the newest draft and continue the remaining sequence.
 8. WHEN a settled decision surfaces inside any instrument, route it through
    the decision instrument before that instrument exits.
-9. WHEN the package produces a `plan`, record the declared Δ and the route
-   rationale in that `plan` under a `## Declared Delta` section.
-10. WHEN the package includes a `guide`, state the reader and the step actor
+9. WHEN the selection produces a `plan`, record the claim ledger in that `plan`
+   under a `## Declared Delta` section, one claim per line with its action.
+10. WHEN the selection includes a `guide`, state the reader and the step actor
     in the draft.
-11. IF `modifies` names a capability no `spec` covers, THEN engage the
+11. IF an `amend` claim names a capability no `spec` covers, THEN engage the
     describe instrument in callable mode to create the covering `spec` first.
-12. IF an instrument's upstream product is missing, THEN invoke the producing
-    instrument first.
+12. IF an instrument's upstream product is missing and its entry condition
+    requires it, THEN invoke the producing instrument first.
 13. WHEN a capability meets the illustrate condition, sequence `sdd.illustrate`
     directly after that capability's `sdd.design` and before `sdd.decompose`.
 14. WHEN a `journey` on the topic exists and no `spec` covers the interaction,
     produce no `scenario`; the routing test between the pair is the covering
     `spec`, not the presence of any `spec`.
-15. WHILE a computed route has instruments left, keep the `archcore:track`
-    state block, with `route:` and the next instrument's gate, on the newest
-    draft of the route; move it at each gate close and remove it when the
-    route's last instrument closes. A blocked gate keeps the block where the
-    route stopped.
+15. WHILE the selection has instruments left, keep the `archcore:track` state
+    block, with `claims:` and the next instrument's gate, on the newest draft;
+    move it at each gate close and remove it when the last instrument closes.
+    A blocked gate keeps the block where the selection stopped.
 
-## Route announcement
+## Selection line
 
-Report one line before invoking any instrument:
+Report one line before invoking any instrument, naming only what changes an
+instrument, a check, or a write:
 
-`route: <route> (size <label>) — Δ: <non-empty fields>; Π: <sources engaged>; M: <pencil or stone>; R: <flags or none>; raised by: <flag or none>; instruments: <ordered list or none>`
+`selection: <instruments in order, or none> — owners: <type → existing or new owner>; checks: <hazard checks or none>; open: <unknowns sent to an instrument or the interview, or none>`
 
-Never ask the user to choose a route or a size label. An expert invocation
-replaces the announcement with the named path.
-
-## Expert invocation map
-
-| Named | Path |
-|---|---|
-| `sdd` | full package: intent → contract (per capability) → decompose, at per-gate maxima |
-| `sources` | acquisition instrument, entry `requirements-cascade.mrd` |
-| `iso` | iso links, entry `requirements-cascade.brs` |
-| `research` | research instrument, entry `research.frame`; the instrument selects `research` or `rnd` by its closing test |
-
-The four modes are the whole expert surface of `/archcore:plan`.
-A route name is not an entry: the conductor always computes the route.
-A document type name is not an entry: `rnd` is produced only by the research
-instrument's closing test, the spike, or the compatibility fallback; a standalone
-`evidence` material enters through `/archcore:document research`. Any other
-leading word is topic text and goes through route computation.
+Never ask the user to choose an instrument. Never print a route name or a size
+label. A zero-document selection names the next action instead: implement
+directly, or the command that records the result later.
 
 ## State carrier
 
 Track state stays in the `archcore:track` block per
-`skills/_shared/gate-contract.md`, extended on this command with `route:` and
-`delta:` after `gate:`:
+`skills/_shared/gate-contract.md`, extended on this command with `claims:` after
+`gate:`:
 
 ```markdown
 <!-- archcore:track
 track: sdd
 gate: sdd.design
-route: capability (size M)
-delta: creates=[csv-export]; modifies=[]; retires=[]; decision=none; intent_gap=no
+claims: create spec csv-export; amend spec export-api §4; none plan
 taxonomy: Functional Scope & Behavior
 asked: ...
 budget: ...
@@ -239,9 +214,13 @@ deferred: ...
 
 Resume rules on this command:
 
-1. WHEN a resumed block lacks `route:`, recompute the route from the recorded
-   gate and clarifications.
-2. WHEN the computed route contradicts the recorded route, surface both and
+1. WHEN a resumed block carries the legacy `route:` and `delta:` fields, read
+   `delta:` as the claim ledger — `creates` as `create`, `modifies` as
+   `amend`, `retires` as `retire`, `decision` as an `adr` need — and ignore
+   `route:`; write `claims:` at the next gate close.
+2. WHEN a resumed block lacks `claims:` and `delta:`, recompute the claims from
+   the recorded gate, the draft, and `## Clarifications`.
+3. WHEN the recomputed claims contradict the recorded ones, surface both and
    ask one confirmation question.
-3. WHEN the question ceiling exhausts before `user` needs resolve, record the
-   remainder under `deferred` per `skills/_shared/elicitation-contract.md`.
+4. WHEN the question ceiling exhausts before `choice` unknowns resolve, record
+   the remainder under `deferred` per `skills/_shared/elicitation-contract.md`.

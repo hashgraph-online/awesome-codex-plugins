@@ -1,0 +1,462 @@
+# SQL Query Patterns for IDC
+
+**Tested with:** idc-index 0.12.5 (IDC data version v24)
+
+Quick reference for common SQL query patterns when working with IDC data. For detailed examples with context, see the "Core Capabilities" section in the main SKILL.md.
+
+## When to Use This Guide
+
+Load this guide when you need quick-reference SQL patterns for:
+- Discovering available filter values (modalities, body parts, manufacturers)
+- Finding annotations and segmentations across collections
+- Querying slide microscopy and annotation data
+- Estimating download sizes before download
+- Linking imaging data to clinical data
+- Filtering by 3D volume geometry validity (volume_geometry_index)
+- Finding RT Structure Set series and ROI metadata (rtstruct_index)
+- Filtering by CT/MR/PET acquisition parameters (ct_index, mr_index, pt_index)
+
+For table schemas, DataFrame access, and join column references, see `references/index_tables_guide.md`.
+
+## Prerequisites
+
+Needs `idc-index` installed — run `python scripts/check_version.py`, which reports the installed
+version and prints the install command for the interpreter you are running.
+
+```python
+from idc_index import IDCClient
+client = IDCClient()
+```
+
+## Overall Data Scale
+
+Counts and total size across all of IDC — useful for orienting a user, and for sanity-checking
+that the index loaded the release you expect:
+
+```python
+stats = client.sql_query("""
+    SELECT
+        COUNT(DISTINCT collection_id) as collections,
+        COUNT(DISTINCT analysis_result_id) as analysis_results,
+        COUNT(DISTINCT PatientID) as patients,
+        COUNT(DISTINCT StudyInstanceUID) as studies,
+        COUNT(DISTINCT SeriesInstanceUID) as series,
+        SUM(instanceCount) as instances,
+        SUM(series_size_MB)/1000000 as size_TB
+    FROM index
+""")
+print(stats)
+```
+
+### Per-collection breakdown
+
+```python
+# Get summary statistics from primary index
+collections_summary = client.sql_query("""
+    SELECT collection_id,
+           COUNT(DISTINCT PatientID) as patients,
+           COUNT(DISTINCT SeriesInstanceUID) as series,
+           SUM(series_size_MB) as size_mb
+    FROM index
+    GROUP BY collection_id
+    ORDER BY patients DESC
+""")
+```
+
+For richer per-collection metadata — cancer types, tumor locations, species, supporting data —
+query `collections_index` instead; for derived datasets, `analysis_results_index`. Both need
+`client.fetch_index(...)` first:
+
+```python
+client.fetch_index("collections_index")
+collections_info = client.sql_query("""
+    SELECT collection_id, cancer_types, tumor_locations, species, subjects, supporting_data
+    FROM collections_index
+""")
+
+client.fetch_index("analysis_results_index")
+analysis_info = client.sql_query("""
+    SELECT analysis_result_id, analysis_result_title, subjects, collections, modalities
+    FROM analysis_results_index
+""")
+```
+
+## Discover Available Filter Values
+
+```python
+# What modalities exist?
+client.sql_query("SELECT DISTINCT Modality FROM index")
+
+# What body parts for a specific modality?
+client.sql_query("""
+    SELECT DISTINCT BodyPartExamined, COUNT(*) as n
+    FROM index WHERE Modality = 'CT' AND BodyPartExamined IS NOT NULL
+    GROUP BY BodyPartExamined ORDER BY n DESC
+""")
+
+# What manufacturers for MR?
+client.sql_query("""
+    SELECT DISTINCT Manufacturer, COUNT(*) as n
+    FROM index WHERE Modality = 'MR'
+    GROUP BY Manufacturer ORDER BY n DESC
+""")
+```
+
+## Find Annotations and Segmentations
+
+**Note:** Not all image-derived objects belong to analysis result collections. Some annotations are deposited alongside original images. Use DICOM Modality or SOPClassUID to find all derived objects regardless of collection type.
+
+```python
+# Find ALL segmentations and structure sets by DICOM Modality
+# SEG = DICOM Segmentation, RTSTRUCT = Radiotherapy Structure Set
+client.sql_query("""
+    SELECT collection_id, Modality, COUNT(*) as series_count
+    FROM index
+    WHERE Modality IN ('SEG', 'RTSTRUCT')
+    GROUP BY collection_id, Modality
+    ORDER BY series_count DESC
+""")
+
+# Find segmentations for a specific collection (includes non-analysis-result items)
+client.sql_query("""
+    SELECT SeriesInstanceUID, SeriesDescription, analysis_result_id
+    FROM index
+    WHERE collection_id = 'tcga_luad' AND Modality = 'SEG'
+""")
+
+# List analysis result collections (curated derived datasets)
+client.fetch_index("analysis_results_index")
+client.sql_query("""
+    SELECT analysis_result_id, analysis_result_title, collections, modalities
+    FROM analysis_results_index
+""")
+
+# Find analysis results for a specific source collection
+client.sql_query("""
+    SELECT analysis_result_id, analysis_result_title
+    FROM analysis_results_index
+    WHERE Collections LIKE '%tcga_luad%'
+""")
+
+# Use seg_index for detailed DICOM Segmentation metadata
+client.fetch_index("seg_index")
+
+# Get segmentation statistics by algorithm
+client.sql_query("""
+    SELECT AlgorithmName, AlgorithmType, COUNT(*) as seg_count
+    FROM seg_index
+    WHERE AlgorithmName IS NOT NULL
+    GROUP BY AlgorithmName, AlgorithmType
+    ORDER BY seg_count DESC
+    LIMIT 10
+""")
+
+# Find segmentations for specific source images (e.g., chest CT)
+client.sql_query("""
+    SELECT
+        s.SeriesInstanceUID as seg_series,
+        s.AlgorithmName,
+        s.total_segments,
+        s.segmented_SeriesInstanceUID as source_series
+    FROM seg_index s
+    JOIN index src ON s.segmented_SeriesInstanceUID = src.SeriesInstanceUID
+    WHERE src.Modality = 'CT' AND src.BodyPartExamined = 'CHEST'
+    LIMIT 10
+""")
+
+# Find TotalSegmentator results with source image context
+client.sql_query("""
+    SELECT
+        seg_info.collection_id,
+        COUNT(DISTINCT s.SeriesInstanceUID) as seg_count,
+        SUM(s.total_segments) as total_segments
+    FROM seg_index s
+    JOIN index seg_info ON s.SeriesInstanceUID = seg_info.SeriesInstanceUID
+    WHERE s.AlgorithmName LIKE '%TotalSegmentator%'
+    GROUP BY seg_info.collection_id
+    ORDER BY seg_count DESC
+""")
+
+# Use ann_index and ann_group_index for Microscopy Bulk Simple Annotations
+# ann_group_index has AnnotationGroupLabel, GraphicType, NumberOfAnnotations, AlgorithmName
+client.fetch_index("ann_index")
+client.fetch_index("ann_group_index")
+client.sql_query("""
+    SELECT g.AnnotationGroupLabel, g.GraphicType, g.NumberOfAnnotations, i.collection_id
+    FROM ann_group_index g
+    JOIN ann_index a ON g.SeriesInstanceUID = a.SeriesInstanceUID
+    JOIN index i ON a.SeriesInstanceUID = i.SeriesInstanceUID
+    WHERE g.AlgorithmName IS NOT NULL
+    LIMIT 10
+""")
+# See references/digital_pathology_guide.md for AnnotationGroupLabel filtering, SM+ANN joins, and more
+```
+
+## Query Slide Microscopy and Annotation Data
+
+Use `sm_index` for slide microscopy metadata and `ann_index`/`ann_group_index` for annotations on slides (DICOM ANN objects). Filter annotation groups by `AnnotationGroupLabel` to find annotations by name.
+
+```python
+client.fetch_index("sm_index")
+client.fetch_index("ann_index")
+client.fetch_index("ann_group_index")
+
+# Example: find annotation groups by label within a collection
+client.sql_query("""
+    SELECT g.AnnotationGroupLabel, g.GraphicType, g.NumberOfAnnotations
+    FROM ann_group_index g
+    JOIN index i ON g.SeriesInstanceUID = i.SeriesInstanceUID
+    WHERE i.collection_id = 'your_collection_id'
+      AND LOWER(g.AnnotationGroupLabel) LIKE '%keyword%'
+""")
+```
+
+See `references/digital_pathology_guide.md` for SM queries, ANN filtering patterns, SM+ANN cross-references, and join examples.
+
+## Estimate Download Size
+
+```python
+# Size for specific criteria
+client.sql_query("""
+    SELECT SUM(series_size_MB) as total_mb, COUNT(*) as series_count
+    FROM index
+    WHERE collection_id = 'nlst' AND Modality = 'CT'
+""")
+```
+
+## Link to Clinical Data
+
+```python
+client.fetch_index("clinical_index")
+
+# Find collections with clinical data and their tables
+client.sql_query("""
+    SELECT collection_id, table_name, COUNT(DISTINCT column_label) as columns
+    FROM clinical_index
+    GROUP BY collection_id, table_name
+    ORDER BY collection_id
+""")
+```
+
+See `references/clinical_data_guide.md` for complete patterns including value mapping and patient cohort selection.
+
+## Version Tracking — "What's New in IDC vX?"
+
+Use `series_init_idc_version` and `series_revised_idc_version` in the main `index` table. Do NOT
+use `prior_versions_index` for this — it contains only removed series.
+
+```python
+VERSION = 24  # Replace with target version
+
+# Series added for the first time in vVERSION
+client.sql_query(f"""
+    SELECT collection_id,
+           COUNT(DISTINCT SeriesInstanceUID) as new_series,
+           ROUND(SUM(series_size_MB)/1000, 2) as size_GB
+    FROM index
+    WHERE series_init_idc_version = {VERSION}
+    GROUP BY collection_id
+    ORDER BY new_series DESC
+""")
+
+# Series revised (updated content) in vVERSION but originally added earlier
+client.sql_query(f"""
+    SELECT collection_id,
+           COUNT(DISTINCT SeriesInstanceUID) as revised_series
+    FROM index
+    WHERE series_revised_idc_version = {VERSION}
+      AND series_init_idc_version < {VERSION}
+    GROUP BY collection_id
+    ORDER BY revised_series DESC
+""")
+
+# When was each collection first added to IDC?
+client.fetch_index("version_metadata_index")
+client.sql_query("""
+    WITH first_versions AS (
+        SELECT collection_id, MIN(series_init_idc_version) as first_version
+        FROM index
+        GROUP BY collection_id
+    )
+    SELECT f.collection_id, f.first_version, v.version_timestamp as first_release_date
+    FROM first_versions f
+    JOIN version_metadata_index v ON f.first_version = v.idc_version
+    ORDER BY f.first_version DESC
+""")
+```
+
+## Troubleshooting
+
+**Issue:** Query returns error "table not found"
+- **Cause:** Index not fetched before query
+- **Solution:** Call `client.fetch_index("table_name")` before using tables other than the primary `index`
+
+**Issue:** LIKE pattern not matching expected results
+- **Cause:** Case sensitivity or whitespace
+- **Solution:** Use `LOWER(column)` for case-insensitive matching, `TRIM()` for whitespace
+
+**Issue:** JOIN returns fewer rows than expected
+- **Cause:** NULL values in join columns or no matching records
+- **Solution:** Use `LEFT JOIN` to include rows without matches, check for NULLs with `IS NOT NULL`
+
+## Volume Geometry Validation
+
+`volume_geometry_index` covers single-frame CT, MR, and PT series. Fetch it before querying.
+
+```python
+client.fetch_index("volume_geometry_index")
+
+# Series that form a regularly-spaced 3D volume (no resampling needed)
+client.sql_query("""
+    SELECT i.collection_id, i.SeriesInstanceUID, i.BodyPartExamined,
+           v.obliquity_degrees
+    FROM index i
+    JOIN volume_geometry_index v ON i.SeriesInstanceUID = v.SeriesInstanceUID
+    WHERE i.Modality = 'CT'
+      AND v.regularly_spaced_3d_volume = TRUE
+    LIMIT 10
+""")
+
+# Fraction of 3D-valid CT per collection
+client.sql_query("""
+    SELECT i.collection_id,
+           COUNT(*) as total_ct,
+           SUM(CASE WHEN v.regularly_spaced_3d_volume THEN 1 ELSE 0 END) as valid_3d,
+           ROUND(100.0 * SUM(CASE WHEN v.regularly_spaced_3d_volume THEN 1 ELSE 0 END) / COUNT(*), 1) as pct_valid
+    FROM index i
+    JOIN volume_geometry_index v ON i.SeriesInstanceUID = v.SeriesInstanceUID
+    WHERE i.Modality = 'CT'
+    GROUP BY i.collection_id
+    ORDER BY total_ct DESC
+    LIMIT 10
+""")
+```
+
+Key columns: `regularly_spaced_3d_volume` (composite flag), `obliquity_degrees` (0 = pure axial/sagittal/coronal), plus individual boolean checks: `single_orientation`, `orthogonal_orientation`, `unique_slice_positions`, `consistent_pixel_spacing`, `consistent_image_dimensions`, `uniform_slice_spacing`.
+
+## RT Structure Sets
+
+`rtstruct_index` has one row per RTSTRUCT series. Array columns (`ROINames`, `ROIGenerationAlgorithms`, `RTROIInterpretedTypes`) are stored as strings.
+
+```python
+client.fetch_index("rtstruct_index")
+
+# RTSTRUCT series with ROI counts and names
+client.sql_query("""
+    SELECT i.collection_id, i.SeriesInstanceUID,
+           r.total_rois, r.ROINames, r.RTROIInterpretedTypes,
+           r.referenced_SeriesInstanceUID
+    FROM index i
+    JOIN rtstruct_index r ON i.SeriesInstanceUID = r.SeriesInstanceUID
+    LIMIT 10
+""")
+
+# Collections with the most RTSTRUCT series
+client.sql_query("""
+    SELECT i.collection_id,
+           COUNT(*) as rtstruct_series,
+           ROUND(AVG(r.total_rois), 1) as avg_rois
+    FROM index i
+    JOIN rtstruct_index r ON i.SeriesInstanceUID = r.SeriesInstanceUID
+    GROUP BY i.collection_id
+    ORDER BY rtstruct_series DESC
+    LIMIT 10
+""")
+
+# Find source CT series for a given RTSTRUCT
+client.sql_query("""
+    SELECT r.SeriesInstanceUID as rtstruct_uid,
+           r.total_rois, r.ROINames,
+           src.SeriesInstanceUID as source_ct_uid,
+           src.collection_id, src.BodyPartExamined
+    FROM rtstruct_index r
+    JOIN index src ON r.referenced_SeriesInstanceUID = src.SeriesInstanceUID
+    LIMIT 10
+""")
+```
+
+## Modality Acquisition Parameters
+
+`ct_index`, `mr_index`, and `pt_index` (added in idc-index 0.12.3) expose acquisition and reconstruction parameters for CT, MR, and PET series. All join on `SeriesInstanceUID`. Dose-modulated CT acquisitions have `_min`/`_max` columns for tube current, exposure, and exposure time.
+
+```python
+client.fetch_index("ct_index")
+client.fetch_index("mr_index")
+client.fetch_index("pt_index")
+
+# CT: thin-slice series (≤2mm) with standard reconstruction
+client.sql_query("""
+    SELECT i.collection_id, i.SeriesInstanceUID, i.BodyPartExamined,
+           c.SliceThickness, c.ConvolutionKernel, c.KVP
+    FROM index i
+    JOIN ct_index c ON i.SeriesInstanceUID = c.SeriesInstanceUID
+    WHERE c.SliceThickness <= 2.0
+      AND c.ConvolutionKernel IS NOT NULL
+    LIMIT 10
+""")
+
+# CT: dose-modulated acquisitions (tube current varies across slices)
+client.sql_query("""
+    SELECT i.collection_id, c.SeriesInstanceUID,
+           c.XRayTubeCurrent_min, c.XRayTubeCurrent_max, c.SliceThickness
+    FROM ct_index c
+    JOIN index i ON c.SeriesInstanceUID = i.SeriesInstanceUID
+    WHERE c.XRayTubeCurrent_min != c.XRayTubeCurrent_max
+    LIMIT 10
+""")
+
+# MR: DWI series (have non-null DiffusionBValue) at 3T
+client.sql_query("""
+    SELECT i.collection_id, i.SeriesInstanceUID, i.SeriesDescription,
+           m.MagneticFieldStrength, m.DiffusionBValue
+    FROM index i
+    JOIN mr_index m ON i.SeriesInstanceUID = m.SeriesInstanceUID
+    WHERE m.DiffusionBValue IS NOT NULL
+      AND m.MagneticFieldStrength >= 2.9
+    LIMIT 10
+""")
+
+# MR: multi-echo series (EchoTime stored as array with multiple values)
+client.sql_query("""
+    SELECT i.collection_id, i.SeriesInstanceUID,
+           m.EchoTime, m.EchoTrainLength, m.ScanningSequence
+    FROM index i
+    JOIN mr_index m ON i.SeriesInstanceUID = m.SeriesInstanceUID
+    WHERE m.EchoTrainLength > 1
+    LIMIT 10
+""")
+
+# PET: FDG studies with specific reconstruction method
+client.sql_query("""
+    SELECT i.collection_id, i.SeriesInstanceUID,
+           p.RadionuclideCodeMeaning, p.ReconstructionMethod,
+           p.Units, p.DecayCorrection
+    FROM index i
+    JOIN pt_index p ON i.SeriesInstanceUID = p.SeriesInstanceUID
+    WHERE p.RadionuclideCodeMeaning LIKE '%fluorodeoxyglucose%'
+    LIMIT 10
+""")
+
+# PET: dynamic acquisitions (ActualFrameDuration is array with multiple values)
+client.sql_query("""
+    SELECT i.collection_id, i.SeriesInstanceUID,
+           p.NumberOfTimeSlices, p.ActualFrameDuration
+    FROM index i
+    JOIN pt_index p ON i.SeriesInstanceUID = p.SeriesInstanceUID
+    WHERE p.NumberOfTimeSlices > 1
+    LIMIT 10
+""")
+```
+
+Key columns by table (use `client.indices_overview["ct_index"]["schema"]` for the full list):
+- **ct_index**: `SliceThickness`, `KVP`, `ConvolutionKernel`, `SpiralPitchFactor`, `XRayTubeCurrent_min/max`, `Exposure_min/max`, `PixelSpacing_row_mm/col_mm`, `Rows`, `Columns`
+- **mr_index**: `MagneticFieldStrength`, `ScanningSequence`, `SequenceVariant`, `MRAcquisitionType`, `EchoTime` (array), `RepetitionTime`, `FlipAngle`, `DiffusionBValue` (array), `NumberOfTemporalPositions`, `ReceiveCoilName`
+- **pt_index**: `RadionuclideCodeMeaning`, `Radiopharmaceutical`, `RadionuclideTotalDose`, `ReconstructionMethod`, `DecayCorrection`, `AttenuationCorrectionMethod`, `ActualFrameDuration` (array), `NumberOfTimeSlices`
+
+## Resources
+
+- `references/index_tables_guide.md` for table schemas, DataFrame access, and join column references
+- `references/clinical_data_guide.md` for clinical data patterns and value mapping
+- `references/digital_pathology_guide.md` for pathology-specific queries
+- `references/bigquery_guide.md` for advanced queries requiring full DICOM metadata
+- `references/parquet_access_guide.md` for direct Parquet queries without installing idc-index

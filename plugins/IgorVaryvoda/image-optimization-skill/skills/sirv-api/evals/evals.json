@@ -1,0 +1,31 @@
+{
+  "skill_name": "sirv-api",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Fix a Sirv file search request that 400s when searching the /products/new arrivals folder for JPGs tagged featured.",
+      "expected_output": "A request-shape fix that verifies official Sirv search fields, escapes paths/special characters, uses size <= 100, preserves upstream error details, and adds a focused regression test for the exact query.",
+      "files": [],
+      "expectations": [
+        "Does not guess Lucene syntax from memory",
+        "Uses Sirv-specific folder fields such as dirname.paths or dirname.raw",
+        "Escapes slash and space in path values",
+        "Keeps the documented page size limit in mind",
+        "Preserves response body/status in debugging output"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Write a bulk import script for remote product images into Sirv and attach title, tags, and product metadata.",
+      "expected_output": "A token-refreshing workflow using /v2/files/fetch or upload, account limit checks, metadata endpoints, rate/pagination awareness, and verification through stat/meta/search calls.",
+      "files": [],
+      "expectations": [
+        "Refreshes Bearer tokens instead of hard-coding long-lived values",
+        "Uses fetch for stable remote originals when appropriate",
+        "Sets title, description/tags, and product metadata after import",
+        "Checks account limits before bulk work",
+        "Verifies imported files with stat, meta, or search"
+      ]
+    }
+  ]
+}

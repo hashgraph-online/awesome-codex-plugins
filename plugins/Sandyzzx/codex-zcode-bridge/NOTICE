@@ -46,3 +46,8 @@ are included under licenses/:
   content-type
     MIT License; bundled license comment credits Douglas Christopher Wilson.
     See CONTENT-TYPE-LICENSE.txt.
+  playwright-core 1.64.0
+    Apache-2.0. Bundled in source form inside worker/vendor/pkg/browser-host.cjs
+    with its browsers.json and package.json registry data at worker/vendor/;
+    see PLAYWRIGHT-CORE-LICENSE.txt and
+    PLAYWRIGHT-CORE-THIRD-PARTY-NOTICES.txt.

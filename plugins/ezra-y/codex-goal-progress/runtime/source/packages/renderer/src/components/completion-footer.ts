@@ -1,9 +1,6 @@
 import { html } from "lit";
 import type { GoalProgressPlacement, GoalProgressViewModel } from "../../../contracts/src/index.js";
-import {
-  type DisplaySettingsMenuRenderOptions,
-  renderDisplaySettingsMenu,
-} from "./display-settings-menu.js";
+import type { DisplaySettingsMenuRenderOptions } from "./display-settings-menu.js";
 import { renderTokenUsage } from "./token-usage.js";
 
 export interface CompletionFooterRenderOptions extends DisplaySettingsMenuRenderOptions {
@@ -25,7 +22,6 @@ export function renderCompletionFooter(
       </span>
       <span class="footer-actions">
         ${renderTokenUsage(viewModel.token, options.messages, options.locale)}
-        ${renderDisplaySettingsMenu(options)}
       </span>
     </footer>
   `;

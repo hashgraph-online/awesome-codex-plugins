@@ -25,17 +25,34 @@ requirements chain belongs to `skills/_shared/tracks/requirements-cascade.md`.
 A proposed technical choice belongs to the decision instrument.
 
 Gate order: `research.frame` → `research.gather` → `research.conclude`.
-`/archcore:plan research` and `/archcore:document research` enter frame and
-select the investigation type by the closing test below; neither command exposes
-`rnd` or `evidence` as an entry. WHEN `/archcore:document research` supplies one
-external material and no investigation, frame records `artifact_type: evidence`,
-creates no investigation, and continues at gather, which exits there. `research.spike` remains the conductor's separate
-entry for an `empirical` Π source; its code is throwaway.
+`/archcore:plan <topic>` enters frame for a new investigation, and
+`/archcore:document <subject>` enters frame for a supplied report or material;
+both select the investigation type by the closing test below. WHEN
+`/archcore:document` supplies one external material and no investigation, frame
+records `artifact_type: evidence`, creates no investigation, and continues at
+gather, which exits there. `research.spike` remains the conductor's separate
+entry for a `feasibility` unknown; its code is throwaway.
 Spike code MUST NOT merge into the mainline.
 
 Gates check recorded content, not the method the executor used. Scope
-(`research`) or Approach (`rnd`) records the method used. Each gate budget is
-an expert maximum; auto mode uses the shared ceiling.
+(`research`) or Approach (`rnd`) records the method used. Each gate budget caps
+its gate inside the 5-question per-invocation ceiling of
+`skills/_shared/elicitation-contract.md`.
+
+Closing-test examples (non-normative):
+
+| Request | Type | Why |
+|---|---|---|
+| "Collect the licence terms of every dataset we ingest" | `research` | coverage of a declared scope; no choice is pending |
+| "Map how the three auth services issue tokens today" | `research` | a territory to cover |
+| "Compare Kafka, NATS, and SQS and recommend one for the event bus" | `rnd` | a named candidate set closes on a recommendation |
+| "Should we keep Postgres or move to DynamoDB for sessions?" | `rnd` | a pending decision |
+| "`research` queue brokers: Kafka, NATS, SQS" | `research` | the leading slug requests the type; the candidates are scope |
+
+Vision exits: a `research` closes when its Synthesis is current and a consumer
+cites it; an `rnd` closes when the decision it informs is recorded as an `adr`
+or the user defers or stops it. The closing report of `research.conclude` names
+that exit.
 
 ## Entry and resumption
 
@@ -44,9 +61,9 @@ an expert maximum; auto mode uses the shared ceiling.
 3. On a supported engine, include `research`, `evidence`, `rnd`, `idea`, and `prd` in the duplicate check.
 4. On an older engine, use `rnd`, `idea`, and `prd` in the duplicate check.
 5. If a result is global, load `skills/_shared/globals.md`.
-6. If the request is an explicit `evidence` entry, or names `rnd` or `research` per the document skill's Named type rule, fix the artifact type to that type, subject to the compatibility fallback.
+6. If the request is an explicit `evidence` entry, or names `rnd` or `research` as an explicit type request per `skills/_shared/gate-contract.md`, Entry terms, fix the artifact type to that type, subject to the compatibility fallback. A request that leads with the slug `research` requests the type `research`, even when it names candidates or supplies one external material.
 7. Otherwise, if the request names a pending decision or a set of candidates to choose between, select `rnd`; a supplied report that ends in a recommendation names a pending decision.
-8. Otherwise, select `research`. The path name `research` selects this instrument, not the type.
+8. Otherwise, select `research`.
 9. Record the artifact type in the artifact's `artifact_type` state field per `skills/_shared/gate-contract.md`.
 10. If an existing artifact has no `artifact_type`, derive the artifact type from its filename type.
 11. Keep the existing artifact's type on resume; the closing test does not convert an existing `rnd` or `research`.
@@ -185,7 +202,7 @@ never by the track.
 ### gate: research.spike
 
 - Purpose: Run a timeboxed empirical probe — answer one question only building
-  can answer, then hand the revised Δ back to the conductor.
+  can answer, then hand the revised claims back to the conductor.
 - Entry conditions:
   - skip_when: existing evidence (code, git history, `.archcore/`, recorded
     measurements) already answers the empirical question.
@@ -202,9 +219,9 @@ never by the track.
 - Exit checks:
   - blocking: the rnd draft holds the sections Goal, Questions, and Findings
     only, with the probe outcome recorded under Findings.
-  - blocking: the closing report states the probe outcome and the revised Δ
-    handed to the conductor.
+  - blocking: the closing report states the probe outcome and the revised
+    claims handed to the conductor.
   - blocking: no spike code was merged into the mainline; the report names
     where the throwaway code lives or states that it was discarded.
-- Next: exit — the conductor re-enters Derivation per
+- Next: exit — the conductor re-runs Selection per
   `skills/_shared/delta-routing.md`.

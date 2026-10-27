@@ -1,0 +1,58 @@
+{
+  "name": "damnpdfs",
+  "version": "1.0.0",
+  "description": "Work with PDFs, Office documents, images and audio through your approved DamnPDFs browser workspace.",
+  "author": {
+    "name": "Sourav Bera",
+    "url": "https://github.com/SouravBeraAkaSpeed"
+  },
+  "homepage": "https://damnpdfs.com/",
+  "repository": "https://github.com/SouravBeraAkaSpeed/damnpdfs-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "pdf",
+    "compress-pdf",
+    "edit-pdf",
+    "merge-pdf",
+    "sign-pdf",
+    "word-to-pdf",
+    "powerpoint-to-pdf",
+    "compress-image",
+    "remove-background",
+    "ocr",
+    "webmcp",
+    "file-tools"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Damn PDFs by Sourav Bera",
+    "shortDescription": "PDF, image and file workflows",
+    "longDescription": "Use 71 DamnPDFs tools for PDF compression, text editing, signing, merging, splitting, OCR, Office conversion, image compression, background removal and more. Pair a DamnPDFs browser tab you control; the coding agent can then work with that workspace, inspect files, run individual tools and download results. The tab must remain connected. Auto-renewal depends on the connected tab and its renewal setting. This is a browser-paired integration, not an unattended cloud service. Native operations use temporary cloud processing; local file imports also pass through temporary cloud storage. External AI features need your chosen provider configured directly in the website. Node.js 22 or later is required for the bundled local MCP bridge.",
+    "developerName": "Sourav Bera",
+    "category": "Productivity",
+    "capabilities": [
+      "Read selected files",
+      "Process PDF and Office files",
+      "Compress and edit images",
+      "Inspect document text",
+      "Create file workflows",
+      "Save result files"
+    ],
+    "websiteURL": "https://damnpdfs.com/",
+    "supportURL": "https://damnpdfs.com/contact",
+    "privacyPolicyURL": "https://damnpdfs.com/privacy",
+    "termsOfServiceURL": "https://damnpdfs.com/terms",
+    "defaultPrompt": [
+      "Compress this PDF for an email attachment.",
+      "Convert this PowerPoint to PDF, then merge it with my document.",
+      "Compress these images and keep their transparent backgrounds."
+    ],
+    "brandColor": "#172027",
+    "brandColorDark": "#DCE2E6",
+    "composerIcon": "./assets/icon.png",
+    "composerIconDark": "./assets/icon-dark.png",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo-dark.png"
+  }
+}

@@ -5,7 +5,7 @@ description: "Researches a person across podcasts and YouTube for interview or m
 
 # Person research
 
-Three lenses on one person id. `momentum` gives attention and the shows that mention them most. `mentions` rows with `is_appearance` are episodes they were on. `search` with `speakerIds` returns their own words; `about` returns what others said about them.
+Three lenses on one person id. `momentum` gives attention and the shows that mention them most. `mentions` with `mode: "appearances"` lists the episodes they were on. `search` with `speakerIds` returns their own words; `about` returns what others said about them.
 
 Run each program with `arcmira_execute_read`; `arcmira_describe` has the method reference.
 
@@ -42,14 +42,14 @@ const id = ID ?? e.id;
 const assumed = Boolean(r?.suggested), why = r?.suggested?.evidence ?? null;
 const [m, rows, own] = await Promise.all([
   arcmira.momentum(id),
-  arcmira.mentions({ entityId: id, after: arcmira.daysAgo(90), limit: 40 }),
+  arcmira.mentions({ entityId: id, mode: "appearances", after: arcmira.daysAgo(90), limit: 40 }),
   arcmira.search({ query: "AI", speakerIds: [id], after: arcmira.daysAgo(180), limit: 5 }),
 ]);
 const about = await arcmira.search({ query: m.entity.name, about: [id], after: arcmira.daysAgo(90), limit: 3 });
 const appeared = new Map();
-for (const x of rows.mentions) if (x.is_appearance) appeared.set(x.media.video_id, { show: x.media.source_channel?.name ?? null, episode: x.media.title, date: x.media.published_at });
+for (const x of rows.mentions) appeared.set(x.media.video_id, { show: x.media.source_channel?.name ?? null, episode: x.media.title, date: x.media.published_at });
 let fromAppearance = null;   // no speaker-tagged chunks: read their newest appearance instead
-const ep = own.chunks.length === 0 ? rows.mentions.find(x => x.is_appearance) : undefined;
+const ep = own.chunks.length === 0 ? rows.mentions[0] : undefined;
 if (ep) {
   try {
     const t = await arcmira.transcript(ep.media.video_id, { start: Math.max(0, ep.start_seconds - 5), end: ep.start_seconds + 90 });
@@ -63,7 +63,8 @@ return {
   person: { id, name: m.entity.name, page: m.entity.page, assumed, why },
   attention: { verdict: m.verdict, last_30d: m.volume.mentions_30d, prior_30d: m.volume.mentions_prior_30d, as_of: m.as_of, top_shows: m.top_shows.map(s => [s.channel_name, s.mentions]) },
   appeared_on: [...appeared.values()].slice(0, 8),
-  appeared_on_partial: rows.has_more,   // true: only the newest 40 mention rows were read
+  appeared_on_partial: rows.has_more || appeared.size > 8,
+  appeared_on_cursor: rows.has_more ? rows.next_cursor : null,
   in_their_words: own.chunks.map(c => ({ said: c.text.slice(0, 300), episode: c.video_title, show: c.channel_name, date: c.published_at, url: c.watch_url })),
   from_their_appearance: fromAppearance,
   said_about_them: about.chunks.map(c => ({ said: c.text.slice(0, 200), show: c.channel_name, date: c.published_at, url: c.watch_url })),
@@ -80,7 +81,7 @@ return {
 ## Traps
 
 - A search with `about` returns other people talking; only `speakerIds` returns the person's own words. Speaker tags cover part of the index, so when the speaker search is empty, read a window of an episode they appeared on and say the lines come from their appearance, since caption lines do not name the speaker.
-- A chunk found with `speakerIds` also holds other people's lines. Quote only lines that start with the person's name.
+- A chunk found with `speakerIds` can include other people's lines. Lines start with "Name: " when the speaker is known. Quote only the person's lines. When no line names a speaker, say the attribution covers the passage, not each line.
 - Put the user's topic in `query` for the speaker search (it needs a word or phrase of two or more characters).
 - Mentions and momentum count the shows Arcmira indexes, not all media.
 
@@ -90,4 +91,4 @@ Docs: https://arcmira.com/docs/mcp-server
 
 Monitors can follow what a research turn found, and each alert uses 25 credits from the account's plan, then its on-demand budget. The `company-watch` skill sets one up.
 
-If anything was wrong, slow, or missing for the user, send one arcmira_feedback.
+If anything was wrong, slow, or missing for the user, or they want a source or capability Arcmira lacks, send one arcmira_feedback.

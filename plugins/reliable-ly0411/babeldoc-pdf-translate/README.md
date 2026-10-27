@@ -4,6 +4,46 @@
 
 Layout-preserving PDF translation skill for **Codex and DeepSeek Harness**, powered by a separately installed BabelDOC runtime. Supports bilingual output, page selection, custom glossaries and contextual terminology review. Local parsing/typesetting; translation uses the provider you configure. No telemetry or bundled cloud account.
 
+## 当前版本与适用范围
+
+**1.5.0-rc.28 是 Windows / R1 限定预发布，非正式稳定版。** 源码已合并并发布预发布包；下载与发布状态见 [GitHub Releases](https://github.com/reliable-ly0411/babeldoc-pdf-translate/releases/tag/v1.5.0-rc.28)。
+
+- 主要流程：Luna 翻译 → BabelDOC 排版 → 单独配置的低成本视觉审查 → 有界定点返工 → 再验收 → 输出前审计。Astra 仅用于单独的开发评估，不自动升级生产模型。
+- 已修复 R1 第 3 页正文遮挡行内公式，以及原生路径/矩阵视图生命周期问题。rc.28 增加显式 Codex `max` 参数的校验和转发支持；真实 `max` 推理尚未验证。
+- Windows 离线测试 622 通过、2 跳过；Linux CI 594 通过、30 跳过（29 项未随包分发的真实 PDF 证据、1 项 Windows 专属）。离线通过不等于真实 PDF 质量验收。
+- R1 仍有英文保留、局部术语、页脚关联与断行限制；图内文字可能保留英文。特定双语样本在 MuPDF 600 dpi 下有显示差异，PDFium 600 dpi 检查正常。
+- L1Quad 第 5 页真实空缓存试点被保真保护拒绝，未生成 PDF；该论文全文、缓存复跑及完整 Astra 终审均未通过验收。通用自动质量协议仍未验证，`best.*` 只能视为待审候选。
+
+详见 [验证状态](VALIDATION.md)、[技术报告](references/windows-stability-review.md) 和 [rc.28 实测记录](https://github.com/reliable-ly0411/babeldoc-pdf-translate/issues/10#issuecomment-6251690944)。完整论文、页面图像、私有缓存、凭据及大型证据不随包分发；可选外部测试资料见 [测试说明](tests/README.md)。
+
+## 下载与安装入口
+
+选择 [Releases](https://github.com/reliable-ly0411/babeldoc-pdf-translate/releases/tag/v1.5.0-rc.28) 中标记为 Pre-release 的 rc.28，下载插件 ZIP 和配套 SHA256 文件，校验后解压。ZIP 包含技能、脚本、补丁与文档，不包含 Python、BabelDOC 引擎、模型或账户。必须继续完成 [运行时部署](references/deployment.md)。
+
+直接下载：[插件 ZIP](https://github.com/reliable-ly0411/babeldoc-pdf-translate/releases/download/v1.5.0-rc.28/babeldoc-pdf-translate-v1.5.0-rc.28.zip) · [SHA256SUMS](https://github.com/reliable-ly0411/babeldoc-pdf-translate/releases/download/v1.5.0-rc.28/SHA256SUMS)。将两者保存到同一目录后校验：
+
+```sh
+sha256sum -c SHA256SUMS
+```
+
+Windows PowerShell 可用下列命令计算 ZIP 哈希，并与 `SHA256SUMS` 中对应文件的值比较：
+
+```powershell
+Get-FileHash ./babeldoc-pdf-translate-v1.5.0-rc.28.zip -Algorithm SHA256
+```
+
+该公开 ZIP 的 SHA256 为 `06985fbda5f625054779694aa4eb4437d9810b62619c2da4aaaabeeecf3a6ee5`（843031 字节）。历史技术记录中的本地 ZIP 是另一种归档字节，下载校验应以本 Release 的 `SHA256SUMS` 为准。
+
+需要可复现源码时，可直接检出已验证的固定提交：
+
+```sh
+git clone https://github.com/reliable-ly0411/babeldoc-pdf-translate.git
+cd babeldoc-pdf-translate
+git checkout fba043bdc6a6d33bc889ac1459171dd18876821f
+```
+
+主分支文档可能晚于固定发布包；包内历史候选说明请结合本页的当前状态阅读。
+
 ## Codex plugin 安装
 
 ```sh
@@ -46,7 +86,7 @@ See [DSH's filesystem skill discovery](https://github.com/deepseek-ai/deepseek-h
 
 ## 本机聊天额度自动翻译
 
-1.3.0 提供 Codex / DSH 原生客户端桥接：复制 `assets/job.codex.example.json` 或 `assets/job.dsh.example.json`，运行 `chat-doctor` 检查登录，再执行 `run --execute`。支持私有译文缓存、有限重试、中断清理和代码标识符保护；无需手动复制模型回复。Codex 使用 ChatGPT 登录额度；DSH 默认账户路由，也可在用户明确选择后复用已配置的官方 API 及余额。配置及边界见 [无人值守说明](references/unattended.md)，真实验收状态记录在 [Issue #8](https://github.com/reliable-ly0411/babeldoc-pdf-translate/issues/8)。
+自 1.3.0 起提供 Codex / DSH 原生客户端桥接：复制 `assets/job.codex.example.json` 或 `assets/job.dsh.example.json`，运行 `chat-doctor` 检查登录，再执行 `run --execute`。支持私有译文缓存、有限重试、中断清理和代码标识符保护；无需手动复制模型回复。Codex 使用 ChatGPT 登录额度；DSH 默认账户路由，也可在用户明确选择后复用已配置的官方 API 及余额。配置及边界见 [无人值守说明](references/unattended.md)，真实验收状态记录在 [Issue #8](https://github.com/reliable-ly0411/babeldoc-pdf-translate/issues/8)。
 
 ## 包结构
 
@@ -62,6 +102,14 @@ patches/              带哈希保护的 BabelDOC 0.6.4 兼容补丁及上游许
 
 支持单双语、双语页顺序、页码、术语表、自动术语提取、风格提示、字体、扫描处理、并发和云端兼容接口。专业领域判断由 agent 结合上下文完成；本包不自带各行业权威词库，不保证复杂 PDF 完全免返工。
 
-运行与测试边界见 [VALIDATION.md](VALIDATION.md)。不要在分发包中加入个人密钥、PDF、缓存或虚拟环境。
+运行与测试边界见 [VALIDATION.md](VALIDATION.md)。不要在分发包中加入个人密钥、用户私有 PDF、缓存或虚拟环境。当前实测范围及剩余验收见 [稳定性技术说明](references/windows-stability-review.md)。
 
 1.2.0 的修复需要按部署文档显式运行 `scripts/repair_runtime.py --apply`；更新技能文件不会自动修改引擎。补丁检查原始文件哈希并保留可验证回滚副本，未知版本或文件会拒绝修改。`doctor` 仅证明 CLI 可用，`needs-review` 表示结构校验通过，译文与版式仍需检查。
+
+## 历史复杂论文实验
+
+2026-10 的航空航天与 AI 论文语料、原文许可、可复现作业、提示词、参考译文和实测耗时/token 记录位于 [复杂论文回归目录](benchmarks/papers-2026-10/README.md)。结构校验与翻译/公式质量分开记录；包含已知失败例，不能把所有参考文件视为已校译成品。这些记录来自 1.3.0 开发阶段，不代表当前 rc.28 的验收；公开证据保留在专项分支，不复制到技能负载。
+
+## 历史 Linux R1 实验
+
+本专项分支保留 [2026-10-14 Linux R1 报告](benchmarks/r1-linux-2026-10-14/REPORT.md)、公开 CC BY 4.0 样稿和原始证据。它们来自 1.3.0 开发阶段，不是 rc.28 新验收；旧样稿 p11 的 largest/least 转录错误已由后续主线识别，不能作为已校译成品。当前限制见上文和技术报告。

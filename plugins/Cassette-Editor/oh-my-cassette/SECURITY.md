@@ -2,60 +2,64 @@
 
 ## Reporting a vulnerability
 
-Report vulnerabilities privately through [GitHub security advisories](https://github.com/Cassette-Editor/oh-my-cassette/security/advisories/new), not a public issue. We will acknowledge the report and coordinate remediation and disclosure.
+Report vulnerabilities privately through [GitHub private vulnerability reporting](https://github.com/Cassette-Editor/oh-my-cassette/security/advisories/new), not a public issue. We acknowledge a report within three working days and coordinate the fix and its disclosure with you.
+
+## Supported versions
+
+| Version | Supported |
+| --- | --- |
+| 0.5.x (PyPI) | Yes: fixes ship in the latest 0.5 release |
+| 0.4.x and earlier (git installs) | No: upgrade to 0.5 |
 
 ## Trust boundaries
 
-Everything this repository ships runs on the user's machine and opens no port:
+Everything this repository ships runs on the user's machine. Every host (Claude Code, Codex,
+OpenCode, Hermes) launches `uvx oh-my-cassette==0.6.0` as a local stdio child process. The bridge
+opens no port; only an explicit `login` briefly binds an ephemeral loopback callback for the browser
+sign-in.
 
-- Codex, Claude Code, and OpenCode launch a local stdio MCP child process.
-- Hermes retains its gateway integration and `~/.hermes/.env` behavior.
+The Cassette MCP service configured with `CASSETTE_MCP_URL` (and the backend behind it) is a
+separate service that receives the access token, media, editing requests, project state and render
+requests. Do not treat the local process and the service as the same thing: a report about
+rendering, storage, or account handling belongs to Cassette, not here.
 
-The Cassette backend is a separate service that receives credentials, media, agent requests, project
-state, and render requests. Do not treat the local process and the Cassette backend as the same
-service — a report about rendering, storage, or account handling belongs to Cassette, not here.
+The service decides which tools exist and what their descriptions, instructions and results say;
+the bridge passes that text to the host's agent unchanged, so the agent follows the service's
+guidance as it would a tool's. What the bridge reads, writes and contacts is decided locally,
+whatever the service says:
 
-The browser demo is no longer part of this repository — its network-facing server was moved out, so
-nothing here listens on a socket. The hosted demo at <https://trycassette.online/agent-demo> is
-operated by Cassette; it is unauthenticated and meant for evaluation, not for confidential or
-regulated material, and anything about it goes to Cassette rather than this repository.
+- Local files come only from the workspace or `CASSETTE_ALLOWED_ROOTS`, and only media types unless
+  the user sets `CASSETTE_UPLOAD_ANY_TYPE`; a tool can narrow that set but never widen it. A host
+  that starts the bridge in the whole disk or the home folder gives it no workspace to read from.
+  A picture or a sound uploaded unchanged must begin like one.
+- Media preparation takes only encodings the bridge knows (codec, profile, preset, pixel format,
+  container), so a declaration cannot add ffmpeg filters or options. ffmpeg reads its input as a
+  local file only.
+- Uploads and downloads, redirects included, go only to the service's own origin or to HTTPS hosts
+  whose every address is public, so the URLs the service hands out cannot reach the machine's own
+  network. A PUT never carries a host, cookie, proxy or connection header the service names.
+- Downloads are written only into the download directory, which stays inside the workspace unless
+  `CASSETTE_DOWNLOAD_DIR` names another. Names are sanitized, an existing file or symlink is never
+  overwritten or written through, and the size and SHA-256 are checked when the service declares them.
 
-## Native MCP credentials
+## Credentials and local state
 
-Run `scripts/setup_local_mcp.py` in a private terminal. The password is collected with `getpass`, verified against `/api/agent-auth/verify`, and written only after successful verification.
+- The bearer token (the OAuth access token, or `CASSETTE_AUTH_TOKEN`) is sent to the MCP service,
+  and to upload and download URLs only when they have the same origin as the service; presigned
+  URLs on other origins get no credential, and a redirect to another origin drops it. A saved
+  sign-in is bound to the endpoint it was made for, so a `CASSETTE_MCP_URL` override never receives
+  it. The service answers HTTP 401 without a valid token, reported as `bridge.unauthorized`.
+- OAuth access and refresh tokens live only in the OS keyring (macOS Keychain, Windows Credential
+  Vault, or Linux Secret Service). A file lock serializes refresh across hosts. Public connection
+  metadata lives in `~/.config/oh-my-cassette` (mode 0700); it contains no token. `logout` revokes
+  the grant before deleting credentials.
+- Prepared media lives in a private `oh-my-cassette-job-*` directory (mode 0700) under
+  `CASSETTE_TEMP_DIR` (default: the system temporary directory) only until it is uploaded.
+- ffmpeg and ffprobe run as local subprocesses with argument lists, never through a shell, and are
+  looked up on `PATH`, never in the working directory.
 
-- Process environment takes precedence over protected local config.
-- macOS config: `~/Library/Application Support/Oh My Cassette/`.
-- Linux config: `${XDG_CONFIG_HOME:-~/.config}/oh-my-cassette/`.
-- App-owned config directories are mode `0700`; credential files are `0600`.
-- Symlinked, non-regular, wrong-owner, and overly permissive credential files are rejected.
-- Access and refresh tokens are cached only in memory. A `401` causes at most one re-authentication and retry; tokens are never written to disk.
-- Existing Hermes credentials are imported only when the operator explicitly runs setup with `--import-hermes`.
+## Agent skill
 
-The credential file contains the verified account email and password, protected by OS file permissions. Anyone who can read that file can use the account. Use a dedicated account where possible, restrict backups, and rotate credentials immediately after accidental disclosure or live testing with a shared password.
-
-## Media and artifacts
-
-Native MCP ingestion trusts only:
-
-- roots supplied by the active MCP host for the current project;
-- project roots supplied by the Claude plugin environment; and
-- absolute media roots explicitly saved by setup.
-
-Paths are canonicalized before use. Traversal and symlink escapes are rejected. The runtime copies accepted inputs into its private data root before jobs use them.
-
-An exported artifact is returned only when its resolved path is a regular file inside `<data-root>/cassette/exports/<job_id>/`. Results include metadata and resource links, never embedded large media bytes. The MCP server has no generic local-file read tool.
-
-API continuation records contain private thread/run/interrupt metadata so jobs can survive host restarts. Public tool results strip continuation state, prompts, source paths, delivery targets, worker commands, and raw output paths. The shared data root should be treated as private runtime state.
-
-## Repository hygiene
-
-Never commit:
-
-- `.env`, credentials, access/refresh tokens, API keys, or passwords;
-- gateway tokens, account/chat IDs, or raw `wxid` values;
-- protected native config or Hermes `~/.hermes/.env`;
-- downloaded media, exports, manifests, job/continuation state, browser profiles/traces, or runtime caches;
-- live-acceptance output containing private IDs or paths.
-
-Before every PR, inspect staged changes and run a secret scan. Repository secret scanning and push protection should remain enabled. Live acceptance must pass credentials only through ephemeral environment variables or repository secrets, and the test password must be rotated after it has been shared outside the secret store.
+The bundled skill (`skills/cassette-video-edit`) lets an agent offer Cassette for a video-editing
+request even when the user does not name it. Before the first upload in a conversation where the
+user did not ask for Cassette, it tells the user that the named files go to the Cassette service.

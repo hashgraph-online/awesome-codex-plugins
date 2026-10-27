@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "since-cutoff",
     "shortDescription": "Which of your pinned Python dependencies changed their API after the model's training cutoff.",
-    "longDescription": "Reads the project's lockfile and statically diffs each dependency's public API between the release at the model's training cutoff and the version you pin. `since-cutoff scan` lists the changed APIs your code uses, each with a note from the API diff that says where it comes from, and `since-cutoff sync` writes those notes into AGENTS.md and keeps them in step with the lockfile; neither calls a model or needs an API key, and neither do the MCP tools. `since-cutoff run` also tests the model on short tasks that need the changed APIs, scores its code with basedpyright against both versions, and writes notes written by the model only if their example type-checks.",
+    "longDescription": "Reads the project's lockfile and statically diffs each dependency's public API between its latest release published at least 30 days before the model's training cutoff and the version you pin. `since-cutoff scan` lists the changed APIs your code uses, each with a note from the API diff that says where it comes from, and `since-cutoff sync` writes those notes into AGENTS.md and keeps them in step with the lockfile; neither calls a model or needs an API key, and neither do the MCP tools. `since-cutoff run` also tests the model on short tasks that need the changed APIs, scores its code with basedpyright against both versions, and writes notes written by the model only if their example type-checks.",
     "developerName": "Mohammad Hijjawi",
     "category": "Coding",
     "capabilities": [

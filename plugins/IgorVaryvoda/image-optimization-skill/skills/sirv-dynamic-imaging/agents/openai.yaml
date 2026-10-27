@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sirv Dynamic Imaging"
+  short_description: "Build correct Sirv transform URLs, responsive variants, profiles, crops, overlays, and format/quality settings."
+  default_prompt: "Use $sirv-dynamic-imaging to design Sirv URL transforms and profiles with documented parameters and verification steps."

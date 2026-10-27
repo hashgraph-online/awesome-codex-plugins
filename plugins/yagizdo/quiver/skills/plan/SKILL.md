@@ -342,7 +342,7 @@ Extract all symbol names (functions, types, variables, file names) from every ta
 
 ### Check 3: Spec coverage (bidirectional)
 
-If the plan has a brainstorm spec reference (Context section referencing `docs/brainstorms/*.md`) or a review source (frontmatter `review_source`), read the source and verify:
+If the plan has a brainstorm spec reference (frontmatter `spec_source`, or a Context section referencing `.claude/specs/*.md`) or a review source (frontmatter `review_source`), read the source and verify:
 - **Forward:** each spec requirement maps to at least one plan task. Add a task for any gap. (ADD)
 - **Reverse:** each plan task maps to a spec requirement or explicit infrastructure need. Flag tasks that do not trace back. (NOTE -- potential scope creep)
 
@@ -450,7 +450,7 @@ Handle each response:
 
 **Part A -- Save the plan:**
 
-1. Create `.claude/plans/` if it does not exist.
+1. Create `.claude/plans/` if it does not exist. Before the first write, apply the keep-local rule in `skills/local-files/SKILL.md`.
 2. Write the plan as `.claude/plans/YYYY-MM-DD-<descriptive-name>-plan.md` (use `date '+%Y-%m-%d'` for the date prefix).
 3. **Verify:** Read the file back and confirm it was written correctly.
 

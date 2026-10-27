@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 import { experienceDir, experienceJson, findStudio, readJson } from '../../music/scripts/lib/studio.mjs';
 import { measure, sheetPng, warnings } from '../../sound/scripts/lib/measure.mjs';
 import { wavBytes } from '../../sound/scripts/lib/synth.mjs';
-import { GPU_FLAGS, chromePath, loadPuppeteer } from '../../video/scripts/lib/browser.mjs';
+import { GPU_FLAGS, chromePath, launchChrome, loadPuppeteer, remoteBrowserEndpoint } from '../../video/scripts/lib/browser.mjs';
 import { finish, within } from './lib/exit.mjs';
 import { actionProfile, activePlay, connectionNote, contextOf, describeActions, describeState, judgeFirst, judgeMove, judgeScores, judgeUi, oppositeOf, shellOverlaps, EXTRA_NAMES, readPort, UI_CAVEAT, pairMismatch, readinessOf, renderCost, reportMd, reviewLine, stateOf, weakest, REVIEW_KINDS } from './lib/judge.mjs';
 import { decode, motion, stats, uiCover } from './lib/pixels.mjs';
@@ -72,7 +72,7 @@ const open = [];
 async function launch(device, url, { tap = false, autoplay = false } = {}) {
   const vp = DEVICES[device];
   const profile = mkdtempSync(join(tmpdir(), 'homie-playtest-'));
-  const browser = await puppeteer.launch({
+  const browser = await launchChrome(puppeteer, {
     executablePath: EXE, headless: true, userDataDir: profile, timeout: 150_000, protocolTimeout: 120_000, // 150 s to start on a loaded computer
     args: [...GPU_FLAGS, '--mute-audio', `--window-size=${vp.width},${vp.height}`, '--no-first-run', '--no-default-browser-check', '--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows', '--force-color-profile=srgb', ...(autoplay ? ['--autoplay-policy=no-user-gesture-required'] : [])],
   });
@@ -542,17 +542,19 @@ async function soundSession(base, game, out, seconds, gameJson) {
   } finally { await close(h); }
 }
 
-/** A round with one person playing hard (a computer) and one doing nothing (a phone), both strangers in the public room. */
+/** A round with one person playing hard (a computer) and one doing nothing (a phone), in the same public room. */
 async function playSession(base, game, out, roundSeconds, gameJson) {
   const profile = actionProfile(gameJson, 'desk');
   const actions = newActions(profile);
   const active = await launch('desk', `${base}/${game}/play`);
-  const idle = await launch('phone', `${base}/${game}/play`);
+  let idle;
   try {
     const seat = async (h) => { const until = Date.now() + 45_000; while (Date.now() < until) { const s = await shell(h); if (s?.room && s.seat !== null && s.seat !== undefined && s.role) return s; await sleep(300); } return null; };
-    const [sa, si] = await Promise.all([seat(active), seat(idle)]);
+    const sa = await seat(active);
+    idle = await launch('phone', `${base}/${game}/play${sa?.room ? `?room=${encodeURIComponent(sa.room)}` : ''}`);
+    const si = await seat(idle);
     if (!sa || !si) { row('play', 'FAIL', { why: 'a browser never got a seat in 45 s' }); return; }
-    if (sa.room !== si.room) { row('play', 'FAIL', { why: `the two browsers landed in different rooms (${sa.room}, ${si.room}): two strangers who press Play must meet` }); return; }
+    if (sa.room !== si.room) { row('play', 'FAIL', { why: `the two browsers landed in different rooms (${sa.room}, ${si.room}): the invitation must join the same room` }); return; }
     const since = Date.now();
     // Only a round that STARTS after both are seated counts: a newcomer takes a bot's place mid-round and inherits
     // its body and score, so the round already running says nothing about how these two played.
@@ -597,7 +599,7 @@ async function playSession(base, game, out, roundSeconds, gameJson) {
       results: rowsR.map((x) => ({ place: x.place, score: x.score, bot: x.bot, who: x.seat === sa.seat ? 'the active player' : x.seat === si.seat ? 'the idle player' : x.bot ? 'a bot' : 'another person' })),
       scoreSamples: scores.filter((_, k) => k % 5 === 0).slice(0, 40), shot: 'play-round-over.png',
     });
-  } finally { await close(active); await close(idle); }
+  } finally { await close(active); if (idle) await close(idle); }
 }
 
 /** The studio's own checks, run as the creator would: the owner tests (port check) and the two-stranger round. */
@@ -648,10 +650,10 @@ async function run() {
     const text = existsSync(gi) ? readFileSync(gi, 'utf8') : '';
     if (!/^\.playtest\/?$/m.test(text)) appendFileSync(gi, `${text.endsWith('\n') || !text ? '' : '\n'}.playtest/\n`);
   }
-  try { const f = statfsSync(out); if ((f.bavail * f.bsize) / 1e9 < 10) throw new Error('under 10 GB free on this disk: free some space before a playtest'); } catch (e) { if (/GB free/.test(e.message)) throw e; }
+  try { const f = statfsSync(out), minimumGB = remoteBrowserEndpoint() ? 1 : 10; if ((f.bavail * f.bsize) / 1e9 < minimumGB) throw new Error(`under ${minimumGB} GB free on this disk: free some space before a playtest`); } catch (e) { if (/GB free/.test(e.message)) throw e; }
   EXE = chromePath();
   puppeteer = loadPuppeteer(root);
-  if (!EXE || !puppeteer) throw new Error(!EXE ? 'no Chrome found (set CHROME_PATH to a Chrome or Chromium)' : 'puppeteer-core is not installed (it comes with @homie-rocks/studio: npm install in the studio)');
+  if ((!EXE && !remoteBrowserEndpoint()) || !puppeteer) throw new Error(!EXE && !remoteBrowserEndpoint() ? 'no Chrome found (set CHROME_PATH to a Chrome or Chromium)' : 'puppeteer-core is not installed (it comes with @homie-rocks/studio: npm install in the studio)');
   const gameJson = root ? readJson(experienceJson(experienceDir(root, game)), {}) : {};
   const isApp = root && experienceJson(experienceDir(root, game)).endsWith('/app.json');
   const started = Date.now();

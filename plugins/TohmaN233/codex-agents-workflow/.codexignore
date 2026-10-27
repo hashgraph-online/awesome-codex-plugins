@@ -7,3 +7,6 @@ control-plane/web-src/
 **/.env.*
 **/*.log
 **/__pycache__/
+# Local maintainer instructions are never distributed.
+**/[Aa][Gg][Ee][Nn][Tt].[Mm][Dd]
+**/[Aa][Gg][Ee][Nn][Tt][Ss].[Mm][Dd]

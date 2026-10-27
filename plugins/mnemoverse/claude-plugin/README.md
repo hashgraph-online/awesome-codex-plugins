@@ -23,6 +23,40 @@ To try it from a local checkout of this repository instead:
 claude --plugin-dir ./
 ```
 
+## Other hosts: OpenClaw and Hermes Agent
+
+Both hosts install this repository as a plugin and load its skills, but neither starts a sign-in for a server that comes from a plugin. Add the hosted server once as the host's own entry, under the same name, and sign in there.
+
+### OpenClaw
+
+```sh
+openclaw plugins install mnemoverse --marketplace https://github.com/mnemoverse/claude-plugin
+openclaw plugins inspect mnemoverse
+openclaw mcp add mnemoverse --transport streamable-http --url https://mcp.mnemoverse.com/mcp --auth oauth
+openclaw mcp login mnemoverse
+```
+
+`mcp login` prints the sign-in URL instead of opening a browser, so open it yourself and approve the scopes; it waits on a loopback callback, which the Mnemoverse sign-in accepts on any port. `openclaw mcp probe mnemoverse` lists the tools once you are signed in. Full walkthrough: [Install by host, OpenClaw](https://mnemoverse.com/docs/api/install-by-host#openclaw).
+
+### Hermes Agent
+
+```sh
+hermes plugins install mnemoverse/claude-plugin --no-enable
+hermes plugins list
+hermes plugins enable <name printed by hermes plugins list>
+```
+
+Then add the server to `~/.hermes/config.yaml`:
+
+```yaml
+mcp_servers:
+  mnemoverse:
+    url: "https://mcp.mnemoverse.com/mcp"
+    auth: oauth
+```
+
+and run `hermes mcp login mnemoverse` (Hermes opens the browser and waits on a loopback callback). Check with `hermes mcp test mnemoverse`. Keep the name `mnemoverse`: the native entry shadows the plugin's copy, which cannot sign in. Full walkthrough: [Install by host, Hermes Agent](https://mnemoverse.com/docs/api/install-by-host#hermes-agent).
+
 ## First run: sign in once, no API key
 
 The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Installing the plugin does not open anything by itself: run `/mcp`, select the Mnemoverse server (from this plugin it is listed as `plugin:mnemoverse:mnemoverse`) and choose Authenticate, then sign in to your Mnemoverse account in the browser (free tier at [console.mnemoverse.com](https://console.mnemoverse.com?utm_source=github&utm_medium=readme&utm_campaign=claude-plugin), no credit card) and grant the requested scopes, which include `memory:read` and `memory:write`. There is no API key to paste, and access can be revoked at any time from the console. The bundled `setup` skill walks Claude through this if anything goes wrong.
@@ -42,7 +76,7 @@ The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Install
 - `agent-memory-discipline` (CC0, backend-neutral): standing rules for when to recall and what is worth saving. It names no vendor and works on any memory backend; it ships here so the connected memory is actually used.
 - `setup`: guides Claude through connecting and troubleshooting the MCP server.
 
-**The tools come from the remote server itself**: reading and writing memories, a newest-first listing, stats, usefulness feedback, shared rooms, and a vault alias listing (aliases only, values are never returned). The current list, with descriptions and schemas, is at the server's [card](https://mcp.mnemoverse.com/.well-known/mcp/server-card.json).
+**The tools come from the remote server itself**: reading and writing memories, a newest-first listing, stats, usefulness feedback, shared rooms (beta), and a vault alias listing (aliases only, values are never returned). The current list, with descriptions and schemas, is at the server's [card](https://mcp.mnemoverse.com/.well-known/mcp/server-card.json).
 
 ## Try these
 

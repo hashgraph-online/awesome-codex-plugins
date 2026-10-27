@@ -339,7 +339,7 @@ A gotcha you hit yourself, with the symptom, cause and fix you ran, belongs here
 
 ## Who made this
 
-I'm Thiago Xikota, AI Product Designer, founder of Xikota Design and researcher at Lemme (UFSC). I'm writing *Design na era da IA* (Casa do Código, in production). [Follow me on LinkedIn](https://www.linkedin.com/in/thiagoxikota).
+I'm Thiago Xikota, a Forward Deployed Product Designer specializing in artificial intelligence, founder of Xikota Design and researcher at Lemme (UFSC). I'm writing *Design na era da IA* (Casa do Código, in production). [Follow me on LinkedIn](https://www.linkedin.com/in/thiagoxikota).
 
 ## Credits
 

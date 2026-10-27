@@ -8,6 +8,8 @@ description: Use when the user asks about a US-listed company or the US market a
 The `equibles` MCP server answers questions about US public companies from SEC filings,
 company releases and earnings calls, plus end-of-day prices and macroeconomic series.
 Results carry filing dates, reporting periods and source links; cite them.
+Equibles is at [equibles.com](https://equibles.com); client setup guides are at
+[equibles.com/docs/mcp](https://equibles.com/docs/mcp).
 
 ## Workflow
 
@@ -47,6 +49,7 @@ change, and confirm deletions first. No tool places trades or moves money.
 
 ## Plans and limits
 
+- Current plans and limits are listed at [equibles.com/pricing](https://equibles.com/pricing).
 - The free plan allows 100 requests a day across MCP and the REST API, resetting at 00:00 UTC.
   When a tool says the cap is reached, stop calling tools and tell the user.
 - Free covers end-of-day prices. Option chains and `GetLiveQuote` need a Plus or Pro plan; on

@@ -3,6 +3,8 @@ name: plan-exit
 description: Leave the plan room and name the next step toward building what was planned.
 disable-model-invocation: true
 license: MIT
+metadata:
+  internal: true
 ---
 
 The owner typed this command to leave the plan room. Typing it is what closes the room: the host's

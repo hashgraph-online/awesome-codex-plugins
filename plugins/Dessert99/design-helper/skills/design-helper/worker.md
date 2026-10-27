@@ -177,21 +177,31 @@ another rule won't be caught by step 1. Read it **off the component, across the 
 and confirm they actually differ** — a value that never reached the specimen leaves five
 identical pictures and throws nothing.
 
-    await p.$$eval('.spec .target', e => e.map(x => getComputedStyle(x).borderRadius))
+**3. Screenshot with Playwright, then open the image and look at it.** Fix a broken
+layout as soon as you see it. Write the whole sheet, recommendation included, from what
+you drew, and show it before this step: no placeholders, no holding it back to look
+first. If the picture then contradicts the recommendation, rewrite it in place.
 
-**3. Screenshot with Playwright, then open the image and look at it.** Catch a broken
-layout before the user does. The recommendation is written by someone who looked.
+`$WS/check.cjs` (`references/liveview.md`) does 2 and 3 in one run. Run it from the
+project root so the project's own Playwright is used first; it finds a working browser
+by itself:
 
-    await p.screenshot({ path: shot, fullPage: true })
+    node "$WS/check.cjs" http://localhost:8765/sheet.html "$WS/shot.png" \
+      --section r1-1 --sel '.spec .target' --props borderRadius
 
-A `fullPage` shot cannot see what a horizontal scrollbar is hiding. **Count the rungs
-in the DOM, not in the picture.**
+It prints the computed values per element (`values`, `distinct`), the specimen count and
+horizontal overflow per section, and screenshots that section (the whole page without
+`--section`). `distinct` below the number of rungs means some rungs look the same. A
+picture cannot see what a horizontal scrollbar hides. **Count the rungs from `specs`,
+not in the picture.**
 
-Run 2 and 3 **once per work unit**, not on every ladder. A screenshot captures **static
-state only** — motion is settled by what the user reports from the browser.
+Step 1 runs before the user sees the sheet; 2 and 3 run right after it is shown
+(`references/liveview.md`, `After every edit`), and the turn's report comes after
+them. Run 2 and 3 **once per work unit**, not on every ladder. A screenshot captures
+**static state only**; motion is settled by what the user reports from the browser.
 
-**No Playwright → skip silently.** Do step 1 only. Don't offer to install it, don't
-mention it's missing.
+**No Playwright → skip silently** (`check.cjs` prints `NO_PLAYWRIGHT`). Do step 1 only.
+Don't offer to install it, don't mention it's missing.
 
 **Never capture the user's screen instead.** No `screencapture`, desktop screenshot
 or window capture as a stand-in for Playwright: it records whatever else is open on
@@ -200,6 +210,10 @@ their screen. Screenshots come only from a headless page you opened yourself.
 ## The sheet
 
 - One session = one sheet = one target. A new target gets a new sheet
+- **Start from the kit.** The server, the empty sheet and the verification script are
+  files in `assets/`, next to this file. Copy them into `$WS` and write only the
+  specimens into the sheet's markers; never retype the fixed parts:
+  `references/liveview.md` and `references/sheet.md`
 - **The body is append-only.** Never delete a dropped ladder; it has to stay above to
   compare against
 - **Everything lives in `$WS`, outside the project**, until the apply. Serving,

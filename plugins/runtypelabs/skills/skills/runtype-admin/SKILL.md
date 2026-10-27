@@ -184,6 +184,10 @@ thread with `update_messaging_conversation`. Do not delete it.
 - Use `get_platform_documentation(topic="dashboard-links")` when you give the user links.
 - Use `get_secret_intake_manifest`, `submit_secret_intake`, and `check_secrets` so that
   credential values never pass through the conversation.
+- When `get_tool`, `create_tool`, or `update_tool` returns `connection.status:
+  "needs_connection"` for an OAuth2 MCP tool, give the user `connection.connectUrl` and ask
+  them to click Connect. Call `get_tool` again to confirm `"connected"`. Never ask for OAuth
+  tokens in chat.
 
 ## Roll back a change
 

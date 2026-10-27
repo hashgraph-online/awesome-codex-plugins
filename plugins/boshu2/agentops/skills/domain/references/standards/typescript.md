@@ -17,6 +17,7 @@
 | `!` (non-null) | Runtime errors | Proper null checks |
 | `== null` | Loose equality | `=== null \|\| === undefined` |
 | Implicit `any` | Type safety loss | Enable `noImplicitAny` |
+| `index.ts` barrel that `export *`s a whole subtree | Exposes internals, invites import cycles, loads more than a caller uses | Re-export an explicit list from the package's named entry files; keep implementation in subfolders behind them |
 
 ## React (if applicable)
 - Functional components only

@@ -6,8 +6,37 @@ export const updateStyles = css`
       z-index: 30;
     }
 
-    .content.has-update-prompt .current-summary {
-      padding-inline-end: min(78%, 430px);
+    .content.has-update-prompt {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      column-gap: 6px;
+      min-width: 0;
+    }
+
+    .has-update-prompt > :not(.current-summary):not(.placement-settings) {
+      order: 1;
+      flex: 0 0 100%;
+      min-width: 0;
+    }
+
+    .has-update-prompt .current-summary {
+      flex: 1 1 calc(8ic + 6em);
+      min-width: 0;
+      padding-inline-end: 0;
+    }
+
+    .has-update-prompt .placement-settings {
+      position: relative;
+      inset: auto;
+      flex: 0 1 auto;
+      max-width: 100%;
+      margin-inline-start: auto;
+    }
+
+    .has-update-prompt .placement-menu {
+      inset-inline-start: auto;
+      inset-inline-end: 0;
     }
 
     .placement-settings {
@@ -325,11 +354,6 @@ export const updateStyles = css`
       color: currentColor;
     }
 
-    :host(:lang(ml)) .content.has-update-prompt:has(.restart-required),
-    :host(:lang(ta)) .content.has-update-prompt:has(.restart-required) {
-      padding-top: max(var(--gp-content-padding-top), calc(var(--gp-font-size) * 3.2));
-    }
-
     :host(:lang(ml)) .update-prompt.restart-required,
     :host(:lang(ta)) .update-prompt.restart-required {
       height: auto;
@@ -360,10 +384,6 @@ export const updateStyles = css`
       .update-prompt {
         max-width: calc(100vw - 68px);
         gap: 4px;
-      }
-
-      .content.has-update-prompt:has(.restart-required) {
-        padding-top: max(var(--gp-content-padding-top), calc(var(--gp-font-size) * 5.2));
       }
 
       .update-prompt.restart-required {

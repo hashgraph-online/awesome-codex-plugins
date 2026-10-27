@@ -1,0 +1,14 @@
+# Paths the Codex plugin scanner and installer skip: development tooling, not part of the plugin.
+.git/
+.github/
+.venv/
+.ruff_cache/
+.pytest_cache/
+graphify-out/
+node_modules/
+cli/
+tests/
+evals/
+benchmarks/
+docs/
+PUBLIC/

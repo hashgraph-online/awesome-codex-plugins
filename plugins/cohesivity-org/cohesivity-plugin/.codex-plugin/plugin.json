@@ -1,6 +1,6 @@
 {
   "name": "cohesivity",
-  "version": "5.0.3",
+  "version": "5.1.0",
   "description": "Cohesivity backend infrastructure skill with local project bootstrap and a public remote MCP for documentation and management, with optional account OAuth.",
   "author": {
     "name": "Cohesivity",

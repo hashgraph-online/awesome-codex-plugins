@@ -49,27 +49,34 @@ calling it; tool argument shapes can change. See https://docs.stripe.com/mcp.
 3. Append `{ "method": "POST", "path": "…", "params": {…}, "body": <Stripe response> }`
    for **writes as well as reads**. Keep this setup's observations across batches.
    Product creation includes its default Price; link creation expands line items.
-   Product and Price Search use studio/origin metadata. Existing links are fetched by
-   IDs from the verified configuration; Stripe has no Payment Link metadata search.
-   Keep `.studio/stripe-mcp.json` when moving the studio to another computer. Without
-   it, repeat creates use their idempotency keys; outside Stripe's idempotency retention
-   window, recover the studio's existing link IDs before setup to avoid duplicates.
-   Follow search `next_page` cursors. Search is eventually consistent: write responses
-   are the immediate evidence. On an uncertain write, retry its exact idempotency key;
-   never discard successful responses or invent IDs. Start a new read set when checking
-   later external edits, changing accounts, or changing mode.
+   Product and Price Search use studio/origin metadata. Payment Links use paginated
+   list reads with `expand[]=data.line_items`, then filter studio/origin metadata locally;
+   Stripe has no Payment Link metadata search. There is no per-link read loop.
+   The planner saves public observations in `.studio/stripe-mcp-observations.json` and
+   reuses them on the next call; send only new responses. Keep that file and
+   `.studio/stripe-mcp.json` when moving computers. Changed shop/slot settings refresh
+   mutable links while retaining product/price discovery. Account, mode and origin
+   changes start separate reads. Pass `refresh: true` for Dashboard changes or a fresh
+   verification before webhook installation (CLI: include it in `--have` input).
+   Follow search `next_page` and list `starting_after` cursors. On an uncertain write,
+   retry its exact idempotency key; never discard successful responses or invent IDs.
 4. Call `stripe_shop_plan` with `verify: true` using those observations (CLI
    `homie-studio shop verify --have plan-input.json`). Verification checks real fields,
    line items, menus, slot limits and portal settings. It saves compact public Worker
    configuration and provenance to `.studio/stripe-mcp.json`, never API response history.
-   Deploy installs those links. Checkout then reports only `webhook-secret` missing;
+   Build writes public links to `site/dist/_site/stripe-shop-links.json`; deploy ships
+   that asset, with only its path in Wrangler vars. Large catalogues never use a text
+   binding. Deploy after verifying, including when setup began on an already-live site. Checkout then reports only `webhook-secret` missing;
    it cannot open until signed payment events can confirm orders. Changing shop.json,
    the slot manifest or origin requires verification again. Local test configuration
    goes to `.dev.vars`.
 5. For a deployed HTTPS studio, run `stripe_webhook` (CLI `homie-studio shop webhook`).
    Follow `studio_job`. This uses Stripe CLI only for private webhook installation,
-   checks the same account as the MCP, and installs the signing secret and verified
-   links through Wrangler stdin. The CLI needs one separate browser approval if its
+   checks the same account as the MCP, and installs only the signing secret through
+   Wrangler stdin. If Stripe CLI is missing, the tool installs the official
+   `@stripe/cli@latest` npm package automatically, checks the executable, then continues.
+   An installation failure reports npm permissions/PATH and a retry command. The CLI
+   needs one separate browser approval if its
    studio profile is not already connected. MCP approval cannot be reused or exported.
    Cloudflare authorization and an existing deployment are prerequisites.
 6. After installation, perform the returned `retire` operations through Stripe MCP to
@@ -79,6 +86,14 @@ calling it; tool argument shapes can change. See https://docs.stripe.com/mcp.
    `events resend <event> --webhook-endpoint <endpoint>` retries a delivery. Check the
    endpoint's delivery result and the app's verified records. Do not type a card into
    a page for an automated proof; use Stripe's documented test PaymentMethods/fixtures.
+
+Upgrades accept 0.51.6 verifications without a source fingerprint only when their
+saved content fingerprint still matches the current shop, slots, site and mode.
+Actual changes name the affected settings and require verification. An unfinished
+setup still builds and deploys with checkout closed and one next step: finish
+`stripe_shop_plan` with `verify: true`. Missing/unreadable assets also close checkout;
+old link secrets cannot reopen it. Cached observations never renew the verification
+time; use fresh reads if the private webhook tool requests them.
 
 Never create a webhook through model-visible Stripe MCP: its response exposes the signing secret.
 
@@ -195,3 +210,9 @@ and Stripe CLI `listen --all-snapshot --forward-to http://localhost:8787/api/sho
 recipe is in the installed toolkit’s `apps/APPS.md`, “Real Stripe test checkout on
 this computer”. It uses root `.dev.vars`, needs no public HTTPS or Cloudflare, and
 keeps the existing approved Stripe CLI session. Do not write a stand-in checkout.
+
+### Batch setup and reconciliation
+
+Set each menu item's `maxQuantity` in `shop.json` when the studio has an order limit; the default is 99. Slot links support group quantities up to published remaining seats. Supply reviewed `confirmed` seat totals when resyncing: Stripe counts sessions, not people. The database confirms the entire paid group atomically. If a payment differs from the saved deposit/basket or a group no longer fits, inspect the `review` order and `payment.review` event, arrange fulfillment or refund, and show the customer the saved notice. Never discard a paid event.
+
+Full `shop connect` and plugin verification both save public JSON assets; rebuild/deploy those assets before retiring replaced links. Checkout mode is a public Worker variable, not a secret. If a product search misses an existing deterministic ID, perform the planner's GET for that ID before creating it. Preserve Wrangler's diagnostic when setup fails.

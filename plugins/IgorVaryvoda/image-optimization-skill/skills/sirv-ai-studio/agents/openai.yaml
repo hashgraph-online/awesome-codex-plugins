@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sirv AI Studio"
+  short_description: "Use Sirv AI Studio tools for background removal, upscaling, generation, product media, and batch workflows."
+  default_prompt: "Use $sirv-ai-studio to choose and run the right Sirv AI Studio workflow, preferring available MCP tools before web UI instructions."

@@ -14,7 +14,11 @@ If the user only needs space for copy, an explicitly disclosed hold/end card may
 
 ## Improve final delivery size
 
-The current public schema exposes Image Upscaler, not Video Upscaler. Use the [web Video Upscaler](https://magichour.ai/products/video-upscaler) for actual video enhancement when no compatible tool is connected. Prepare the accepted final cut and requested target size; avoid upscaling a take that still needs creative repairs.
+The hosted MCP exposes `ai_video_upscaler_create_video`, backed by `POST /v1/ai-video-upscaler` in the [MCP's synced OpenAPI](https://github.com/magichourhq/magic-hour-mcp/blob/main/docs/openapi.json), as checked October 25, 2026 UTC. Discovery verifies the available contract, not a successful upscale or output-quality benchmark. Recheck the connected schema before calling; the documentation index and installed clients can lag behind it.
+
+Prepare the accepted final cut and requested target size; avoid upscaling a take that still needs creative repairs. The discovered request requires `assets.video_file_path`, `end_seconds` and `resolution`; `start_seconds` defaults to zero. Resolution accepts `720p`, `1080p`, `2k` or `4k` and requires a paid plan. `720p`/`1080p` set the short side; `2k`/`4k` set the long side while preserving aspect ratio. Upload source bytes through the shared upload-URL flow when needed and pass its durable `file_path`.
+
+Check account eligibility and the existing spending limit before creating the job. Save the returned `id` and `credits_charged`, then use `wait_for_video_project` or `GET /v1/video-projects/{id}`. Preserve that accepted ID across interruptions; recover by retrieving it rather than creating another upscale. On completion, download from the exact returned URL and inspect the result. If the connected client cannot expose or call this route, use the authenticated API when authorized, or prepare the [web Video Upscaler](https://magichour.ai/products/video-upscaler) handoff.
 
 Compare face texture, eyes, fine edges, lettering, noise and motion at matched display sizes. Check that audio, cadence and duration survive. Larger dimensions alone do not prove recovered detail, and enhancement can invent texture or amplify flicker. Inspect the whole result before discarding the original.
 

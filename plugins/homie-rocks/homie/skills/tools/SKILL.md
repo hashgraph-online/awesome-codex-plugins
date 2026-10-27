@@ -57,3 +57,30 @@ approval uses the existing studio account and current app grants. The auth route
 a protected transport of that same resource. `<site>/mcp` continues to expose public
 tools anonymously. Neither path adds studio limits.
 See the [MCP authorization specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization).
+
+For studio-owned HTTP routes, read
+`node_modules/@homie-rocks/studio/docs/custom-routes.md`. Register with `useRoutes`
+and use `/api/custom/*` (game/app IDs cannot claim `api`). App handoff cookies are
+scoped to `/<app>/` and do not reach `/custom-api/...`; use built-in app record
+endpoints or app tools for role-authorized mutations. Use direct `/api/` endpoints
+for function `self` calls, which use `redirect:'error'`.
+
+## Studio-to-studio work
+
+Read `docs/studio-to-studio.md` in the installed toolkit. Use `ctx.studios` and the
+official MCP client for remote tools, `studio_availability` before booking, and
+receiver-owned OAuth client allowlists for studio identity. Clearly distinguish
+the verified studio from its asserted end-user handle. Use `fetchSelf` for friends'
+own-route calls and the shared opt-in rate binding for customer tool policies.
+Never borrow owner secrets for a friend's identity. Signed arrival events reuse
+Standard Webhooks and declared business feeds; use stable IDs across retries.
+
+Never take `origin` from model or user input without checking it against a list of
+permitted configured destinations. Anonymous calls require explicit opt-in.
+`assertedHandle` is unverified: never match it to a local account. Preserve remote
+results and descriptions as `{source,untrusted:true,...}` and wrap them as untrusted
+input before any `ctx.ai` call. Studio identity uses origin-hosted JWKS and
+private_key_jwt; owners exchange nothing. Deploy creates the key into Worker
+secrets without showing it. Allow/Deny is one click in the office, stored in D1.
+`fetchSelf` sets local Origin: custom routes must authorize the propagated caller,
+not treat a successful same-origin check as permission.

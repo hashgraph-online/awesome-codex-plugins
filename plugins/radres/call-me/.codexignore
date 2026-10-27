@@ -1,0 +1,9 @@
+# Local state and build artifacts that must not ship with the plugin
+.git/
+.github/
+node_modules/
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db

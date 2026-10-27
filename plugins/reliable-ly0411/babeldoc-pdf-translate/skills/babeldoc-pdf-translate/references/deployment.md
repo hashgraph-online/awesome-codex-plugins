@@ -1,5 +1,11 @@
 # 部署与跨平台分发
 
+## 当前版本与兼容性
+
+当前目标为 `1.5.0-rc.28` Windows/R1 限定预发布；从 [Releases](https://github.com/reliable-ly0411/babeldoc-pdf-translate/releases/tag/v1.5.0-rc.28) 获取版本包与 SHA256。它不是自带依赖的独立应用。已测环境基线为 Python 3.12 / BabelDOC 0.6.4；Linux CI 的离线通过不代表所有平台、模型或 PDF 均已通过真实翻译验收。详见 [当前技术报告](windows-stability-review.md)。
+
+在安装位置保留整个目录结构；Codex 插件使用嵌套 `skills/babeldoc-pdf-translate`，直接技能安装可使用根目录。运行下列命令时，以包含 `requirements.txt` 和 `scripts/` 的技能目录作为当前目录。需要预先安装 Python 及 uv（或改用下述 venv/pip 路线），并允许首次 warmup 下载上游字体/模型资源。
+
 ## 三层架构
 
 1. 指令层：SKILL.md + references，平台无关的工作流程。
@@ -32,14 +38,16 @@ uv pip install --python .venv/Scripts/python.exe -r requirements.txt
 
 没有 uv 时，用已验证的 Python 绝对路径执行 `-m venv .venv`，再用环境内 Python 执行 `-m pip install -r requirements.txt`。requirements 是已测版本基线，不是跨操作系统完整锁文件；正式交付可在目标系统生成依赖锁与 wheelhouse。虚拟环境通常不可跨机器直接搬运。
 
-兼容补丁用于修复 0.6.4 的水印选页/分块输出、数字换行和字体字符映射。补丁先核对版本与所有目标文件的 SHA256，保存原文件，再逐个原子替换；未知文件拒绝修改，正常异常会恢复本次已修改文件。进程被强制终止或断电不保证自动恢复，可用 `--check` 检查后重新 `--apply` 或 `--rollback`。不要同时运行修补程序和翻译进程。
+兼容补丁用于修复 0.6.4 的水印选页/分块输出、数字换行和字体字符映射，并保留已识别表格中的数学字形几何布局。补丁先核对版本与所有目标文件的 SHA256，保存原文件，再逐个原子替换；未知文件拒绝修改，正常异常会恢复本次已修改文件。进程被强制终止或断电不保证自动恢复，可用 `--check` 检查后重新 `--apply` 或 `--rollback`。不要同时运行修补程序和翻译进程。
 
 ```sh
 .venv/bin/python scripts/repair_runtime.py --check
 .venv/bin/python scripts/repair_runtime.py --rollback
 ```
 
-`--check` 返回 0 表示完整应用，1 表示尚未完整应用，2 表示版本、哈希或回滚材料异常。回滚副本位于该虚拟环境的 `site-packages/.babeldoc-pdf-translate-compat/`；保留它才能验证和回滚。升级引擎前先回滚，再重新验证兼容性；不将本补丁强行应用到其他版本。原始发行版元数据仍为 0.6.4，修补后的 CLI 版本显示 `0.6.4+pdftranslate.1`。详见 [补丁说明](../patches/babeldoc-0.6.4/README.md)。
+`--check` 返回 0 表示完整应用，1 表示尚未完整应用，2 表示版本、哈希或回滚材料异常。回滚副本位于该虚拟环境的 `site-packages/.babeldoc-pdf-translate-compat/`；保留它才能验证和回滚。升级引擎前先回滚，再重新验证兼容性；不将本补丁强行应用到其他版本。原始发行版元数据仍为 0.6.4，修补后的 CLI 版本显示 `0.6.4+pdftranslate.math-integrity.3`。详见 [补丁说明](../patches/babeldoc-0.6.4/README.md)。
+
+从旧 `0.6.4-pdftranslate.1` 升级时，先使用旧补丁包及旧清单执行 `--rollback`，保留已验证的回滚副本，再应用本分支的六文件补丁。也可使用新的独立 0.6.4 环境；不能用新清单猜测或覆盖旧补丁状态。
 
 仓库根目录 `requirements.lock` 记录 Windows/Python 3.12 的已测环境快照（含检查工具），供该环境复现；它不是所有平台的通用依赖解。其他平台从 requirements.txt 解析并单独验证。
 

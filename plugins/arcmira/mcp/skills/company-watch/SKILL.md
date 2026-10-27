@@ -146,4 +146,4 @@ Docs: https://arcmira.com/docs/mcp-server
 
 Monitors can follow what a research turn found, and each alert uses 25 credits from the account's plan, then its on-demand budget.
 
-If anything was wrong, slow, or missing for the user, send one arcmira_feedback.
+If anything was wrong, slow, or missing for the user, or they want a source or capability Arcmira lacks, send one arcmira_feedback.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Client Communications Research"
+  short_description: "Research from calls, chats, CRM notes, and transcripts."
+  default_prompt: "Use $client-communications-research to reconcile communications corpora, transcript counts, privacy boundaries, quote attribution, and final customer-language research packages."

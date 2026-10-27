@@ -1,0 +1,31 @@
+# anti-patterns — real bugs, do NOT do these (Android v6)
+
+> Ground truth: `ui-kit/android/getting-started-kotlin.md` / `getting-started-jetpack.md` (order Warnings), `troubleshooting.md` (docs), `conversation-message-view.md`, installed 6.0.5 kit source; verified 2026-08-20. Each entry: name → symptom → why → fix.
+
+1. **Hardcoded credentials in source.** *Symptom:* App ID/Auth Key string literals in a Kotlin file (the docs' `"APP_ID"` placeholders copied verbatim), key visible in git/APK. *Why:* credentials in code get committed and shipped; rotating them means a code change. *Fix:* the gitignored `assets/cometchat-settings.json` read by `initFromSettings` (`setup-credentials.md` §4); build-time extras via `local.properties` → `BuildConfig`.
+
+2. **Classic `init()` instead of `initFromSettings`.** *Symptom:* works, but integration telemetry attribution is lost. *Why:* only `CometChatUIKit.initFromSettings(context, callback)` persists `integrationSource="ai-agent"` (and auto-inits the Calls SDK from `uiKit.enableCalling`). *Fix:* always init via `initFromSettings` + the settings JSON; use `init(context, UIKitSettings, callback)` only on an explicit user request for programmatic settings (`lifecycle.md`).
+
+3. **`cometchat-settings.json` committed to git / Auth Key left in a release build.** *Symptom:* the dev Auth Key is in the repo history or shipped inside the APK's assets. *Why:* the Auth Key authenticates ANY UID — a leaked key is full account takeover of your chat app. *Fix:* gitignore `app/src/main/assets/cometchat-settings.json`; prod builds OMIT `credentials.authKey` and log in with a server-minted auth token (`loginWithAuthToken`).
+
+4. **Login before init resolves.** *Symptom:* login "fails silently" — no user, no obvious error, blank chat. *Why:* the docs Warning is explicit: *"`init()` must resolve before you call `login()`. Calling `login()` before init completes will fail silently."* *Fix:* call `login` ONLY inside init's `onSuccess` (`lifecycle.md`).
+
+5. **Rendering chat before init/login resolve.** *Symptom:* blank screen or a component stuck on its loading state, no data. *Why:* every `CometChat*` component assumes an initialized SDK + a logged-in user; docs: "Breaking this order = blank screen." *Fix:* the gate — render/navigate only after BOTH callbacks succeed; surface `onError` on the gate instead of proceeding.
+
+6. **Leaked listeners.** *Symptom:* duplicate real-time handling, callbacks firing into destroyed screens, memory leaks/crashes after back navigation. *Why:* an SDK `CometChat.addMessageListener(listenerId, ...)` (or a `CometChatEvents` flow collected in a scope that outlives the screen) registered in a lifecycle but never removed keeps the screen alive. *Fix:* pair every add with a remove in the matching teardown — `removeMessageListener(listenerId)` in `onPause`/`onDestroy` (Views) or a `DisposableEffect`/`lifecycleScope` collection that dies with the composable. (The drop-in components manage their OWN listeners — this applies to listeners YOU add.)
+
+7. **`wrap_content` collapse of the chat surface.** *Symptom:* a ~0dp sliver, or a list that grows into place as content loads. *Why:* list-shaped components fill their parent; a content-driven box gives them nothing to fill. *Fix:* `match_parent`/`0dp`+constraints / `fillMaxSize()`; message list at `0dp`+`layout_weight="1"` / `weight(1f)` (`layout.md` invariant 1/5).
+
+8. **Composer hidden under the keyboard.** *Symptom:* typing opens the IME over the input; the user can't see what they type. *Why:* the window doesn't resize for the IME. *Fix:* Views → `android:windowSoftInputMode="adjustResize"` on the chat Activity; Compose → `Modifier.imePadding()` on the column holding the composer (`layout.md` invariant 3).
+
+9. **Composer/header under the system bars.** *Symptom:* header text behind the status bar, send button behind the gesture/nav bar. *Why:* the docs call `enableEdgeToEdge()` — after that the app owns the insets, and unpadded content slides under the bars. *Fix:* `Scaffold(contentWindowInsets = WindowInsets.statusBars)` + `navigationBarsPadding()` (Compose) / root inset padding (Views) — or don't go edge-to-edge (`layout.md` invariant 2).
+
+10. **Dead thread affordance.** *Symptom:* tapping "Reply in thread" / a thread indicator does nothing. *Why:* the list renders the thread affordance by default, but navigation is the host's job — unwired `onThreadRepliesClick` dead-ends. *Fix:* wire `setOnThreadRepliesClick { message -> }` / `onThreadRepliesClick =` to a thread screen (`CometChatThreadHeader` + parent-scoped list + composer), or explicitly hide the option (`setReplyInThreadOptionVisibility(View.GONE)`). Same rule for the conversations search icon (`onSearchClick` → `CometChatSearch` or hide).
+
+11. **Mixing cohorts or mixing majors.** *Symptom:* duplicate class / resource-merge build errors, or two inconsistent chat UIs. *Why:* `chatuikit-kotlin-android` + `chatuikit-compose-android` in one app collide; a v5 `chat-uikit-android` alongside v6 `chatuikit-*` is a version_conflict. *Fix:* ONE cohort artifact, ONE major — the §3 STOP gate (`setup-credentials.md`).
+
+12. **Missing Cloudsmith maven repo.** *Symptom:* `Could not find com.cometchat:chatuikit-...` at sync/build. *Why:* the kit is not on mavenCentral. *Fix:* add `maven("https://dl.cloudsmith.io/public/cometchat/cometchat/maven/")` to `settings.gradle(.kts)` `dependencyResolutionManagement.repositories`.
+
+13. **Treating same-user re-login as an error path (or switching users without logout).** *Symptom:* defensive re-login code, or a login error when switching accounts. *Why:* re-`login` with the SAME uid is safe (the kit returns the cached user via `onSuccess`, verified in 6.0.5), but logging in a DIFFERENT uid over an existing session errors. *Fix:* the guard — `getLoggedInUser()` same-uid → skip; different uid → `logout` first, login in its `onSuccess` (`lifecycle.md`).
+
+14. **Blocking the main thread waiting for callbacks.** *Symptom:* ANR, frozen splash, or a latch that never releases. *Why:* init/login callbacks are async and delivered on the main thread — `runBlocking`/`CountDownLatch.await()` on main deadlocks or janks. *Fix:* drive UI state from the callbacks (state flag / navigation in `onSuccess`), never wait synchronously.

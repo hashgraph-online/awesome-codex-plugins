@@ -8,7 +8,7 @@
     "fixture": "node test/server.mjs"
   },
   "devDependencies": {
-    "playwright": "1.63.0",
-    "posthog-js": "1.438.3"
+    "playwright": "1.64.0",
+    "posthog-js": "1.438.15"
   }
 }

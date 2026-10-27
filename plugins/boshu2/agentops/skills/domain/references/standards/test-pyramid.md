@@ -100,6 +100,7 @@ Good test evidence records:
 - environment assumptions that affect reproducibility;
 - what the check did not cover.
 
-Green tests are factual evidence, not a semantic verdict. For an ordinary change
-they and CI are the gate. Validate supplies an independent judgment against the
-exact candidate when the caller asks for one or a mistake would be costly.
+Green tests are factual evidence, not a semantic verdict: for an ordinary change
+they and CI are the gate, and
+[Validate](../../../validate/SKILL.md#when-a-fresh-judgment-is-worth-it) names
+when an independent judgment is owed.

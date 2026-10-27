@@ -205,7 +205,7 @@ file is corrected — one canon with two owners is two canons.
 - Rules 3, 4, 6, 11, and 12 carry no automated check, and Rule 10 is checked
   only through the mandatory-section finding. A program finds a
   missing marker; it does not decide whether a claim needed one.
-  `/archcore:review deep` reports Rule 12 hits as observations and Rule 11
+  The full audit of `/archcore:review` reports Rule 12 hits as observations and Rule 11
   conflicts through its cross-document check; Rules 3, 4, and 6 stay with the
   author.
 - Skills load this asset and the relevant contract before composition.

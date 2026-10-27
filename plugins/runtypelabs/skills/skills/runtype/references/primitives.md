@@ -50,7 +50,7 @@ Shape:
 - `agentLoop` config (optional, advanced): how many full turns of reflection the agent can do
 - `responseFormat`, `config.tools.approval` (tools that pause for a human), etc.
 
-Lifecycle: `create_agent`, `get_agent`, `update_agent` (partial: only the fields you pass change, but a tool list you pass replaces the whole set), `delete_agent`, `execute_agent`. List an agent's runs with `list_runs` and `agentId` (`list_agent_executions` is deprecated).
+Lifecycle: `create_agent`, `get_agent`, `update_agent` (partial: only the fields you pass change, but a tool list you pass replaces the whole set), `delete_agent`, `execute_agent`. List an agent's runs with `list_runs` and `agent_id` (`list_agent_executions` is deprecated).
 
 Versions and releases: every save records an immutable version (`list_agent_versions`, `get_agent_version`). A release alias (`live` plus previews) points at one version: `list_agent_aliases`, `get_agent_alias`, `activate_agent_alias`, `rollback_agent_alias`, `archive_agent_alias`, and `list_agent_deployments` for the receipt history. Pass `alias` or `version_id` to `execute_agent` to run a specific pointer; a request that selects neither runs the saved agent, so a save reaches it immediately. `publish_agent_version` applies a stored version onto the saved agent.
 

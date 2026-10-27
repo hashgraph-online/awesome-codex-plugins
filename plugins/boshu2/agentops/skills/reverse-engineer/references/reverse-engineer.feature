@@ -1,9 +1,9 @@
-# Executable spec for the /reverse-engineer skill — spec reconstruction (BC1 Corpus).
-# /reverse-engineer reconstructs product specs from an existing system — in repo mode it
-# maps the code into a feature catalog and specs; in binary mode it analyzes a binary with a
-# security audit. Hexagon: supporting; consumes: a target codebase or binary; produces:
-# a feature catalog, code map, and specs. (soc-qk4b)
-
+# Behavior scenarios for the /reverse-engineer skill, linked by @covered-by: CI runs
+# scripts/validate.sh via tests/scripts/reverse-engineer-validate.bats;
+# self_test.sh (Go) runs by hand. In repo mode it maps the code into a feature
+# catalog and specs; in binary mode it analyzes a binary, with a security audit
+# only when --security-audit is set.
+@covered-by:tests/scripts/reverse-engineer-validate.bats
 Feature: Reverse-engineer reconstructs specs from an existing system
   As an agent onboarding or auditing an unfamiliar system
   I want its behavior reconstructed into a feature catalog and specs
@@ -16,9 +16,10 @@ Feature: Reverse-engineer reconstructs specs from an existing system
     When the target is a code repository
     Then it maps the code into a feature catalog, code map, and specs
 
-  Scenario: Binary mode includes a security audit
-    When the target is a binary
-    Then it analyzes the binary and includes a security audit in the output
+  @covered-by:skills/reverse-engineer/scripts/self_test.sh
+  Scenario: Binary mode adds a security audit only on request
+    When the target is a binary analyzed with --authorized and --security-audit
+    Then it analyzes the binary and writes a security audit scaffold under security/
 
   Scenario: Output is a reusable spec set
     When reconstruction completes
@@ -29,6 +30,7 @@ Feature: Reverse-engineer reconstructs specs from an existing system
     When the caller compares its registry with the live destination repository
     Then the caller authors steal-map.md with evidence-backed verdict rows
     And the complete-output validator rejects a missing or malformed steal-map
+    And it rejects a steal row without code evidence
 
   Scenario: An explicit analysis root cannot drift
     Given --local-clone-dir selects a particular tree
@@ -42,6 +44,7 @@ Feature: Reverse-engineer reconstructs specs from an existing system
     When reverse engineering starts
     Then it refuses before writing through that link
 
+  @covered-by:skills/reverse-engineer/scripts/self_test.sh::earlier-default
   Scenario: An earlier-default output directory remains explicit and usable
     Given an existing teardown under .agents/research
     When that exact directory is supplied with --output-dir

@@ -1,7 +1,7 @@
 {
   "name": "education-agent-skills",
   "version": "1.0.0",
-  "description": "## Install",
+  "description": "An open-source library of research-grounded education agent skills and original practitioner frameworks",
   "main": "index.js",
   "scripts": {
     "test": "npx playwright test"

@@ -59,13 +59,13 @@ npm install --global '@yylo/cli@latest'
 # Explicit prerelease
 npm install --global '@yylo/cli@next'
 # Exact version matching this checkout (once published)
-npm install -g @yylo/cli@0.2.10
+npm install -g @yylo/cli@0.2.12
 
 npm view '@yylo/cli' version dist-tags --json
 yy --version
 ```
 
-This unreleased source targets CLI **0.2.10**, requiring **Ledger 0.4.0 exactly** for universal
+This unreleased source targets CLI **0.2.12**, requiring **Ledger 0.4.0 exactly** for universal
 Record retrieval and storage-kind-prefixed IDs. Older Ledger 0.3.3, prereleases,
 and later versions are rejected before delegation. Install the matching Ledger
 explicitly once published; ordinary delegation does not auto-install a substitute.
@@ -80,14 +80,14 @@ Next: [run an agent](#beginner-agent-workflow), [manage a typed task](#typed-tas
 
 YYLO skill content is versioned independently in the public
 [`yylo-dev/yylo-skills`](https://github.com/yylo-dev/yylo-skills) repository and
-is not bundled in `@yylo/cli`. This CLI source requires stable skills `^2.1.0`, declared
+is not bundled in `@yylo/cli`. This CLI source requires stable skills `^2.1.1`, declared
 in `package.json` as `yyloSkills.version`. Install the latest compatible stable
 release, or pin an exact compatible version once it is published. Source version
-2.1.0 is not evidence that this skills release is available:
+2.1.1 is not evidence that this skills release is available:
 
 ```bash
 yy skills install
-yy skills install --version 2.1.0
+yy skills install --version 2.1.1
 yy skills update
 yy skills status
 ```
@@ -487,8 +487,8 @@ Install canonical packages independently:
 
 ```bash
 python3 -m pip install 'yylo-ledger==0.4.0'
-# Exact Benchmark dependency for CLI 0.2.10, once separately published:
-npm install --global '@yylo/benchmark@0.2.0'
+# Exact Benchmark dependency for CLI 0.2.12, once separately published:
+npm install --global '@yylo/benchmark@0.2.1'
 
 yylo-ledger --help
 yy ledger --help
@@ -496,7 +496,7 @@ yylo-benchmark --help
 yy benchmark --help
 ```
 
-CLI 0.2.10 source requires Benchmark **0.2.0 exactly**, whose thin lifecycle is
+CLI 0.2.12 source requires Benchmark **0.2.1 exactly**, whose thin lifecycle is
 case draft/create → run → evaluate → report, plus append-only disqualify. Older
 Benchmark versions are rejected before dispatch. These source changes do not
 publish Benchmark, update installed skills, or activate a new global runtime.

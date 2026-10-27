@@ -1,6 +1,6 @@
 {
   "name": "assay",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Opens a page you changed, drives every control it offers, and reports what it did and what happened. One line every time, clean or not.",
   "author": {
     "name": "awss1i",
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "assay",
     "shortDescription": "Deterministic page QA that opens a page you changed, drives every control, and reports what happened in one line.",
-    "longDescription": "assay opens a web page you edited in a real browser, finds every control, uses all of them, and reports what it did and what happened in a single line whether the page is clean or broken. Deterministic, with no LLM, no API key, and no network.",
+    "longDescription": "assay opens a web page you edited in a real browser, finds every control, uses all of them, and reports what it did and what happened in a single line whether the page is clean or broken. Deterministic, with no LLM and no API key.",
     "developerName": "awss1i",
     "category": "Developer Tools",
     "capabilities": [

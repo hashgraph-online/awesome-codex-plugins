@@ -19,6 +19,12 @@ objections. Do not share partial current-round responses with peers. Fresh
 contexts that receive earlier answers are **peer-informed deliberation**, not
 new independent confirmations; label them separately from the initial views.
 
+Before the next round, check each disputed factual claim that could change the
+candidate at its cited source within the authorized evidence, and mark it
+verified, contradicted or unverifiable with the location read. Every
+participant receives the same marked claims; a contradicted claim stays visible
+beside its contradiction, never quietly removed. Marking a fact is not a vote.
+
 Before debate, fix the maximum rounds and total deadline from the caller/native
 bounds; clarify missing bounds before launching. Initial independent proposals
 are round zero, outside the debate-round count. New contexts, revisions, and
@@ -47,5 +53,19 @@ resolve a failed required validation leg. Without a caller-selected voting
 rule, synthesize the evidence without inventing a vote.
 
 Record round, mode and candidate digest in each `judgment`, and bounds, roster,
-threshold, tally and stop reason in the synthesis prose; keep initial and
-deliberative support distinguishable. No new schema is needed.
+threshold, tally and stop reason in `synthesis.notes`; keep initial and
+deliberative support distinguishable.
+
+## Example request
+
+```text
+Use /agentops:council to compare architectures for reliable Job redelivery.
+Use four distinct available models I authorize for this source. Have each
+propose an approach independently, then debate the alternatives. Require
+three of four to support the same exact recommendation. Cap debate at five
+rounds and the whole council at 60 minutes. Preserve objections and explain
+what evidence we still need before implementation or validation.
+```
+
+Resolve the authorized model pins before dispatch; these bounds are the
+caller's choices, not skill defaults.

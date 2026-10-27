@@ -1,0 +1,183 @@
+{
+  "config": {},
+  "rows": [
+    {
+      "row_id": "q1",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "period": "WEEK",
+      "start": "2026-10-04",
+      "end": "2026-10-10",
+      "asin": "B0TESTBED01",
+      "query": "large dog bed",
+      "query_volume": 2000,
+      "market": {
+        "impressions": 4000,
+        "clicks": 200,
+        "cart_adds": null,
+        "purchases": 20
+      },
+      "asin_counts": {
+        "impressions": 400,
+        "clicks": 40,
+        "cart_adds": null,
+        "purchases": 2
+      },
+      "relevance": "exact"
+    },
+    {
+      "row_id": "q2",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "period": "WEEK",
+      "start": "2026-10-04",
+      "end": "2026-10-10",
+      "asin": "B0TESTBED01",
+      "query": "large washable dog bed",
+      "query_volume": 2000,
+      "market": {
+        "impressions": 4000,
+        "clicks": 200,
+        "cart_adds": null,
+        "purchases": 20
+      },
+      "asin_counts": {
+        "impressions": 400,
+        "clicks": 40,
+        "cart_adds": null,
+        "purchases": 2
+      },
+      "relevance": "exact"
+    },
+    {
+      "row_id": "q3",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "period": "WEEK",
+      "start": "2026-10-04",
+      "end": "2026-10-10",
+      "asin": "B0TESTBED01",
+      "query": "large dog sleeping bed",
+      "query_volume": 2000,
+      "market": {
+        "impressions": 4000,
+        "clicks": 200,
+        "cart_adds": null,
+        "purchases": 20
+      },
+      "asin_counts": {
+        "impressions": 400,
+        "clicks": 40,
+        "cart_adds": null,
+        "purchases": 2
+      },
+      "relevance": "exact"
+    },
+    {
+      "row_id": "q4",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "period": "WEEK",
+      "start": "2026-10-04",
+      "end": "2026-10-10",
+      "asin": "B0TESTBED01",
+      "query": "washable dog bed",
+      "query_volume": 2000,
+      "market": {
+        "impressions": 4000,
+        "clicks": 150,
+        "cart_adds": null,
+        "purchases": 15
+      },
+      "asin_counts": {
+        "impressions": 400,
+        "clicks": 30,
+        "cart_adds": null,
+        "purchases": 3
+      },
+      "relevance": "exact"
+    },
+    {
+      "row_id": "q5",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "period": "WEEK",
+      "start": "2026-10-04",
+      "end": "2026-10-10",
+      "asin": "B0TESTBED01",
+      "query": "dog sleeping bed",
+      "query_volume": 2000,
+      "market": {
+        "impressions": 4000,
+        "clicks": 150,
+        "cart_adds": null,
+        "purchases": 15
+      },
+      "asin_counts": {
+        "impressions": 400,
+        "clicks": 30,
+        "cart_adds": null,
+        "purchases": 3
+      },
+      "relevance": "exact"
+    },
+    {
+      "row_id": "q6",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "period": "WEEK",
+      "start": "2026-10-04",
+      "end": "2026-10-10",
+      "asin": "B0TESTBED01",
+      "query": "rectangular dog bed",
+      "query_volume": 2000,
+      "market": {
+        "impressions": 4000,
+        "clicks": 150,
+        "cart_adds": null,
+        "purchases": 15
+      },
+      "asin_counts": {
+        "impressions": 400,
+        "clicks": 30,
+        "cart_adds": null,
+        "purchases": 3
+      },
+      "relevance": "exact"
+    },
+    {
+      "row_id": "q7",
+      "marketplace_id": "ATVPDKIKX0DER",
+      "period": "WEEK",
+      "start": "2026-10-04",
+      "end": "2026-10-10",
+      "asin": "B0TESTBED01",
+      "query": "dog bed removable cover",
+      "query_volume": 2000,
+      "market": {
+        "impressions": 4000,
+        "clicks": 150,
+        "cart_adds": null,
+        "purchases": 15
+      },
+      "asin_counts": {
+        "impressions": 400,
+        "clicks": 30,
+        "cart_adds": null,
+        "purchases": 3
+      },
+      "relevance": "exact"
+    }
+  ],
+  "evidence": {
+    "source": "user, seller of SKU BED-L",
+    "as_of": "2026-10-20",
+    "seller_confirmed_facts": [
+      "Large rectangular dog bed",
+      "40 \u00d7 30-inch sleeping surface",
+      "washable removable cover"
+    ],
+    "sku": "BED-L",
+    "language_tag": "en_US",
+    "title": "Large washable rectangular dog bed with removable cover",
+    "bullet_point": [
+      "Available in several sizes",
+      "Washable removable cover for easy cleaning"
+    ],
+    "coverage": "complete title and bullets; images and A+ unavailable"
+  }
+}

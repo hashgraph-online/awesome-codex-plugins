@@ -1,3 +1,4 @@
 # Tested engine baseline; not a complete transitive lockfile.
 babeldoc==0.6.4
+bitstring==4.4.0
 PyMuPDF>=1.25,<2

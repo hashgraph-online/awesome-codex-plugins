@@ -6,7 +6,7 @@ allowed-tools:
   - tweet_read
   - tweet_action
 version: 0.1.16
-author: Burak Bayır (@kriptoburak), Xquik
+author: Burak Bayır (@burak-bayir), Xquik
 license: MIT
 compatibility: Requires Hermes Agent plugin support and Xquik API access.
 argument-hint: "[X task, endpoint, or approved action]"

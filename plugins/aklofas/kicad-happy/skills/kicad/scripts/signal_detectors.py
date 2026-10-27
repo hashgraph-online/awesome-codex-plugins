@@ -4328,23 +4328,32 @@ def audit_rail_sources(ctx: AnalysisContext,
             continue
 
         # No source at all — direct or through any jumper.
+        power_in_pins = [p.get("component", "") + "." + p.get("pin_number", "")
+                         for p in net_info.get("pins", [])
+                         if p.get("pin_type") == "power_in"]
+        if power_in_pins:
+            rs_confidence = "deterministic"
+            rs_load = "carries power_in pins"
+        else:
+            # Admitted by its name alone (is_power_net_name): no pin on it
+            # is power_in, so whether it needs a source is a guess.
+            rs_confidence = "heuristic"
+            rs_load = "is named like a power rail (no power_in pin on it)"
         findings.append({
             "detector": "audit_rail_sources",
             "rule_id": "RS-001",
             "severity": "warning",
-            "confidence": "deterministic",
+            "confidence": rs_confidence,
             "evidence_source": "topology",
             "category": "power",
             "summary": f"{net_name} has no declared source",
-            "description": (f"Net {net_name} carries power_in pins but has "
+            "description": (f"Net {net_name} {rs_load} but has "
                             "no power_out pin, no PWR_FLAG, no regulator "
                             "output mapping, and no bridged solder jumper "
                             "path to a sourced net."),
             "components": [],
             "nets": [net_name],
-            "pins": [p.get("component", "") + "." + p.get("pin_number", "")
-                     for p in net_info.get("pins", [])
-                     if p.get("pin_type") == "power_in"][:10],
+            "pins": power_in_pins[:10],
             "source_path": "none",
             "recommendation": (
                 "Add a PWR_FLAG to declare the rail as externally powered "
@@ -4357,7 +4366,7 @@ def audit_rail_sources(ctx: AnalysisContext,
                            "likely a wiring gap or missing PWR_FLAG."),
                 "standard_ref": "",
             },
-            "provenance": make_provenance("rs_rail_audit", "deterministic", []),
+            "provenance": make_provenance("rs_rail_audit", rs_confidence, []),
         })
 
     return findings
@@ -4468,6 +4477,18 @@ def _is_module_internal_rail(net_name: str) -> bool:
     return any(base.startswith(pat) for pat in _MODULE_INTERNAL_RAIL_PATTERNS)
 
 
+# Gate-drive bootstrap pins: their supply is a capacitor to the switch node,
+# so having no DC path to a rail is the datasheet circuit, not a fault. Many
+# vendor symbols type them power_in. Same names detect_power_regulators uses.
+_BOOTSTRAP_PIN_TOKENS = frozenset({"BST", "BOOT", "BOOTSTRAP", "CBST"})
+
+
+def _is_bootstrap_pin_name(pin_name: str) -> bool:
+    """True for BST, BOOT, CBST, BOOT1, BST_A, ... (any _ or / token)."""
+    tokens = re.split(r"[_/]", (pin_name or "").upper())
+    return any(t.rstrip("0123456789") in _BOOTSTRAP_PIN_TOKENS for t in tokens)
+
+
 def audit_power_pin_dc_paths(ctx: AnalysisContext,
                              solder_jumpers: list[dict] | None = None
                              ) -> list[dict]:
@@ -4567,6 +4588,9 @@ def audit_power_pin_dc_paths(ctx: AnalysisContext,
             # at the ground reference — they don't need a path to a positive
             # power rail. Flagging them would be a false positive.
             if ctx.is_ground(net_name):
+                continue
+
+            if _is_bootstrap_pin_name(pin_name):
                 continue
 
             # If a connector is on this net, external DC supply is plausible.

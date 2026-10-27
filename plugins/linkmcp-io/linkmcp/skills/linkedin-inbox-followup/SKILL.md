@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Needs the LinkMCP connector (remote MCP server) in the AI client and a paid LinkMCP plan with a connected LinkedIn account."
 metadata:
   author: LinkMCP
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # LinkedIn inbox follow-up
@@ -50,8 +50,8 @@ Your client can show a tool name with a prefix, for example `mcp__linkmcp__linke
    - If all the messages are from the user, the thread is "No follow-up" (no answer to the first message).
    - If the newest message is from the other person, the thread is "No answer from you".
 5. For each thread that needs a follow-up, get the context:
-   - Call `linkedin_get_profile` with `identifier` set to `urn:li:fsd_profile:` followed by the `attendeeProviderId` of the conversation. Use the name and the current role.
-   - If `attendeeProviderId` is empty, or LinkMCP cannot find the profile, do not guess the name. Write "Name not known".
+   - Use the `participant` of the conversation: its `name`, `headline` and `profileUrl`. You do not need a profile lookup for this.
+   - If the conversation has no `participant` (for example a group chat), call `linkedin_get_profile` with `identifier` set to `urn:li:fsd_profile:` followed by the `attendeeProviderId` of the conversation. If that gives no name either, do not guess. Write "Name not known".
    - Optional: if you know the profile, call `linkedin_get_person_posts` one time to find a recent post that the message can refer to.
 6. Draft one message for each thread:
    - Two to four short sentences in plain words. Use the language and the tone of the thread.

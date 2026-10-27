@@ -76,6 +76,9 @@ def repair(distribution, action, patches=PATCHES):
         raise ValueError(f"Expected BabelDOC {manifest['version']}; found {distribution.version}")
     root = Path(distribution.locate_file("")).resolve()
     backup = root / ".babeldoc-pdf-translate-compat" / manifest["id"]
+    previous = manifest.get('previous_id')
+    if previous is not None and not re.fullmatch(r'[A-Za-z0-9._-]+', previous):
+        raise ValueError('Unsafe previous compatibility id')
     records = []
     # Preflight every file before changing any of them.
     for item in manifest["files"]:
@@ -87,15 +90,18 @@ def repair(distribution, action, patches=PATCHES):
             raise ValueError("Refusing a linked engine source")
         current = path.read_bytes()
         current_hash = sha(current)
-        if current_hash not in (item["original_sha256"], item["patched_sha256"]):
+        if current_hash not in (item["original_sha256"], item["patched_sha256"], item.get('previous_patched_sha256')):
             raise ValueError(f"Unknown engine file; no changes made: {relative}")
         saved = backup / relative
         if current_hash == item["original_sha256"]:
             original = current
         else:
-            if not saved.is_file() or sha(saved.read_bytes()) != item["original_sha256"]:
+            verified = saved
+            if not verified.is_file() and previous:
+                verified = root / '.babeldoc-pdf-translate-compat' / previous / relative
+            if not verified.is_file() or sha(verified.read_bytes()) != item["original_sha256"]:
                 raise ValueError(f"Verified rollback copy missing: {relative}")
-            original = saved.read_bytes()
+            original = verified.read_bytes()
         patch = patches / item["patch"]
         if not patch.resolve().is_relative_to(patches.resolve()):
             raise ValueError("Unsafe patch filename")
@@ -110,8 +116,6 @@ def repair(distribution, action, patches=PATCHES):
         try:
             for path, saved, original, candidate, current in records:
                 desired = candidate if action == "apply" else original
-                if current == desired:
-                    continue
                 if path.read_bytes() != current:
                     raise ValueError("Engine changed during repair")
                 saved.parent.mkdir(parents=True, exist_ok=True)
@@ -119,6 +123,8 @@ def repair(distribution, action, patches=PATCHES):
                     raise ValueError("Refusing to overwrite a different rollback copy")
                 if not saved.exists():
                     atomic_write(saved, original, 0o600)
+                if current == desired:
+                    continue
                 atomic_write(path, desired, path.stat().st_mode & 0o777)
                 changed.append((path, current))
         except Exception:

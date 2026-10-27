@@ -55,21 +55,47 @@
  ) -> pathlib.PosixPath:
      if not no_watermark_pdf_path.exists():
          raise FileNotFoundError(
-@@ -1137,12 +1146,12 @@
+@@ -1136,24 +1145,25 @@
+             f"watermark_first_page_pdf_bytes not found: {watermark_first_page_pdf_bytes}"
          )
  
-     no_watermark_pdf = Document(no_watermark_pdf_path.as_posix())
+-    no_watermark_pdf = Document(no_watermark_pdf_path.as_posix())
 -    no_watermark_pdf.delete_page(0)
 -
-     watermark_first_page_pdf = Document("pdf", watermark_first_page_pdf_bytes)
+-    watermark_first_page_pdf = Document("pdf", watermark_first_page_pdf_bytes)
 -    no_watermark_pdf.insert_pdf(
 -        watermark_first_page_pdf, from_page=0, to_page=0, start_at=0
 -    )
-+    # Alternating dual output needs both pages replaced, regardless of order.
-+    count = len(watermark_first_page_pdf)
-+    start = page_index * count
-+    no_watermark_pdf.delete_pages(from_page=start, to_page=start + count - 1)
-+    no_watermark_pdf.insert_pdf(watermark_first_page_pdf, start_at=start)
+-
+-    new_save_path = no_watermark_pdf_path.with_name(
+-        no_watermark_pdf_path.name.replace(".no_watermark", "")
+-    )
+-
+-    PDFCreater.save_pdf_with_timeout(
+-        no_watermark_pdf,
+-        new_save_path.as_posix(),
+-        translation_config=translation_config,
+-        clean=not translation_config.skip_clean,
+-    )
++    with Document(no_watermark_pdf_path.as_posix()) as no_watermark_pdf, Document(
++        "pdf", watermark_first_page_pdf_bytes
++    ) as watermark_first_page_pdf:
++        # Alternating dual output needs both pages replaced, regardless of order.
++        count = len(watermark_first_page_pdf)
++        start = page_index * count
++        no_watermark_pdf.delete_pages(from_page=start, to_page=start + count - 1)
++        no_watermark_pdf.insert_pdf(watermark_first_page_pdf, start_at=start)
++
++        new_save_path = no_watermark_pdf_path.with_name(
++            no_watermark_pdf_path.name.replace(".no_watermark", "")
++        )
++
++        PDFCreater.save_pdf_with_timeout(
++            no_watermark_pdf,
++            new_save_path.as_posix(),
++            translation_config=translation_config,
++            clean=not translation_config.skip_clean,
++        )
+     return new_save_path
  
-     new_save_path = no_watermark_pdf_path.with_name(
-         no_watermark_pdf_path.name.replace(".no_watermark", "")
+ 

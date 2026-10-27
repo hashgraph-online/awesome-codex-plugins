@@ -2,13 +2,29 @@
   <img src="assets/ATeam_full.png" alt="A Team logo" width="200">
 </p>
 
- # A Team — A Complete Engineering Team in One Folder v1.4.0
+ # A Team — A Complete Engineering Team in One Folder v1.4.1
 
-Not a marketplace of agents you configure. A pre-configured, pre-enforced engineering team of 26 specialists — with a lead orchestrator, hard quality gates, and a Pipeline Auditor that verifies work was actually done, not just reported. Drop one folder into any project and it's operational from the first keystroke. Works on Claude Code, Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI.
+> **The pain:** AI coding sessions can lose context, skip reviews, and claim progress without verification.
+
+**A complete engineering team in one folder.** A Team packages 26 specialist agents, 20 skills, a lead orchestrator, and quality gates around a shared file-based workflow. Designed for Claude Code, Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI — with [different levels of hook support](docs/installation.md#platform-support).
+
+**Not a marketplace of agents you configure.** A structured starting point for your own projects.
 
 > **Born from the community.** A Team was built by studying, using, and needing to personalise several excellent open-source agent projects. The architecture combines the best patterns from each into a single, portable baseline. See [Acknowledgments](#acknowledgments) for the projects that made this possible.
 
 **[→ Visual overview & live demo](https://rbraga01.github.io/a-team/)**
+
+**Recorded first session (before logical pruning)** (Windows disposable Python project, 2026-10-19; excerpts from [init](docs/validation/claude-init-2026-10-19.txt) and [morning](docs/validation/claude-morning-2026-10-19.txt)):
+
+```text
+npx --yes @anthropic-ai/claude-code -p '/orchestrate init' --model sonnet --max-turns 12 --max-budget-usd 1 --permission-mode acceptEdits --permission-prompts none --output-format text
+`/orchestrate init` is only partly done. The orchestrator wrote `.agent-sync/TEAM.md` and `.agent-sync/ROUTING.md`, but it deleted nothing.
+
+npx --yes @anthropic-ai/claude-code -p '/orchestrate morning' --model sonnet --max-turns 12 --max-budget-usd 1 --permission-mode acceptEdits --permission-prompts none --output-format text
+I've written today's plan to `.agent-sync/DAILY.md` and dispatched nothing. The morning plan needs your approval first.
+```
+
+[Getting started](docs/getting-started.md) · [Full documentation](docs/README.md)**
 
 **Domain packs** — install any alongside A Team:
 - **[builder-ai](https://github.com/RBraga01/builder-ai)** — LLM engineering quality (evals, RAG, prompt versioning, safety)
@@ -25,7 +41,7 @@ A Team turns any AI coding assistant into a structured, self-enforcing engineeri
 - **26 specialist agents**, each with a defined scope, model tier, and tool set
 - **20 workflow skills** that gate what can happen and when
 - **A lead orchestrator** that manages daily task flow, dispatch, and state
-- **Hard enforcement hooks** that inject mandatory checks at session start and after every file edit
+- **Quality-gate instructions and host-specific hooks** (automatic enforcement varies by CLI)
 - **A pipeline auditor** that verifies agents actually ran required checks — not just claimed they did
 
 The infrastructure is stateless by design. Every agent derives its context from files, not memory. Sessions can be interrupted and resumed without drift.
@@ -34,7 +50,9 @@ The infrastructure is stateless by design. Every agent derives its context from 
 
 ## Installation
 
-Pick the method that fits your setup. All methods install the same files into your project directory.
+Pick a method below. All copy the shared infrastructure plus platform-specific files. **Copying plugin files is not the same as activating a CLI plugin**; follow [platform activation](docs/installation.md#platform-plugin-activation).
+
+The shared security hooks require Python 3.9 or newer available as `python3`. Both installers verify this before copying files.
 
 ### Option A — One-liner (recommended)
 
@@ -58,18 +76,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/RBraga01/a-team/main/install
 ### Option B — GitHub CLI
 
 ```bash
-# Clone the repo (shallow, only latest commit)
 gh repo clone RBraga01/a-team -- --depth 1
-
-# Copy the infrastructure into your project
-cp -r a-team/.claude   your-project/
-cp -r a-team/skills    your-project/
-cp -r a-team/hooks     your-project/
-cp -r a-team/templates your-project/
-cp -r a-team/scripts   your-project/
-cp    a-team/INIT_TEMPLATE.md your-project/INIT.md
-
-# Clean up
+cp -r a-team/.claude a-team/.claude-plugin a-team/.codex-plugin a-team/.cursor-plugin a-team/.copilot-plugin a-team/com.github.copilot a-team/.opencode a-team/skills a-team/hooks a-team/templates a-team/scripts a-team/assets your-project/
+cp -n a-team/AGENTS.md a-team/CLAUDE.md a-team/plugin.json your-project/
+cp -n a-team/INIT_TEMPLATE.md your-project/INIT.md
 rm -rf a-team
 ```
 
@@ -78,31 +88,28 @@ rm -rf a-team
 ### Option C — Git (no GitHub CLI)
 
 ```bash
-# Sparse clone — downloads only the necessary directories, not the full repo
 git clone --filter=blob:none --sparse --depth 1 \
   https://github.com/RBraga01/a-team.git
-
 cd a-team
-git sparse-checkout set .claude skills hooks templates scripts
-
-# Copy into your project
-cp -r .claude skills hooks templates scripts ../your-project/
-cp INIT_TEMPLATE.md ../your-project/INIT.md
-
+git sparse-checkout set .claude .claude-plugin .codex-plugin .cursor-plugin .copilot-plugin com.github.copilot .opencode skills hooks templates scripts assets
+cp -r .claude .claude-plugin .codex-plugin .cursor-plugin .copilot-plugin com.github.copilot .opencode skills hooks templates scripts assets ../your-project/
+cp -n AGENTS.md CLAUDE.md plugin.json ../your-project/
+cp -n INIT_TEMPLATE.md ../your-project/INIT.md
 cd .. && rm -rf a-team
 ```
 
 **Windows (PowerShell equivalent):**
+
 ```powershell
 git clone --filter=blob:none --sparse --depth 1 `
   https://github.com/RBraga01/a-team.git
-
 cd a-team
-git sparse-checkout set .claude skills hooks templates scripts
-
-Copy-Item -Recurse .claude,skills,hooks,templates,scripts ..\your-project\
-Copy-Item INIT_TEMPLATE.md ..\your-project\INIT.md
-
+git sparse-checkout set .claude .claude-plugin .codex-plugin .cursor-plugin .copilot-plugin com.github.copilot .opencode skills hooks templates scripts assets
+Copy-Item -Recurse .claude,.claude-plugin,.codex-plugin,.cursor-plugin,.copilot-plugin,com.github.copilot,.opencode,skills,hooks,templates,scripts,assets ..\your-project\
+foreach ($f in 'AGENTS.md','CLAUDE.md','plugin.json','INIT_TEMPLATE.md') {
+  $target = if ($f -eq 'INIT_TEMPLATE.md') { 'INIT.md' } else { $f }
+  if (-not (Test-Path "..\\your-project\\$target")) { Copy-Item $f "..\\your-project\\$target" }
+}
 cd .. ; Remove-Item a-team -Recurse -Force
 ```
 
@@ -112,8 +119,8 @@ cd .. ; Remove-Item a-team -Recurse -Force
 
 1. Go to [github.com/RBraga01/a-team](https://github.com/RBraga01/a-team)
 2. Click **Code → Download ZIP**
-3. Extract and copy `.claude/`, `skills/`, `hooks/`, `templates/`, `scripts/` into your project root
-4. Copy `INIT_TEMPLATE.md` as `INIT.md`
+3. Extract and copy `.claude/`, `.claude-plugin/`, `.codex-plugin/`, `.cursor-plugin/`, `.copilot-plugin/`, `com.github.copilot/`, `.opencode/`, `skills/`, `hooks/`, `templates/`, `scripts/`, `assets/` into your project root
+4. Copy `AGENTS.md`, `CLAUDE.md` and root `plugin.json` only when they do not already exist; otherwise review and merge instructions manually. Copy `INIT_TEMPLATE.md` as `INIT.md` when absent.
 
 ---
 
@@ -122,18 +129,16 @@ cd .. ; Remove-Item a-team -Recurse -Force
 If the project is already in progress, use `cp -rn` (no-clobber) when copying the folders so your existing files are not overwritten:
 
 ```bash
-cp -rn a-team/.claude    ./
-cp -rn a-team/skills     ./
-cp -rn a-team/hooks      ./
-cp -rn a-team/templates  ./
-cp     a-team/INIT_TEMPLATE.md ./INIT.md
+cp -rn a-team/.claude a-team/.claude-plugin a-team/.codex-plugin a-team/.cursor-plugin a-team/.copilot-plugin a-team/com.github.copilot a-team/.opencode a-team/skills a-team/hooks a-team/templates a-team/scripts a-team/assets ./
+cp -n a-team/AGENTS.md a-team/CLAUDE.md a-team/plugin.json ./
+cp -n a-team/INIT_TEMPLATE.md ./INIT.md
 ```
 
-Then fill out `INIT.md` to describe **what already exists** — languages, frameworks, current test coverage, known technical debt. The orchestrator uses this to prune irrelevant agents; accuracy here matters more than on a greenfield project.
+Then fill out `INIT.md` to describe **what already exists** — languages, frameworks, current test coverage, known technical debt. The orchestrator uses this to select an active roster **without deleting the other agents/skills**; accuracy matters more than on a greenfield project.
 
-After running `/orchestrate init`, review `.agent-sync/TEAM.md` before doing any work. Restore any agent that was incorrectly pruned. Start the first session with `/orchestrate morning` to let the orchestrator read the repo state before touching anything.
+After running `/orchestrate init`, review `.agent-sync/TEAM.md` before doing any work. Agents and skills stay installed: reactivate an incorrect selection with explicit reinitialization, not manual file restoration. Start the first session with `/orchestrate morning` to let the orchestrator read the repo state before touching anything.
 
-> **Note:** If you already have a `.claude/settings.json`, do not let the install overwrite it — merge the A Team permissions manually to preserve your existing configuration.
+> **Note:** For existing projects, Bash and PowerShell installers now merge missing files into existing folders without overwriting conflicts. Existing `.claude/settings.json`, `CLAUDE.md` and `AGENTS.md` are preserved — merge A Team policies and permissions manually after installation.
 
 ---
 
@@ -157,15 +162,15 @@ Takes about 5 minutes.
 /orchestrate init
 ```
 
-The orchestrator reads `INIT.md`, prunes irrelevant agents and skills, and generates:
-- `.agent-sync/TEAM.md` — permanent record of the active roster
-- `.agent-sync/ROUTING.md` — task routing table + file claims table
+The orchestrator reads `INIT.md`, selects active agents and skills **logically**, and retains every installed profile. It runs `python scripts/roster.py init` and `verify`, generating:
+- `.agent-sync/TEAM.md` — exhaustive active/inactive roster with a fingerprint
+- `.agent-sync/ROUTING.md` — eligible **active** agents and file claims
 
 ### 3. Start working
 
-Every subsequent session, the `using-a-team` meta-skill is injected automatically via the `SessionStart` hook. No manual setup needed per session.
+On **Claude Code**, the configured `SessionStart` hook loads `using-a-team` after the project is trusted. Other platforms require their own plugin activation and hook verification.
 
-> **Tip:** Run `/orchestrate morning` to kick off the daily task cycle, or just start working — the enforcement hooks fire automatically on every session start and every file edit.
+> **Tip:** Run `/orchestrate morning` to propose today's tasks. Automatic hooks depend on the selected CLI and must be verified in that host.
 
 ---
 
@@ -176,7 +181,10 @@ A Team/
 ├── README.md                  ← This file
 ├── CLAUDE.md                  ← Project overview loaded by Claude Code
 ├── AGENTS.md                  ← Agent roster & command reference
+├── plugin.json                ← Portable Codex/Agent Plugins manifest
 ├── INIT_TEMPLATE.md           ← Template for project-specific init doc
+├── AGENTS.md                  ← Project-level agent instructions (non-overwriting copy)
+├── CLAUDE.md                  ← Project-level Claude instructions (non-overwriting copy)
 │
 ├── .claude/
 │   ├── settings.json          ← Permissions, hooks, worktree config
@@ -184,314 +192,62 @@ A Team/
 │   ├── commands/              ← Slash commands (/orchestrate, /plan, /quality-gate, …)
 │   └── rules/                 ← Coding and workflow standards loaded by all agents
 │
-├── skills/                    ← 20 workflow skill modules
-│   ├── using-a-team/          ← Meta-skill: mandatory trigger map
-│   ├── verification-before-completion/
-│   ├── test-driven-development/
-│   ├── systematic-debugging/
-│   ├── brainstorming/
-│   ├── subagent-driven-development/
-│   ├── using-git-worktrees/
-│   ├── executing-plans/
-│   ├── writing-plans/
-│   ├── dispatching-parallel-agents/
-│   ├── finishing-a-development-branch/
-│   └── writing-skills/
+├── skills/                    ← 20 workflow skill modules (see docs/catalog.md)
 │
 ├── hooks/
 │   └── session-start.md       ← Injected at every session start
 │
+├── .claude-plugin/            ← Claude plugin/marketplace manifest
 ├── .cursor-plugin/            ← Cursor IDE integration
 ├── .codex-plugin/             ← Codex CLI integration
 ├── .copilot-plugin/           ← GitHub Copilot CLI integration
 ├── .opencode/                 ← OpenCode integration
+├── scripts/                   ← Enforcement runtime and utilities
+├── assets/                    ← Project branding
 │
 └── tests/                     ← Harness test suite for A Team itself
 ```
 
 ---
 
-## Initialization in Detail
+## How the Team Works
 
-### INIT.md
+1. Declare the project stack and boundaries in `INIT.md`.
+2. `/orchestrate init` selects a roster and writes shared state to `.agent-sync/`.
+3. `/orchestrate morning` proposes work from `TASKS.md`, then **stops for human approval**.
+4. Skills define checks during implementation; reviews and the pipeline audit run before merge.
 
-The project's scope declaration. The orchestrator reads it once to decide which agents and skills are relevant. Fill it out before running `/orchestrate init`.
-
-Key sections:
-- **Primary programming languages** — controls which language-specialist agents survive pruning
-- **Tech stack** — controls database-reviewer, e2e-runner, etc.
-- **Communication tools** — controls chief-of-staff
-- **Scope boundaries** — autonomous loops, E2E tests, documentation needs
-- **Special constraints** — domain-specific guardrails enforced across all agents
-
-### Pruning
-
-The orchestrator deletes agent files and skill folders that don't apply to the declared scope. A Python-only project loses `go-reviewer`, `rust-reviewer`. A project with no E2E requirement loses `e2e-runner`. The workspace is leaner and agents no longer encounter context that doesn't apply to them.
-
-After pruning, `.agent-sync/TEAM.md` records what was kept and why. This file is the source of truth for the active roster.
-
-### ROUTING.md
-
-Generated during init. Two sections:
-
-1. **Task routing table** — maps task types to agents based on the declared stack (e.g., all `.py` changes route to `python-reviewer`).
-2. **File Claims table** — starts empty; populated at dispatch time to prevent parallel agents from colliding on the same source files.
-
----
-
-## The Session Lifecycle
-
-### Session Start (automatic)
-
-The `SessionStart` hook fires `cat skills/using-a-team/SKILL.md` at the beginning of every session. This injects the mandatory trigger map into context before any work begins.
-
-The `PostToolUse` hook fires after every `Write` or `Edit`, reminding: use `code-reviewer` before committing, use `verification-before-completion` before claiming done.
-
-### Session Start Checklist (enforced by the meta-skill)
-
-1. Is `INIT.md` present? If not → fill it out first.
-2. Is `.agent-sync/TEAM.md` present? If not → run `/orchestrate init` first.
-3. What is the current task? → identify which skills and agents apply before starting.
-
----
+[Detailed lifecycle, file claims, audit and coding standards](docs/how-it-works.md).
 
 ## Agent Roster (26)
 
-### Core Engineering
-
-| Agent | Tier | Role | When to use |
-|-------|------|------|-------------|
-| **orchestrator** | T1 · opus-4-8 | Lead — reads INIT.md, prunes team, manages daily cycle | `/orchestrate` |
-| **architect** | T1 · opus-4-8 | System design, ADRs, tech decisions | Architectural questions |
-| **planner** | T2 · sonnet-4-6 | Implementation plans before coding | New features |
-| **code-reviewer** | T2 · sonnet-4-6 | Code quality, security, maintainability | After every code change |
-| **security-reviewer** | T2 · sonnet-4-6 | OWASP Top 10, secrets, injection | Auth, API, input, DB code |
-| **tdd-guide** | T2 · sonnet-4-6 | RED → GREEN → REFACTOR enforcement | New features, bug fixes |
-| **refactor-cleaner** | T2 · sonnet-4-6 | Dead code, duplication | Code maintenance |
-| **build-error-resolver** | T2 · sonnet-4-6 | Build and type failures (minimal diffs only) | Build broken |
-| **e2e-runner** | T2 · sonnet-4-6 | End-to-end test flows | Critical user journeys |
-| **debugger** | T2 · sonnet-4-6 | Root-cause investigation (Phase 1 before fix) | Any bug |
-
-### Language & Platform Specialists
-
-All language specialists run at **T2 · sonnet-4-6** (or platform equivalent).
-
-| Agent | Language / Platform | Trigger |
-|-------|---------------------|---------|
-| **database-reviewer** | PostgreSQL | SQL, migrations, schema changes |
-| **go-reviewer** | Go | All `.go` file changes |
-| **python-reviewer** | Python | All `.py` file changes |
-| **rust-reviewer** | Rust | All `.rs` file changes |
-| **kotlin-reviewer** | Kotlin / Android | All `.kt` changes, Jetpack Compose, Coroutines |
-| **swift-reviewer** | Swift / iOS | All `.swift` changes, SwiftUI, Combine, ARC |
-| **flutter-reviewer** | Flutter / Dart | All `.dart` changes, Riverpod/Bloc, null safety |
-
-### Operational
-
-| Agent | Tier | Purpose |
-|-------|------|---------|
-| **chief-of-staff** | T2 · sonnet-4-6 | Email, Slack, Calendar triage |
-| **loop-operator** | T2 · sonnet-4-6 | Autonomous loop safety |
-| **doc-updater** | T3 · haiku-4-5 | Codemaps, README, post-feature docs |
-| **harness-optimizer** | T3 · haiku-4-5 | Pipeline auditor — detects rule evasion, blocks merge |
-| **infra-reviewer** | T2 · sonnet-4-6 | Terraform, Docker, K8s, CI/CD — IaC safety and security |
-| **compliance-reviewer** | T2 · sonnet-4-6 | GDPR, COPPA, PCI-DSS, SOC2, HIPAA — configured per project scope |
-| **ai-reviewer** | T2 · sonnet-4-6 | LLM code — prompt injection, tool call safety, token cost, hallucination handling |
-| **performance-profiler** | T3 · haiku-4-5 | Systematic profiling — baseline, locate bottleneck, validate improvement |
-
----
+10 core engineering agents, 8 language/platform specialists, and 8 operational/domain agents. Includes the lead orchestrator and `typescript-reviewer`. [Complete roster](docs/catalog.md#agent-catalog-26).
 
 ## Skill Library (20)
 
-Skills are instruction modules that agents must consult before acting. Hard-gate skills cannot be skipped. Workflow skills define process.
+7 hard gates and 13 workflow/meta skills. `api-contract-first` and `data-migration` are **hard gates**. [Complete library](docs/catalog.md#skill-catalog-20).
 
-### Hard Gates
+## Mandatory Checks
 
-| Skill | Rule |
-|-------|------|
-| **using-a-team** | Injected every session. If a skill or agent applies, it must be used. |
-| **verification-before-completion** | Must run the actual command and read the actual output before claiming done. Cleans up workspace log/trace files after verification passes. |
-| **test-driven-development** | Write the failing test before writing the implementation. No exceptions. |
-| **systematic-debugging** | Phase 1 (reproduce and isolate) must complete before any fix is proposed. |
-| **brainstorming** | Design session required before writing any new feature or component. |
-
-### Workflow Skills
-
-| Skill | Use case |
-|-------|---------|
-| **using-git-worktrees** | Create an isolated worktree before starting any development work |
-| **subagent-driven-development** | Execute a plan by dispatching fresh subagents per task, with two-stage review |
-| **executing-plans** | Run a written plan step-by-step in the current session |
-| **writing-plans** | Create structured implementation plans from a spec |
-| **dispatching-parallel-agents** | Launch 2+ independent tasks simultaneously |
-| **finishing-a-development-branch** | Wrap up a branch before merge (coverage, review, changelog) |
-| **writing-skills** | Create new A Team skills via TDD |
-| **api-contract-first** | Hard gate — OpenAPI/protobuf contract before any API endpoint |
-| **incident-response** | Workflow — production incident playbook (detect → contain → resolve → post-mortem) |
-| **data-migration** | Hard gate — schema changes need rollback plan and dry-run before production |
-| **performance-audit** | Workflow — baseline → profile → single change → measure delta |
-| **architecture-audit** | Workflow — map system as-built → parallel specialist reviews → evidence-backed findings with severity verdicts |
-
----
-
-## Mandatory Skill Trigger Map
-
-If any of these situations apply, the corresponding skill or agent is not optional:
-
-| You are about to… | Required first |
-|-------------------|---------------|
-| Write a new feature or component | `brainstorming` skill |
-| Start any development work | `using-git-worktrees` skill |
-| Write any code | `test-driven-development` skill |
-| Debug a bug | `debugger` agent (Phase 1 first) |
-| Claim anything is "done" | `verification-before-completion` skill |
-| Write or modify code | `code-reviewer` agent afterward |
-| Touch auth, API, input, DB | `security-reviewer` agent afterward |
-| Change `.go` / `.py` / `.rs` files | language-specific reviewer agent |
-| Merge a branch | `harness-optimizer` audit → `/quality-gate` |
-
-**Rationalization red flags** — these thoughts mean a mandatory step is being skipped:
-- "This change is too small to need a review"
-- "I'll write the test after I confirm it works"
-- "The tests were passing before so they're probably still passing"
-- "The plan is in my head, I don't need to write it down"
-
----
-
-## The Orchestrator Daily Cycle
-
-The orchestrator operates as a stateless machine. It never assumes what happened in a prior session — it derives all state from files.
-
-### `/orchestrate morning`
-
-1. Reads `TASKS.md` — selects up to 3 tasks for today respecting `depends_on` constraints.
-2. Assigns each task to the correct agent using `ROUTING.md`.
-3. Writes `DAILY.md` Sections 1 + 2 (intent + execution plan).
-4. **Presents the plan. Stops. Waits for explicit human approval.**
-5. On approval: dispatches the first wave — all tasks with no dependencies.
-
-### `/orchestrate tick` (after each async task completes)
-
-1. Reads `DAILY.md` + all `.agent-sync/results/*.json`.
-2. Marks completed tasks `[x]` with commit hash and test summary.
-3. Adds ambiguous decisions to the Veto Buffer (Section 3).
-4. Dispatches newly unblocked PENDING tasks.
-
-### `/orchestrate report` (end of day)
-
-1. Processes remaining results.
-2. Compiles Evening Telemetry — tasks complete, commits, tests, veto items, proposed first task tomorrow.
-
-### Veto Buffer
-
-Every ambiguous autonomous decision gets a Veto Buffer entry: context, choice made, branch it's isolated on, action options. Only a human resolves Veto Buffer items. The orchestrator never resolves them.
-
----
-
-## File Lock Protocol
-
-Prevents parallel agents from colliding on the same source files before either merges.
-
-### How it works
-
-When the orchestrator dispatches an agent, it writes a row to the `## File Claims` table in `ROUTING.md` for each source file that agent will modify:
-
-```
-| File | Agent | Task | Status |
-| src/auth/login.ts | code-reviewer | TASK-004 | in-progress |
-```
-
-Before dispatching a second agent, the orchestrator reads the table. If any target file is `in-progress` by a different agent, the new task is added to PENDING with a `depends_on` — not dispatched in parallel.
-
-### Path normalization (worktree safety)
-
-Because each parallel agent runs inside its own worktree directory (e.g., `../project-task-001/`), the same file appears at a different absolute path in every worktree. All paths written to or read from the File Claims table must be **relative to the git repository root** — never absolute, never worktree-local.
-
-```bash
-# Normalize from any worktree before every read or write
-REPO_ROOT=$(git worktree list --porcelain | awk 'NR==1 {print $2}')
-RELATIVE=$(realpath --relative-to="$REPO_ROOT" "$ABSOLUTE_PATH")
-```
-
-Without this, agent A locks `../project-task-001/src/auth/login.ts` while agent B looks up `src/auth/login.ts` — the lock is invisible to B and the collision happens anyway.
-
-When a task completes without blockers, its File Claims rows are released. The next agent can then claim those files.
-
-The `code-reviewer` also checks the File Claims table before starting any review. If a file it needs to review is claimed by a different active agent, it blocks and reports rather than proceeding.
-
-**Scope:** source files only (`.ts`, `.kt`, `.py`, `.go`, `.rs`, etc.). Config files, docs, and test fixtures are not claimed.
-
----
-
-## Pipeline Audit (harness-optimizer)
-
-The harness-optimizer runs as a pipeline auditor before any branch merge. It reads terminal command history and task result files to verify agents actually ran required checks — not just reported that they did.
-
-### What it checks
-
-1. **verification-before-completion compliance** — For every completed task, the history must contain an actual test or build command (`npm test`, `pytest`, `go test ./...`, etc.) run after the last code change. If not → `EVASION`.
-
-2. **code-reviewer compliance** — For every task that modified source files, a code-reviewer result must exist in `.agent-sync/results/`. If not → `EVASION`.
-
-3. **File Claim hygiene** — If any File Claim row is still `in-progress` for a task already marked done in DAILY.md → `STALE CLAIM`.
-
-### On evasion
-
-The auditor writes `.agent-sync/AUDIT.md` with a `BLOCK MERGE` verdict. The orchestrator reads this file before dispatching `finishing-a-development-branch`. If it contains `BLOCK MERGE`, the branch cannot be finished — the failing tasks are routed back to their original agents for re-execution with proper compliance.
-
----
-
-## Coding Standards (`.claude/rules/`)
-
-All agents enforce these rules. Key principles with examples:
-
-**Immutability**
-```js
-// [INVALID] — mutates in place
-user.verified = true
-
-// [VALID] — returns new copy
-return { ...user, verified: true }
-```
-
-**Early returns** (max 4 nesting levels)
-```js
-// [INVALID] — nested conditionals
-if (user) { if (user.active) { if (user.role === 'admin') { doWork() } } }
-
-// [VALID] — early returns
-if (!user) return
-if (!user.active) return
-if (user.role !== 'admin') return
-doWork()
-```
-
-**Error handling — never silent**
-```ts
-// [INVALID]
-try { await send() } catch (_) {}
-
-// [VALID]
-try { await send() } catch (err) { logger.error('send failed', { err }); throw err }
-```
-
-Full standards: `.claude/rules/coding-style.md`, `security.md`, `testing.md`, `orchestration.md`.
+Design before features, tests before implementation, root cause before fixes, contracts before endpoints, rollback planning before migrations, verification before completion, and human approval before merges. [Full trigger map](AGENTS.md#mandatory-skill-invocation-map).
 
 ---
 
 ## Multi-CLI Integration
 
-A Team is designed to run on one CLI or several simultaneously. Each platform reads from its own manifest but all agents share the same definitions and state directory.
+A Team distributes definitions for five tools. Shared state in `.agent-sync/` is portable once the CLIs load the definitions, but **manifest presence alone does not guarantee plugin activation or hook parity**. See [platform activation](docs/installation.md#platform-plugin-activation).
 
 ### What each platform loads
 
 | Platform | Agents | Skills | Rules | Hooks | Commands |
 |----------|--------|--------|-------|-------|----------|
-| **Claude Code** | `.claude/agents/` | `skills/` | `.claude/rules/` | `settings.json` hooks | `.claude/commands/` |
-| **Codex CLI** | `.claude/agents/` (via agentsPath) | `skills/` | `.claude/rules/` | `onSessionStart` hook | — |
-| **Cursor** | `.claude/agents/` (via agentsPath) | `skills/` | `.claude/rules/` | `onSessionStart` hook | — |
-| **GitHub Copilot CLI** | `.claude/agents/` (via `agents` path) | `skills/` | `.claude/rules/` | `SessionStart` / `PreToolUse` / `PostToolUse` / `SessionEnd` hooks | — |
-| **OpenCode** | — | `skills/` | — | — | `.opencode/commands/` |
+| **Claude Code** | `.claude/agents/` | `skills/` | `.claude/rules/` | project settings | `.claude/commands/` |
+| **Codex CLI** | Not declared by this plugin | `./skills/` | `AGENTS.md` as project instructions | `SessionStart` declared | Not declared |
+| **Cursor** | `./.claude/agents/` | `./skills/` | `./.claude/rules/` | `sessionStart` declared | Not declared |
+| **GitHub Copilot CLI** | `com.github.copilot/agents/` | root `skills/` | Not declared | Four events declared* | Not declared |
+| **OpenCode** | No A Team-native agents bundled | Host-discovered or manual | Not declared | Not declared | `.opencode/commands/` |
+
+*Copilot CLI 1.0.98 installed the repository-root plugin and discovered all 20 skills on Windows. An authenticated session confirmed that the shared project hook blocked a test `.env` read. Native agent invocation remains unverified.*
 
 ### Running multiple CLIs on the same project
 
@@ -499,24 +255,24 @@ All CLIs share `.agent-sync/` (DAILY.md, ROUTING.md, TEAM.md, results/). This me
 
 - The orchestrator's state is visible regardless of which CLI triggered it.
 - File Claims are written once and honoured by any CLI reading ROUTING.md.
-- Hooks are **not** propagated across platforms — configure session-start hooks in each plugin manifest separately (already done in `.codex-plugin/`, `.cursor-plugin/`, and `.copilot-plugin/`).
+- Hooks are **not** propagated across platforms: each host needs its own configuration and activation; seeing a hook declaration does not prove that it has executed.
 
 ### Platform-specific behaviour
 
 **Claude Code** is the primary platform. It has the full hook system (`SessionStart`, `PostToolUse`), slash commands, and native sub-agent dispatch via the `Agent` tool.
 
-**Codex CLI** loads agents and skills from the same paths as Claude Code. It does not support `PostToolUse` hooks — the session-start reminder is injected but mid-session enforcement relies on the agents' own rules, not hooks.
+**Codex CLI** has a portable root `plugin.json`, package-root skills, and a `SessionStart` hook declaration. It does **not** declare native specialist agents or slash commands in its plugin manifest. Validate runtime loading in Codex before relying on the gate.
 
-**Cursor** loads agents and skills. Its rule injection depends on the `.cursor-plugin/` manifest's `rulesPath`. Slash commands are not available; use the skill invocation pattern instead.
+**Cursor** declares project-root paths for agents, skills, rules and a session-start hook. It must be installed/activated as a Cursor Plugin. A Team does not currently package dedicated Cursor commands.
 
-**OpenCode** has command aliases in `.opencode/commands/` mapping to the same workflows. It does not have native agent or hook support — skills are invoked manually.
+**OpenCode** receives A Team's command aliases in `.opencode/commands/`. This distribution does not bundle OpenCode-native agent or hook definitions; this is not a limitation of the OpenCode platform itself.
 
-**GitHub Copilot CLI** loads agents, skills, and hooks via the `.copilot-plugin/plugin.json` manifest. It supports the A Team session, tool-use, post-edit, and session-end gates through Copilot CLI hooks, so enforcement parity is full — not partial.
+**GitHub Copilot CLI** loads the portable root plugin. Copilot-specific agents and hooks are under `com.github.copilot/`; 20 skills loaded in a Windows CLI install. A shared project hook blocked a test `.env` read in an authenticated session; native agent invocation still needs validation.
 
 Install:
 
 ```bash
-copilot plugin install RBraga01/a-team:.copilot-plugin
+copilot plugin install RBraga01/a-team
 ```
 
 ---
@@ -524,7 +280,7 @@ copilot plugin install RBraga01/a-team:.copilot-plugin
 ## Command Reference
 
 ```
-/orchestrate init       Read INIT.md, prune team, generate TEAM.md + ROUTING.md
+/orchestrate init       Read INIT.md, select active team (no deletions), generate TEAM.md + ROUTING.md
 /orchestrate morning    Plan today's tasks (requires human approval before dispatch)
 /orchestrate tick       Process completed task results, dispatch unblocked tasks
 /orchestrate report     End-of-day telemetry
@@ -563,9 +319,9 @@ MIT — see [LICENSE](LICENSE). You are free to use, modify, and distribute A Te
 
 ## Adding a New Agent
 
-1. Create `.claude/agents/<name>.md` with the frontmatter (`name`, `description`, `allowedTools`, `model`) and instructions.
-2. Add the agent to `.agent-sync/TEAM.md` (active roster).
-3. Add a routing rule in `.agent-sync/ROUTING.md`.
+1. Create `.claude/agents/<name>.md` with native frontmatter (`name`, `description`, `tools`, `model`) and instructions.
+2. Run `python scripts/sync_plugin_agents.py` if this is part of the distributed A Team package.
+3. Ask for approval to reinitialize the project with `scripts/roster.py init --replace` using explicit active agent/skill lists; **never edit TEAM.md and ROUTING.md separately**, and never delete profiles for pruning.
 4. Add the trigger condition to `skills/using-a-team/SKILL.md`.
 5. Add a session-start check to `hooks/session-start.md` if the agent has a mandatory trigger.
 

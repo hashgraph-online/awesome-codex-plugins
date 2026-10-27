@@ -13,12 +13,14 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 from contextlib import nullcontext
 from urllib.parse import urlparse
 
 # Also support importlib-based callers and the installed standalone skill.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from chat_bridge import ChatBridge, BridgeError, NativeClient, run_bounded, validate_provider
+from model_endpoints import validate_api_provider, api_key
 
 VALUE_FLAGS = {
     "source_language": "--lang-in", "target_language": "--lang-out",
@@ -179,7 +181,7 @@ def prepare(job_path):
     if job.get("selected_pages_only") and "pages" not in job:
         raise ValueError("selected_pages_only requires pages")
     provider = job["provider"]
-    if isinstance(provider, dict) and "type" in provider:
+    if isinstance(provider, dict) and provider.get('type') in {'codex','dsh'}:
         provider = job["provider"] = validate_provider(provider, base)
         for key in ("workers", "term_workers", "qps"):
             if job.get(key, 1) != 1:
@@ -190,15 +192,7 @@ def prepare(job_path):
         job["ignore_cache"] = True
         base_url, model = "http://127.0.0.1:0/v1", "native-" + provider["type"]
     else:
-        if not isinstance(provider, dict) or set(provider) != {"base_url", "model", "api_key_env"}:
-            raise ValueError("provider requires exactly base_url,model,api_key_env (no literal keys), or a native type")
-        if any(not isinstance(v, str) or not v.strip() for v in provider.values()):
-            raise ValueError("Provider fields must be nonempty strings")
-        url = urlparse(provider["base_url"])
-        if url.scheme not in ("http", "https") or not url.hostname or url.username or url.password or url.query or url.fragment:
-            raise ValueError("Endpoint must be http(s), without embedded credentials/query/fragment")
-        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", provider["api_key_env"]):
-            raise ValueError("Invalid API key environment variable name")
+        provider=job['provider']=validate_api_provider(provider,base)
         base_url, model = provider["base_url"], provider["model"]
     args = ["--files", str(source), "--output", str(output), "--openai",
             "--openai-base-url", base_url, "--openai-model", model]
@@ -303,7 +297,8 @@ def validate_outputs(job, source, output, inspection):
     return {"valid": not errors, "files": checks, "errors": errors,
             "note": "Checks structure, requested variants, page counts and dimensions; visual/content QA is still required."}
 
-def run_job(job_path, engine, execute=False):
+def run_job(job_path, engine, execute=False, native_observer=None):
+    started = time.monotonic()
     job, source, output, args = prepare(job_path)
     engine = executable(engine)
     available, version = probe(engine)
@@ -324,12 +319,12 @@ def run_job(job_path, engine, execute=False):
             "normalized_proxy_variables": engine_environment()[1]}
     if not execute:
         return plan
-    native = "type" in job["provider"]
+    native = job['provider']['type'] in {'codex','dsh'}
     if not native and ("YOUR-" in job["provider"]["model"] or ".example" in job["provider"]["base_url"]):
         raise ValueError("Replace example model/endpoint before execution")
-    key = None if native else os.environ.get(job["provider"]["api_key_env"])
-    if not native and not key:
-        raise ValueError("Required credential environment variable is unset")
+    # Local no-auth servers need no installed credential. BabelDOC's OpenAI SDK
+    # requires a nonempty argument, so use a nonsecret temporary placeholder.
+    key=None if native else api_key(job['provider']) or 'local-no-auth'
     if output.exists():
         raise ValueError("Execution requires a new output directory; choose a new run name")
     output.mkdir(parents=True, mode=0o700)
@@ -338,7 +333,7 @@ def run_job(job_path, engine, execute=False):
     manifest.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     # Never put the credential in process arguments or distributable job files.
     # Temp directory permissions inherit the host's private user temp policy.
-    bridge = ChatBridge(job["provider"]) if native else None
+    bridge = (ChatBridge(job["provider"],observer=native_observer) if native_observer is not None else ChatBridge(job["provider"])) if native else None
     try:
         with bridge if bridge else nullcontext():
             if bridge:
@@ -373,9 +368,13 @@ def run_job(job_path, engine, execute=False):
         plan["status"] = "interrupted-or-failed"
         raise
     finally:
+        plan["elapsed_seconds"] = round(time.monotonic() - started, 3)
         if bridge:
             plan["bridge"] = dict(bridge.stats)
             plan["bridge"]["native_item_types"] = getattr(bridge.client, "event_types", [])
+            if hasattr(bridge.client, 'inference_calls'):
+                plan['bridge']['native_inference_calls'] = bridge.client.inference_calls
+                plan['bridge']['native_call_records'] = bridge.client.call_records
         plan["source_unchanged"] = digest(source) == plan["input_sha256"]
         manifest.write_text(json.dumps(plan, ensure_ascii=False, indent=2), encoding="utf-8")
     return plan
@@ -415,7 +414,12 @@ def main():
             provider = read_json(a.job).get("provider", {})
             provider = validate_provider(provider, Path(a.job).resolve().parent)
             import threading
-            result = NativeClient(provider, threading.Event()).doctor()
+            try:
+                result = NativeClient(provider, threading.Event()).doctor()
+            except BridgeError as exc:
+                if exc.detail is None:
+                    raise
+                result = {'status': 'failed', 'error': exc.code, 'detail': exc.detail}
         else:
             result = run_job(a.job, a.engine, a.execute)
         print(json.dumps(result, ensure_ascii=False, indent=2))

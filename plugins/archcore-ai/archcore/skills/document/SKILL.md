@@ -1,48 +1,46 @@
 ---
 name: document
-argument-hint: "[decision|code|research] [subject]"
-description: "Record a decision, document existing code, or file a supplied research material. Modes: document decision (ADR, RFC, or rule), document code (spec, doc, guide, or scenario for existing behavior), document research (only when a finished report or one external material is already in hand). Use for 'we decided', 'record this decision', 'document why we chose X', 'make it our standard', 'draft an RFC', 'should we switch to Y' proposals, 'resolve the RFC', 'we accepted the proposal', 'document the auth module', 'capture how the payment system works', reference material, how-to instructions, or a user flow with examples over an existing spec. Name any document type inside the subject — journey, prd, idea, or cpat included — to get exactly that type. Planning a feature or an unnamed intended user journey → /archcore:plan. Checking docs against code or docs health → /archcore:review."
+argument-hint: "[subject]"
+description: "Record a decision, document existing code, or file a supplied research material, in free text; no first word is a mode. Use for 'we decided', 'record this decision', 'document why we chose X', 'make it our standard', 'draft an RFC', 'should we switch to Y' proposals, 'resolve the RFC', 'we accepted the proposal', 'document the auth module', 'capture how the payment system works', reference material, how-to instructions, a repeated agent procedure, a user flow with examples over an existing spec, or a finished report or one external material already in hand. Name any document type inside the subject — journey, prd, idea, or cpat included — to get exactly that type. Planning a feature, an investigation not yet done, or an intended user journey the request asks to plan ('plan the onboarding journey') → /archcore:plan. Checking docs against code or docs health → /archcore:review."
 ---
 
 # /archcore:document
 
 Record the present state: a technical decision, existing code, or a supplied
-research material. The first word of the arguments selects the mode; a gate
-inside the mode's track selects the document type. Write affinity: knowledge
+research material. Context resolution (`skills/_shared/gate-contract.md`,
+section Context resolution) classifies the request and finds the present owner;
+a gate inside the selected track selects the document type. Write affinity: knowledge
 types; a filed `research` and the decision cascade's `plan` belong to vision.
 The standard cascade can add a `cpat` (experience). A type the user names
 explicitly keeps its own category (Named type below).
 
 Command tense: `/archcore:plan` declares a future canon delta, `/archcore:document`
 records the present state — including work that shipped without a plan — and
-`/archcore:review` reconciles a past declared delta. Δ vocabulary:
+`/archcore:review` reconciles a past declared delta. Claim vocabulary:
 `skills/_shared/delta-routing.md`.
 
 Load `skills/_shared/gate-contract.md` and `skills/_shared/elicitation-contract.md` before executing any gate.
 
-## Modes
+## Tracks
 
-| Mode | Track and entry | Types the entry gate selects |
+| Classification | Track and entry | Types the entry gate selects |
 |---|---|---|
-| `decision` | `skills/_shared/tracks/decision.md`, `decision.classify` | `adr`, `rfc`; `rule` through the standard cascade; an existing `rfc` draft on the topic → `decision.resolve`, which records an `adr` on an accepted verdict |
-| `code` | `skills/_shared/tracks/describe.md`, `describe.read` | `spec`, `doc`, `guide`, `scenario` |
-| `research` | `skills/_shared/tracks/research.md`, `research.frame` | `research`, `rnd` by the closing test; one external material → `evidence` |
+| decision | `skills/_shared/tracks/decision.md`, `decision.classify` | `adr`, `rfc`; `rule` through the standard cascade; an existing `rfc` draft on the topic → `decision.resolve`, which records an `adr` on an accepted verdict |
+| code-doc | `skills/_shared/tracks/describe.md`, `describe.read` | `spec`, `guide`, `task-type`, `scenario`, `doc` |
+| research material | `skills/_shared/tracks/research.md`, `research.frame` | `research`, `rnd` by the closing test; one external material → `evidence` |
 
-A document type name is not a mode. When the subject text names a type (`skills/_shared/gate-contract.md`,
-Entry terms) that the mode's track produces, the selecting gate treats that type as settled and asks no
-type question: `document decision rfc for gRPC` reaches the RFC branch. A leading
-word that is neither a mode nor a type slug is topic text and goes through
-classification (Step 3); a leading type slug takes the Named type path.
-No mode produces a `journey`; a `journey` comes from `/archcore:plan` or from the
-named-type path below.
+No first word is a mode. When the subject text names a type (`skills/_shared/gate-contract.md`,
+Entry terms) that the selected track produces, the selecting gate treats that type as settled and asks no
+type question: `record an rfc for gRPC` reaches the RFC branch; a leading type
+slug takes the Named type path. No track produces a `journey`; a `journey` comes
+from `/archcore:plan` or from the named-type path below.
 
 ### Named type
 
-WHEN the first word of the subject — the first argument, or the first word after
-a mode word — is a kernel document type slug, or the subject writes a slug in
+WHEN the first word of the subject is a kernel document type slug, or the subject writes a slug in
 backticks, the named type wins over routing (`explicit-type-request-wins.adr`).
-A slug elsewhere in plain topic text names no type here; inside a mode's track
-the gate contract's naming rule still applies. When two slugs qualify, the
+A slug elsewhere in plain topic text names no type here; inside a track the gate
+contract's naming rule still applies. When two slugs qualify, the
 first one wins.
 
 1. IF a document track produces the named type as its own product, THEN enter that track with the type settled: `adr`, `rfc` → decision; `spec`, `doc`, `guide`, `scenario` → describe; `research`, `rnd`, `evidence` → research.
@@ -56,7 +54,7 @@ first one wins.
 9. WHEN the type's routing condition fails, report it in one result line naming the better-fitting type; ask no question.
 
 Examples of a failed routing condition: a `journey` where a covering `spec`
-exists (`scenario` fits), a `plan` composed without route computation (it
+exists (`scenario` fits), a `plan` composed without the conductor (it
 carries no Declared Delta), or a `rule` with no `adr` recording its reason.
 
 ## When to use
@@ -66,32 +64,34 @@ carries no Declared Delta), or a `rule` with no `adr` recording its reason.
 - "Document why we chose JWT over sessions"
 - "Make this our team standard for error handling"
 - "Draft an RFC for switching from REST to gRPC"
-- "Should we switch to Kubernetes?" — open proposal
+- "Should we switch to Kubernetes?" — open choice: one question offers an `adr`, an `rfc` (resolved into an `adr` later), or investigating first
 - "We accepted the proposal — resolve the RFC" — proposal resolution
 - "Document the auth module"
 - "Capture how the payment system works"
 - "Create reference docs for the config system" — reference material
 - "Write a guide for the release process" — how-to instructions
-- `document code scenario for checkout` — a user flow with examples over an existing spec
-- `document research <report>` — file a ready investigation
-- `document research <material>` — file one external material as evidence
+- "Write down how the agent cuts a release" — a repeated agent procedure (`task-type`)
+- "Scenario for checkout over the checkout spec" — a user flow with examples over an existing spec
+- "File this benchmark report" — a ready investigation
+- "File this vendor PDF as evidence" — one external material
 
 **Not document:**
 
 - Planning a feature, an initiative, or an intended user journey the request does not name as a `journey` → `/archcore:plan`
-- Checking documents against code, reviewing branch changes, or docs health → `/archcore:review`
+- Checking documents against code, reviewing branch changes, or a documentation audit → `/archcore:review`
 - First-time setup → `/archcore:init`
 
 ## Routing table
 
 | Signal | Route |
 |---|---|
-| No arguments | → git investigation of the branch changes, then one classifying question (Step 3, Unclear) |
+| No arguments, one draft with a state block this command resumes | → resume it |
+| No arguments, branch changes or supplied material name a present fact | → a start menu of at most four owners, each with its evidence, the smallest owner first |
+| No arguments and no reliable signal | → ask one question: what present fact or subject to record |
 | The subject names a document type that no document track produces | → Named type, direct composition |
-| The first word is a mode — `decision`, `code`, `research` | → mode entry, no routing (Step 2) |
-| Decision signals: "we decided", "record this decision", "document why we chose X", "make it our standard", "draft an RFC", a "should we switch to Y" proposal. A bare "compare X vs Y" with no proposed target belongs to `/archcore:plan`'s research track; a proposal to add a new capability with no named technical target ("should we add caching?") is feature framing → `/archcore:plan`, sdd track | → decision track — `skills/_shared/tracks/decision.md`, entry at `decision.classify` |
+| Decision signals: "we decided", "record this decision", "document why we chose X", "make it our standard", "draft an RFC", a "should we switch to Y" question (the decision track asks which exit). A bare "compare X vs Y" with no proposed target belongs to `/archcore:plan`'s research track; a proposal to add a new capability with no named technical target ("should we add caching?") is feature framing → `/archcore:plan` | → decision track — `skills/_shared/tracks/decision.md`, entry at `decision.classify` |
 | Resolution signals: "resolve the RFC", "we accepted the proposal", "reject the RFC" — an `rfc` draft exists on the topic | → decision track — `skills/_shared/tracks/decision.md`, entry at `decision.resolve` |
-| Code-doc signals: "document the auth module", "capture how the payment system works", reference material (registry, glossary, lookup), how-to instructions, a user flow with examples over an existing `spec` | → describe track — `skills/_shared/tracks/describe.md`, entry at `describe.read` |
+| Code-doc signals: "document the auth module", "capture how the payment system works", reference material (registry, glossary, lookup), how-to instructions, a repeated agent procedure, a user flow with examples over an existing `spec` | → describe track — `skills/_shared/tracks/describe.md`, entry at `describe.read` |
 | Research-material signals: a supplied investigation report, benchmark, transcript, or vendor document to file as is | → research track — `skills/_shared/tracks/research.md`, entry at `research.frame` |
 | Unclear | → git investigation, then one classifying question (Step 3) |
 
@@ -113,9 +113,9 @@ plugin root to the assistant. The assistant reads
 Apply `skills/_shared/actor-subject-compatibility.md` under its own condition 1 —
 a request whose subject names `scenario` or `journey`, or a grounding result of
 either type. When that probe returns `yes`, add `scenario` and `journey` to the
-type filter below. On older engines, keep the legacy filter; a `code` request
-whose subject names `scenario` then reports the required version and exits
-without a write.
+type filter below. On older engines, keep the legacy filter; a request to
+describe code whose subject names `scenario` then reports the required version
+and exits without a write.
 When the probe returns `yes`, add `research` and `evidence` to the type filter
 below. On older engines, keep the legacy filter.
 
@@ -145,31 +145,12 @@ even when `results` is empty: the empty page is exactly where that file's retry
 ladder applies. Never modify a global document and never target one with
 `add_relation`. Absent any global match, proceed as usual.
 
-### Step 2: Mode entry
+### Step 2: Resolve context
 
-IF the subject names a type per Named type above, THEN apply Named type first.
-Otherwise, if the first word is a mode, execute the mapped entry without routing:
-
-- `decision` → decision track. An `rfc` draft on the topic plus resolution
-  wording enters `decision.resolve`; any other request enters
-  `decision.classify`, which selects `adr`, `rfc`, or the standard outcome. A
-  type name in the subject (`adr`, `rfc`, `rule`) satisfies that gate's
-  `skip_when`.
-- `code` → describe track at `describe.read`. `describe.draft` selects `spec`,
-  `doc`, `guide`, or `scenario`; a type name in the subject settles its type
-  question. `describe.read` records `features/*.feature` files as evidence when
-  present; a `scenario` with no covering `spec` routes to the earliest gate that
-  produces the `spec` per `skills/_shared/gate-contract.md`.
-- `research` → research track at `research.frame`; the supplied report satisfies frame inputs without an interview (investigation versus one external material: `skills/_shared/gate-contract.md`, Entry terms), and the closing test selects the type — a
-  report that ends in a recommendation is an `rnd`, a report that covers a scope
-  is a `research`. One external material with no investigation enters
-  `research.gather` as standalone evidence, records the request in the evidence
-  draft's Clarifications, and exits after gather. Follow the compatibility
-  contract's no-write exit when the type is unsupported. IF the request
-  supplies neither a report nor a material, THEN write nothing and name
-  `/archcore:plan research <topic>` for a new investigation.
-
-Then go to Step 4.
+Build the context record per `skills/_shared/gate-contract.md`, section Context
+resolution. IF the subject names a type per Named type above, THEN apply Named
+type first. IF accepted canon conflicts with the code the request describes,
+THEN report the conflict before any write.
 
 ### Step 3: Classify
 
@@ -181,13 +162,29 @@ Classify the target as resolution, decision, code-doc, research material, or unc
   reads as a settled-decision signal ("we accepted the proposal") routes here
   whenever a matching `rfc` draft exists.
 - **Decision** — the request records a settled choice or an open proposal
-  (decision signals above) → decision track at `decision.classify`.
+  (decision signals above) → decision track at `decision.classify`, which
+  selects `adr`, `rfc`, or the standard outcome. A type name in the subject
+  (`adr`, `rfc`, `rule`) satisfies that gate's `skip_when`.
 - **Code-doc** — the request describes existing code, reference material, a
   procedure, or a user flow over an existing `spec` (code-doc signals above) →
-  describe track at `describe.read`.
+  describe track at `describe.read`. `describe.read` records
+  `features/*.feature` files as evidence when present; a `scenario` with no
+  covering `spec` routes to the earliest gate that produces the `spec` per
+  `skills/_shared/gate-contract.md`.
 - **Research material** — the request supplies a ready report or one external
   material to file (research-material signals above) → research track at
-  `research.frame`.
+  `research.frame`;
+  the supplied report satisfies frame inputs without an interview (investigation versus one external material:
+  `skills/_shared/gate-contract.md`, Entry terms), and the closing test selects
+  the type — a report that ends in a recommendation is an `rnd`, a report that
+  covers a scope is a `research`. One external material with no investigation
+  enters `research.gather` as standalone evidence, records the request in the
+  evidence draft's Clarifications, and exits after gather. Follow the
+  compatibility contract's no-write exit when the type is unsupported.
+- **No material** — the request asks an unanswered question, including a bare
+  "compare X and Y" with no proposed target, and supplies
+  neither a report nor a material → write nothing and name `/archcore:plan
+  <topic>` for a new investigation.
 - **Unclear** — inspect git state and the working tree first: recent commits and
   changed files are evidence of what the user has been working on. If the
   evidence still supports both readings, ask one classifying question — "Is this
@@ -200,9 +197,8 @@ Run the selected track gate by gate per `skills/_shared/gate-contract.md`. The
 track owns check-existing, per-gate elicitation, composition, and relation
 wiring.
 
-Question budget: per `skills/_shared/elicitation-contract.md` — auto mode draws
-from the shared per-invocation ceiling; a mode entry raises to the track's
-per-gate maxima.
+Question budget: the ceiling of 5 questions per invocation in
+`skills/_shared/elicitation-contract.md`.
 
 ## Result
 
@@ -210,14 +206,14 @@ Report the produced documents grouped by category:
 
 - **knowledge** — `adr`, `rfc`, `spec`, `doc`, `guide`, `rule`, `evidence`, `scenario`
 - **vision** — `research` (scope-covering report), `rnd` (recommendation-closed report, or compatibility fallback), `plan` (architecture cascade)
-- **experience** — `cpat` (standard cascade opt-in)
+- **experience** — `task-type` (repeated agent procedure), `cpat` (standard cascade opt-in)
 - any category — a type composed on the Named type path, with its routing-condition line when one failed
 
 List each document's path and relation edges. Name tracks and steps in plain
 words; do not print a gate address of the form `<track>.<stage>`. Close with one
 recommended next action naming only `/archcore:plan`, `/archcore:review`, or a
-repeat `/archcore:document` invocation with its mode. WHEN a gate stopped on a
+repeat `/archcore:document` invocation with its subject. WHEN a gate stopped on a
 blocking exit check, the next action is the resume command for that draft.
 WHEN the run created drafts other than an `rfc` and no `plan` covers them, the
-next action is `/archcore:review closeout`, which offers their acceptance. An
-`rfc` resolves through `/archcore:document decision`.
+next action is `/archcore:review`, which offers their acceptance. An `rfc`
+resolves through `/archcore:document resolve the <rfc title> RFC`.

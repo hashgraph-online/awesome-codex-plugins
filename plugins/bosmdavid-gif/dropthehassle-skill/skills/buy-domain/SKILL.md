@@ -44,4 +44,10 @@ You never pay and never open, fill in or pay a payment link. A DropTheHassle pay
 7. **After they pay**, check `site_status` until the domain is active, then `check_live`.
    Offer a mailbox on the name (see the `domain-email` skill). Don't create that link unasked.
 
+Site already runs on another host (Vercel, ChatGPT Sites, ...)? They can still buy the name here and
+keep the site where it is: link its HTTPS address with `set_backend` (or the Backend card in the
+dashboard), e.g. `https://myapp.vercel.app`. DropTheHassle serves the domain and passes every request
+to that host, so no DNS records are needed, and email on the domain still works. There is no raw DNS
+record editor; to manage DNS themselves, transfer-out gives them the transfer code for another registrar.
+
 Already own the name somewhere else? Use the `custom-domain` skill instead.

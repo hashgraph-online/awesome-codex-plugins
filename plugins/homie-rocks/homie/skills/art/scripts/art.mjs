@@ -6,7 +6,7 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, statS
 import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { experienceDir, experienceJson, isServerRules, SLUG, checkBudget, findStudio, readBudget, readJson, setBudget, writeJson } from '../../music/scripts/lib/studio.mjs';
-import { GPU_FLAGS, chromePath, htmlToPng, loadPuppeteer } from '../../video/scripts/lib/browser.mjs';
+import { GPU_FLAGS, chromePath, htmlToPng, launchChrome, loadPuppeteer, remoteBrowserEndpoint } from '../../video/scripts/lib/browser.mjs';
 
 import { decode, stats } from '../../playtest/scripts/lib/pixels.mjs';
 
@@ -64,8 +64,9 @@ async function frame(root) {
   const seconds = Math.max(4, Math.min(60, Number(flags.get('seconds') ?? 12)));
   const dir = artDir(root, String(flags.get('slug') ?? 'frames'));
   const puppeteer = loadPuppeteer(root); const exe = chromePath();
-  if (!puppeteer || !exe) throw new Error(!exe ? 'no Chrome found (set CHROME_PATH)' : 'puppeteer-core is missing (npm install in the studio)');
-  const browser = await puppeteer.launch({ executablePath: exe, headless: true, timeout: 150_000, args: [...GPU_FLAGS, '--mute-audio', '--window-size=1920,1080', '--hide-scrollbars', '--force-color-profile=srgb', '--no-first-run'] });
+  const cloud = remoteBrowserEndpoint();
+  if (!puppeteer || (!exe && !cloud)) throw new Error(!exe && !cloud ? 'no Chrome found (set CHROME_PATH)' : 'puppeteer-core is missing (npm install in the studio)');
+  const browser = await launchChrome(puppeteer, { executablePath: exe, headless: true, timeout: 150_000, args: [...GPU_FLAGS, '--mute-audio', '--window-size=1920,1080', '--hide-scrollbars', '--force-color-profile=srgb', '--no-first-run'] });
   const shots = [];
   try {
     const page = await browser.newPage();

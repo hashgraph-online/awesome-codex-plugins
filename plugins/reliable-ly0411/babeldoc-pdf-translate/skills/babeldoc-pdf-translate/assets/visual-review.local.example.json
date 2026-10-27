@@ -1,0 +1,20 @@
+{
+  "source":"input.pdf",
+  "translated":"translation.mono.pdf",
+  "output":"local-visual-review",
+  "purpose":"production",
+  "repair":true,
+  "dpi":144,
+  "provider":{
+    "type":"openai",
+    "base_url":"http://127.0.0.1:11434/v1",
+    "model":"YOUR-ALREADY-INSTALLED-VISION-MODEL",
+    "auth":"none",
+    "vision":true,
+    "response_format":"json_object",
+    "timeout_seconds":240,
+    "retries":0,
+    "cache_dir":"private-local-vision-cache"
+  },
+  "limits":{"max_rounds":2,"max_model_calls":6,"max_seconds":900,"max_repairs_per_page":3}
+}

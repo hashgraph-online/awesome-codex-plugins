@@ -96,19 +96,16 @@ controls, a quota ceiling or a provider guard in a specialist skill.
 
 ## Review duration
 
-Do not impose a fixed ten-minute timeout. Use an explicit caller-selected
-review timeout or derive the invocation timeout from the remaining caller/native
-deadline; when both exist, the earlier bound wins. A headless call still needs
-finite time and input/output bounds under host policy. If neither time bound is
-available, report the missing invocation bound before launching; do not invent
-a universal review limit. Native cancellation, output caps and cleanup remain.
-
-For the repository's shared adapter, supply `CODEX_EXEC_TIMEOUT` in seconds or
-`CODEX_EXEC_DEADLINE_EPOCH` as an absolute timestamp. With no explicit timeout,
-the adapter uses the remaining deadline without a ten-minute clamp. Reuse the
-same goal deadline across invocations; retries, context resets and renewed
-connections do not renew the caller's allowance. Record a timeout as an
-incomplete review, preserve its bounded output, and return control to the caller.
+No fixed ten-minute timeout. Fix one absolute deadline before the first
+attempt from the caller's timeout or the remaining caller/native deadline,
+whichever is earlier; every invocation, retries included, gets only the time
+left. A missing or malformed bound prevents launch. Close stdin or pass a
+finite prompt, and capture output under a byte cap. A timeout (124, or 137
+after the kill grace) is an incomplete run, not a result: keep the output,
+report, stop. Retry and fallback are the caller's. The repository's shared
+adapter takes this bound as
+[codex-exec's guarded runner inputs](../../codex-exec/references/guarded-runner.md#inputs)
+describe.
 
 ## Headless Claude judgment leg
 

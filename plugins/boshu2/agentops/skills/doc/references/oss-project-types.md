@@ -5,73 +5,10 @@
 
 ## Type Detection
 
-```bash
-#!/bin/bash
-# Detect project type based on file patterns
-
-detect_project_type() {
-    local type="unknown"
-    local confidence=0
-
-    # CLI Tool (Go)
-    if [[ -f go.mod ]] && [[ -d cmd ]]; then
-        type="cli-go"
-        confidence=90
-
-    # CLI Tool (Python)
-    elif [[ -f pyproject.toml ]] && grep -q "scripts" pyproject.toml 2>/dev/null; then
-        type="cli-python"
-        confidence=85
-
-    # Kubernetes Operator
-    elif [[ -f PROJECT ]] || [[ -d config/crd ]] || [[ -f Makefile ]] && grep -q "controller-gen" Makefile 2>/dev/null; then
-        type="operator"
-        confidence=95
-
-    # Helm Chart
-    elif [[ -f Chart.yaml ]]; then
-        type="helm"
-        confidence=100
-
-    # Go Library
-    elif [[ -f go.mod ]] && [[ ! -d cmd ]]; then
-        type="library-go"
-        confidence=80
-
-    # Python Library
-    elif [[ -f pyproject.toml ]] || [[ -f setup.py ]]; then
-        type="library-python"
-        confidence=75
-
-    # Node.js
-    elif [[ -f package.json ]]; then
-        if grep -q '"bin"' package.json 2>/dev/null; then
-            type="cli-node"
-            confidence=85
-        else
-            type="library-node"
-            confidence=75
-        fi
-
-    # Rust
-    elif [[ -f Cargo.toml ]]; then
-        if [[ -d src/bin ]] || grep -q '^\[\[bin\]\]' Cargo.toml 2>/dev/null; then
-            type="cli-rust"
-            confidence=85
-        else
-            type="library-rust"
-            confidence=80
-        fi
-
-    # Documentation/Informational
-    elif [[ -d docs ]] && [[ $(find . -maxdepth 1 -name "*.md" | wc -l) -gt 5 ]]; then
-        type="docs"
-        confidence=70
-    fi
-
-    echo "$type:$confidence"
-}
-```
+Use the type this skill's `scripts/audit-oss-docs.sh --json` reports for the
+audited repository (see [OSS pack](oss-pack.md#audit-and-project-type)). The
+detection signals under each type below help when it reports `unknown`; it has
+no `docs` type, so a documentation-only repository reports `unknown`.
 
 ---
 
@@ -97,7 +34,7 @@ detect_project_type() {
 
 ### README Template Key Sections
 
-```markdown
+````markdown
 ## Installation
 
 ```bash
@@ -127,7 +64,7 @@ go build -o <name> ./cmd/<name>
 | `init` | Initialize configuration |
 | `<cmd>` | Primary operation |
 | `help` | Show help |
-```
+````
 
 ---
 
@@ -153,7 +90,7 @@ go build -o <name> ./cmd/<name>
 
 ### README Template Key Sections
 
-```markdown
+````markdown
 ## Installation
 
 ```bash
@@ -186,18 +123,18 @@ spec:
 
 The operator requires the following permissions:
 - `<resource>`: create, get, list, watch, update, delete
-```
+````
 
 ### SECURITY.md Focus
 
-```markdown
+````markdown
 ## Security Considerations
 
 - **Pod Security:** Runs with restricted security context
 - **RBAC:** Minimal permissions following least-privilege
 - **Secrets:** Never logged, stored encrypted at rest
 - **Network:** Egress to API server only
-```
+````
 
 ---
 
@@ -220,7 +157,7 @@ The operator requires the following permissions:
 
 ### README Template Key Sections
 
-```markdown
+````markdown
 ## Installation
 
 ```bash
@@ -243,7 +180,7 @@ See `values.yaml` for all options.
 ```bash
 helm upgrade <release> <repo>/<chart>
 ```
-```
+````
 
 ---
 
@@ -266,7 +203,7 @@ helm upgrade <release> <repo>/<chart>
 
 ### README Template Key Sections
 
-```markdown
+````markdown
 ## Installation
 
 ```bash
@@ -287,7 +224,7 @@ func main() {
 ## API
 
 See [pkg.go.dev](https://pkg.go.dev/<module>) for complete API documentation.
-```
+````
 
 ---
 
@@ -310,7 +247,7 @@ See [pkg.go.dev](https://pkg.go.dev/<module>) for complete API documentation.
 
 ### README Template Key Sections
 
-```markdown
+````markdown
 ## Installation
 
 ```bash
@@ -331,7 +268,7 @@ result = client.do_something()
 ## API Documentation
 
 See your hosted API documentation URL for complete API reference.
-```
+````
 
 ---
 
@@ -348,7 +285,7 @@ See your hosted API documentation URL for complete API reference.
 
 Similar to cli-go but with Python installation methods:
 
-```markdown
+````markdown
 ## Installation
 
 ```bash
@@ -361,7 +298,7 @@ pipx install <package>
 # uv
 uv tool install <package>
 ```
-```
+````
 
 ---
 
@@ -381,30 +318,6 @@ uv tool install <package>
 | `README.md` | Required | Navigation, purpose |
 | `CONTRIBUTING.md` | High | How to contribute docs |
 | `docs/index.md` | High | Main entry point |
-
----
-
-## Language Detection
-
-```bash
-#!/bin/bash
-# Detect languages in project
-
-detect_languages() {
-    local langs=()
-
-    [[ -f go.mod ]] && langs+=("go")
-    [[ -f pyproject.toml ]] || [[ -f setup.py ]] && langs+=("python")
-    [[ -f package.json ]] && langs+=("javascript")
-    [[ -f Cargo.toml ]] && langs+=("rust")
-    [[ -f Makefile ]] && langs+=("make")
-    [[ $(find . -name "*.sh" -maxdepth 2 | wc -l) -gt 0 ]] && langs+=("shell")
-    [[ -f Dockerfile ]] && langs+=("docker")
-    [[ -f Chart.yaml ]] && langs+=("helm")
-
-    echo "${langs[*]}"
-}
-```
 
 ---
 

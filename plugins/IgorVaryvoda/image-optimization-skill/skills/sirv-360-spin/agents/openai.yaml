@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sirv 360 Spin"
+  short_description: "Create, embed, and tune Sirv 360 spins: frame naming, .spin files, options, and video/spin conversion."
+  default_prompt: "Use $sirv-360-spin to create or debug a Sirv 360 spin with correct naming, embedding, options, and verification."

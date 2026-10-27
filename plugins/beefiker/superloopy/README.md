@@ -154,7 +154,7 @@ Needs Node.js ≥ 22. In a terminal:
 npx superloopy@latest
 ```
 
-It finds `claude`, `codex`, and `agy` on your `PATH`, asks before installing into each one, and installs through that host's own plugin commands (the same ones listed per host below). Hosts that already have Superloopy are updated instead. Then reload or restart each host as it tells you.
+It finds `claude`, `codex`, `agy`, and `omp` on your `PATH`, asks before installing into each one, and installs through that host's own plugin commands (the same ones listed per host below). Hosts that already have Superloopy are updated instead. Then reload or restart each host as it tells you.
 
 ```sh
 npx superloopy@latest setup --host claude,codex --yes   # no prompts
@@ -189,6 +189,17 @@ Needs Node.js ≥ 22 and Claude Code ≥ 2.1.280 for the pinned Opus 5.5 subagen
 ```
 
 Reload plugins (or restart Claude Code) and approve the hooks when prompted. On Claude Code the skills, subagents (`agents/*.md`), and hooks (`hooks/hooks.json`) are **plugin-bundled** — there is no `~/.codex` install step and no `superloopy` wrapper; the hooks invoke the CLI directly via `${CLAUDE_PLUGIN_ROOT}`, and `SessionStart` is a clean no-op (nothing to bootstrap). For local development, point Claude Code at a checkout with `claude --plugin-dir <checkout>`. Verify with `node "${CLAUDE_PLUGIN_ROOT}/src/cli.js" doctor --json`. The subagents' advisory model defaults for Claude are documented in `docs/superloopy-model-policy-claude.md`.
+
+### omp
+
+[omp](https://github.com/can1357/oh-my-pi) installs the Claude Code plugin from the same marketplace:
+
+```sh
+omp plugin marketplace add beefiker/superloopy
+omp plugin install superloopy@beefiker
+```
+
+Run `/reload-plugins` in open omp sessions. omp loads the skills and the crew agents. It does **not** run Claude-format `hooks.json`, so on omp there is no automatic Stop-hook continuation, no subagent receipt check, and no `SessionStart` bootstrap. The completion gate in `superloopy loop finish` still re-runs every command-backed proof. The `superloopy loop …` commands need a `superloopy` command on `PATH`; a Codex install provides it. Without Codex, run `node "<installPath>/src/cli.js" bin install` with the `installPath` from `omp plugin list --json`, and again after each omp upgrade, since that path is versioned.
 
 ## Update
 
@@ -250,6 +261,15 @@ Pull the latest version in the plugin directory and validate:
 git -C ~/.gemini/config/plugins/superloopy pull --ff-only
 agy plugin validate ~/.gemini/config/plugins/superloopy
 ```
+
+### omp
+
+```sh
+omp plugin marketplace update beefiker
+omp plugin upgrade superloopy@beefiker
+```
+
+Then run `/reload-plugins` in open omp sessions.
 
 ## Troubleshooting
 
@@ -331,5 +351,14 @@ Remove-Item "$env:APPDATA\npm\superloopy.cmd" -ErrorAction SilentlyContinue
 ```
 
 If you keep Superloopy on Codex, keep the wrapper or run `superloopy install` to repoint it to your Codex installation. Agents and skills on Antigravity are plugin-bundled so no agent TOMLs are placed. If you installed with `SUPERLOOPY_BIN_DIR`, clean up that configured path instead.
+
+### omp
+
+```sh
+omp plugin uninstall superloopy@beefiker
+omp plugin marketplace remove beefiker
+```
+
+Then run `/reload-plugins`. If you ran `bin install` for omp and do not use Superloopy on Codex, also remove `~/.local/bin/superloopy`.
 
 <sub>MIT licensed.</sub>

@@ -172,7 +172,7 @@ To stop manually:
 kill $(cat <temp-dir>/.vc-meta/server-info.json | python3 -c "import sys,json; print(json.load(sys.stdin)['pid'])") 2>/dev/null
 ```
 
-HTML files remain in the temp directory for reference. Optionally copy key mockups to `docs/brainstorms/` alongside the spec:
+HTML files remain in the temp directory for reference. Optionally copy key mockups to `.claude/specs/` alongside the spec:
 ```
-cp <temp-dir>/final-layout.html docs/brainstorms/YYYY-MM-DD-<name>-mockups/
+cp <temp-dir>/final-layout.html .claude/specs/YYYY-MM-DD-<name>-mockups/
 ```

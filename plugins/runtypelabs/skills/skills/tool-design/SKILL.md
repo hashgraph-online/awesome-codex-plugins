@@ -247,3 +247,57 @@ Iterate with `update_tool` and `get_tool`; read
 4. When a real run misuses the tool, pin it: `add_eval_case_from_execution`, then
    `run_eval_suite` after every description or schema change. Read
    `get_platform_documentation(topic="evals")` for tool-use eval layers.
+
+## Measure it in a simulation
+
+A review produces findings; a simulation measures what fixing them is worth before
+anyone changes the server. Runtype simulations record what an MCP server answers, then
+serve a redesigned surface from those recordings to the same simulated users, so the
+comparison is paired and the server receives no designed call. Simulations run on
+Runtype staging and preview deployments only; the production API answers 404
+`SIMULATIONS_DISABLED` and its MCP server does not list these tools.
+
+1. **Record.** Run a simulation against the server as published (`run_simulation`),
+   with recording on for the target (`update_simulation_target` with
+   `recording: { enabled: true, retention_days: 90 }`). For a tool no run has called,
+   upload real answers with `upload_simulation_tool_exchanges` or
+   `runtype simulations exchanges upload <target> <file>`.
+2. **Read the evidence.** `get_simulation_tool_profile` returns the observed output
+   schema, the error catalog with the share the agent recovered from, and
+   `shapeFindings` that cite checklist rows 11, 13, 19, 20, 21 and 26, each with a
+   `suggestedOp` when one maps. `get_simulation_report` carries the trace signals:
+   confused pairs, argument errors by field, never-discovered tools.
+3. **Write the design as operations.** `propose_simulation_variants` with
+   `proposer: "model"` stages at most two designs that cite a checklist row per
+   operation, or write them yourself on the variant's `tool_surface` change and save
+   with `update_simulation_variant` and `validate: true`, which runs every operation on
+   recorded answers as a run would.
+4. **Preview.** `preview_simulation_variant` shows one recorded answer as published and
+   as designed. Fix an operation here, not after a paid run.
+5. **Run it paired.** Give the baseline `tool_policy: { "*": "recorded" }` and the
+   design `{ "*": "simulated" }`, then `run_simulation`. Pass
+   `replay: { synthesize: false }` on the design when the verdict must rest on
+   recordings and deterministic operations only.
+6. **Decide on the investment card.** The report's `investment` section reads
+   Recommended only when no deciding conversation rested on a synthesized answer and
+   the synthesized share is under the threshold (25% by default); otherwise Indicative,
+   with the reason. Record the missing calls live or add a deterministic operation,
+   then rerun.
+7. **Hand it over.** `export_simulation_design_brief` returns the Markdown brief:
+   before and after definitions, response mappings, error envelopes, each operation's
+   checklist row and measured effect. Later live runs mark each operation adopted or
+   not; `list_simulation_design_briefs` shows it beside the baseline trend.
+
+The checklist rows map to operations as follows:
+
+| Checklist rows     | Operation                                | What the design changes                                  |
+| ------------------ | ---------------------------------------- | -------------------------------------------------------- |
+| 11, 12, 14, 18, 19 | `shape`                                  | Flattens, renames, drops or truncates fields of a result |
+| 13                 | `paginate`                               | One cursor style with `items`, `cursor` and `hasMore`    |
+| 20, 21, 22         | `error_design`                           | Error class, reason, recovery steps naming the next tool |
+| 6, 23              | `accept_identifier`                      | Accepts a name and resolves it to an id through a lookup |
+| 10, 34, 38, 39     | `add_tool`                               | A bundle, batch, discovery or identity tool              |
+| 1, 3, 4, 5         | `rename`, `describe`, `schema`, `preset` | Names, descriptions and argument schemas                 |
+
+Developer guide: "Design a better tool surface without deploying it"
+(`/developer-guides/guides/design-tool-surface-in-simulation` on the Runtype docs).

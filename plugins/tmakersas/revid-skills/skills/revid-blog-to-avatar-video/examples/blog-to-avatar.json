@@ -1,0 +1,36 @@
+{
+  "workflow": "article-to-video",
+  "source": {
+    "url": "https://blog.revid.ai/how-shorts-work",
+    "scrapingPrompt": "Extract the article body. Skip header, navigation, related posts, and footer."
+  },
+  "aspectRatio": "9:16",
+  "avatar": {
+    "enabled": true,
+    "url": "https://cdn.example.com/avatars/maya.jpg",
+    "removeBackground": true,
+    "imageModel": "good"
+  },
+  "voice": {
+    "enabled": true,
+    "voiceId": "aria-en-us",
+    "stability": 0.65,
+    "speed": 1.0,
+    "language": "en-US",
+    "enhanceAudio": true
+  },
+  "captions": { "enabled": true, "position": "bottom", "autoCrop": true },
+  "music":    { "enabled": false },
+  "media": {
+    "type": "moving-image",
+    "density": "low",
+    "animation": "soft",
+    "placeAvatarInContext": true
+  },
+  "options": {
+    "targetDuration": 60,
+    "summarizationPreference": "summarize",
+    "hasToGenerateCover": true
+  },
+  "render": { "resolution": "1080p", "frameRate": 30 }
+}

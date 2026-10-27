@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "bulktranscripts": {
+      "type": "http",
+      "url": "https://bulktranscripts.co/mcp"
+    }
+  }
+}

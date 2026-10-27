@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bindry">
+  <rect width="512" height="512" fill="#F3F2EE"/>
+  <g transform="translate(120,86) scale(4.25)">
+    <rect x="16" y="0" width="11" height="6" fill="#B22222"/>
+    <rect x="37" y="0" width="11" height="6" fill="#B22222"/>
+    <rect x="10" y="6" width="44" height="18" rx="2" fill="#B22222"/>
+    <rect x="16" y="24" width="11" height="6" fill="#1C1B1F"/>
+    <rect x="37" y="24" width="11" height="6" fill="#1C1B1F"/>
+    <rect x="10" y="28" width="44" height="18" rx="2" fill="#1C1B1F"/>
+    <rect x="16" y="46" width="11" height="6" fill="#5B5960"/>
+    <rect x="37" y="46" width="11" height="6" fill="#5B5960"/>
+    <rect x="10" y="50" width="44" height="18" rx="2" fill="#5B5960"/>
+  </g>
+</svg>

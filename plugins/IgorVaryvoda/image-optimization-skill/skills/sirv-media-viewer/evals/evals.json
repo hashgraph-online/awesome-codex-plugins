@@ -1,0 +1,44 @@
+{
+  "skill_name": "sirv-media-viewer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Build a Sirv product gallery with two zoomable images, a 360 spin, and a demo video. It appears above the fold on a product detail page.",
+      "expected_output": "SMV markup with one Sirv JS load, preconnect hints, a class=\"Sirv\" viewer, child data-src items with data-type/data-alt, above-fold autostart handling, reserved layout space, and verification of thumbnails, zoom, spin, video, LCP, and CLS.",
+      "files": [],
+      "expectations": [
+        "Uses Sirv Media Viewer instead of hand-building the gallery",
+        "Loads scripts.sirv.com/sirvjs/v3/sirv.js once",
+        "Uses data-src child items for images, spin, and video",
+        "Adds meaningful data-alt or explicitly verifies Sirv file descriptions",
+        "Treats above-fold autostart and layout stability as performance concerns"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "A smart Sirv .view gallery loads slowly and breaks a strict CSP in production. Audit the likely causes and patch the integration.",
+      "expected_output": "An evidence-first SMV debug workflow that checks the .view URL, script placement/module choice, network/CSP console errors, documented CSP directives, autostart behavior, and browser verification.",
+      "files": [],
+      "expectations": [
+        "Recognizes .view as a Sirv smart gallery",
+        "Checks official Sirv CSP requirements before changing policy",
+        "Separates script loading, media loading, stats/video domains, and CSP causes",
+        "Does not replace the smart gallery with static image markup unless justified",
+        "Includes browser verification of gallery and network behavior"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "A configurator needs custom buttons to switch product color groups in a Sirv gallery and report spin/zoom interactions to analytics.",
+      "expected_output": "A viewer API/events solution using Sirv.getInstance or Sirv.viewer.getInstance, data-id/data-group, enableGroup/disableGroup/switchGroup, Sirv.on or sirv:* DOM events, and focused browser tests.",
+      "files": [],
+      "expectations": [
+        "Uses documented SMV API/event hooks",
+        "Uses data-group or data-id for configurable assets",
+        "Handles viewer readiness before calling custom controls",
+        "Keeps analytics hooks separate from core viewer initialization",
+        "Verifies behavior in a real browser"
+      ]
+    }
+  ]
+}

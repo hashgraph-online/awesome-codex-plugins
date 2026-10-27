@@ -14,9 +14,10 @@ of truth for live editor and runtime state.
 1. Run `hera-godot status`. If no live editor is found, ask the user to enable the
    addon under **Project Settings → Plugins**; do not infer editor state from
    files.
-2. If multiple editors are found, run `hera-godot instances`. Pass
-   `hera-godot --instance <pid>` for any mutation.
-3. Before UI work, run `hera-godot guidance ui` and follow its returned mode.
+2. Reads select the first live editor. Mutations reject multiple editors with
+   their PID list; use `instances` only to choose a PID, then pass `--instance <pid>`.
+3. Before UI work, read `game_feel_ui_mode` from `status`; use `guidance ui`
+   when the checklist text is needed.
 
 Editor and game PIDs are separate. Use global `--instance <editor-pid>` for the
 editor, then `game --pid <game-pid> ...` to select a fresh entry from
@@ -28,10 +29,18 @@ the live viewport; do not assume the project resolution or upscale. If `hera-god
 instances` shows `stale`, the editor process may still be running with an
 expired heartbeat — that is not the same as no editor.
 
+The 2.1 CLI shape omits redundant counts/names, false `truncated`, and status
+session/path fields. Missing log `source` means file. Pretty/batch share these rules;
+explicit `--fields` stay. See `docs/MIGRATING_TO_V2_1.md`.
+
+Value flags accept `--flag=value`; `--flag=` equals `--flag ""`, subject to
+the same validation.
+
 ## Keep reads small and writes safe
 
 - Default output is compact. Prefer `hera-godot --ids scene tree`, selected
-  `node get --prop/--props`, scoped `game ui tree`, and `game qa discover`
+  `node get --prop/--props/--changed`, `scene tree [path] --depth N --type Class
+  --props a,b`, `signal list <path> --connected`, scoped `game ui tree`, and `game qa discover`
   before full dumps.
 - Use `node add/set/remove` and `signal connect/disconnect` for normal editor
   changes; Godot records those as undoable steps. Prefer them to `eval`, whose
@@ -53,7 +62,8 @@ Godot .NET capability, not SDK installation. C# templates use a filename-matchin
 partial class. Build and reload the assembly before attachment; Hera does not
 build or generate solution files. C# inspect/current reads loaded-assembly
 metadata, which can be unavailable or stale. `script current` cannot observe
-external IDE focus. `eval` always uses a GDScript expression.
+external IDE focus. `eval` defaults to C# through the helper host; use
+`--lang gdscript` for a GDScript expression.
 
 Runtime QA discovery accepts `qa_*` and `Qa` followed by an uppercase letter,
 such as `QaReady`; preserve exact case when calling C# methods. See the Hera
@@ -61,13 +71,20 @@ repository's `docs/CSHARP_SUPPORT.md` for setup and limitations.
 
 ## Prove the result
 
-- After a change, read the changed property or node tree. After a run, check
-  `hera-godot output --type error` or `hera-godot diagnostics`.
+- After `node set`, check the response's re-read `value`; use `node get` for
+  other properties. Use repeatable `--set prop=value` on `node add` or
+  `node instance`; check returned `values`. Creation and properties share one
+  undo action. Without `--set`, confirm with `hera-godot --ids scene tree`.
+  After a run, check `diagnostics` first; use `output --type error` for raw lines.
+- For eventual runtime state, use `game assert ... --within-ms N` (1–30,000).
+  QA assertion steps accept `within_ms`. Read `waited_ms`; timeouts return
+  `timed_out: true`, the last available `actual`, and exit 1.
 - For visual/UI work, use `game ui tree`, semantic `game click`, and
   `hera-godot screenshot --runtime --analyze`. For prompt requirements, prefer a
   `game qa --file` scenario with `requirements` and per-step `covers`.
-- After editing GDScript, run that project's headless `--check-only` gate when
-  available, then re-check diagnostics. After C# changes, build the .NET project,
+- After editing GDScript, run `script validate res://file.gd`; fall back to
+  the project's headless `--check-only` gate, then re-check diagnostics.
+  After C# changes, build the .NET project,
   reload the assembly, and verify runtime behavior; GDScript `--check-only` does
   not compile C#.
 

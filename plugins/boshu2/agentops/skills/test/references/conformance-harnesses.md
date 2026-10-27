@@ -1,6 +1,6 @@
 # Conformance Harnesses
 
-Use this reference when `/test` needs to prove an implementation follows an external contract, compatibility surface, schema, protocol, CLI behavior, or generated artifact shape.
+Use this reference when Test needs to prove an implementation follows an external contract, compatibility surface, schema, protocol, CLI behavior, or generated artifact shape.
 
 ## Trigger
 
@@ -19,7 +19,7 @@ Choose conformance testing when the target has a contract that can be exercised 
 | Reference implementation | A known-good implementation exists | Candidate output matches reference output for the same inputs. |
 | Golden contract | Output is deterministic or can be canonicalized | Compare scrubbed output to checked-in golden fixtures. |
 | Round trip | Parser and renderer both exist | `decode(encode(x)) == x` or equivalent invariant. |
-| Spec matrix | Behavior is enumerated in a contract table | Each row has one test case and one assertion target. |
+| Spec matrix | Behavior is enumerated in a contract table | Each must-support row is a case with its own assertion; a table-test row suffices. |
 | Process harness | The target is a CLI/script/daemon | Run the process with fixture inputs and assert exit code, stdout/stderr, and artifacts. |
 
 ## Required Loop
@@ -29,23 +29,14 @@ Choose conformance testing when the target has a contract that can be exercised 
 3. Run the current implementation and capture output.
 4. Canonicalize dynamic fields before comparing.
 5. Fail loudly on unknown fields, missing fields, wrong exit codes, or silently skipped cases.
-6. Write a coverage matrix showing contract rows covered and uncovered.
-
-## Output
-
-Add a short conformance section to `.agents/scratch/tests/summary.md`:
-
-```markdown
-## Conformance Coverage
-
-| Contract | Cases | Covered | Gaps |
-|---|---:|---:|---|
-| <schema or spec> | <n> | <n> | <missing cases> |
-```
+6. List contract rows left uncovered, with the reason, under `not_checked`.
 
 ## Stop Criteria
 
-Stop when every must-support contract row has a mechanical test or a documented exclusion with owner and rationale.
+Stop when every must-support contract row has a mechanical test or is listed
+under `not_checked`. Report the contract, cases and gaps in
+[Test's handoff](../SKILL.md#output-specification); persist them only for a
+requested destination.
 
 ---
 

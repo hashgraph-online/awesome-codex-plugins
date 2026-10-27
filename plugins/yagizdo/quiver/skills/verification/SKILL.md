@@ -6,7 +6,7 @@ user-invocable: false
 
 # Verification
 
-Reference skill read by `/work`, `/ship`, `/design-build`, and `/hypothesis-debugging` at their verification step. It is never invoked and never runs a command itself: the consumer resolves the command by the rules here, runs it, and quotes the evidence.
+Reference skill read by `/work`, `/ship`, `/design-build`, `/hypothesis-debugging`, and `/quiver:review` at their verification step. It is never invoked and never runs a command itself: the consumer resolves the command by the rules here, runs it, and quotes the evidence.
 
 ## Command Resolution
 

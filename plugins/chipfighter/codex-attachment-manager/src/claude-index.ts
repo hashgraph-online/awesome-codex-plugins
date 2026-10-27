@@ -16,6 +16,7 @@ import { closeSync, existsSync, openSync, readdirSync, readSync, statSync } from
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { baseName, FETCHED_STATE, imageDigest, type ImageKind, type ImageRef } from "./images.ts";
+import { addNotes, type Notes } from "./notes.ts";
 import { pixelHashOfData, type FetchedCopy, type IndexedImage, type ThreadIndex } from "./thread-index.ts";
 
 type Json = Record<string, any>;
@@ -181,13 +182,17 @@ export function buildClaudeIndex(sessionId: string, records: ClaudeRecord[], tra
   // The assistant's text in the current turn and in the one before (Codex: requestedIds in panel-state.ts).
   let current: string[] = [];
   let previous: string[] = [];
+  // v0.8: what the model noted in record lines at the end of its replies (notes.ts), by image id.
+  const notes = new Map<string, Notes>();
   chain.forEach((record, position) => {
     const content = record.message?.content;
     if (record.type === "assistant" && Array.isArray(content)) {
       for (const block of content as Json[]) {
         if (block?.type === "tool_use" && block.id) tools.set(String(block.id), { name: String(block.name ?? ""), input: block.input ?? {} });
         const text = textOf(block);
-        if (text) current.push(text);
+        if (!text) continue;
+        current.push(text);
+        addNotes(notes, text, turn || null);
       }
       return;
     }
@@ -252,7 +257,7 @@ export function buildClaudeIndex(sessionId: string, records: ClaudeRecord[], tra
     const twin = images.find((other) => other.name && (other.contentId === entry.contentId || (entry.pixelSha256 !== null && other.pixelSha256 === entry.pixelSha256)));
     if (twin) entry.name = twin.name;
   }
-  return { threadId: sessionId, images, byKey, turns: turn, turnNumbers, copies, uploads, chain, title: titleOf(records, chain), replies, transcript, summary };
+  return { threadId: sessionId, images, byKey, turns: turn, turnNumbers, copies, notes, uploads, chain, title: titleOf(records, chain), replies, transcript, summary };
 }
 
 // The session's name as Claude Code shows it: the latest custom title, else the start of the first prompt.

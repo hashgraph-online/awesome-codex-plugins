@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title description">
+  <title id="title">Stacked PRs</title>
+  <desc id="description">Three pull request cards connected in dependency order.</desc>
+  <rect width="512" height="512" rx="112" fill="#101827"/>
+  <path d="M136 128v256m0-256h72m-72 128h72m-72 128h72" fill="none" stroke="#52e0b3" stroke-width="20" stroke-linecap="round"/>
+  <g fill="#101827" stroke="#52e0b3" stroke-width="20">
+    <circle cx="136" cy="128" r="24"/>
+    <circle cx="136" cy="256" r="24"/>
+    <circle cx="136" cy="384" r="24"/>
+  </g>
+  <g fill="#f3f6fc">
+    <rect x="208" y="96" width="208" height="64" rx="20"/>
+    <rect x="208" y="224" width="208" height="64" rx="20"/>
+    <rect x="208" y="352" width="208" height="64" rx="20"/>
+  </g>
+</svg>

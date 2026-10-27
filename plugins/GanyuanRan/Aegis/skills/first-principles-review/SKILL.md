@@ -43,6 +43,11 @@ authority or a generic skill trace.
 
 ## Five-Line Review
 
+Check the agreed goal for omissions and unsupported additions, including
+quantities, exclusions, relationships and conditions. Review criteria come from
+authorized requirements; this lens cannot add them or veto an authorized
+transformation merely because its form differs.
+
 Answer only what is needed, usually in five short lines:
 
 ```text
@@ -61,8 +66,13 @@ Known Prior Art: proven external pattern worth adopting or adapting to project
 constraints (cite source), or `unknown` when precedent cannot be verified here
 ```
 
-For repair choices, "smallest" means smallest sufficient stable repair, not the
-smallest textual diff:
+For repairs and optimization, require evidence for the cause or bottleneck
+before retaining a solution. Resolve unknowns that could change the choice;
+experiments may precede that decision. "Smallest" means the least intervention
+covering relevant causal paths while preserving required behavior, not the
+smallest diff or fewest owners. Independent causes may need separate repairs;
+a shared carrier does not prove a shared cause. Use systematic debugging when
+causal coverage is unresolved; no extra checklist is required for a settled case:
 
 ```text
 Minimality Check:

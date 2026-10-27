@@ -453,3 +453,11 @@ Documentation fixes, client setup guides and bug reports are welcome. See [CONTR
 ## Support
 
 Questions or issues: [info@maqami.co](mailto:info@maqami.co) or [open an issue](https://github.com/negm17111995/mcp-server/issues).
+
+## About MAQAMI
+
+[MAQAMI](https://maqami.co) (MAQAMI LLC) is a US-registered travel company selling hotels and flights worldwide: over 3 million properties, instant confirmation, secure Stripe checkout and 24/7 support.
+
+- **Website:** [maqami.co](https://maqami.co)
+- **Book hotels and flights:** [book.maqami.co](https://book.maqami.co)
+- **This MCP server (setup guide):** [maqami.co/mcp](https://maqami.co/mcp/)

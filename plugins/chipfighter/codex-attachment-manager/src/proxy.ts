@@ -10,6 +10,7 @@
 // copy the model fetched is sent in its own turn only (spec v0.3).
 // v0.4: Claude Code too (the plugin's mod points ANTHROPIC_BASE_URL here): its /v1/… requests go to api.anthropic.com,
 // everything else to chatgpt.com as before. A Claude session is told apart by x-claude-code-session-id.
+// 2026-10-22: Codex logged in with an API key goes to api.openai.com/v1 instead (see routeOf).
 // Only metadata is logged (never auth headers or conversation content).
 // Input: [--port 17891] [--stay (no auto-exit)] [--force-http] [--dump-requests (synthetic test threads only)];
 // the outbound proxy is taken from HTTPS_PROXY/HTTP_PROXY or the system proxy settings (Windows, macOS).
@@ -41,18 +42,31 @@ import { recordRequest } from "./request-stats.ts";
 import { rewriteItems, type Described } from "./rewrite.ts";
 import { connectDirectly, pluginGone, usesEngine } from "./setup.ts";
 import { claudeSelection, effectiveSelection, ensureAutoDefault, selectionDir, sideChatSelection } from "./selection.ts";
-import { loadThreadIndex, pixelHashOf, pixelHashOfData, setPixelCache, sideChatOrigin, type ThreadIndex } from "./thread-index.ts";
+import { loadThreadIndex, pixelHashOf, pixelHashOfData, setPixelCache, sideChatOrigin, writesNotes, type ThreadIndex } from "./thread-index.ts";
 
 type Json = Record<string, any>;
 const here = dirname(fileURLToPath(import.meta.url));
 const UPSTREAM_HOST = "chatgpt.com";
 // v0.4: Claude Code's API host.
 export const CLAUDE_HOST = "api.anthropic.com";
+// Where Codex logged in with an API key sends its requests without the plugin (its base URL https://api.openai.com/v1).
+const OPENAI_API_HOST = "api.openai.com";
+const CODEX_BASE = "/backend-api/codex/";
 const HOP_BY_HOP = new Set(["connection", "keep-alive", "proxy-connection", "transfer-encoding", "te", "trailer", "upgrade", "host"]);
 
 // Codex's requests all start with /backend-api/ (its base URL ends in /backend-api/codex); Claude Code's with /v1/.
 export function upstreamOf(path: string): string {
   return path.startsWith("/v1/") ? CLAUDE_HOST : UPSTREAM_HOST;
+}
+
+// Codex logged in with an API key keeps the base URL the plugin set and sends its key (Bearer sk-…, no
+// chatgpt-account-id), which chatgpt.com does not take: those requests go to api.openai.com, /backend-api/codex/
+// becoming /v1/ (2026-10-22, seen with a fake key against a local server). The request bodies are the same Responses
+// requests, so they are rewritten as before.
+export function routeOf(url: string, headers: IncomingHttpHeaders): { host: string; url: string } {
+  const apiKey = /^Bearer sk-/i.test(String(headers.authorization ?? "")) && !headers["chatgpt-account-id"];
+  if (apiKey && url.startsWith(CODEX_BASE)) return { host: OPENAI_API_HOST, url: `/v1/${url.slice(CODEX_BASE.length)}` };
+  return { host: upstreamOf(url.split("?")[0]), url };
 }
 
 // Outbound proxy: environment first, then the system setting (Windows per-user, macOS); NO_PROXY is honoured for the
@@ -94,14 +108,18 @@ export function macProxy(scutil: string): string | null {
   return null;
 }
 
-function connectUpstream(via: { host: string; port: number } | null, upstream = UPSTREAM_HOST): Promise<tls.TLSSocket> {
+function connectUpstream(via: { host: string; port: number } | null, upstream = UPSTREAM_HOST, signal?: AbortSignal): Promise<tls.TLSSocket> {
   const startTls = (socket?: net.Socket) => new Promise<tls.TLSSocket>((ok, fail) => {
-    const secure = tls.connect({ socket, host: socket ? undefined : upstream, port: 443, servername: upstream, ALPNProtocols: ["http/1.1"] }, () => ok(secure));
-    secure.once("error", fail);
+    const cleanup = () => signal?.removeEventListener("abort", abort);
+    const secure = tls.connect({ socket, host: socket ? undefined : upstream, port: 443, servername: upstream, ALPNProtocols: ["http/1.1"] }, () => { cleanup(); ok(secure); });
+    const abort = () => { cleanup(); secure.destroy(); socket?.destroy(); fail(new Error("upstream connection cancelled")); };
+    secure.once("error", (error) => { cleanup(); fail(error); });
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
   });
   if (!via) return startTls();
   return new Promise((ok, fail) => {
-    const socket = net.connect(via.port, via.host, () => socket.write(`CONNECT ${upstream}:443 HTTP/1.1\r\nHost: ${upstream}:443\r\n\r\n`));
+    const socket = net.connect({ port: via.port, host: via.host, signal }, () => socket.write(`CONNECT ${upstream}:443 HTTP/1.1\r\nHost: ${upstream}:443\r\n\r\n`));
     let buffered = Buffer.alloc(0);
     const onData = (chunk: Buffer) => {
       buffered = Buffer.concat([buffered, chunk]);
@@ -127,7 +145,7 @@ export function forwardHeaders(headers: IncomingHttpHeaders, upstream = UPSTREAM
 // Which task a request belongs to, from Codex's own turn metadata header.
 // v0.7: and where that task came from: a side chat (a fork Codex keeps in memory only) names the task it was forked
 // from, a subagent its parent (also in Codex's own header).
-export type RequestIdentity = { threadId: string | null; turnId: string | null; windowId: string | null; forkedFrom: string | null; parentThreadId: string | null; subagentKind: string | null };
+export type RequestIdentity = { threadId: string | null; turnId: string | null; windowId: string | null; forkedFrom: string | null; parentThreadId: string | null; subagentKind: string | null; turnTrigger: string | null };
 export function requestIdentity(headers: IncomingHttpHeaders): RequestIdentity {
   let meta: Json = {};
   try { meta = JSON.parse(String(headers["x-codex-turn-metadata"] ?? "{}")); } catch { /* not JSON */ }
@@ -135,6 +153,7 @@ export function requestIdentity(headers: IncomingHttpHeaders): RequestIdentity {
   return {
     threadId: meta.thread_id ?? meta.session_id ?? null, turnId: meta.turn_id ?? null, windowId: header("x-codex-window-id"),
     forkedFrom: meta.forked_from_thread_id ?? null, parentThreadId: meta.parent_thread_id ?? header("x-codex-parent-thread-id"), subagentKind: meta.subagent_kind ?? null,
+    turnTrigger: meta.turn_trigger ?? null,
   };
 }
 
@@ -249,12 +268,11 @@ export function hasUnchecked(threadId: string | null, dir = selectionDir, sessio
 
 // Whether a thread's requests go through the rewrite (and so over HTTP): something unchecked, or automatic selection
 // used at some point (v0.3), since from then on the history may hold copies the model fetched, left out of later turns.
-// v0.7: a side chat's, unless its task's switch for subagents and side chats is off.
+// v0.7: a side chat's, always (v0.8: the switch for subagents and side chats is gone).
 export function needsRewrite(threadId: string | null, dir = selectionDir, sessionsDir = join(codexHome(), "sessions"), forkedFrom: string | null = null): boolean {
   if (!threadId) return false;
   try {
-    const origin = sideChatOrigin(threadId, forkedFrom, sessionsDir);
-    if (origin) return sideChatSelection(origin, sessionsDir, dir) !== null;
+    if (sideChatOrigin(threadId, forkedFrom, sessionsDir)) return true;
     const selection = effectiveSelection(threadId, sessionsDir, dir);
     return Object.keys(selection.unchecked).length > 0 || !!selection.autoSince;
   } catch { return false; }
@@ -276,7 +294,6 @@ export function currentTurnOf(index: ThreadIndex, turnId: string | null): number
 export function rewriteBody(original: Buffer, encoding: string | undefined, threadId: string, sessionsDir: string, dir = selectionDir, turnId: string | null = null, forkedFrom: string | null = null): { body: Buffer; report: Json } {
   const origin = sideChatOrigin(threadId, forkedFrom, sessionsDir);
   const side = origin ? sideChatSelection(origin, sessionsDir, dir) : null;
-  if (origin && !side) return { body: original, report: { sideChatOf: origin, off: true } };
   const decoded = decodeBody(original, encoding);
   if (!decoded) return { body: original, report: { skipped: "undecodable body" } };
   const text = decoded.toString("utf8");
@@ -289,7 +306,9 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
   const selection = side ?? effectiveSelection(threadId, sessionsDir, dir);
   const describe = (ref: ImageRef): Described | undefined => {
     const known = index.byKey.get(ref.key);
-    if (known) return known;
+    // v0.8: with what the model noted about it, for its placeholder.
+    const notes = known ? index.notes.get(known.id) : undefined;
+    if (known) return notes ? { ...known, notes } : known;
     const stored = selection.unchecked[ref.key];
     return stored ? { id: stored.id, name: ref.name, label: ref.label, kind: ref.kind, turn: null, width: ref.width, height: ref.height } : undefined;
   };
@@ -301,7 +320,9 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
     const pinned = selection.pinned ?? {};
     leaveOut = new Set(index.images.filter((image) => image.replaceable && image.turn !== null && image.turn < current && !pinned[image.key]).map((image) => image.key));
   }
-  const { items, report } = rewriteItems(json.input, describe, leaveOut, pixels, { lang: currentLang(), copies, ...(selection.auto ? { auto: { currentTurn: current } } : {}) });
+  // v0.8: feature lines in a task's own requests, not a side chat's or a subagent's.
+  const features = !origin && writesNotes(sessionsDir, threadId);
+  const { items, report } = rewriteItems(json.input, describe, leaveOut, pixels, { lang: currentLang(), copies, features, ...(selection.auto ? { auto: { currentTurn: current } } : {}) });
   const summary: Json = {
     images: report.images,
     replaced: report.replaced.map(({ key: _key, ...rest }) => rest),
@@ -310,8 +331,10 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
     ...(selection.auto ? { auto: true } : {}),
     ...(report.copies.length ? { copies: report.copies } : {}),
     ...(origin ? { sideChatOf: origin } : {}),
+    ...(report.featureAt !== undefined ? { featureAt: report.featureAt, labeled: report.labeled ?? 0 } : {}),
+    ...(report.unknown ? { unknown: report.unknown } : {}),
   };
-  if (!report.replaced.length && !report.copies.length) return { body: original, report: summary };
+  if (!report.replaced.length && !report.copies.length && report.featureAt === undefined) return { body: original, report: summary };
   json.input = items;
   const next = Buffer.from(JSON.stringify(json), "utf8");
   const body = encodeBody(next, encoding);
@@ -320,7 +343,8 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
 
 // v0.4: a Claude Code session's requests are rewritten once something is unchecked there, or automatic selection was
 // used (copies the model fetched may be in its history from then on). v0.5: or once it was compacted with images
-// before the compaction, which the user may keep sending.
+// before the compaction, which the user may keep sending. v0.8: or once it has any image, for the feature line note
+// and the ids (Claude Code sends the whole history every time, so this costs no upload; docs/v0.8/plan.md).
 export function claudeNeedsRewrite(sessionId: string | null, dir = claudeSelectionDirOf(), home = claudeHome()): boolean {
   if (!sessionId) return false;
   let index: ClaudeIndex | null = null;
@@ -329,7 +353,7 @@ export function claudeNeedsRewrite(sessionId: string | null, dir = claudeSelecti
     const selection = claudeSelection(sessionId, dir, index ? claudeStartedAt(index) : null);
     if (Object.keys(selection.unchecked).length > 0 || selection.autoSince) return true;
   } catch { /* the transcript still decides */ }
-  return !!index?.images.some((image) => image.compacted);
+  return !!index?.images.length;
 }
 
 // The images a Claude Code request carried, by index key, with the base64 characters each took (the panel's
@@ -380,14 +404,19 @@ export function rewriteClaudeBody(original: Buffer, encoding: string | undefined
   // v0.5: after a compaction, the images from before it go back right after the summary (claude-rewrite.ts): the ones
   // the user keeps sending (checked, or pinned with automatic selection) read from the transcript, the others as
   // placeholders. With any of those, the full note follows the summary, and later messages get only their short notes.
-  const compactedImages = index.images.filter((image) => image.compacted);
+  // v0.8: each with what the model noted about it, for its placeholder.
+  const compactedImages = index.images.filter((image) => image.compacted).map((image) => {
+    const notes = index.notes.get(image.id);
+    return notes ? { ...image, notes } : image;
+  });
   const summaryIn = index.summary && compactedImages.length ? summaryAt(json.messages, index.summary) : null;
   const resend: Resend[] = summaryIn === null ? [] : compactedImages.filter((image) => !leaveOut.has(image.key)).flatMap((image) => {
     const data = claudeImageData(index, image);
     return data && image.mime ? [{ image, block: { type: "image", source: { type: "base64", media_type: image.mime, data } } }] : [];
   });
   const compactedOut = summaryIn !== null && resend.length < compactedImages.length;
-  const rewrote = rewriteMessages(json.messages, index, leaveOut, pixels, { lang, copies, noted: compactedOut, ...(selection.auto ? { auto: { currentTurn: current } } : {}) });
+  // v0.8: feature lines in every main conversation (a subagent's requests do not come here).
+  const rewrote = rewriteMessages(json.messages, index, leaveOut, pixels, { lang, copies, noted: compactedOut, features: true, ...(selection.auto ? { auto: { currentTurn: current } } : {}) });
   const report = rewrote.report;
   let messages = rewrote.messages;
   let compacted: Json | null = null;
@@ -398,6 +427,7 @@ export function rewriteClaudeBody(original: Buffer, encoding: string | undefined
       // The note's place: after the summary when it holds placeholders; a later one moves down with a message added.
       if (compactedOut) report.noteAt = added.at + 1;
       else if (added.inserted && report.noteAt !== undefined && report.noteAt > added.at) report.noteAt += 1;
+      if (added.inserted && report.featureAt !== undefined && report.featureAt > added.at) report.featureAt += 1;
       compacted = { at: added.at, listed: compactedImages.length, resent: resend.map(({ image }) => image.id) };
     }
   }
@@ -411,8 +441,10 @@ export function rewriteClaudeBody(original: Buffer, encoding: string | undefined
     ...(selection.auto ? { auto: true } : {}),
     ...(report.copies.length ? { copies: report.copies } : {}),
     ...(compacted ? { compacted } : {}),
+    ...(report.featureAt !== undefined ? { featureAt: report.featureAt, labeled: report.labeled ?? 0 } : {}),
+    ...(report.unknown ? { unknown: report.unknown } : {}),
   };
-  const changed = report.replaced.length > 0 || report.copies.length > 0 || compacted !== null;
+  const changed = report.replaced.length > 0 || report.copies.length > 0 || compacted !== null || report.featureAt !== undefined;
   // Once the engine has sent the session a changed history, thinking made after it may be in every later request, even
   // with nothing left out now (an image checked again).
   if (!changed && !thinking?.edited) return { body: original, report: summary, attempts: [] };
@@ -517,8 +549,8 @@ async function main(): Promise<void> {
   setPixelCache(pixelCacheDirOf());
   const via = outboundProxy();
   // v0.4: NO_PROXY may name one upstream host and not the other.
-  const claudeVia = outboundProxy(process.env, readSystemProxy, CLAUDE_HOST);
-  const viaOf = (upstream: string) => (upstream === CLAUDE_HOST ? claudeVia : via);
+  const vias = new Map([CLAUDE_HOST, OPENAI_API_HOST].map((host) => [host, outboundProxy(process.env, readSystemProxy, host)]));
+  const viaOf = (upstream: string) => (vias.has(upstream) ? vias.get(upstream)! : via);
   const startedAt = new Date().toISOString();
   // v0.1-3: which code this engine runs, so the plugin can tell when an update needs a new engine.
   const build = buildOf();
@@ -617,7 +649,7 @@ async function main(): Promise<void> {
   const onRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     if (req.url === "/__cam/health") {
       res.writeHead(200, { "content-type": "application/json" });
-      res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, upstream: UPSTREAM_HOST, upstreams: [UPSTREAM_HOST, CLAUDE_HOST], via: via ? `${via.host}:${via.port}` : "direct" }));
+      res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, upstream: UPSTREAM_HOST, upstreams: [UPSTREAM_HOST, CLAUDE_HOST, OPENAI_API_HOST], via: via ? `${via.host}:${via.port}` : "direct" }));
       return;
     }
     if (req.url === "/__cam/retire" && req.method === "POST") {
@@ -659,7 +691,8 @@ async function main(): Promise<void> {
     const id = ++sequence;
     const started = Date.now();
     const path = (req.url ?? "/").split("?")[0];
-    const upstream = upstreamOf(path);
+    const route = routeOf(req.url ?? "/", req.headers);
+    const upstream = route.host;
     const identity = requestIdentity(req.headers);
     const rewrite = req.method === "POST" && /\/responses(\/compact)?$/.test(path) && needsRewrite(identity.threadId, selectionDir, sessionsDir, identity.forkedFrom);
     // v0.4: a Claude Code request of a session's main conversation (a subagent's loop has its own); rewritten like a
@@ -703,7 +736,7 @@ async function main(): Promise<void> {
           }
         } catch { details = { kind: "unparsed" }; }
       }
-      const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...details, ...extra, error: error ?? null };
+      const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, ...(upstream === OPENAI_API_HOST ? { upstream } : {}), status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...details, ...extra, error: error ?? null };
       log(entry);
       // Image keys go to the per-thread statistics only, not to the log.
       if (/\/responses$/.test(path)) {
@@ -716,7 +749,15 @@ async function main(): Promise<void> {
     // thinking after the changed history (thinkingRejected) moves on to the next one (see ClaudeAttempt), the last being
     // the original as Claude Code built it; the statistics say which went out (the panel shows a fallback).
     type Attempt = { body: Buffer | null; report: Json | null; edited: boolean } & Partial<Pick<ClaudeAttempt, "history" | "sent" | "made" | "sure">>;
-    const send = (attempts: Attempt[], at = 0): void => { connectUpstream(viaOf(upstream), upstream).then((socket) => {
+    const connecting = new AbortController();
+    res.once("close", () => {
+      if (!res.writableFinished) { connecting.abort(); finish("client closed before the response ended"); }
+    });
+    const send = (attempts: Attempt[], at = 0): void => {
+      if (res.destroyed) return;
+      connectUpstream(viaOf(upstream), upstream, connecting.signal).then((socket) => {
+      // The client can cancel while CONNECT/TLS is still in progress.
+      if (res.destroyed) { socket.destroy(); return; }
       const attempt = attempts[at];
       const outgoing = forwardHeaders(req.headers, upstream);
       if (attempt.body) outgoing["content-length"] = String(attempt.body.length);
@@ -725,14 +766,14 @@ async function main(): Promise<void> {
       if (attempt.report) extra = { ...extra, rewrite: attempt.report };
       if (dumpDir) sentBody = attempt.edited ? attempt.body : null;
       // No `agent` option: with agent:false Node ignores createConnection and dials the host directly.
-      const outbound = http.request({ host: upstream, method: req.method, path: req.url, headers: outgoing, createConnection: () => socket }, (answer) => {
+      const outbound = http.request({ host: upstream, method: req.method, path: route.url, headers: outgoing, createConnection: () => socket }, (answer) => {
         status = answer.statusCode ?? 0;
         const headers: Record<string, string | string[]> = {};
         for (const [name, value] of Object.entries(answer.headers)) if (value !== undefined && !HOP_BY_HOP.has(name)) headers[name] = value;
         if (at < attempts.length - 1 && status === 400) {
           const parts: Buffer[] = [];
           answer.on("data", (chunk: Buffer) => parts.push(chunk));
-          answer.on("error", (error) => finish(String(error)));
+          answer.on("error", (error) => { finish(String(error)); res.destroy(error); });
           answer.on("end", () => {
             const raw = Buffer.concat(parts);
             const text = decodeBody(raw, answer.headers["content-encoding"] as string | undefined)?.toString("utf8") ?? "";
@@ -774,16 +815,22 @@ async function main(): Promise<void> {
           }
           finish();
         });
-        answer.on("error", (error) => finish(String(error)));
+        // A partial response cannot be ended as if it were complete: propagate the broken stream to Codex.
+        answer.on("error", (error) => { finish(String(error)); res.destroy(error); });
       });
-      outbound.on("error", (error) => { if (!res.headersSent) res.writeHead(502); res.end(); finish(String(error)); });
-      // Codex may drop the connection mid-stream; still log the request once.
-      res.on("close", () => finish(res.writableFinished ? undefined : "client closed before the response ended"));
+      outbound.on("error", (error) => { if (!res.destroyed) { if (!res.headersSent) res.writeHead(502); res.end(); } finish(String(error)); });
+      // Log once, and release the upstream stream when the client no longer consumes it.
+      res.on("close", () => {
+        if (!res.writableFinished) outbound.destroy();
+        finish(res.writableFinished ? undefined : "client closed before the response ended");
+      });
       if (attempt.body) outbound.end(attempt.body);
       else { collect(); req.pipe(outbound); }
     }, (error) => {
-      res.writeHead(502, { "content-type": "text/plain" });
-      res.end(`codex-attachment-manager proxy: cannot reach ${upstream}`);
+      if (!res.destroyed) {
+        res.writeHead(502, { "content-type": "text/plain" });
+        res.end(`codex-attachment-manager proxy: cannot reach ${upstream}`);
+      }
       finish(String(error));
     }); };
     if (!rewrite && !claudeRewrite) { send([{ body: null, report: null, edited: false }]); return; }
@@ -804,6 +851,9 @@ async function main(): Promise<void> {
     const started = Date.now();
     const path = (req.url ?? "/").split("?")[0];
     const identity = requestIdentity(req.headers);
+    // Node takes its own 'error' listener off an upgraded socket. Without one, a client resetting the connection (Codex
+    // can, right after a 426) throws and stops the engine (2026-10-19: four probe engines at once).
+    client.on("error", () => {});
     // A retired engine takes no new WebSocket; Codex opens it again, on the new engine.
     if (retiredAt !== null) {
       client.end("HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
@@ -817,7 +867,10 @@ async function main(): Promise<void> {
     let up = head.length;
     let down = 0;
     let upstreamStatus: string | null = null;
-    connectUpstream(via).then((socket) => {
+    const route = routeOf(req.url ?? "/", req.headers);
+    connectUpstream(viaOf(route.host), route.host).then((socket) => {
+      // The client went away while the upstream connected: its close has passed, nothing would close this one.
+      if (client.destroyed) { socket.destroy(); return; }
       const connection: Live = { client, socket, last: Date.now(), closedForSelection: false, activeWhileUnchecked: false, path, identity };
       sockets.add(connection);
       if (identity.threadId) {
@@ -829,10 +882,10 @@ async function main(): Promise<void> {
       log(opened);
       recordRequest(identity.threadId, opened);
       noteChild(identity, opened.at);
-      const lines = [`${req.method} ${req.url} HTTP/1.1`];
+      const lines = [`${req.method} ${route.url} HTTP/1.1`];
       for (let i = 0; i < req.rawHeaders.length; i += 2) {
         const name = req.rawHeaders[i];
-        lines.push(`${name}: ${name.toLowerCase() === "host" ? UPSTREAM_HOST : req.rawHeaders[i + 1]}`);
+        lines.push(`${name}: ${name.toLowerCase() === "host" ? route.host : req.rawHeaders[i + 1]}`);
       }
       socket.write(`${lines.join("\r\n")}\r\n\r\n`);
       if (head.length) socket.write(head);
@@ -849,7 +902,7 @@ async function main(): Promise<void> {
         client.destroy();
         sockets.delete(connection);
         if (identity.threadId) live.get(identity.threadId)?.delete(connection);
-        const entry = { at: new Date(started).toISOString(), id, transport: "websocket", path, upstreamStatus, upBytes: up, downBytes: down, ms: Date.now() - started, closedForSelection: connection.closedForSelection, activeWhileUnchecked: connection.activeWhileUnchecked, ...identity };
+        const entry = { at: new Date(started).toISOString(), id, transport: "websocket", path, ...(route.host === OPENAI_API_HOST ? { upstream: route.host } : {}), upstreamStatus, upBytes: up, downBytes: down, ms: Date.now() - started, closedForSelection: connection.closedForSelection, activeWhileUnchecked: connection.activeWhileUnchecked, ...identity };
         log(entry);
         recordRequest(identity.threadId, entry);
       };

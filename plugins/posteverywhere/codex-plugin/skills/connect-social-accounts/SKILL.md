@@ -1,6 +1,6 @@
 ---
 name: connect-social-accounts
-description: Connect a social media account or channel to PostEverywhere. Use when the user wants to add Instagram, TikTok, YouTube, LinkedIn, Facebook, X, Threads, Pinterest, Bluesky, Telegram, Discord or WordPress, or when a post can't go out because no account is connected.
+description: Connect a social media account or channel to PostEverywhere. Use when the user wants to add Instagram, TikTok, YouTube, LinkedIn, Facebook, X, Threads, Pinterest, Google Business Profile, Bluesky, Telegram, Discord or WordPress, or when a post can't go out because no account is connected.
 ---
 
 # Connect social accounts
@@ -9,7 +9,7 @@ Accounts connect in one of two ways, depending on the platform.
 
 ## Sign-in platforms
 
-Instagram, Facebook, LinkedIn, X, YouTube, TikTok, Threads and Pinterest connect through the platform's own sign-in.
+Instagram, Facebook, LinkedIn, X, YouTube, TikTok, Threads, Pinterest and Google Business Profile (`google_business`) connect through the platform's own sign-in.
 
 1. Call `create_connect_link` with the `platform`.
 2. Give the user the link. It works for about 10 minutes, in any browser.
@@ -18,6 +18,7 @@ Instagram, Facebook, LinkedIn, X, YouTube, TikTok, Threads and Pinterest connect
    - **Facebook:** a Facebook Page they manage. Tick every Page and permission on Facebook's screen.
    - **YouTube:** a YouTube channel on the Google account, and every YouTube permission ticked on Google's screen.
    - **TikTok:** allow every permission on TikTok's screen.
+   - **Google Business Profile:** sign in with the Google account that owns or manages the business. If it manages several businesses, they choose which ones to add. Each business becomes its own account.
 4. After they finish, call `list_accounts` to confirm the account appears.
 
 ## Platforms that use a key or password

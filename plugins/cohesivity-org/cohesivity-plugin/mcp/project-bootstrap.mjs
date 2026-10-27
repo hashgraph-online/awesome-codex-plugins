@@ -50,7 +50,7 @@ export const RESOURCE_NAMES = Object.freeze([
 ]);
 
 const SERVER_NAME = "cohesivity-project-bootstrap";
-export const SERVER_VERSION = "5.0.3";
+export const SERVER_VERSION = "5.1.0";
 const SERVER_INSTRUCTIONS =
   "Cohesivity provisions managed backend resources and third-party APIs for the app in project_root, all under one tenant. " +
   "Call order: if project_root has no .cohesivity file, call create_tenant first; it writes .cohesivity and every other tool reads it. " +
@@ -63,6 +63,13 @@ const MAX_GITIGNORE_BYTES = 1024 * 1024;
 const MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MAX_FEEDBACK_LENGTH = 20_000;
 const USER_AGENT = `${SERVER_NAME}/${SERVER_VERSION}`;
+// Optional attribution suffix for tenants this server creates, read once at
+// server start from COHESIVITY_ATTRIBUTION (MCP clients can set env in their
+// server config). It is forwarded to the quickstart as `--attribution <value>`,
+// which appends it to the harness the quickstart measures from its own process
+// ancestry, so genesis records `<harness>.<value>`. Same slug rule genesis
+// applies to the harness name.
+const ATTRIBUTION_SLUG = /^[a-z0-9][a-z0-9._-]{0,39}$/u;
 const SECRET_DETECT = /(?:coh_(?:man|app)_[a-z0-9]+|mcp_(?:at|rt)_[A-Za-z0-9_-]+|Bearer\s+[^\s"']+)/i;
 const MANAGEMENT_OUTPUT_FIELDS = Object.freeze({
   claim: ["approval_url"],
@@ -143,9 +150,6 @@ const requiresUserInteraction = {
   "anthropic/requiresUserInteraction": true,
 };
 
-const noConfigurationResources = RESOURCE_NAMES.filter(
-  (name) => !["inbox", "postgres", "realtime", "social-login", "vector-database"].includes(name),
-);
 const POSTGRES_REGIONS = Object.freeze([
   "apac",
   "aws-us-east-1",
@@ -220,57 +224,48 @@ const bulkConfigurationsSchema = {
   additionalProperties: false,
 };
 
+// One flat object (COH-329): many MCP clients read only top-level properties
+// and drop every argument of a tool declared as a top-level oneOf. callTool
+// still enforces the exact per-resource shapes. The hosted /mcp advertises the
+// identical schema with tenant_id in place of project_root.
 const provisionInputSchema = {
   type: "object",
-  oneOf: [
-    {
-      type: "object",
-      properties: {
-        project_root: projectRootProperty,
-        resource: { enum: noConfigurationResources },
-        confirmed: confirmedProperty,
-      },
-      required: ["project_root", "resource", "confirmed"],
-      additionalProperties: false,
+  properties: {
+    project_root: projectRootProperty,
+    resource: {
+      enum: RESOURCE_NAMES,
+      description: "One resource to provision. Pass exactly one of resource or resources.",
     },
-    ...[
-      ["postgres", postgresConfigurationSchema],
-      ["inbox", inboxConfigurationSchema],
-      ["realtime", realtimeConfigurationSchema],
-      ["social-login", socialLoginConfigurationSchema],
-      ["vector-database", vectorConfigurationSchema],
-    ].map(([resource, configuration]) => ({
+    configuration: {
       type: "object",
       properties: {
-        project_root: projectRootProperty,
-        resource: { const: resource },
-        configuration,
-        confirmed: confirmedProperty,
+        ...postgresConfigurationSchema.properties,
+        ...inboxConfigurationSchema.properties,
+        ...realtimeConfigurationSchema.properties,
+        ...socialLoginConfigurationSchema.properties,
+        ...vectorConfigurationSchema.properties,
       },
-      required:
-        resource === "social-login" || resource === "vector-database"
-          ? ["project_root", "resource", "configuration", "confirmed"]
-          : ["project_root", "resource", "confirmed"],
       additionalProperties: false,
-    })),
-    {
-      type: "object",
-      properties: {
-        project_root: projectRootProperty,
-        resources: {
-          type: "array",
-          minItems: 1,
-          maxItems: RESOURCE_NAMES.length,
-          uniqueItems: true,
-          items: { enum: RESOURCE_NAMES },
-        },
-        configurations: bulkConfigurationsSchema,
-        confirmed: confirmedProperty,
-      },
-      required: ["project_root", "resources", "confirmed"],
-      additionalProperties: false,
+      description:
+        "Configuration for resource. social-login requires callback_urls; vector-database requires dimensions and accepts metric; postgres accepts region; inbox accepts webhook_url; realtime accepts write_region. Other resources take no configuration.",
     },
-  ],
+    resources: {
+      type: "array",
+      minItems: 1,
+      maxItems: RESOURCE_NAMES.length,
+      uniqueItems: true,
+      items: { enum: RESOURCE_NAMES },
+      description: "Several resources to provision in one call. Pass exactly one of resource or resources.",
+    },
+    configurations: {
+      ...bulkConfigurationsSchema,
+      description:
+        "Configuration for resources, keyed by resource name. Required for social-login and vector-database when they are requested.",
+    },
+    confirmed: confirmedProperty,
+  },
+  required: ["project_root", "confirmed"],
+  additionalProperties: false,
 };
 
 const DOCUMENTATION_TOOL = Object.freeze({
@@ -384,7 +379,7 @@ export const TOOLS = Object.freeze([
     name: "provision_resource",
     title: "Provision Cohesivity resources",
     description:
-      "Provisions one resource with resource/configuration, or several with resources/configurations. Requires an existing tenant: if project_root has no .cohesivity file, call create_tenant first. Fetch every requested offering's live documentation and obtain any required user consent before calling.",
+      "Provisions one resource with resource (plus configuration), or several with resources (plus configurations); pass exactly one of resource or resources. social-login requires callback_urls and vector-database requires dimensions; postgres, inbox, and realtime take optional configuration; other resources take none. Requires an existing tenant: if project_root has no .cohesivity file, call create_tenant first. Fetch every requested offering's live documentation and obtain any required user consent before calling.",
     inputSchema: provisionInputSchema,
     _meta: requiresUserInteraction,
     outputSchema: {
@@ -398,10 +393,6 @@ export const TOOLS = Object.freeze([
         result: jsonObjectSchema,
       },
       required: ["result"],
-      oneOf: [
-        { required: ["resource"] },
-        { required: ["resources"] },
-      ],
       additionalProperties: false,
     },
   },
@@ -665,6 +656,58 @@ function safeTenantMetadata(projectRoot) {
   return metadata;
 }
 
+// Dependencies captured once when the server starts. The attribution comes
+// from `--attribution <value>` (or `--attribution=<value>`) in the server's
+// arguments, for catalogs that can pass args but not env, otherwise from
+// COHESIVITY_ATTRIBUTION. A valid flag wins over the environment; an invalid
+// flag is ignored with a warning, like an invalid environment value. It is read
+// here and never again, so a later change to the process environment does not
+// alter what later create_tenant calls record.
+export function startupDependencies(environment = process.env, argv = process.argv.slice(2), warn = (message) => process.stderr.write(message)) {
+  return { attribution: attributionFromArguments(argv, warn) ?? attributionFromEnvironment(environment, warn) };
+}
+
+// Returns the flag's value when valid, null when the flag is present but
+// invalid or missing its value, and undefined when the flag is absent. The
+// last occurrence wins.
+export function attributionFromArguments(argv = process.argv.slice(2), warn = (message) => process.stderr.write(message)) {
+  let present = false;
+  let value;
+  for (let index = 0; index < argv.length; index++) {
+    const argument = argv[index];
+    if (argument === "--attribution") {
+      present = true;
+      value = argv[index + 1];
+      index++;
+    } else if (typeof argument === "string" && argument.startsWith("--attribution=")) {
+      present = true;
+      value = argument.slice("--attribution=".length);
+    }
+  }
+  if (!present) return undefined;
+  if (typeof value === "string" && ATTRIBUTION_SLUG.test(value)) return value;
+  warn("cohesivity: ignoring --attribution; it must be 1-40 lowercase letters, digits, '.', '_' or '-', starting with a letter or digit.\n");
+  return null;
+}
+
+// True when every argument is an --attribution flag, so the plain server runs.
+function serverArguments(argv) {
+  for (let index = 0; index < argv.length; index++) {
+    if (argv[index] === "--attribution") { index++; continue; }
+    if (argv[index].startsWith("--attribution=")) continue;
+    return false;
+  }
+  return true;
+}
+
+export function attributionFromEnvironment(environment = process.env, warn = (message) => process.stderr.write(message)) {
+  const value = environment.COHESIVITY_ATTRIBUTION;
+  if (value === undefined || value === "") return null;
+  if (typeof value === "string" && ATTRIBUTION_SLUG.test(value)) return value;
+  warn("cohesivity: ignoring COHESIVITY_ATTRIBUTION; it must be 1-40 lowercase letters, digits, '.', '_' or '-', starting with a letter or digit.\n");
+  return null;
+}
+
 export function secureEnvironment(environment = process.env) {
   const result = {};
   for (const name of ["HOME", "PATH", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME", "CODEX_HOME", "HERMES_HOME"]) {
@@ -867,6 +910,8 @@ function validateProjectCredentials(projectRoot) {
 
 async function runProjectQuickstart(projectRoot, dependencies) {
   const environment = dependencies.env ?? process.env;
+  const attribution = dependencies.attribution ?? null;
+  if (attribution !== null && !ATTRIBUTION_SLUG.test(attribution)) fail("The configured attribution is invalid.");
   const fetchImpl = dependencies.fetch ?? globalThis.fetch;
   return withStateLock(projectRoot, ".cohesivity-bootstrap.lock", async () => {
     let existingProject = false;
@@ -895,6 +940,7 @@ async function runProjectQuickstart(projectRoot, dependencies) {
         writeFileSync(headerPath, `${["Authorization:", "Bearer", account.access_token].join(" ")}\n`, { flag: "wx", mode: 0o600 });
         args.push("--account-auth-file", headerPath, "--idempotency-key", key);
       }
+      if (attribution) args.push("--attribution", attribution);
       await (dependencies.runQuickstart ?? runQuickstartProcess)(script, args, { cwd: projectRoot, env: secureEnvironment(environment) });
       validateProjectCredentials(projectRoot);
       ensureCredentialIgnored(projectRoot);
@@ -1461,7 +1507,7 @@ export async function handleRequest(request, dependencies = {}) {
   };
 }
 
-export async function runServer(input = process.stdin, output = process.stdout) {
+export async function runServer(input = process.stdin, output = process.stdout, dependencies = startupDependencies()) {
   const lines = createInterface({ input, crlfDelay: Infinity, terminal: false });
   for await (const line of lines) {
     if (line.trim() === "") continue;
@@ -1472,7 +1518,7 @@ export async function runServer(input = process.stdin, output = process.stdout) 
       output.write(`${JSON.stringify({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } })}\n`);
       continue;
     }
-    const response = await handleRequest(request);
+    const response = await handleRequest(request, dependencies);
     if (response !== undefined && request.id !== undefined) output.write(`${JSON.stringify(response)}\n`);
   }
 }
@@ -1489,12 +1535,13 @@ function launchedDirectly() {
 const isMain = launchedDirectly();
 if (isMain) {
   const command = process.argv[2];
-  const run = command === undefined ? runServer
+  const serving = serverArguments(process.argv.slice(2));
+  const run = serving ? () => runServer()
     : command === "login" && process.argv.length === 3 ? login
     : command === "logout" && process.argv.length === 3 ? logout
-    : () => fail("Usage: project-bootstrap.mjs [login|logout]");
+    : () => fail("Usage: project-bootstrap.mjs [login|logout|--attribution <value>]");
   Promise.resolve().then(run).catch((error) => {
-    if (command !== undefined) process.stderr.write(
+    if (!serving) process.stderr.write(
       `${error instanceof SafeError ? redactString(error.message) : "The command failed safely."}\n`,
     );
     process.exitCode = 1;

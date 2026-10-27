@@ -1,0 +1,42 @@
+{
+  "skill_name": "video-optimization",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our landing page has a 12MB autoplaying hero video (single 1080p MP4) and Lighthouse says LCP is 6 seconds. Fix it.",
+      "expected_output": "A fix that adds an optimized poster (treated as the LCP), streams or heavily compresses the loop (audio stripped, WebM+MP4 or HLS), keeps muted/playsinline autoplay, reserves layout space, adds prefers-reduced-motion fallback, and verifies with the network waterfall.",
+      "files": [],
+      "expectations": [
+        "Adds or fixes the poster and treats it as the LCP element",
+        "Strips audio and re-encodes or moves to adaptive streaming instead of one large MP4",
+        "Keeps muted autoplay loop playsinline semantics",
+        "Reserves dimensions/aspect-ratio to avoid CLS",
+        "Verifies with network waterfall or Lighthouse after the change"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "We have 14 YouTube embeds on our docs pages and they make every page slow. What should we do?",
+      "expected_output": "Facade pattern: thumbnail + play button, real iframe injected on click (lite-youtube-embed or equivalent), below-fold embeds load nothing at page load, preconnect on interaction, verified by network transfer before/after.",
+      "files": [],
+      "expectations": [
+        "Recommends click-to-load facades rather than eager iframes",
+        "Mentions an existing component like lite-youtube-embed where dependencies are acceptable",
+        "Ensures zero video bytes load for below-fold embeds at page load",
+        "Verifies improvement with network evidence"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Should I use a video or a 360 spin for the rotating shots of our furniture products on Sirv?",
+      "expected_output": "A comparison that recommends converting rotating product videos to Sirv 360 spins for interactivity and weight, using video2spin, while keeping video for demos with narrative, and pointing at the sirv-360-spin skill for implementation.",
+      "files": [],
+      "expectations": [
+        "Recommends spins for rotating product views and explains why",
+        "Mentions video2spin conversion with frame count guidance",
+        "Keeps video for narrative/demo content",
+        "References the sirv-360-spin skill or spin workflow for implementation"
+      ]
+    }
+  ]
+}

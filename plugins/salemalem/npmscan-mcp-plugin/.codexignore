@@ -1,0 +1,7 @@
+# Paths that aren't part of the plugin (read by the HOL plugin-scanner)
+outreach/
+node_modules/
+.DS_Store
+*.lock
+.env
+.env.*

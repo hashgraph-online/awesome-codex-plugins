@@ -70,7 +70,7 @@ return { speaker: { id, name: e?.name ?? null, assumed, why }, as_of: hits.as_of
 ## Traps
 
 - `search` ranks by the words in `query`; put the distinctive words of the phrase there, not a paraphrase.
-- A chunk found with `speakerIds` also holds other people's lines. Quote only lines that start with the speaker's name ("Chamath Palihapitiya: ..."), never the whole passage.
+- A chunk found with `speakerIds` can include other people's lines. Lines start with "Name: " when the speaker is known. Quote only the speaker's lines ("Chamath Palihapitiya: ..."), never the whole passage. When no line names a speaker, the passage still matched that person; say the attribution covers the passage, not each line.
 - Caption lines are machine text: fix nothing inside the quotation marks. A premium transcript (`quality: "premium"`, paid plans) adds speaker ids into `speakers[]`.
 - A caption read uses 4 credits per started 15 minutes of its `start`/`end` window, and of the whole episode without one. A Premium read uses credits for the whole video whatever the window.
 - Some videos have no readable caption track yet (`transcript_unavailable`, `transcript_fetching`); quote the search chunk `text` for those and say the words come from the search passage.
@@ -81,4 +81,4 @@ Docs: https://arcmira.com/docs/mcp-server
 
 Monitors can follow what a research turn found, and each alert uses 25 credits from the account's plan, then its on-demand budget. The `company-watch` skill sets one up.
 
-If anything was wrong, slow, or missing for the user, send one arcmira_feedback.
+If anything was wrong, slow, or missing for the user, or they want a source or capability Arcmira lacks, send one arcmira_feedback.

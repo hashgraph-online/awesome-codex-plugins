@@ -1,9 +1,9 @@
 # Equibles — Stock Market & Financial Data MCP Server
 
-111 MCP tools for AI agents like Claude, ChatGPT and Cursor: SEC filings, fundamentals, 13F institutional holdings, insider and congressional trades, earnings call transcripts, options chains, live quotes, IPO filings, short interest, macro data, and your own portfolio. Free hosted tier, or self-host the open-source stack.
+130 MCP tools for AI agents like Claude, ChatGPT and Cursor: SEC filings, fundamentals, 13F institutional holdings, insider and congressional trades, earnings call transcripts, options chains, live quotes, IPO filings, short interest, macro data, and your own portfolio. Free hosted tier, or self-host the open-source stack.
 
 [![Discovery repo: MIT](https://img.shields.io/badge/discovery%20repo-MIT-blue.svg)](LICENSE)
-[![Tools](https://img.shields.io/badge/tools-111-brightgreen.svg)](#tools)
+[![Tools](https://img.shields.io/badge/tools-130-brightgreen.svg)](#tools)
 [![Free tier](https://img.shields.io/badge/free%20tier-100%20req%2Fday-orange.svg)](#pricing--rate-limits)
 [![equibles.com](https://img.shields.io/badge/equibles.com-visit-6366f1.svg)](https://equibles.com)
 
@@ -140,220 +140,242 @@ After connecting, see the full per-client guides at [https://equibles.com/docs/m
 
 ## Tools
 
-111 tools, grouped by dataset.
+130 tools, grouped by dataset. 120 read market data; the 10 marked ✏️ write to your own portfolios, watchlist or feedback.
 
-### SEC filings search & full-text RAG
-
-| Tool | Description |
-|---|---|
-| SearchDocuments | Hybrid keyword + semantic search across all companies' SEC filings. |
-| SearchCompanyDocuments | Hybrid search of one company's filings by ticker. |
-| SearchDocument | Hybrid search within a single filing. |
-| ListCompanyDocuments | Browse available SEC filings and transcripts for a company. |
-| SearchDocumentKeyword | Keyword search within one filing. |
-| ReadDocumentLines | Read a line range from a filing. |
-
-### Financial statements & fundamentals (XBRL)
+### Filings & documents
 
 | Tool | Description |
 |---|---|
-| GetFinancialStatement | Income statement, balance sheet, or cash-flow statement for a fiscal period (XBRL). |
-| GetFinancialFact | One financial concept over time. |
-| CompareFinancialFact | Compare a concept across companies. |
-| GetRevenueBreakdown | Revenue by segment, geography, and product (dimensional XBRL). |
+| SearchDocuments | Hybrid keyword and semantic search across the filing corpus. |
+| SearchDocument | Runs search inside one document identified by the UUID returned from ListFilings. |
+| ListFilings | Lists stored filings and transcripts newest first (by filing date, then EDGAR acceptance time) and paginated. |
+| ReadDocumentLines | Reads a specific range of numbered lines from a document. |
+| GetFormDOfferings | Lists a company's recent Regulation D private placements from its SEC Form D notices, newest first. |
 
-### 13F institutional holdings & hedge fund portfolios
-
-| Tool | Description |
-|---|---|
-| GetFundCloneBacktest | Backtest cloning an institutional filer's 13F portfolio vs a market benchmark. |
-| GetTopHolders | Top institutional holders of a stock from SEC 13F-HR filings, ranked by shares held. |
-| GetOwnershipHistory | Historical trend of institutional ownership across quarters. |
-| GetInstitutionPortfolio | A specific institution's portfolio from its 13F-HR. |
-| SearchInstitutions | Search institutional investors by name or SEC CIK. |
-| GetTopBuyersSellers | Institutions with the biggest share additions/reductions on a stock this quarter. |
-| GetMarketWide13FActivity | Market-wide 13F leaderboards (top buys/sells/new/sold-out) for a quarter. |
-| GetMostHeldStocks | Stocks ranked by institutional 13F breadth. |
-| GetInstitutionSummary | Portfolio summary for a 13F filer (value, concentration, turnover). |
-| GetInstitutionSectorAllocation | An institution's 13F allocation by sector. |
-| GetInstitutionQuarterlyActivity | Initiated / increased / reduced / exited activity vs the prior quarter. |
-| GetFundOverlap | 13F portfolio overlap between two institutions. |
-| GetConsensusHoldings | Consensus portfolio of 2–25 institutions. |
-
-### Insider trading (Form 3/4/5 & Form 144)
+### Fundamentals & valuation
 
 | Tool | Description |
 |---|---|
-| GetInsiderTransactions | Recent insider transactions from SEC Form 3/4/5. |
-| GetInsiderOwnership | Insider ownership summary, ranked by shares held. |
-| GetProposedSales | Proposed insider sales from SEC Form 144. |
-| SearchInsiders | Search corporate insiders by name. |
-| GetInsiderSentimentScores | Stocks with the highest composite 0–100 insider-sentiment score. |
+| GetFinancialFact | A single XBRL financial concept (revenue, net income, diluted EPS, total assets, operating cash flow, and the like) returned as a time series drawn from SEC Company Facts: one row per fiscal period for flows such as revenue, and one row per as-of date for balances and share counts, so a cover-page share count and the balance-sheet count at the period end both appear. |
+| CompareFinancialFact | Compares one financial concept across several companies for the same fiscal period, a peer table with one row per ticker, each showing the latest-restated value; tickers with no data for the period are listed separately. |
+| GetFinancialStatement | A full income statement, balance sheet, or cash-flow statement for one fiscal year and period, from SEC Company Facts (XBRL). |
+| GetRevenueBreakdown | Revenue disaggregated by business segment, geography, and product/service, built from the dimensional XBRL facts the issuer tags in its own filings. |
+| GetCompanyKpis | The company's own key performance indicators, extracted from its written Item-2.02 8-K earnings releases and 10-K/10-Q MD&A. |
+| GetNonGaapBridge | The GAAP-to-non-GAAP reconciliation "bridge" for each stated non-GAAP measure, such as Adjusted EBITDA, adjusted EPS or adjusted operating income, extracted from a company's earnings releases and 10-K/10-Q periodic reports: the GAAP starting line, each stated adjustment in order, and the non-GAAP result, with the period, unit and verbatim source quote, verifier-approved and newest filing first. |
+| GetGuidance | Forward guidance ranges issued by management, extracted from Item-2.02 8-K earnings releases and earnings-call transcripts (some issuers, e.g. |
+| GetValuationMultiples | Trailing-twelve-month EV/Revenue, EV/EBIT and P/E, each shown against a subject-excluded peer median, quartiles, and the actual peer sample for that ratio. |
+| GetValuationMultiplesHistory | EV/Revenue, EV/EBIT, EV/EBITDA and P/E recomputed at each past quarter's filing date, one row per quarter, up to ~10 years. |
+| GetCustomerConcentration | A company's disclosed customer-concentration risk, statements like "one customer accounted for 26% of revenue." The tool serves both authoritative filing shapes directly. |
+| GetGoingConcernStatus | Whether the company's latest examined SEC filing states substantial doubt about its ability to continue as a going concern (with the verbatim disclosure, the source filing, and the history of examined filings showing when doubt appeared, was alleviated, or cleared. |
 
-### Congressional stock trading
-
-| Tool | Description |
-|---|---|
-| GetCongressionalTrades | Congressional trades for a ticker. |
-| GetMemberTrades | A member's disclosed trades. |
-| GetMemberNetWorth | A member's net worth history from disclosures. |
-| SearchCongressMembers | Search members by name. |
-| GetMarketWideCongressionalActivity | Stocks Congress traded most over a trailing window. |
-
-### Earnings calls: transcripts, briefs & AI insights
+### Debt profiles
 
 | Tool | Description |
 |---|---|
-| GetEarningsCallEvent | The earnings-call event for a fiscal quarter. |
-| ListInvestorEvents | Recent investor events. |
-| GetInvestorEventSpeakers | Speaker-labelled transcript by event id. |
-| GetEarningsCallSpeakers | Speaker-labelled earnings-call transcript by fiscal quarter. |
-| GetEarningsBrief | AI earnings brief (TL;DR, bull/bear, pull-quotes). |
-| GetCallInsights | AI-scored insights (tone, hedging, themes). |
-| GetInvestorEventSlides | Captured investor-event slide deck: title, source, page count, and links to the PDF or slide images. |
+| GetDebtProfile | Returns the company's issuer-reported debt-total history and a current-state summary of each identified note, loan, and revolving credit facility. |
+| GetDebtInstrument | Returns one durable instrument from the profile, including its current reported balance and as-of date, paged linked filing-observation history, currently operative verified covenant terms, and governing, amending, refinancing, or retirement documents. |
 
-### Earnings guidance, KPIs & non-GAAP bridges
+### Earnings calls & investor relations
 
 | Tool | Description |
 |---|---|
-| GetGuidance | Earnings guidance from 8-Ks and call transcripts. |
-| GetCompanyKpis | Company-specific KPIs (subscribers, ARR, adj. EBITDA…). |
-| GetNonGaapBridge | Non-GAAP-to-GAAP reconciliations. |
+| GetEarningsBrief | A verifier-approved qualitative read of a company's most recent earnings calls, newest quarter first. |
+| GetEarningsCallToneAndThemes | The AI-scored read of a company's recent earnings calls, newest first. |
+| GetEarningsCallThemeHistory | How a company's call themes move quarter over quarter. |
+| GetTranscriptPhraseTrend | How often a word or phrase comes up on a company's last earnings calls, oldest call first. |
+| GetEarningsCallEvent | The single event record that groups one fiscal quarter's earnings-call artefacts (audio, transcript, slide deck, and the 8-K earnings release) under one entry. |
+| GetEarningsCallTranscript | The speaker-labelled transcript of a company's earnings call for a given fiscal quarter. |
+| GetEarningsCallQuestions | The analyst questions asked in a call's Q&A, one entry per analyst turn at the microphone with any follow-ups, in the order they were asked. |
+| GetInvestorEventSlideMetadata | Metadata and access links for a captured investor-event slide deck. |
+| ListInvestorEvents | A company's recent investor events (earnings calls plus the other events it webcasts (conferences, investor/analyst days, shareholder meetings)) newest first. |
+| GetInvestorEventTranscript | The speaker-labelled transcript of a specific investor event by its event id. |
+| GetInvestorRelationsNews | Recent investor-relations press releases for a stock, scraped straight from the company's own IR website, headline, publish date, a one-line summary when the source provides one, and link, in reverse-chronological order. |
+| GetUpcomingInvestorEvents | The forward investor-relations calendar for a stock (earnings webcasts, conference appearances, presentations and shareholder meetings scraped from the company's IR website, scheduled from now onward, soonest first (NVIDIA had none as of this capture, so the example below uses Microsoft). |
+| GetShareholderVoteResults | A company's shareholder meeting vote results, read from the Item 5.07 section of its SEC 8-K filings, latest meeting first. |
 
-### Stock prices & technical indicators
-
-| Tool | Description |
-|---|---|
-| GetStockPrices | Daily OHLCV history (split-adjusted). |
-| GetLatestPrices | Latest close, change, and volume. |
-| GetStochasticOscillator | Stochastic oscillator series. |
-| GetAverageTrueRange | Average true range (ATR) series. |
-| GetOnBalanceVolume | On-balance-volume (OBV) series. |
-| GetBollingerBands | Bollinger Bands series. |
-
-### Short interest, short volume & dark pools (FINRA)
-
-| Tool | Description |
-|---|---|
-| GetShortVolume | Daily short-sale volume (FINRA). |
-| GetShortInterest | Bi-monthly short interest. |
-| GetShortInterestSnapshot | Market-wide latest settlement snapshot. |
-| GetLargestShortVolume | Largest daily short volume. |
-| GetShortSqueezeScores | Highest composite 0–100 short-squeeze scores. |
-| GetOffExchangeVolume | Weekly dark-pool / OTC volume (FINRA ATS). |
-
-### Live quotes & options chains
+### Analyst estimates
 
 | Tool | Description |
 |---|---|
-| GetLiveQuote | Latest intraday price for one or more US listings. |
-| GetOptionExpirations | Available option expiration dates for a stock, with the contract count at each. |
-| GetOptionChain | Calls and puts for one expiration: strike, bid/ask, volume, open interest, IV, and greeks. |
-| GetOptionContract | Full snapshot for one option contract by its OCC symbol. |
+| GetAnalystEstimates | Reads stored analyst consensus forecasts for one company. |
 
-### IPO pipeline (S-1 / F-1)
+### Institutional holdings (13F)
 
 | Tool | Description |
 |---|---|
-| GetIpoFeed | The US S-1/F-1 registration pipeline, newest filing activity first. |
-| GetIpoDetails | One registration in full: status, offer terms, underwriters, risk factors, and pre-IPO financials. |
+| GetTopHolders | Ranks the largest tracked institutional holding rows for a stock from the latest 13F filings. |
+| GetInstitutionalOwnershipHistory | Shows how aggregate reported 13F exposure to a stock has trended across recent quarters, the number of filers, total reported quantity, aggregate published position value, and the like-for-like quarter-over-quarter change: only filers with an observed 13F in both quarters count, and each quarter lists the filers and shares it excluded (late or confidential filings, first filings, CIK changes whose books do not match), because a missing filing is not a trade. |
+| GetHolderMix | Splits a stock's 13F holders by one dimension, quarter by quarter. |
+| GetTopInstitutionalBuyersSellers | Surfaces the institutions that moved the needle most on a stock this quarter, two ranked tables, the biggest absolute share additions (Top Buyers) and the biggest absolute reductions (Top Sellers) versus the prior 13F report date. |
+| GetInstitutionPortfolio | Lists a specific institution's largest reported 13F positions by published value, with each row's type, share count, value and percent of the tracked portfolio. |
+| GetInstitutionSummary | Returns the header-level portfolio summary for a 13F filer, published tracked portfolio value, position count, top-10 and top-25 concentration, quarter-over-quarter turnover, and the latest/prior report dates with the number of quarters on file. |
+| GetInstitutionStyleHistory | How a 13F filer's book behaves, quarter by quarter, measured from its filed common-share positions. |
+| GetInstitutionSectorAllocation | Breaks an institution's latest 13F portfolio down by industry/sector, sorted by weight, with the position count, published dollar value, and percent of tracked portfolio for each sector. |
+| GetInstitutionQuarterlyActivity | Diffs an institution's 13F against the immediately prior quarter and groups the changes into four buckets (Initiated, Increased, Reduced, and Exited) each sorted by absolute change in value. |
+| SearchInstitutions | Searches the tracked 13F filer set by filed-name words or CIK prefix and includes verified brand aliases for current flagship filers. |
+| GetMarketWide13FActivity | Returns a market-wide 13F leaderboard for one chosen bucket, ranking stocks across all filers by their aggregate move versus the prior quarter. |
+| GetHolderTypeFlows | Market-wide money flows by kind of 13F filer for a closed quarter. |
+| GetMostHeldStocks | Ranks stocks by institutional 13F breadth for a quarter, by default the number of filers reporting each name, or by quarter-over-quarter change in filer count (a warming/cooling heat map), or by total published position value. |
+| GetSuperInvestors | Returns the curated super-investor directory, a hand-picked roster of well-known value investors and fund managers (Warren Buffett, Bill Ackman, Michael Burry, Seth Klarman and more), each with their 13F filer CIK, latest published tracked portfolio value, position count, quarter-over-quarter change, and report date. |
 
-### Valuation multiples & stock screener
-
-| Tool | Description |
-|---|---|
-| GetValuationMultiples | EV/Revenue, EV/EBIT, P/E with industry quartiles. |
-| GetValuationMultiplesHistory | The same valuation multiples over time. |
-| ScreenStocks | Screen the stock universe with range filters across datasets. |
-| GetCorrelatedStocks | Most and least correlated stocks by daily returns. |
-
-### Economic data (FRED) & macro calendar
-
-| Tool | Description |
-|---|---|
-| GetEconomicIndicator | Time series for a FRED indicator (~40 curated series). |
-| GetLatestEconomicData | Latest values across categories. |
-| SearchEconomicIndicators | Search the curated series. |
-| GetEconomicCalendar | Scheduled and recent US macro releases. |
-
-### Futures positioning (CFTC COT)
+### ETFs
 
 | Tool | Description |
 |---|---|
-| GetCftcPositioning | COT positioning for a futures contract. |
-| GetLatestCftcData | Latest COT snapshot across ~35 tracked contracts. |
-| SearchCftcMarkets | Search tracked CFTC contracts. |
+| SearchEtfs | Search active exchange-traded funds and products by ticker, fund name, or sponsor. |
+| GetEtfProfile | Return an ETF-specific profile with exact-ticker settled price and total-return performance, 52-week range, average volume, SEC-reported assets, top-ten concentration, allocation, and ten largest holdings. |
+| GetEtfHoldings | Return the ETF's stored portfolio from its latest Form NPORT-P report, ranked by value. |
 
-### Volatility & options sentiment (CBOE)
-
-| Tool | Description |
-|---|---|
-| GetPutCallRatios | CBOE put/call ratios (Total / Equity / Index / Vix / Etp). |
-| GetVixHistory | VIX daily OHLC history. |
-
-### Funds, ETFs & investment advisers
+### Funds & advisers
 
 | Tool | Description |
 |---|---|
-| SearchInvestmentAdvisers | Search SEC-registered investment advisers (Form ADV). |
-| GetInvestmentAdviser | Full Form ADV profile by CRD number. |
-| GetFundOperations | Fund operational data from Form N-CEN. |
-| GetFundHoldings | Fund/ETF portfolio holdings from latest NPORT-P. |
-| GetFundsHoldingStock | Funds/ETFs holding a given stock. |
-| GetExemptOfferings | Private placements from Form D. |
-| GetFailsToDeliver | FTD data from the SEC's twice-monthly files. |
-| SearchFunds | Search registered funds/ETFs. |
-| GetFundProfile | Fund profile and largest holdings from NPORT-P. |
+| SearchFunds | Searches the tracked directory of registered management investment companies and UIT ETFs that file SEC Form NPORT-P by fund-name, registrant, identifier, or ticker words in any order. |
+| GetFundProfile | Returns a registered fund's profile and largest holdings from its most recent SEC Form NPORT-P. |
+| GetFundNcenReports | Returns operational data for a registered investment company from its SEC Form N-CEN annual reports. |
+| GetFundsHoldingStock | Returns the registered funds and ETFs holding a given stock or ETF listing, from SEC Form NPORT-P portfolio reports. |
+| GetEuropeanFundHoldings | European investment funds reporting a position in one listing outside the US, written MIC:TICKER, matched by that security's ISIN. |
+| CompareInstitutionPortfolios | Returns the 13F portfolio overlap between two institutional managers for their latest common report date, union and shared position counts, Jaccard similarity, a dollar-weighted overlap, and a side-by-side table of stocks with each manager's share count and percent of tracked portfolio. |
+| GetInstitutionConsensusHoldings | Returns the consensus / combined portfolio of 2–25 institutional managers for their latest common report date. |
+| GetInstitutionCloneBacktest | Backtests how cloning an institutional filer's reported 13F portfolio would have performed against a market benchmark over a trailing window. |
+| SearchInvestmentAdvisers | Searches SEC-registered and exempt reporting investment advisers (Form ADV) by firm name. |
+| GetInvestmentAdviser | Returns the full Form ADV profile for a single SEC-registered or exempt reporting investment adviser by its Organization CRD number. |
 
-### Index composition & forecasts
-
-| Tool | Description |
-|---|---|
-| GetIndexComposition | Current constituent list for an index, heaviest first, with each company's weight. |
-| GetIndexChanges | Companies that have joined or left an index, newest first, with the dates each change is bounded by. |
-| GetIndexForecast | Applies an index's published entry rules to every company we track, rule by rule. |
-
-### Corporate events & governance
+### Insider trading
 
 | Tool | Description |
 |---|---|
-| GetExecutiveChanges | Executive/director changes from 8-K Item 5.02. |
-| GetExecutiveCompensation | Compensation from DEF 14A. |
-| GetBuybackPrograms | Share-repurchase programs and history. |
-| GetAtmPrograms | At-the-market equity offering programs. |
-| GetGoingConcernStatus | Going-concern doubt status from the latest filing. |
-| GetCustomerConcentration | Customer-concentration risk disclosures. |
-| GetInvestorRelationsNews | Recent IR press releases. |
-| GetInvestorRelationsEvents | Upcoming IR events / webcasts. |
-| GetSuperInvestors | Curated superinvestor directory with 13F CIKs. |
-| GetGovernmentContracts | Federal contract awards (USAspending.gov) won by a company. |
-| GetTopGovernmentContractors | Companies ranked by federal contract dollars. |
-| GetFdaCatalysts | Scheduled FDA advisory-committee meetings. |
-| GetMarketStatus | US market session status. |
-| GetMarketCalendar | Market holidays and half days. |
+| GetInsiderTransactions | Returns the most recent insider transactions for a stock, straight from SEC Forms 4 and 5. |
+| GetInsiderOwnership | Returns a roster of a company's insiders (directors, officers, and 10% owners) each with their role, total shares held, and the type and date of their most recent transaction, ranked from the largest holder down. |
+| GetForm144ProposedSales | Returns recent Form 144 notices for a stock, an affiliate's advance declaration of intent to sell restricted or control shares. |
+| GetInsiderSentimentScores | Ranks the entire scored universe by a composite 0-100 insider-sentiment score over a trailing 90-day window, a peer-relative blend of three direction-aware factors (net distinct insiders buying, net shares bought as a percent of shares outstanding, and net insider buy value in dollars), built only from open-market Forms 4/5 purchases and sales. |
+| SearchInsiders | Looks up tracked corporate insiders (directors, officers, and 10% owners) by whole name words, never arbitrary substrings. |
+| GetEuropeanDirectorTransactions | Director and related-person (PDMR) transactions a European regulator published for one listing outside the US, written MIC:TICKER. |
 
-### Your own portfolio (the only tools that write)
-
-Scoped to the account behind the API key. The caller's own holdings, never anyone else's.
+### Congressional trading
 
 | Tool | Description |
 |---|---|
-| GetMyPortfolio | The user's saved holdings, priced, with cost basis and realized/unrealized profit. |
-| CreateMyPortfolio | Create a new, empty portfolio. |
-| DeleteMyPortfolio | Permanently delete a portfolio and every lot in it. |
-| AddPortfolioLot | Record one purchase or sale as a lot, for a stock or an option contract. |
-| UpdatePortfolioLot | Correct a lot's quantity, price, trade date, or note. |
-| ClosePortfolioLot | Record a sale, cover, or expiry of all or part of a lot, keeping its realized profit. |
-| RemovePortfolioLot | Permanently delete a lot entered by mistake. |
-| WatchInstrument | Put a stock or option contract on a watchlist, with no position recorded. |
-| UnwatchInstrument | Remove a stock or option contract from a watchlist. |
+| GetCongressionalTrades | Returns the disclosed congressional trades for one ticker, newest first. |
+| GetMemberTrades | Returns one member of Congress's disclosed trades, newest first. |
+| GetMemberNetWorth | Returns a member's net-worth history reconstructed from their annual financial-disclosure reports. |
+| GetMarketWideCongressionalActivity | Aggregates congressional trading across every member and every ticker over a trailing window, "what did Congress buy (or sell) lately" without needing a ticker or a member name. |
+| SearchCongressMembers | Searches the tracked congressional roster by punctuation-independent name words in any order. |
+
+### Short selling
+
+| Tool | Description |
+|---|---|
+| GetShortVolume | FINRA's daily short-sale volume for one stock. |
+| GetShortInterest | FINRA's bi-monthly short-interest report for one stock. |
+| GetOffExchangeVolume | Weekly off-exchange trading volume for one stock from FINRA's OTC/ATS Transparency data. |
+| GetFailsToDeliver | Returns SEC fails-to-deliver (FTD) records for a stock or ETF, listed oldest to newest. |
+| GetShortInterestSnapshot | A market-wide leaderboard at the latest FINRA short-interest settlement date, ranked by days-to-cover (descending) so the most squeeze-prone names surface first. |
+| GetLargestShortVolume | The listed securities, ETFs included, with the largest short-sale volume on a single trading day (the latest available by default), ranked by short volume descending, with ticker, short volume, short-exempt volume, total volume, and short percentage. |
+| GetShortSqueezeScores | A market-wide leaderboard of the highest composite short-squeeze scores (0–100), ranked peer-relative across primary operating-company stocks with short interest at the latest settlement date. |
+| GetEuropeanShortPositions | Net short positions disclosed to European regulators for one listing outside the US, written MIC:TICKER, matched by that security's ISIN or, for issuer-level sources such as Sweden's, the issuer's LEI. |
+
+### Capital, executives & screening
+
+| Tool | Description |
+|---|---|
+| GetBuybackPrograms | A company's share-repurchase picture (tracked programs (authorized total, remaining, expiry), the latest authorization, and the repurchase history (cash spent, shares, average price) by fiscal year) from XBRL facts plus verified extractions of the filings' narrative. |
+| GetAtmPrograms | At-the-market (ATM) equity programs: executed sales/distribution agreements under which a company sells new shares directly into the market. |
+| GetExecutiveChanges | Executive and director appointments and departures, extracted from Item-5.02 8-K filings (each with the person, role text exactly as filed, a separate normalized role classification, the nature of the change, its effective date, the verbatim disclosure, and a link to the source 8-K. |
+| GetExecutiveCompensation | Named-executive pay from the company's DEF 14A Summary Compensation Table, salary, bonus, stock and option awards, non-equity incentive, other, and the company-reported total, per fiscal year. |
+| ScreenStocks | Screen US listings, or European, Chinese and Hong Kong listings with market, by combining range filters across datasets. |
+| GetGovernmentContracts | Federal contract awards won by a company, from USAspending, each with the award date, the **recipient** as the government named it, awarding agency, award type, total value, period-of-performance end, award ID, and description. |
+| GetTopGovernmentContractors | The companies that have won the most federal contract dollars over a window, ranked by total awarded, with the award count. |
+| GetFdaAdvisoryCommitteeMeetings | Scheduled FDA advisory-committee meetings, soonest first, with the date, meeting title, FDA center, type, and a link to the per-meeting FDA page (the only place that names the product and sponsor under review). |
+
+### Prices & technicals
+
+| Tool | Description |
+|---|---|
+| GetStockPrices | Daily OHLCV bars for one stock, one row per trading day with open, high, low, close and positive share volume, listed oldest to newest. |
+| GetLatestClosingPrices | The most recent traded closing price, one-session change, share volume, and trailing 52-week range for up to 25 tickers in one call. |
+| GetDividendHistory | Stored declared cash dividends for an exact stock or ETF listing, newest ex-dividend date first. |
+| GetLiveQuote | GetLiveQuote checks the live service's current in-memory snapshot first. |
+| GetBollingerBands | Bollinger Bands for one stock. |
+| GetStochasticOscillator | The stochastic oscillator for one stock. |
+| GetAverageTrueRange | Wilder's Average True Range (ATR) for one stock (a volatility measure built from the true range (the greatest of high−low, /high−prev close/ and /low−prev close/) and smoothed recursively over period days) shown alongside each day's close, newest first. |
+| GetOnBalanceVolume | On-Balance Volume (OBV) for one stock. |
+| GetCorrelatedStocks | The stocks whose daily returns move most (or least) with one stock. |
+
+### Options
+
+| Tool | Description |
+|---|---|
+| GetOptionExpirations | The listed expiration dates for an underlying, ascending, with the number of active contracts at each. |
+| GetOptionChain | The calls-and-puts chain for one expiration: strike, type, last daily price, dated open interest, implied volatility and greeks (delta, gamma, theta, vega). |
+| GetOptionContract | A single option contract by its OCC symbol: last daily price and range, dated open interest, implied volatility, greeks, and tier-appropriate bid/ask. |
+
+### Economic, futures & sentiment
+
+| Tool | Description |
+|---|---|
+| GetEconomicIndicator | The observation history for one FRED economic series, one row per period with its value, plus the series title, units, frequency, and seasonal-adjustment flag. |
+| GetLatestEconomicIndicators | The latest reading for every tracked FRED series, grouped by category, as a one-glance macro dashboard. |
+| SearchEconomicIndicators | Search the tracked FRED series by exact ID, verified common alias, or title/topic words in any order. |
+| GetEconomicCalendar | The economic-release calendar: upcoming release dates by default, and recent ones when startDate is in the past. |
+| GetMarketStatus | Whether the US equity market is open right now, the current session, and the next open and close, computed from the exchange's curated holiday and early-close calendar, in Eastern Time. |
+| GetMarketHolidayCalendar | The US market's holidays and early-close (1:00 p.m. |
+| GetCftcPositioning | The weekly Commitments of Traders (COT) positioning for one futures contract. |
+| GetLatestCftcPositioning | The latest COT snapshot across every tracked contract, grouped by category (Agriculture, Energy, Metals, Equity Indices, Interest Rates, Currencies), with open interest and net commercial / non-commercial positioning at a glance. |
+| SearchCftcMarkets | Search the tracked CFTC futures-contract set by exact market code, verified standard symbol/common alias, or name words in any order. |
+| GetPutCallRatios | The CBOE put/call ratio history for one ratio type (equity by default): call and put volume, total, and the P/C ratio per date. |
+| GetVixHistory | The CBOE VIX daily OHLC series (the market's "fear gauge"), available back to 1990. |
+
+### IPOs
+
+| Tool | Description |
+|---|---|
+| GetIpoFeed | Returns the tracked registrations, newest filing activity first. |
+| GetIpoDetails | Returns one registration's full picture by SEC CIK. |
+
+### Stock indexes
+
+| Tool | Description |
+|---|---|
+| GetIndexComposition | Returns one index's current constituent list, heaviest first, with each company's share of the index and the tracking fund's position in it. |
+| GetIndexChanges | Returns the companies that have joined or left an index, newest first. |
+| GetIndexForecast | Applies an index's own published entry rules to every company we track. |
+
+### Your portfolio
+
+| Tool | Description |
+|---|---|
+| GetMyPortfolio | Your positions, priced, with cost basis, unrealized profit and the realized profit from lots you have closed. |
+| CreateMyPortfolio ✏️ | Creates a new, empty portfolio. |
+| AddPortfolioLot ✏️ | Records one purchase or sale. |
+| UpdatePortfolioLot ✏️ | Corrects a lot you already recorded: a mistyped quantity, price, date, note or exchange rate. |
+| ClosePortfolioLot ✏️ | Records that you sold, covered, or let a lot expire, at a price and on a date. |
+| RemovePortfolioLot ✏️ | Permanently deletes a lot, as if it had never been recorded. |
+| WatchInstrument ✏️ | Puts a stock or an option contract on a portfolio's watchlist, without recording any position. |
+| UnwatchInstrument ✏️ | Removes an instrument from a portfolio's watchlist. |
+| DeleteMyPortfolio ✏️ | Permanently deletes a portfolio and every lot in it, open and closed, including the realized-profit history. |
+
+### Trackers
+
+| Tool | Description |
+|---|---|
+| ListWebDataFeeds | Lists the caller's trackers with their identifiers, active or paused state, visibility, source access, schedule, next collection, and latest run status. |
+| GetWebDataFeed | Reads the latest independently verified successful result and its captured source URLs by default. |
+
+### Supply chains
+
+| Tool | Description |
+|---|---|
+| GetSupplyChain | A company's supply chain. |
+| GetSupplyChainOverlap | Which of a company's suppliers and customers also supply or buy from its listed competitors, from the same 10-K readings as GetSupplyChain. |
+| GetOrganization | An organization that no market we cover lists: the U.S. |
 
 ### Agent feedback
 
 | Tool | Description |
 |---|---|
-| ReportProblem | Report wrong, missing, or broken data straight from the tool call. |
-| SuggestToolImprovement | Suggest a change to a tool's behaviour, arguments, or output. |
+| ReportProblem ✏️ | Report an Equibles tool call you actually made when it failed, timed out, was unexpectedly empty (ToolFailed), or returned verifiably impossible or contradictory data (ImplausibleResult). |
+| SuggestToolImprovement ✏️ | Suggest the smallest actionable contract improvement to an existing Equibles tool you actually called when it worked as documented but lacked a useful operation, filter, parameter or output option. |
 
 ## Pricing & rate limits
 

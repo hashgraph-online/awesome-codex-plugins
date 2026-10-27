@@ -31,6 +31,12 @@ neighboring behavior. Report delivered results and remaining gaps honestly;
 partial work is not complete. These are decision principles, not a new artifact,
 universal goal-framing route, or completion authority.
 
+Preserve task fidelity through understanding, transformation, execution and
+delivery: retain decision-relevant meaning and evidence status, checking both
+omissions and unsupported additions. Authorized summaries, designs and
+evidence-based corrections are valid. Use existing checkpoints and sufficient
+current evidence; no extra approval, six-item report or exhaustive trace is required.
+
 ## Hot Path
 
 1. User/project instructions outrank Aegis.

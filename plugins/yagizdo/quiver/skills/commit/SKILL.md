@@ -73,13 +73,13 @@ Analyze `git diff --cached` and the recent log. Generate a Conventional Commits 
 
 **Footers** — `BREAKING CHANGE:` if applicable. `Refs: #issue` if relevant.
 
+Include a body or footers only for breaking changes or multi-type changes where the subject alone is genuinely ambiguous. Default to subject-only. Don't add `Co-authored-by` or attribution footers unless explicitly requested.
+
 ---
 
 # Output
 
 **Important:** The user must see the full commit message before answering the prompt. Print it to the chat stream and keep the `AskUserQuestion` question itself to one short line -- see **Default (no flag)** below.
-
-Include a body or footers only for breaking changes or multi-type changes where the subject alone is genuinely ambiguous. Default to subject-only. Don't add `Co-authored-by` or attribution footers unless explicitly requested.
 
 ## Flag: `--push`
 

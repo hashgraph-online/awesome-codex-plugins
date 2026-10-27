@@ -1,4 +1,6 @@
 Feature: Skill Builder creates an explicitly incomplete source and owned projections
+  @covered-by:cli/internal/skillsapp/build_test.go::TestBuildScaffoldAndReceipt
+  @covered-by:tests/integration/test_skill_builder.bats::INCOMPLETE_SCAFFOLD
   Scenario: A small adapter starts without optional helper files
     When build.sh from-scratch creates a named package
     Then SKILL.md is its only created source file
@@ -6,6 +8,7 @@ Feature: Skill Builder creates an explicitly incomplete source and owned project
     And the source carries metadata.authoring_state scaffold
     And strict source checking reports INCOMPLETE_SCAFFOLD
 
+  @covered-by:tests/integration/test_skill_builder.bats::concise
   Scenario: Completed concise behavior needs no decorative sections
     Given an author states applicability, inputs, authority, result, done and failure
     And removes the explicit scaffold state after authoring
@@ -13,11 +16,14 @@ Feature: Skill Builder creates an explicitly incomplete source and owned project
     Then missing optional helpers and heading labels do not block conformance
     And a fresh reviewer still judges semantic completeness
 
+  @covered-by:tests/integration/test_skill_builder.bats::caller-relative
   Scenario: External observation remains clean-room
     When absorb-external receives an existing input file
     Then it records the source hint and creates blank placeholders
     And it copies no external name, prose, prompt, script or example
 
+  @covered-by:cli/internal/skillsapp/build_test.go::TestBuildScaffoldAndReceipt
+  @covered-by:cli/internal/skillsapp/build_test.go::TestBuildRejectsGitReportStorageBeforeMutation
   Scenario: A report destination is explicit
     When no report path is supplied
     Then build JSON is returned on stdout without a workspace receipt

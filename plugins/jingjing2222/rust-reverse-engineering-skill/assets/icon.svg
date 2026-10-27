@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Rust Reverse Engineering</title>
+  <rect width="512" height="512" rx="112" fill="#C96442"/>
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="224" cy="224" r="128" stroke-width="32"/>
+    <path d="m320 320 88 88" stroke-width="48"/>
+    <path d="m192 184-40 40 40 40m64-80 40 40-40 40" stroke-width="24"/>
+  </g>
+</svg>

@@ -1,0 +1,47 @@
+{
+  "name": "revid",
+  "version": "1.0.1",
+  "description": "Research what goes viral, make finished short-form videos (voice, captions, music, AI footage) and post them to TikTok, YouTube, Instagram and X.",
+  "author": {
+    "name": "Revid",
+    "email": "hello@revid.ai",
+    "url": "https://www.revid.ai"
+  },
+  "homepage": "https://www.revid.ai/mcp",
+  "repository": "https://github.com/tmakersas/revid-skills",
+  "license": "MIT",
+  "keywords": [
+    "video",
+    "ai-video",
+    "short-form-video",
+    "tiktok",
+    "youtube-shorts",
+    "instagram-reels",
+    "social-media",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Revid",
+    "shortDescription": "Research, make and post short videos",
+    "developerName": "Revid",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Find what is going viral about productivity apps this week and make a 30 second video from the strongest hook.",
+      "Turn https://www.revid.ai/blog/best-video-mcp-servers into a 45 second vertical video with captions and music.",
+      "Schedule my latest Revid video on my TikTok for Friday 6pm with a caption and 4 hashtags."
+    ],
+    "websiteURL": "https://www.revid.ai",
+    "supportURL": "https://www.revid.ai/help",
+    "longDescription": "Revid gives Codex the whole short-form video loop through the hosted Revid MCP server (30 tools). Search viral videos across TikTok, YouTube, Instagram and X for hooks and formats, render a finished video with voice, captions, music and AI footage from a prompt, script, article or upload, then publish or schedule it to your connected accounts.\n\nSign in with your Revid account through OAuth. Searches are free; renders use Revid credits, and calculate_credits prices a render before you start it. The skills cover each workflow step by step, from research-make-and-post to product ads and talking-head videos.",
+    "privacyPolicyURL": "https://www.revid.ai/policy",
+    "termsOfServiceURL": "https://www.revid.ai/terms",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  }
+}

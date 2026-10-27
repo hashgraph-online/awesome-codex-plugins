@@ -355,7 +355,11 @@ export class CdpProtocolClient {
     throw cdpError("GOAL_PROGRESS_CDP_EVENT_TIMEOUT", method);
   }
 
-  async send(method: string, params: unknown = {}): Promise<unknown> {
+  async send(
+    method: string,
+    params: unknown = {},
+    options: { readonly timeoutMs?: number } = {},
+  ): Promise<unknown> {
     if (this.#closed || this.#failed) {
       throw this.#failed ?? cdpError("GOAL_PROGRESS_CDP_WEBSOCKET_CLOSED");
     }
@@ -364,8 +368,9 @@ export class CdpProtocolClient {
     const response = new Promise<unknown>((resolveResponse, rejectResponse) => {
       const timeout = setTimeout(() => {
         this.#pending.delete(id);
+        this.#ignoredResponseIds.add(id);
         rejectResponse(cdpError("GOAL_PROGRESS_CDP_REQUEST_TIMEOUT", method));
-      }, this.#requestTimeoutMs);
+      }, options.timeoutMs ?? this.#requestTimeoutMs);
       this.#pending.set(id, {
         method,
         resolve: resolveResponse,
@@ -514,7 +519,11 @@ export class CdpProtocolClient {
 }
 
 export interface CdpCommandSender {
-  send(method: string, params?: unknown): Promise<unknown>;
+  send(
+    method: string,
+    params?: unknown,
+    options?: { readonly timeoutMs?: number },
+  ): Promise<unknown>;
 }
 
 export class GoalProgressPageError extends Error {
@@ -634,13 +643,39 @@ export async function invokeGoalProgressPageApi(
   sender: CdpCommandSender,
   method: GoalProgressPageApiMethod,
   argument?: unknown,
+  timeoutMs?: number,
 ): Promise<unknown> {
-  const evaluated = await sender.send("Runtime.evaluate", {
-    expression: "globalThis.__CODEX_GOAL_PROGRESS__",
-    objectGroup: "codex-goal-progress",
-    returnByValue: false,
-    awaitPromise: true,
-  });
+  if (method === "health") {
+    // Read one snapshot by value; a cleanup round trip must not replace a valid health result.
+    const evaluated = await sender.send(
+      "Runtime.evaluate",
+      {
+        expression: "globalThis.__CODEX_GOAL_PROGRESS__?.health() ?? null",
+        awaitPromise: true,
+        returnByValue: true,
+      },
+      timeoutMs === undefined ? undefined : { timeoutMs },
+    );
+    const result = RuntimeCallByValueResultSchema.safeParse(evaluated);
+    if (!result.success) throw new GoalProgressPageError("GOAL_PROGRESS_PAGE_API_FAILED");
+    if (result.data.result.value == null) {
+      throw new GoalProgressPageError("GOAL_PROGRESS_PAGE_API_UNAVAILABLE");
+    }
+    return result.data.result.value;
+  }
+  const deadline = timeoutMs === undefined ? undefined : Date.now() + timeoutMs;
+  const options = () =>
+    deadline === undefined ? undefined : { timeoutMs: Math.max(1, deadline - Date.now()) };
+  const evaluated = await sender.send(
+    "Runtime.evaluate",
+    {
+      expression: "globalThis.__CODEX_GOAL_PROGRESS__",
+      objectGroup: "codex-goal-progress",
+      returnByValue: false,
+      awaitPromise: true,
+    },
+    options(),
+  );
   const parsedHandle = RuntimeObjectHandleSchema.safeParse(evaluated);
   if (!parsedHandle.success) throw new GoalProgressPageError("GOAL_PROGRESS_PAGE_API_UNAVAILABLE");
   const handle = parsedHandle.data;
@@ -652,14 +687,18 @@ export async function invokeGoalProgressPageApi(
       returnByValue: true,
       ...(argument === undefined ? {} : { arguments: [{ value: argument }] }),
     };
-    const called = await sender.send("Runtime.callFunctionOn", parameters);
+    const called = await sender.send("Runtime.callFunctionOn", parameters, options());
     const result = RuntimeCallByValueResultSchema.safeParse(called);
     if (!result.success) throw new GoalProgressPageError("GOAL_PROGRESS_PAGE_API_FAILED");
     return result.data.result.value;
   } finally {
-    await sender.send("Runtime.releaseObject", {
-      objectId: handle.result.objectId,
-    });
+    await sender.send(
+      "Runtime.releaseObject",
+      {
+        objectId: handle.result.objectId,
+      },
+      options(),
+    );
   }
 }
 

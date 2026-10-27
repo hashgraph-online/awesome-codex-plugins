@@ -49,7 +49,7 @@ a generic dashboard, invent a metric, broaden access, or make a causal claim fro
     brief, notes, and manifest. Never `git init` or invent repository tooling.
   - Inherit cited-research.md. Keep private code, secrets, customer data, and unpublished
     material out of external fetches and out of the brief.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every supplied source is `ok` or `unavailable` with a reason, contradictions among
     `ok` sources are named, check-report passes, and the notes file still lists each `ok` id.
   - Verify: `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" check-report

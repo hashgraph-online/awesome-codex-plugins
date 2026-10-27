@@ -7,7 +7,7 @@ description: "Plan, draft, audit, and publish posts and threads for X (Twitter).
 
 A bundle of 9 focused skills for X content ops in 2026. Each skill is
 single-purpose, follows the draft then approval then publish pattern, and uses
-the [Publora API](https://publora.com) for posting tweets and threads.
+the [Publora API](https://publora.com/?utm_source=github&utm_medium=skill&utm_campaign=x-skills) for posting tweets and threads.
 
 ## When to use this bundle
 
@@ -43,13 +43,21 @@ The skills work out of the box. No API keys, no signup. Every approved draft is
 returned as a copy-paste block with the target X URL. Great for trying the
 skills before committing to any backend.
 
+### Reading X data (orthogonal to the tiers above)
+
+`x-audience-insights`, `x-hook-extractor` and `x-reply-drafter` read real tweets
+when they can. Two ways in: `APIFY_TOKEN` in the environment, or Apify's MCP
+server as a custom connector, which is the only one available on claude.ai.
+Filtered URL, tool name, input shapes and the mapping back to the library's
+records: `references/mcp-read-layer.md`. With neither, they ask for a paste.
+
 ### Tier 1 - Publora auto-post (recommended, ~2 min)
 
 On approval, the writer and thread skills auto-publish to X via the
-[Publora API](https://publora.com). Pass long content and Publora auto-splits it
+[Publora API](https://publora.com/?utm_source=github&utm_medium=skill&utm_campaign=x-skills). Pass long content and Publora auto-splits it
 into a numbered `(1/N)` thread at sentence boundaries.
 
-1. Sign up free: **https://app.publora.com/signup**
+1. Sign up free: **https://app.publora.com/signup?utm_source=github&utm_medium=skill&utm_campaign=x-skills**
 2. Connect your X account in Publora (Channels then Add Channel)
 3. Copy your API key from Publora's API panel
 4. Drop into `.env`:
@@ -124,7 +132,7 @@ choice, not a URL distinction.
 
 ## Resources
 
-- [Publora API docs](https://docs.publora.com) - endpoint reference for the publishing layer
+- [Publora API docs](https://docs.publora.com/?utm_source=github&utm_medium=skill&utm_campaign=x-skills) - endpoint reference for the publishing layer
 - `lib/publora_client.py` - thin Python client used by every writing skill
 - `references/story-bank.md` - what you have to say, filled by the interview
 - `references/voice-profile.md` - how you sound, filled by `--mode profile`
@@ -132,7 +140,7 @@ choice, not a URL distinction.
 
 ## Acknowledgments
 
-Publishing powered by the [Publora REST API](https://publora.com).
+Publishing powered by the [Publora REST API](https://publora.com/?utm_source=github&utm_medium=skill&utm_campaign=x-skills).
 
 ## After a successful run
 

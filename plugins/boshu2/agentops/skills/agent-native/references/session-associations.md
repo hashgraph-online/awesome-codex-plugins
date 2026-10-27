@@ -22,8 +22,6 @@ Keep these facts distinct in the native record or its permitted evidence:
 | Execution | Selected runtime and requested model/ID separately from actual observed model/session/context IDs; absent observations are explicit unknowns, never synthetic UUIDs. |
 | Relations | Native parent, dispatch controller and resume predecessor are separate links, each with its observation source. Record the selected runtime's actual resume identity even when it reuses a session ID. Unknown is distinct from an observed absence of parent. |
 | Provenance | Who or which runtime observed the fact, when, through which native operation/record, and its permitted locator. Caller-supplied facts remain labeled as supplied; do not upgrade inference to observation. |
-| Discovery | Exact query/filters/limits, index freshness, observed cutoff and missing/unavailable/restricted sources. CASS results discover candidates, not every episode member. |
-| Source extent | Permitted native locator plus available frozen byte length/bounds and digest, with the cutoff and digest scope. Unknown or unreadable extent/digest remains unknown, never zero or a hash of an excerpt represented as the full source. |
 | Work span | Only the source interval supported by explicit work/start/switch observations. Where frozen byte offsets are available use half-open `[start, end)` ranges tied to that source identity/digest. A search line is a locator, not an inferred byte boundary. |
 
 For a child, pass its work identity before launch, then record the child's
@@ -51,11 +49,12 @@ access before resolving a locator, never retrieve denied bytes and redact later.
 
 Association is not coverage: CASS discovery, `view`/`expand` windows and tool-call
 mining do not prove full prose/outcome reading. Preserve missing sources and
-unknown lengths. Frozen bounds/digests identify available evidence; they do not
+unknown lengths, never zero or an excerpt's digest presented as the full
+source. Frozen bounds/digests identify available evidence; they do not
 prove bytes were emitted, delivered to the host or semantically processed.
 Head/tail excerpts leave the middle unread; new tails or children belong to a
-later observation, not a rewritten completed denominator. T09 owns the later
-coverage verifier; no coverage command or acceptance claim is introduced here.
+later observation, not a rewritten completed denominator. No AgentOps command
+verifies coverage, and an association supports no acceptance claim.
 
 For byte-preserving reads of explicitly authorized sources, follow
 [bounded raw source reads](RAW_SOURCE_READS.md). The source reader checks native

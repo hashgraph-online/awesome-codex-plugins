@@ -268,7 +268,9 @@ def _collect_network_endpoints(pids: set[int]) -> list[str]:
         return []
     eps: set[str] = set()
     for pid in sorted(pids):
-        r = _run(["lsof", "-nP", "-i", "-p", str(pid)], timeout=3)
+        # -a ANDs the selectors. Without it lsof ORs -i with -p and returns every
+        # network socket on the host, not only this process's.
+        r = _run(["lsof", "-nP", "-a", "-i", "-p", str(pid)], timeout=3)
         if r.returncode != 0:
             continue
         for ln in r.stdout.splitlines():
@@ -415,20 +417,43 @@ def _normalize_cmd_token(token: str) -> str | None:
     return token
 
 
+_COMMAND_HEADING = re.compile(r"^\s*(Available\s+Commands|Commands|Subcommands)\s*:", re.IGNORECASE)
+_TITLED_COMMAND_HEADING = re.compile(r"^\s*(?:[A-Z][\w-]*\s+)+Commands\s*:\s*$")
+_END_HEADING = re.compile(
+    r"^\s*(Flags|Global Flags|Options|Arguments|Examples|Environment|Usage|USAGE|Aliases|Additional help topics)\s*:"
+)
+_GROUP_HEADING = re.compile(r"^[A-Z][^:]*:\s*$")
+_COBRA_FOOTER = re.compile(r'^Use "[^"]*\[command\] --help" for more information', re.MULTILINE)
+
+
 def _parse_subcommands(help_text: str) -> list[str]:
-    lines = help_text.splitlines()
+    """Return the subcommand names listed in one help page.
+
+    Cobra CLIs that use command groups list subcommands under any group title
+    ("Core Commands:", "Getting Started:"). Such a title opens a command list
+    only after Usage and only when the Cobra footer is present, so free-form
+    help prose is never read as commands.
+    """
+    grouped = _COBRA_FOOTER.search(help_text) is not None
     out: list[str] = []
     in_commands = False
-    for ln in lines:
-        if re.match(r"^\s*(Available\s+Commands|Commands|Subcommands)\s*:", ln, flags=re.IGNORECASE):
+    after_usage = False
+    for ln in help_text.splitlines():
+        end = _END_HEADING.match(ln)
+        if end:
+            in_commands = False
+            after_usage = after_usage or end.group(1).lower() == "usage"
+            continue
+        if (
+            _COMMAND_HEADING.match(ln)
+            or _TITLED_COMMAND_HEADING.match(ln)
+            or (grouped and after_usage and _GROUP_HEADING.match(ln))
+        ):
             in_commands = True
             continue
         if not in_commands:
             continue
         if not ln.strip():
-            in_commands = False
-            continue
-        if re.match(r"^\s*(Flags|Global Flags|Options|Arguments|Examples|Environment|Usage|USAGE)\s*:", ln):
             in_commands = False
             continue
         tok = ln.strip().split()[0] if ln.strip().split() else ""
@@ -704,7 +729,10 @@ def _enforce_policy(run_dir: Path, policy_file: Path, out_dir: Path) -> tuple[st
 
     min_cmds = int(policy.get("min_command_count", 0))
     cmd_count = len(contract.get("command_paths", []))
-    if cmd_count < min_cmds:
+    if cmd_count == 0 and min_cmds > 0:
+        # An empty contract makes every command-based check above vacuous.
+        findings.append({"severity": "fail", "code": "no_commands_captured", "message": "no commands captured from the help interface; command checks could not run"})
+    elif cmd_count < min_cmds:
         findings.append({"severity": "warn", "code": "low_command_count", "message": f"command count {cmd_count} below expected minimum {min_cmds}"})
 
     verdict = "PASS"

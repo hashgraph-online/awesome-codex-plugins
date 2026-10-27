@@ -57,6 +57,12 @@ Before you leave this workflow, you must be able to state:
 
 Review in this method pack is advisory and evidence-oriented. It is not authoritative completion by itself.
 
+Compare requirements and result in both directions: omissions or weakening,
+and unsupported additions or strengthening. Preserve relevant relationships,
+behavior, ownership and qualifiers within the authorized transformation. Pair
+an evidenced defect with a relevant valid case; do not add acceptance criteria,
+reject authorized summaries or corrections, or require exhaustive equivalence.
+
 ## How to Request
 
 **1. Gather minimum review inputs:**

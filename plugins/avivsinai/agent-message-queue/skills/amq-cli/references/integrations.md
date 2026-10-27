@@ -14,29 +14,8 @@ do not shadow a project-local config:
 export AMQ_GLOBAL_ROOT="$HOME/.agent-mail"
 ```
 
-Or create `~/.amqrc`:
-
-```json
-{"root": ".agent-mail"}
-```
-
-Root precedence:
-
-```text
-explicit --root > AM_ROOT > project-local .amqrc > AMQ_GLOBAL_ROOT > conditional implicit fallbacks
-```
-
-Inside a Git worktree or bare repository, the only implicit fallback is the
-repository-local detected `.agent-mail`; an implicit `~/.amqrc` is ineligible.
-Outside Git, `~/.amqrc` precedes eligible local `.agent-mail` detection.
-Auto-detection covers `.agent-mail/<session>` session roots without `.amqrc`.
-Custom root names still need `.amqrc`, explicit flags, or environment variables.
-
-If an orchestrator leaves the terminal pinned to another root while cwd has an
-initialized local queue, implicit participating commands refuse rather than
-silently using the pin. Repin to the cwd-local queue, route deliberately with
-`--session`/`--project`, or pass an explicit `--root` to confirm the active
-queue; ordinary pin checks still apply.
+Or create `~/.amqrc` with `{"root": ".agent-mail"}`. Root precedence and the
+Git worktree rules are in [Environment Rules](operations.md#environment-rules).
 
 ## Symphony
 
@@ -77,23 +56,7 @@ Defaults:
 
 ## Runtime Diagnostics
 
-```bash
-amq doctor --ops
-amq doctor --ops --json
-amq doctor --root "<exact-root>" --ops
-```
-
-`doctor --ops` adds queue depth, sibling-session backlog hints, oldest unread
-age, DLQ state, presence freshness, and integration hints on top of the base
-`doctor` checks. A `sibling_backlog` hint includes an exact non-destructive
-`amq list --session <name> --me <handle> --new` inspection command.
-
-An explicit doctor root selects the inspected tree without changing the
-terminal pin. Inspection continues with a mismatch warning. Mutating doctor
-operations (`--fix-mailboxes` or `--ops --fix-wake-locks`) require the target
-to match the pin unless the command uses an explicit non-empty `--root`
-together with `--ignore-session-pin`. `--base-root` supplies config authority
-for the target or one direct child and never waives the pin.
+Use `amq doctor --ops`; see [Diagnostics](operations.md#diagnostics).
 
 ## Message Shape
 
@@ -130,4 +93,4 @@ Common labels:
 - `handoff`
 - `blocking`
 
-For the formal envelope and stability notes, see [`docs/adapter-contract.md`](../../../docs/adapter-contract.md).
+For the formal envelope and stability notes, see [the adapter contract](https://github.com/avivsinai/agent-message-queue/blob/main/docs/adapter-contract.md).

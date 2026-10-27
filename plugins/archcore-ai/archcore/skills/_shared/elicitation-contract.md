@@ -3,7 +3,7 @@
 Plugin runtime asset. Loaded by every command skill (`init`, `plan`, `document`,
 `review`) before any gate that may question the user. Normative for every command
 and every track gate (`sdd`, `requirements-cascade`, `decision`, `describe`,
-`actualize`, `experience`). This contract defines when to ask, how many questions,
+`actualize`). This contract defines when to ask, how many questions,
 in what form, and where answers persist. It does not define which questions a gate
 asks — see Ownership.
 
@@ -26,6 +26,11 @@ operations, or compliance. Drop every candidate that fails the filter. The
 coverage scan behind the `Missing` trigger uses the categories in
 `skills/_shared/coverage-taxonomy.md`; the materiality filter is this
 seven-area list, not that taxonomy.
+
+Drop a candidate whose answer a convention already gives — the codebase's
+existing practice on the same surface, or the protocol's standard behavior,
+such as a 400 response for a malformed request parameter. Record that default in
+the draft, marked `[assumption]`, and ask no question.
 
 If no candidate passes the filter, skip the interview and state that no material
 ambiguity was found.
@@ -59,12 +64,11 @@ You MUST NOT ask a question without a stated recommendation.
 
 ## Budget
 
-- Auto mode: hard ceiling of 5 questions per invocation, drawn down across all
-  gates of that invocation. You MUST NOT exceed the ceiling regardless of how
-  many gates run. A new invocation, including a resume, starts a fresh
-  ceiling; the `budget` field of a resumed state block does not reduce it.
-- Expert invocation: per-gate budgets rise up to the maximum the track file
-  declares.
+- A hard ceiling of 5 questions per invocation, drawn down across all gates of
+  that invocation, on every command. You MUST NOT exceed the ceiling regardless
+  of how many gates run or what the request says. A new invocation, including a
+  resume, starts a fresh ceiling; the `budget` field of a resumed state block
+  does not reduce it. A gate's `budget` field caps that gate inside the ceiling.
 - A re-asked disambiguation (see Failure handling) does not count against the
   budget.
 - When candidate questions exceed the remaining budget, rank them by
@@ -104,6 +108,8 @@ MUST NOT contain host-conditional text.
 
 - If the draft artifact does not exist, create it with `create_document` before
   writing clarifications.
+- When a scope question resolves the target, write its answer under
+  `## Clarifications` of the first draft the invocation creates.
 - When a gate closes, write the accepted answers under `## Clarifications` in
   the draft artifact, within the single `update_document` call required by
   `skills/_shared/gate-contract.md`.

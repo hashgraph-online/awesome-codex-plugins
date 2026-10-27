@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Research Agent Skills icon">
+  <rect width="512" height="512" rx="112" fill="#165d74"/>
+  <path d="M256 150c-30-22-72-30-112-24v214c40-6 82 2 112 24 30-22 72-30 112-24V126c-40-6-82 2-112 24z" fill="none" stroke="#ffffff" stroke-width="22" stroke-linejoin="round"/>
+  <path d="M256 150v214" stroke="#ffffff" stroke-width="22"/>
+  <g fill="#ffffff"><circle cx="190" cy="230" r="16"/><circle cx="326" cy="210" r="16"/><circle cx="326" cy="290" r="16"/></g>
+  <path d="M190 230l136-20M190 230l136 60" stroke="#ffffff" stroke-width="10" stroke-linecap="round"/>
+</svg>

@@ -42,8 +42,14 @@ bolt on a second pipeline.
    - [ ] Push notifications: working in production config
    - [ ] Crash-free rate: > 99% on staging before promoting
    - [ ] Bundle size: within limits, no large accidental assets
-   - [ ] Android targeting API 35+: verify 16 KB page-size support on 64-bit devices;
-         inspect bundled native libraries (including SDKs) and test in a 16 KB environment
+   - [ ] iOS toolchain: built with Xcode 26+ / iOS 26 SDK or later (uploads rejected otherwise
+         since 2026-04-28) and deployment target iOS 13+ (since 2026-09-09)
+         ([Apple requirements](https://developer.apple.com/news/upcoming-requirements/))
+   - [ ] Android targetSdk 36+ for new apps and updates (since 2026-08-31; Wear OS/Auto 35,
+         TV/XR 34; existing apps keep 35+ to stay available to new users)
+         ([Play target API](https://developer.android.com/google/play/requirements/target-sdk))
+   - [ ] Android 16 KB page-size support on 64-bit devices: inspect bundled native libraries
+         (including SDKs) and test in a 16 KB environment
          ([Android guidance](https://developer.android.com/guide/practices/page-sizes))
    - [ ] Offline behavior: handles no-network gracefully
 6. **iOS submission** — `fastlane deliver`/`pilot`: TestFlight (internal → external) →

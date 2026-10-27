@@ -36,7 +36,7 @@ Anything else (one video's transcript, a topic across shows, who recommends a pr
 ## Procedure
 
 1. Call `arcmira_describe` once before your first program. It is current on every call; `arcmira_describe({ topic })` narrows it to one method.
-2. Resolve every name in the question first, as the ID rule below says. Filters take ids only.
+2. A topic or phrase goes in `query` as typed. Resolve a name with `arcmira.resolve` when it becomes a filter: who said it, which show, or what it is about. Filters take ids only, as the ID rule below says.
 3. Before asserting a mention, read its description or passage and say which sense of the name it is (Mercury the bank, not the element).
 4. Write one `arcmira_execute_read` program per question. Resolve, check, and run every query the question needs inside that one program.
 5. Return only the fields the answer needs, not whole responses.
@@ -51,7 +51,7 @@ MONITORS. A monitor sends alerts for the entities it follows, by email to the ac
 
 ## The ID rule
 
-ID RULE. Filters take verbatim ids only: entity ids look like ent_14, channel ids like UC-DRzaGnL_vtBUpCFH5M0tg (UC plus 22 characters), video ids are 11 characters or a YouTube URL. A name where an id belongs throws id_required before any network call. Resolve first, then query:
+ID RULE. Filters take verbatim ids only: entity ids look like ent_14, channel ids like UC-DRzaGnL_vtBUpCFH5M0tg (UC plus 22 characters), video ids are 11 characters or a YouTube URL. A name where an id belongs throws id_required before any network call. Resolve the name first, then pass its id:
 
 ```javascript
 const r = await arcmira.resolve("Sam", { context: "the My First Million co-host" });
@@ -73,4 +73,4 @@ RESOLVE ANSWERS ONE OF THREE. best: the name means that row; use it and name it.
 
 Monitors can follow what a research turn found, and each alert uses 25 credits from the account's plan, then its on-demand budget. The `company-watch` skill sets one up.
 
-If anything was wrong, slow, or missing for the user, send one arcmira_feedback.
+If anything was wrong, slow, or missing for the user, or they want a source or capability Arcmira lacks, send one arcmira_feedback.

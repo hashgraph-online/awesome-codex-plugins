@@ -6,6 +6,9 @@ compatibility: Node 22 and Chrome; the studio's pinned toolkit and Wrangler.
 
 # Make an app
 
+For place-based builds, read [the six-build patterns](../app/PLACES.md): owner words to needs, records as objects, a local scene and ambience, one trusted operation for screens and AI, graceful graphics, and adversarial proof. Apply the same authority and honest-evidence rules to game economies and tickets.
+
+
 For the installed version’s payment, records and local-check contracts, start with
 `node_modules/@homie-rocks/studio/apps/APPS.md`. Its “Real Stripe test checkout on
 this computer” section is the supported offline-hosting path: real Stripe test
@@ -98,9 +101,9 @@ The Codex's `needs` fenced block is a JSON array, one entry per need from the re
 ]
 ```
 
-Steps support `fill`, `select`, `click: true` and `reload: true`; surfaces are `wall`, `phone`, `phone-two`, `tablet`, `kiosk` and `staff` (a tablet viewport). Set a need’s `role` to the declared role to prove. Each assertion names its surface; only the named screens are required. Assertions use a visible selector with optional contained text, or an observed effect. An honestly unavailable capability remains in the block with no assertions and a plain explanation in the prose; check reports it not met. Do not delete, weaken or replace a need to get green. Static needs such as accurate prices may have no action steps. Use semantic attributes on real visible scene elements for testability, never hidden QA-only counters.
+Steps support `fill`, `select`, `click: true` and `reload: true`; surfaces are `wall`, `phone`, `phone-two`, `tablet`, `kiosk` and `staff` (a tablet viewport). Set a need’s `role` to the declared role to prove. Each assertion names its surface; only the named screens are required. Assertions use a visible selector with optional contained text, or an observed effect. An honestly unavailable capability remains in the block with no assertions and a plain explanation in the prose; check reports it pending (a placeholder, not a failure or proof). Do not delete, weaken or replace a need to get green. Static needs such as accurate prices may have no action steps. Use semantic attributes on real visible scene elements for testability, never hidden QA-only counters.
 
-Run build and the shared-action check, then the needs step runs on those real browsers. Save captures with `--shots .checks`. The result contains each statement, met/partly/not, the assertion result and available captures of named surfaces; `.studio/checks/<id>-needs.json` drives the Codex's Needs status. Redraw `codex <id>` after checking. Passing a selector assertion is evidence, not a visual judgement: read every capture and perform the full flows as owner and customer using the playtest skill. If the picture fails the words, it is not done even with green assertions.
+Run build and the shared-action check, then the needs step runs on those real browsers. Save captures with `--shots .checks`. The result contains each statement, met/partly/not/pending, the assertion result and available captures of named surfaces; `.studio/checks/<id>-needs.json` drives the Codex's Needs status. Redraw `codex <id>` after checking. Passing a selector assertion is evidence, not a visual judgement: read every capture and perform the full flows as owner and customer using the playtest skill. If the picture fails the words, it is not done even with green assertions.
 
 For staff flows, sign in through the existing local owner link and prove the transition in real Chrome. Keep evidence in the Codex alongside the automated flows. Confirm unauthorized writes are refused and records remain after all screens close. Never call an untested privileged path passed. Before final handover, show the need table with evidence and explicit remaining gaps. If the starter or a board of boxes is still visible, return to the scene design and build it.
 
@@ -159,7 +162,7 @@ Use `createAppRecords` from `@homie-rocks/studio/apps` for lasting records. Decl
 
 Public collections reach everyone allowed to read them. A ticket number or filtering the HUD is not privacy. Keep personal/private records in a different collection whose read permission excludes customers and walls. Do not put contact details in the starter's public queue.
 
-`homie-studio app role <id> staff --player <account-id> --url <site>` grants an existing signed-in account and returns its private role address. Without `--player` it returns the owner's role address. The existing owner check protects issuance; the link alone grants nothing. `--revoke` removes a named account's grant. Staff use the studio's existing account/passkey sign-in. Keep these links private.
+`homie-studio app role <id> staff --player <account-id> --url <site>` grants an existing signed-in account and returns its private role address. Without `--player` it returns the owner's role address. The existing owner check protects issuance; the link alone grants nothing. `--revoke` removes a named account's grant. `--list` lists links, `--revoke-link` deletes one, and `--expires 7d` (or a unix millisecond time) sets an expiry within 366 days. A signed-in studio owner opens their own private roles without a link. Staff use the studio's existing account/passkey sign-in. Keep these links private.
 
 The complete helper and limits are in `node_modules/@homie-rocks/studio/apps/APPS.md`. Import `appLink`, `qrSvg`, and `randomId` from `@homie-rocks/studio/links` for a ticket URL with parameters. Build customer links from a clean public address, never by copying a staff URL. `randomId` works on plain HTTP.
 
@@ -354,3 +357,18 @@ and pass a role when deliberately testing the customer experience.
 `check --shots` may capture outside the studio, but persistent needs evidence copies
 those pictures into `.studio/checks` and stores studio-relative paths. Keep that
 folder with the Codex evidence. Deploy can render it without outside-path warnings.
+
+### Places: capacity, TV space and failed graphics
+
+Authoritative bookings/inventory are server-side `defineTool` actions with strict schemas and atomic versioned writes, never a client-writable generic ledger. Use [the capacity example](examples/reserve.mjs): seed one place through an owner action; six simultaneous reservation requests must yield exactly one winner. Derive identity from the caller; expose neither inventory totals nor the authoritative namespace as client mutations.
+
+Initialise text controls and navigation before 3D rendering. Catch renderer creation failures inside the scene section; keep fallback text in normal flow, never over navigation. Add a navigation need and run `homie-studio check <id> --webgl-failure --shots .checks/no-webgl` to prove the controls work without WebGL.
+
+On TV, reserve `--homie-join-inset-bottom/right` (or the configured corner's top/left) plus a gap; `body.homie-join-visible` and `--homie-join-x/y/width/height` describe the shell card in the app frame too. See `node_modules/@homie-rocks/studio/docs/toolkit-place-patterns.md` for layout and text-first examples, connector setup and diagnostics.
+
+For studio-owned HTTP routes, read
+`node_modules/@homie-rocks/studio/docs/custom-routes.md`. Register with `useRoutes`
+and use `/api/custom/*` (game/app IDs cannot claim `api`). App handoff cookies are
+scoped to `/<app>/` and do not reach `/custom-api/...`; use built-in app record
+endpoints or app tools for role-authorized mutations. Use direct `/api/` endpoints
+for function `self` calls, which use `redirect:'error'`.

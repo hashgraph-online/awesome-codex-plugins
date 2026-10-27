@@ -25,6 +25,9 @@ cover, doors and platforms, use declared entity `collider` state and movement's
 
 # Make a game
 
+For place-based builds, read [the six-build patterns](../app/PLACES.md): owner words to needs, records as objects, a local scene and ambience, one trusted operation for screens and AI, graceful graphics, and adversarial proof. Apply the same authority and honest-evidence rules to game economies and tickets.
+
+
 You are in a Homie studio when the folder (or one above it) has `studio.json`. If there
 is none, use the `studio-setup` skill first.
 
@@ -48,6 +51,8 @@ Cloudflare or physical-phone capacity guarantees.
   - check the `@homie-rocks/*` packages (npm) for the general mechanism: camera, input, audio, effects;
   - run `parts_find` for pieces other studios shared, and bring one in with `part_add`.
 
+  Search by system (touch controls, feedback, sound, scoring, title and results UI, rooms), not only by genre. Add a fitting result with `part_add` before implementing a replacement; import and use it in the game. A starter or npm package is not a catalog search. Record part version, source game/studio, licence and integration in CODEX **Built from**, or the search and concrete gap if nothing fits. In a hosted workspace these same tools work; after `part_add`, wait for the committed preview through `build_progress`.
+
   Record both in the game's CODEX (Built from) and its credits: what came from where, and what you wrote here and
   why. After building a piece another game could use, offer to make it a part (`part_new`) and, only if the person
   asks, to share it (`part_share`). The `parts` skill has the method.
@@ -62,7 +67,7 @@ Cloudflare or physical-phone capacity guarantees.
 - **New game:** call the Homie MCP tool `game_make` (id, name) for the exact command
   and rules (without the connector, go on: the command is here and the rules are this skill's), then run
   `npx --no-install homie-studio game new <id> --from gem-rush --name "<Name>"`
-  (`--from gem-rush-3d` for a 3D game: three.js with free library models; `--from hero-rush-3d` for a 3D game with
+  (`--from block-drop` for a falling-block puzzle; `--from gem-rush-3d` for a 3D game: three.js with free library models; `--from hero-rush-3d` for a 3D game with
   animated characters that run, jump and swing). The id becomes the game's
   address (`/<id>/`); lowercase, digits, hyphens.
 - **Make an existing single-player web game multiplayer:** use the `port` skill (it
@@ -86,16 +91,16 @@ Prefer one indexed map revision for a generated maze; keep independently moving
 doors and platforms as live colliders. Generation and navigation baking spend the
 room handler's budget.
 
-**Read [RULES.md](RULES.md) before writing code.** All five starters use this contract.
+**Read [RULES.md](RULES.md) before writing code.** All starters use this contract.
 Work in few, large edits: read each source file once, decide its changes, then
 make every change it needs in ONE file_edit with an edits list. Build after each
-coherent change across rules, movement and view; use diagnostics to guide the next edit.
+coherent change across rules, movement and view. When a diagnostic names a file and line, read that exact location and repair the expression it names before unrelated cleanup. Rebuild to verify that error is gone. `room.me.seat` identifies a player; there is no `room.me.slot`. Prefer targeted edits for repairs. A write replaces the whole file: never send only its tail or resume a truncated file with a replacement containing the remaining lines.
 
 New games use `game.json` `"entry": "src/view.ts"`, `"room": { "host": "server" }`,
 and a studio-chosen `players.max`. HTML loads `<script type="module"
 src="./assets/main.js"></script>`, not the source-file URL. Choose seats, tick rate (20 by default), dimensions and
 starter yourself from the request; never ask the person an engineering question.
-`coin-dash` is the smallest reference; `gem-rush` adds bumps; `ember-vale` adds
+`block-drop` is the falling-block/board-game reference: separate stationary wells, seven-piece bags, rotation, line clears, real keyboard and touch controls. Use it for Tetris-like requests and retain its working mechanic while changing the requested look or features. `coin-dash` is the smallest movement reference; `gem-rush` adds bumps; `ember-vale` adds
 companions, decisions and character saves; the two 3D starters add models and jumps.
 A starter is a starting point: implement the requested mechanic, not a renamed gem collector.
 The build refuses a game with neither rules plus view nor a browser-hosted netplay contract;

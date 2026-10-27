@@ -1,6 +1,6 @@
 {
   "name": "hol-guard-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Codex plugin for HOL Guard local AI harness protection across Codex, Claude Code, and other agent/plugin systems.",
   "author": {
     "name": "Hashgraph Online",

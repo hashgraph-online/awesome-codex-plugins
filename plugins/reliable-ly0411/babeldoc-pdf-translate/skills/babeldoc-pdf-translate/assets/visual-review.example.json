@@ -1,0 +1,24 @@
+{
+  "source": "input.pdf",
+  "translated": "translation.mono.pdf",
+  "output": "visual-review-01",
+  "pages": [1, 3],
+  "dpi": 144,
+  "repair": false,
+  "purpose": "production",
+  "provider": {
+    "type": "codex",
+    "model": "gpt-6-luna",
+    "vision": true,
+    "timeout_seconds": 240,
+    "retries": 0,
+    "reasoning_effort": "low",
+    "cache_dir": "private-visual-cache"
+  },
+  "limits": {
+    "max_rounds": 2,
+    "max_model_calls": 6,
+    "max_seconds": 900,
+    "max_repairs_per_page": 3
+  }
+}

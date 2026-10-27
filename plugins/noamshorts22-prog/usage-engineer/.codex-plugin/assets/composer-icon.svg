@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="28" fill="#0F766E"/>
+  <path d="M28 84a36 36 0 0 1 72 0" fill="none" stroke="#CCFBF1" stroke-width="10" stroke-linecap="round"/>
+  <path d="M64 84L84 56" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="64" cy="84" r="8" fill="#FFFFFF"/>
+  <text x="64" y="114" font-family="Menlo, Consolas, monospace" font-size="20" font-weight="700" fill="#CCFBF1" text-anchor="middle">ue</text>
+</svg>

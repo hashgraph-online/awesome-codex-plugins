@@ -11,6 +11,7 @@
   "timeout_seconds": 7200,
   "provider": {
     "type": "codex",
+    "model": "gpt-6-luna",
     "timeout_seconds": 180,
     "retries": 1,
     "cache_dir": ".translation-cache/codex"

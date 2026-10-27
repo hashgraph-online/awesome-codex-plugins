@@ -27,9 +27,9 @@ source). Verified independently against a live 4.7 editor.
 **Verify live** (needs any `Control` in the edited scene):
 
 ```bash
-hera-godot eval 'get_node("<some Control>").get_theme_constant("separation","BoxContainer")'   # 4
-hera-godot eval 'get_node("<some Control>").get_theme_constant("separation","HSplitContainer")' # 12
-hera-godot eval 'get_node("<some Control>").get_theme_default_font_size()'                      # 16
+hera-godot eval --lang gdscript 'get_node("<some Control>").get_theme_constant("separation","BoxContainer")'   # 4
+hera-godot eval --lang gdscript 'get_node("<some Control>").get_theme_constant("separation","HSplitContainer")' # 12
+hera-godot eval --lang gdscript 'get_node("<some Control>").get_theme_default_font_size()'                      # 16
 ```
 
 ---

@@ -1,5 +1,5 @@
 {
-  "id": "0.6.4-pdftranslate.1",
+  "id": "0.6.4-pdftranslate.math-integrity.3",
   "version": "0.6.4",
   "upstream": "https://github.com/funstory-ai/BabelDOC",
   "license": "AGPL-3.0",
@@ -8,31 +8,44 @@
       "path": "babeldoc/main.py",
       "patch": "main.patch",
       "original_sha256": "5b7340fb164cce57c55e6c00429f5c4972fd746d581309dcc01a1e8d46fd6958",
-      "patched_sha256": "34f76325371086975e9498dd43f1673a73a323929e124b7f660f67dd287bff53"
+      "patched_sha256": "4e6ec16bde1c196b3c25a581ded50527281a951ab533f238d2540d0aaf691f45",
+      "previous_patched_sha256": "ee699cfa6968955026dda94b70a2136e3fca591c3f5d374cb0aaa41710d4aea5"
     },
     {
       "path": "babeldoc/format/pdf/high_level.py",
       "patch": "high_level.patch",
       "original_sha256": "50ad29be8a94b564d6cd339b8b24615db641f4f9572730b3abc052b897d92df4",
-      "patched_sha256": "6924b9525948d8cd885e63c83671cba2bc8c632e26bf71fa48df46e6f377d7e6"
+      "patched_sha256": "da852c23684eea73883255d7851707bc8ee155e8d38bf1f9e7ee99d9a7c5a0d6",
+      "previous_patched_sha256": "da852c23684eea73883255d7851707bc8ee155e8d38bf1f9e7ee99d9a7c5a0d6"
     },
     {
       "path": "babeldoc/format/pdf/result_merger.py",
       "patch": "result_merger.patch",
       "original_sha256": "2f34dd17c069ad4ca30e2dc947cd57524143fb1c1a1edbab37e7876a0b7bb630",
-      "patched_sha256": "24794ae0c757a208f5c434473dde3625b6d8fc8f819fcf4e3fd4dd6ce3e4d31f"
+      "patched_sha256": "24794ae0c757a208f5c434473dde3625b6d8fc8f819fcf4e3fd4dd6ce3e4d31f",
+      "previous_patched_sha256": "24794ae0c757a208f5c434473dde3625b6d8fc8f819fcf4e3fd4dd6ce3e4d31f"
     },
     {
       "path": "babeldoc/format/pdf/document_il/backend/pdf_creater.py",
       "patch": "pdf_creater.patch",
       "original_sha256": "f26dde7df8a8f1a703d9740d01bd64587c6ff6dc6c877c3d845a81c0798e8b54",
-      "patched_sha256": "d290f0e8ea4149f2c2fd6dfea72c9510738d172c0eb557e2dc71921429451334"
+      "patched_sha256": "d290f0e8ea4149f2c2fd6dfea72c9510738d172c0eb557e2dc71921429451334",
+      "previous_patched_sha256": "d290f0e8ea4149f2c2fd6dfea72c9510738d172c0eb557e2dc71921429451334"
     },
     {
       "path": "babeldoc/format/pdf/document_il/midend/typesetting.py",
       "patch": "typesetting.patch",
       "original_sha256": "d9b135c263faf23f3811c78c18f74cf1c2aa91eb3d3596eb3d4d657d49a39d61",
-      "patched_sha256": "9b145842def7c312ea69c696e7d5fdc9bee41763fb53ac31d3211cb018e93a91"
+      "patched_sha256": "9b145842def7c312ea69c696e7d5fdc9bee41763fb53ac31d3211cb018e93a91",
+      "previous_patched_sha256": "9b145842def7c312ea69c696e7d5fdc9bee41763fb53ac31d3211cb018e93a91"
+    },
+    {
+      "path": "babeldoc/format/pdf/document_il/midend/styles_and_formulas.py",
+      "patch": "styles_and_formulas.patch",
+      "original_sha256": "5ee979f1c7ef1d48f4a32d9d07402e134f8a8fc91c5bfb5c6ce87d5f3fa2ba1d",
+      "patched_sha256": "09a372306fc1a9914ca2821b30f68f0e57948766da0594c367a945e8de37c44d",
+      "previous_patched_sha256": "54f47de397aead8cbb9fe32aca93c7617cf118e3b979350d8188f51eb4e0dbd6"
     }
-  ]
+  ],
+  "previous_id": "0.6.4-pdftranslate.math-integrity.2"
 }

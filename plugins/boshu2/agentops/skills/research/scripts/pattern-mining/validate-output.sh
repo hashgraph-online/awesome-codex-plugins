@@ -11,6 +11,9 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 2
 fi
 
+# shape and cost are optional; a gate needs a promotion and a stated cost.
+# Exemplar strings must differ; whether they are independent lineages is the
+# author's claim, which this check cannot see.
 jq -e '
   def text: type == "string" and length > 0;
   . as $result
@@ -26,6 +29,11 @@ jq -e '
   and (.holdout.source | type == "string")
   and (.holdout.result == "pass" or .holdout.result == "fail" or .holdout.result == "inconclusive" or .holdout.result == "not-run")
   and (.back_application == "pass" or .back_application == "fail" or .back_application == "not-run")
+  and ((has("cost") | not) or (.cost | text))
+  and ((has("shape") | not)
+    or ((.shape == "no-action" or .shape == "reference-line" or .shape == "template"
+        or .shape == "helper" or .shape == "gate")
+      and (.shape != "gate" or (.outcome == "promote" and (.cost | text)))))
   and (
     if .outcome == "promote" then
       (.exemplars | length >= 3)

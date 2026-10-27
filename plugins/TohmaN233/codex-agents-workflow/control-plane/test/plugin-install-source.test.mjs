@@ -51,3 +51,13 @@ test('source registration failure is exposed before install without retry',async
  await assert.rejects(installLocal({...options,runCli:(command,args)=>{calls.push(args);throw expected;}}),error=>error===expected);
  assert.equal(calls.length,1);
 }));
+
+for(const path of ['AGENTS.md','control-plane/agent.md','control-plane/aGeNtS.Md']){
+ test('private maintainer instructions are rejected before installation: '+path,async()=>fixture(async options=>{
+  await writeFile(join(options.sourceRoot,path),'Private maintenance rules.\n');
+  let calls=0;
+  await assert.rejects(installLocal({...options,runCli:()=>{calls++;}}),error=>error.code==='PLUGIN_PRIVATE_INSTRUCTIONS');
+  assert.equal(calls,0);
+  await assert.rejects(readFile(join(options.codexHome,'agents','caw-native-builtins.toml')),error=>error.code==='ENOENT');
+ }));
+}

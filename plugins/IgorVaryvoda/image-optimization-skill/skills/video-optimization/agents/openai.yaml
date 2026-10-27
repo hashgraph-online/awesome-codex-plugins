@@ -1,0 +1,4 @@
+interface:
+  display_name: "Video Optimization"
+  short_description: "Optimize web video delivery: hero/background video, HLS streaming, posters, embeds, and Core Web Vitals."
+  default_prompt: "Use $video-optimization to audit and fix video delivery, posters, autoplay, embeds, and streaming with verification."

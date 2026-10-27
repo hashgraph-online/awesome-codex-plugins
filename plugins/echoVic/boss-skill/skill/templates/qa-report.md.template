@@ -6,13 +6,6 @@ dependencies: [tasks]
 
 # QA 测试报告
 
-## 报告信息
-- **功能名称**：{{FEATURE_NAME}}
-- **版本**：1.0
-- **测试日期**：{{DATE}}
-- **测试者**：QA Agent
-- **测试环境**：{{ENVIRONMENT}}
-
 ## 摘要
 
 > Boss Agent 请优先阅读本节判断是否通过质量门禁。
@@ -22,6 +15,13 @@ dependencies: [tasks]
 - **通过 / 失败**：[X 通过 / X 失败]
 - **P0/P1 Bug**：[数量，无则填"无"]
 - **E2E 状态**：[通过 / 失败 / 未执行]
+
+## 报告信息
+- **功能名称**：{{FEATURE_NAME}}
+- **版本**：1.0
+- **测试日期**：{{DATE}}
+- **测试者**：QA Agent
+- **测试环境**：{{ENVIRONMENT}}
 
 ## 0. Evidence Summary
 

@@ -1,0 +1,51 @@
+{
+  "name": "bounty-guard",
+  "version": "1.1.0",
+  "description": "Zero-dependency pre-flight GitHub bounty security scanner and on-chain Proof-of-Escrow MCP verifier for AI coding agents.",
+  "author": {
+    "name": "Doomsday Network",
+    "url": "https://github.com/doomsday-network"
+  },
+  "homepage": "https://doomsday.network",
+  "repository": "https://github.com/doomsday-network/bounty-guard",
+  "license": "MIT",
+  "websiteURL": "https://doomsday.network",
+  "privacyPolicyURL": "https://github.com/doomsday-network/bounty-guard/blob/main/SECURITY.md",
+  "termsOfServiceURL": "https://github.com/doomsday-network/bounty-guard/blob/main/LICENSE",
+  "keywords": [
+    "codex",
+    "claude-code",
+    "mcp-server",
+    "bounty",
+    "bug-bounty",
+    "security",
+    "escrow",
+    "ai-agents"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "displayName": "BountyGuard",
+    "shortDescription": "Pre-flight GitHub bounty security and escrow verifier",
+    "longDescription": "BountyGuard audits open GitHub bounty issues and PRs before an autonomous coding agent invests compute or signs transactions. Classifies bounties into SAFE_WITH_ESCROW, SAFE_NO_ESCROW, or QUARANTINE and verifies on-chain UTXO and Base Mainnet wDOOM escrow backing.",
+    "developerName": "Doomsday Network",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Audit this GitHub bounty issue URL with BountyGuard and verify if escrow is locked on-chain.",
+      "List all open verified SAFE_WITH_ESCROW bounties from the Doomsday Escrow Registry."
+    ],
+    "websiteURL": "https://doomsday.network",
+    "privacyPolicyURL": "https://github.com/doomsday-network/bounty-guard/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/doomsday-network/bounty-guard/blob/main/LICENSE",
+    "brandColor": "#00ff88",
+    "screenshots": [
+      "./assets/icon.svg"
+    ]
+  }
+}

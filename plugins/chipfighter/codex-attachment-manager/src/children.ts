@@ -24,19 +24,22 @@ export function readChildren(taskId: string, dir = childrenDirOf()): Record<stri
 export function recordChild(taskId: string, childId: string, child: Child, dir = childrenDirOf()): boolean {
   const key = `${dir}\0${taskId}\0${childId}`;
   if (known.has(key) || !THREAD_ID.test(taskId) || !THREAD_ID.test(childId)) return false;
-  known.add(key);
   const children = readChildren(taskId, dir);
-  if (children[childId]) return false;
+  if (children[childId]) { known.add(key); return false; }
   mkdirSync(dir, { recursive: true });
   const file = join(dir, `${taskId}.json`);
   writeFileSync(`${file}.tmp`, JSON.stringify({ ...children, [childId]: child }, null, 2));
   renameSync(`${file}.tmp`, file);
+  known.add(key);
   return true;
 }
 
 // The task a request's thread belongs to as a side chat or as a subagent started without history, or null. A
 // subagent's first request can come before Codex writes its rollout; it is found at the next one.
-export function childOf(identity: { threadId: string | null; forkedFrom: string | null }, sessionsDir: string, at: string): { task: string; id: string; child: Child } | null {
+export function childOf(identity: { threadId: string | null; forkedFrom: string | null; turnTrigger?: string | null }, sessionsDir: string, at: string): { task: string; id: string; child: Child } | null {
+  // Codex also forks an ephemeral thread for its suggested next message. Keep rewriting those requests, but do not
+  // present an app-generated composer prediction as a side chat the user opened (HTTP and WebSocket share this path).
+  if (identity.turnTrigger === "composer_predictions") return null;
   const id = identity.threadId;
   if (!id) return null;
   const origin = sideChatOrigin(id, identity.forkedFrom, sessionsDir);

@@ -18,6 +18,12 @@ var __export = (target, all) => {
 import { existsSync as existsSync2, mkdirSync, readFileSync as readFileSync2, renameSync, rmdirSync, statSync as statSync2, unlinkSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import path3 from "node:path";
+function isTransientLockFsError(error2) {
+  return TRANSIENT_LOCK_FS_CODES.has(error2?.code ?? "");
+}
+function pauseBriefly() {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RETRY_PAUSE_MS);
+}
 function publishSelfIdentity(identity) {
   selfIdentity = identity;
 }
@@ -51,6 +57,7 @@ function tryAcquireProcessLock(directory) {
 }
 function tryAcquireProcessLockWithRetry(directory, retries) {
   const token = randomUUID();
+  if (existsSync2(directory)) return acquireExistingLock(directory);
   const staging = `${directory}.${process.pid}.${token}.pending`;
   const ownerRecord = {
     pid: process.pid,
@@ -67,14 +74,16 @@ function tryAcquireProcessLockWithRetry(directory, retries) {
       renameSync(staging, directory);
     } catch (error2) {
       removeStagedLock(staging);
-      if (!existsSync2(directory)) {
-        const code = error2.code;
-        if (retries < 3 && (code === "EEXIST" || code === "EPERM" || code === "EACCES")) {
-          return tryAcquireProcessLockWithRetry(directory, retries + 1);
-        }
-        throw error2;
+      const code = error2.code;
+      if (!isTransientLockFsError(error2)) throw error2;
+      if (DESTINATION_PRESENT_CONTENTION_CODES.has(code ?? "") || existsSync2(directory)) {
+        return acquireExistingLock(directory);
       }
-      return acquireExistingLock(directory);
+      if (retries < PUBLICATION_RETRY_ATTEMPTS) {
+        pauseBriefly();
+        return tryAcquireProcessLockWithRetry(directory, retries + 1);
+      }
+      throw error2;
     }
   } catch (error2) {
     removeStagedLock(staging);
@@ -84,38 +93,72 @@ function tryAcquireProcessLockWithRetry(directory, retries) {
     const owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
     if (owner.token !== token) throw new Error("process lock ownership changed");
     const retired = `${directory}.${token}.retired`;
-    renameSync(directory, retired);
+    renameWithTransientRetry(directory, retired);
     removeStagedLock(retired);
   };
 }
-function acquireExistingLock(directory) {
-  try {
-    const owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
-    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error("invalid lock owner");
+function renameWithTransientRetry(source, target) {
+  const deadline = Date.now() + WITHDRAW_RETRY_MS;
+  while (true) {
     try {
-      process.kill(owner.pid, 0);
-    } catch (failure2) {
-      if (failure2.code === "ESRCH") {
-        if (reclaimDeadOwner(directory)) return tryAcquireProcessLock(directory);
-      }
+      renameSync(source, target);
+      return;
+    } catch (error2) {
+      if (!isTransientLockFsError(error2) || Date.now() >= deadline) throw error2;
+      pauseBriefly();
     }
+  }
+}
+function acquireExistingLock(directory) {
+  let owner;
+  try {
+    owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
+    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error("invalid lock owner");
   } catch {
     try {
       if (Date.now() - statSync2(directory).mtimeMs > 3e4) throw new Error(`unreadable lock owner: ${directory}`);
     } catch (failure2) {
       if (failure2.code !== "ENOENT") throw failure2;
     }
+    return null;
+  }
+  try {
+    process.kill(owner.pid, 0);
+  } catch (failure2) {
+    if (failure2.code === "ESRCH") {
+      if (reclaimDeadOwner(directory)) return tryAcquireProcessLock(directory);
+    }
   }
   return null;
 }
 function removeStagedLock(directory) {
-  try {
-    unlinkSync(path3.join(directory, "owner.json"));
-  } catch {
+  removePrivateFile(path3.join(directory, "owner.json"));
+  removePrivateDirectory(directory);
+}
+function removePrivateFile(file) {
+  const deadline = Date.now() + PRIVATE_CLEANUP_RETRY_MS;
+  while (true) {
+    try {
+      unlinkSync(file);
+      return;
+    } catch (error2) {
+      const code = error2?.code;
+      if (code === "ENOENT" || !isTransientLockFsError(error2) || Date.now() >= deadline) return;
+      pauseBriefly();
+    }
   }
-  try {
-    rmdirSync(directory);
-  } catch {
+}
+function removePrivateDirectory(directory) {
+  const deadline = Date.now() + PRIVATE_CLEANUP_RETRY_MS;
+  while (true) {
+    try {
+      rmdirSync(directory);
+      return;
+    } catch (error2) {
+      const code = error2?.code;
+      if (code === "ENOENT" || !isTransientLockFsError(error2) || Date.now() >= deadline) return;
+      pauseBriefly();
+    }
   }
 }
 function reclaimDeadOwner(directory) {
@@ -126,31 +169,70 @@ function reclaimDeadOwner(directory) {
     if (error2.code === "EEXIST") return false;
     throw error2;
   }
+  let outcome;
   try {
     const owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
-    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) return false;
-    try {
-      process.kill(owner.pid, 0);
-      return false;
-    } catch (error2) {
-      if (error2.code !== "ESRCH") return false;
+    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) {
+      outcome = { kind: "busy" };
+    } else {
+      try {
+        process.kill(owner.pid, 0);
+        outcome = { kind: "busy" };
+      } catch (failure2) {
+        if (failure2.code !== "ESRCH") {
+          outcome = { kind: "busy" };
+        } else {
+          const retired = `${directory}.${randomUUID()}.retired`;
+          renameWithTransientRetry(directory, retired);
+          removeStagedLock(retired);
+          outcome = { kind: "reclaimed" };
+        }
+      }
     }
-    const retired = `${directory}.${randomUUID()}.retired`;
-    renameSync(directory, retired);
-    removeStagedLock(retired);
-    return true;
   } catch (error2) {
-    if (error2.code !== "ENOENT") throw error2;
-    return false;
-  } finally {
-    rmdirSync(guard);
+    outcome = error2.code === "ENOENT" ? { kind: "busy" } : { kind: "error", error: error2 };
+  }
+  let guardCleanupError = null;
+  try {
+    removeSharedGuard(guard);
+  } catch (error2) {
+    guardCleanupError = error2;
+  }
+  if (outcome.kind === "error") throw outcome.error;
+  if (guardCleanupError !== null) throw guardCleanupError;
+  return outcome.kind === "reclaimed";
+}
+function removeSharedGuard(guard) {
+  const deadline = Date.now() + SHARED_GUARD_RETRY_MS;
+  while (true) {
+    try {
+      rmdirSync(guard);
+      return;
+    } catch (error2) {
+      const code = error2?.code;
+      if (code === "ENOENT") return;
+      if (!isTransientLockFsError(error2) || Date.now() >= deadline) {
+        throw new Error(
+          `could not remove the lock reclaim guard at ${guard} (${code ?? "unknown error"}); a leftover guard blocks all future dead-owner reclaims of this lock and needs manual diagnosis`,
+          { cause: error2 }
+        );
+      }
+      pauseBriefly();
+    }
   }
 }
-var selfIdentity;
+var selfIdentity, TRANSIENT_LOCK_FS_CODES, DESTINATION_PRESENT_CONTENTION_CODES, PUBLICATION_RETRY_ATTEMPTS, WITHDRAW_RETRY_MS, SHARED_GUARD_RETRY_MS, PRIVATE_CLEANUP_RETRY_MS, RETRY_PAUSE_MS;
 var init_process_lock = __esm({
   "src/store/process-lock.ts"() {
     "use strict";
     selfIdentity = null;
+    TRANSIENT_LOCK_FS_CODES = /* @__PURE__ */ new Set(["EEXIST", "EPERM", "EACCES", "EBUSY", "ENOTEMPTY"]);
+    DESTINATION_PRESENT_CONTENTION_CODES = /* @__PURE__ */ new Set(["EEXIST", "ENOTEMPTY"]);
+    PUBLICATION_RETRY_ATTEMPTS = 3;
+    WITHDRAW_RETRY_MS = 2e3;
+    SHARED_GUARD_RETRY_MS = 2e3;
+    PRIVATE_CLEANUP_RETRY_MS = 1e3;
+    RETRY_PAUSE_MS = 10;
   }
 });
 
@@ -193,8 +275,11 @@ var init_atomic_rename = __esm({
 // src/store/task-store.ts
 var task_store_exports = {};
 __export(task_store_exports, {
+  InteractionRequestTooLargeError: () => InteractionRequestTooLargeError,
+  MAX_INTERACTION_PARAMS_BYTES: () => MAX_INTERACTION_PARAMS_BYTES,
   TaskStore: () => TaskStore,
   isTerminalStatus: () => isTerminalStatus,
+  stableJson: () => stableJson,
   toPublicStatus: () => toPublicStatus
 });
 import { appendFileSync, chmodSync, closeSync, copyFileSync, existsSync as existsSync3, mkdirSync as mkdirSync2, openSync, readFileSync as readFileSync3, readSync, readdirSync, rmSync, statSync as statSync3, writeFileSync as writeFileSync2 } from "node:fs";
@@ -269,7 +354,7 @@ function toPublicStatus(status) {
   if (status.error) record3.error = status.error;
   return record3;
 }
-var TASK_ID_PATTERN, DEFAULT_MAX_LOG_BYTES, MAX_CRITICAL_EVENT_RESERVE_BYTES, CRITICAL_EVENT_TYPES, TaskStore;
+var TASK_ID_PATTERN, DEFAULT_MAX_LOG_BYTES, MAX_INTERACTION_PARAMS_BYTES, LEGACY_INTERACTION_PARAMS_BYTES, SHA256_HEX_PATTERN, InteractionRequestTooLargeError, MAX_CRITICAL_EVENT_RESERVE_BYTES, CRITICAL_EVENT_TYPES, TaskStore;
 var init_task_store = __esm({
   "src/store/task-store.ts"() {
     "use strict";
@@ -277,6 +362,21 @@ var init_task_store = __esm({
     init_atomic_rename();
     TASK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
     DEFAULT_MAX_LOG_BYTES = 10 * 1024 * 1024;
+    MAX_INTERACTION_PARAMS_BYTES = 1024 * 1024;
+    LEGACY_INTERACTION_PARAMS_BYTES = 32e3;
+    SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/u;
+    InteractionRequestTooLargeError = class extends Error {
+      actualBytes;
+      limitBytes;
+      constructor(actualBytes, limitBytes) {
+        super(
+          `ZCode interaction request exceeded the ${limitBytes}-byte persistence limit (actual ${actualBytes} UTF-8 bytes); split the tool input into smaller parts and retry`
+        );
+        this.name = "InteractionRequestTooLargeError";
+        this.actualBytes = actualBytes;
+        this.limitBytes = limitBytes;
+      }
+    };
     MAX_CRITICAL_EVENT_RESERVE_BYTES = 256 * 1024;
     CRITICAL_EVENT_TYPES = /* @__PURE__ */ new Set([
       "error",
@@ -296,7 +396,12 @@ var init_task_store = __esm({
       "cancel_failed",
       "cleanup_unverified",
       "outcome_checkpoint_failed",
-      "outcome_recovered"
+      "outcome_recovered",
+      // ADR-008: fatal frame failures and undeliverable approvals must survive
+      // event-log capacity pressure.
+      "protocol_error",
+      "interaction_request_oversized",
+      "interaction_request_undeliverable"
     ]);
     TaskStore = class {
       #dataRoot;
@@ -426,7 +531,14 @@ var init_task_store = __esm({
           this.assertWorkerAttempt(taskId, attempt);
           this.#writeJsonAtomic(path4.join(this.taskDir(taskId), "result.json"), result);
           const current = this.readStatus(taskId);
-          this.#writeJsonAtomic(path4.join(this.taskDir(taskId), "status.json"), { ...current, ...patch, task_id: taskId, attempt, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
+          let effective = patch;
+          if (current.cleanup_unverified === true) {
+            effective = { ...patch, cleanup_unverified: true };
+            if (typeof current.error === "string" && current.error.includes("[cleanup-members:")) {
+              effective = { ...effective, error: current.error };
+            }
+          }
+          this.#writeJsonAtomic(path4.join(this.taskDir(taskId), "status.json"), { ...current, ...effective, task_id: taskId, attempt, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
         });
       }
       patchRunningAttempt(taskId, attempt, patch) {
@@ -1118,13 +1230,17 @@ var init_task_store = __esm({
             }
             return { record: record4, created: false };
           }
-          if (Buffer.byteLength(JSON.stringify(request.params), "utf8") > 32e3) {
-            throw new Error("ZCode interaction request exceeded the 32 KB persistence limit");
+          const serialized = JSON.stringify(request.params);
+          const bytes = Buffer.byteLength(serialized, "utf8");
+          if (bytes > MAX_INTERACTION_PARAMS_BYTES) {
+            throw new InteractionRequestTooLargeError(bytes, MAX_INTERACTION_PARAMS_BYTES);
           }
           const record3 = {
             ...request,
             state: "pending",
-            created_at: createdAt
+            created_at: createdAt,
+            params_bytes: bytes,
+            params_sha256: createHash("sha256").update(serialized).digest("hex")
           };
           this.#writeJsonAtomic(file, record3);
           return { record: record3, created: true };
@@ -1136,6 +1252,60 @@ var init_task_store = __esm({
         const record3 = this.#readJson(file);
         if (record3.request_id !== requestId) throw new Error("interaction request id hash mismatch");
         return record3;
+      }
+      /** Absolute path of one attempt's private full-request record; referenced
+       * by bounded interaction_requested preview events (ADR-008). */
+      interactionRequestPath(taskId, requestId) {
+        if (!requestId || requestId.length > 512) throw new Error("invalid ZCode interaction request_id");
+        return this.interactionFile(taskId, requestId);
+      }
+      /**
+       * ADR-008 approval guard: the full request behind an approval must be
+       * readable and consistent with its persisted byte count and SHA256 before
+       * the reply may be treated as authorization. Corrupt, missing, edited, or
+       * metadata-stripped records are reported, never accepted. Only genuinely
+       * legacy small records (no metadata at all, within the old 32,000-byte
+       * store limit) stay compatible; anything larger or partially annotated must
+       * carry complete, well-typed, matching metadata, and verification still
+       * enforces the 1 MiB persistence limit.
+       */
+      verifyInteractionRequestIntegrity(taskId, requestId) {
+        const file = this.interactionFile(taskId, requestId);
+        try {
+          if (!existsSync3(file)) return { ok: false, reason: "the full request record is missing" };
+          const record3 = this.#readJson(file);
+          if (record3.request_id !== requestId) return { ok: false, reason: "the persisted request id does not match this request" };
+          if (record3.state !== "pending" && record3.state !== "answered") return { ok: false, reason: "the persisted request state is unreadable" };
+          const serialized = JSON.stringify(record3.params);
+          const bytes = Buffer.byteLength(serialized, "utf8");
+          if (bytes > MAX_INTERACTION_PARAMS_BYTES) {
+            return { ok: false, reason: `the full request content is ${bytes} UTF-8 bytes, over the ${MAX_INTERACTION_PARAMS_BYTES}-byte persistence limit` };
+          }
+          const hasBytes = record3.params_bytes !== void 0;
+          const hasHash = record3.params_sha256 !== void 0;
+          if (!hasBytes && !hasHash) {
+            if (bytes <= LEGACY_INTERACTION_PARAMS_BYTES) return { ok: true };
+            return { ok: false, reason: `the full request record carries no integrity metadata but is ${bytes} UTF-8 bytes, over the legacy ${LEGACY_INTERACTION_PARAMS_BYTES}-byte limit; it cannot be treated as a legacy record` };
+          }
+          if (!hasBytes || !hasHash) {
+            return { ok: false, reason: "the full request record has incomplete integrity metadata (byte count and SHA256 must both be present)" };
+          }
+          if (typeof record3.params_bytes !== "number" || !Number.isSafeInteger(record3.params_bytes) || record3.params_bytes < 0) {
+            return { ok: false, reason: "the persisted byte count is not a valid non-negative integer" };
+          }
+          if (typeof record3.params_sha256 !== "string" || !SHA256_HEX_PATTERN.test(record3.params_sha256)) {
+            return { ok: false, reason: "the persisted SHA256 is not a valid 64-character hex digest" };
+          }
+          if (record3.params_bytes !== bytes) {
+            return { ok: false, reason: "the persisted byte count does not match the full content" };
+          }
+          if (record3.params_sha256 !== createHash("sha256").update(serialized).digest("hex")) {
+            return { ok: false, reason: "the persisted SHA256 does not match the full content" };
+          }
+          return { ok: true };
+        } catch {
+          return { ok: false, reason: "the full request record is unreadable or corrupt" };
+        }
       }
       answerInteractionRequest(taskId, requestId, answer, answeredAt = (/* @__PURE__ */ new Date()).toISOString()) {
         const file = this.interactionFile(taskId, requestId);
@@ -1151,6 +1321,30 @@ var init_task_store = __esm({
             answered_at: answeredAt
           });
           return "answered";
+        });
+      }
+      /** ADR-008: approval answers verify the full request inside the same
+       * interaction lock the answer is written under, so the record checked for
+       * integrity is exactly the one the answer lands on — there is no
+       * check-then-write window where an edited record could slip through. */
+      answerInteractionRequestVerified(taskId, requestId, answer, options, answeredAt = (/* @__PURE__ */ new Date()).toISOString()) {
+        const file = this.interactionFile(taskId, requestId);
+        return withEventLock(path4.join(this.taskDir(taskId), "interactions.lock"), () => {
+          if (!existsSync3(file)) throw new Error(`unknown ZCode interaction request: ${requestId}`);
+          const current = this.#readJson(file);
+          if (current.request_id !== requestId) throw new Error("interaction request id hash mismatch");
+          if (current.state === "answered") return { state: "already_answered" };
+          if (options.requireIntegrity) {
+            const integrity = this.verifyInteractionRequestIntegrity(taskId, requestId);
+            if (!integrity.ok) return { state: "integrity_failed", reason: integrity.reason };
+          }
+          this.#writeJsonAtomic(file, {
+            ...current,
+            state: "answered",
+            answer,
+            answered_at: answeredAt
+          });
+          return { state: "answered" };
         });
       }
       interactionFile(taskId, requestId) {
@@ -22971,7 +23165,9 @@ var PERSISTED_RUNTIME_KEYS = [
   "ZCODE_BRIDGE_DEFAULT_REASONING_LEVEL",
   "ZCODE_BRIDGE_MODE",
   "ZCODE_BRIDGE_MAX_CONCURRENT_WORKERS",
-  "ZCODE_BRIDGE_TIMEOUT_MS"
+  "ZCODE_BRIDGE_TIMEOUT_MS",
+  "ZCODE_BRIDGE_BROWSER_USE",
+  "ZCODE_BRIDGE_BROWSER_EXECUTABLE"
 ];
 function loadPersistedRuntimeEnvironment(source, homeDir = homedir2(), host = codexHostProfile(homeDir)) {
   validateHostProfile(host);
@@ -23458,7 +23654,11 @@ var WINDOWS_OS_ENV = /* @__PURE__ */ new Set([
   "PROGRAMDATA",
   "OS",
   "PROCESSOR_ARCHITECTURE",
-  "NUMBER_OF_PROCESSORS"
+  "NUMBER_OF_PROCESSORS",
+  // Non-sensitive system install directories; browser auto-discovery resolves
+  // system Chrome/Edge under these roots (src/browser/executable.ts).
+  "PROGRAMFILES",
+  "PROGRAMFILES(X86)"
 ]);
 var POSIX_OS_ENV = /* @__PURE__ */ new Set([
   "PATH",
@@ -23493,6 +23693,10 @@ function createWorkerEnv(source) {
     "ZCODE_BRIDGE_DEFAULT_REASONING_LEVEL",
     "ZCODE_BRIDGE_MODE",
     "ZCODE_BRIDGE_TIMEOUT_MS",
+    // Env-only browser configuration (ADR-007): non-secret strings the worker's
+    // adapter reads from its own environment when no persisted setting exists.
+    "ZCODE_BRIDGE_BROWSER_USE",
+    "ZCODE_BRIDGE_BROWSER_EXECUTABLE",
     "ZCODE_HOME",
     "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE",
     "ZCODE_PERSONAL_PROVIDER_CONFIG_FILE",
@@ -23547,9 +23751,6 @@ function createWorkerSpawner(host) {
   };
 }
 var defaultSpawnWorker = createWorkerSpawner();
-
-// src/adapters/process-spawn.ts
-import { spawn as spawn3 } from "node:child_process";
 
 // src/runtime/process-probe.ts
 import { readFile } from "node:fs/promises";
@@ -23768,91 +23969,915 @@ function livenessVerdict(pid, isAlive, now) {
 }
 
 // src/adapters/windows-process-cleanup.ts
-import { performance } from "node:perf_hooks";
-async function terminateWindowsProcessTree(pid, killWaitMs, dependencies) {
-  const requests = await dependencies.capture(pid);
-  if (!requests.some((request) => request.pid === pid)) throw new Error("process_tree_snapshot_invalid: root missing");
-  const inspect = async () => {
-    const verdicts = await dependencies.probe(requests);
-    if (verdicts.length !== requests.length || verdicts.some((verdict2) => verdict2.state === "unknown")) {
-      throw new Error("process_tree_probe_unverified: recorded executor exit is unknown");
-    }
-    return verdicts;
+import { spawn as spawn3 } from "node:child_process";
+var CIM_REPRESENTATION_INTERVAL_TICKS = 10n;
+function withinCimInterval(exactFileTime, cimFileTime) {
+  const exact = BigInt(exactFileTime);
+  const cim = BigInt(cimFileTime);
+  return exact >= cim && exact <= cim + CIM_REPRESENTATION_INTERVAL_TICKS;
+}
+function cimIntervalWithin(cimFileTime, lowExact, highExact) {
+  const cim = BigInt(cimFileTime);
+  return cim >= BigInt(lowExact) && cim + CIM_REPRESENTATION_INTERVAL_TICKS <= BigInt(highExact);
+}
+function cimClearlyBefore(cimFileTime, exactFileTime) {
+  return BigInt(cimFileTime) + CIM_REPRESENTATION_INTERVAL_TICKS < BigInt(exactFileTime);
+}
+function cimClearlyAfter(cimFileTime, exactFileTime) {
+  return BigInt(cimFileTime) > BigInt(exactFileTime);
+}
+function acceptMember(row, input, held, members2, memberPids, decidedIrrelevant, holdRequired, refuse) {
+  if (row.startTicks === null || row.creationFileTime === null) {
+    refuse("process_tree_member_identity_unknown", row.pid);
+    return;
+  }
+  const child = held.get(row.pid);
+  if (!child) {
+    holdRequired.add(row.pid);
+    return;
+  }
+  if (!withinCimInterval(child.creationFileTime, row.creationFileTime)) {
+    refuse("process_tree_generation_mismatch", row.pid);
+    return;
+  }
+  if (child.creationTicks !== row.startTicks) {
+    refuse("process_tree_member_generation_mismatch", row.pid);
+    return;
+  }
+  memberPids.add(row.pid);
+  members2.push({ pid: row.pid, parentPid: row.parentPid, creationFileTime: row.creationFileTime, startTicks: row.startTicks });
+}
+function resolveWindowsTreeMembership(input) {
+  const rowsByPid = /* @__PURE__ */ new Map();
+  for (const row of input.rows) {
+    if (rowsByPid.has(row.pid)) return { kind: "refuse", code: "process_tree_snapshot_invalid", pid: row.pid };
+    rowsByPid.set(row.pid, row);
+  }
+  const members2 = [];
+  const memberPids = /* @__PURE__ */ new Set();
+  const decidedIrrelevant = /* @__PURE__ */ new Set();
+  const holdRequired = /* @__PURE__ */ new Set();
+  const state = { refusal: null };
+  const refuse = (code, pid) => {
+    if (!state.refusal) state.refusal = { code, pid };
   };
-  const before = await inspect();
-  if (before.every((verdict2) => verdict2.state === "exited")) return;
-  const rootIndex = requests.findIndex((request) => request.pid === pid);
-  if (before[rootIndex]?.state !== "alive") {
-    throw new Error("process_tree_descendants_alive: root exited before termination");
-  }
-  let exitCode = null;
-  let commandFailed = false;
-  try {
-    exitCode = await dependencies.kill(pid);
-  } catch {
-    commandFailed = true;
-  }
-  const deadline = performance.now() + Math.max(0, killWaitMs);
-  for (; ; ) {
-    const after = await inspect();
-    if (after.every((verdict2) => verdict2.state === "exited")) return;
-    if (performance.now() >= deadline) {
-      const reason = commandFailed ? "command_error" : exitCode === null ? "timeout" : `exit_${exitCode}`;
-      throw new Error(`process_tree_cleanup_unverified: taskkill ${reason}; recorded executors remain alive`);
+  const rootRow = rowsByPid.get(input.rootPid);
+  if (rootRow) {
+    if (input.expectedRootTicks === null) {
+      return { kind: "refuse", code: "process_tree_root_identity_required", pid: input.rootPid };
     }
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    if (rootRow.startTicks === null || rootRow.creationFileTime === null) {
+      return { kind: "refuse", code: "process_tree_root_identity_unknown", pid: input.rootPid };
+    }
+    if (rootRow.startTicks !== input.expectedRootTicks) {
+      return { kind: "refuse", code: "process_tree_root_identity_changed", pid: input.rootPid };
+    }
+    const heldRoot = input.held.get(input.rootPid);
+    if (!heldRoot) {
+      holdRequired.add(input.rootPid);
+    } else if (heldRoot.creationTicks !== rootRow.startTicks || !withinCimInterval(heldRoot.creationFileTime, rootRow.creationFileTime)) {
+      return { kind: "refuse", code: "process_tree_root_generation_mismatch", pid: input.rootPid };
+    } else {
+      memberPids.add(rootRow.pid);
+      members2.push({ pid: rootRow.pid, parentPid: rootRow.parentPid, creationFileTime: rootRow.creationFileTime, startTicks: rootRow.startTicks });
+    }
+  } else if (!input.killed.has(input.rootPid)) {
+    if (input.expectedRootTicks === null) {
+      return { kind: "refuse", code: "process_tree_root_identity_required", pid: input.rootPid };
+    }
+    return { kind: "refuse", code: "process_tree_root_exited", pid: input.rootPid };
+  }
+  for (let changed = true; changed && !state.refusal; ) {
+    changed = false;
+    for (const row of input.rows) {
+      if (state.refusal) break;
+      if (memberPids.has(row.pid) || decidedIrrelevant.has(row.pid)) continue;
+      const parentPid = row.parentPid;
+      if (parentPid === row.pid) {
+        decidedIrrelevant.add(row.pid);
+        changed = true;
+        continue;
+      }
+      const parentRow = memberPids.has(parentPid) ? rowsByPid.get(parentPid) : void 0;
+      if (parentRow) {
+        if (row.creationFileTime === null) {
+          refuse("process_tree_row_creation_unknown", row.pid);
+          continue;
+        }
+        if (parentRow.creationFileTime === null) {
+          refuse("process_tree_row_creation_unknown", parentPid);
+          continue;
+        }
+        const parent = input.held.get(parentPid);
+        if (!parent) {
+          holdRequired.add(parentPid);
+          continue;
+        }
+        if (cimClearlyBefore(row.creationFileTime, parent.creationFileTime)) {
+          decidedIrrelevant.add(row.pid);
+          changed = true;
+          continue;
+        }
+        const child = input.held.get(row.pid);
+        if (!child) {
+          holdRequired.add(row.pid);
+          continue;
+        }
+        if (!withinCimInterval(child.creationFileTime, row.creationFileTime) || !withinCimInterval(parent.creationFileTime, parentRow.creationFileTime)) {
+          refuse("process_tree_generation_mismatch", row.pid);
+          continue;
+        }
+        const childCreation = BigInt(child.creationFileTime);
+        const parentCreation = BigInt(parent.creationFileTime);
+        if (childCreation === parentCreation) {
+          refuse("process_tree_edge_indistinguishable", row.pid);
+          continue;
+        }
+        if (childCreation < parentCreation) {
+          decidedIrrelevant.add(row.pid);
+          changed = true;
+          continue;
+        }
+        acceptMember(row, input, input.held, members2, memberPids, decidedIrrelevant, holdRequired, refuse);
+        if (memberPids.has(row.pid)) changed = true;
+        continue;
+      }
+      const killedParent = input.killed.get(parentPid);
+      if (killedParent) {
+        if (row.creationFileTime === null) {
+          refuse("process_tree_row_creation_unknown", row.pid);
+          continue;
+        }
+        if (cimClearlyBefore(row.creationFileTime, killedParent.creationFileTime)) {
+          decidedIrrelevant.add(row.pid);
+          changed = true;
+          continue;
+        }
+        if (killedParent.exitFileTime === null) {
+          refuse("process_tree_parent_exit_unconfirmed", parentPid);
+          continue;
+        }
+        if (cimClearlyAfter(row.creationFileTime, killedParent.exitFileTime)) {
+          decidedIrrelevant.add(row.pid);
+          changed = true;
+          continue;
+        }
+        if (cimIntervalWithin(row.creationFileTime, killedParent.creationFileTime, killedParent.exitFileTime)) {
+          acceptMember(row, input, input.held, members2, memberPids, decidedIrrelevant, holdRequired, refuse);
+          if (memberPids.has(row.pid)) changed = true;
+          continue;
+        }
+        const child = input.held.get(row.pid);
+        if (!child) {
+          holdRequired.add(row.pid);
+          continue;
+        }
+        if (!withinCimInterval(child.creationFileTime, row.creationFileTime)) {
+          refuse("process_tree_generation_mismatch", row.pid);
+          continue;
+        }
+        const creation = BigInt(child.creationFileTime);
+        if (creation >= BigInt(killedParent.creationFileTime) && creation <= BigInt(killedParent.exitFileTime)) {
+          acceptMember(row, input, input.held, members2, memberPids, decidedIrrelevant, holdRequired, refuse);
+          if (memberPids.has(row.pid)) changed = true;
+        } else {
+          decidedIrrelevant.add(row.pid);
+          changed = true;
+        }
+        continue;
+      }
+      if (input.naturalGonePids.has(parentPid)) {
+        if (row.creationFileTime === null) {
+          refuse("process_tree_row_creation_unknown", row.pid);
+          continue;
+        }
+        const lastCim = input.naturalGoneCreation.get(parentPid) ?? null;
+        if (lastCim !== null && cimClearlyBefore(row.creationFileTime, lastCim)) {
+          decidedIrrelevant.add(row.pid);
+          changed = true;
+          continue;
+        }
+        refuse("process_tree_parent_unprovable", parentPid);
+        continue;
+      }
+      const parentUndecidedLiveRow = rowsByPid.has(parentPid) && !memberPids.has(parentPid) && !decidedIrrelevant.has(parentPid);
+      if (parentUndecidedLiveRow || parentPid === input.rootPid) continue;
+      decidedIrrelevant.add(row.pid);
+      changed = true;
+    }
+  }
+  if (state.refusal) return { kind: "refuse", code: state.refusal.code, pid: state.refusal.pid };
+  if (holdRequired.size > 0) return { kind: "members", members: members2, holdRequired: [...holdRequired] };
+  if (members2.length === 0) return { kind: "success" };
+  return { kind: "members", members: members2, holdRequired: [] };
+}
+var WindowsTreeCleanupError = class extends Error {
+  code;
+  memberPids;
+  constructor(code, message, memberPids = []) {
+    super(message);
+    this.name = "WindowsTreeCleanupError";
+    this.code = code;
+    this.memberPids = memberPids;
+  }
+};
+async function terminateWindowsProcessTree(pid, expectedRootTicks, killWaitMs, dependencies) {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    throw new WindowsTreeCleanupError("process_tree_invalid_pid", `a positive integer PID is required, got: ${String(pid)}`);
+  }
+  const now = dependencies.now ?? Date.now;
+  const sleep4 = dependencies.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const transaction = await dependencies.open();
+  const killed = /* @__PURE__ */ new Map();
+  const held = /* @__PURE__ */ new Map();
+  const naturalGone = /* @__PURE__ */ new Set();
+  const naturalGoneCreation = /* @__PURE__ */ new Map();
+  const memberReceipts = /* @__PURE__ */ new Map();
+  const killReceipts = [];
+  const unverifiedCandidates = /* @__PURE__ */ new Set();
+  let rounds = 0;
+  let bodyError = null;
+  let succeeded = false;
+  const knownPids = () => [.../* @__PURE__ */ new Set([...memberReceipts.keys(), ...unverifiedCandidates])];
+  try {
+    const deadline = now() + Math.max(0, killWaitMs);
+    for (; ; ) {
+      rounds += 1;
+      const rows = await transaction.enumerate();
+      const resolution = await resolveRound(rows);
+      if (resolution.kind === "refuse") {
+        throw new WindowsTreeCleanupError(resolution.code, `${resolution.code}: process tree cleanup refused`, knownPids());
+      }
+      if (resolution.kind === "success") break;
+      const members2 = resolution.members.map((m) => ({ pid: m.pid, parentPid: m.parentPid, startTicks: m.startTicks, creationFileTime: m.creationFileTime }));
+      const livePids = new Set(resolution.members.map((m) => m.pid));
+      for (const previous of memberReceipts.keys()) {
+        if (!livePids.has(previous) && !killed.has(previous) && !naturalGone.has(previous)) {
+          naturalGone.add(previous);
+          naturalGoneCreation.set(previous, memberReceipts.get(previous).creationFileTime);
+        }
+      }
+      for (const member of members2) {
+        unverifiedCandidates.delete(member.pid);
+        if (!memberReceipts.has(member.pid)) {
+          memberReceipts.set(member.pid, { pid: member.pid, fingerprint: member.startTicks, creationFileTime: member.creationFileTime });
+        }
+      }
+      const ordered = orderChildrenFirst(members2);
+      const remaining = Math.max(120, deadline - now());
+      const perMemberWait = Math.min(2e3, Math.max(120, Math.floor(remaining / Math.max(1, ordered.length))));
+      for (const member of ordered) {
+        const heldInfo = held.get(member.pid);
+        const kill = await transaction.kill(member.pid, member.startTicks, perMemberWait);
+        killReceipts.push({ pid: member.pid, status: kill.status, exitFileTime: kill.exitFileTime });
+        if (kill.status === "signaled" || kill.status === "already_exited") {
+          killed.set(member.pid, {
+            pid: member.pid,
+            creationFileTime: heldInfo?.creationFileTime ?? member.creationFileTime,
+            exitFileTime: kill.exitFileTime
+          });
+        } else if (kill.status === "identity_changed" || kill.status === "not_held") {
+          naturalGone.add(member.pid);
+          naturalGoneCreation.set(member.pid, member.creationFileTime);
+        }
+      }
+      const unconfirmedMembers = members2.filter((m) => {
+        const record3 = killed.get(m.pid);
+        return record3 === void 0 || record3.exitFileTime === null;
+      });
+      if (now() >= deadline && unconfirmedMembers.length > 0) {
+        throw new WindowsTreeCleanupError(
+          "process_tree_cleanup_unverified",
+          `process_tree_cleanup_unverified: ${String(unconfirmedMembers.length)} recorded member(s) not provably exited`,
+          knownPids()
+        );
+      }
+      await sleep4(20);
+    }
+    succeeded = true;
+    return {
+      rootPid: pid,
+      rounds,
+      members: [...memberReceipts.values()],
+      kills: killReceipts,
+      signaled: killReceipts.filter((k) => k.status === "signaled").map((k) => k.pid)
+    };
+  } catch (error2) {
+    bodyError = error2;
+    if (error2 instanceof WindowsTreeCleanupError) {
+      throw error2.memberPids.length > 0 ? error2 : new WindowsTreeCleanupError(error2.code, error2.message, knownPids());
+    }
+    const detail = error2 instanceof Error ? error2.message : String(error2);
+    throw new WindowsTreeCleanupError("process_tree_transaction_error", `process_tree_transaction_error: ${detail}`, knownPids());
+  } finally {
+    let closeError = null;
+    try {
+      await transaction.close();
+    } catch (error2) {
+      closeError = error2;
+    }
+    if (closeError !== null) {
+      const closeText = closeError instanceof Error ? closeError.message : String(closeError);
+      if (bodyError !== null) {
+        const original = bodyError instanceof WindowsTreeCleanupError ? new WindowsTreeCleanupError(bodyError.code, `${bodyError.message}; process_tree_close_failed: ${closeText}`, bodyError.memberPids.length > 0 ? bodyError.memberPids : knownPids()) : new WindowsTreeCleanupError("process_tree_transaction_error", `process_tree_transaction_error: ${String(bodyError instanceof Error ? bodyError.message : bodyError)}; process_tree_close_failed: ${closeText}`, knownPids());
+        throw original;
+      }
+      throw new WindowsTreeCleanupError("process_tree_close_failed", `process_tree_close_failed: ${closeText}`, knownPids());
+    }
+  }
+  async function resolveRound(rows) {
+    let workingRows = [...rows];
+    const resolve = () => resolveWindowsTreeMembership({
+      rows: workingRows,
+      rootPid: pid,
+      expectedRootTicks,
+      held,
+      killed,
+      naturalGonePids: naturalGone,
+      naturalGoneCreation
+    });
+    let resolution = resolve();
+    for (let attempt = 0; attempt < 6 && resolution.kind === "members" && resolution.holdRequired.length > 0; attempt += 1) {
+      const requested = [...new Set(resolution.holdRequired)];
+      for (const candidate of resolution.holdRequired) unverifiedCandidates.add(candidate);
+      const outcomes = await transaction.hold(requested);
+      if (outcomes.length !== requested.length) {
+        throw new WindowsTreeCleanupError(
+          "process_tree_hold_invalid",
+          `process_tree_hold_invalid: ${String(outcomes.length)} responses for ${String(requested.length)} requested pids`,
+          knownPids()
+        );
+      }
+      const seen = /* @__PURE__ */ new Set();
+      for (const outcome of outcomes) {
+        if (seen.has(outcome.pid)) {
+          throw new WindowsTreeCleanupError("process_tree_hold_invalid", `process_tree_hold_invalid: duplicate response for pid ${String(outcome.pid)}`, knownPids());
+        }
+        seen.add(outcome.pid);
+        if (!requested.includes(outcome.pid)) {
+          throw new WindowsTreeCleanupError("process_tree_hold_invalid", `process_tree_hold_invalid: unexpected pid ${String(outcome.pid)} in hold response`, knownPids());
+        }
+        if (outcome.status === "ok") {
+          held.set(outcome.pid, { pid: outcome.pid, creationFileTime: outcome.creationFileTime, creationTicks: outcome.creationTicks });
+        } else if (outcome.status === "absent") {
+          throw new WindowsTreeCleanupError(
+            "process_tree_candidate_absent",
+            `process_tree_candidate_absent: candidate pid ${String(outcome.pid)} vanished between enumeration and hold; its subtree cannot be attributed`,
+            [.../* @__PURE__ */ new Set([...requested, ...knownPids()])]
+          );
+        }
+      }
+      resolution = resolve();
+    }
+    if (resolution.kind === "members" && resolution.holdRequired.length > 0) {
+      for (const candidate of resolution.holdRequired) unverifiedCandidates.add(candidate);
+      const roundMemberPids = resolution.members.map((m) => m.pid);
+      throw new WindowsTreeCleanupError(
+        "process_tree_hold_unresolved",
+        `process_tree_hold_unresolved: cannot prove identity/ownership for pids ${resolution.holdRequired.join(",")}`,
+        [.../* @__PURE__ */ new Set([...roundMemberPids, ...knownPids()])]
+      );
+    }
+    return resolution;
   }
 }
-function windowsTreeCaptureScript(pid) {
+function orderChildrenFirst(members2) {
+  const remaining = [...members2];
+  const ordered = [];
+  let progress = true;
+  while (remaining.length > 0 && progress) {
+    progress = false;
+    for (let index = remaining.length - 1; index >= 0; index -= 1) {
+      const member = remaining[index];
+      const hasPendingChild = remaining.some((other) => other !== member && other.parentPid === member.pid);
+      if (!hasPendingChild) {
+        ordered.push(member);
+        remaining.splice(index, 1);
+        progress = true;
+      }
+    }
+  }
+  const leftovers = remaining.sort((a, b) => BigInt(a.creationFileTime) > BigInt(b.creationFileTime) ? -1 : 1);
+  return [...ordered, ...leftovers];
+}
+async function verifyWindowsRecordedTreeClaimants(targets, dependencies) {
+  const transaction = await dependencies.open();
+  let bodyError = null;
+  const targetPids = targets.map((t) => t.pid).filter((p) => Number.isInteger(p) && p > 0);
+  const claimantPids = /* @__PURE__ */ new Set();
+  const foreignHeld = /* @__PURE__ */ new Map();
+  const unattributableLineagePids = /* @__PURE__ */ new Set();
+  const edgeVerifiedForeignPids = /* @__PURE__ */ new Set();
+  const requestedPids = /* @__PURE__ */ new Set();
+  const evidencePids = () => [
+    .../* @__PURE__ */ new Set([...targetPids, ...claimantPids, ...[...requestedPids].filter((pid) => !foreignHeld.has(pid))])
+  ];
+  const DECIMAL = /^\d{1,25}$/u;
+  const holdOneValidated = async (pid) => {
+    requestedPids.add(pid);
+    const outcomes = await transaction.hold([pid]);
+    if (outcomes.length !== 1) {
+      throw new WindowsTreeCleanupError(
+        "process_tree_hold_invalid",
+        `process_tree_hold_invalid: ${String(outcomes.length)} responses for 1 requested pid`,
+        evidencePids()
+      );
+    }
+    const outcome = outcomes[0];
+    if (outcome === void 0 || outcome.pid !== pid) {
+      throw new WindowsTreeCleanupError(
+        "process_tree_hold_invalid",
+        `process_tree_hold_invalid: unexpected pid ${String(outcome?.pid ?? "missing")} in hold response`,
+        evidencePids()
+      );
+    }
+    if (outcome.status === "ok") {
+      if (typeof outcome.creationFileTime !== "string" || !DECIMAL.test(outcome.creationFileTime) || typeof outcome.creationTicks !== "string" || !DECIMAL.test(outcome.creationTicks)) {
+        throw new WindowsTreeCleanupError(
+          "process_tree_hold_invalid",
+          `process_tree_hold_invalid: ok hold response for pid ${String(pid)} lacks usable exact identity fields`,
+          evidencePids()
+        );
+      }
+      return { status: "ok", creationFileTime: outcome.creationFileTime, creationTicks: outcome.creationTicks };
+    }
+    return { status: outcome.status };
+  };
+  try {
+    const rows = await transaction.enumerate();
+    const live = /* @__PURE__ */ new Set();
+    for (const row of rows) live.add(row.pid);
+    const rowsByPid = /* @__PURE__ */ new Map();
+    for (const row of rows) {
+      if (!rowsByPid.has(row.pid)) rowsByPid.set(row.pid, row);
+    }
+    const recorded = /* @__PURE__ */ new Set();
+    for (const target of targets) {
+      if (!Number.isInteger(target.pid) || target.pid <= 0) continue;
+      recorded.add(target.pid);
+      if (!live.has(target.pid)) continue;
+      if (target.fingerprint === null) {
+        claimantPids.add(target.pid);
+        continue;
+      }
+      const outcome = await holdOneValidated(target.pid);
+      if (outcome.status === "ok") {
+        if (outcome.creationTicks === target.fingerprint) claimantPids.add(target.pid);
+        else {
+          const row = rowsByPid.get(target.pid);
+          if (row !== void 0 && row.startTicks !== null && row.creationFileTime !== null && outcome.creationTicks === row.startTicks && withinCimInterval(outcome.creationFileTime, row.creationFileTime)) {
+            foreignHeld.set(target.pid, { exact: outcome.creationFileTime });
+          } else {
+            claimantPids.add(target.pid);
+          }
+        }
+      } else if (outcome.status === "absent") {
+        live.delete(target.pid);
+      } else {
+        claimantPids.add(target.pid);
+      }
+    }
+    for (let changed = true; changed; ) {
+      changed = false;
+      for (const row of rows) {
+        if (claimantPids.has(row.pid)) continue;
+        if (claimantPids.has(row.parentPid) || unattributableLineagePids.has(row.parentPid) || recorded.has(row.parentPid) && !live.has(row.parentPid) && !foreignHeld.has(row.parentPid)) {
+          claimantPids.add(row.pid);
+          changed = true;
+        }
+      }
+      for (const row of rows) {
+        if (claimantPids.has(row.pid) || unattributableLineagePids.has(row.pid) || edgeVerifiedForeignPids.has(row.pid)) continue;
+        const foreignParent = foreignHeld.get(row.parentPid);
+        if (foreignParent === void 0) continue;
+        if (row.creationFileTime === null || BigInt(row.creationFileTime) <= BigInt(foreignParent.exact)) {
+          claimantPids.add(row.pid);
+          foreignHeld.delete(row.pid);
+          edgeVerifiedForeignPids.delete(row.pid);
+          changed = true;
+          continue;
+        }
+        if (foreignHeld.has(row.pid)) {
+          edgeVerifiedForeignPids.add(row.pid);
+          changed = true;
+          continue;
+        }
+        const outcome = await holdOneValidated(row.pid);
+        if (outcome.status === "absent") {
+          unattributableLineagePids.add(row.pid);
+        } else if (outcome.status === "ok" && row.startTicks !== null && outcome.creationTicks === row.startTicks && withinCimInterval(outcome.creationFileTime, row.creationFileTime)) {
+          foreignHeld.set(row.pid, { exact: outcome.creationFileTime });
+          edgeVerifiedForeignPids.add(row.pid);
+        } else {
+          claimantPids.add(row.pid);
+        }
+        changed = true;
+      }
+    }
+    const liveList = [...claimantPids].sort((a, b) => a - b);
+    return { clean: liveList.length === 0, livePids: liveList, observedPids: evidencePids().sort((a, b) => a - b) };
+  } catch (error2) {
+    bodyError = error2;
+    if (error2 instanceof WindowsTreeCleanupError) {
+      throw error2.memberPids.length > 0 ? error2 : new WindowsTreeCleanupError(error2.code, error2.message, evidencePids());
+    }
+    const detail = error2 instanceof Error ? error2.message : String(error2);
+    throw new WindowsTreeCleanupError("process_tree_scan_failed", `process_tree_scan_failed: ${detail}`, evidencePids());
+  } finally {
+    let closeError = null;
+    try {
+      await transaction.close();
+    } catch (error2) {
+      closeError = error2;
+    }
+    if (closeError !== null) {
+      const closeText = closeError instanceof Error ? closeError.message : String(closeError);
+      if (bodyError !== null) {
+        const originalText = bodyError instanceof Error ? bodyError.message : String(bodyError);
+        throw new WindowsTreeCleanupError("process_tree_scan_failed", `process_tree_scan_failed: ${originalText}; process_tree_close_failed: ${closeText}`, evidencePids());
+      }
+      throw new WindowsTreeCleanupError("process_tree_close_failed", `process_tree_close_failed: ${closeText}`, evidencePids());
+    }
+  }
+}
+function windowsTreeTransactionScript() {
   return [
     "$ErrorActionPreference = 'Stop'",
-    "$all = @(Get-CimInstance Win32_Process -ErrorAction Stop)",
-    `$selected = [System.Collections.Generic.HashSet[int]]::new(); [void]$selected.Add(${pid})`,
-    "do { $changed = $false; foreach ($item in $all) { if ($selected.Contains([int]$item.ParentProcessId)) { if ($selected.Add([int]$item.ProcessId)) { $changed = $true } } } } while ($changed)",
-    "'bridge_tree_snapshot_v1'",
-    "foreach ($candidate in $selected) { $item = Get-Process -Id $candidate -ErrorAction SilentlyContinue; if ($null -eq $item) { '{0}|absent' -f $candidate } else { '{0}|{1}' -f $candidate, $item.StartTime.Ticks } }"
-  ].join("; ");
+    "$ProgressPreference = 'SilentlyContinue'",
+    "Add-Type -TypeDefinition @'",
+    "using System;",
+    "using System.Collections.Generic;",
+    "using System.Runtime.InteropServices;",
+    "public static class BridgeTreeTx {",
+    '  [DllImport("kernel32.dll", SetLastError = true)] static extern IntPtr OpenProcess(uint access, bool inherit, int pid);',
+    '  [DllImport("kernel32.dll", SetLastError = true)] static extern bool GetProcessTimes(IntPtr h, out long created, out long exited, out long kernel, out long user);',
+    '  [DllImport("kernel32.dll", SetLastError = true)] static extern bool TerminateProcess(IntPtr h, uint exitCode);',
+    '  [DllImport("kernel32.dll", SetLastError = true)] static extern uint WaitForSingleObject(IntPtr h, uint milliseconds);',
+    '  [DllImport("kernel32.dll", SetLastError = true)] static extern bool CloseHandle(IntPtr h);',
+    "  public static readonly Dictionary<int, IntPtr> Held = new Dictionary<int, IntPtr>();",
+    "  public static string Hold(int pid) {",
+    "    IntPtr existing;",
+    '    if (Held.TryGetValue(pid, out existing) && existing != IntPtr.Zero) { return "already_held|"; }',
+    "    IntPtr h = OpenProcess(0x00101001u, false, pid);",
+    '    if (h == IntPtr.Zero) { int err = Marshal.GetLastWin32Error(); return (err == 87 ? "absent|" : (err == 5 ? "denied|" : "error|")) + err.ToString(); }',
+    "    long c, e, k, u;",
+    '    if (!GetProcessTimes(h, out c, out e, out k, out u)) { int err = Marshal.GetLastWin32Error(); CloseHandle(h); return "error|" + err.ToString(); }',
+    "    Held[pid] = h;",
+    '    return "ok|" + c.ToString() + "|" + DateTime.FromFileTime(c).Ticks.ToString();',
+    "  }",
+    "  public static string Kill(int pid, string expectTicks, int waitMs) {",
+    "    IntPtr h;",
+    '    if (!Held.TryGetValue(pid, out h) || h == IntPtr.Zero) { return "not_held|"; }',
+    "    long c, e, k, u;",
+    '    if (!GetProcessTimes(h, out c, out e, out k, out u)) { return "error|" + Marshal.GetLastWin32Error().ToString(); }',
+    "    string current = DateTime.FromFileTime(c).Ticks.ToString();",
+    '    if (current != expectTicks) { return "identity_changed|" + current; }',
+    '    if (e != 0) { return "already_exited|" + e.ToString(); }',
+    '    if (!TerminateProcess(h, 1)) { return "error|" + Marshal.GetLastWin32Error().ToString(); }',
+    "    uint wait = WaitForSingleObject(h, (uint)waitMs);",
+    '    if (!GetProcessTimes(h, out c, out e, out k, out u)) { return "error|" + Marshal.GetLastWin32Error().ToString(); }',
+    '    if (wait != 0) { return "wait_timeout|" + e.ToString(); }',
+    '    return "signaled|" + e.ToString();',
+    "  }",
+    "  public static string CloseAll() {",
+    "    int closed = 0;",
+    "    int failed = 0;",
+    "    foreach (KeyValuePair<int, IntPtr> entry in Held) { if (entry.Value != IntPtr.Zero) { if (CloseHandle(entry.Value)) { closed++; } else { failed++; } } }",
+    "    Held.Clear();",
+    '    return closed.ToString() + "|" + failed.ToString();',
+    "  }",
+    "}",
+    "'@",
+    "[Console]::Out.WriteLine('READY'); [Console]::Out.Flush()",
+    "while ($true) {",
+    "  $line = [Console]::In.ReadLine()",
+    "  if ($null -eq $line) { [void][BridgeTreeTx]::CloseAll(); exit 0 }",
+    "  $parts = $line.Trim().Split(' ')",
+    "  if ($parts[0] -eq 'enum') {",
+    "    $all = @(Get-CimInstance Win32_Process -ErrorAction Stop)",
+    "    [Console]::Out.WriteLine('ENUM_BEGIN')",
+    "    $ids = @(); foreach ($p in $all) { $ids += [int]$p.ProcessId }",
+    "    $byId = @{}",
+    "    if ($ids.Count -gt 0) { foreach ($g in (Get-Process -Id $ids -ErrorAction SilentlyContinue)) { $byId[[int]$g.Id] = $g } }",
+    "    foreach ($p in $all) {",
+    "      $ticks = 'unknown'",
+    "      $cim = 'unknown'",
+    "      if ($null -ne $p.CreationDate) { $cim = [string]$p.CreationDate.ToFileTimeUtc() }",
+    "      $g = $byId[[int]$p.ProcessId]",
+    "      if ($null -ne $g) { try { $st = $g.StartTime; if ($null -ne $st) { $ticks = [string]$st.Ticks } } catch { $ticks = 'unknown' } }",
+    "      if ([string]::IsNullOrEmpty($ticks)) { $ticks = 'unknown' }",
+    "      [Console]::Out.WriteLine(('R {0} {1} {2} {3}' -f [int]$p.ProcessId, [int]$p.ParentProcessId, $cim, $ticks))",
+    "    }",
+    "    [Console]::Out.WriteLine('ENUM_END'); [Console]::Out.Flush()",
+    "  } elseif ($parts[0] -eq 'hold') {",
+    "    for ($i = 1; $i -lt $parts.Count; $i++) {",
+    "      $hp = 0",
+    "      if (-not [int]::TryParse($parts[$i], [ref]$hp)) { [Console]::Out.WriteLine('H 0 error 22'); continue }",
+    "      $r = [BridgeTreeTx]::Hold($hp).Split('|')",
+    "      if ($r[0] -eq 'already_held') { [Console]::Out.WriteLine(('H {0} held' -f $hp)) }",
+    "      elseif ($r[0] -eq 'ok') { [Console]::Out.WriteLine(('H {0} ok {1} {2}' -f $hp, $r[1], $r[2])) }",
+    "      else { [Console]::Out.WriteLine(('H {0} {1} {2}' -f $hp, $r[0], $r[1])) }",
+    "    }",
+    "    [Console]::Out.WriteLine('HOLD_END'); [Console]::Out.Flush()",
+    "  } elseif ($parts[0] -eq 'kill') {",
+    "    $kpid = [int]$parts[1]; $kticks = [string]$parts[2]; $kwait = [int]$parts[3]",
+    "    $r = [BridgeTreeTx]::Kill($kpid, $kticks, $kwait).Split('|')",
+    "    if ($r[0] -eq 'signaled' -or $r[0] -eq 'already_exited') { [Console]::Out.WriteLine(('K {0} {1} {2}' -f $kpid, $r[0], $r[1])) }",
+    "    elseif ($r[0] -eq 'identity_changed') { [Console]::Out.WriteLine(('K {0} identity_changed 0' -f $kpid)) }",
+    "    elseif ($r[0] -eq 'wait_timeout') { [Console]::Out.WriteLine(('K {0} wait_timeout {1}' -f $kpid, $r[1])) }",
+    "    elseif ($r[0] -eq 'not_held') { [Console]::Out.WriteLine(('K {0} not_held 0' -f $kpid)) }",
+    "    else { [Console]::Out.WriteLine(('K {0} error {1}' -f $kpid, $r[1])) }",
+    "    [Console]::Out.WriteLine('KILL_END'); [Console]::Out.Flush()",
+    "  } elseif ($parts[0] -eq 'close') {",
+    "    $r = [BridgeTreeTx]::CloseAll().Split('|')",
+    "    [Console]::Out.WriteLine(('CLOSED {0} {1}' -f $r[0], $r[1])); [Console]::Out.Flush()",
+    "    exit 0",
+    "  } else {",
+    "    [Console]::Out.WriteLine('FATAL unknown_command'); [Console]::Out.Flush(); exit 1",
+    "  }",
+    "}"
+  ].join("\n");
 }
-function parseWindowsTreeCapture(stdout, pid) {
-  const lines = stdout.trim().split(/\r?\n/u);
-  if (lines.shift() !== "bridge_tree_snapshot_v1") throw new Error("process_tree_snapshot_invalid: protocol missing");
-  const capturedAt = (/* @__PURE__ */ new Date()).toISOString();
-  const requests = [];
-  const seen = /* @__PURE__ */ new Set();
-  for (const line of lines) {
-    const match = /^(\d+)\|(\d+|absent)$/u.exec(line.trim());
-    const candidate = Number(match?.[1]);
-    if (!match || !Number.isSafeInteger(candidate) || candidate <= 0 || seen.has(candidate)) {
-      throw new Error("process_tree_snapshot_invalid: malformed identity");
-    }
-    seen.add(candidate);
-    requests.push({ pid: candidate, identity: match[2] === "absent" ? null : {
-      pid: candidate,
-      fingerprint: match[2],
-      fingerprint_precision: "exact",
-      identity_version: 1,
-      platform: "win32",
-      captured_at: capturedAt
-    } });
+var TRANSPORT_MAX_LINE_BYTES = 1048576;
+var TRANSPORT_MAX_BUFFERED_BYTES = 8388608;
+var TRANSPORT_MAX_BUFFERED_LINES = 65536;
+var TRANSPORT_MAX_ENUM_ROWS = 4096;
+var TRANSPORT_TOTAL_SESSION_MS_DEFAULT = 12e4;
+var PowerShellTreeTransaction = class _PowerShellTreeTransaction {
+  #child;
+  #bounds;
+  #lines = [];
+  #waiters = [];
+  #exitWaiters = [];
+  #closed = false;
+  #bufferedBytes = 0;
+  #sessionDeadline;
+  #exitCode = null;
+  #exitSignal = null;
+  /** True once the helper's own exit is expected (receipt processed or
+   * fallback initiated); its close event is then not a transport failure. */
+  #closeHandled = false;
+  #failure = null;
+  /** Test seam: attach to an externally spawned/controlled child so the
+   * bounded-stream behaviours are testable with fake streams (no OS). */
+  static attach(child, bounds = {}) {
+    return new _PowerShellTreeTransaction(child, bounds);
   }
-  if (!seen.has(pid)) throw new Error("process_tree_snapshot_invalid: root missing");
-  return requests;
+  constructor(child, bounds = {}) {
+    this.#child = child;
+    this.#bounds = {
+      maxLineBytes: bounds.maxLineBytes ?? TRANSPORT_MAX_LINE_BYTES,
+      maxBufferedBytes: bounds.maxBufferedBytes ?? TRANSPORT_MAX_BUFFERED_BYTES,
+      maxBufferedLines: bounds.maxBufferedLines ?? TRANSPORT_MAX_BUFFERED_LINES,
+      maxEnumRows: bounds.maxEnumRows ?? TRANSPORT_MAX_ENUM_ROWS,
+      totalSessionMs: bounds.totalSessionMs ?? TRANSPORT_TOTAL_SESSION_MS_DEFAULT
+    };
+    this.#sessionDeadline = Date.now() + this.#bounds.totalSessionMs;
+    child.stdout.setEncoding("utf8");
+    let buffer = "";
+    child.stdout.on("data", (chunk) => {
+      if (this.#failure) {
+        buffer = "";
+        return;
+      }
+      buffer += chunk;
+      let newline = buffer.indexOf("\n");
+      while (newline >= 0) {
+        const line = buffer.slice(0, newline).replace(/\r$/u, "");
+        buffer = buffer.slice(newline + 1);
+        const lineBytes = Buffer.byteLength(line, "utf8");
+        if (lineBytes > this.#bounds.maxLineBytes) {
+          this.#failAndDrain();
+          this.#fail(new Error(`process_tree_transport_overflow: line of ${String(lineBytes)} bytes exceeds ${String(this.#bounds.maxLineBytes)}`));
+          return;
+        }
+        this.#bufferedBytes += lineBytes;
+        if (this.#bufferedBytes > this.#bounds.maxBufferedBytes || this.#lines.length >= this.#bounds.maxBufferedLines) {
+          this.#failAndDrain();
+          this.#fail(new Error(`process_tree_transport_overflow: buffered stream exceeded its byte or line budget (${String(this.#bufferedBytes)} bytes, ${String(this.#lines.length)} lines)`));
+          return;
+        }
+        const waiter = this.#waiters.shift();
+        if (waiter) {
+          clearTimeout(waiter.timer);
+          waiter.resolve(line);
+          this.#bufferedBytes -= lineBytes;
+        } else {
+          this.#lines.push(line);
+        }
+        newline = buffer.indexOf("\n");
+      }
+      if (Buffer.byteLength(buffer, "utf8") > this.#bounds.maxLineBytes) {
+        this.#failAndDrain();
+        this.#fail(new Error(`process_tree_transport_overflow: unterminated line exceeds ${String(this.#bounds.maxLineBytes)} bytes`));
+      }
+    });
+    child.stderr.setEncoding("utf8");
+    child.stderr.on("data", (chunk) => {
+      void chunk;
+      this.#fail(new Error("process_tree_transport_stderr"));
+    });
+    child.on("error", (error2) => this.#fail(new Error(`process_tree_transport_error: ${String(error2.message)}`)));
+    child.on("close", (code, signal) => {
+      this.#closed = true;
+      this.#exitCode = code;
+      this.#exitSignal = signal;
+      if (!this.#closeHandled) this.#fail(new Error("process_tree_transport_closed"));
+      for (const waiter of this.#exitWaiters.splice(0)) waiter();
+    });
+  }
+  /** Clears buffered receive state; used when a budget trips so a failed
+   * transport neither accumulates nor serves stale lines afterwards. */
+  #failAndDrain() {
+    for (const line of this.#lines) this.#bufferedBytes -= Buffer.byteLength(line, "utf8");
+    this.#lines = [];
+  }
+  #fail(error2) {
+    if (this.#failure) return;
+    this.#failure = error2;
+    for (const waiter of this.#waiters.splice(0)) {
+      clearTimeout(waiter.timer);
+      waiter.reject(error2);
+    }
+  }
+  #nextLine(timeoutMs, what) {
+    if (this.#failure) return Promise.reject(this.#failure);
+    const remainingSession = this.#sessionDeadline - Date.now();
+    if (remainingSession <= 0) {
+      const error2 = new Error(`process_tree_transport_session_timeout: ${what}`);
+      this.#failAndDrain();
+      this.#fail(error2);
+      return Promise.reject(error2);
+    }
+    const buffered = this.#lines.shift();
+    if (buffered !== void 0) {
+      this.#bufferedBytes -= Buffer.byteLength(buffered, "utf8");
+      return Promise.resolve(buffered);
+    }
+    if (this.#closed) return Promise.reject(new Error("process_tree_transport_closed"));
+    const boundedTimeout = Math.min(timeoutMs, remainingSession);
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        const index = this.#waiters.findIndex((w) => w.resolve === resolve);
+        if (index >= 0) this.#waiters.splice(index, 1);
+        const reason = remainingSession < timeoutMs ? "process_tree_transport_session_timeout" : "process_tree_transport_timeout";
+        reject(new Error(`${reason}: ${what}`));
+        this.#fail(new Error(`${reason}: ${what}`));
+      }, boundedTimeout);
+      if (typeof timer.unref === "function") timer.unref();
+      this.#waiters.push({ resolve, reject, timer });
+    });
+  }
+  static async start(timeoutMs = 2e4) {
+    const encoded = Buffer.from(windowsTreeTransactionScript(), "utf16le").toString("base64");
+    const child = spawn3("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded], {
+      shell: false,
+      windowsHide: true,
+      stdio: ["pipe", "pipe", "pipe"]
+    });
+    const transaction = _PowerShellTreeTransaction.attach(child);
+    try {
+      const ready = await transaction.#nextLine(timeoutMs, "helper startup");
+      if (ready !== "READY") throw new Error("process_tree_transport_protocol: startup marker missing");
+      return transaction;
+    } catch (error2) {
+      transaction.#closeHandled = true;
+      try {
+        child.kill("SIGKILL");
+      } catch {
+      }
+      const exited = await transaction.#waitForExit(3e3);
+      if (!exited) {
+        throw new Error(`${error2 instanceof Error ? error2.message : String(error2)}; process_tree_close_failed: startup helper did not exit within bounds`);
+      }
+      throw error2;
+    }
+  }
+  async enumerate() {
+    this.#child.stdin.write("enum\n");
+    const begin = await this.#nextLine(2e4, "enum begin");
+    if (begin !== "ENUM_BEGIN") throw new Error("process_tree_snapshot_invalid: protocol missing");
+    const rows = [];
+    for (; ; ) {
+      const line = await this.#nextLine(2e4, "enum row");
+      if (line === "ENUM_END") break;
+      const match = /^R (\d{1,12}) (\d{1,12}) (\d{1,25}|unknown) (\d{1,25}|unknown)$/u.exec(line);
+      if (!match) throw new Error("process_tree_snapshot_invalid: malformed identity");
+      const pid = Number(match[1]);
+      const parentPid = Number(match[2]);
+      if (!Number.isSafeInteger(pid) || pid <= 0 || !Number.isSafeInteger(parentPid) || parentPid < 0) continue;
+      if (rows.length >= this.#bounds.maxEnumRows) {
+        throw new Error(`process_tree_snapshot_invalid: enumeration exceeded ${String(this.#bounds.maxEnumRows)} rows`);
+      }
+      rows.push({ pid, parentPid, creationFileTime: match[3] === "unknown" ? null : match[3], startTicks: match[4] === "unknown" ? null : match[4] });
+    }
+    return rows;
+  }
+  async hold(pids) {
+    if (pids.length === 0) return [];
+    this.#child.stdin.write(`hold ${pids.join(" ")}
+`);
+    const outcomes = [];
+    for (; ; ) {
+      const line = await this.#nextLine(2e4, "hold response");
+      if (line === "HOLD_END") break;
+      const match = /^H (\d{1,12}) (ok (\d{1,25}) (\d{1,25})|held|absent (\d{1,6})|denied (\d{1,6})|error (\d{1,6}))$/u.exec(line);
+      if (!match) throw new Error("process_tree_hold_invalid: malformed response");
+      const pid = Number(match[1]);
+      if (match[2].startsWith("ok")) {
+        outcomes.push({ pid, status: "ok", creationFileTime: match[3], creationTicks: match[4] });
+      } else if (match[2] === "held") {
+        outcomes.push({ pid, status: "error", detail: "already_held" });
+      } else if (match[2].startsWith("absent")) {
+        outcomes.push({ pid, status: "absent", error: Number(match[5] ?? 0) });
+      } else if (match[2].startsWith("denied")) {
+        outcomes.push({ pid, status: "denied", error: Number(match[6] ?? 0) });
+      } else {
+        outcomes.push({ pid, status: "error", error: Number(match[7] ?? 0) });
+      }
+    }
+    return outcomes;
+  }
+  async kill(pid, expectedTicks, waitMs) {
+    this.#child.stdin.write(`kill ${String(pid)} ${expectedTicks} ${String(Math.max(0, Math.floor(waitMs)))}
+`);
+    const line = await this.#nextLine(waitMs + 25e3, "kill response");
+    const end = await this.#nextLine(5e3, "kill terminator");
+    if (end !== "KILL_END") throw new Error("process_tree_kill_invalid: terminator missing");
+    const match = /^K (\d{1,12}) (signaled|identity_changed|not_held|wait_timeout|already_exited|error) (\d{1,25})$/u.exec(line);
+    if (!match || Number(match[1]) !== pid) throw new Error("process_tree_kill_invalid: malformed response");
+    const status = match[2];
+    const value = match[3];
+    return {
+      status,
+      exitFileTime: status === "signaled" || status === "already_exited" || status === "wait_timeout" ? value === "0" ? null : value : null,
+      detail: status === "identity_changed" ? value : void 0
+    };
+  }
+  async close() {
+    let failure2 = this.#failure;
+    if (!failure2 && !this.#closed) {
+      try {
+        this.#child.stdin.write("close\n");
+        const ack = await this.#nextLine(1e4, "close acknowledgement");
+        const match = /^CLOSED (\d{1,9}) (\d{1,9})$/u.exec(ack);
+        if (!match) throw new Error(`process_tree_close_invalid: unexpected close receipt ${JSON.stringify(ack.slice(0, 60))}`);
+        const failedHandles = Number(match[2]);
+        if (failedHandles > 0) throw new Error(`process_tree_close_failed: ${String(failedHandles)} CloseHandle call(s) failed`);
+        this.#closeHandled = true;
+      } catch (error2) {
+        failure2 = error2 instanceof Error ? error2 : new Error(String(error2));
+        this.#closeHandled = true;
+      }
+    }
+    const exited = await this.#waitForExit(5e3);
+    if (!exited) {
+      this.#closeHandled = true;
+      try {
+        this.#child.kill("SIGKILL");
+      } catch {
+      }
+      try {
+        this.#child.stdin.end();
+      } catch {
+      }
+      const exitedAfterKill = await this.#waitForExit(3e3);
+      if (!exitedAfterKill) {
+        throw new Error(failure2 ? `${failure2.message}; process_tree_close_failed: helper did not exit within bounds` : "process_tree_close_failed: helper did not exit within bounds");
+      }
+      throw new Error(failure2 ? `${failure2.message}; process_tree_close_forced: helper exited only after a forced kill` : "process_tree_close_forced: helper exited only after a forced kill");
+    }
+    if (this.#exitCode !== 0 || this.#exitSignal !== null) {
+      const abnormal = `process_tree_close_abnormal: helper exited with code ${String(this.#exitCode)}${this.#exitSignal ? `, signal ${this.#exitSignal}` : ""}`;
+      throw new Error(failure2 ? `${failure2.message}; ${abnormal}` : abnormal);
+    }
+    if (failure2) throw failure2;
+    if (this.#failure) throw this.#failure;
+  }
+  #waitForExit(timeoutMs) {
+    if (this.#closed) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      let settled = false;
+      const finish = (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        const index = this.#exitWaiters.indexOf(waiter);
+        if (index >= 0) this.#exitWaiters.splice(index, 1);
+        resolve(value);
+      };
+      const waiter = () => finish(true);
+      const timer = setTimeout(() => finish(false), timeoutMs);
+      if (typeof timer.unref === "function") timer.unref();
+      this.#exitWaiters.push(waiter);
+    });
+  }
+};
+async function openPowerShellTreeTransaction() {
+  return PowerShellTreeTransaction.start();
 }
 
 // src/adapters/process-spawn.ts
-function appendBounded(current, chunk, maxBytes) {
-  if (!(maxBytes > 0)) return { value: current.value + chunk, truncated: current.truncated };
-  const remaining = maxBytes - Buffer.byteLength(current.value, "utf8");
-  if (remaining <= 0) return chunk ? { value: current.value, truncated: true } : current;
-  const bytes = Buffer.from(chunk, "utf8");
-  if (bytes.length <= remaining) {
-    return { value: current.value + chunk, truncated: current.truncated };
-  }
-  return {
-    value: current.value + bytes.subarray(0, remaining).toString("utf8"),
-    truncated: true
-  };
-}
 function isProcessRunning(pid) {
   if (!Number.isInteger(pid) || pid <= 0) return false;
   try {
@@ -23869,27 +24894,14 @@ var terminateProcessTree = async (pid, options = {}) => {
     throw new Error(`A positive integer PID is required, got: ${pid}`);
   }
   if (process.platform === "win32") {
-    const probe = createPlatformProbe();
-    await terminateWindowsProcessTree(pid, options.killWaitMs ?? 2e3, {
-      capture: async (root) => {
-        let snapshot;
-        try {
-          snapshot = await runCommand("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", windowsTreeCaptureScript(root)], {
-            timeoutMs: 5e3,
-            maxOutputBytes: 128e3
-          });
-        } catch {
-          throw new Error("process_tree_snapshot_unverified: query failed");
-        }
-        if (snapshot.code !== 0 || snapshot.stdoutTruncated || snapshot.stderr.length > 0) {
-          throw new Error("process_tree_snapshot_unverified: query failed or incomplete");
-        }
-        return parseWindowsTreeCapture(snapshot.stdout, root);
-      },
-      probe: (requests) => probe.probe(requests),
-      kill: async (root) => (await runCommand("taskkill", ["/PID", String(root), "/T", "/F"], { timeoutMs: 15e3 })).code
+    const expected = options.expectedRootFingerprint ?? null;
+    if (expected === null) {
+      throw new Error("process_tree_root_identity_required: Windows process-tree termination requires a caller-bound root identity");
+    }
+    const receipt = await terminateWindowsProcessTree(pid, expected, options.killWaitMs ?? 2e3, {
+      open: openPowerShellTreeTransaction
     });
-    return { pid, signal: "SIGKILL", verified: true };
+    return { pid, signal: "SIGKILL", verified: true, windows: receipt };
   }
   signalProcessTree(pid, "SIGTERM");
   if (await waitForProcessTreeExit(pid, options.graceMs ?? 500)) {
@@ -23901,47 +24913,39 @@ var terminateProcessTree = async (pid, options = {}) => {
   }
   return { pid, signal: "SIGKILL", verified: true };
 };
-function runCommand(command, args, options) {
-  return new Promise((resolve, reject) => {
-    const child = spawn3(command, args, {
-      shell: false,
-      windowsHide: true,
-      stdio: ["ignore", "pipe", "pipe"]
-    });
-    let stdout = { value: "", truncated: false };
-    let stderr = { value: "", truncated: false };
-    child.stdout?.setEncoding("utf8");
-    child.stderr?.setEncoding("utf8");
-    child.stdout?.on("data", (chunk) => {
-      stdout = appendBounded(stdout, chunk, options.maxOutputBytes ?? 1e6);
-    });
-    child.stderr?.on("data", (chunk) => {
-      stderr = appendBounded(stderr, chunk, options.maxOutputBytes ?? 1e6);
-    });
-    let timedOut = false;
-    const timer = options.timeoutMs && options.timeoutMs > 0 ? setTimeout(() => {
-      timedOut = true;
-      try {
-        child.kill("SIGKILL");
-      } catch {
-      }
-    }, options.timeoutMs) : null;
-    timer?.unref();
-    child.on("error", (error2) => {
-      if (timer) clearTimeout(timer);
-      reject(error2);
-    });
-    child.on("close", (code, signal) => {
-      if (timer) clearTimeout(timer);
-      resolve({
-        code: timedOut ? null : code,
-        signal: timedOut ? "SIGKILL" : signal,
-        stdout: stdout.value,
-        stderr: stderr.value,
-        stdoutTruncated: stdout.truncated
-      });
-    });
-  });
+async function verifyProcessTreeClaimantsClean(targets) {
+  if (process.platform === "win32") {
+    return verifyWindowsRecordedTreeClaimants(targets, { open: openPowerShellTreeTransaction });
+  }
+  const live = targets.filter((t) => Number.isInteger(t.pid) && t.pid > 0 && isProcessTreeRunning(t.pid)).map((t) => t.pid);
+  return { clean: live.length === 0, livePids: live, observedPids: live };
+}
+function childStillOnSpawnGeneration(child) {
+  if (typeof child.pid !== "number" || !Number.isInteger(child.pid) || child.pid <= 0) return false;
+  if (child.exitSeen === true) return false;
+  return child.exitCode === null && child.signalCode === null;
+}
+async function captureSpawnGenerationIdentity(child, probe, options = {}) {
+  const pid = child.pid;
+  if (typeof pid !== "number" || !Number.isInteger(pid) || pid <= 0) return null;
+  const read = async () => {
+    let identity;
+    try {
+      identity = await probe.identityOf(pid);
+    } catch {
+      return null;
+    }
+    if (!childStillOnSpawnGeneration(child)) return null;
+    if (typeof identity.fingerprint !== "string" || identity.fingerprint.length === 0) return null;
+    if (identity.fingerprint_precision !== "exact") return null;
+    if (child.pid !== pid) return null;
+    return { pid, fingerprint: identity.fingerprint };
+  };
+  const first = await read();
+  if (first !== null) return first;
+  await new Promise((resolve) => setTimeout(resolve, options.retryDelayMs ?? 250));
+  if (!childStillOnSpawnGeneration(child)) return null;
+  return read();
 }
 function signalProcessTree(pid, signal) {
   try {
@@ -24268,6 +25272,7 @@ var BridgeTaskManager = class _BridgeTaskManager {
   #spawnWorker;
   #isProcessRunning;
   #terminateProcessTree;
+  #verifyTreeClean;
   #probe;
   #now;
   #dataRoot;
@@ -24286,6 +25291,7 @@ var BridgeTaskManager = class _BridgeTaskManager {
     this.#spawnWorker = options.spawnWorker ?? defaultSpawnWorker;
     this.#isProcessRunning = options.isProcessRunning ?? isProcessRunning;
     this.#terminateProcessTree = options.terminateProcessTree ?? terminateProcessTree;
+    this.#verifyTreeClean = options.verifyTreeClean ?? verifyProcessTreeClaimantsClean;
     this.#probe = options.probe ?? null;
     this.#now = options.now ?? (() => /* @__PURE__ */ new Date());
     this.#dataRoot = options.store.dataRoot;
@@ -24422,6 +25428,17 @@ var BridgeTaskManager = class _BridgeTaskManager {
       }
       return;
     }
+    const failureRecordState = this.#cleanupFailureRecordState(taskId, status.attempt);
+    if (failureRecordState !== "none") {
+      const occurrence = this.#counters.record("terminal_cleanup_latched", failureRecordState);
+      if (this.#counters.shouldEmit("terminal_cleanup_latched", failureRecordState)) {
+        this.#store.appendEvent(taskId, "cleanup_unverified", "A recorded tree-cleanup failure with known members keeps the terminal task occupied; cancel runs the recorded-tree scan", {
+          record_state: failureRecordState,
+          count: occurrence.count
+        }, this.#now().toISOString());
+      }
+      return;
+    }
     await this.#exclusive(async () => {
       const current = this.#safeStatus(taskId);
       if (!current || !isTerminalStatus(current.status) || current.cleanup_unverified !== true) return;
@@ -24502,8 +25519,145 @@ var BridgeTaskManager = class _BridgeTaskManager {
     } catch {
     }
   }
+  /** Latches a failed termination (ADR-009): occupancy is retained via
+   * cleanup_unverified and the member pids observed by the failed
+   * transaction are persisted so later claimant scans cover them. The
+   * complete member set is persisted structurally (cleanup-failure.json);
+   * the bounded [cleanup-members: …] marker in the status text is a durable
+   * fallback that is only trusted when complete — a truncated marker (or a
+   * missing/corrupt record) fails later releases closed instead of silently
+   * narrowing the scan (review-round-1 R3 + addendum). */
+  #recordCleanupFailure(taskId, attempt, error2) {
+    const message = boundedErrorMessage(error2, 300);
+    const freshPids = Array.isArray(error2.memberPids) ? error2.memberPids.filter((pid) => Number.isSafeInteger(pid) && pid > 0) : [];
+    let metaPids = [];
+    let metaKnownIncomplete = false;
+    try {
+      const previous = this.#store.readAttemptMeta(taskId, attempt, "cleanup-failure.json");
+      if (previous !== null) {
+        metaPids = this.#validMemberPids(previous.member_pids);
+        metaKnownIncomplete = previous.complete === false;
+      }
+    } catch {
+    }
+    const priorMarker = this.#parseCleanupMembersMarker(this.#safeStatus(taskId)?.error);
+    const priorMarkerIncomplete = priorMarker !== null && !priorMarker.complete;
+    const previousPids = [.../* @__PURE__ */ new Set([...metaPids, ...priorMarker?.pids ?? []])];
+    const mergedPids = [.../* @__PURE__ */ new Set([...previousPids, ...freshPids])];
+    const joined = mergedPids.join(",");
+    const fitsWithoutTruncation = joined.length <= 1600 && !(metaKnownIncomplete || priorMarkerIncomplete);
+    const memberMarker = mergedPids.length > 0 ? fitsWithoutTruncation ? ` [cleanup-members: ${joined}]` : ` [cleanup-members: ${mergedPids.slice(0, 200).join(",")},\u2026]` : metaKnownIncomplete || priorMarkerIncomplete ? " [cleanup-members: ,\u2026]" : "";
+    const recordComplete = fitsWithoutTruncation;
+    try {
+      this.#store.writeAttemptMeta(taskId, attempt, "cleanup-failure.json", {
+        member_pids: mergedPids,
+        complete: recordComplete,
+        last_error: message
+      });
+    } catch {
+    }
+    try {
+      this.#store.writeStatus(taskId, {
+        cleanup_unverified: true,
+        error: `cancellation could not be verified: ${boundedErrorMessage(error2, 200)}${memberMarker}`
+      });
+      this.#store.appendEvent(taskId, "cancel_failed", message, mergedPids.length > 0 ? { member_pids: mergedPids } : void 0, this.#now().toISOString());
+    } catch {
+    }
+  }
+  /** Validates a persisted member_pids value (review-round-1 addendum R3): a
+   * PRESENT record without the member_pids field, a null, or a non-array is
+   * corrupt and fails closed — "missing" must never read as "no members". */
+  #validMemberPids(value) {
+    if (value === void 0 || value === null) {
+      throw new TaskManagerError("CANCEL_FAILED", "cleanup failure record is corrupt: member pid list is missing");
+    }
+    if (!Array.isArray(value) || !value.every((pid) => Number.isSafeInteger(pid) && pid > 0)) {
+      throw new TaskManagerError("CANCEL_FAILED", "cleanup failure record is corrupt: member pid list is not a valid array of positive integers");
+    }
+    return value;
+  }
+  /** Parses the durable [cleanup-members: …] marker from a latched status
+   * error text. A TRUNCATED marker (…) is reported as incomplete: it must
+   * never be treated as the full member set (addendum R3 case 2). */
+  #parseCleanupMembersMarker(errorText2) {
+    const marker = /\[cleanup-members: ([0-9,]+)(,…)?\]/u.exec(errorText2 ?? "");
+    if (!marker) return null;
+    const pids = marker[1].split(",").map((part) => Number(part)).filter((pid) => Number.isSafeInteger(pid) && pid > 0);
+    return { pids, complete: marker[2] === void 0 };
+  }
+  /** Classification of the persisted cleanup-failure state for an attempt:
+   * "none" (no record and no known-member marker — legacy latch), "empty"
+   * (explicitly member-less record), "members" (known member pids must stay
+   * covered, including via a complete latch marker), or "corrupt" (fail
+   * closed). A read error is treated as corrupt. */
+  #cleanupFailureRecordState(taskId, attempt) {
+    let meta2 = null;
+    try {
+      meta2 = this.#store.readAttemptMeta(taskId, attempt, "cleanup-failure.json") ?? null;
+    } catch {
+      return "corrupt";
+    }
+    const marker = this.#parseCleanupMembersMarker(this.#safeStatus(taskId)?.error);
+    if (meta2 === null) {
+      if (marker === null) return "none";
+      return marker.complete ? "members" : "corrupt";
+    }
+    let memberPids;
+    try {
+      memberPids = this.#validMemberPids(meta2.member_pids);
+    } catch {
+      return "corrupt";
+    }
+    if (meta2.complete === false) return "corrupt";
+    return memberPids.length > 0 ? "members" : "empty";
+  }
+  /** Recorded pids (with persisted fingerprints when available) that later
+   * claimant scans must cover after a termination failure. The durable
+   * [cleanup-members: …] marker inside the latched status text is ALWAYS
+   * unioned in (R3): a missing or emptied failure record can never narrow
+   * the scan below what the latch itself recorded; a corrupt record — or a
+   * TRUNCATED marker that cannot restore the full set — fails closed before
+   * any scan runs. */
+  #claimantTargets(taskId, attempt, probeSnapshot) {
+    const targets = [];
+    const addPid = (pid, fingerprint) => {
+      if (Number.isSafeInteger(pid) && pid > 0 && !targets.some((t) => t.pid === pid)) targets.push({ pid, fingerprint });
+    };
+    const workerFingerprint = typeof probeSnapshot.identity?.worker?.fingerprint === "string" ? probeSnapshot.identity.worker.fingerprint : null;
+    const runtimeFingerprint = typeof probeSnapshot.identity?.runtime?.fingerprint === "string" ? probeSnapshot.identity.runtime.fingerprint : null;
+    if (probeSnapshot.worker_pid !== null) addPid(probeSnapshot.worker_pid, workerFingerprint);
+    if (probeSnapshot.zcode_pid !== null) addPid(probeSnapshot.zcode_pid, runtimeFingerprint);
+    const marker = this.#parseCleanupMembersMarker(this.#safeStatus(taskId)?.error);
+    if (marker !== null && !marker.complete) {
+      throw new TaskManagerError("CANCEL_FAILED", "cleanup member record is incomplete: the latched member list was truncated and cannot be reconstructed; the task stays occupied");
+    }
+    if (marker !== null) {
+      for (const pid of marker.pids) addPid(pid, null);
+    }
+    let meta2 = null;
+    try {
+      meta2 = this.#store.readAttemptMeta(taskId, attempt, "cleanup-failure.json") ?? null;
+    } catch {
+    }
+    if (meta2 === null) return targets;
+    if (meta2.complete === false) {
+      throw new TaskManagerError("CANCEL_FAILED", "cleanup member record is incomplete: the structured member list is marked partial; the task stays occupied");
+    }
+    for (const pid of this.#validMemberPids(meta2.member_pids)) addPid(pid, null);
+    return targets;
+  }
   /** Applies confirmed probe verdicts to one unchanged attempt snapshot. */
   #applyReconcileVerdicts(taskId, status, snapshot, verdicts) {
+    if (status.cleanup_unverified === true) {
+      const occurrence = this.#counters.record("reconcile_latched_cleanup", "cleanup_unverified");
+      if (this.#counters.shouldEmit("reconcile_latched_cleanup", "cleanup_unverified")) {
+        this.#store.appendEvent(taskId, "cleanup_unverified", "Reconciliation skipped: a recorded tree-cleanup failure keeps the task occupied until a verified cancel releases it", {
+          count: occurrence.count
+        }, this.#now().toISOString());
+      }
+      return;
+    }
     const persistedResult = this.#store.readResult(taskId);
     if (persistedResult && persistedResult.attempt === status.attempt) {
       this.#store.writeStatus(taskId, {
@@ -24841,15 +25995,31 @@ var BridgeTaskManager = class _BridgeTaskManager {
       if (status.status !== "running") {
         throw new TaskManagerError("TASK_STATE", `ZCode interaction can only be answered while the task is running (status: ${status.status})`);
       }
-      const record3 = this.#store.readInteractionRequest(input.task_id, input.request_id);
-      if (!record3) throw new TaskManagerError("TASK_NOT_FOUND", `unknown ZCode interaction request: ${input.request_id}`);
+      let record3;
+      try {
+        const read = this.#store.readInteractionRequest(input.task_id, input.request_id);
+        if (!read) throw new TaskManagerError("TASK_NOT_FOUND", `unknown ZCode interaction request: ${input.request_id}`);
+        record3 = read;
+      } catch (error2) {
+        if (error2 instanceof TaskManagerError) throw error2;
+        throw new TaskManagerError(
+          "TASK_STATE",
+          `ZCode interaction request ${input.request_id} could not be read: the persisted full request is unreadable or corrupt`
+        );
+      }
       if (record3.state === "answered") {
         throw new TaskManagerError("TASK_STATE", `ZCode interaction request ${input.request_id} was already answered`);
       }
       const answer = buildInteractionAnswer(record3, input);
-      const state = this.#store.answerInteractionRequest(input.task_id, input.request_id, answer, this.#now().toISOString());
-      if (state !== "answered") {
+      const answered = input.decision === "allow" || input.decision === "accept" ? this.#store.answerInteractionRequestVerified(input.task_id, input.request_id, answer, { requireIntegrity: true }, this.#now().toISOString()) : { state: this.#store.answerInteractionRequest(input.task_id, input.request_id, answer, this.#now().toISOString()) };
+      if (answered.state === "already_answered") {
         throw new TaskManagerError("TASK_STATE", `ZCode interaction request ${input.request_id} was already answered`);
+      }
+      if (answered.state === "integrity_failed") {
+        throw new TaskManagerError(
+          "TASK_STATE",
+          `ZCode interaction request ${input.request_id} cannot be approved: ${answered.reason}; the approval was not recorded as granted`
+        );
       }
       this.#store.appendEvent(input.task_id, "interaction_reply_submitted", "the calling host submitted a response to the ZCode interaction", {
         request_id: input.request_id,
@@ -24962,6 +26132,8 @@ var BridgeTaskManager = class _BridgeTaskManager {
         identity
       };
       const verdicts = await this.#probeExecutors(probeSnapshot);
+      const workerFingerprint = typeof probeSnapshot.identity?.worker?.fingerprint === "string" ? probeSnapshot.identity.worker.fingerprint : null;
+      const runtimeFingerprint = typeof probeSnapshot.identity?.runtime?.fingerprint === "string" ? probeSnapshot.identity.runtime.fingerprint : null;
       if (status.cleanup_unverified) {
         if (probeSnapshot.worker_pid === null && probeSnapshot.zcode_pid === null) {
           throw new TaskManagerError("CANCEL_FAILED", "No worker or ZCode process identity is available to verify cleanup");
@@ -24972,32 +26144,45 @@ var BridgeTaskManager = class _BridgeTaskManager {
         if (probeSnapshot.worker_pid !== null && verdicts.worker.state === "unknown") {
           throw new TaskManagerError("CANCEL_FAILED", `Worker cleanup could not be verified: worker probe returned ${verdicts.worker.reason_code}`);
         }
+        const verifiedRoots = /* @__PURE__ */ new Set();
         try {
           if (probeSnapshot.zcode_pid !== null && verdicts.runtime.state === "alive") {
-            await this.#terminateProcessTree(probeSnapshot.zcode_pid, { graceMs: 500, killWaitMs: 5e3 });
+            await this.#terminateProcessTree(probeSnapshot.zcode_pid, { graceMs: 500, killWaitMs: 5e3, expectedRootFingerprint: runtimeFingerprint });
             const after = (await this.#probeExecutors(probeSnapshot)).runtime;
             if (after.state === "alive") throw new Error("runtime still alive after termination");
             if (after.state === "unknown") throw new Error(`runtime exit could not be verified (${after.reason_code})`);
+            verifiedRoots.add(probeSnapshot.zcode_pid);
           }
           if (probeSnapshot.worker_pid !== null && verdicts.worker.state === "alive") {
-            await this.#terminateProcessTree(probeSnapshot.worker_pid, { graceMs: 500, killWaitMs: 5e3 });
+            await this.#terminateProcessTree(probeSnapshot.worker_pid, { graceMs: 500, killWaitMs: 5e3, expectedRootFingerprint: workerFingerprint });
+            verifiedRoots.add(probeSnapshot.worker_pid);
           }
         } catch (error2) {
-          let recheck;
-          try {
-            recheck = await this.#probeExecutors(probeSnapshot);
-          } catch (recheckError) {
-            throw new TaskManagerError("CANCEL_FAILED", `ZCode cleanup could not be verified: ${String(error2)}; re-verification failed: ${String(recheckError)}`);
+          this.#recordCleanupFailure(taskId, status.attempt, error2);
+          throw new TaskManagerError("CANCEL_FAILED", `ZCode cleanup could not be verified: ${error2 instanceof Error ? error2.message : String(error2)}`);
+        }
+        const scanTargets = this.#claimantTargets(taskId, status.attempt, probeSnapshot).filter((target) => !verifiedRoots.has(target.pid));
+        if (scanTargets.length > 0) {
+          const retainObserved = (observed, livePids, error2) => {
+            const fromError = error2 instanceof WindowsTreeCleanupError ? error2.memberPids : [];
+            const pids = [.../* @__PURE__ */ new Set([...observed ?? [], ...livePids ?? [], ...fromError])].filter((pid2) => Number.isSafeInteger(pid2) && pid2 > 0);
+            if (pids.length === 0) return;
+            const carrier = error2 instanceof WindowsTreeCleanupError && error2.memberPids.length > 0 ? error2 : new WindowsTreeCleanupError(
+              "process_tree_cleanup_unverified",
+              `recorded-tree scan keeps occupancy: ${pids.join(",")} still requires attribution`,
+              pids
+            );
+            this.#recordCleanupFailure(taskId, status.attempt, carrier);
+          };
+          const scan = await this.#verifyTreeClean(scanTargets).catch((error2) => {
+            retainObserved(void 0, void 0, error2);
+            throw new TaskManagerError("CANCEL_FAILED", `ZCode cleanup verification failed: ${error2 instanceof Error ? error2.message : String(error2)}`);
+          });
+          if (!scan.clean) {
+            retainObserved(scan.observedPids, scan.livePids);
+            this.#store.appendEvent(taskId, "cleanup_unverified", "Recorded-tree scan still observes live claimants; the task stays occupied", { live_pids: [...scan.livePids] }, this.#now().toISOString());
+            throw new TaskManagerError("CANCEL_FAILED", `ZCode cleanup could not be verified: ${String(scan.livePids.length)} recorded-tree process(es) still alive`);
           }
-          const runtimeRecorded = probeSnapshot.zcode_pid !== null;
-          const workerRecorded = probeSnapshot.worker_pid !== null;
-          if (runtimeRecorded && recheck.runtime.state !== "exited" || workerRecorded && recheck.worker.state !== "exited") {
-            throw new TaskManagerError("CANCEL_FAILED", `ZCode cleanup could not be verified: ${String(error2)}; re-verification observed runtime ${recheck.runtime.state} (${recheck.runtime.reason_code})${workerRecorded ? ` and worker ${recheck.worker.state} (${recheck.worker.reason_code})` : ""}`);
-          }
-          this.#store.appendEvent(taskId, "cleanup_race_resolved", "Termination raced a natural exit; a fresh identity probe confirmed the recorded processes exited", {
-            runtime_reason_code: recheck.runtime.reason_code,
-            worker_reason_code: recheck.worker.reason_code
-          }, this.#now().toISOString());
         }
         if (status.status === "running") {
           const finishedAt2 = this.#now().toISOString();
@@ -25130,22 +26315,17 @@ var BridgeTaskManager = class _BridgeTaskManager {
       try {
         if (!await waitForSafeExit()) {
           if (process.platform !== "win32" && status.zcode_pid && this.#isProcessRunning(status.zcode_pid)) {
-            await this.#terminateProcessTree(status.zcode_pid, { graceMs: 500, killWaitMs: 5e3 });
+            await this.#terminateProcessTree(status.zcode_pid, { graceMs: 500, killWaitMs: 5e3, expectedRootFingerprint: runtimeFingerprint });
           }
-          await this.#terminateProcessTree(pid, { graceMs: 500, killWaitMs: 5e3 });
+          await this.#terminateProcessTree(pid, { graceMs: 500, killWaitMs: 5e3, expectedRootFingerprint: workerFingerprint });
         }
       } catch (error2) {
-        if (!await waitForSafeExit()) {
-          const message = error2 instanceof Error ? error2.message : String(error2);
-          this.#store.writeStatus(taskId, {
-            error: `cancellation could not be verified: ${message}`
-          });
-          this.#store.appendEvent(taskId, "cancel_failed", message, void 0, this.#now().toISOString());
-          throw new TaskManagerError(
-            "CANCEL_FAILED",
-            `process-tree termination for task ${taskId} (pid ${pid}) could not be verified: ${message}`
-          );
-        }
+        this.#recordCleanupFailure(taskId, status.attempt, error2);
+        const message = error2 instanceof Error ? error2.message : String(error2);
+        throw new TaskManagerError(
+          "CANCEL_FAILED",
+          `process-tree termination for task ${taskId} (pid ${pid}) could not be verified: ${message}`
+        );
       }
       const raced = this.#store.readResult(taskId);
       if (raced) {
@@ -26246,7 +27426,7 @@ function formatDuration(durationMs2) {
 
 // src/mcp/server.ts
 var SERVER_NAME = "codex-zcode-bridge";
-var SERVER_VERSION = "1.2.4"; // x-release-please-version
+var SERVER_VERSION = "1.2.7"; // x-release-please-version
 var EXECUTION_NOT_VERDICT = "Results describe Bridge/ZCode execution only: status 'completed' means the invocation and report normalization finished, NOT that the calling host accepted the work. the calling host must independently review the workspace diff and checks before deciding PASS.";
 function okResult2(data) {
   return {
@@ -26719,6 +27899,29 @@ async function runBridgeDoctor(options = {}) {
       status: "unknown",
       summary: modelConfigured ? "A Bridge default model is configured; actual app-server availability is checked when a task starts" : "No Bridge model override; the ZCode account default will be used and cannot be confirmed without starting a session"
     });
+    const browserUse = env["ZCODE_BRIDGE_BROWSER_USE"]?.trim() ?? "";
+    const browserExecutable = env["ZCODE_BRIDGE_BROWSER_EXECUTABLE"]?.trim() ?? "";
+    if (browserUse === "" || browserUse === "off") {
+      checks.push({
+        name: "browser_host",
+        status: "ok",
+        summary: browserUse === "off" ? "Browser host is explicitly disabled; browser RPCs answer with an empty browser list" : "Browser host is disabled by default; browser RPCs answer with an empty browser list"
+      });
+    } else if (browserUse === "headless") {
+      if (browserExecutable) {
+        if (!path10.isAbsolute(browserExecutable)) {
+          checks.push({ name: "browser_host", status: "error", summary: `ZCODE_BRIDGE_BROWSER_EXECUTABLE must be an absolute path: ${browserExecutable}` });
+        } else if (existsSync8(browserExecutable)) {
+          checks.push({ name: "browser_host", status: "ok", summary: `Headless browser host is enabled with the configured executable (${path10.basename(browserExecutable)})` });
+        } else {
+          checks.push({ name: "browser_host", status: "error", summary: `Configured browser executable does not exist: ${browserExecutable}` });
+        }
+      } else {
+        checks.push({ name: "browser_host", status: "unknown", summary: "Headless browser host is enabled; the managed runtime resolves an installed Chromium/Edge at first use and is not probed here" });
+      }
+    } else {
+      checks.push({ name: "browser_host", status: "warning", summary: `ZCODE_BRIDGE_BROWSER_USE must be "off" or "headless"; got "${browserUse}" \u2014 the browser host stays disabled` });
+    }
     const dataRoot = options.dataRoot ?? env["ZCODE_BRIDGE_DATA_DIR"]?.trim() ?? null;
     if (dataRoot && existsSync8(dataRoot)) {
       try {
@@ -27082,6 +28285,30 @@ function startAppServer(config2, cwd, env) {
   let stderr = "";
   let nextId = 0;
   let closed = false;
+  let childExitSeen = false;
+  child.once("exit", () => {
+    childExitSeen = true;
+  });
+  const generationChild = {
+    get pid() {
+      return child.pid;
+    },
+    get exitCode() {
+      return child.exitCode;
+    },
+    get signalCode() {
+      return child.signalCode;
+    },
+    get exitSeen() {
+      return childExitSeen;
+    }
+  };
+  let childIdentity = null;
+  if (process.platform === "win32" && child.pid) {
+    void captureSpawnGenerationIdentity(generationChild, createPlatformProbe()).then((identity) => {
+      childIdentity = identity;
+    });
+  }
   child.stdout.setEncoding("utf8");
   child.stderr.setEncoding("utf8");
   const write = (message) => {
@@ -27172,7 +28399,14 @@ function startAppServer(config2, cwd, env) {
         });
       });
     }
-    if (child.pid && (!closed || process.platform !== "win32")) await terminateProcessTree(child.pid);
+    if (child.pid && (!closed || process.platform !== "win32")) {
+      if (process.platform === "win32" && !childStillOnSpawnGeneration(generationChild)) return;
+      await terminateProcessTree(child.pid, {
+        graceMs: 500,
+        killWaitMs: 5e3,
+        expectedRootFingerprint: childIdentity?.pid === child.pid ? childIdentity.fingerprint : null
+      });
+    }
   };
   return { child, request, close, get stderr() {
     return stderr;

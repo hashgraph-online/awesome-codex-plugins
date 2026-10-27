@@ -22,7 +22,9 @@ end up doing the work yourself (see the last section).
 
 ## Start the worker
 
-Spawn one worker per comparison target. Its first message holds:
+Spawn one worker per comparison target, right away: don't list, read or search
+anything first. `worker.md` is in this skill's base directory, and the worker reads
+the project itself. Its first message holds:
 
 - the user's request, quoted as written
 - the target, if you know it: files, component, route

@@ -31,7 +31,7 @@ first. Record absent signals honestly; never assume emitted telemetry reached pr
   - Never certify full operational readiness from one script — record verified, refused, and
     production-only steps separately.
   - Finish with one receipt row per signal and step, marked verified, refused, or production-only.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every in-scope step is verified, refused with reason, or parked as production-only,
     and observability gaps are recorded absent — not inferred.
   - Verify: the item gate is green at every commit; every verified step replays clean in the named

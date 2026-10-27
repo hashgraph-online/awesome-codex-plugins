@@ -155,7 +155,7 @@ Every skill shows you a draft first and waits for your OK. Nothing gets posted w
 
 X caps a standard tweet at **280 characters** (emoji count as 2 each), or **25,000** on X Premium. For anything longer, you build a thread. Doing that on the native X API means posting tweet 1, capturing its id, posting tweet 2 as a reply to it, and handling partial failures.
 
-This bundle hands the whole chain to [Publora](https://publora.com). You write the thread as one block (or split it with `---`), and Publora auto-splits it into a numbered `(1/N)` thread at sentence boundaries, reserves room for the marker, and posts it in one call. The Thread Builder and Post Writer skills use this on approval.
+This bundle hands the whole chain to [Publora](https://publora.com/?utm_source=github&utm_medium=readme&utm_campaign=x-skills). You write the thread as one block (or split it with `---`), and Publora auto-splits it into a numbered `(1/N)` thread at sentence boundaries, reserves room for the marker, and posts it in one call. The Thread Builder and Post Writer skills use this on approval.
 
 ## Optional: auto-post with Publora
 
@@ -163,13 +163,13 @@ By default, the skills draft content for you to copy-paste into X. If you want C
 
 ### What is Publora?
 
-[Publora](https://publora.com) is a publishing API that turns one `create-post` call into a full X thread (and can cross-post the same content to LinkedIn, Threads, and more).
+[Publora](https://publora.com/?utm_source=github&utm_medium=readme&utm_campaign=x-skills) is a publishing API that turns one `create-post` call into a full X thread (and can cross-post the same content to LinkedIn, Threads, and more).
 
 Publora also ships [official MCP skills](https://github.com/publora/skills) (`npx skills add publora/skills`): one skill per platform, covering the publish side only. This bundle is the layer above them, adding the reading, the writing craft and the approval flow.
 
 ### Setup (2 minutes)
 
-**Step 1.** Sign up at https://app.publora.com/signup (free)
+**Step 1.** Sign up at https://app.publora.com/signup?utm_source=github&utm_medium=readme&utm_campaign=x-skills (free)
 
 **Step 2.** Connect X: click **Channels** in the left sidebar, then **Add Channel**, pick **X / Twitter**, authorize.
 
@@ -213,6 +213,28 @@ A tweet with a visual gets more engagement. The Post Writer can generate an inli
 [Pixfaro](https://pixfaro.com) is a single image API over multiple models (from `flux-schnell` at $0.004 to `gpt-5-image`). It composites your handle, brand color, or logo onto the image as a **pixel-exact overlay**, so a cheap base model still renders crisp text on a quote-card. Pull those brand fields from your [Voice & Brand Profile](references/voice-profile.md) (section 6) and every asset stays on-brand.
 
 Setup: drop `PIXFARO_TOKEN=pf_live_...` into your `.env`. The thin client at `lib/pixfaro_client.py` and the wrappers `lib.illustrate(prompt, kind="wide")` / `lib.refine(image_id, instruction)` return a hosted URL that flows straight into `lib.publish(..., media_urls=[url])`. `refine` edits a prior image by its id (cheaper than regenerating); results carry `cost`, `balance_after`, and a `premium` flag so the skills never quietly spend on a pricey model.
+
+## Optional: read real X data with Apify
+
+`x-audience-insights` can rank your own or a competitor's tweets by engagement, pull the repliers on a tweet (X gates likers, so replies are the signal), scan a niche query, and read one tweet by URL. Without a read credential it asks you to paste the numbers, so nothing breaks.
+
+**With a shell**, drop a free token into your `.env`:
+
+```
+APIFY_TOKEN=apify_api_...
+```
+
+One actor does all of it, `xquik/x-tweet-scraper`, at about $0.15 per 1,000 tweets, no cookies and no X login.
+
+**On claude.ai**, where a skill has no environment to put a token in, add Apify's MCP server as a custom connector instead:
+
+```
+https://mcp.apify.com?actors=xquik/x-tweet-scraper
+```
+
+Sign in with OAuth on first use. Same actor, same inputs, same cost, no key on disk. **Keep the `?actors=` filter**: the bare `https://mcp.apify.com` also hands the agent `search-actors` and `call-actor`, which can run anything in the Apify Store at whatever that actor charges.
+
+The skills use whichever is available and fall back to asking you to paste. Details and the field mapping: [`references/mcp-read-layer.md`](references/mcp-read-layer.md).
 
 ## Voice rules
 
@@ -311,7 +333,7 @@ LinkedIn flattens reply threads to 2 levels and needs the top-level comment URN 
 
 ## References
 
-- [Publora API docs](https://docs.publora.com) - endpoint reference for the publishing layer
+- [Publora API docs](https://docs.publora.com/?utm_source=github&utm_medium=readme&utm_campaign=x-skills) - endpoint reference for the publishing layer
 - [The X recommendation algorithm](https://github.com/twitter/the-algorithm) - the open-sourced ranker behind the 2026 heuristics
 
 ## Who builds this
@@ -324,7 +346,7 @@ This repo is the thin top layer of that stack, open-sourced. The engine undernea
 
 ## License
 
-MIT. Powered by [Publora](https://publora.com).
+MIT. Powered by [Publora](https://publora.com/?utm_source=github&utm_medium=readme&utm_campaign=x-skills).
 
 ## Related open-source skill bundles
 

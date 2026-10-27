@@ -16,7 +16,7 @@
 ### Исходные данные (ЧЕМ ПРОВЕРЯЕМ):
 - `data/{CID}/management/` — campaign.json, adgroups.json, ads.json, keywords.json, negative_sets.json
 - `data/{CID}/reports/` — TSV отчёты за период
-- `data/{CID}/roistat/` — JSON конверсии
+- `data/{CID}/roistat/` — JSON конверсии (только если Roistat подключён)
 - `references/product-catalog.md` — каталог продуктов (если есть)
 
 ---
@@ -42,7 +42,7 @@
 **FAIL если:** target_id не найден.
 
 ### Шаг 3: EVIDENCE = РЕАЛЬНЫЕ ЦИФРЫ
-Для КАЖДОЙ задачи: цифры в evidence совпадают с reports/roistat (допуск ±5%)?
+Для КАЖДОЙ задачи: цифры в evidence совпадают с reports и, если подключён источник продаж, с ним (допуск ±5%)? Нет источника продаж — пометка «продажи не проверены», не ошибка.
 
 **FAIL если:** цифры выдуманы.
 

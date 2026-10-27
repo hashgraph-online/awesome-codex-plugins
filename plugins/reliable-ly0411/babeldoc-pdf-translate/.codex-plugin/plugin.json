@@ -1,6 +1,6 @@
 {
   "name": "babeldoc-pdf-translate",
-  "version": "1.3.0",
+  "version": "1.5.0-rc.28",
   "description": "Layout-preserving PDF translation with bilingual output, custom terminology and a configurable translation provider.",
   "author": {
     "name": "reliable-ly0411",

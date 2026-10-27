@@ -21,6 +21,7 @@ async function capturePluginSource(sourceRoot){
    if(entry.isDirectory())await visit(path);
    else{
     requireValue(entry.isFile(),'PLUGIN_SOURCE_ENTRY','Plugin source contains an unsupported entry: '+path);
+    requireValue(!/^agents?\.md$/i.test(entry.name),'PLUGIN_PRIVATE_INSTRUCTIONS','Private maintainer instructions cannot be installed: '+path);
     files.push({path,sha256:sha256(await readFile(join(root,path)))});
    }
   }

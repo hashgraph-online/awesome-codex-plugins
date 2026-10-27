@@ -9,6 +9,10 @@ description: Clarify intent, scope, constraints, and success criteria before art
 
 Before executing a CLI line below, replace its leading `SSF` with `node "<plugin-root>/scripts/spec-superflow.mjs"`; `<plugin-root>` is the absolute directory two levels above this file. Never run `SSF` literally or call an `ssf` from `PATH`.
 
+## Workflow routing
+
+A new request follows this file without loading legacy instructions. For an existing change, inspect the recorded state and receipt/plan (available through `SSF workflow show <change-dir> --json` and `SSF execution show <dir> --json` when needed). Current paths are `workflow_variant: direct` with a valid workflow-selection receipt `schema_version: 3`, or `workflow_variant: planned` with an execution plan `schema_version: 2`. Older receipts (schema 1/2), legacy plans and other recorded variants use the matching section of `SSF runtime asset read docs/legacy-workflow.md`; follow that section for this change. A direct variant alone is insufficient: legacy Quick/Hotfix/Lightweight can also record it. The internal `workflow: full` value alone is not a legacy signal. Missing or corrupt state, receipt or a required plan is a recovery problem; preserve evidence rather than reinitialize or downgrade the change.
+
 Turn a rough idea into a stable change definition before writing artifacts.
 
 ## Primary Goal
@@ -33,45 +37,10 @@ Present 2-3 options when reasonable answers are finite. This reduces cognitive l
 
 For each approach: what it is, upside, downside, best-for. Then **recommend one** and explain why. Never present a single path — always name at least one alternative.
 
-### 5. Validate Before Concluding
+### 5. Finish with a concrete scope
 
-Restate what you heard: "Here's what I'm hearing: [problem, scope, non-goals, success criteria]. Does this match?" Incorporate corrections and re-validate.
+Summarize the problem, scope, non-goals, success criteria and decomposition decision for spec-writer. Reuse decisions already supplied by the user. Resolve missing material decisions, then hand off to spec-writer to draft proposal.md and tasks.md together; the concrete plan has one approval, handled by workflow-start. Exploration does not create a separate approval receipt.
 
-### 6. DP-1: Requirement Confirmation Gate
+## Completion
 
-After user confirms the summary:
-```bash
-SSF state set <change-dir> dp_1_result "confirmed: <one-line summary>"
-SSF state set <change-dir> dp_1_timestamp now
-```
-DP-1 confirms scope, non-goals, and success criteria before artifact creation.
-
-### 7. Hand Off
-
-Once DP-1 is recorded, hand off to `spec-writer`.
-
-## Anti-Patterns
-
-- **Skipping exploration**: "Simple" changes have scope too. Five minutes of exploration prevents two hours of rework.
-- **Proposing solutions before clarifying**: If the user says "add caching," first ask what problem caching solves.
-- **Exploring indefinitely**: Stop when change name, problem statement, scope, non-goals, success criteria, and decomposition decision are all clear.
-
-## Exploration Standard
-
-You must leave exploration with: a usable change name, a crisp problem statement, scope boundaries, non-goals, success criteria, and a decomposition decision (one change or split).
-
-## Strong Rule
-
-Do not produce implementation code. This skill stabilizes intent, not builds.
-
-## Self-Review Before Handoff
-
-1. **Placeholder scan**: No "probably", "maybe", "TBD", or "we'll figure it out later"
-2. **Contradiction check**: No scope items conflicting with non-goals or constraints
-3. **Scope check**: Can a developer draw a bright line between in and out?
-
-## Exception Handling
-
-- **Parse failures**: Report the specific file, proceed with available information
-- **Missing files**: Note absent essential files as constraints, continue
-- **User interruption**: Exploration is stateless — on resume, re-ask the current question
+Leave a usable change name, problem statement, scope, non-goals, success criteria and decomposition decision. Self-check contradictions and placeholders. Do not implement code during exploration. On interruption, resume from existing decisions and the unanswered question.

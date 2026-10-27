@@ -2,6 +2,8 @@
 name: hunt
 description: Compose a shift from the ready catalog under one time budget, guided or automatic, reviewed first or run directly.
 license: MIT
+metadata:
+  internal: true
 ---
 
 Compose a shift for the host-opened project: settle the work, the ending, and the hours, then

@@ -24,9 +24,9 @@ assay <the page you changed> --one-line
 ```
 
 Point it at the page itself, such as `todo.html` or `dist/index.html`. A
-folder works too and opens the `index.html` inside it. It needs no key,
-network or configuration. A small page takes seconds, and a busy one can take a
-minute or more.
+folder works too and opens the `index.html` inside it. It needs no key or
+configuration. The first run downloads Chromium if it isn't installed yet. A
+small page takes seconds, and a busy one can take a minute or more.
 
 ## Then print what it printed
 

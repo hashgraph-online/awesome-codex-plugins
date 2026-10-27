@@ -27,9 +27,14 @@ record shape, state rules, and execution rules:
 - Plain-review entry: the `review` skill enters this track from a plain
   branch review with no completion wording. On that entry, run
   `closeout.verify` first. IF any task or acceptance criterion of the plan
-  is not `fulfilled`, THEN skip `closeout.merge`, `closeout.accept`,
-  `closeout.capture`, and `closeout.discharge` for that plan, and report
-  the remaining work or the missing check.
+  is not `fulfilled`, THEN skip `closeout.merge`, `closeout.accept`, and
+  `closeout.discharge` for that plan, run `closeout.capture` on its delivered
+  units only, retain the plan, offer no removal, and report the remaining
+  work or the missing check.
+- Partially delivered plan: a delivered unit of an unfinished plan — a public
+  endpoint, a schema, an invariant other code already relies on — is captured
+  at `closeout.capture` the same way as on a finished plan. The plan stays
+  open; no gate offers its removal.
 - Several matched plans: run the full gate sequence once per plan, with
   that plan's chain as the scope. Do not ask again about a document
   already confirmed for an earlier plan in the same invocation.
@@ -57,9 +62,8 @@ record shape, state rules, and execution rules:
   records the confirmation, or the user's confirmation at the gate; the runtime
   infers none. Scope adds `scenario` and `journey` documents only when
   `skills/_shared/actor-subject-compatibility.md` returned `yes`.
-- Each `budget` knob is the per-gate maximum, reached only in expert
-  invocation; in auto mode every question draws from the shared
-  per-invocation ceiling in `skills/_shared/elicitation-contract.md`.
+- Each `budget` knob caps its gate inside the 5-question per-invocation
+  ceiling of `skills/_shared/elicitation-contract.md`.
   Per-document confirmations follow the `actualize.fix` model —
   confirmations, not budget questions [assumption]. WHEN both a merge update
   and a status transition apply to one document, the executing skill SHOULD
@@ -67,8 +71,8 @@ record shape, state rules, and execution rules:
   document costs at most one exchange per run. Writes proposed at
   `closeout.capture` take one batched preview question for the whole set,
   counted against the ceiling (`skills/_shared/durable-context-selection.md`).
-- In auto mode, spend the remaining ceiling on `closeout.discharge` removal
-  confirmations before the capture preview and the experience offer.
+- Spend the remaining ceiling on `closeout.discharge` removal
+  confirmations before the capture preview.
   IF the ceiling leaves no question for a removal confirmation, THEN retain
   that plan and name the question ceiling as the reason.
 
@@ -87,8 +91,12 @@ not apply on this track.
 - Purpose: Establish that the branch work fulfills the plan — judge every
   plan task and acceptance criterion against the current working tree,
   branch diff, and available verification reports. WHEN the
-  scoped plan carries a `## Declared Delta` section, judge each declared Δ
-  entry against the branch diff too. A document-versus-code direction takes
+  scoped plan carries a `## Declared Delta` section, read it as the claim
+  ledger and judge each claim against the branch diff too. A legacy section
+  or state block in the `route:` and `delta:` form is read as a claim ledger:
+  `creates` as `create`, `modifies` as `amend`, `retires` as `retire`,
+  `decision` as an `adr` need; the route name and the size label carry no
+  verdict. A document-versus-code direction takes
   its label vocabulary from `skills/_shared/verdict-contract.md`.
 - Entry conditions:
   - skip_when: the branch scope matches no `plan` document — the merge and
@@ -108,9 +116,9 @@ not apply on this track.
   - blocking: every unfulfilled verdict cites its evidence — the missing
     change, the failing check, or the absent file.
   - blocking: WHEN the scoped plan carries a `## Declared Delta` section,
-    every declared Δ entry carries one verdict — confirmed by the diff, or
-    missing with its evidence; undeclared change found at this gate is
-    appended to the report as unplanned Δ.
+    every claim carries one verdict — confirmed by the diff, or missing with
+    its evidence; an undeclared change found at this gate is appended to the
+    report as an unplanned claim.
   - advisory: readiness — every example of each scoped `scenario` carries one result: run, confirmed, or unconfirmed; a user confirmation is recorded in the running report.
   - advisory: coverage — every Normative Behavior clause of each scoped `spec` with no example in its Conformance block, in a `scenario` that `depends_on` it, or in a feature file it cites is listed by clause number; a cited feature file absent from the branch, and a feature file on the branch that no scoped `spec` cites, are listed by path.
   - advisory: a scoped `scenario` whose `Anchors:` paths changed in the diff carries a verdict per `skills/_shared/verdict-contract.md`.
@@ -166,7 +174,7 @@ not apply on this track.
     `archcore:track` state block; the report names its gate, its `deferred`
     entries, and the resume command per `skills/_shared/gate-contract.md`.
   - blocking: no status transition targets an `rfc`; the report names
-    `/archcore:document decision` to resolve it.
+    `/archcore:document <rfc title>` to resolve it.
   - blocking: the executing skill modified no code file.
   - advisory: the final report groups documents by transition applied,
     declined, and skipped.
@@ -177,15 +185,17 @@ not apply on this track.
 
 ### gate: closeout.capture
 
-- Purpose: Select the durable context of the completed work — the plan's
-  claims no other document holds, plus the unplanned Δ — and route each unit
+- Purpose: Select the durable context of the delivered work — the plan's
+  claims no other document holds, plus the unplanned claims; on an unfinished
+  plan, its delivered units only — and route each unit
   the user authorizes to the instrument that owns its type, before the plan
   leaves the corpus. The selection follows
   `skills/_shared/durable-context-selection.md`.
 - Entry conditions:
   - skip_when: the branch scope matches no `plan` document — the `review`
     skill runs the same selection from its own step 3 instead.
-  - `closeout.accept` completed its transitions, or was skipped.
+  - `closeout.accept` completed its transitions, or was skipped — on an
+    unfinished plan the plain-review entry skips it.
 - Elicitation knobs:
   - trigger: the selection proposes at least one write; the batched preview
     is this gate's one question.
@@ -193,7 +203,7 @@ not apply on this track.
     `skills/_shared/coverage-taxonomy.md`.
   - budget: 1
 - Produces:
-  - type: `spec`, `doc`, `guide`, or `scenario` through `skills/_shared/tracks/describe.md`; `adr` and its standard cascade through `skills/_shared/tracks/decision.md`; `cpat`, `task-type`, or `guide` per `skills/_shared/tracks/experience.md`; each per the Write routing of `skills/_shared/durable-context-selection.md`
+  - type: `spec`, `doc`, `guide`, or `scenario` through `skills/_shared/tracks/describe.md`; `adr` and its standard cascade through `skills/_shared/tracks/decision.md`; `cpat`, `task-type`, or `guide` per the Write routing of `skills/_shared/durable-context-selection.md`
   - status: draft
   - relations: per the Produces field of the instrument that ran.
 - Exit checks:
@@ -238,11 +248,15 @@ not apply on this track.
   - advisory: the report names each removed plan, the units written at
     `closeout.capture` or their absence, and any verified recovery commit.
     If no commit preserves the removed version, state that explicitly.
-  - blocking: the report names each retained scoped plan and its reason:
-    unfulfilled work with the remaining tasks, insufficient evidence with
-    the missing check, declined confirmation, or a removal failure.
+  - blocking: the report names one outcome per scoped plan — removable,
+    removed, unfinished, not verifiable, open draft, accepted-canon conflict,
+    removal declined, or removal failed — and, for each retained plan, the
+    exact task or criterion, the evidence checked, the missing work or proof,
+    and the next action.
+  - blocking: no removal was offered for a plan with a task or criterion
+    other than fulfilled.
 - Next: exit — after all matched plans finish closeout, the `review` skill
-  runs the repeated-pattern offer once per `skills/_shared/tracks/experience.md`.
+  reports the capture line once, merged across every selection run.
 
 ## Discharge report
 
@@ -259,6 +273,11 @@ elsewhere — per these type defaults:
 - An `idea` becomes a candidate after `closeout.accept` transitions every
   document that implements it.
 - A spike `rnd` keeps only its Findings section.
+- A vision draft in scope — `idea`, `prd`, `rnd`, `research`, `mrd`, `brd`,
+  or `urd` — whose exit condition holds per the vision exits of
+  `skills/_shared/tracks/sdd.md`, `skills/_shared/tracks/research.md`, or
+  `skills/_shared/tracks/requirements-cascade.md` is flagged as closable, with
+  the condition that holds.
 
 Only `plan` leaves the corpus on this track, because a completed plan's
 statements belong to the `spec` it implements, to the branch commits, and to

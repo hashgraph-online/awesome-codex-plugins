@@ -4,9 +4,9 @@ Plugin runtime asset. Loaded by the `document` skill when its classification
 resolves to code documentation — a module, component, API, system, or technical
 topic. Gate record shape, state block, execution and resume rules:
 `skills/_shared/gate-contract.md`. Interview mechanics:
-`skills/_shared/elicitation-contract.md`. Budget values below are per-gate
-maximums reached only in expert invocation; auto mode draws every question from
-the shared per-invocation ceiling in `skills/_shared/elicitation-contract.md`.
+`skills/_shared/elicitation-contract.md`. Each budget value below caps its gate
+inside the 5-question per-invocation ceiling of
+`skills/_shared/elicitation-contract.md`.
 
 Decision-shaped requests ("we chose X", standards, proposals) belong to the
 decision track (`skills/_shared/tracks/decision.md`); the `document` skill
@@ -16,12 +16,28 @@ classifies before entering this file.
 
 WHEN the calling skill pre-fills the scope — the subject, its files, and the
 evidence — `describe.read` runs question-free, and its entry conditions are
-satisfied by the pre-filled scope. The conductor uses this entry on an
-amendment route that finds no covering `spec` (sequencing rule 11 in
+satisfied by the pre-filled scope. The conductor uses this entry for an
+`amend` claim that finds no covering `spec` (sequencing rule 11 in
 `skills/_shared/delta-routing.md`). The `review` skill uses this entry for each
 unit the user authorized in its durable-context preview
 (`skills/_shared/durable-context-selection.md`); the pre-filled type settles
 `describe.draft` without its type question.
+
+## Owner selection
+
+Apply before the type heuristics, with the `describe.read` evidence in hand:
+
+1. Select a present-state owner first: an existing document that covers the
+   subject takes the update; a new document is the exception.
+2. WHEN a README, a code comment, or a test name next to the subject already
+   answers the reader's question, create no document and name that source in
+   the closing report. A request to document the subject does not override
+   this rule; only a type the subject names (Named type) does. The README,
+   the script or target it names, and that script's header answer together; a
+   fact the code already states is not a gap for a new document.
+3. WHEN `search_documents` with `for_path` on the subject's main file already
+   returns five matched rows, update or merge into the best-matching owner
+   instead of creating a sixth document on that file.
 
 ## Type heuristics
 
@@ -31,15 +47,18 @@ hand; settled at `describe.draft`.
 | Signal | Type |
 |---|---|
 | Behavior others rely on — an API, interface, schema, or protocol boundary, or a feature/subsystem with states, field-driven rules, and invariants | `spec` |
-| Reference material — a registry, glossary, or lookup | `doc` |
-| How-to instructions or procedures | `guide` |
+| Reference data that a path cannot explain — a registry, glossary, or lookup table | `doc` |
+| A procedure a human performs — install, release, recover, operate | `guide` |
+| A procedure an agent repeats, with an evidenced step order | `task-type` |
 | An actor-subject flow of existing behavior with examples that illustrate a covering `spec`, or several for a flow that crosses contracts | `scenario` beside the `spec`, `depends_on` → each covering `spec` |
-| The subject text names a type this track produces — `spec`, `doc`, `guide`, or `scenario` | that type; the type question does not fire |
-| A module described comprehensively ("document everything about X") | `guide`, plus `spec` when others rely on the module's behavior, plus `doc` when the evidence includes reference material (a registry, glossary, or lookup). [assumption] The v1 flow also created an `adr` on this route; a settled decision surfaced by the evidence now routes to the decision track. |
+| The subject text names a type this track produces — `spec`, `doc`, `guide`, `task-type`, or `scenario` | that type; the type question does not fire |
+| A module described comprehensively ("document everything about X") | `guide`, plus `spec` when others rely on the module's behavior, plus `doc` when the evidence includes reference material (a registry, glossary, or lookup). [assumption] The v1 flow also created an `adr` for this row; a settled decision surfaced by the evidence now routes to the decision track. |
 
-Default after the one type question at `describe.draft`: `spec` when others
-rely on the subject's behavior; `doc` otherwise. [assumption] The v1 default
-was `adr`, a type the decision track now owns.
+`doc` is never a fallback type. WHEN no row matches after the one type question
+at `describe.draft`, select `spec` when others rely on the subject's behavior;
+otherwise create no document and report that the code and its comments are the
+owner. The procedure rows follow the actor of the steps: a human actor gives a
+`guide`, an agent actor gives a `task-type`.
 
 The `scenario` row binds only when `skills/_shared/actor-subject-compatibility.md`
 returned `yes`; the executing skill composes it per
@@ -70,7 +89,7 @@ explicitly takes the document skill's Named type path instead of this track.
 
 ### gate: describe.draft
 
-- Purpose: Settle the document type — `spec`, `doc`, or `guide` — and compose the draft from the gathered evidence.
+- Purpose: Settle the document type — `spec`, `doc`, `guide`, `task-type`, or `scenario` — and compose the draft from the gathered evidence.
 - Entry conditions:
   - skip_when: a non-global document found at `describe.read` already covers the subject — update that document via `update_document` instead of creating a duplicate. WHEN the covering document's claims conflict with the code, label each conflict per `skills/_shared/verdict-contract.md`, apply a `spec-wrong` update only after the user confirms it, and report a `code-wrong` conflict without writing. [assumption] Ported from the v1 duplicate-prevention step, which did not state the update path.
   - Evidence from `describe.read` or from the request covers the subject's files, entry points, and behavior.
@@ -79,7 +98,7 @@ explicitly takes the document skill's Named type path instead of this track.
   - taxonomy: `Functional Scope & Behavior` from `skills/_shared/coverage-taxonomy.md`. [assumption] The v1 flow named no coverage category for its type question.
   - budget: 1 — the ported type question: "Is this primarily a decision, a contract/behavior spec, reference material, or instructions?"
 - Produces:
-  - type: `spec`, `doc`, `guide`, or `scenario` per the type heuristics; the comprehensive route produces more than one document, and an over-cap subject one `spec` per separable sub-surface (`skills/_shared/spec-contract.md` "Over the cap"); a `scenario` with no covering `spec` produces that `spec` first.
+  - type: `spec`, `doc`, `guide`, `task-type`, or `scenario` per the owner selection and the type heuristics, or none; the comprehensive row produces more than one document, and an over-cap subject one `spec` per separable sub-surface (`skills/_shared/spec-contract.md` "Over the cap"); a `scenario` with no covering `spec` produces that `spec` first.
   - status: draft
   - relations: evaluate existing subject documents and documents produced together through `skills/_shared/relation-authoring.md`; add only supported claims, using their justified type and direction; none when no claim exists. A produced `scenario` requires `depends_on` → each `spec` it illustrates. Global endpoints remain excluded per `skills/_shared/globals.md`.
 - Exit checks:
@@ -88,6 +107,8 @@ explicitly takes the document skill's Named type path instead of this track.
   - blocking: a `spec` draft over that contract's body cap was decomposed by separable sub-surface, or kept whole with the excess reported, per its "Over the cap" rules. Normative content is never deleted to fit the cap.
   - blocking: a `doc` draft covers Overview, Content, and Examples — a ported v1 composition target; no shared contract exists for this type.
   - blocking: a `guide` draft carries every section `skills/_shared/guide-contract.md` requires, composed after reading that contract.
+  - blocking: a `task-type` draft carries the sections of the `create_document` template: What, When to Use, Steps, Example, and Things to Watch Out For.
+  - advisory: a produced `spec`, `doc`, `guide`, `task-type`, or `scenario` draft names at least one governed path or file kind with `@path` notation or a compound extension.
   - blocking: a `scenario` draft carries the sections `skills/_shared/scenario-contract.md` requires, cites the feature files read at `describe.read` in its `Anchors:` lines, and carries `depends_on` → each covering `spec`.
 - Next: `describe.clarify`. WHEN the type answer is "a decision", the executing skill records it via the decision track (`skills/_shared/tracks/decision.md`) instead of continuing on this track.
 
@@ -100,7 +121,7 @@ explicitly takes the document skill's Named type path instead of this track.
 - Elicitation knobs:
   - trigger: the coverage scan returns `Missing` on a material category and neither the code, git history, nor `.archcore/` can supply the fact.
   - taxonomy: `Integration & External Dependencies`, `Non-Functional Quality Attributes`, `Constraints & Tradeoffs`, `Edge Cases & Failure Handling`, `Completion Signals` from `skills/_shared/coverage-taxonomy.md`. [assumption] Mapped from the ported v1 question stock below.
-  - budget: 2. [assumption] One question per produced document, up to the two documents (`guide` plus `spec`) of the comprehensive route; the v1 flow asked one composition question per document.
+  - budget: 2. [assumption] One question per produced document, up to the two documents (`guide` plus `spec`) of the comprehensive row; the v1 flow asked one composition question per document.
 - Produces: none — accepted answers land in that document per `skills/_shared/elicitation-contract.md`.
 - Exit checks:
   - blocking: every material `Missing` category has an accepted answer, an inline `[assumption]`, or a `deferred` entry in the state block.

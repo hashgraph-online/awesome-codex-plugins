@@ -10,19 +10,21 @@
 // a task the user has archived since. v0.1-13 — if that page is gone for good (its task deleted), the rest is read and
 // the gap reported, instead of failing.
 // v0.3 — an image the model fetched with our tool (cam_view_image) is kept apart as a copy of the original: no id.
+// v0.8 — what the model noted about the images in record lines at the end of its replies (notes.ts), by image id.
 // Input: the sessions directory and a thread id. Output: ThreadIndex (in memory; files are parsed incrementally).
 
 import { closeSync, existsSync, mkdirSync, openSync, readdirSync, readFileSync, readSync, statSync, writeFileSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { zstdDecompressSync } from "node:zlib";
 import { findImages, type ImageRef } from "./images.ts";
+import { addNotes, type Notes } from "./notes.ts";
 import { decodePng } from "./png.ts";
 
 type Json = Record<string, any>;
 export type IndexedImage = ImageRef & { id: string; turn: number | null; bytes: number; pixelSha256: string | null };
 // v0.3: an image the model fetched with our tool, a copy of `of` sent in its own turn only (spec: automatic selection).
 export type FetchedCopy = { key: string; of: string; turn: number | null };
-export type ThreadIndex = { threadId: string; images: IndexedImage[]; byKey: Map<string, IndexedImage>; turns: number; turnNumbers: Map<string, number>; copies: Map<string, FetchedCopy> };
+export type ThreadIndex = { threadId: string; images: IndexedImage[]; byKey: Map<string, IndexedImage>; turns: number; turnNumbers: Map<string, number>; copies: Map<string, FetchedCopy>; notes: Map<string, Notes> };
 export type Parsed = { offset: number; type: string; payload: Json; timestamp: string | null };
 type FileCache = { size: number; mtimeMs: number; parsedTo: number; records: Parsed[] };
 
@@ -223,13 +225,22 @@ export function buildIndex(threadId: string, history: Parsed[]): ThreadIndex {
   const turnNumbers = new Map<string, number>();
   const items: Json[] = [];
   const activeTurn: Array<string | null> = [];
+  const notes = new Map<string, Notes>();
   let current: string | null = null;
   for (const record of history) {
     if (record.type === "event_msg" && record.payload.type === "task_started" && record.payload.turn_id) {
       current = record.payload.turn_id;
       if (!turnNumbers.has(current!)) turnNumbers.set(current!, turnNumbers.size + 1);
     }
-    if (record.type === "response_item") { items.push(record.payload); activeTurn.push(current); }
+    if (record.type !== "response_item") continue;
+    items.push(record.payload);
+    activeTurn.push(current);
+    // v0.8: only the model's own replies.
+    const { type, role, content } = record.payload;
+    if (type === "message" && role === "assistant" && Array.isArray(content)) {
+      const turn = current ? turnNumbers.get(current) ?? null : null;
+      for (const part of content) if (part?.type === "output_text" && typeof part.text === "string") addNotes(notes, part.text, turn);
+    }
   }
   const images: IndexedImage[] = [];
   const byKey = new Map<string, IndexedImage>();
@@ -256,7 +267,7 @@ export function buildIndex(threadId: string, history: Parsed[]): ThreadIndex {
     const twin = images.find((other) => other.name && (other.contentId === entry.contentId || (entry.pixelSha256 !== null && other.pixelSha256 === entry.pixelSha256)));
     if (twin) entry.name = twin.name;
   }
-  return { threadId, images, byKey, turns: turnNumbers.size, turnNumbers, copies };
+  return { threadId, images, byKey, turns: turnNumbers.size, turnNumbers, copies, notes };
 }
 
 // The first line alone (session_meta can be long), read in chunks without parsing the rest of the file.
@@ -363,6 +374,22 @@ export function sessionMetaOf(sessionsDir: string, threadId: string): Json | nul
     const record = first ? firstRecord(first) : null;
     return record?.type === "session_meta" ? record.payload : null;
   });
+}
+
+const noteTakers = new Map<string, boolean>();
+
+// v0.8: whether a thread's model writes feature lines (docs/v0.8/plan.md): the user's own tasks and their forks, not a
+// subagent (started with history or without) or one of Codex's internal tasks. Without a first line yet, yes, and not
+// cached: a subagent's first request can come before its rollout is written (v0.7); a user's task's rarely does.
+export function writesNotes(sessionsDir: string, threadId: string): boolean {
+  const key = `${sessionsDir}\0${threadId}`;
+  if (noteTakers.has(key)) return noteTakers.get(key)!;
+  const meta = sessionMetaOf(sessionsDir, threadId);
+  if (!meta) return true;
+  const source = meta.source;
+  const own = !(source && typeof source === "object" && ("subagent" in source || "internal" in source));
+  noteTakers.set(key, own);
+  return own;
 }
 
 // Threads whose rollout was first written at or after `since` (ms), with their session_meta, newest last. Only

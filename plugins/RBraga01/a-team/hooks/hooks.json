@@ -1,0 +1,21 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python ${PLUGIN_ROOT}/scripts/status.py 2>/dev/null || python3 ${PLUGIN_ROOT}/scripts/status.py 2>/dev/null || py ${PLUGIN_ROOT}/scripts/status.py 2>/dev/null || echo '⚡ A Team · instala Python para ver o estado'",
+            "async": false
+          },
+          {
+            "type": "command",
+            "command": "cat \"${PLUGIN_ROOT}/hooks/session-start.md\" 2>/dev/null || cat \"${PLUGIN_ROOT}/skills/using-a-team/SKILL.md\" 2>/dev/null || echo '[A Team] Session started. Run /orchestrate init if .agent-sync/TEAM.md is missing.'",
+            "async": false
+          }
+        ]
+      }
+    ]
+  }
+}

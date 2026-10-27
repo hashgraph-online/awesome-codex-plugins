@@ -1,0 +1,42 @@
+{
+  "_case": "Beauty whole-price band - profit dips negative above the first crossing",
+  "_why": "Guards the safe-floor solver. A first-root solver reports 9.89 here and hides the 10.00-10.71 loss zone.",
+  "inputs": {
+    "selling_price": 12.99,
+    "vat_rate": 0.0,
+    "cogs": 4.0,
+    "inbound_shipping": 0.0,
+    "advertising_per_unit": 0.0,
+    "return_rate": 0.0,
+    "restock_share": 0.0,
+    "storage_per_unit": 0.0,
+    "other_costs": 0.0,
+    "target_margin": 0.2
+  },
+  "fee_model": {
+    "type": "rule",
+    "referral_bands": [
+      {
+        "up_to": 10,
+        "rate": 0.08,
+        "mode": "whole"
+      },
+      {
+        "up_to": null,
+        "rate": 0.15,
+        "mode": "whole"
+      }
+    ],
+    "fba_fee": 5.1
+  },
+  "solve_range": {
+    "low": 5.0,
+    "high": 30.0
+  },
+  "expected": {
+    "break_even_price": 10.7059,
+    "lowest_break_even": 9.8913,
+    "loss_zones_count": 2,
+    "warning_contains": "non-monotonic"
+  }
+}

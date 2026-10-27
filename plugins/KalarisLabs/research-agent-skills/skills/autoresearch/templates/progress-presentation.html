@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Progress</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            line-height: 1.6;
+            padding: 2rem;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 3rem 0 2rem;
+            border-bottom: 1px solid #21262d;
+            margin-bottom: 2.5rem;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #f0f6fc;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            font-size: 1.15rem;
+            color: #8b949e;
+            font-style: italic;
+            max-width: 700px;
+            margin: 0 auto 1rem;
+        }
+
+        .meta {
+            font-size: 0.85rem;
+            color: #484f58;
+        }
+
+        .meta span {
+            display: inline-block;
+            margin: 0 0.5rem;
+            padding: 0.15rem 0.6rem;
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 12px;
+        }
+
+        section {
+            margin-bottom: 3rem;
+        }
+
+        section h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #f0f6fc;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #21262d;
+        }
+
+        p, li { color: #c9d1d9; }
+
+        .card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card h3 {
+            font-size: 1.05rem;
+            color: #58a6ff;
+            margin-bottom: 0.5rem;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-card {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 1.2rem;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #58a6ff;
+        }
+
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: #8b949e;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-card.positive .value { color: #3fb950; }
+        .stat-card.negative .value { color: #f85149; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.6rem 1rem;
+            background: #161b22;
+            color: #8b949e;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #21262d;
+        }
+
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid #21262d;
+            font-size: 0.95rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-supported { background: #0d2818; color: #3fb950; border: 1px solid #1b4332; }
+        .badge-refuted   { background: #2d1215; color: #f85149; border: 1px solid #4a1c20; }
+        .badge-active    { background: #0c2d6b; color: #58a6ff; border: 1px solid #1158c7; }
+        .badge-pending   { background: #1c1c1c; color: #8b949e; border: 1px solid #333; }
+
+        .chart-container {
+            background: #161b22;
+            border: 1px solid #21262d;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .next-steps {
+            background: #0c2d6b22;
+            border: 1px solid #1158c744;
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+
+        .next-steps h3 { color: #58a6ff; margin-bottom: 0.5rem; }
+        .next-steps ul { padding-left: 1.5rem; }
+        .next-steps li { margin-bottom: 0.3rem; }
+
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: #484f58;
+            font-size: 0.8rem;
+            border-top: 1px solid #21262d;
+        }
+    </style>
+</head>
+<body>
+
+    <!--
+        AGENT INSTRUCTIONS:
+        This is a starting point. Fill in, rearrange, add, or remove sections
+        based on what's compelling from your current research. The goal is a
+        research story, not a status dashboard.
+
+        Replace {{PLACEHOLDERS}} with actual content.
+        Embed SVG charts inline (see progress-reporting.md for the trajectory plot function).
+        Add additional sections as needed.
+    -->
+
+    <header>
+        <h1>{{PROJECT_TITLE}}</h1>
+        <p class="subtitle">{{RESEARCH_QUESTION}}</p>
+        <p class="meta">
+            <span>{{DATE}}</span>
+            <span>{{N_EXPERIMENTS}} experiments</span>
+            <span>Status: {{STATUS}}</span>
+        </p>
+    </header>
+
+    <!-- Summary stats -->
+    <section>
+        <div class="result-grid">
+            <div class="stat-card positive">
+                <div class="value">{{BEST_METRIC}}</div>
+                <div class="label">Best Metric</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">{{BASELINE_METRIC}}</div>
+                <div class="label">Baseline</div>
+            </div>
+            <div class="stat-card positive">
+                <div class="value">{{IMPROVEMENT}}</div>
+                <div class="label">Improvement</div>
+            </div>
+            <div class="stat-card">
+                <div class="value">{{N_HYPOTHESES}}</div>
+                <div class="label">Hypotheses Tested</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Background and motivation -->
+    <section id="background">
+        <h2>Background & Motivation</h2>
+        <div class="card">
+            <!-- Why does this research matter? What gap are we addressing? -->
+            <p>{{BACKGROUND_TEXT}}</p>
+        </div>
+    </section>
+
+    <!-- Optimization trajectory - THE key visual -->
+    <section id="trajectory">
+        <h2>Optimization Trajectory</h2>
+        <div class="chart-container">
+            <!-- Embed SVG chart here. See references/progress-reporting.md
+                 for the generate_trajectory_svg() function. -->
+            {{TRAJECTORY_SVG}}
+        </div>
+    </section>
+
+    <!-- Key findings -->
+    <section id="findings">
+        <h2>Key Findings</h2>
+        <!-- Add cards for each significant finding -->
+        <div class="card">
+            <h3>{{FINDING_1_TITLE}}</h3>
+            <p>{{FINDING_1_DESCRIPTION}}</p>
+            <!-- Include inline plots, tables, or metrics as needed -->
+        </div>
+    </section>
+
+    <!-- What was tried -->
+    <section id="experiments">
+        <h2>What We Tried</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Hypothesis</th>
+                    <th>Change</th>
+                    <th>Result</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Add rows for notable experiments -->
+                <tr>
+                    <td>{{H_ID}}</td>
+                    <td>{{CHANGE_SUMMARY}}</td>
+                    <td>{{METRIC_DELTA}}</td>
+                    <td><span class="badge badge-supported">{{STATUS}}</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </section>
+
+    <!-- Current understanding -->
+    <section id="understanding">
+        <h2>Current Understanding</h2>
+        <div class="card">
+            <!-- The narrative from findings.md, but presented compellingly -->
+            <p>{{CURRENT_UNDERSTANDING}}</p>
+        </div>
+    </section>
+
+    <!-- Next steps -->
+    <section id="next">
+        <h2>Next Steps</h2>
+        <div class="next-steps">
+            <ul>
+                <li>{{NEXT_STEP_1}}</li>
+                <li>{{NEXT_STEP_2}}</li>
+                <li>{{NEXT_STEP_3}}</li>
+            </ul>
+        </div>
+    </section>
+
+    <footer>
+        Generated by Autoresearch | {{DATE}}
+    </footer>
+
+</body>
+</html>

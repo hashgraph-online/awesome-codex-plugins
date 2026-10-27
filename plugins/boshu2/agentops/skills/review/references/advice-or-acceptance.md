@@ -1,8 +1,8 @@
 # Advice, claim audit or acceptance
 
-Review, Reality Check and Validate share this routing rule. Each of those skills
-keeps its own non-obvious rule inline; this page holds the shared detail, so
-failing to read it never blocks advice, an audit or a judgment.
+Review, Research's claimed-state audit and Validate share this routing rule.
+Each keeps its own non-obvious rule inline; this page holds the shared detail,
+so failing to read it never blocks advice, an audit or a judgment.
 
 ## Route by the intended outcome
 
@@ -12,7 +12,7 @@ Choose from what the caller wants to learn, not from the word "review" or
 | The caller wants | Route | It returns |
 |---|---|---|
 | Suggestions, tradeoffs, concerns or a second look | [Review](../SKILL.md) | advisory findings with checked scope and gaps |
-| To know whether a stated claim (done, shipped, fixed, goals met) matches the evidence | [Reality Check](../../reality-check/SKILL.md) | a per-claim disposition ledger, no verdict |
+| To know whether a stated claim (done, shipped, fixed, goals met) matches the evidence | [Research claimed-state audit](../../research/SKILL.md#claimed-state-audit) | a per-claim disposition ledger, no verdict |
 | An acceptance verdict, or independent proof that original acceptance is met | [Validate](../../validate/SKILL.md) | `PASS`, `FAIL` or `NOT_PROVEN` from a fresh context |
 
 Explicitly selecting Validate, asking to establish that original acceptance is
@@ -22,7 +22,10 @@ when phrased as "review this".
 ## Ambiguous requests
 
 Generic checking or readiness language ("can you check this?", "is it ready?")
-selects none of the three by itself. Supplied acceptance criteria say what to
+selects none of the three by itself. A request for a look, once-over, opinion
+or second look already names advice, even when the caller will act on the
+result ("quick look before I close the ticket?"): return the findings and say
+they are not acceptance. Supplied acceptance criteria say what to
 inspect, not which kind of judgment the caller wants. When the request and
 settled context leave the purpose open, ask one question: advisory findings or
 an acceptance judgment? Wait for the answer. Do not return findings, a verdict

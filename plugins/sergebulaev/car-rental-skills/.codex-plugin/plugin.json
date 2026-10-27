@@ -1,0 +1,47 @@
+{
+  "name": "car-rental-skills",
+  "description": "8 Claude Code and Codex skills for car rental businesses: exotic, luxury and Turo pricing against live published market rates, competitor market scans, business plans, rental agreement templates, damage inspection checklists, vehicle listings, social posts and review replies. Market data from the free CarRentalList MCP server.",
+  "version": "1.0.4",
+  "author": {
+    "name": "Serge Bulaev",
+    "url": "https://github.com/sergebulaev"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/sergebulaev/car-rental-skills",
+  "keywords": [
+    "car-rental",
+    "exotic-car-rental",
+    "luxury-car-rental",
+    "turo",
+    "rental-business",
+    "small-business",
+    "pricing",
+    "rental-agreement",
+    "claude-skills",
+    "codex-skills",
+    "agent-skills",
+    "mcp"
+  ],
+  "repository": "https://github.com/sergebulaev/car-rental-skills",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Car Rental Business Skills",
+    "shortDescription": "Car rental business skills with live market rates for Claude Code and Codex.",
+    "longDescription": "8 skills for exotic, luxury and Turo car rental operators: pricing against live published rates, competitor scans, business plans, rental agreements, damage inspections, listings, social posts and review replies.",
+    "developerName": "Serge Bulaev",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/sergebulaev/car-rental-skills",
+    "defaultPrompt": [
+      "How much should I charge for my Lamborghini Urus in Miami?",
+      "Who are my exotic car rental competitors in Scottsdale?",
+      "Write a car rental agreement for my company in Texas."
+    ],
+    "brandColor": "#C9A96E",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

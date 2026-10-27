@@ -39,6 +39,7 @@ export {
   stopCodexCdpRuntime,
   stopLaunchedCodexCdpProcess,
   verifyCodexCdpListenerOwnership,
+  verifyCodexCdpRuntimeIdentity,
   waitForCodexCdpListenerOwnership,
   writeCodexCdpRuntimeState,
 } from "./cdp-runtime.js";

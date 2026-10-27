@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import os
 import tempfile
@@ -14,8 +15,10 @@ TEMPLATE = {
     "client_key": "replace-me",
     "notes": "Keep secrets in env vars. Keep IDs, routing, and product context here.",
     "analytics": {
-        "source_priority": ["roistat", "metrika", "direct_reports", "wordstat"],
-        "roistat_first": True,
+        # Источники продаж (crm, roistat) добавляются флагами --with-crm / --with-roistat, только если подключены.
+        "source_priority": ["metrika", "direct_reports", "wordstat"],
+        "sales_source": "none",
+        "roistat_first": False,
         "manual_analysis_required": True,
         "roistat_attribution": ["first_click", "last_click"],
     },
@@ -81,14 +84,26 @@ def main() -> None:
     parser.add_argument("--output", default=".codex/yandex-performance-client.json")
     parser.add_argument("--client-key", default="replace-me")
     parser.add_argument("--force", action="store_true")
+    parser.add_argument("--with-crm", action="store_true", help="есть CRM (выгрузка или API): CRM — первый источник продаж")
+    parser.add_argument("--with-roistat", action="store_true", help="Roistat подключён: добавить его источником продаж")
     args = parser.parse_args()
 
     output = Path(os.path.expanduser(args.output)).resolve()
     if output.exists() and not args.force:
         raise SystemExit(f"Refusing to overwrite existing file: {output}. Use --force.")
 
-    data = dict(TEMPLATE)
+    data = copy.deepcopy(TEMPLATE)
     data["client_key"] = args.client_key
+    analytics = data["analytics"]
+    if args.with_crm:
+        analytics["source_priority"].insert(0, "crm")
+        analytics["sales_source"] = "crm"
+    if args.with_roistat:
+        analytics["source_priority"].insert(1 if args.with_crm else 0, "roistat")
+        analytics["roistat_first"] = not args.with_crm
+        if not args.with_crm:
+            analytics["sales_source"] = "roistat"
+        data["roistat"]["enabled"] = True
     output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(output.parent, 0o700)
     descriptor, temporary = tempfile.mkstemp(prefix=f".{output.name}.", dir=output.parent)

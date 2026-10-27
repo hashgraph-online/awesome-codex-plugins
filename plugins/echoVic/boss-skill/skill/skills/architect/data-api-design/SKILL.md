@@ -1,4 +1,5 @@
 ---
+
 name: architect/data-api-design
 description: 数据模型和API设计方法论，包含ERD设计、数据字典、RESTful API规范
 version: 1.0.0
@@ -8,11 +9,12 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-  - 架构设计完成后
-  - 需要设计数据模型时
-  - 需要定义API接口时
-metadata:
+- 架构设计完成后
+- 需要设计数据模型时
+- 需要定义API接口时
+  metadata:
   internal: true
+
 ---
 
 # 数据模型与API设计方法论
@@ -40,11 +42,11 @@ metadata:
 
 确定实体之间的关系：
 
-| 关系类型 | 说明 | 示例 |
-|----------|------|------|
+| 关系类型         | 说明           | 示例           |
+| ---------------- | -------------- | -------------- |
 | **一对一 (1:1)** | 一个A对应一个B | User - Profile |
-| **一对多 (1:N)** | 一个A对应多个B | User - Post |
-| **多对多 (M:N)** | 多个A对应多个B | Post - Tag |
+| **一对多 (1:N)** | 一个A对应多个B | User - Post    |
+| **多对多 (M:N)** | 多个A对应多个B | Post - Tag     |
 
 **关系表示**：
 - `||--o{`: 一对多
@@ -103,15 +105,15 @@ erDiagram
 
 #### User 表
 
-| 字段 | 类型 | 约束 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| id | UUID | PK | uuid_generate_v4() | 主键 |
-| email | VARCHAR(255) | UNIQUE, NOT NULL | - | 邮箱，用于登录 |
-| name | VARCHAR(100) | NOT NULL | - | 用户名 |
-| passwordHash | VARCHAR(255) | NOT NULL | - | 密码哈希（bcrypt） |
-| role | ENUM('user', 'admin') | NOT NULL | 'user' | 用户角色 |
-| createdAt | TIMESTAMP | NOT NULL | NOW() | 创建时间 |
-| updatedAt | TIMESTAMP | NOT NULL | NOW() | 更新时间 |
+| 字段         | 类型                  | 约束             | 默认值             | 说明               |
+| ------------ | --------------------- | ---------------- | ------------------ | ------------------ |
+| id           | UUID                  | PK               | uuid_generate_v4() | 主键               |
+| email        | VARCHAR(255)          | UNIQUE, NOT NULL | -                  | 邮箱，用于登录     |
+| name         | VARCHAR(100)          | NOT NULL         | -                  | 用户名             |
+| passwordHash | VARCHAR(255)          | NOT NULL         | -                  | 密码哈希（bcrypt） |
+| role         | ENUM('user', 'admin') | NOT NULL         | 'user'             | 用户角色           |
+| createdAt    | TIMESTAMP             | NOT NULL         | NOW()              | 创建时间           |
+| updatedAt    | TIMESTAMP             | NOT NULL         | NOW()              | 更新时间           |
 
 **索引**：
 - `idx_user_email`: email（唯一索引，用于登录查询）
@@ -119,16 +121,16 @@ erDiagram
 
 #### Post 表
 
-| 字段 | 类型 | 约束 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| id | UUID | PK | uuid_generate_v4() | 主键 |
-| authorId | UUID | FK, NOT NULL | - | 作者ID，外键关联User.id |
-| title | VARCHAR(200) | NOT NULL | - | 文章标题 |
-| content | TEXT | NOT NULL | - | 文章内容 |
-| status | ENUM('draft', 'published', 'archived') | NOT NULL | 'draft' | 文章状态 |
-| publishedAt | TIMESTAMP | NULL | - | 发布时间 |
-| createdAt | TIMESTAMP | NOT NULL | NOW() | 创建时间 |
-| updatedAt | TIMESTAMP | NOT NULL | NOW() | 更新时间 |
+| 字段        | 类型                                   | 约束         | 默认值             | 说明                    |
+| ----------- | -------------------------------------- | ------------ | ------------------ | ----------------------- |
+| id          | UUID                                   | PK           | uuid_generate_v4() | 主键                    |
+| authorId    | UUID                                   | FK, NOT NULL | -                  | 作者ID，外键关联User.id |
+| title       | VARCHAR(200)                           | NOT NULL     | -                  | 文章标题                |
+| content     | TEXT                                   | NOT NULL     | -                  | 文章内容                |
+| status      | ENUM('draft', 'published', 'archived') | NOT NULL     | 'draft'            | 文章状态                |
+| publishedAt | TIMESTAMP                              | NULL         | -                  | 发布时间                |
+| createdAt   | TIMESTAMP                              | NOT NULL     | NOW()              | 创建时间                |
+| updatedAt   | TIMESTAMP                              | NOT NULL     | NOW()              | 更新时间                |
 
 **索引**：
 - `idx_post_author`: authorId（用于查询用户的文章）
@@ -137,17 +139,17 @@ erDiagram
 
 ### 5. 数据类型选择
 
-| 数据类型 | 使用场景 | PostgreSQL | MySQL | MongoDB |
-|----------|----------|------------|-------|---------|
-| **主键** | 唯一标识 | UUID, SERIAL | INT AUTO_INCREMENT, UUID | ObjectId |
-| **字符串** | 短文本 | VARCHAR(n) | VARCHAR(n) | String |
-| **长文本** | 文章内容 | TEXT | TEXT | String |
-| **整数** | 数量、年龄 | INTEGER, BIGINT | INT, BIGINT | Number |
-| **小数** | 价格、评分 | DECIMAL(p,s) | DECIMAL(p,s) | Number |
-| **布尔** | 是否标志 | BOOLEAN | TINYINT(1) | Boolean |
-| **日期时间** | 时间戳 | TIMESTAMP | DATETIME | Date |
-| **枚举** | 固定选项 | ENUM | ENUM | String |
-| **JSON** | 灵活数据 | JSONB | JSON | Object |
+| 数据类型     | 使用场景   | PostgreSQL      | MySQL                    | MongoDB  |
+| ------------ | ---------- | --------------- | ------------------------ | -------- |
+| **主键**     | 唯一标识   | UUID, SERIAL    | INT AUTO_INCREMENT, UUID | ObjectId |
+| **字符串**   | 短文本     | VARCHAR(n)      | VARCHAR(n)               | String   |
+| **长文本**   | 文章内容   | TEXT            | TEXT                     | String   |
+| **整数**     | 数量、年龄 | INTEGER, BIGINT | INT, BIGINT              | Number   |
+| **小数**     | 价格、评分 | DECIMAL(p,s)    | DECIMAL(p,s)             | Number   |
+| **布尔**     | 是否标志   | BOOLEAN         | TINYINT(1)               | Boolean  |
+| **日期时间** | 时间戳     | TIMESTAMP       | DATETIME                 | Date     |
+| **枚举**     | 固定选项   | ENUM            | ENUM                     | String   |
+| **JSON**     | 灵活数据   | JSONB           | JSON                     | Object   |
 
 **推荐**：
 - **主键**：使用 UUID 而非自增ID（避免暴露数据量、分布式友好）
@@ -159,11 +161,11 @@ erDiagram
 
 ### 1. API规范选择
 
-| 规范 | 适用场景 | 优点 | 缺点 |
-|------|----------|------|------|
+| 规范        | 适用场景           | 优点               | 缺点               |
+| ----------- | ------------------ | ------------------ | ------------------ |
 | **RESTful** | 通用场景、CRUD操作 | 简单、标准、易理解 | 过度获取、多次请求 |
 | **GraphQL** | 复杂查询、多端适配 | 按需获取、类型安全 | 学习曲线、缓存复杂 |
-| **gRPC** | 微服务、高性能 | 性能高、类型安全 | 浏览器支持差 |
+| **gRPC**    | 微服务、高性能     | 性能高、类型安全   | 浏览器支持差       |
 
 **本项目推荐**：RESTful（除非有特殊需求）
 
@@ -178,24 +180,24 @@ erDiagram
 
 #### HTTP方法
 
-| 方法 | 用途 | 示例 | 幂等性 |
-|------|------|------|--------|
-| GET | 获取资源 | `GET /users` | 是 |
-| POST | 创建资源 | `POST /users` | 否 |
-| PUT | 完整更新 | `PUT /users/123` | 是 |
-| PATCH | 部分更新 | `PATCH /users/123` | 否 |
-| DELETE | 删除资源 | `DELETE /users/123` | 是 |
+| 方法   | 用途     | 示例                | 幂等性 |
+| ------ | -------- | ------------------- | ------ |
+| GET    | 获取资源 | `GET /users`        | 是     |
+| POST   | 创建资源 | `POST /users`       | 否     |
+| PUT    | 完整更新 | `PUT /users/123`    | 是     |
+| PATCH  | 部分更新 | `PATCH /users/123`  | 否     |
+| DELETE | 删除资源 | `DELETE /users/123` | 是     |
 
 #### URL设计
 
-| 操作 | 方法 | URL | 说明 |
-|------|------|-----|------|
-| 获取列表 | GET | `/api/v1/users` | 支持分页、筛选、排序 |
-| 获取详情 | GET | `/api/v1/users/:id` | 返回单个资源 |
-| 创建 | POST | `/api/v1/users` | 请求体包含资源数据 |
-| 完整更新 | PUT | `/api/v1/users/:id` | 替换整个资源 |
-| 部分更新 | PATCH | `/api/v1/users/:id` | 只更新指定字段 |
-| 删除 | DELETE | `/api/v1/users/:id` | 删除资源 |
+| 操作     | 方法   | URL                 | 说明                 |
+| -------- | ------ | ------------------- | -------------------- |
+| 获取列表 | GET    | `/api/v1/users`     | 支持分页、筛选、排序 |
+| 获取详情 | GET    | `/api/v1/users/:id` | 返回单个资源         |
+| 创建     | POST   | `/api/v1/users`     | 请求体包含资源数据   |
+| 完整更新 | PUT    | `/api/v1/users/:id` | 替换整个资源         |
+| 部分更新 | PATCH  | `/api/v1/users/:id` | 只更新指定字段       |
+| 删除     | DELETE | `/api/v1/users/:id` | 删除资源             |
 
 **嵌套资源**：
 - `GET /api/v1/users/:userId/posts` - 获取用户的文章
@@ -227,10 +229,7 @@ erDiagram
 ```json
 {
   "success": true,
-  "data": [
-    { "id": "1", "name": "Item 1" },
-    { "id": "2", "name": "Item 2" }
-  ],
+  "data": [{ "id": "1", "name": "Item 1" }, { "id": "2", "name": "Item 2" }],
   "meta": {
     "page": 1,
     "limit": 20,
@@ -307,7 +306,7 @@ Content-Type: application/json
 ```typescript
 enum Role {
   USER = 'user',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
 }
 
 // 中间件检查
@@ -318,24 +317,24 @@ if (user.role !== Role.ADMIN) {
 
 ### 5. API接口列表
 
-| 模块 | 方法 | 路径 | 描述 | 认证 | 权限 |
-|------|------|------|------|------|------|
-| **认证** | | | | | |
-| | POST | /api/v1/auth/register | 用户注册 | 否 | - |
-| | POST | /api/v1/auth/login | 用户登录 | 否 | - |
-| | POST | /api/v1/auth/logout | 用户登出 | 是 | - |
-| | GET | /api/v1/auth/me | 获取当前用户 | 是 | - |
-| **用户** | | | | | |
-| | GET | /api/v1/users | 获取用户列表 | 是 | admin |
-| | GET | /api/v1/users/:id | 获取用户详情 | 是 | - |
-| | PATCH | /api/v1/users/:id | 更新用户信息 | 是 | self/admin |
-| | DELETE | /api/v1/users/:id | 删除用户 | 是 | admin |
-| **文章** | | | | | |
-| | GET | /api/v1/posts | 获取文章列表 | 否 | - |
-| | GET | /api/v1/posts/:id | 获取文章详情 | 否 | - |
-| | POST | /api/v1/posts | 创建文章 | 是 | - |
-| | PATCH | /api/v1/posts/:id | 更新文章 | 是 | author/admin |
-| | DELETE | /api/v1/posts/:id | 删除文章 | 是 | author/admin |
+| 模块     | 方法   | 路径                  | 描述         | 认证 | 权限         |
+| -------- | ------ | --------------------- | ------------ | ---- | ------------ |
+| **认证** |        |                       |              |      |              |
+|          | POST   | /api/v1/auth/register | 用户注册     | 否   | -            |
+|          | POST   | /api/v1/auth/login    | 用户登录     | 否   | -            |
+|          | POST   | /api/v1/auth/logout   | 用户登出     | 是   | -            |
+|          | GET    | /api/v1/auth/me       | 获取当前用户 | 是   | -            |
+| **用户** |        |                       |              |      |              |
+|          | GET    | /api/v1/users         | 获取用户列表 | 是   | admin        |
+|          | GET    | /api/v1/users/:id     | 获取用户详情 | 是   | -            |
+|          | PATCH  | /api/v1/users/:id     | 更新用户信息 | 是   | self/admin   |
+|          | DELETE | /api/v1/users/:id     | 删除用户     | 是   | admin        |
+| **文章** |        |                       |              |      |              |
+|          | GET    | /api/v1/posts         | 获取文章列表 | 否   | -            |
+|          | GET    | /api/v1/posts/:id     | 获取文章详情 | 否   | -            |
+|          | POST   | /api/v1/posts         | 创建文章     | 是   | -            |
+|          | PATCH  | /api/v1/posts/:id     | 更新文章     | 是   | author/admin |
+|          | DELETE | /api/v1/posts/:id     | 删除文章     | 是   | author/admin |
 
 ## 输出要求
 

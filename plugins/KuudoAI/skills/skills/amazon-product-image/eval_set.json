@@ -1,0 +1,86 @@
+[
+  {
+    "query": "my main image keeps getting suppressed on amazon, the issue reason says 'non-white background' but i swear it looks white. it's a stainless steel water bottle, ASIN B0CXY12345. what's actually wrong and how do i fix it?",
+    "should_trigger": true
+  },
+  {
+    "query": "I need to create the main product image for a 3-pack of silicone baby spoons we're launching on Seller Central next week. has to pass their listing requirements",
+    "should_trigger": true
+  },
+  {
+    "query": "got error 100239 on one of my SKUs, says the image and title don't match. the item_name is 'leather crossbody bag' and the photo is the bag. how do i clear this?",
+    "should_trigger": true
+  },
+  {
+    "query": "can you review these 5 photos for my amazon shoe listing before I upload? want to make sure the footwear main image follows the rules (single shoe, angle, etc)",
+    "should_trigger": true
+  },
+  {
+    "query": "we sell women's swimwear and our listings keep getting flagged. need to understand the model pose and coverage rules for the main images so we stop getting rejected",
+    "should_trigger": true
+  },
+  {
+    "query": "turn this studio shot of my coffee grinder into something I can use as the hero image on amazon. pure white background, product filling the frame, no props",
+    "should_trigger": true
+  },
+  {
+    "query": "what are the exact dimension and file format requirements for amazon product photos? I have a bunch of 800px jpegs, will those work or do I need bigger?",
+    "should_trigger": true
+  },
+  {
+    "query": "I want to add a secondary infographic image showing the dimensions and materials of my bamboo desk organizer on the amazon listing. is overlay text even allowed on alternate images?",
+    "should_trigger": true
+  },
+  {
+    "query": "amazon rejected my apparel photo saying mannequin not allowed, but it's a ghost/invisible mannequin shot not a real one. is that genuinely banned for the main image?",
+    "should_trigger": true
+  },
+  {
+    "query": "help me put together a swatch image strategy for the different color variations of my t-shirt parent ASIN and its child SKUs",
+    "should_trigger": true
+  },
+  {
+    "query": "launching a 32oz insulated bottle next month, I have the spec sheet and 3 studio shots. what images should my amazon listing have and in what order? I keep seeing 7-image templates but no idea what goes in slot 2 vs slot 6",
+    "should_trigger": true
+  },
+  {
+    "query": "i've got product shots of my soy candles and i want clean pure-white-background versions for my shopify store — can you white them out and make them pop?",
+    "should_trigger": false
+  },
+  {
+    "query": "setting up my etsy shop for handmade ceramic mugs, what photos do i need and any tips for the listing images?",
+    "should_trigger": false
+  },
+  {
+    "query": "what are eBay's photo requirements for a used iphone listing? does it need a white background or can i shoot it on my desk?",
+    "should_trigger": false
+  },
+  {
+    "query": "rewrite the title and 5 bullet points for my amazon listing of a stainless steel water bottle, make them more keyword-rich and conversion-focused",
+    "should_trigger": false
+  },
+  {
+    "query": "help me set up a sponsored products PPC campaign for my amazon ASIN B08XYZ, budget is $50/day, want to target competitor keywords",
+    "should_trigger": false
+  },
+  {
+    "query": "can you remove the background from this headshot photo and make it a transparent png for my linkedin profile?",
+    "should_trigger": false
+  },
+  {
+    "query": "i'm deploying my image-hosting service to amazon s3 and cloudfront, what bucket policy do i need for public image reads?",
+    "should_trigger": false
+  },
+  {
+    "query": "shoot ideas for instagram-worthy flat lays of my skincare line — dreamy pastel backgrounds, props, the whole aesthetic",
+    "should_trigger": false
+  },
+  {
+    "query": "generate a moody fantasy book cover with a dragon over a mountain castle for my self-published novel",
+    "should_trigger": false
+  },
+  {
+    "query": "my amazon product only has 3 reviews after 2 months, how do i get more legit reviews without breaking TOS?",
+    "should_trigger": false
+  }
+]

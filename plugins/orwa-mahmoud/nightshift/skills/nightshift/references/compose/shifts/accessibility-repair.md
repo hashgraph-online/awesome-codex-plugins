@@ -19,7 +19,7 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to ma
     or automated scanner. Split findings in a `mode: a11y-scan`
     receipt from `receipts/cycle-specialist-evidence.md` into automated evidence versus keyboard/focus/journey
     surfaces that require human or specialist review; never certify WCAG compliance from automation alone. Record the command and objective reported violations; dedupe against
-    snag-log.md (ALL seen — fixed and rejected). Do not add a scanner silently.
+    snag-log.md under Snag log discipline. Do not add a scanner silently.
   - Repair one related cluster at a time using the product's existing design system and semantic
     patterns. Preserve intended behaviour and appearance, rerun the accessibility check and item
     gate, commit.

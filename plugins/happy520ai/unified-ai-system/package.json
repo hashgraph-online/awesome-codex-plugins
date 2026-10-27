@@ -83,14 +83,14 @@
   },
   "devDependencies": {
     "@a2a-js/sdk": "1.0.1",
-    "@anthropic-ai/sdk": "0.120.0",
+    "@anthropic-ai/sdk": "0.135.0",
     "@types/node": "^26.4.0",
     "@types/pg": "8.23.1",
     "@types/ws": "8.18.1",
-    "openai": "7.4.0",
+    "openai": "7.39.0",
     "pg": "8.23.0",
     "typescript": "^5.6.3",
     "@vitest/coverage-v8": "4.1.11",
-    "vitest": "4.1.11"
+    "vitest": "4.1.12"
   }
 }

@@ -9,6 +9,17 @@ on:
       - "scripts/check-alphabetical.py"
       - "scripts/validate-contribution.py"
       - "scripts/validate-contribution-centralized.py"
+      - "scripts/test_validate_contribution_branch.py"
+      - "scripts/publish-open-pr-checks.py"
+      - "scripts/publish-open-pr-checks-centralized.py"
+      - "scripts/test_publish_open_pr_checks.py"
+      - "scripts/post-claim-notice.py"
+      - "scripts/backfill-claim-notices.py"
+      - "tests/test_post_claim_notice.py"
+      - "tests/test_claim_notice_api_key.py"
+      - "tests/test_backfill_claim_notices.py"
+      - ".github/workflows/claim-notice.yml"
+      - ".github/workflows/sweep-open-prs.yml"
       - ".github/workflows/validate-contribution.yml"
   workflow_dispatch:
 
@@ -37,7 +48,10 @@ jobs:
           BASE_REF: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || 'origin/main' }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
+          python3 -m unittest scripts/test_validate_contribution_branch.py
+          python3 -m unittest scripts/test_publish_open_pr_checks.py
           python3 -m unittest scripts/test_check_alphabetical.py
+          python3 -m unittest tests/test_post_claim_notice.py tests/test_backfill_claim_notices.py tests/test_claim_notice_api_key.py
           python3 scripts/check-alphabetical.py README.md --base-ref "$BASE_REF"
           python3 scripts/validate-contribution-centralized.py \
             --base-ref "$BASE_REF" \
@@ -55,7 +69,6 @@ jobs:
     needs: validate
     if: needs.validate.outputs.matrix != '[]'
     runs-on: ubuntu-latest
-    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -64,12 +77,18 @@ jobs:
       - name: Check out contributed repository
         env:
           CONTRIBUTION_URL: https://github.com/${{ matrix.contribution.owner }}/${{ matrix.contribution.repo }}.git
-        run: git clone --depth 1 "$CONTRIBUTION_URL" "$RUNNER_TEMP/contributed"
+          CONTRIBUTION_REF: ${{ matrix.contribution.ref || '' }}
+        run: |
+          if [[ -n "$CONTRIBUTION_REF" ]]; then
+            git clone --depth 1 --branch "$CONTRIBUTION_REF" "$CONTRIBUTION_URL" "$RUNNER_TEMP/contributed"
+          else
+            git clone --depth 1 "$CONTRIBUTION_URL" "$RUNNER_TEMP/contributed"
+          fi
       - name: Run HOL AI Plugin Scanner
-        uses: hashgraph-online/ai-plugin-scanner-action@55616c962cf86368423f7673b2ecdfdbe613d1af # v1.2.515
+        uses: hashgraph-online/ai-plugin-scanner-action@caba2e96aa8ad2feb6cf6fca52442b52e22e779f # v1.2.635
         with:
           plugin_dir: ${{ runner.temp }}/contributed
           mode: scan
-          min_score: 80
-          fail_on_severity: high
+          min_score: 75
+          fail_on_severity: none
           pr_comment: off

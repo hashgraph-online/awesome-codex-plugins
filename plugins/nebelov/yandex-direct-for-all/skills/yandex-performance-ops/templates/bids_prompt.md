@@ -18,7 +18,7 @@ Output:
 
 Rules:
 - no aggressive action below sufficient click volume;
-- Roistat wins over Direct goal proxies for conversion truth;
+- A connected sales source (CRM or Roistat) wins over Direct goal proxies; without one, bid on Metrika goals and label CPO/ROMI conclusions "not verified";
 - separate monitor vs apply recommendations;
 - explain confidence level.
 

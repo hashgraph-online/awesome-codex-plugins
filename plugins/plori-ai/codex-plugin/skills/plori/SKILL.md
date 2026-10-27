@@ -139,7 +139,7 @@ REST: `https://api.plori.ai/v1` with the same bearer token. Detail: https://plor
 
 ## Tools
 
-The MCP server has 23 tools. Invitees use their own login, API keys and OAuth
+The MCP server has 24 tools. Invitees use their own login, API keys and OAuth
 sessions. Workspace calls resolve access to the owning account from the resource.
 
 ### Workspaces
@@ -191,10 +191,15 @@ changes and fixes conflicts.
   processes a run starts do not. Use `TMPDIR` for temporary files.
 - A completed run does not prove its files are saved: wait for `file_source.state`
   `ready` with no `save_failure`.
-- A completed run's `files` are URLs readable with the same bearer token.
+- A completed run's `files` are signed URLs that need no other credential.
+  They expire about 10 minutes after the result. Call `get_run_result` again for fresh links.
   `read_workspace_file` reads a saved version: `current_revision`, an agent's
   `saved_revision_id`, or a changeset's `base_revision`, `incoming_revision` or
   `result_revision`. A path such as `/workspace/a.md` is not a URL.
+- `upload_workspace_file` writes a file into the Workspace's current files. Pass text up
+  to 262144 bytes as `content`. For a larger or binary file (up to 32 MiB), omit
+  `content` and run the returned `curl` command in a shell within 10 minutes. Its URL
+  accepts one upload.
 
 ### Approvals and questions
 
@@ -214,7 +219,7 @@ changes and fixes conflicts.
   consent, in the web app.
 - Requests go to the worker's creator, or to the owner for the manager. The owner can
   also answer a worker's request. Other members can read it and may answer after the
-  account's timeout, 60 minutes by default. Viewers never answer. Standing grants and
+  account's timeout, 30 minutes by default. Viewers never answer. Standing grants and
   secret answers stay owner-only. `list_pending_inputs` includes `assigned_to`,
   `open_to_members_at` and `can_act` for the caller. Credential restrictions still apply.
 - A member's monthly spend cap can refuse a new run with 402. Schedules, previews,
@@ -231,7 +236,7 @@ and the `confirm_url`. The run is queued only after the owner confirms in the we
 ### Run several agents yourself
 
 Only for a client that manages the agents itself. Each agent works on its own copy of the
-files; your client completes or discards each merge.
+files. Plori submits changed files when a run completes normally and accepts a clean comparison.
 
 1. `create_workspace_worker` (`workspace_id`, `task`, `idempotency_key`) returns
    `agent_id` and `task_group_id` at once; the agent queues while capacity is busy. Pass
@@ -242,11 +247,13 @@ files; your client completes or discards each merge.
    `steer_workspace_worker` messages a running turn (409 `run_not_running` if it has not
    started, is paused or has ended). `cancel_run` stops one agent,
    `stop_workspace_task_group` a group.
-3. `submit_workspace_changeset` submits the saved files; Plori merges them with the current
-   files.
-4. Poll `get_workspace_changeset` until `compared` is true. `phase` `review_ready`: ready
-   to complete. `needs_resolution`: conflicts. `recompare_required`: submit again.
-5. `accept_workspace_changeset` completes the merge (`expected_current_revision` = the
+3. Check `get_workspace_worker` (`change_status`, `changeset_id`), then `get_workspace_changeset`.
+   Use `submit_workspace_changeset` only for saved, unsubmitted work after an error, cancellation
+   or stop, or after `recompare_required`.
+4. Poll `get_workspace_changeset`: `accepted` with `result_revision` confirms the files landed.
+   `needs_resolution`: ask the Workspace's agent to combine files with `send_workspace_message`,
+   or reject and start another worker.
+5. For `review_ready`, `accept_workspace_changeset` completes the merge (`expected_current_revision` = the
    `comparison_current_revision`; `validation_evidence` = 1-32 short statements of the
    checks you made). `reject_workspace_changeset` discards it. After accept, poll until
    `state` is `accepted` and `result_revision` is set.
@@ -295,7 +302,7 @@ Agents are addressed by name or ID. Every command accepts `--json`.
   what ended and what waits on you.
 - `plori inputs <name>`; `plori answer <run-id> <tool-call-id> --approve|--deny|--value <v>`.
   Add `--always-allow` only on the human's explicit instruction.
-- `plori schedule <name> "prompt" --in <seconds>` (or `--at <rfc3339>`).
+- `plori schedules create <workspace> "prompt" --in <seconds>` (or `--at <rfc3339>`).
 - `plori attach` is for a human at the keyboard; an agent uses `--read-only` to tail.
 
 Exit codes of `run`, `result --wait` and `watch`: 0 succeeded, 1 API or runtime failure,

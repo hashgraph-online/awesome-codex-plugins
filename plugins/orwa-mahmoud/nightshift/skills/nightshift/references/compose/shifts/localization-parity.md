@@ -21,7 +21,7 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to ma
     structural drift in a `mode: l10n-validate` receipt from `receipts/cycle-specialist-evidence.md`; never certify
     translation or cultural quality without named human sources. Use those established sources to find
     missing, unused, duplicate, or structurally inconsistent keys. Dedupe against snag-log.md
-    (ALL seen — fixed and rejected).
+    under Snag log discipline.
   - Fix objective structure one cluster at a time: restore a key from an existing canonical value,
     align placeholders and plural forms that tooling defines, or remove an unused key only after
     project tooling and a repository-wide reference check agree. Run the item gate, commit.

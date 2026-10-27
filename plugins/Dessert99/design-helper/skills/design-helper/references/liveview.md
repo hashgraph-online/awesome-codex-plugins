@@ -27,58 +27,29 @@ Every background process gets a pid file so teardown can find it:
 
     ... >/dev/null 2>&1 & echo $! > "$WS/<name>.pid"
 
+## The kit
+
+The fixed parts are files in `assets/`, next to `worker.md`. Copy them into `$WS` once
+per workspace, right after creating it, and never retype them:
+
+    A=<directory of worker.md>/assets
+    cp "$A/serve.py" "$A/sheet.html" "$A/check.cjs" "$WS/"
+
+- `serve.py`: the server below
+- `sheet.html`: the empty sheet, with the sheet style, the table of contents and the
+  reloader already in it (`references/sheet.md`)
+- `check.cjs`: verification steps 2 and 3 of `worker.md` in one run
+
 ## Serve it
 
-```python
-# $WS/serve.py
-import http.server, os, shutil, signal, sys, time
-D = os.path.dirname(os.path.abspath(__file__))
-IDLE = 120
-seen = time.monotonic()
-
-class H(http.server.SimpleHTTPRequestHandler):
-    def __init__(self, *a, **k): super().__init__(*a, directory=D, **k)
-    def setup(self):
-        super().setup()
-        self.connection.settimeout(5)
-    def parse_request(self):
-        global seen
-        ok = super().parse_request()
-        if ok: seen = time.monotonic()
-        return ok
-    def log_message(self, *a): pass
-
-def cleanup():
-    if not os.path.isdir(D): return
-    for f in os.listdir(D):
-        if f.endswith('.pid') and f != 'server.pid':
-            try:
-                with open(os.path.join(D, f)) as pidfile:
-                    pid = int(pidfile.read())
-                if pid > 1 and pid != os.getpid(): os.kill(pid, signal.SIGTERM)
-            except (OSError, ValueError): pass
-    # Delete only this session workspace, never its parent or the project.
-    shutil.rmtree(D)
-
-# Bind successfully before taking ownership of cleanup. A busy port must not erase D.
-server = http.server.HTTPServer(('127.0.0.1', int(sys.argv[1])), H)
-server.timeout = 1
-try:
-    while time.monotonic() - seen < IDLE:
-        server.handle_request()
-finally:
-    server.server_close()
-    cleanup()
-
-```
-
-Once per session, in the background:
+`$WS/serve.py` is a static file server for `$WS` that sends `Cache-Control: no-store`
+and reaps itself (below). Once per session, in the background:
 
     python3 "$WS/serve.py" 8765 >"$WS/server.log" 2>&1 &
     echo $! > "$WS/server.pid"
 
-Port busy → walk up (8766, 8767...). Never kill whatever is already there. Then open the
-URL, not the path:
+Port busy → walk up (8766, 8767...). Never kill whatever is already there. When the
+first sheet is ready (`After every edit` below), open the URL, not the path:
 
     open http://localhost:8765/sheet.html
 
@@ -114,38 +85,12 @@ teardown. A hard crash cannot run cleanup.
 
 ## The reloader
 
-At the end of `<body>`, so the DOM is parsed when it runs. It polls the sheet's
-`Last-Modified`, reloads when it moves, and lands where the user needs to be — on the
-newest ladder if one was appended, otherwise exactly where they were reading.
-
-```html
-<script>
-(() => {
-  const S = sessionStorage;
-  const n = document.querySelectorAll('section').length;
-  const prev = +S.getItem('n') || 0, y = +S.getItem('y') || 0;
-  S.setItem('n', n);
-
-  let touched = false;
-  const place = () => {
-    if (touched) return;
-    if (n > prev) document.querySelectorAll('section')[n - 1]?.scrollIntoView();
-    else scrollTo(0, y);
-  };
-  addEventListener('load', place);
-  document.fonts?.ready.then(place);
-  addEventListener('scroll', () => { touched = true; S.setItem('y', scrollY); }, { passive: true });
-
-  let seen = null;
-  setInterval(async () => {
-    const r = await fetch(location.href, { method: 'HEAD', cache: 'no-store' });
-    const t = r.headers.get('last-modified');
-    if (seen && t !== seen) location.reload();
-    seen = t;
-  }, 1000);
-})();
-</script>
-```
+The last script in `assets/sheet.html`, at the end of `<body>`, so the DOM is parsed when
+it runs. Keep it as copied. Every second it compares the sheet's `Last-Modified` and
+length with the copy the page was loaded from, reloads when they differ, and lands
+where the user needs to be: on the newest ladder if one was appended, otherwise
+exactly where they were reading. The browser's own scroll restoration is turned off so
+it can't override that landing.
 
 One ladder per `<section>`, appended at the end — the count compares them and the last
 one is where an append lands. Break either and the page reloads to the top
@@ -154,14 +99,25 @@ mid-comparison. Turn dividers and the table of contents (`references/sheet.md`) 
 
 ## After every edit
 
-1. Wait past one poll (~1.5s) so the browser has picked it up
-2. Verify — computed style and screenshot, per `worker.md`
-3. When the revision is ready to present, foreground or reopen the user's comparison
-   as described below and show the changed section
-4. Then report, saying what to look at: `맨 아래 그림자 사다리입니다`
+Show first, then verify. The user's tab reloads by itself on every write, so a fix made
+during verification reaches them without another step, and they are not left waiting on
+an empty screen while it runs.
+
+1. Check names (verification step 1 in `worker.md`). It takes a second and catches the
+   failure that shows nothing at all, so it runs before anyone sees the sheet
+2. Present it as described below: the first sheet opens, a revision comes forward.
+   Do this before step 3, with every caption and the recommendation already written
+3. Verify: computed style and screenshot with `check.cjs`, per `worker.md`. Fix what it
+   finds in the sheet; the open tab picks the fix up within a second and keeps its
+   scroll position. Fixes are not presented again
+4. Then report, saying what to look at: `맨 아래 그림자 사다리입니다`. The report comes
+   after verification, so it describes the checked sheet
 
 The screenshot comes from Playwright's own page at the same URL, so it and the user's
 browser are looking at the same bytes.
+
+Two cases verify before presenting instead: a sheet with controls
+(`references/controls.md`), and a sheet on `file://` (below), which can't reload itself.
 
 An optional interactive sheet keeps its state across these reloads as described in
 `references/controls.md`.
@@ -169,8 +125,9 @@ An optional interactive sheet keeps its state across these reloads as described 
 ## Present every revision
 
 Bring the user to the first sheet and to every ready revision after feedback, including
-an edit inside an existing section. Do not steal focus for intermediate writes,
-verification or a turn that produces nothing new to compare.
+an edit inside an existing section. A revision is ready once its content is written and
+its names are checked (`After every edit`). Do not steal focus for intermediate writes,
+fixes made during verification or a turn that produces nothing new to compare.
 
 1. Check that the session's server (and CSS watcher, if any) is up and the sheet URL
    answers. Workspace gone → a fresh sheet as above; server stopped → restart it.
@@ -182,14 +139,14 @@ verification or a turn that produces nothing new to compare.
    page-level `window.focus()`, and never a URL opener as a focus fallback.
 3. Make sure the latest content is loaded (reload if polling was suspended) and scroll
    to the section being presented.
-4. Then report. A screenshot from your own headless page or a successful HEAD request
+4. Verify, then report. A screenshot from your own headless page or a successful HEAD request
    does not show that the user's tab came forward. If you can't find or activate the
    tab, say so in one line and give the URL; don't claim it came forward.
 
 ## No python3
 
 Open the sheet on `file://` and say once that automatic reload and the two-minute
-cleanup are unavailable. For each ready revision, reload through browser controls or
+cleanup are unavailable. Without reload, verify each revision before presenting it. For each ready revision, reload through browser controls or
 reopen the file URL; if neither is available, ask for a manual refresh. Avoid background
 watchers, and clean up on explicit completion. Do not build a replacement server.
 

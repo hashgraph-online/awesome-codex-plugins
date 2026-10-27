@@ -27,7 +27,7 @@ Requires repository mode. Never select this entry in artifact mode. Typical hour
     authority in scope.
   - Finish with one receipt line per follow-up surface, marked implemented, parked, or
     owner/system-owned.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every verified repository action is implemented or parked, owner/system actions
     remain explicitly open, and incomplete evidence is refused — not guessed.
   - Verify: the item gate is green at every commit; every action in the receipt traces to a line

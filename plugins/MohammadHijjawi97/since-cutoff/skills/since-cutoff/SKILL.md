@@ -2,8 +2,8 @@
 name: since-cutoff
 description: Find which dependency APIs this project's Python code uses changed after the model's training cutoff (no model calls), write short AGENTS.md or CLAUDE.md notes from the API diff, each with its source, and keep them in step with the lockfile; optionally measure which of the changes the model gets wrong. Use when the user asks whether the model knows their library versions, when code keeps failing on renamed or removed library APIs, or after upgrading dependencies. Trigger with requests such as "does the model know my openai version", "scan my dependencies for API changes" or "check whether the library notes are up to date".
 license: MIT
-compatibility: Needs since-cutoff on PATH, or uv or pipx to run it, and network access to PyPI. The run command also needs model access (the claude CLI or a provider API key); scan, sync and status make no model calls, and status works offline.
-allowed-tools: Bash(since-cutoff scan:*), Bash(since-cutoff sync:*), Bash(since-cutoff status:*), Bash(since-cutoff run:*), Bash(since-cutoff models:*), Bash(since-cutoff unapply:*), Bash(uvx since-cutoff:*), Bash(pipx run since-cutoff:*), Read
+compatibility: Needs since-cutoff on PATH, or uv or pipx to run it, and network access to PyPI. The run command also needs model access (the claude CLI or a provider API key) and the basedpyright type checker (pip install "since-cutoff[run]", or uvx --with basedpyright since-cutoff run); scan, sync and status make no model calls, and status works offline.
+allowed-tools: Bash(since-cutoff scan:*), Bash(since-cutoff sync:*), Bash(since-cutoff status:*), Bash(since-cutoff run:*), Bash(since-cutoff models:*), Bash(since-cutoff unapply:*), Bash(uvx since-cutoff:*), Bash(uvx --with basedpyright since-cutoff:*), Bash(pipx run since-cutoff:*), Read
 metadata:
   author: Mohammad Hijjawi
   version: "0.5.0"
@@ -17,9 +17,10 @@ report what it prints.
 
 ## Overview
 
-- `since-cutoff scan` compares, for each dependency, the public API of the latest release on or
-  before the model's training cutoff with the version the project pins (a static diff, no model
-  calls), and lists the changed APIs the code uses.
+- `since-cutoff scan` compares, for each dependency, the public API of the latest release
+  published at least 30 days before the model's training cutoff (`--cutoff-margin`; 0 compares
+  from the cutoff itself) with the version the project pins (a static diff, no model calls), and
+  lists the changed APIs the code uses.
 - `since-cutoff sync` writes notes from that diff into a marked block in AGENTS.md or CLAUDE.md
   and keeps them in step with the lockfile; `since-cutoff status` checks the block offline, and
   `since-cutoff unapply` removes it.
@@ -33,7 +34,9 @@ report what it prints.
 - since-cutoff on PATH, or uv or pipx to run it (`uvx since-cutoff`, `pipx run since-cutoff`).
 - Network access to PyPI; `status` works offline.
 - For `run` only: model access, through the `claude` CLI for Claude Code models or the
-  provider's API key for other models. `scan`, `sync` and `status` make no model calls.
+  provider's API key for other models, and the basedpyright type checker: `pip install
+  "since-cutoff[run]"`, or run it as `uvx --with basedpyright since-cutoff run`. Without it,
+  `run` stops at once and says so. `scan`, `sync` and `status` make no model calls.
 
 ## Instructions
 
@@ -56,7 +59,8 @@ report what it prints.
    uses their API credits or Claude Code usage, and can take 5-20 minutes. Wait for a yes.
    `scan` needs no confirmation.
 5. Run it. If `since-cutoff` is not installed, use `uvx since-cutoff` with the same arguments
-   (or use `pipx run since-cutoff`). Start `run` in the background or with a long timeout, not a
+   (or use `pipx run since-cutoff`); for `run`, `uvx --with basedpyright since-cutoff run`,
+   which adds the type checker. Start `run` in the background or with a long timeout, not a
    2-minute foreground call. Everything is cached, so re-running after an interruption resumes
    quickly.
 6. Summarise the result card: the model and its training cutoff, how many dependencies changed
@@ -70,7 +74,9 @@ report what it prints.
    `since-cutoff sync --yes`: it writes the notes from the API diff into a marked block in
    AGENTS.md (or CLAUDE.md if that is the file the project uses) and, run again later, keeps
    them in step with the lockfile. When `scan` suggests `sync --scope imported` (the code uses
-   none of the changed APIs yet), add it to both commands. After `run`, `--apply` writes that
+   none of the changed APIs yet), add it to both commands. When the user asks for the
+   configuration the benchmark measured, use `--profile evaluated`; for the shortest block
+   (the changed packages and their versions, no change lines), `--header-only`. After `run`, `--apply` writes that
    run's notes in place of the whole block; `since-cutoff sync` then adds the notes from the
    diff for the other changed APIs the code uses, keeping the run's `[type-checked]` ones.
    `since-cutoff unapply` removes the block again. `since-cutoff status` says, without the
@@ -80,13 +86,14 @@ report what it prints.
 ## Output
 
 - The terminal: the model, its training cutoff and where the tool read the model, the
-  dependencies that changed after the cutoff, and the changed APIs the code uses, each with its
-  note. `run` adds the result card of step 6.
+  dependencies that changed since the release each is compared from, and the changed APIs the
+  code uses, each with its note. `run` adds the result card of step 6.
 - `.since-cutoff/report.md`: the full report. Read it when the user wants details.
 - The notes block in AGENTS.md or CLAUDE.md, written only by `sync --yes` or `run --apply`. The
   notes in it are API reference facts about the versions the project pins: what was removed,
-  renamed or deprecated after the release at your training cutoff, each tagged with what was
-  checked, for example `[diff]` (a static comparison of the two releases' public APIs),
+  renamed or deprecated after the release they compare from (the latest one published at least
+  30 days before your training cutoff), each tagged with what was checked, for example `[diff]`
+  (a static comparison of the two releases' public APIs),
   `[diff + library]` (the library's own deprecation text names the replacement),
   `[diff + move checked]`, `[diff + metadata]` (the two releases' Requires-Dist: the package
   requires another library, such as `httpx2` instead of `httpx`, and its API takes that

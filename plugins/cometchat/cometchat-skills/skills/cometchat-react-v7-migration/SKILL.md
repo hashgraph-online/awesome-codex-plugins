@@ -1,0 +1,39 @@
+---
+name: cometchat-react-v7-migration
+description: "Upgrade a React app from CometChat UI Kit v6 → v7 (`@cometchat/chat-uikit-react` ^6 → ^7). Reads the repo's CometChat usage, applies the breaking-change map (deps, symbol renames, RxJS events → `useCometChatEvents`, DataSource → plugins, templates → plugins, theme prop, calling), fetches the prop-by-prop guide, and verifies the build. Triggers: 'upgrade my v6 uikit to v7', 'migrate cometchat react v6 to v7', 'upgrade @cometchat/chat-uikit-react to v7', 'cometchat v6 to v7', 'bump cometchat uikit'."
+license: "MIT"
+compatibility: "React >=18 <21; FROM @cometchat/chat-uikit-react ^6 → ^7 (7.1.x, verified 7.1.0); @cometchat/chat-sdk-javascript ^4.1.13 (peer); dompurify ^3.3.1 required (install explicitly); rxjs removed"
+metadata:
+  author: "CometChat"
+  version: "1.0.0"
+  tags: "cometchat react migration upgrade v6 v7 uikit"
+---
+
+> **Ground truth:** migrates a React app **FROM `@cometchat/chat-uikit-react@6` TO `@7`**. v7 target symbols are catalog-verified vs installed 7.1.0; the v6→v7 breaking-change map is BAKED in `references/migration-guide.md` (distilled from the official migration docs + a real v6.5.4→v7.1.0 export diff). The exhaustive prop-by-prop table is FETCHED from the docs migration `.md` twins. **APPEND/transform the user's code — never wipe it; work on a branch and confirm before bulk edits** (`RULES.md`).
+
+## Companion skills (read first)
+- `cometchat-react-v7-core` — the v7 init/login/render + `CometChatProvider` the migrated app lands on. This skill ASSUMES it.
+- `cometchat-react-v7-components` — the v7 component catalog (the target names).
+
+## Use this skill when
+"upgrade my v6 UI Kit to v7", "migrate CometChat React v6→v7", "bump `@cometchat/chat-uikit-react` to v7". Precondition: the project currently has `@cometchat/chat-uikit-react@6`.
+
+## Migration workflow (BAKED)
+1. **Detect the starting point.** Confirm `package.json` has `@cometchat/chat-uikit-react@6` (already `@7` → STOP, nothing to migrate). Note the bundler (Vite/Next/CRA/React-Router/Astro → env prefix, per `cometchat-react-v7-patterns`) and whether the app uses calls / `rxjs` events / `DataSource` / message templates. **Work on a branch; transform in place, never delete the user's code.**
+2. **Update dependencies.** `npm install @cometchat/chat-uikit-react@7 @cometchat/chat-sdk-javascript@^4.1.13 dompurify@^3.3.1` then `npm uninstall rxjs` (v7 drops rxjs; **`dompurify` is required** — the kit imports it at runtime; install it explicitly per the official docs, even though it's in the kit's `dependencies`). If the app uses calling, bump the Calls SDK to the v7 major: `npm install @cometchat/calls-sdk-javascript@5` (v7 pins `^5.x` — verified; it is NOT the same major as the v6-era build). Enabling calling also moves: on the mandated `initFromSettings` path use `uiKit:{callsSDK:{}}` (not the classic `setCallingEnabled(true)`).
+3. **Scan the repo for v6 usage.** Grep for the removed/renamed symbols + patterns from `references/migration-guide.md`: `CometChatDocumentBubble`, `CometChatCompactMessageComposer`, `CometChatUrlsFormatter`, `CometChatTextHighlightFormatter`, any `*Events` (`CometChatMessageEvents`/`CometChatGroupEvents`/`CometChatCallEvents`/`CometChatUserEvents`/`CometChatConversationEvents`/`CometChatUIEvents`), `DataSource`/`DataSourceDecorator`/`ChatConfigurator`, `CometChatMessageTemplate` / `templates` prop, `textFormatters` prop **on `CometChatMessageList`/`CometChatConversations`** (gone from the lists in v7 — `textFormatters` itself is NOT removed; see pitfalls), `hideError`/`disableLoadingState` props, `data-theme` attribute, **localization** (`getLocalizedString(...)`, `CometChatLocalize`, unprefixed i18n keys like `group_info` that v7 moved under `sample_` — §7), `CometChatUIKitLoginListener`, and the removed standalone components (`CometChatEmojiKeyboard`/`CometChatMediaRecorder`/`CometChatToast`/`CometChatListItem`/`CometChatNotificationBadge`). Produce the concrete change list.
+4. **Apply the breaking-change map** (`references/migration-guide.md`): symbol renames, RxJS `*Events` → the `useCometChatEvents` hook, `DataSource`/`ChatConfigurator` → `CometChatMessagePlugin` + the `plugins` prop, `templates` prop → plugins (`textFormatters` is NOT removed — relocate it, see pitfalls), `data-theme` → the `theme` prop, calling → `uiKit:{callsSDK:{}}` on `initFromSettings` (step 2), **localization → the v7 method + map v6 keys to the bundled `sample_*` keys (or register via the INSTANCE method `CometChatLocalize.getSharedInstance()?.addTranslation(...)` — NOT a static) — see `migration-guide.md` §7; look up the EXACT key in the uikit source (`resources/<lang>/translation.json`) / docs / GitHub, never guess**. For any component's exact prop change NOT in the baked map, FETCH the prop-by-prop table via `cometchat-react-v7-core/references/docs-map.md` → `migration-property-changes`.
+5. **Wrap the chat tree in `CometChatProvider`** if it isn't already (v7 requires it above the components; init/login stay imperative and unchanged).
+6. **Verify.** Build/typecheck passes; NO v6 symbols remain (grep the removed names); the app renders inside `CometChatProvider`; migrated events/plugins/calling work. Reuse `cometchat-react-v7-core` "Verify it works".
+
+## Common pitfalls (BAKED)
+- **Leftover `rxjs` event subscriptions** — v6 `*Events.<x>.subscribe()` do NOT fire in v7; convert every one to `useCometChatEvents((event) => …)` (SDK + UI events share one bus). Publish via `usePublishEvent()`.
+- **Forgetting `CometChatProvider`** — v7 components read it; symptom = context/"not initialized" errors even though init ran.
+- **`CometChatMessageTemplate` / `templates` props** — removed from components; move custom message rendering to a `CometChatMessagePlugin` passed via `plugins`. **`textFormatters` is NOT removed** — it stays a prop in v7 (verified vs 7.1.0) on `CometChatMessageComposer`, the bubble components (Text/Image/Video/Audio/File/…), `CometChatSearch` and `CometChatMessageInformation`, but it is GONE from `CometChatMessageList`/`CometChatConversations`. Keep it as a prop on those components. The list's bubbles take formatters from the text plugin's `getTextFormatters()`, so to keep a v6 list-level formatter, override that one method — `plugins={[{ ...CometChatTextPlugin, getTextFormatters: () => [/* defaults + yours */] }]}` (provider plugins precede the defaults, so it wins).
+- **Dependency drift** — missing the new `dompurify` peer dep, or leftover `rxjs`, breaks the build; do both halves of step 2.
+- **Calling silently off** — v7 needs calling turned on in the init settings (`uiKit: { callsSDK: {} }` via `CometChatUIKit.initFromSettings`; or the classic `.setCallingEnabled(true)` on `UIKitSettingsBuilder`) — not a provider prop; without it, call buttons hide and the Calls SDK never loads.
+- **Bubble routing** — the message list now defaults to the multi-attachment bubbles (`CometChatImageBubble`→`CometChatImagesBubble`, singular `CometChatFileBubble` still ships); code that imported singular bubble names for the list default may need the plural.
+- **Don't mass-remove `hideError`** — it's removed from list components but **retained on `CometChatMessageComposer`**; `textFormatters` likewise still exists on the message-bubble components. Scope the removals; don't blanket-strip.
+
+## Verify it works
+Build/typecheck is green; a repo-wide grep finds NO removed v6 symbols (`CometChatDocumentBubble`, `CometChatCompactMessageComposer`, `*Events`, `DataSource`, `DataSourceDecorator`, `ChatConfigurator`, `CometChatMessageTemplate`, `CometChatUIKitLoginListener`); the app renders inside `CometChatProvider`; and any migrated events / plugins / calling work. Full prop-by-prop reference: fetch `migration-property-changes` via `cometchat-react-v7-core/references/docs-map.md`.

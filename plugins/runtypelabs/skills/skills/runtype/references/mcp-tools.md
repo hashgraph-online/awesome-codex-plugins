@@ -40,24 +40,25 @@ Resource discovery tools with potentially large rows (`list_products`, `list_age
 compact response by default: string values longer than 100 characters end in `…`. Keep
 that bounded form while browsing, then use the matching `get_*` tool for one resource.
 Pass `view: "full"` only when complete strings are required across the page.
-`list_agents` accepts `agent_type` (`runtype`, `external`, or `claude_managed`).
+`list_agents` accepts `agent_type` (`runtype`, `external`, or `claude_managed`) and `model` (case-insensitive equality or prefix match on `config.model`, for example `claude-sonnet`).
 
-| Tool                                                | Use for                                      |
-| --------------------------------------------------- | -------------------------------------------- |
-| `get_me`                                            | Confirm auth context: user id, org id, email |
-| `list_products`                                     | All products in the workspace                |
-| `list_flows`                                        | All flows                                    |
-| `list_agents`                                       | All agents                                   |
-| `list_tools`                                        | All tools                                    |
-| `list_surfaces`                                     | Surfaces for a given product                 |
-| `list_records`                                      | Records (filterable by type)                 |
-| `list_collections`                                  | Registered record types and schemas          |
-| `list_skills`                                       | Agent skills (see [Skills](#skills))         |
-| `list_schedules`                                    | All schedules                                |
-| `list_secrets`                                      | All secrets (metadata only)                  |
-| `list_conversations`                                | All conversations                            |
-| `list_available_models`                             | What models are available platform-wide      |
-| `list_model_configs` / `list_model_configs_grouped` | Models configured for this workspace         |
+| Tool                                                | Use for                                                                                 |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `get_me`                                            | Confirm auth context: user id, org id, email                                            |
+| `list_products`                                     | All products in the workspace                                                           |
+| `list_flows`                                        | All flows                                                                               |
+| `list_agents`                                       | All agents                                                                              |
+| `list_tools`                                        | All tools                                                                               |
+| `list_surfaces`                                     | Surfaces for a given product                                                            |
+| `list_records`                                      | Records (filterable by type)                                                            |
+| `list_collections`                                  | Registered record types and schemas                                                     |
+| `list_skills`                                       | Agent skills (see [Skills](#skills))                                                    |
+| `list_schedules`                                    | All schedules                                                                           |
+| `list_secrets`                                      | All secrets (metadata only)                                                             |
+| `list_conversations`                                | All conversations                                                                       |
+| `list_available_models`                             | What models are available platform-wide                                                 |
+| `list_extraction_models`                            | Extraction models for the `extract` step (field and image limits, pricing, credentials) |
+| `list_model_configs` / `list_model_configs_grouped` | Models configured for this workspace                                                    |
 
 ## Validation (use before create)
 
@@ -84,6 +85,8 @@ Schema feedback here is far more useful than waiting for create errors.
 | `execute_tool` | Run a single tool outside a flow (for testing) |
 
 `discover_mcp_server_tools` lists the tools an external MCP server offers before you register it.
+
+An `mcp` tool with `auth.type: "oauth2"` needs a human to sign in once. `get_tool`, `create_tool`, and `update_tool` return `connection` with `status`, `connectUrl` (the dashboard page `/tools/{toolId}/connect`), and `nextStep`. Hand the user `connectUrl` on `needs_connection`. Clients with URL elicitation open it directly.
 
 ## Flows (creating, running, versioning)
 
@@ -112,7 +115,7 @@ Schema feedback here is far more useful than waiting for create errors.
 | `get_agent`                   | Agent config                                    |
 | `update_agent`                | Partial update; a tool list replaces the set    |
 | `delete_agent`                | Remove                                          |
-| `list_agent_executions`       | Deprecated: use `list_runs` with `agentId`      |
+| `list_agent_executions`       | Deprecated: use `list_runs` with `agent_id`     |
 | `execute_agent`               | Send a message to an agent and capture response |
 | `export_agent_runtime`        | Self-contained definition for SDK execution     |
 | `list_agent_versions`         | Agent version list                              |
@@ -299,16 +302,17 @@ Threads on messaging surfaces (Slack, SMS, iMessage, email, Telegram, and others
 
 ## Models
 
-| Tool                         | Use                             |
-| ---------------------------- | ------------------------------- |
-| `list_available_models`      | Platform-wide model catalog     |
-| `list_model_configs`         | Workspace's configured models   |
-| `list_model_configs_grouped` | Grouped by base model           |
-| `create_model_config`        | Add a model with provider key   |
-| `update_model_config`        | Update provider key or settings |
-| `delete_model_config`        | Remove                          |
-| `toggle_model_config`        | Enable/disable                  |
-| `set_default_model_config`   | Set provider default            |
+| Tool                         | Use                                                                                     |
+| ---------------------------- | --------------------------------------------------------------------------------------- |
+| `list_available_models`      | Platform-wide model catalog                                                             |
+| `list_extraction_models`     | Extraction models for the `extract` step (field and image limits, pricing, credentials) |
+| `list_model_configs`         | Workspace's configured models                                                           |
+| `list_model_configs_grouped` | Grouped by base model                                                                   |
+| `create_model_config`        | Add a model with provider key                                                           |
+| `update_model_config`        | Update provider key or settings                                                         |
+| `delete_model_config`        | Remove                                                                                  |
+| `toggle_model_config`        | Enable/disable                                                                          |
+| `set_default_model_config`   | Set provider default                                                                    |
 
 Bring-your-own provider credentials: `list_provider_keys`, `create_provider_key`, `update_provider_key`, `delete_provider_key`, and `select_organization_provider_credential`. For an OpenAI-compatible endpoint, `discover_provider_models` reads its model list and `sync_provider_models` saves the models to offer.
 
@@ -344,6 +348,16 @@ Bring-your-own provider credentials: `list_provider_keys`, `create_provider_key`
 | `submit_feedback`            | Report a Runtype bug or doc gap (free)           |
 | `generate_proposal`          | Scope-of-work proposal tool for a client project |
 | `generate-proposal`          | MCP prompt variant of the proposal workflow      |
+
+## Delegation (flag-gated: `enableDelegateToRuntype`)
+
+| Tool                  | Use                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------- |
+| `delegate_to_runtype` | Hand a multi-step task to Runtype's in-account operator agent; streams progress, returns a digest |
+| `check_delegation`    | Long-poll a running delegation for events since `after`                                           |
+| `cancel_delegation`   | Stop a running delegation; completed changes stay                                                 |
+
+When the account has the flag, the server instructions recommend delegating multi-step work (build or change a flow, agent, product, surface or tool; debug a run; load records; run evals). Pass `wait_seconds: 240` on Claude Code; keep it under 60 on clients with a 60-second tool timeout. A result with `status: input_required` carries a `question`; answer it with `delegate_to_runtype { task_id, task: <answer> }`.
 
 Start with the `index` topic (task-to-topic map). Useful documentation topics include `platform-catalog`, `surface-types`, `flow-step-types`, `models`, `product-schema`, `types-fpo`, `types-flow-steps`, `types-entities`, `types-surface-configs`, `orthogonal-tools`, `builtin-tools`, `agent-skills`, `external-tools`, `external-agents`, `evals`, `limits`, `validation-errors`, `setup-readiness`, `dashboard-links`, `mock-ecommerce`, `persona-embed`, `persona-fullscreen-assistant`, and `sdk-reference`.
 

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Trail Runner X - Product Landing</title>
+  <style>
+    .promo { background-image: url("https://demo.sirv.com/banners/promo.jpg"); aspect-ratio: 3 / 1; background-size: cover; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 1200px; margin: 0 auto; }
+    .grid img { width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <!-- <img src="https://demo.sirv.com/old/hero-v1.jpg"> -->
+  <img
+    class="hero"
+    src="https://demo.sirv.com/products/trail-runner-x/hero.jpg?w=3200"
+    loading="lazy"
+    alt="Trail Runner X on a rocky mountain path"
+  >
+  <noscript><img src="https://demo.sirv.com/products/trail-runner-x/hero.jpg"></noscript>
+
+  <div class="promo"></div>
+
+  <section class="grid">
+    <img
+      src="https://res.cloudinary.com/demo/image/upload/w_800,q_auto,f_auto/shoes/side.jpg"
+      srcset="https://res.cloudinary.com/demo/image/upload/w_400,q_auto,f_auto/shoes/side.jpg 400w, https://res.cloudinary.com/demo/image/upload/w_800,q_auto,f_auto/shoes/side.jpg 800w, https://res.cloudinary.com/demo/image/upload/w_1600,q_auto,f_auto/shoes/side.jpg 1600w"
+      sizes="100vw"
+      width="800"
+      height="800"
+      loading="lazy"
+      alt="Side view"
+    >
+    <img
+      src="https://demo.sirv.com/products/trail-runner-x/sole.jpg?w=600"
+      srcset="https://demo.sirv.com/products/trail-runner-x/sole.jpg?w=400 400w, https://demo.sirv.com/products/trail-runner-x/sole.jpg?w=800 800w"
+      width="800"
+      height="800"
+      loading="lazy"
+      alt="Outsole tread pattern"
+    >
+    <img src="/images/lifestyle.png" width="800" height="800" loading="lazy">
+  </section>
+
+  <img src="https://demo.sirv.com/brand/logo.png?w=2400" width="160" height="40" alt="Trail Co.">
+
+  <script>
+    document.querySelector(".hero").insertAdjacentHTML("afterend", '<img src="injected.jpg">');
+  </script>
+</body>
+</html>

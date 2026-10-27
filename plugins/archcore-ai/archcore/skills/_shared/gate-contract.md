@@ -2,8 +2,9 @@
 
 Plugin runtime asset. Loaded by skills (`plan`, `document`, `review`) before
 executing a track gate. Also the authoring contract for track files under
-`skills/_shared/tracks/`. Routing-signal order and track selection live in the
-executing skills, not in this file.
+`skills/_shared/tracks/`, and the owner of the shared context resolution that
+runs before every `plan`, `document`, and `review` invocation selects a track.
+Track selection lives in the executing skills, not in this file.
 
 Before a gate writes documents or reviews relations, load
 `skills/_shared/relation-authoring.md`. Apply its claim check to relation
@@ -19,9 +20,9 @@ Required traceability remains part of the gate's checks.
 
 Gates and executing skills use these terms with one meaning:
 
-- **Expert invocation** — the first word of the command arguments is a mode that
-  the command's argument hint lists. A gate budget rises to that gate's maximum
-  only under an expert invocation.
+- **First word** — no first word of the command arguments is a mode. Every
+  first word other than an explicit type request is topic text; a leading
+  `research` is a type request.
 - **The request names a type** — the subject text contains a document type slug
   (`adr`, `rfc`, `rule`, `spec`, `doc`, `guide`, `scenario`, `research`, `rnd`,
   `evidence`, and the other registry slugs) as a whole word, in any letter case.
@@ -31,6 +32,65 @@ Gates and executing skills use these terms with one meaning:
   findings, a synthesis, or a recommendation is an investigation. A source
   excerpt, a measurement, a transcript, or a vendor document without them is
   one external material.
+
+## Context resolution
+
+Every `plan`, `document`, and `review` invocation runs one read-only context
+resolution before it selects a track. It is not a track, writes nothing, and
+keeps no state: a later invocation recomputes it from the repository and the
+saved drafts.
+
+Sources, in precedence order — a higher source wins a conflict with a lower one:
+
+1. the current request and the material it supplies, including a named scope or
+   an explicit type request (a leading type slug or a slug in backticks);
+2. a matching open draft with an `archcore:track` block;
+3. accepted local canon;
+4. accepted global canon;
+5. observed code and tests;
+6. branch state per `skills/_shared/branch-state.md`;
+7. inference from the request wording.
+
+A request that conflicts with accepted canon is a visible conflict, not
+authority to change the canon. Absent any global match, the record holds local
+sources only.
+
+The context record holds:
+
+- **intent** — the command and what the user asks for, in one line;
+- **scope** — the paths, topic, or ref, and the source that set it;
+- **work time** — `future` (to build), `present` (exists now), or `past`
+  (delivered on the branch);
+- **certainty** — `U0` no reliable target, `U1` a target with material unknowns,
+  `U2` a target the sources settle;
+- **volume** — the number of candidate documents and changed files the scope
+  holds;
+- **claims** — the claim ledger per `skills/_shared/delta-routing.md`, Vocabulary;
+- **authority** — the accepted owners of each claim, their coverage, and their
+  freshness;
+- **unknowns**, **hazards**, and **conflicts** — per the same vocabulary;
+- **candidates** — the documents that the document-need test may update or create.
+
+Read rules:
+
+1. The executing skill MUST read the cheapest sources first: the request, open
+   drafts, then a `search_documents` call on the scope.
+2. The executing skill MUST expand code and graph reads only for a material
+   candidate or conflict.
+3. WHEN another read cannot change scope, authority, document choice, or a
+   required check, the executing skill MUST stop reading and record the
+   remaining uncertainty as an unknown.
+4. WHEN volume holds more than 20 candidate documents, the executing skill MUST
+   rank them by authority and freshness and read the top five in full.
+5. WHEN certainty is `U0`, the executing skill MUST NOT write a document before
+   one scope question resolves the target.
+6. WHEN certainty is `U2`, the executing skill MUST NOT ask a question the
+   sources already answer.
+7. The executing skill MUST NOT derive a planning target from a dirty branch
+   alone.
+
+Report the inferred scope in one line before the first write. No report prints a
+route name or a size label.
 
 ## Gate record template
 
@@ -89,11 +149,10 @@ artifact, identified by the marker `archcore:track`:
 <!-- archcore:track
 track: <track-id>
 gate: <track>.<stage>
-route: <computed route and size label per skills/_shared/delta-routing.md>
-delta: <declared Δ fields per skills/_shared/delta-routing.md>
+claims: <claim ledger per skills/_shared/delta-routing.md; plan skill only>
 taxonomy: <coverage categories already covered by accepted answers>
 asked: <questions already asked in this track>
-budget: <remaining per-gate budget under an expert invocation; informational>
+budget: <questions left in this invocation; informational>
 deferred: <one entry per unresolved question: the question, its reason (budget, interrupted, or later gate), and the behavior it affects>
 -->
 ```
@@ -101,11 +160,11 @@ deferred: <one entry per unresolved question: the question, its reason (budget, 
 The `budget` field never reduces a later invocation's question ceiling: each
 invocation starts a fresh ceiling per `skills/_shared/elicitation-contract.md`.
 
-The `route` and `delta` fields are written by the `plan` skill's conductor
-(`skills/_shared/delta-routing.md`); a skill that runs a track outside a
-computed route omits both fields. A `plan`-skill resume that finds them
-absent follows the conductor's resume rules; every other skill resumes per
-this file alone.
+The `claims` field is written by the `plan` skill's conductor
+(`skills/_shared/delta-routing.md`); a skill that runs a track outside the
+conductor omits it. A legacy block may still carry `route:` and `delta:`; the
+conductor's resume rule 1 reads them. Every other skill resumes per this file
+alone and ignores both legacy fields.
 
 The research track may append `artifact_type: research|rnd|evidence` after
 `deferred`. The field is optional on older artifacts and absent on other tracks.
@@ -132,7 +191,7 @@ investigation. Failure recovery and edge ordering belong to
 5. WHEN the track exits, the executing skill MUST remove the state block from the artifact.
 6. IF a blocking exit check stops the gate, THEN the executing skill MUST persist accepted answers and the state block with the current `gate` in one `update_document` call.
 
-On a computed route, the track exits at the route's last instrument, per
+Under the conductor, the track exits at the last selected instrument, per
 sequencing rule 15 in `skills/_shared/delta-routing.md`.
 
 Import exception: before the confirmed plan exists, keep preview rows in the
@@ -172,11 +231,10 @@ contract inside a gate. A gate states only what is specific to it.
 10. WHEN a resume finds more than one draft with a state block and the request names none of them, the executing skill MUST list them and ask one question, recommending the most recently modified draft.
 
 Commands that resume a track: `/archcore:plan` — `sdd`, `requirements-cascade`,
-`research`, and `decision` as a conductor instrument;
-`/archcore:document decision` — `decision`; `/archcore:document code` —
-`describe`; `/archcore:document research` — `research`, recommended for an
-`evidence` draft; `/archcore:init import` — `import`. The `actualize`,
-`closeout`, and `experience` tracks write no state block.
+`research`, and `decision` as a conductor instrument; `/archcore:document` —
+`decision`, `describe`, and `research`, recommended for an `evidence` draft;
+`/archcore:init import` — `import`. The `actualize` and
+`closeout` tracks write no state block.
 
 ## Authoring rules for track files
 

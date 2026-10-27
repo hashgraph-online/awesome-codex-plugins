@@ -1,6 +1,6 @@
 {
   "name": "espresso-agent-tools",
-  "version": "2.3.0",
+  "version": "2.4.1",
   "description": "Concise, evidence-preserving coding workflows for Claude Code, Codex, OMP and Pi.",
   "license": "MIT",
   "repository": {"type": "git", "url": "git+https://github.com/mirkobozzetto/espresso.git"},

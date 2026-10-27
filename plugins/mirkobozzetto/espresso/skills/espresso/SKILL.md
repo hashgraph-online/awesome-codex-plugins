@@ -11,14 +11,15 @@ measured savings or assume API pricing determines subscription quota usage.
 Stay solo for small tasks. Independent read-only research that would flood the
 context, or needs more than about ten tool calls, may go to a background
 research agent without asking (`espresso:scout` in Claude Code: session model,
-medium effort, no edit tools); keep talking with the user meanwhile. Ask before
+medium effort, no edit tools; `model: haiku` for web-only research); keep
+talking with the user meanwhile. Ask before
 delegating edits. Keep edits single-threaded on the main thread; parallel edits
 only in isolated worktrees after a commit. Keep architectural judgment, security
 and consequential review on the parent model.
 
-Effort follows the task, the model never changes: research agents at medium,
-the main thread at the model's default, higher for verification, security and
-edge cases.
+Effort follows the task, the model changes only for web-only research:
+research agents at medium, the main thread at the model's default, higher for
+verification, security and edge cases.
 
 Active skills own their workflow. Arsenal selects and transitions between
 skills; Ship or the selected skill retains approvals, solo flags, specialized
@@ -34,6 +35,12 @@ opt-in behavioral policy, not a sandbox or enforced concurrency limit.
 Delegated agents keep the session model: a cheaper worker loses quality on
 sequential coding work and its retries cancel the savings. Adjust thinking
 effort to the task instead. Never override an explicit model or agent choice.
+One exception, in Claude Code only: web-only research (searching and reading
+pages, no code to read) runs `espresso:scout` with `model: haiku`. With the
+same brief, Haiku 5.5 matched Opus 5.5 in quality and time at a fortieth of
+the token price. Reading or reviewing code keeps the session model: Haiku
+workers miss bugs there. Codex, OMP and Pi keep the session model for every
+agent.
 
 Pi core has no native subagent tool. `/espresso worker <text assignment>`
 explicitly launches a tool-free child on the session model in OMP/Pi. It

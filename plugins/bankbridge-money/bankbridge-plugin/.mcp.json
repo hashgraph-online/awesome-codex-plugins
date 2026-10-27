@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "bankbridge": {
+      "type": "http",
+      "url": "https://bankbridge.money/api/mcp"
+    }
+  }
+}

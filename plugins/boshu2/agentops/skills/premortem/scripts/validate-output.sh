@@ -23,12 +23,15 @@ required = {
     "schema_version", "intent_digest", "author_context_id",
     "judge_context_id", "findings", "checked", "not_checked",
 }
+if not isinstance(value, dict):
+    raise SystemExit("premortem plan review: top level must be a JSON object")
 if set(value) != required:
     print("premortem plan review: unexpected or missing fields", file=sys.stderr)
     raise SystemExit(1)
 if value["schema_version"] != "premortem-plan-review.v1":
     raise SystemExit("premortem plan review: wrong schema_version")
-if not re.fullmatch(r"[a-f0-9]{64}", value["intent_digest"]):
+digest = value["intent_digest"]
+if not isinstance(digest, str) or not re.fullmatch(r"[a-f0-9]{64}", digest):
     raise SystemExit("premortem plan review: invalid intent digest")
 author = value["author_context_id"]
 judge = value["judge_context_id"]

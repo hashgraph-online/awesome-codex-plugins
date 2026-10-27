@@ -119,6 +119,26 @@ separate and optional: Cloudflare asks for a payment method before R2 works, so 
 when the person wants it, after saying so (R2 has no egress fees; storage is free up to
 10 GB-month, then US$0.015 per GB-month).
 
+## Read-only for a few minutes
+
+When the person is about to move the studio to another host, or do maintenance, freeze it
+first and open it after:
+
+```sh
+npx --no-install homie-studio read-only on       # or the local MCP tool studio_read_only
+npx --no-install homie-studio read-only status
+npx --no-install homie-studio read-only off
+```
+
+It sets (or deletes) the Worker secret `STUDIO_READ_ONLY` with the studio's own Cloudflare
+sign-in: no build, no deploy, live within seconds, and a deploy while it is on keeps it on.
+While on, every change answers 503 with `Retry-After` and `x-studio-read-only: 1`, and nothing
+is lost: pages, games and live rooms keep working (a room's records wait in the room), the
+Stripe webhook still records and fulfils payments, scheduled work skips its ticks, and queued
+work waits. `/api/games` says `readOnly: true`, which is how the command confirms it. Changing
+it starts a new Worker version, so live rooms reconnect once. Say so before turning it on, and
+always turn it off when the work is done.
+
 ## Songs and videos
 
 Published entries of `music/manifest.json` and `videos/manifest.json` become pages at
@@ -282,3 +302,5 @@ Use Cloudflare’s official plugin/MCP for Workers Issues events, logs and D1 in
 Read [connection guidance](../studio-setup/references/OFFICIAL-MEDIA.md), discover current
 tools and scope reads to this studio. Keep pinned Wrangler and its own browser login for
 deploys. MCP consent and Wrangler login are separate connections.
+
+Cloudflare's official MCP request interface cannot authorize new static-asset uploads with an upload JWT; deploy with Wrangler, Cloudflare's own CLI using browser OAuth.

@@ -140,8 +140,10 @@ jk artifact download team/app/pipeline 128 -p "**/*.xml" -o out/
 `jk` uses Jenkins API tokens for scripted clients. If your controller uses Google OAuth, OpenID Connect, Okta, Azure AD, or another browser-based SSO realm, sign in to Jenkins in the browser first, open `/me/configure`, create a Jenkins API token, then run:
 
 ```bash
-jk auth login https://jenkins.company.example --username <jenkins-user-id> --token <JENKINS_API_TOKEN>
+jk auth login https://jenkins.company.example --username <jenkins-user-id> --with-token < jenkins-token.txt
 ```
+
+`--with-token` reads the token from standard input, so it never shows in the process list. `--token <JENKINS_API_TOKEN>` also works, but `ps` shows it.
 
 Use your Jenkins user ID for `--username`. For many Google/OIDC setups that is your email address, but some SSO realms use an opaque provider ID instead. If you are unsure, sign in to Jenkins in the browser and open `<jenkins-url>/whoAmI/api/json`; use the returned `name` value. If it reports `anonymous`, sign in first. Do not paste a Google OAuth access token into `--token` — Jenkins REST calls expect a Jenkins API token.
 

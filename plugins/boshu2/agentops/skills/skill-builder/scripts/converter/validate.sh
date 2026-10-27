@@ -72,6 +72,26 @@ assert_refused "output is an ancestor of the repo root" "$(dirname "$REPO_ROOT")
 ln -s "$FIX/references" "$WORK/link-into-src"
 assert_refused "output is a symlink into the source" "$WORK/link-into-src"
 
+# 3. Relative skill and output paths resolve against the caller's directory.
+if (cd "$WORK" && bash "$CONVERT" fixture-skill codex rel-out >/dev/null 2>&1) \
+  && [[ -f "$WORK/rel-out/SKILL.md" ]]; then
+  pass "relative skill and output paths resolve against the caller's directory"
+else
+  fail "relative skill and output paths resolve against the caller's directory"
+fi
+
+# 4. With no output dir, a root that is not a source checkout (a plugin install)
+# is refused with exit 2 and nothing is written under it.
+bare="$WORK/bare-root"
+mkdir -p "$bare/skills"
+rc=0
+SKILL_BUILDER_REPO_ROOT="$bare" bash "$CONVERT" "$FIX" codex >/dev/null 2>&1 || rc=$?
+if [[ "$rc" -eq 2 && ! -e "$bare/.agents" ]]; then
+  pass "default output outside a source checkout is refused with exit 2"
+else
+  fail "default output outside a source checkout is refused with exit 2 (rc=$rc)"
+fi
+
 echo ""
 if [[ "$FAIL" -eq 0 ]]; then
   echo "converter self-test: PASS"

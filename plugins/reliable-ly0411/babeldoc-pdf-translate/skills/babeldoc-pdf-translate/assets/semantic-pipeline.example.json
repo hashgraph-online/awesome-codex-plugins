@@ -1,0 +1,22 @@
+{
+  "translation_job": "job.codex.json",
+  "output": "semantic-quality-run",
+  "review": {
+    "provider": {
+      "type": "codex",
+      "model": "gpt-6-luna",
+      "reasoning_effort": "high",
+      "vision": true,
+      "timeout_seconds": 240,
+      "retries": 0,
+      "cache_dir": "quality-cache"
+    },
+    "review_mode": "math_audits",
+    "repair": true,
+    "focused_recheck": true,
+    "math_scale_guard": true,
+    "math_operator_guard": true,
+    "limits": {"max_model_calls": 24, "max_seconds": 3600, "max_rounds": 1, "max_repairs_per_page": 3}
+  },
+  "semantic": {"max_rounds": 1, "max_corrected_rows": 8, "fresh_final": true, "protocol": "relations-v2", "regression_corpora": []}
+}

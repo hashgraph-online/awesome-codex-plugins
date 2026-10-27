@@ -38,7 +38,7 @@ import { migrateDataOnce } from "./migrate-data.ts";
 import { applySelection, claudeImageFor, imageFor, loadPanelState, type ClaudePanelOptions, type PanelState } from "./panel-state.ts";
 import { claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "./paths.ts";
 import { fetchedLabel, fetchWords } from "./rewrite.ts";
-import { claudeSelection, effectiveSelection, ensureAutoDefault, sideChatSelection } from "./selection.ts";
+import { claudeSelection, effectiveSelection, ensureAutoDefault } from "./selection.ts";
 import { connectDirectly, useEngine, usesEngine } from "./setup.ts";
 import { hasRollout, loadThreadIndex, readThreadHistory, sessionMetaOf, setPixelCache, sideChatOrigin } from "./thread-index.ts";
 import { threadTitle } from "./thread-names.ts";
@@ -68,7 +68,7 @@ export function toolsFor(lang: Lang) {
       name: "cam_set_selection",
       title: say(lang, "tool.select.title"),
       description: say(lang, "tool.select.description"),
-      inputSchema: { type: "object", properties: { ...shared, uncheck: { type: "array", items: { type: "string" } }, check: { type: "array", items: { type: "string" } }, checkAll: { type: "boolean" }, auto: { type: "boolean" }, mode: { type: "string", enum: ["manual", "auto"] }, childrenAuto: { type: "boolean" } } },
+      inputSchema: { type: "object", properties: { ...shared, uncheck: { type: "array", items: { type: "string" } }, check: { type: "array", items: { type: "string" } }, checkAll: { type: "boolean" }, auto: { type: "boolean" }, mode: { type: "string", enum: ["manual", "auto"] } } },
       _meta: APP_ONLY,
     },
     {
@@ -116,7 +116,7 @@ const icon = (theme: "light" | "dark", color: string) => ({
   src: `data:image/svg+xml;base64,${Buffer.from(ICON_SVG.replace("currentColor", color)).toString("base64")}`,
   mimeType: "image/svg+xml", sizes: ["any"], theme,
 });
-export const serverInfo = (lang: Lang) => ({ name: "codex-attachment-manager", title: say(lang, "server.title"), version: "0.7.0", icons: [icon("light", "#5d5d5d"), icon("dark", "#cdcdcd")] });
+export const serverInfo = (lang: Lang) => ({ name: "codex-attachment-manager", title: say(lang, "server.title"), version: "0.8.3", icons: [icon("light", "#5d5d5d"), icon("dark", "#cdcdcd")] });
 
 export function readResource(uri: string): Json {
   if (uri !== PANEL_URI) throw new Error(`unknown resource ${uri}`);
@@ -189,7 +189,7 @@ export function callTool(name: string, args: Json, meta: Json | undefined, sessi
   }
   if (name === "cam_set_selection") {
     if (fromModel(meta)) throw new Error(say(lang, "call.modelSelect"));
-    const state = applySelection(threadId, { uncheck: args.uncheck, check: args.check, checkAll: args.checkAll, auto: typeof args.auto === "boolean" ? args.auto : undefined, mode: args.mode === "auto" ? "auto" : "manual", childrenAuto: typeof args.childrenAuto === "boolean" ? args.childrenAuto : undefined }, options);
+    const state = applySelection(threadId, { uncheck: args.uncheck, check: args.check, checkAll: args.checkAll, auto: typeof args.auto === "boolean" ? args.auto : undefined, mode: args.mode === "auto" ? "auto" : "manual" }, options);
     return { content: [{ type: "text", text: summary(lang, state) }], structuredContent: panel(state) };
   }
   if (name === "cam_bind") {
@@ -217,7 +217,7 @@ export function callTool(name: string, args: Json, meta: Json | undefined, sessi
     const origin = sideChatOrigin(threadId, meta?.["x-codex-turn-metadata"]?.forked_from_thread_id, sessionsDir);
     const dir = selectionDirOf(dataDir());
     // Only where the user switched automatic selection on; otherwise images come back only when the user checks them.
-    if (origin ? !sideChatSelection(origin, sessionsDir, dir) : !effectiveSelection(threadId, sessionsDir, dir).auto) {
+    if (!origin && !effectiveSelection(threadId, sessionsDir, dir).auto) {
       log({ event: "fetch", threadId, ...(origin ? { from: origin } : {}), ids, refused: "automatic selection is off" });
       return { content: [{ type: "text", text: words.off }], isError: true };
     }

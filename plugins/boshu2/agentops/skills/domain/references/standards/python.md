@@ -9,7 +9,6 @@
 ## Error Handling
 - Never bare `except:` - always specify exception type
 - Use `raise ... from e` to preserve stack traces
-- Log before raising in library code
 
 ## Common Issues
 | Pattern | Problem | Fix |
@@ -107,7 +106,7 @@ def test_all_violations_have_structured_fields(violations):
         assert v.timestamp is not None, f"violation {v} missing timestamp"
 ```
 
-### Property-Based Tests (BF1)
+### Property-Based Tests
 
 Use Hypothesis to randomize inputs to data transformations:
 
@@ -129,7 +128,7 @@ def test_parse_reader_never_crashes(env_vars):
 
 Target: every parser, serializer, and data transformer. If it accepts external input, fuzz it.
 
-### Backward Compatibility Tests (BF8)
+### Backward Compatibility Tests
 
 Maintain a corpus of real inputs from prior versions as fixtures:
 
@@ -145,7 +144,7 @@ def test_legacy_config_parses(fixture):
 
 **Rule:** When changing input formats, add the OLD format as a fixture BEFORE making the change.
 
-### Performance/Benchmark Tests (BF7)
+### Performance/Benchmark Tests
 
 Use `pytest-benchmark` for hot-path functions:
 
@@ -159,7 +158,7 @@ def test_parse_config_performance(benchmark):
 
 Install: `pip install pytest-benchmark`. Run: `pytest --benchmark-only`.
 
-### Regression Tests (BF6)
+### Regression Tests
 
 Every bug fix gets a reproducing test named after the bug ID:
 
@@ -172,7 +171,7 @@ def test_bug_ag_m0r_empty_value_crashes():
     assert ctx.db_host == "prod-db"
 ```
 
-### Security Tests (BF9)
+### Security Tests
 
 Test secrets redaction and input sanitization:
 
@@ -185,8 +184,8 @@ def test_render_export_redacts_secrets():
     assert "ak-12345" not in output, "raw API key leaked"
 
 def test_rejects_path_traversal():
-    """Config paths must reject traversal attempts."""
-    for payload in ["../../../etc/passwd", "..\\windows", "foo/../bar"]:
+    """Config paths must reject traversal attempts (foo/../bar stays inside, so it is not one)."""
+    for payload in ["../../../etc/passwd", "foo/../../bar", "/etc/passwd"]:
         with pytest.raises(ValueError):
             load_config(payload)
 ```

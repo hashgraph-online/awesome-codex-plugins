@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sirv Media Viewer"
+  short_description: "Build and debug Sirv product galleries, zoom, spins, videos, 3D, thumbnails, and performance."
+  default_prompt: "Use $sirv-media-viewer to implement or debug Sirv Media Viewer markup, options, script loading, accessibility, responsive behavior, API/events, and CSP."

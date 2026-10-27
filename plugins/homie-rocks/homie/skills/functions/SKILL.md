@@ -28,3 +28,5 @@ isolated records. Assert actual sound/haptic/notification triggers where request
 Check waits through reload readiness and reports dialogs and named timeout conditions.
 Do not weaken a need to obtain a green result; inspect captures and complete the
 owner's workflow. Do not deploy merely to prove a local handler.
+
+For authoritative bookings/inventory use strict `defineTool` actions and `database.put(key, next, {version: row.version})`; a conflict is a failed reservation. Never make the inventory a client-writable generic ledger. The [capacity example](../app/examples/reserve.mjs) proves one winner from six simultaneous requests for one place; initialise capacity through an owner-only action.

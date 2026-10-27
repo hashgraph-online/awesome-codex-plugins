@@ -1,0 +1,20 @@
+{
+  "name": "a-team-local",
+  "plugins": [
+    {
+      "name": "a-team",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity",
+      "interface": {
+        "displayName": "A Team"
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "npmscan": {
+      "type": "http",
+      "url": "https://npmscan.com/api/mcp"
+    }
+  }
+}
