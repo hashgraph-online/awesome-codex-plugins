@@ -1,9 +1,8 @@
 # Guarded runner internals
 
-Maintainer detail for `codex_exec_guarded` in `scripts/lib/codex-exec.sh`, the
-one-shot runner that exists only in an AgentOps source checkout. The skill body
-carries the rules, the fallback and the exit codes; this file carries the
-mechanism.
+Maintainer detail for `codex_exec_guarded` in `scripts/lib/codex-exec.sh`,
+which exists only in an AgentOps source checkout. The skill body carries the
+rules, the fallback and the exit codes; this file carries the mechanism.
 
 ## Inputs
 
@@ -22,7 +21,12 @@ mechanism.
   into the output file. Reviewer workspace writes, including the file named by
   `-o`, are outside the capture cap.
 - `CODEX_EXEC_SANDBOX` (default `read-only`), `CODEX_EXEC_DIR` (`-C`),
+  `CODEX_EXEC_MODEL` (`-m`), `CODEX_EXEC_SKIP_GIT_CHECK=1`
+  (`--skip-git-repo-check`, for a non-Git workspace), and
   `CODEX_EXEC_PROMPT_FILE` or `CODEX_EXEC_PROMPT_ARG` (otherwise stdin).
+- `CODEX_EXEC_EXTRA_ARGS`: a bash array of Codex flags appended verbatim, such
+  as `(-o "$LAST")`. Assign it on its own line before the call; as a command
+  prefix, bash passes the literal text `(-o ...)` as one argument.
 - `CODEX_EXEC_EXPECT_OUTPUT=0`: for a caller that keeps only the exit status. A
   clean exit with empty output is then success instead of a stall.
 

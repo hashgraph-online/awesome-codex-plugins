@@ -1,6 +1,6 @@
 {
   "name": "zagrosi-forge",
-  "version": "0.4.1",
+  "version": "0.5.5",
   "description": "Lean project decomposition, planning, and test-first implementation.",
   "author": {
     "name": "Zagrosi",

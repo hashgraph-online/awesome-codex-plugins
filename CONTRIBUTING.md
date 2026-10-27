@@ -14,7 +14,8 @@ Generator (CI):  plugins/<owner>/<repo>/  ←  fetched from your GitHub repo
 ```
 
 The generator removes only explicitly reviewed retired identities in
-`RETIRED_BUNDLE_IDENTITIES`, currently `samuelbushi/uizze`, and only when absent
+`RETIRED_BUNDLE_IDENTITIES`, currently `samuelbushi/uizze` and
+`waynehamadi/datacircle-plugin`, and only when absent
 from the README. Missing README entries do not authorize cleanup of other
 bundles. This retirement change includes deletion of that nine-file legacy
 bundle; `plugins/uizze/uizze` is preserved.
@@ -71,17 +72,17 @@ If you add source-repository scanner CI, keep the workflow run URL for local deb
 The release metadata below is synced automatically from the latest published HOL scanner release.
 
 ```bash
-pipx install --force "plugin-scanner==3.50.0"
+pipx install --force "plugin-scanner==3.57.0"
 plugin-scanner scan . --format text
 ```
 
-Expected reviewed wheel SHA256: `8ac9034d71d4fecda32537ec766fc250e9b69d63f4c4dcde209dd4dbf92efb62`
+Expected reviewed wheel SHA256: `408b302ca427fc8b7bc0b54164f85e9d57d45714d24bafe1a2e6bef7353558fa`
 
 If you want to verify the exact wheel before install:
 
 ```bash
 rm -rf .hol-plugin-scanner-dist
-python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner-dist "plugin-scanner==3.50.0"
+python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner-dist "plugin-scanner==3.57.0"
 python3 -m pip hash .hol-plugin-scanner-dist/*.whl
 ```
 
@@ -120,7 +121,16 @@ Rules:
 - One plugin per line
 - Alphabetical order within each category
 - Description must be a single sentence
-- Link must point to the GitHub repository root
+- Link to the GitHub repository root when the plugin is on its default branch
+- If the plugin is on a non-default branch, link to `https://github.com/<owner>/<repo>/tree/<branch>`; validation and the centralized scan use that branch
+
+### Multiple plugins from one source repository
+
+If a repository contains several independently installable Codex plugin bundles, add **one README line per plugin**, with each line linking to the same GitHub repository root. Use the plugin's own name or display name from its nested `.codex-plugin/plugin.json` so the generator can select the correct bundle. Keep the entries alphabetized in their category.
+
+The generator matches each README display name against the nested plugin manifests and, when the same source repository has multiple entries, mirrors the matched bundles into separate installable paths. A source `.agents/plugins/marketplace.json` does not automatically create one catalog entry per bundle. Remove any generic umbrella README entry when replacing it with separately named plugins, because it can otherwise resolve to the wrong bundle.
+
+For a non-default source branch, a `/tree/<branch>` URL is supported. Do **not** append `/plugins/<bundle>` to that URL: the parser treats the remainder as the branch ref, not a directory selector. Each bundle still needs its own valid manifest, centralized source scan meeting the 80-point threshold, ordinary checks, and independent reviewer approval before publication.
 
 ## Scanner requirements
 
@@ -139,7 +149,7 @@ The commands below stay pinned to the same reviewed scanner release used in the 
 
 ```bash
 # Install the current reviewed release
-pipx install --force "plugin-scanner==3.50.0"
+pipx install --force "plugin-scanner==3.57.0"
 
 # Scan your plugin
 plugin-scanner scan . --format text
@@ -151,7 +161,7 @@ plugin-scanner lint . --format text
 plugin-scanner verify . --format text
 ```
 
-Expected reviewed wheel SHA256: `8ac9034d71d4fecda32537ec766fc250e9b69d63f4c4dcde209dd4dbf92efb62`
+Expected reviewed wheel SHA256: `408b302ca427fc8b7bc0b54164f85e9d57d45714d24bafe1a2e6bef7353558fa`
 
 ### Required in Your Plugin Repo
 

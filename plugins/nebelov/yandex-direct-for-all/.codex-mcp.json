@@ -1,0 +1,56 @@
+{
+  "mcpServers": {
+    "yandexDirect": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--frozen",
+        "--project",
+        "./mcp/yandex-direct",
+        "python",
+        "./mcp/yandex-direct/server.py",
+        "stdio"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "YANDEX_DIRECT_ACCESS_FILE",
+        "YANDEX_DIRECT_ENVIRONMENT",
+        "YANDEX_DIRECT_SANDBOX_TOKEN",
+        "YANDEX_DIRECT_PRODUCTION_READ_TOKEN",
+        "YANDEX_DIRECT_CLIENT_LOGIN",
+        "YANDEX_DIRECT_OUTPUT_DIR"
+      ]
+    },
+    "yandexSearch": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--frozen",
+        "--project",
+        "./mcp/yandex-search",
+        "python",
+        "./mcp/yandex-search/server.py"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "YANDEX_SEARCH_API_KEY",
+        "YANDEX_SEARCH_FOLDER_ID",
+        "YANDEX_SEARCH_ROUTE",
+        "YANDEX_SEARCH_APPROVAL_FILE",
+        "YANDEX_SEARCH_USAGE_LEDGER"
+      ]
+    },
+    "yandexWordstat": {
+      "command": "bash",
+      "args": [
+        "./mcp/yandex-wordstat/start.sh"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "YANDEX_WORDSTAT_API_KEY",
+        "YANDEX_WORDSTAT_FOLDER_ID",
+        "YDFALL_STATE_ROOT"
+      ]
+    }
+  }
+}

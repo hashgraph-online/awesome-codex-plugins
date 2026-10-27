@@ -14,7 +14,7 @@
 ## `yandex-performance-ops` владеет
 
 1. official Wordstat execution;
-2. Direct/Metrika/Roistat raw collectors;
+2. Direct/Metrika raw collectors (и Roistat, если подключён);
 3. semantics operations and validation packs;
 4. campaign build and pre-moderation validation;
 5. live apply;

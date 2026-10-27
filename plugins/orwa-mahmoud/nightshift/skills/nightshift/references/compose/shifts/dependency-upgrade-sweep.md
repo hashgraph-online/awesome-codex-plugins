@@ -30,7 +30,7 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to ma
   - Never take a prerelease (`rc`, `beta`, `next`). Never hand-edit the lockfile — let the package
     manager write it, and commit it with the change that caused it. Never change the package
     manager, the runtime version, or add overrides to force a pass; park those instead.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected) so a rejected upgrade is not retried.
+  - Dedupe against snag-log.md under Snag log discipline so a rejected upgrade is not retried.
   - Ends when the outdated report names no direct dependency, or at quitting time if hours were set.
   - Verify: the item gate is green at every commit.
 ```

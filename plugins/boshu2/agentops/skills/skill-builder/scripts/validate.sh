@@ -54,4 +54,36 @@ if rg -n 'ao land|git (commit|push)|append-skill-disposition|flywheel close-loop
   exit 1
 fi
 
+# A root without scripts/generate-skill-mesh.py, like a plugin install, must be
+# refused with exit 2 before anything is written; the target itself is valid.
+probe_root="$(cd "$(mktemp -d)" && pwd -P)"
+trap 'rm -rf "$probe_root"' EXIT
+mkdir -p "$probe_root/skills/heal-probe"
+printf -- "---\nname: heal-probe\ndescription: 'Inspect Git changes in a selected repository.'\npractices: []\nskill_api_version: 1\nhexagonal_role: supporting\nconsumes: []\nproduces: []\ncontext_rel: []\nuser-invocable: true\nmetadata:\n  tier: execution\n  dependencies: []\n  capabilities: [heal_probe]\n  effects: []\n  canonical_status: canonical\n  disposition: keep_specialist\n  stability: experimental\n---\nRun git status --short in the selected repository, report paths inline and stop on error.\n" \
+  > "$probe_root/skills/heal-probe/SKILL.md"
+set +e
+SKILL_BUILDER_REPO_ROOT="$probe_root" bash "$SKILL_DIR/scripts/build.sh" from-scratch build-probe >/dev/null 2>"$probe_root/build.err"
+build_rc=$?
+HEAL_REPO_ROOT="$probe_root" bash "$SKILL_DIR/scripts/heal.sh" --fix "$probe_root/skills/heal-probe" >/dev/null 2>"$probe_root/heal.err"
+heal_rc=$?
+set -e
+if [[ $build_rc -ne 2 || $heal_rc -ne 2 || -e "$probe_root/skills/build-probe" ]] \
+  || ! grep -q 'not an AgentOps source checkout' "$probe_root/build.err" \
+  || ! grep -q 'needs an AgentOps source checkout' "$probe_root/heal.err"; then
+  echo "skill-builder validate: non-checkout root not refused (build=$build_rc heal=$heal_rc)" >&2
+  exit 1
+fi
+
+# A projection failure after a clean source check exits 3, not the generator's code.
+mkdir -p "$probe_root/scripts"
+printf 'import sys\nsys.exit(1)\n' > "$probe_root/scripts/generate-skill-mesh.py"
+set +e
+HEAL_REPO_ROOT="$probe_root" bash "$SKILL_DIR/scripts/heal.sh" --fix "$probe_root/skills/heal-probe" >/dev/null 2>&1
+heal_rc=$?
+set -e
+[[ $heal_rc -eq 3 ]] || {
+  echo "skill-builder validate: failed projection exited $heal_rc, want 3" >&2
+  exit 1
+}
+
 echo "skill-builder validate: PASS"

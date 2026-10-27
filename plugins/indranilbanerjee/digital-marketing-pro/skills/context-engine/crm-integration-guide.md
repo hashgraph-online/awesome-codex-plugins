@@ -8,21 +8,21 @@ How the Digital Marketing Pro plugin connects to CRMs, maps marketing data to CR
 
 ## Section 1: Supported CRMs
 
-| CRM | MCP Server | Auth Type | Read | Write | Key Objects |
+| CRM | Connector | Auth Type | Read | Write | Key Objects |
 |---|---|---|---|---|---|
-| **Salesforce** | `mcp-salesforce` | OAuth 2.0 | Yes | Yes | Leads, Contacts, Accounts, Opportunities, Campaigns |
-| **HubSpot** | `@anthropic/mcp-hubspot` | API Key / OAuth | Yes | Yes (beta) | Contacts, Companies, Deals, Tickets |
-| **Zoho CRM** | `mcp-zoho-crm` | OAuth 2.0 | Yes | Yes | Leads, Contacts, Accounts, Deals, Campaigns |
-| **Pipedrive** | `mcp-pipedrive` | API Token | Yes | Yes | Persons, Organizations, Deals, Activities |
-| **Odoo CRM** | `mcp-odoo` | API Key + DB Name | Yes | Yes | Leads, Contacts, Opportunities, Activities, Campaigns, Invoices |
-| **Freshsales** | `mcp-freshsales` | API Key | Yes | Yes | Contacts, Accounts, Deals, Tasks, Sales Sequences |
-| **Monday.com CRM** | `mcp-monday-crm` | API Token / OAuth | Yes | Yes | Boards, Items, Columns, Groups, Updates |
-| **Microsoft Dynamics 365** | `mcp-dynamics-365` | OAuth 2.0 | Yes | Yes | Leads, Contacts, Accounts, Opportunities, Campaigns |
-| **Copper CRM** | `mcp-copper` | API Key + Email | Yes | Yes | People, Companies, Opportunities, Projects, Tasks |
-| **Close CRM** | `mcp-close-crm` | API Key (Basic Auth) | Yes | Yes | Leads, Contacts, Opportunities, Activities, Sequences |
-| **Keap** | `mcp-keap` | OAuth 2.0 | Yes | Yes | Contacts, Companies, Deals, Tags, Campaigns, Orders |
+| **Salesforce** | No vendor-verified connector: set up from the vendor's docs | OAuth 2.0 | Yes | Yes | Leads, Contacts, Accounts, Opportunities, Campaigns |
+| **HubSpot** | Vendor-hosted HTTP (`hubspot` in `.mcp.json.connectors-reference`) | API Key / OAuth | Yes | Yes (beta) | Contacts, Companies, Deals, Tickets |
+| **Zoho CRM** | No vendor-verified connector: set up from the vendor's docs | OAuth 2.0 | Yes | Yes | Leads, Contacts, Accounts, Deals, Campaigns |
+| **Pipedrive** | No vendor-verified connector: set up from the vendor's docs | API Token | Yes | Yes | Persons, Organizations, Deals, Activities |
+| **Odoo CRM** | No vendor-verified connector: set up from the vendor's docs | API Key + DB Name | Yes | Yes | Leads, Contacts, Opportunities, Activities, Campaigns, Invoices |
+| **Freshsales** | No vendor-verified connector: set up from the vendor's docs | API Key | Yes | Yes | Contacts, Accounts, Deals, Tasks, Sales Sequences |
+| **Monday.com CRM** | No vendor-verified connector: set up from the vendor's docs | API Token / OAuth | Yes | Yes | Boards, Items, Columns, Groups, Updates |
+| **Microsoft Dynamics 365** | No vendor-verified connector: set up from the vendor's docs | OAuth 2.0 | Yes | Yes | Leads, Contacts, Accounts, Opportunities, Campaigns |
+| **Copper CRM** | No vendor-verified connector: set up from the vendor's docs | API Key + Email | Yes | Yes | People, Companies, Opportunities, Projects, Tasks |
+| **Close CRM** | No vendor-verified connector: set up from the vendor's docs | API Key (Basic Auth) | Yes | Yes | Leads, Contacts, Opportunities, Activities, Sequences |
+| **Keap** | No vendor-verified connector: set up from the vendor's docs | OAuth 2.0 | Yes | Yes | Contacts, Companies, Deals, Tags, Campaigns, Orders |
 
-**Setup:** Set the relevant API key or OAuth credentials in `.env`. The MCP server configuration in `.mcp.json` handles connection routing. Each brand can use a different CRM (see Section 7: Multi-CRM Setup). The MCP server package names above are illustrative — verify the package exists on npm before use (`npx` executes remote code), or use `/digital-marketing-pro:add-integration` to wire a custom connector.
+**Setup:** Set the relevant API key or OAuth credentials in `.env`. The MCP server configuration in `.mcp.json` handles connection routing. Each brand can use a different CRM (see Section 7: Multi-CRM Setup). DMP offers a runnable command only for packages the vendor itself publishes on npm, pinned to an exact version; for these CRMs that means HubSpot's hosted server, and the others are set up from the vendor's own docs or through an aggregator entry in `.mcp.json.connectors-reference`. Use `/digital-marketing-pro:add-integration` to wire a server you have vetted.
 
 > **How the two layers fit together (read this first).** `crm-sync.py` never writes to a CRM. It is the *local* preparation and bookkeeping layer: it validates and field-maps records (`prepare-contact`, `prepare-deal`), checks the local dedup index (`check-dedup`), records what was pushed (`log-synced`), and reports state (`get-sync-history`, `get-crm-status`, `audit-workflows`, `create-campaign`). The actual read/write against the CRM is performed by the **connected CRM MCP server** — the model calls the MCP's create/update tool with the payload `prepare-contact`/`prepare-deal` returns. Every example below follows the same shape: **prepare with `crm-sync.py` → write via the CRM MCP → record with `log-synced`.** `crm-sync.py --action` accepts only: `prepare-contact`, `prepare-deal`, `check-dedup`, `log-synced`, `get-sync-history`, `get-crm-status`, `audit-workflows`, `create-campaign` (plus `--brand`, `--data`, `--platform`, `--type`, `--limit`, `--plan`). There is no `push`, `setup-fields`, `dsr`, or `opt-out` action, and no `--crm`, `--object`, `--email`, or `--phone` flag.
 

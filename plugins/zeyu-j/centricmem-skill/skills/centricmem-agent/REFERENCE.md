@@ -59,9 +59,11 @@ Decision **#0180**. Mechanism is fixed for every agent; content lives on each sh
 
 `cm_library` omit `id` lists `{id, displayName, charter?}`. Extra keys list grants only. Pass `share:` ids exactly as listed — do not mint that string.
 
+**Unlinked cwd (Skill + CLI).** Hosted agents are guests: do **not** `centricmem link`. `cm_ambient` / `cm_doctor` may return `suggested_shelf` + `fix_hints` when the cwd basename equals a shelf id — treat `suggested_shelf` as the write target this session. Durable bind (default `*` key): `cm_library {id, sourceDir}` with an absolute Windows or POSIX path; the librarian stores it without resolving a foreign OS path, so Linux hubs match Windows agent cwd. Hub operators may `centricmem link <path> [--to <id>]`. Doctor `fix_hints` are copy-paste; act on them the same turn as Non-Micro work.
+
 ## Reach
 
-MCP tools must be present: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_show` `cm_note` `cm_log_decision` `cm_done` `cm_keep` `cm_library` `cm_copy` `cm_move` `cm_delete` `cm_rename` `cm_import` `cm_index` `cm_ops`.
+MCP tools must be present: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_show` `cm_note` `cm_log_decision` `cm_done` `cm_keep` `cm_library` `cm_copy` `cm_move` `cm_delete` `cm_rename` `cm_import` `cm_index`.
 
 If they are missing: **Already added** a Bearer or finished OAuth login in this agent → new chat, do not strip Bearer (Typical Workflows). URL-only MCP → first connect this turn. Never paste the key in chat. Never copy JSON into chat. Do not curl card/search APIs. Do not CLI-write. Do not bootstrap. Do not send a loopback `/connect` or a bare `/connect` with no `device=`.
 
@@ -87,7 +89,7 @@ Do not tell them “remote can only paste a key.” Do not send a loopback autho
 
 **`centricmem` on PATH:** only if `connect --device` exists. Prefer `centricmem connect --device --url-only` (print URL, exit) then `centricmem connect --claim` after they submit the key. Blocking `centricmem connect --device` still waits up to ten minutes. Send **only** the printed `/connect?device=` URL — never the secret, never the key. Tell them to save a backup — the secret appears only once. They enter **any** agent key on that page (default = every shelf, extra key = granted shelves). Unknown host: `centricmem connect --claim --target <that-host-config.json>` (JSON `mcpServers` map). Do not read another client’s `mcp.json` to copy a key. If the binary has no `connect --device` (leftover npm 0.14.x), ignore it. Do not npm-install the CLI on a guest. Mint failure with CLI present → `centricmem doctor connect` then email zeyu@poppyg.com (never a key).
 
-**Any other Agent Skills host.** Machine-readable recipe: repo-root `install.json`. Copy `skills/centricmem-agent/` so the file is `<skills-root>/centricmem-agent/SKILL.md`. Host MCP is streamable-HTTP at `https://mem.centricmem.com/mcp`. **goose** reads only `name` and `description` from the frontmatter, so `requirements.mcps` is ignored there - §0 Reach is what actually enforces the dependency on that host, not the frontmatter. A goose plugin also cannot declare a remote MCP server at all (its plugin MCP parser is stdio-only), so the endpoint is added as an extension or with `--with-streamable-http-extension`. After device claim, merge Bearer with `centricmem connect --claim --target <this-host-config>` (or `CENTRICMEM_MCP_TARGETS`). Confirm with `centricmem connect --verify` (grants/tool count, never the key). Do not scrape a 17-row client table and guess the skills root.
+**Any other Agent Skills host.** Machine-readable recipe: repo-root `install.json`. Copy `skills/centricmem-agent/` so the file is `<skills-root>/centricmem-agent/SKILL.md`. Host MCP is streamable-HTTP at `https://mem.centricmem.com/mcp`. After device claim, merge Bearer with `centricmem connect --claim --target <this-host-config>` (or `CENTRICMEM_MCP_TARGETS`). Confirm with `centricmem connect --verify` (grants/tool count, never the key). Do not scrape a 17-row client table and guess the skills root.
 
 Config (agent key stays off git). URL-only MCP (not a completed connect). Plugin / Agent Plugins `mcp.json` uses client `type` **`http`** (wire is still streamable HTTP on the librarian):
 
@@ -128,7 +130,7 @@ After **Approve**, Codex on this machine waits on `http://127.0.0.1:<port>/callb
 3. Before they try OAuth at all, know which shape needs permission: a **loopback** callback (`http://127.0.0.1:<any port>/<any path>` or `localhost`) is accepted as it stands - it is never "unlisted", so do not send the human to email one. Only an **HTTPS/remote** callback that is not a documented host (Cursor, Claude, Codex / ChatGPT connectors) needs verifying first, per host, at /oauth/callbacks. Where that is missing, prefer `/connect?device=`.
 4. Do not guess a callback URL, do not paste a redirect into chat as if it were verified, and do not retry the same OAuth flow in a loop - a retry restarts the wait.
 
-Hermes `<HERMES_HOME>/config.yaml` — `HERMES_HOME` wins, else the platform default, which on Windows is `%LOCALAPPDATA%\hermes` and on macOS/Linux `~/.hermes`. A `~/.hermes/config.yaml` is silently ignored when the default points elsewhere, as it does on Windows; `hermes hooks list` prints the file it actually loaded. Mint `/connect?device=` first when `cm_*` are missing. OAuth (`auth: oauth`; tokens land under `<HERMES_HOME>/mcp-tokens/`) only after that mint fails, and only if this Hermes will receive the browser login:
+Hermes `~/.hermes/config.yaml` — mint `/connect?device=` first when `cm_*` are missing. OAuth (`auth: oauth`; tokens land in `~/.hermes/mcp-tokens/`) only after that mint fails, and only if this Hermes will receive the browser login:
 
 ```yaml
 mcp_servers:
@@ -198,7 +200,7 @@ If `cm_*` are missing, mint `/connect?device=` this turn. Paste-key fallback may
 
 **OpenClaw.** Compatible **bundle** (Agent Plugins / `.claude-plugin` / `.codex-plugin` / `.cursor-plugin`). Not a native in-process plugin — do not add `openclaw.plugin.json`. Not ClawHub. `openclaw plugins install git:github.com/zeyu-j/centricmem-skill` or `openclaw plugins install centricmem-skill --marketplace zeyu-j/centricmem-skill`. Restart the gateway if tools stay missing. Then the same connect as other plugin clients.
 
-**DSH.** Cordis **funnel** only. Needs `pnpm` on PATH (`npm i -g pnpm` if missing; `corepack enable pnpm` fails on Windows Program Files). Pin: `dsh plugin --profile web add github:zeyu-j/centricmem-skill#v1.0.32`. That mounts URL-only `@deepseek-ai/dsh-mcp-client` from `dsh/cordis.patch.yml` (`failOnStartupError: true` — missing Bearer aborts boot, it does not register 0 tools). The Skill is MIT from 1.0.7; the patch is MIT glue. The funnel does **not** load SKILL.md from `node_modules`: from the profile dir run `node node_modules/centricmem-skill/dsh/copy-skill.mjs` so `$DSH_HOME/skills/centricmem-agent/` exists. Never `npx skills add -g` (writes `~/.agents`, not `$DSH_HOME`). Overlay Bearer in `$DSH_HOME/profiles/<profile>/cordis.patch.yml` after `/connect?device=` — **same** `id: mcp-centricmem`, restate the whole `config` (`serverName: centricmem`, `transport`, `url`, `headers`). A typo in `serverName` creates a second namespace. Never commit headers. Tools appear as `mcp__centricmem__cm_*` — call those names, not bare `cm_*`. After overlay: **new chat** (mandatory; this session’s catalog is frozen). DSH does not speak MCP OAuth. `session.v3.jsonl.zstd` is not a keep source — skip `cm_keep`; still file note / decision / done. GitHub topic `dsh-plugin` is discovery.
+**DSH.** Cordis **funnel** only. Needs `pnpm` on PATH (`npm i -g pnpm` if missing; `corepack enable pnpm` fails on Windows Program Files). Pin: `dsh plugin --profile web add github:zeyu-j/centricmem-skill#v0.21.72`. That mounts URL-only `@deepseek-ai/dsh-mcp-client` from `dsh/cordis.patch.yml` (`failOnStartupError: true` — missing Bearer aborts boot, it does not register 0 tools). The Skill is MIT from 1.0.7; the patch is MIT glue. The funnel does **not** load SKILL.md from `node_modules`: from the profile dir run `node node_modules/centricmem-skill/dsh/copy-skill.mjs` so `$DSH_HOME/skills/centricmem-agent/` exists. Never `npx skills add -g` (writes `~/.agents`, not `$DSH_HOME`). Overlay Bearer in `$DSH_HOME/profiles/<profile>/cordis.patch.yml` after `/connect?device=` — **same** `id: mcp-centricmem`, restate the whole `config` (`serverName: centricmem`, `transport`, `url`, `headers`). A typo in `serverName` creates a second namespace. Never commit headers. Tools appear as `mcp__centricmem__cm_*` — call those names, not bare `cm_*`. After overlay: **new chat** (mandatory; this session’s catalog is frozen). DSH does not speak MCP OAuth. `session.v3.jsonl.zstd` is not a keep source — skip `cm_keep`; still file note / decision / done. GitHub topic `dsh-plugin` is discovery.
 
 ### 1Password (optional vault, not a connect path)
 
@@ -229,7 +231,7 @@ Useful query bits (in `q` / `tags` / `type`): `filter`, `tag`, `type:decision`, 
 
 | Situation | Do |
 |-----------|-----|
-| Session start / resume | Same as SKILL §2: prefer `cm_ambient` with `shelf=` first (grants/mode/skill_latest already there); `cm_health` only when tools missing, connect, or ambient unhealthy. Never a stale `.ambient.md`. Context compress, checkpoint restore, or new chat on the same task = new session — re-run ambient first. Then refresh Skill if published `version` is newer. **Once**, say which key: `*` = default (this library plus shelves shared with this email), else list grant ids; if `mode=read`, say view-only once. Extra keys do not see `share:` rows. If `library=(none)` / unmatched cwd, pick from `libraries=` or mint — do not use the hub `use` pin. Pass a `share:` id **exactly** as listed; do not mint `share:` |
+| Session start / resume | Same as SKILL §2: prefer `cm_ambient` with `shelf=` first (grants/mode/skill_latest already there); `cm_health` only when tools missing, connect, or ambient unhealthy. Never a stale `.ambient.md`. Context compress, checkpoint restore, or new chat on the same task = new session — re-run ambient first. Then refresh Skill if published `version` is newer. **Once**, say which key: `*` = default (this library plus shelves shared with this email), else list grant ids; if `mode=read`, say view-only once. Extra keys do not see `share:` rows. If `library=(none)` / unmatched cwd: use `suggested_shelf` when present; else pick from `libraries=` or mint — do not use the hub `use` pin. Pass a `share:` id **exactly** as listed; do not mint `share:` |
 | This chat is default (`grants=["*"]`) | **once**: every shelf. Another agent/person/machine should only see some shelves → they mint an extra on **Keys**, tick those, connect **that** extra there. Optional View only on Keys. Do not nag otherwise |
 | This chat is an extra (listed shelf ids) | **once**: those shelves; if `mode=read`, view-only (no note/keep/done). More/fewer → they tick grants on Keys (login, or connect default first). Need every shelf / mint a shelf / rename label / move cards / delete leftover / rename a card → authenticate **default** |
 | 403 view-only / FORBIDDEN on write | this extra is View only (`mode=read`). Keys: clear View only, or connect a write key. Never paste a key |
@@ -324,7 +326,7 @@ A hosted library is not a directory on this machine. Ask if you need the detail.
 2. If it is older, refresh the way **this host** was installed, then tell the human to restart the host or open a new chat so the new copy loads.
 3. After a disk refresh, re-read this file and SKILL.md before the next write - installing newer is not the same as acting on it.
 
-Host-specific install, refresh and failure detail is **not** shipped in this public copy. Read `cm_ops` when a host detail actually blocks you (librarian >=1.0.6 - it is served on request); ask zeyu@poppyg.com if that does not answer it.
+Host-specific install, refresh and failure detail is **not** shipped in this public copy. Ask zeyu@poppyg.com if you need it.
 
 ## Writes (card shapes; trigger is SKILL §4)
 
@@ -392,13 +394,9 @@ Per-host extras live in folders named after the host. Check yours before assumin
 | Folder | Who it is for | What is in it |
 |---|---|---|
 | `hooks/` | Claude Code, Codex | `hooks.json`: a SessionStart hook that puts this shelf's context in front of the model, and a SessionEnd hook that files the unit when the session ends |
-| `.zcode-plugin/` or the Claude Code marketplace | ZCode | its CLI is `zcode plugins marketplace add …` + `zcode plugins install …`; MCP is Settings → MCP Servers (stdio, HTTP, SSE - pick HTTP, since this service offers no stdio) |
-| `dsh/` | DeepSeek Harness | skills come from `~/.agents/skills`; its Claude Code hooks bridge runs `hooks/hooks.json` with `pluginRoot` |
-| `qwen/` | Qwen Code | hooks in `.qwen/settings.json`; `SessionStart` adds context via `hookSpecificOutput.additionalContext` |
-| `goose/` | goose | recipes for a preflight and a close - installed into goose's global recipe library by the plugin's `SessionStart` hook, since a plugin cannot carry a recipe - plus a MOIM refresher that writes the file goose injects each turn |
+| `goose/` | goose | recipes for a preflight and a close, plus a MOIM refresher that writes the file goose injects each turn |
 | `openclaw/` | OpenClaw | a hook pack (`HOOK.md` + handler) that contributes the same context |
-| `hermes/` | Hermes | a shell hook that injects the shelf's context on `pre_llm_call` and files the unit on `on_session_end`. It carries its own copy of the fetch: Hermes runs it from `<HERMES_HOME>/agent-hooks`, outside this package |
-| `tools/ambient.mjs` | anything with Node | the one implementation every wrapper calls for the credential and for composing the ambient text. `hermes/` is the exception on the HTTP call itself, and says why |
+| `tools/ambient.mjs` | anything with Node | the one implementation the three wrappers above call |
 
 Hosts not named here need nothing extra: the Skill plus the host MCP tools is the whole integration. Cursor is
 in that position with a twist - `centricmem setup --install-hooks` writes the equivalent pair into a code
@@ -418,21 +416,3 @@ Lifecycle hooks are **optional**. The baseline is this Skill plus the MCP tools:
 - Stop after a titled keep stub or a title-only card — every card needs a summary and key points in the body
 - Treat this git checkout as the memory disk
 - Write `unclassified` — pick or create a named shelf. Writes without one are 400 `LIBRARY_REQUIRED`.
-
-## Host-side checklist (hand this to the host, not to us)
-
-A host that reports a broken MCP connection usually has one of these, and none of them are fixable from the librarian:
-
-- **"Connected" must mean "callable".** Discovery and invocation have to share one handshake; when they disagree the state should read *degraded* with a one-click restart, not *connected*.
-- **A secret written by the host must reach the process that uses it.** After a key is stored, the current session and its MCP child processes need the new value (or the host must say "restart MCP"). A stale environment is indistinguishable from a user pasting the old key.
-- **Print three fingerprints on demand** - stored secret, process env, and which credential type the MCP call actually used (Bearer or OAuth) - prefix plus fingerprint only, never the secret.
-- **Keep `mcp-remote: Unauthorized` and "the key is wrong" apart.** The first is usually a stale local bridge token: re-authorize, clear `.mcp-auth`, or switch to HTTP.
-- **Per-session MCP bridges need to be resettable.** When an old long-running session stops answering but a fresh probe reaches the server, the fix is "reset this chat's MCP", not a machine update.
-
-What we can report is now in `cm_health` and `cm_doctor`: `auth=oauth|bearer|missing` and `keyFp` (12 hex, the same value the new-network notices show), so a host's fingerprints can be compared with ours instead of guessed. The librarian cannot report a *transport*, because there is only one: the hosted service answers on **streamable HTTP** and offers no stdio transport to select. A client configured for stdio cannot reach it at all - that is not a misconfiguration to diagnose, it is a host declaring a server that does not exist.
-
-## One core, one source
-
-A machine with several agents ends up with this Skill more than once: the open skills CLI always writes a canonical copy into the shared hub (`~/.agents/skills`), while a host that installs the package as a plugin keeps its own copy. Nothing is broken by that, but a host can then show two `centricmem-agent` entries and load the stale one - ZCode did exactly that, and Codex, Hermes and a private desktop agent of ours have all been seen holding a copy of their own.
-
-So: **keep the newest copy and remove the older ones** - a plugin copy that your host actually loads is the one to refresh when it lags, and the hub copy is the fallback for hosts that cannot take a plugin. What matters is that one of them is current, and that a host is not left choosing between two. `cm_doctor` now reports every copy it can see (`skill_copies`), and `node tools/prune-duplicate-skill.mjs` prints the plan - it only ever removes centricmem copies, keeps the newest, and does nothing without `--apply`.

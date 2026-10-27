@@ -25,6 +25,12 @@ Rules:
   needs them; their absence is not a quality defect.
 - Link every reference from `SKILL.md`. Do not leave unreferenced package files.
 - Put repeated deterministic mechanics in a script; keep judgment in prose.
+- Name a bundled file by `<skill-dir>`, defined once in `SKILL.md` before its
+  first command, and run a script through its interpreter with the path quoted,
+  for example `bash "<skill-dir>/scripts/x.sh"`. Never write
+  `skills/<slug>/...` or `${CLAUDE_SKILL_DIR}` in a command. Link references
+  and schemas with plain relative links. Label repository-root material
+  "AgentOps source checkout only" and link it by GitHub URL.
 
 ## Frontmatter
 
@@ -74,8 +80,8 @@ rpi -> validate
 ```
 
 These are available core operations, not mandatory worksheets or dispatches for
-every edit. RPI uses Plan on demand and one fresh Validate only where a mistake
-is costly or the caller asks.
+every edit. RPI uses Plan on demand and one fresh Validate only on
+[Validate's triggers](../../../validate/SKILL.md#when-a-fresh-judgment-is-worth-it).
 Anti-ceremony and Memory are optional, with no hard edge.
 
 ## Body contract
@@ -119,14 +125,16 @@ or continuation unless the skill is Validate returning a fresh semantic result.
 `verdict.v2` is an optional representation for declared consumers, not the
 source of Validate's authority.
 
-The reference example of a structured-output validator is
-`skills/research/scripts/pattern-mining/validate-output.sh` — a small `jq` predicate that
+The reference example of a structured-output validator is Research's
+[`scripts/pattern-mining/validate-output.sh`](../../../research/scripts/pattern-mining/validate-output.sh) — a small `jq` predicate that
 checks a supplied output artifact against its declared contract. Copy that shape
 when a skill emits a machine-readable artifact; do not reinvent it.
 
 ## Validation
 
-Run the canonical checks after editing a skill:
+AgentOps source checkout only: from the repository root, run the canonical
+checks after editing a skill (installed skills do not ship these scripts; in
+another repository, use its own checks):
 
 ```bash
 bash skills/skill-builder/scripts/heal.sh --check --strict skills/<slug>

@@ -1,13 +1,17 @@
 ---
 name: plan
-description: Open the plan room: explore the code and design the work with the owner, building nothing until the owner leaves.
+description: Open the plan room to explore the code and design the work with the owner, building nothing until the owner leaves.
 license: MIT
+metadata:
+  internal: true
 ---
 
 Plan with the owner in the plan room. Here the conversation explores, weighs options and draws the
-plan; nothing gets implemented until the owner leaves the room on purpose. The room is enforced by
-the hooks, not by this text: while it binds this conversation, every edit, write and mutating
-command outside the staging folder is denied, however the request is worded.
+plan; nothing gets implemented until the owner leaves the room on purpose. While the room binds this
+conversation, each owner message carries a reminder that it is planning, the edit tools write only
+the plan's own files, and the commands and tools on the owner's `planRoom` lists in `rules.json` are
+blocked (by default `git commit`, `git push` and `git tag`). Everything else runs, so research is
+free: read, search, the web, `gh`, the browser, helper agents and questions.
 
 Resolve the installed plugin root to an absolute `$NIGHTSHIFT_PLUGIN_ROOT` — `${CLAUDE_PLUGIN_ROOT}`
 on Claude Code, `$PLUGIN_ROOT` on Codex when set, otherwise the absolute path this skill was
@@ -102,9 +106,9 @@ templates or a checklist while discussing.
   so it is not reopened by accident.
 
 When the owner says "just do it" or "implement it": the room still holds. Say plainly that nothing
-can be built in this conversation while the plan room is open, and give the exits (section 6). Never
-work around the fence: no code written into the staging folder to copy out later, no scripts, and no
-asking another conversation to make the change.
+can be built in this conversation while the plan room is open, and give the exits (section 6). Build
+nothing through any tool, the shell included: no code written into the staging folder to copy out
+later, no scripts that change the project, and no asking another conversation to make the change.
 
 ## 4. Keep the plan record current
 

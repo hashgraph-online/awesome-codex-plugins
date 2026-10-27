@@ -4,7 +4,7 @@
 
 Model Context Protocol (MCP) servers connect Claude to external services. Each MCP provides **tools** (functions Claude can call), **resources** (data Claude can read), and **prompts** (pre-defined interaction templates). MCP servers run as separate processes that communicate with Claude via JSON-RPC over stdin/stdout.
 
-In this plugin, MCPs are the execution bridge between the agent layer (Claude reasoning about marketing strategy) and external platforms (publishing a blog post, sending an email campaign, querying a CRM). **`.mcp.json` ships empty by design** (`{"mcpServers":{}}` — nothing auto-connects, which keeps Cowork and team installs safe). The opt-in catalog of 60+ connector configurations covering social publishing, email, CRM, analytics, memory, knowledge, CMS, communication, project management, testing, and databases lives in `.mcp.json.connectors-reference` and `.mcp.json.example` — copy the entries you need into your own `.mcp.json`, and this guide shows how to add or build servers beyond the catalog.
+In this plugin, MCPs are the execution bridge between the agent layer (Claude reasoning about marketing strategy) and external platforms (publishing a blog post, sending an email campaign, querying a CRM). **`.mcp.json` ships empty by design** (`{"mcpServers":{}}` — nothing auto-connects, which keeps Cowork and team installs safe). Vendor-hosted HTTP servers are listed in `.mcp.json.connectors-reference`; `.mcp.json.example` holds runnable entries only for packages the vendor itself publishes on npm, pinned to an exact version. Copy the entries you need into your own `.mcp.json`; this guide shows how to add or build servers beyond the catalog.
 
 ---
 
@@ -20,7 +20,7 @@ Your `.mcp.json` (project or user scope) defines the MCP server configurations y
   "mcpServers": {
     "server-name": {
       "command": "npx",
-      "args": ["-y", "package-name"],
+      "args": ["-y", "<vendor-package>@<exact-version>"],
       "env": {
         "API_KEY": "${ENV_VAR_NAME}"
       },
@@ -33,7 +33,7 @@ Your `.mcp.json` (project or user scope) defines the MCP server configurations y
 ### Key Mechanics
 
 - **`command`**: The executable to run — typically `npx` (for npm packages), `node` (for local scripts), or `python` (for Python-based MCPs)
-- **`args`**: Arguments passed to the command — package name for npx, file path for node/python
+- **`args`**: Arguments passed to the command — the package pinned to an exact version for npx (`<package>@x.y.z`), file path for node/python
 - **`env`**: Environment variables injected into the MCP process — use `${VAR_NAME}` syntax to reference variables from `.env` or the shell environment
 - **`description`**: Human-readable explanation that helps Claude understand when to use this MCP
 
@@ -53,11 +53,11 @@ Your `.mcp.json` (project or user scope) defines the MCP server configurations y
 
 1. **Identify the service** you want to connect (e.g., Mailchimp, HubSpot, Airtable)
 
-2. **Search for existing MCP packages:** check https://github.com/modelcontextprotocol/servers (the official server directory), search npm for `mcp-server-*` or `@*/mcp` packages, and check whether the vendor offers a hosted HTTP MCP endpoint (see `.mcp.json.connectors-reference` for verified ones)
+2. **Find the vendor's own server:** first a hosted HTTP MCP endpoint (see `.mcp.json.connectors-reference` for verified ones), then an npm package, accepted only when the package's publisher is the vendor's own npm account and its repository is in the vendor's own organisation (check `https://registry.npmjs.org/<package>`: `maintainers` and `repository`). A community package, or a name nobody has published, can be published by anyone and would receive your API keys; if the vendor publishes nothing, build your own server (below)
 
 3. **Test the package locally:**
    ```bash
-   npx -y <package-name> --help
+   npx -y <vendor-package>@<exact-version> --help
    ```
 
 4. **Add to `.mcp.json`:**
@@ -66,7 +66,7 @@ Your `.mcp.json` (project or user scope) defines the MCP server configurations y
      "mcpServers": {
        "mailchimp": {
          "command": "npx",
-         "args": ["-y", "mcp-server-mailchimp"],
+         "args": ["-y", "<vendor-package>@<exact-version>"],
          "env": {
            "MAILCHIMP_API_KEY": "${MAILCHIMP_API_KEY}",
            "MAILCHIMP_SERVER_PREFIX": "${MAILCHIMP_SERVER_PREFIX}"
@@ -89,8 +89,8 @@ Your `.mcp.json` (project or user scope) defines the MCP server configurations y
 
 ### Pre-Flight Checklist
 
-- [ ] MCP package exists and is actively maintained (check npm downloads + last publish date)
-- [ ] Package version is stable (avoid 0.x.x for production use unless no alternative)
+- [ ] The package is published by the vendor itself (npm `maintainers` and `repository` belong to the vendor), not a community fork or look-alike name
+- [ ] `args` pins an exact version (`<package>@x.y.z`), never a bare name or `latest`
 - [ ] Required credentials are available (API key, OAuth tokens, etc.)
 - [ ] Credentials added to `.env` with correct variable names
 - [ ] `.mcp.json` entry uses `${VAR}` syntax for all secrets (never hardcode credentials)

@@ -6,21 +6,23 @@ dependencies: [qa-report]
 
 # 部署报告
 
-## 报告信息
-- **功能名称**：{{FEATURE_NAME}}
-- **版本**：{{VERSION}}
-- **部署日期**：{{DATE}}
-- **部署者**：DevOps Agent
-
 ## 摘要
 
 > Boss Agent 请优先阅读本节获取部署结果。
 
 - **部署状态**：✅ 成功 / ❌ 失败
+- **部署平台**：Vercel / Cloudflare / Render / Netlify / 本地
+- **平台选择依据**：[检测到现有配置 / 按项目类型推荐 / 用户指定]
 - **访问地址**：[URL]
 - **部署环境**：[环境名称]
 - **服务健康**：[正常 / 异常]
 - **回滚命令**：[命令，不需要则填"无"]
+
+## 报告信息
+- **功能名称**：{{FEATURE_NAME}}
+- **版本**：{{VERSION}}
+- **部署日期**：{{DATE}}
+- **部署者**：DevOps Agent
 
 ---
 
@@ -33,6 +35,9 @@ dependencies: [qa-report]
 | **项目类型** | {{PROJECT_TYPE}} |
 | **运行时** | {{RUNTIME}} |
 | **运行时版本** | {{RUNTIME_VERSION}} |
+| **部署平台** | Vercel / Cloudflare / Render / Netlify / 本地 |
+| **平台选择依据** | 检测到现有配置 / 按项目类型推荐 / 用户指定 |
+| **现有配置文件** | [vercel.json / render.yaml / 无] |
 | **部署方式** | 本地开发 / 容器化 / 云部署 |
 
 ### 1.2 部署状态

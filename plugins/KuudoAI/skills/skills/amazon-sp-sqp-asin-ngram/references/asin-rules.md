@@ -1,16 +1,18 @@
-# Evidence-conditioned ASIN diagnostics
+# Evidence-conditioned ASIN findings
 
-Read [sqp-metrics.md](sqp-metrics.md) for calculations and [relevance-and-intent.md](relevance-and-intent.md) before applying these analyst rules. The priority table gates investigation, not just execution. Every action below is a recommendation record, never a write.
+Use these rules for analysis and supporting records. Present the recommendation using the [seller-answer contract](decision-records.md); include a technical limitation in the main answer only when it changes the decision.
 
-| Observation | Possible explanations | Required corroboration | Proposed test and success measure |
-|---|---|---|---|
-| Relevant query has high volume and low ASIN impression share | Limited exposure; offer availability; query fit; ad activity; listing information gap | Verified product fit and current listing content; any actual peer comparison must identify its cohort | If a supported attribute/use is missing or unclear, propose `seo_update`/`pdp_update` to express it accurately. Compare impression and click shares in comparable periods; do not promise ranking lift. |
-| ASIN click share exceeds impression share, while purchase share trails click share | Offer, price, delivery, review concerns, traffic composition or noisy purchases | Current offer and product facts, event-specific price comparisons, sufficient purchase evidence for the claim | Propose a bounded `pdp_update` investigation or an offer test supported by those facts. Track purchase-per-click and share deltas; weak purchase counts limit conclusions. |
-| ASIN CTR trails count-derived market CTR | Image/title clarity, query mismatch, placement or price | Relevant product, actual search presentation and current offer | Test one supported title/image clarification; measure CTR with the same denominator and comparable scope. |
-| Purchase share trails click share and independently verified ASIN delivery is slow | Delivery friction is a hypothesis | ASIN-specific delivery promise/availability evidence for the relevant market/time; market shipping totals alone are insufficient | Recommend an operations investigation (`shipping_speed_fix`) only when supported. Compare outcomes after a documented change; no causal proof from SQP alone. |
-| Event-specific ASIN median price exceeds comparable market median and purchase outcomes are weak | Price/value mismatch, different product mix or query fit | Matching event/currency/period; comparable products and current offer; profitability constraints for any price test | Propose `price_test` only with these constraints and an explicit measurement plan. SQP has no profit data. |
-| ASIN underperforms brand peers | Different products/variants, availability or relevance; cannibalization is unproven | Actual family relationships, comparable variant attributes and overlap evidence | Investigate `variant_mapping_fix` only for an evidenced mapping issue. Track intended variant visibility and family outcomes; underperformance alone is not cannibalization. |
+Use [theme analysis](theme-analysis.md) for recurring comparisons and [decision records](decision-records.md) for the action queue. A funnel observation selects where to look; it does not identify the cause. Retrieve available decisive evidence before returning a hold.
 
-Use observation → alternative explanations → evidence needed → proposed test → outcome measure. Do not fill missing corroboration with generated facts. `collect_evidence` rows still receive descriptive findings and a precise evidence request. `exclude_from_listing_targeting` rows receive a mismatch explanation, not a rewrite toward the wrong intent.
+| Finding | When it can produce a concrete proposal |
+|---|---|
+| Recurring localized purchase-per-click gap | Inspect complete relevant listing fields. A specific supported omission/ambiguity may produce one `listing_content_test`; otherwise no edit or one-fact hold. Report uncertainty. |
+| Listing contradicts a seller/user-confirmed variant specification | `product_fact_correction` with exact field and before/after, even with thin counts. Catalog disagreement alone yields a one-fact confirmation hold. |
+| Low impression share or CTR | Descriptive finding; inspect actual search presentation if available. Do not convert an isolated ratio into a title/image rewrite. A proposal requires a verified information problem and bounded test with the relevant denominator. |
+| Weak purchases plus independently verified ASIN delivery defect | A specific operations proposal requires ASIN delivery/availability evidence for the market/time and an actionable correction. Query-wide shipping totals cannot establish this. |
+| High event-specific median price and weak purchases | A price test needs matching event/currency/period, comparable products, current offer and profitability constraints. SQP alone supplies none of the latter; return one decisive blocker instead of a generic price investigation. |
+| Apparent variant underperformance | A mapping proposal requires actual family relationships and a specific mapping error. Underperformance is not evidence of cannibalization. |
 
-Route a user-selected listing action to `amazon-sp-listing-optimizer`, price work to `amazon-sp-repricing`, and paid search-term work to `amazon-ads-sp-search-term-explorer` when available. Preserve the owning skill's preview and approval flow. If unavailable, provide a reviewable recommendation rather than claim execution.
+Price, delivery and variant findings are secondary. Preserve legacy conditional diagnostic tags (`seo_update`, `pdp_update`, `price_test`, `shipping_speed_fix`, `variant_mapping_fix`) when appropriate, but a conditional tag is not an action. Only an evidenced defect with a concrete proposal enters the action queue. Do not fabricate peer cohorts or generate a list of possible explanations as the recommendation.
+
+Route user-selected listing work to `amazon-sp-listing-optimizer`, price work to `amazon-sp-repricing`, and Ads work to `amazon-ads-sp-search-term-explorer` when available. If unavailable, provide the reviewable draft; do not claim execution.

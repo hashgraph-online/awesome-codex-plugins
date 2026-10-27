@@ -88,6 +88,7 @@ Read only the references needed for the task.
 | Research code, pipeline, notebook, or package | [research-coding.md](references/research-coding.md) |
 | Overleaf, VS Code, GitHub, git, or archival toolchain | [research-toolchain.md](references/research-toolchain.md) |
 | Federal proposal or technical narrative | [proposal-development.md](references/proposal-development.md) |
+| Proposal budget, budget justification, or subaward budget | [budget-and-justification.md](references/budget-and-justification.md) |
 | Research presentation or poster | [presentation-slides.md](references/presentation-slides.md) |
 | Mechanical-engineering teaching material | [teaching-mechanical-engineering.md](references/teaching-mechanical-engineering.md) |
 | Invention disclosure or commercialization support | [innovation-commercialization.md](references/innovation-commercialization.md) |

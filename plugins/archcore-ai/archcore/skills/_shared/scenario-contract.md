@@ -74,8 +74,8 @@ Rules:
 
 ## Body cap
 
-**≤ 120 lines**, counted as the `spec` cap is counted — headings and blank lines
-included. The Archcore CLI reports the same cap in `@templates/precision.go`
+**≤ 120 lines** over the whole body — headings and blank lines included. A scenario
+carries no section outside its closed list, so the whole body is its content. The Archcore CLI reports the same cap in `@templates/precision.go`
 (`MaxBodyLines`), so the contract and the hook agree.
 
 ### Over the cap — split by actor, never compress

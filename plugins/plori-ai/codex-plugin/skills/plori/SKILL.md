@@ -191,7 +191,8 @@ changes and fixes conflicts.
   processes a run starts do not. Use `TMPDIR` for temporary files.
 - A completed run does not prove its files are saved: wait for `file_source.state`
   `ready` with no `save_failure`.
-- A completed run's `files` are URLs readable with the same bearer token.
+- A completed run's `files` are signed URLs that need no other credential.
+  They expire about 10 minutes after the result. Call `get_run_result` again for fresh links.
   `read_workspace_file` reads a saved version: `current_revision`, an agent's
   `saved_revision_id`, or a changeset's `base_revision`, `incoming_revision` or
   `result_revision`. A path such as `/workspace/a.md` is not a URL.

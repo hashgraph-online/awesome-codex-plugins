@@ -13,7 +13,7 @@ description: >-
 license: MIT-0
 compatibility: Needs an MCP client with Streamable HTTP and network access to www.krexa.xyz.
 metadata:
-  version: "1.5.0"
+  version: "1.5.1"
   homepage: "https://krexa.xyz"
   openclaw:
     emoji: "📈"
@@ -81,7 +81,9 @@ step 1. Your client may prefix tool names (Hermes: `mcp_krexa_krexa_whoami`).
 3. **Deploy** with `krexa_deploy_request` and the user's limits: max per
    trade and daily budget (USDC), daily loss cap (USD); perps also take
    `maxLeverage` (default 2; the user picks, up to the server ceiling in the
-   tool description). Suggest `approvalMode: "approve"` for a first live run.
+   tool description). Leave `approvalMode` out: the agent then trades on its
+   own inside the limits. Set `"approve"` only when the user asks to OK each
+   order; then every order waits 15 minutes on the agent page and expires.
    Send the `approvalUrl` exactly as returned. If the result says
    `deepTested: false`, tell the user it was not deep-tested.
 4. **Fund**: after the user approves, `krexa_deploy_status` says `live` and

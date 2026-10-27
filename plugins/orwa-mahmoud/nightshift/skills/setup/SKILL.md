@@ -2,6 +2,8 @@
 name: setup
 description: Scaffold .nightshift/ and propose quality gates for this stack; asks, never imposes.
 license: MIT
+metadata:
+  internal: true
 ---
 
 Set up Nightshift in this project. Do the scaffolding first, then the gates conversation, then
@@ -124,12 +126,13 @@ scaffolding as if the site were current.
  clear yes, skip it: the receipts still exist as plain files. Present the question neutrally —
  never describe the repo as recommended; the default is no. On yes: if `$NS/.git` does
  not exist, run `git -C "$NS" init` rather than `cd`-ing there.
- Ensure `$NS/.gitignore` contains `STOP` and `run/`, the runtime's own folder; preserve existing
- lines. A site still at version `1` keeps the runtime's files at the top of `$NS/`, so there it
+ Ensure `$NS/.gitignore` contains `STOP` and `/run/`, the runtime's own folder, anchored so each
+ archive folder's `run/` records stay versioned; rewrite a bare `run/` line as `/run/` and
+ preserve the other lines. A site still at version `1` keeps the runtime's files at the top of `$NS/`, so there it
  names the transient markers instead: `STOP`, `.stall`, `.notified`, `deadline`, `.session-end`,
  `.shift-pulse`, `.mint-failed`, `.shift-session`, `.shift-session.tmp.*`, `.shift-worker`,
  `.shift-lease`, `.shift-lease.tmp.*`, `.mutex-scope`, `.mutex-scope.tmp.*`, `.watchman`,
- `.watchman-tick`, `.budget.tsv`, `.item-sessions/`, `.plan-room`, `.lock.d/`, and `.lease-lock.d/`; migrate-state adds `run/` with the move. Make one initial commit only when setup created the receipts repository.
+ `.watchman-tick`, `.budget.tsv`, `.item-sessions/`, `.plan-room`, `.lock.d/`, and `.lease-lock.d/`; migrate-state adds `/run/` with the move. Make one initial commit only when setup created the receipts repository.
  Creating the repo does **not** turn on headless auto-commit — that is `receiptsAutoCommit`
  in `rules.json`, shipped `false`; the owner commits the receipts tree when they want.
  **Never add a remote to it, never push it.**
@@ -146,6 +149,15 @@ scaffolding as if the site were current.
  plugin scripts via `${CURSOR_PLUGIN_ROOT}`. If a `.cursor/hooks.json` already exists, show
  the diff against the shipped file and write only on an explicit yes to replace; never merge
  unknown owner hooks silently. Never create a second `.nightshift/`.
+- **Shift worktree — ask, default no, repository mode only.** Ask — *"run each shift in its own
+ git worktree and branch, so your checkout and uncommitted edits stay untouched and ignored files
+ such as `.env` stay out?"* On a clear yes set `shift.isolation` to `worktree` in `$NS/rules.json`.
+ Then read the work target's lockfile and propose one `shift.prepare` command that installs its
+ dependencies without changing the lockfile (`pnpm-lock.yaml` → `pnpm install --frozen-lockfile`,
+ `package-lock.json` → `npm ci`, `yarn.lock` → `yarn install --immutable`, `uv.lock` → `uv sync`,
+ `poetry.lock` → `poetry install`, `Gemfile.lock` → `bundle install`, `Cargo.lock` → nothing);
+ write it only on the owner's yes. Ask which ignored files the tests need, such as `.env.test`, and
+ list only those in `shift.copyIn`; never propose `.env` itself. Artifact mode skips this question.
 
 ## 3. Gates — ask, never impose
 

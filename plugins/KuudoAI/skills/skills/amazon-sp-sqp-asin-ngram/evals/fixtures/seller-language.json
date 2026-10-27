@@ -1,0 +1,555 @@
+[
+  {
+    "case": "edit",
+    "request": "What should I change on this listing, and why?",
+    "input": {
+      "config": {},
+      "rows": [
+        {
+          "row_id": "q1",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "machine washable chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 3
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q2",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "washable dining chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 3
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q3",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "washable stretch chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 3
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q4",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "stretch chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q5",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "dining chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q6",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "slipcover dining chair",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q7",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "removable chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        }
+      ],
+      "evidence": {
+        "source": "user, seller of SKU CHAIR-COVER",
+        "as_of": "2026-10-20",
+        "seller_confirmed_facts": [
+          "Removable stretch dining chair cover",
+          "Machine washable at 30\u00b0C"
+        ],
+        "sku": "CHAIR-COVER",
+        "language_tag": "en_US",
+        "title": "Stretch dining chair cover",
+        "bullet_point": [
+          "Easy care",
+          "Removable stretch cover"
+        ],
+        "coverage": "complete current title and bullets; images and A+ unavailable"
+      }
+    }
+  },
+  {
+    "case": "no-change",
+    "request": "What should I change on this listing, and why?",
+    "input": {
+      "config": {},
+      "rows": [
+        {
+          "row_id": "q1",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "machine washable chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 3
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q2",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "washable dining chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 3
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q3",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "washable stretch chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 3
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q4",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "stretch chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q5",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "dining chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q6",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "slipcover dining chair",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q7",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "removable chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        }
+      ],
+      "evidence": {
+        "source": "user, seller of SKU CHAIR-COVER",
+        "as_of": "2026-10-20",
+        "seller_confirmed_facts": [
+          "Removable stretch dining chair cover",
+          "Machine washable at 30\u00b0C"
+        ],
+        "sku": "CHAIR-COVER",
+        "language_tag": "en_US",
+        "title": "Stretch dining chair cover",
+        "bullet_point": [
+          "Machine washable at 30\u00b0C",
+          "Removable stretch cover"
+        ],
+        "coverage": "complete current title and bullets; images and A+ unavailable"
+      }
+    }
+  },
+  {
+    "case": "missing-evidence",
+    "request": "What should I change on this listing, and why?",
+    "input": {
+      "config": {},
+      "rows": [
+        {
+          "row_id": "q1",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "machine washable chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 3
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q2",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "washable dining chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 3
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q3",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "washable stretch chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 3
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q4",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "stretch chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q5",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "dining chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q6",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "slipcover dining chair",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        },
+        {
+          "row_id": "q7",
+          "marketplace_id": "ATVPDKIKX0DER",
+          "period": "WEEK",
+          "start": "2026-10-04",
+          "end": "2026-10-10",
+          "asin": "B0CHAIR001",
+          "query": "removable chair cover",
+          "query_volume": 2000,
+          "market": {
+            "impressions": 4000,
+            "clicks": 250,
+            "cart_adds": null,
+            "purchases": 25
+          },
+          "asin_counts": {
+            "impressions": 400,
+            "clicks": 50,
+            "cart_adds": null,
+            "purchases": 5
+          },
+          "relevance": "exact"
+        }
+      ],
+      "evidence": {
+        "source": "user, seller of SKU CHAIR-COVER",
+        "as_of": "2026-10-20",
+        "seller_confirmed_facts": [
+          "Removable stretch dining chair cover",
+          "Machine washable at 30\u00b0C"
+        ],
+        "sku": "CHAIR-COVER",
+        "language_tag": "en_US",
+        "coverage": "No current listing text or images supplied"
+      }
+    }
+  }
+]

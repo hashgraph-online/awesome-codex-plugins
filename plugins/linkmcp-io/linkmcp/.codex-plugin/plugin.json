@@ -1,6 +1,6 @@
 {
   "name": "linkmcp",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "Your own LinkedIn account in Codex: profile and company lookups, people and Sales Navigator search, inbox, posts, company pages, connection requests and work email finding, through the hosted LinkMCP server.",
   "author": {
     "name": "LinkMCP",
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "LinkMCP",
     "shortDescription": "Your own LinkedIn account as tools",
-    "longDescription": "Research people and companies, search LinkedIn and Sales Navigator, read and answer LinkedIn messages, post and comment (also as your company page), manage invitations, and find work emails. Includes 3 skills: a call prep brief, a lead list from the people who engaged with a post, and inbox follow-ups that you approve one by one. Hosted service; 7-day free trial, and connecting your LinkedIn account needs a paid plan. Not affiliated with LinkedIn.",
+    "longDescription": "Research people and companies, search LinkedIn and Sales Navigator, read and answer LinkedIn messages, post and comment (also as your company page), manage invitations, and find work emails. Includes 7 skills: a ranked prospect list with work emails, leads from LinkedIn job posts, a candidate shortlist, prospect search with invitations that you approve one by one, a call prep brief, a lead list from post engagement, and inbox follow-ups that you approve one by one. Hosted service; 7-day free trial, and connecting your LinkedIn account needs a paid plan. Not affiliated with LinkedIn.",
     "developerName": "Third Person Systems LLC",
     "category": "Sales",
     "capabilities": [],

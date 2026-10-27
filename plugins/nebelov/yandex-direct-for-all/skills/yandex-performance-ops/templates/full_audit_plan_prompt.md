@@ -21,7 +21,7 @@ Output:
 - no fixes yet
 
 Rules:
-- Roistat is primary for leads/sales when available
+- Sales truth: CRM/product database first, then Roistat if connected, then Metrika goals. If none is connected, state "sales not verified" and do not draw ROI conclusions.
 - list explicit unknowns
 - distinguish low-confidence vs high-confidence actions
 - do not propose live changes before data sufficiency check

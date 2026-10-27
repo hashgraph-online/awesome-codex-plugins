@@ -1,0 +1,50 @@
+{
+  "name": "bankbridge",
+  "version": "0.4.0",
+  "description": "Ask Codex about your own money: read-only access to your US bank, credit card and investment accounts through the BankBridge remote MCP server, fetched live on every question.",
+  "author": {
+    "name": "Great Work LLC",
+    "email": "hello@greatwork.company",
+    "url": "https://bankbridge.money"
+  },
+  "homepage": "https://bankbridge.money",
+  "repository": "https://github.com/bankbridge-money/bankbridge-plugin",
+  "license": "MIT",
+  "keywords": [
+    "finance",
+    "banking",
+    "budget",
+    "spending",
+    "subscriptions",
+    "investments",
+    "mcp",
+    "read-only"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "BankBridge",
+    "shortDescription": "Ask about your real bank accounts, cards and investments",
+    "longDescription": "BankBridge connects Codex to your own US bank, credit card and brokerage accounts with read-only access. Ask how much you spent on restaurants last month, which subscriptions you are paying for, whether you are making more than you spend, or how your holdings are doing, and get answers from live data. Sign in once with OAuth, no key to paste. It cannot move money, pay bills or place trades. $5 a month per connected bank ($50 a year), cancel any time.",
+    "developerName": "Great Work LLC",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://bankbridge.money",
+    "privacyPolicyURL": "https://bankbridge.money/privacy",
+    "termsOfServiceURL": "https://bankbridge.money/terms",
+    "defaultPrompt": [
+      "How much did I spend on restaurants last month?",
+      "What subscriptions am I paying for?",
+      "Am I making more than I spend?"
+    ],
+    "brandColor": "#25262B",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/screenshot-transactions.png",
+      "./assets/screenshot-subscriptions.png"
+    ]
+  }
+}

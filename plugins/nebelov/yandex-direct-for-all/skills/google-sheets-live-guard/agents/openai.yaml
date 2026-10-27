@@ -1,0 +1,4 @@
+interface:
+  display_name: "Google Sheets Live Guard"
+  short_description: "Guard live Google Sheets edits against stale state."
+  default_prompt: "Use $google-sheets-live-guard with Google Sheets edits that touch existing live spreadsheets, client reports, row or tab inserts, or manual values."

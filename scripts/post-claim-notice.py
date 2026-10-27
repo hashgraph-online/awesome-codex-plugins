@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 """
-Post a "claim your plugin" comment on merged PRs that add plugins present in the
-HOL registry but not yet owner-verified.
+Post a claim notice on merged PRs that add plugins to the HOL catalog source.
 
-Triggers via GitHub Actions on pull_request closed (merged).
-Checks the HOL registry catalog API for matching repos, then posts a comment
-with claim instructions. If a newly merged repository is present only in the
-catalog source and has not reached the live Registry yet, the notice says it is
-still syncing and does not send the creator into a claim flow that cannot work.
+Merged catalog listings are enough to issue a claim link. Registry lookups only
+suppress redundant invitations for repositories whose ownership is verified.
 """
 
 import json
@@ -15,18 +11,30 @@ import os
 import re
 import sys
 import subprocess
+import random
+import time
 import urllib.request
 import urllib.error
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from pathlib import Path
+from urllib.parse import urlencode, urlsplit
 
 # --- Config ---
-REGISTRY_API = os.environ.get("REGISTRY_API", "https://hol.org/registry/api/v1")
+REGISTRY_API = os.environ.get("REGISTRY_API", "https://hol.org/api/v1")
+REGISTRY_BROKER_API_KEY = os.environ.get("REGISTRY_BROKER_API_KEY", "")
 GH_TOKEN = os.environ.get("GH_TOKEN", "")
 PR_NUMBER = os.environ.get("PR_NUMBER", "")
 PR_TITLE = os.environ.get("PR_TITLE", "")
 PR_AUTHOR = os.environ.get("PR_AUTHOR", "")
 REPO_FULL = os.environ.get("GITHUB_REPOSITORY", "")
-PENDING_RETRY = os.environ.get("PENDING_RETRY") == "1"
-PENDING_LABEL = "registry-claim-pending"
+MAX_CATALOG_PAGES = 5
+MAX_COMMENT_PAGES = 20
+CATALOG_REPO_CACHE = {}
+REGISTRY_MAX_ATTEMPTS = 4
+REGISTRY_MAX_RETRY_DELAY = 60
+REGISTRY_RETRY_STATUSES = {429, 500, 502, 503, 504}
+NOTICE_DEFERRED = 75
 
 # Skip titles that aren't new plugin additions
 SKIP_PATTERNS = [
@@ -61,47 +69,79 @@ SKIP_PATTERNS = [
 ]
 
 
-def build_comment_body(author: str, repositories=(), registry_ready: bool = True) -> str:
-    """Invite the author to claim as soon as the catalog pull request merges."""
-    del registry_ready
-    from urllib.parse import urlencode
+class RegistryCatalogFetchError(RuntimeError):
+    """Raised when Registry catalog evidence is unavailable or incomplete."""
 
-    repos = sorted({repo for repo in repositories if repo})
-    if repos:
-        claim_links = "\n".join(
-            "- [Verify ownership of `{repo}`](https://hol.org/guard/plugins?{query})".format(
-                repo=repo,
-                query=urlencode(
-                    {
-                        "claim": repo,
-                        "utm_source": "github",
-                        "utm_medium": "pr_comment",
-                        "utm_campaign": "plugin_claim",
-                        "utm_content": "merge_notice",
-                    }
-                ),
-            )
-            for repo in repos
+
+class RegistryTemporarilyUnavailable(RegistryCatalogFetchError):
+    """Raised after bounded retries of a temporary Registry failure."""
+
+
+class GitHubCommentsFetchError(RuntimeError):
+    """Raised when existing claim comments cannot be checked completely."""
+
+
+DEFERRED_NOTICE_MARKERS = (
+    "Still syncing",
+    "Registry sync in progress",
+    "not live in the HOL Registry",
+    "No action is needed yet",
+)
+
+
+def claim_link(repo: str) -> str:
+    return (
+        "https://hol.org/guard/plugins?"
+        + urlencode(
+            {
+                "claim": repo,
+                "utm_source": "github",
+                "utm_medium": "pr_comment",
+                "utm_campaign": "plugin_claim",
+                "utm_content": "merge_notice",
+            }
         )
-    else:
-        claim_links = "[Open the plugin dashboard](https://hol.org/guard/plugins)"
+    )
 
-    return f"""<!-- hol-claim-notice -->
-Hey @{author}, your plugin is merged into the HOL catalog and ready to claim.
 
-## Claim your plugin
+def build_comment_body(author: str, repositories=(), pending_repositories=()) -> str:
+    """Invite the author to verify ownership as soon as the catalog PR merges.
 
-{claim_links}
+    Registry indexing is not a gate. A repository merged into the catalog
+    source can be claimed before its public listing finishes syncing.
+    """
 
-Open the link and choose **"Continue with GitHub"**. Use the GitHub account that maintains the repository. HOL requests only `read:user` and `user:email`. It does not request write access to the repository.
+    claimable = sorted(set(repositories) | set(pending_repositories))
+    if not claimable:
+        return f"{MARKER} 🎉 Congrats @{author}, your plugin has been merged and ownership is already verified! [Open your plugin dashboard](https://hol.org/guard/plugins) to view its trust score, installs, and engagement."
 
-After verification, the listing gets an owner-verified badge, and the plugin dashboard shows its trust score, installs, and engagement."""
+    claim_links = "; ".join(
+        f"[Claim your plugin `{repo}`]({claim_link(repo)})" for repo in claimable
+    )
+
+    return f'{MARKER} 🎉 Congrats @{author}, your plugin has been merged into the catalog! {claim_links}. Choose **"Continue with GitHub"** using the account that maintains the repository to verify ownership, view its trust score, and track installs and engagement. If you have already claimed it, the same link opens your plugin dashboard.'
 
 
 MARKER = "<!-- hol-claim-notice -->"
 
 
-def api_request(url, headers=None, method="GET", data=None):
+def registry_retry_delay(attempt, retry_after=None):
+    """Use exponential backoff with jitter and respect Retry-After when valid."""
+    delay = 2 ** (attempt + 1) + random.uniform(0, 1)
+    if retry_after is not None:
+        try:
+            seconds = int(retry_after)
+        except (TypeError, ValueError):
+            try:
+                retry_at = parsedate_to_datetime(retry_after)
+                seconds = (retry_at - datetime.now(timezone.utc)).total_seconds()
+            except (TypeError, ValueError, OverflowError):
+                seconds = 0
+        delay = max(delay, seconds)
+    return delay
+
+
+def api_request(url, headers=None, method="GET", data=None, retry_registry=False):
     """Make an HTTP request and return parsed JSON."""
     req_headers = {"Accept": "application/json", "User-Agent": "hol-claim-notice/1.0"}
     if headers:
@@ -110,56 +150,122 @@ def api_request(url, headers=None, method="GET", data=None):
         data = json.dumps(data).encode("utf-8")
         req_headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, headers=req_headers, method=method, data=data)
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        body = e.read().decode("utf-8", errors="replace")
-        print(f"  HTTP {e.code} from {url}: {body[:200]}", file=sys.stderr)
+    if retry_registry and REGISTRY_BROKER_API_KEY:
+        target = urlsplit(url)
+        if (method != "GET" or target.scheme != "https" or target.netloc != "hol.org"
+                or target.path != "/api/v1/plugins/catalog"):
+            raise RegistryCatalogFetchError("Refusing to send the catalog key outside its read endpoint")
+        # urllib does not copy unredirected headers into redirected requests.
+        req.add_unredirected_header("x-api-key", REGISTRY_BROKER_API_KEY)
+    attempts = REGISTRY_MAX_ATTEMPTS if retry_registry and method == "GET" else 1
+    for attempt in range(attempts):
+        retry_after = None
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as error:
+            print(f"  HTTP {error.code} from {url}", file=sys.stderr)
+            retry_after = error.headers.get("Retry-After") if error.headers else None
+            error.close()
+            if attempts == 1 or error.code not in REGISTRY_RETRY_STATUSES:
+                return None
+        except (urllib.error.URLError, TimeoutError) as error:
+            print(f"  Error fetching {url}: {error}", file=sys.stderr)
+            if attempts == 1:
+                return None
+        except Exception as error:
+            print(f"  Error fetching {url}: {error}", file=sys.stderr)
+            return None
+
+        if attempt + 1 == attempts:
+            raise RegistryTemporarilyUnavailable("Registry retries exhausted")
+        delay = registry_retry_delay(attempt, retry_after)
+        if delay > REGISTRY_MAX_RETRY_DELAY:
+            raise RegistryTemporarilyUnavailable("Registry Retry-After exceeds retry budget")
+        print(f"  Retrying Registry request in {delay:.1f}s ({attempt + 2}/{attempts})", file=sys.stderr)
+        time.sleep(delay)
+
+
+def fetch_merged_pr_metadata():
+    """Load trusted metadata for a manually dispatched claim notice."""
+    url = f"https://api.github.com/repos/{REPO_FULL}/pulls/{PR_NUMBER}"
+    headers = {"Authorization": f"token {GH_TOKEN}"}
+    data = api_request(url, headers=headers)
+    if not isinstance(data, dict):
         return None
-    except Exception as e:
-        print(f"  Error fetching {url}: {e}", file=sys.stderr)
+    if not data.get("merged_at"):
         return None
+    title = data.get("title")
+    user = data.get("user")
+    author = user.get("login") if isinstance(user, dict) else None
+    if not isinstance(title, str) or not isinstance(author, str):
+        return None
+    return title, author
 
 
 def should_skip_title(title: str) -> bool:
     """Return True if the PR title matches a non-plugin pattern."""
+    # `docs: add <plugin>` is a common legitimate contribution title. Allow it
+    # through the title gate, while retaining specific docs-only exclusions below.
+    allow_docs_add = bool(re.match(r"^docs?:\s+add\b", title.strip(), re.IGNORECASE))
     for pattern in SKIP_PATTERNS:
+        if pattern == r"^docs?:" and allow_docs_add:
+            continue
         if re.search(pattern, title, re.IGNORECASE):
             return True
     return False
 
 
-def fetch_catalog_repos(owner_verified: bool = False):
-    """Fetch repos from the registry catalog, optionally filtered by owner verification.
+def fetch_catalog_repos(repository: str):
+    """Look up verified ownership for one repository, never the full catalog."""
+    cache_key = normalize_repo_url(repository)
+    cached = CATALOG_REPO_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
 
-    Returns a set of lowercase 'owner/repo' strings.
-    """
     repos = set()
     cursor = None
-    base_url = f"{REGISTRY_API}/plugins/catalog?limit=50"
-    if owner_verified:
-        base_url += "&ownerVerified=true"
     seen_cursors = set()
-    while True:
-        url = f"{base_url}&cursor={cursor}" if cursor else base_url
-        data = api_request(url)
-        if not data or "items" not in data:
-            raise RuntimeError("Registry catalog is unavailable; claim notice will be retried")
+    base_url = f"{REGISTRY_API}/plugins/catalog?" + urlencode(
+        {"limit": 50, "q": cache_key, "ownerVerified": "true"}
+    )
+
+    for page_index in range(MAX_CATALOG_PAGES):
+        url = base_url if not cursor else f"{base_url}&cursor={cursor}"
+        data = api_request(url, retry_registry=True)
+        if not isinstance(data, dict) or not isinstance(data.get("items"), list):
+            raise RegistryCatalogFetchError(
+                f"registry catalog page {page_index + 1} unavailable"
+            )
+
         for plugin in data["items"]:
-            # Vendored marketplace plugins have a catalog sourceRepo of
-            # awesome-codex-plugins; ownership belongs to the author repo.
+            if not isinstance(plugin, dict):
+                continue
             repo = plugin.get("repository") or plugin.get("sourceRepo") or ""
-            repo = normalize_repo_url(repo) if repo else ""
-            if repo:
-                repos.add(repo.lower())
-        cursor = data.get("nextCursor")
-        if not cursor:
-            break
-        if cursor in seen_cursors:
-            raise RuntimeError("Registry catalog cursor repeated; claim notice will be retried")
-        seen_cursors.add(cursor)
-    return repos
+            if not isinstance(repo, str):
+                continue
+            if (repo and normalize_repo_url(repo) == cache_key
+                    and plugin.get("ownerVerified") is True):
+                repos.add(cache_key)
+
+        next_cursor = data.get("nextCursor")
+        if not next_cursor:
+            CATALOG_REPO_CACHE[cache_key] = repos
+            return repos
+        if not isinstance(next_cursor, str):
+            raise RegistryCatalogFetchError(
+                f"registry catalog page {page_index + 1} returned an invalid cursor"
+            )
+        if next_cursor in seen_cursors:
+            raise RegistryCatalogFetchError(
+                f"registry catalog repeated cursor {next_cursor!r}"
+            )
+        seen_cursors.add(next_cursor)
+        cursor = next_cursor
+
+    raise RegistryCatalogFetchError(
+        f"registry catalog exceeded {MAX_CATALOG_PAGES} pages"
+    )
 
 
 def normalize_repo_url(raw: str) -> str:
@@ -179,16 +285,6 @@ def normalize_repo_url(raw: str) -> str:
         if len(parts) >= 2:
             s = f"{parts[0]}/{parts[1]}"
     return s.lower()
-
-
-def readme_contains_repo(readme: str, repo: str) -> bool:
-    """Match owner/repo as its own token, not as a prefix of a longer name."""
-    pattern = (
-        r"(?<![A-Za-z0-9_.-])"
-        + re.escape(repo.lower())
-        + r"(?![A-Za-z0-9_.-])"
-    )
-    return re.search(pattern, readme.lower()) is not None
 
 
 def parse_pr_diff_for_repos():
@@ -255,55 +351,96 @@ def parse_pr_diff_for_repos():
     }
 
 
+def catalog_source_repos():
+    """Read repository identities from listings in the trusted base checkout."""
+    root = Path(__file__).resolve().parents[1]
+    with open(root / "README.md", encoding="utf-8") as readme:
+        content = readme.read()
+    links = re.findall(
+        r"^\s*-\s+\[[^\]]+\]\((https://github\.com/|\./plugins/)"
+        r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)",
+        content, re.MULTILINE | re.IGNORECASE,
+    )
+    repos = set()
+    for prefix, repo in links:
+        if prefix.lower().startswith("https://"):
+            repos.add(normalize_repo_url(repo))
+            continue
+        manifest_path = (root / "plugins" / repo / ".codex-plugin" / "plugin.json").resolve()
+        if not manifest_path.is_relative_to((root / "plugins").resolve()):
+            raise OSError("Local plugin listing points outside the plugin catalog")
+        try:
+            with open(manifest_path, encoding="utf-8") as manifest_file:
+                manifest = json.load(manifest_file)
+        except (ValueError, TypeError) as error:
+            raise OSError(f"Invalid local plugin metadata for {repo}") from error
+        upstream = manifest.get("repository") if isinstance(manifest, dict) else None
+        if not isinstance(upstream, str) or not re.fullmatch(
+            r"(?:https://github\.com/)?[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?",
+            upstream, re.IGNORECASE,
+        ):
+            raise OSError(f"Local plugin listing has no GitHub repository identity: {repo}")
+        repos.add(normalize_repo_url(upstream))
+    return repos
+
+
 def has_existing_claim_comment():
     """Check if the PR already has a claim-notice or manual claim comment."""
     headers = {"Authorization": f"token {GH_TOKEN}"}
-    page = 1
-    state = None
-    while True:
-        url = f"https://api.github.com/repos/{REPO_FULL}/issues/{PR_NUMBER}/comments?per_page=100&page={page}"
+    deferred_notice = None
+    for page in range(1, MAX_COMMENT_PAGES + 1):
+        url = (
+            f"https://api.github.com/repos/{REPO_FULL}/issues/{PR_NUMBER}/comments"
+            f"?per_page=100&page={page}"
+        )
         comments = api_request(url, headers=headers)
         if not isinstance(comments, list):
-            raise RuntimeError("Cannot check existing claim notices; retry later")
+            raise GitHubCommentsFetchError(
+                f"comments page {page} is unavailable"
+            )
         for comment in comments:
+            if not isinstance(comment, dict):
+                continue
             body = comment.get("body") or ""
             if MARKER in body:
-                if (
-                    "Registry sync in progress" in body
-                    or "Still syncing" in body
-                    or "not live in the HOL Registry" in body
-                ):
-                    state = "pending"
-                else:
-                    return "ready"
+                if any(marker in body for marker in DEFERRED_NOTICE_MARKERS):
+                    deferred_notice = {"id": comment.get("id"), "deferred": True}
+                    continue
+                return True
             # Also detect manual claim comments posted before automation
             if "Claim your plugin" in body and "hol.org/guard/plugins" in body:
-                return "ready"
+                return True
         if len(comments) < 100:
-            break
-        page += 1
-    return state
+            return deferred_notice or False
 
-
-def set_pending_label(pending: bool):
-    """Keep an indefinite retry queue on the merged PR itself."""
-    subprocess.run(
-        ["gh", "pr", "edit", PR_NUMBER, "--repo", REPO_FULL,
-         "--add-label" if pending else "--remove-label", PENDING_LABEL],
-        check=True, timeout=30, env={**os.environ, "GH_TOKEN": GH_TOKEN},
+    raise GitHubCommentsFetchError(
+        f"comments exceeded {MAX_COMMENT_PAGES} pages"
     )
 
 
-def post_comment(author: str, repositories=(), registry_ready: bool = True):
+def post_comment(author: str, repositories=(), pending_repositories=()):
     """Post the claim notice comment on the PR, tagging the author."""
     url = f"https://api.github.com/repos/{REPO_FULL}/issues/{PR_NUMBER}/comments"
     headers = {"Authorization": f"token {GH_TOKEN}"}
-    body = build_comment_body(author, repositories, registry_ready=registry_ready)
+    body = build_comment_body(author, repositories, pending_repositories)
     result = api_request(url, headers=headers, method="POST", data={"body": body})
     return result is not None
 
 
+def update_comment(comment_id, author: str, repositories=()) -> bool:
+    """Replace a deferred sync notice with a claim link."""
+    if not isinstance(comment_id, int):
+        return False
+    url = f"https://api.github.com/repos/{REPO_FULL}/issues/comments/{comment_id}"
+    headers = {"Authorization": f"token {GH_TOKEN}"}
+    body = build_comment_body(author, repositories)
+    result = api_request(url, headers=headers, method="PATCH", data={"body": body})
+    return result is not None
+
+
 def main():
+    global PR_AUTHOR, PR_TITLE
+
     # Validate required environment variables
     missing = []
     if not GH_TOKEN:
@@ -316,26 +453,45 @@ def main():
         print(f"Error: missing required environment variables: {', '.join(missing)}", file=sys.stderr)
         return 1
 
-    print(f'PR #{PR_NUMBER}: "{PR_TITLE}" by @{PR_AUTHOR}')
+    if os.environ.get("VERIFY_MERGED_PR") == "true":
+        metadata = fetch_merged_pr_metadata()
+        if metadata is None:
+            print("Error: PR metadata is unavailable or the PR is not merged", file=sys.stderr)
+            return 1
+        PR_TITLE, PR_AUTHOR = metadata
 
-    # 1. Skip non-plugin PRs
-    if not PENDING_RETRY and should_skip_title(PR_TITLE):
-        print("  Skipping: non-plugin PR title pattern")
-        return 0
+    print(f'PR #{PR_NUMBER}: "{PR_TITLE}" by @{PR_AUTHOR}')
 
     if PR_AUTHOR in ("kantorcodes", "github-actions[bot]"):
         print("  Skipping: bot/owner PR")
         return 0
 
-    # 2. Parse PR diff for GitHub repo URLs
+    # 2. Check for existing claim comment. A deferred "still syncing"
+    # notice is replaced once we know which repositories to claim.
+    existing_notice = False
+    try:
+        existing_notice = has_existing_claim_comment()
+        if existing_notice is True:
+            print("  Skipping: claim notice already posted")
+            return 0
+    except GitHubCommentsFetchError as error:
+        print(f"  Existing claim comment check failed: {error}", file=sys.stderr)
+        return 1
+
+    # Recover an existing deferred notice even if its PR title was later edited.
+    if not existing_notice and should_skip_title(PR_TITLE):
+        print("  Skipping: non-plugin PR title pattern")
+        return 0
+
+    # 3. Parse PR diff for GitHub repo URLs
     try:
         pr_repos = parse_pr_diff_for_repos()
     except subprocess.CalledProcessError as e:
         print(f"  Failed to get PR diff (exit {e.returncode}): {e.stderr}", file=sys.stderr)
-        return 0
+        return 1
     except subprocess.TimeoutExpired:
         print("  Failed to get PR diff: timed out", file=sys.stderr)
-        return 0
+        return 1
 
     if not pr_repos:
         print("  Skipping: no GitHub repo URLs found in PR diff")
@@ -343,76 +499,63 @@ def main():
 
     print(f"  Found repos in diff: {', '.join(pr_repos)}")
 
-    set_pending_label(True)
-    existing_notice = has_existing_claim_comment()
-    if existing_notice and existing_notice != "pending":
-        set_pending_label(False)
-        print("  Skipping: claim-ready notice already posted")
-        return 0
-
-    # 4. Fetch all registry plugins
-    print("  Fetching registry catalog...")
-    registry_repos = fetch_catalog_repos(owner_verified=False)
-    print(f"  Registry has {len(registry_repos)} plugins")
-
-    # 5. Check which PR repos are in the live registry. If they only appear in
-    # the merged README source, keep the notice informational until ingestion finishes.
-    matched = set(pr_repos & registry_repos)
-    missing = pr_repos - matched
-    if missing:
-        print("  Checking README for repositories the Registry has not indexed...")
-        readme_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "README.md")
-        if os.path.exists(readme_path):
-            readme_content = open(readme_path, encoding="utf-8").read().lower()
-            readme_matched = {
-                repo for repo in missing if readme_contains_repo(readme_content, repo)
-            }
-            if readme_matched:
-                print(f"  Claimable from catalog source: {', '.join(sorted(readme_matched))}")
-                matched |= readme_matched
-    registry_ready = bool(pr_repos & registry_repos)
+    # Only invite repositories present in the trusted, merged catalog source.
+    try:
+        matched = pr_repos & catalog_source_repos()
+    except OSError as error:
+        print(f"  Could not read merged catalog source: {error}", file=sys.stderr)
+        return 1
     if not matched:
-        set_pending_label(False)
-        print("  Skipping: none of the PR repos are in the registry or README")
+        print("  Skipping: none of the PR repos are listed in the merged catalog source")
         return 0
 
-    if registry_ready:
-        print(f"  Matched in registry: {', '.join(matched)}")
-    else:
-        print(f"  Pending registry sync: {', '.join(matched)}")
-
+    # Ownership is enforced by the claim flow. This optional query only avoids
+    # redundant invitations; unavailable Registry evidence must not drop notices.
     already_verified = set()
-    # 6. Check if already owner-verified only when the repository is actually live.
-    if registry_ready:
-        print("  Checking owner verification status...")
-        verified_repos = fetch_catalog_repos(owner_verified=True)
-        already_verified = matched & verified_repos
-        if already_verified and len(already_verified) == len(matched):
-            set_pending_label(False)
-            print("  Skipping: all matched repos already owner-verified")
+    for repo in sorted(matched):
+        try:
+            already_verified |= fetch_catalog_repos(repo)
+        except RegistryCatalogFetchError as error:
+            print(f"::warning::Owner verification lookup unavailable for {repo}: {error}; including its claim/dashboard link.")
+
+    claimable_repos = matched - already_verified
+    if already_verified:
+        print(f"  Already verified: {', '.join(sorted(already_verified))}")
+
+    if not claimable_repos:
+        if isinstance(existing_notice, dict) and existing_notice.get("deferred"):
+            print("  Clearing deferred notice; repositories are already verified")
+            if update_comment(existing_notice.get("id"), PR_AUTHOR, set()):
+                print("  ✅ Deferred notice cleared")
+                return 0
+            print("  ❌ Failed to clear deferred notice")
+            return 1
+        print("  Posting verified-owner dashboard notice...")
+        if post_comment(PR_AUTHOR, set()):
+            print("  ✅ Dashboard notice posted successfully")
             return 0
+        print("  ❌ Failed to post dashboard notice")
+        return 1
 
-        if already_verified:
-            print(f"  Some already verified: {', '.join(already_verified)}")
-
-    # A deferred sync notice is replaced by a claim link. Registry indexing
-    # is not required before the author can verify ownership.
-    claimable = matched - already_verified
-    if not claimable:
-        set_pending_label(False)
-        print("  Skipping: all matched repos already owner-verified")
-        return 0
+    # 7. Post or replace the comment. Catalog-source repos are claimable
+    # before the public Registry listing finishes indexing.
+    if isinstance(existing_notice, dict) and existing_notice.get("deferred"):
+        print("  Replacing deferred claim notice...")
+        if update_comment(existing_notice.get("id"), PR_AUTHOR, claimable_repos):
+            print("  ✅ Comment updated successfully")
+            return 0
+        print("  ❌ Failed to update comment")
+        return 1
 
     print("  Posting claim notice comment...")
-    if post_comment(PR_AUTHOR, claimable, registry_ready=registry_ready):
-        if registry_ready:
-            set_pending_label(False)
+    if post_comment(PR_AUTHOR, claimable_repos):
         print("  ✅ Comment posted successfully")
         return 0
-    else:
-        print("  ❌ Failed to post comment")
-        return 1
+
+    print("  ❌ Failed to post comment")
+    return 1
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    result = main()
+    sys.exit(0 if result == NOTICE_DEFERRED else result)

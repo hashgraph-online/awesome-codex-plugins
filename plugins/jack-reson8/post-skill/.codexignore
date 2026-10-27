@@ -1,0 +1,7 @@
+.git/
+node_modules/
+__pycache__/
+.DS_Store
+out/
+stills/
+*.mp4

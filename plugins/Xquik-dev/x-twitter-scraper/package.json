@@ -16,6 +16,9 @@
     "url": "https://github.com/Xquik-dev/x-twitter-scraper/issues"
   },
   "packageManager": "bun@1.4.3",
+  "scripts": {
+    "check": "tsc --noEmit && type-coverage -p tsconfig.json --strict --at-least 100 && eslint --config eslint.config.mts --flag unstable_native_nodejs_ts_config --max-warnings 0 ."
+  },
   "engines": {
     "bun": ">=1.4.0"
   },
@@ -91,8 +94,16 @@
     "skills/*/references/*.md",
     "skills.sh.json",
     "start.sh",
-    "stub-server.mjs",
+    "stub-server.ts",
     "task-guides",
     "x-twitter-scraper.json"
-  ]
+  ],
+  "devDependencies": {
+    "@types/node": "26.6.5",
+    "@typescript/native": "npm:typescript@7.0.2",
+    "eslint": "10.13.0",
+    "type-coverage": "2.30.4",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-eslint": "8.72.0"
+  }
 }

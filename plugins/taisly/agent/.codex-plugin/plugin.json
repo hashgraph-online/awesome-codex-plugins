@@ -1,6 +1,6 @@
 {
   "name": "taisly-agent-kit",
-  "version": "0.2.8",
+  "version": "0.2.10",
   "description": "Publish short-form videos to TikTok, Instagram Reels, YouTube Shorts, X, and Facebook from Codex through Taisly.",
   "author": {
     "name": "Taisly",

@@ -14,8 +14,8 @@ If not installed:
 
 | Platform | Command |
 |----------|---------|
-| macOS/Linux | `brew install bitbucket-cli` (Homebrew core) or `brew install avivsinai/tap/bitbucket-cli` (official binary, Cloud OAuth built in) |
-| Windows | `scoop bucket add avivsinai https://github.com/avivsinai/scoop-bucket && scoop install bitbucket-cli` |
+| macOS/Linux | `brew install bitbucket-cli` (Homebrew core) or `brew install avivsinai/tap/bitbucket-cli` (signed release binary); install only one |
+| Windows | `winget install AvivSinai.Bitbucket-CLI`, or `scoop bucket add avivsinai https://github.com/avivsinai/scoop-bucket && scoop install bitbucket-cli` |
 | Go | `go install github.com/avivsinai/bitbucket-cli/cmd/bkt@latest` |
 | Binary | Download from [GitHub Releases](https://github.com/avivsinai/bitbucket-cli/releases) |
 
@@ -29,7 +29,7 @@ bkt auth status
 - Create an "API token with scopes" (not a general API token)
 - Select **Bitbucket** as the application
 - Required scope: **Account: Read** (`read:user:bitbucket`)
-- Additional scopes as needed: Repositories, Pull requests, Issues
+- Additional scopes as needed: Repositories (Admin for `bkt repo create`), Pull requests, Pipelines, Webhooks
 
 For config-free use in containers and CI pipelines, see [headless authentication](headless.md).
 
@@ -39,14 +39,12 @@ If not authenticated, log in:
 # Data Center (PAT-based)
 bkt auth login https://bitbucket.example.com --username alice --token <PAT>
 
-# Bitbucket Cloud — OAuth (official binaries open browser out of the box)
+# Bitbucket Cloud — OAuth (opens the browser; no setup needed)
 bkt auth login https://bitbucket.org --kind cloud --web
 
 # Bitbucket Cloud — API token (--web-token opens Atlassian's token creation page)
 bkt auth login https://bitbucket.org --kind cloud --web-token
 ```
-
-For source and Nix builds, set `BKT_OAUTH_CLIENT_ID` and `BKT_OAUTH_CLIENT_SECRET` env vars before running `--web`.
 
 **3. Set up a context** — contexts bind a host to a project/workspace and optional default repo, so you don't repeat flags on every command:
 
@@ -68,7 +66,7 @@ Some commands are **Data Center only** or **Cloud only** — check the command r
 | Repositories | yes | yes |
 | Branches (list) | yes | yes |
 | Branches (create/delete/protect) | yes | — |
-| Issues | — | yes |
+| Issues | — | — (removed by Atlassian; use Jira) |
 | Pipelines | — | yes |
 | Permissions | yes | — |
 | Webhooks | yes | yes |
@@ -155,7 +153,6 @@ Every command accepts these inherited flags:
 - [commit](commit.md) — Work with commits
 - [context](context.md) — Manage Bitbucket CLI contexts
 - [extension](extension.md) — Manage bkt CLI extensions
-- [issue](issue.md) — Work with Bitbucket Cloud issues *(Cloud)*
 - [mcp](mcp.md) — Model Context Protocol server for agents
 - [perms](perms.md) — Manage Bitbucket permissions *(DC)*
 - [pipeline](pipeline.md) — Run and inspect Bitbucket Cloud pipelines *(Cloud)*

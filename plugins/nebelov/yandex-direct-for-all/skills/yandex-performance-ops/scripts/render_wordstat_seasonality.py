@@ -32,6 +32,16 @@ def resolve_raw_path(base_dir: Path, raw_dir_value: str, mask: str) -> Path:
     raw_dir = Path(raw_dir_value)
     if not raw_dir.is_absolute():
         raw_dir = (base_dir / raw_dir).resolve()
+    manifest = raw_dir / "_manifest.json"
+    if manifest.is_file():
+        # Сборщики (Yandex Cloud и XMLRiver) пишут имя с хешем маски; путь берётся из их манифеста.
+        for entry in json.loads(manifest.read_text(encoding="utf-8")):
+            kind = str(entry.get("artifact") or entry.get("type") or "")
+            if kind == "dynamics" and entry.get("status") in ("success", "partial") and \
+                    normalize_text(entry.get("source_mask") or entry.get("mask") or "") == mask:
+                found = raw_dir / Path(str(entry.get("file", ""))).name
+                if found.is_file():
+                    return found
     return raw_dir / f"dynamics_{slugify_mask(mask)}.json"
 
 

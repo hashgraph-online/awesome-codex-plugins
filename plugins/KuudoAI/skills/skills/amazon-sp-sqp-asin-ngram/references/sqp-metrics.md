@@ -1,5 +1,7 @@
 # SQP scope, counts and derived metrics
 
+Use these rules for analysis and supporting records. Present the recommendation using the [seller-answer contract](decision-records.md); include a technical limitation in the main answer only when it changes the decision.
+
 Use the pinned Amazon schema and reporting documentation in [amazon-sources.md](amazon-sources.md). Preserve raw fields alongside normalized or derived values.
 
 ## Scope before arithmetic
@@ -47,3 +49,7 @@ A zero numerator with a positive denominator is zero. Missing inputs or a zero d
 Example: volume 1,000; market impressions 5,000, clicks 200, purchases 20; ASIN impressions 500, clicks 40, purchases 2. Market clicks/search = .20, market CTR = .04, ASIN CTR = .08; purchase-per-click = .10 market and .05 ASIN; relative index = .5. If reported click rate is .04, preserve it with the conflict note instead of relabeling it .20.
 
 Peer P25/P50 requires an actual cohort, source, sample size, period and marketplace. Do not synthesize peer distributions from market totals or treat unlike products as peers. Missing peers do not block volume/click prioritization; omit peer claims. Attribution badges state the actual source scope and dates, not an invented universal “short window”.
+
+## Theme comparisons
+
+For multi-query analysis, use [theme-analysis.md](theme-analysis.md): sum raw counts over unique compatible members, recompute ratios, and compare disjoint cohorts. Theme confidence intervals are descriptive binomial approximations with explicit availability limits, not Amazon-provided metrics.

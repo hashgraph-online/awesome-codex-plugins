@@ -187,13 +187,9 @@ Claude Code プラグインとしてインストールされている場合、`r
 
 スキルのパス解決:
 
-```bash
-# Claude Code plugin 環境
-${CLAUDE_PLUGIN_ROOT}/skills/agent-skills/river-review/SKILL.md
-
-# リポジトリ内で直接実行する場合（フォールバック）
-./skills/agent-skills/river-review/SKILL.md
-```
+1. Bash で `echo "$CLAUDE_PLUGIN_ROOT"` を実行し、出力された絶対パスに `/skills/agent-skills/river-review/SKILL.md` を連結して Read する。Read ツールが環境変数を展開するとは限らないため、`${CLAUDE_PLUGIN_ROOT}` を含むパスをそのまま渡さない。
+2. 出力が空のときに `<root>/skills/agent-skills/river-review/SKILL.md` を使ってよいのは、river-review リポジトリ内で動かす場合だけである。リポジトリ内かどうかは、`git rev-parse --show-toplevel` で得たリポジトリのルート `<root>`（サブディレクトリから起動してもルートを指す）を基準に判定する。`<root>/skills/agent-skills/river-review/SKILL.md` と `<root>/agents/river-review.md` の両方があり、かつ `<root>/package.json` の `name` が `river-review` であればリポジトリ内とみなす。同名のファイルを vendor した利用側リポジトリを内と誤判定しないため、`name` も条件に含める（例: Bash で `root="$(git rev-parse --show-toplevel)" && test -f "$root/skills/agent-skills/river-review/SKILL.md" && test -f "$root/agents/river-review.md" && grep -q '"name": "river-review"' "$root/package.json" && echo "$root"`）。このコマンドが失敗したとき（git リポジトリでない、`package.json` が無いなど）はリポジトリ外として扱う。
+3. それでも読めなければレビューに進まず、代替基準でのレビューもしない。「Skill Registry が未解決のためレビューを実行できない」と報告して止まる。
 
 ### Codex スキルとして
 
@@ -210,6 +206,18 @@ river run . --reviewers auto --output json
 
 JSON には `findings` / `autoSelectedRoles` / `score` が含まれる。
 CLI は必須でない。absent または失敗した場合はスキル駆動のレビューで継続すること。
+
+### PR を対象にするときの git 操作（全環境共通）
+
+この節は Claude Code エージェント・Codex スキル・CLI アクセラレータのどの経路で動かす場合にも適用する。
+
+PR の差分は、利用者のリポジトリに名前付きの ref を残さない方法で取得する。
+
+- `gh pr diff <N>` を使う。または `git fetch origin pull/<N>/head` だけを実行し、`FETCH_HEAD` で扱う。
+- `git fetch origin pull/<N>/head:pr<N>` のように、名前付きの ref やブランチを作らない。
+- `origin` が fork を指している、または GitHub 以外の remote であるなどの理由で `git fetch origin pull/<N>/head` が失敗したら、PR の base リポジトリを指す remote（例: `upstream`）で同じ fetch を試す。それでも取れなければ `gh pr diff <N>` の出力だけでレビューを続ける。どちらの場合も名前付きの ref は作らない。
+- `gh` が使えず fetch でも差分を取れないときは、レビューに進まない。利用者に PR の diff（例: `git diff <base>...<head>` の出力）を渡すよう依頼して止まる。
+- やむを得ず作った場合は、作った ref 名と削除コマンド（例: `git branch -D pr<N>`）をレポートに書く。
 
 ## References
 

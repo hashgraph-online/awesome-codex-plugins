@@ -1,0 +1,27 @@
+{
+  "workflow": "article-to-video",
+  "source": {
+    "url": "https://arxiv.org/pdf/2401.00000.pdf",
+    "scrapingPrompt": "Extract the abstract and the 3 most surprising findings. Skip references and appendices."
+  },
+  "aspectRatio": "9:16",
+  "voice":    { "enabled": true, "stability": 0.65, "speed": 0.95, "language": "en-US" },
+  "captions": { "enabled": true, "position": "middle", "autoCrop": true },
+  "music":    { "enabled": true, "syncWith": "beats" },
+  "media": {
+    "type": "stock-video",
+    "density": "medium",
+    "animation": "soft",
+    "quality": "pro",
+    "imageModel": "good",
+    "videoModel": "pro"
+  },
+  "options": {
+    "targetDuration": 60,
+    "summarizationPreference": "summarize",
+    "soundEffects": true,
+    "hasToGenerateCover": true,
+    "coverTextType": "title"
+  },
+  "render": { "resolution": "1080p", "frameRate": 30 }
+}

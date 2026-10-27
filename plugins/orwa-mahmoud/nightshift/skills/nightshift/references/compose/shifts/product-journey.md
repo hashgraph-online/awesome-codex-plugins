@@ -58,7 +58,7 @@ automation or one journey alone.
     reversible fixes after the map names them; it never deploys, publishes, or claims certification.
   - Never claim whole-product usability, WCAG, or cross-browser certification from one script or
     unavailable browser evidence.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every reproducible gap is fixed and retested, or every remaining gap is parked with
     evidence and required human review.
   - Verify: the item gate is green at every commit; the scoped route replays end to end in the

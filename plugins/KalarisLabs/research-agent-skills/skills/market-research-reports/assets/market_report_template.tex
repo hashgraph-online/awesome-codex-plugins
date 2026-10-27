@@ -1,0 +1,279 @@
+% !TEX program = xelatex
+% Evidence-first market research report template.
+\documentclass[11pt,letterpaper]{report}
+\usepackage{market_research}
+
+\newcommand{\reporttitle}{[Market name]}
+\newcommand{\reportsubtitle}{Evidence-first market assessment}
+\newcommand{\retrievalcutoff}{[YYYY-MM-DD]}
+\newcommand{\reportauthor}{[Prepared by]}
+\newcommand{\reportclassification}{[Public / Internal / Confidential]}
+
+\hypersetup{
+  pdftitle={\reporttitle{} --- \reportsubtitle{}},
+  pdfauthor={\reportauthor{}},
+  pdfkeywords={market definition, evidence ledger, scenario analysis}
+}
+
+\begin{document}
+
+\makemarketreporttitle
+  {\reporttitle}
+  {\reportsubtitle}
+  {\retrievalcutoff}
+  {\reportauthor}
+
+\pagenumbering{roman}
+
+\begin{calloutbox}[Use and limitations]
+This report distinguishes observed facts, estimates, calculations, scenarios,
+opinions, and recommendations. Claim IDs map to the claims ledger; source IDs
+map to the evidence ledger. Scenario ranges are conditional and are not
+confidence intervals unless a separately documented statistical model supports
+that interpretation. This report is not investment, legal, or financial advice.
+\end{calloutbox}
+
+\textbf{Classification:} \reportclassification
+
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\chapter{Executive Synopsis}
+
+\section{Decision Context}
+[State the decision, audience, retrieval cutoff, and material scope constraints.]
+
+\section{Findings}
+\begin{evidencebox}[Observed findings]
+\begin{itemize}
+  \item [Finding with \claimref{C-001} and \sourceref{S-001}.]
+  \item [Finding with explicit geography, period, unit, and revision status.]
+\end{itemize}
+\end{evidencebox}
+
+\section{Scenario Range}
+\begin{calculationbox}[Conditional range]
+[State the range across named scenarios and methods. Include calculation IDs,
+currency, base year, price basis, period, and denominator.]
+\end{calculationbox}
+
+\begin{assumptionbox}[Key assumptions]
+[List the assumptions that most influence the result and their
+\assumptionref{A-...} identifiers.]
+\end{assumptionbox}
+
+\begin{limitationbox}[Material limitations]
+[List unresolved source conflicts, missing evidence, revisions, sample
+limitations, taxonomy breaks, and model limitations.]
+\end{limitationbox}
+
+\chapter{Scope, Definitions, and Method}
+
+\section{Market Definition}
+\begin{calloutbox}[Formal definition]
+[Define the product or service, customer, geography, transaction type,
+measurement basis, and period.]
+\end{calloutbox}
+
+\subsection{Included}
+\begin{itemize}
+  \item [Included product, customer, or channel.]
+\end{itemize}
+
+\subsection{Excluded}
+\begin{itemize}
+  \item [Excluded category and reason.]
+\end{itemize}
+
+\section{Measurement Contract}
+\begin{longtable}{@{}p{0.28\textwidth}p{0.64\textwidth}@{}}
+\toprule
+Field & Definition \\
+\midrule
+\endhead
+Geography & [Boundary and treatment of imports/exports] \\
+Historical period & [Start--end] \\
+Forecast period & [Start--end] \\
+Currency and base year & [Currency; nominal/real/current/constant basis] \\
+Measure type & [Stock/flow/count/share/rate/price/index] \\
+Unit and denominator & [Explicit unit and denominator ID] \\
+Industry taxonomy & [NAICS/NACE/ISIC or other taxonomy and version] \\
+Product taxonomy & [NAPCS/CPA/PRODCOM/CPC or other taxonomy and version] \\
+Retrieval cutoff & \retrievalcutoff \\
+\bottomrule
+\end{longtable}
+
+\section{Evidence Hierarchy and Conflicts}
+[Describe the source hierarchy, exact claim--source mapping, snapshot/archive
+policy, revision treatment, and how conflicting sources were reconciled or
+retained as a range.]
+
+\chapter{Market Size and Reconciliation}
+
+\section{Top-Down Method}
+[List disjoint components, coverage keys, sources, conversions, and exclusions.
+Do not sum gross output, revenue, trade, and end-customer spend as though they
+were the same denominator.]
+
+\section{Bottom-Up Method}
+[Show customer or unit counts, annual quantities, price assumptions,
+addressable fractions, sources, and formulas.]
+
+\section{TAM, SAM, and SOM Scenarios}
+\begin{markettable}{Conditional TAM/SAM/SOM scenarios}
+\begin{tabular}{@{}lrrrl@{}}
+\toprule
+Scenario & TAM & SAM & SOM & Calculation \\
+\midrule
+Downside & [value] & [value] & [value] & \calcref{CALC-...} \\
+\tablerowcolor
+Base & [value] & [value] & [value] & \calcref{CALC-...} \\
+Upside & [value] & [value] & [value] & \calcref{CALC-...} \\
+\bottomrule
+\end{tabular}
+\end{markettable}
+
+\begin{assumptionbox}[Interpretation]
+TAM, SAM, and SOM are conditional scenario outputs. They are not a single
+asserted market truth. Explain serviceability filters, capture constraints,
+time horizon, and why the scenarios differ.
+\end{assumptionbox}
+
+\section{Method Reconciliation}
+[Report the absolute gap and gap as a percentage of the methods' midpoint.
+Investigate inconsistent boundaries, denominators, taxes, channels, time
+periods, currencies, and double counting before averaging estimates.]
+
+\section{Sensitivity}
+[Show how results change when the principal assumptions vary. State switching
+values at which a decision would change.]
+
+\chapter{Demand and Customer Evidence}
+
+\section{Observed Demand}
+[Report administrative, transactional, official statistical, or filing-based
+evidence with exact definitions and source IDs.]
+
+\section{Survey Evidence}
+\begin{longtable}{@{}p{0.30\textwidth}p{0.62\textwidth}@{}}
+\toprule
+Disclosure & Detail \\
+\midrule
+\endhead
+Sponsor and fieldwork organization & [Names] \\
+Target population and sampling frame & [Definition] \\
+Probability or non-probability sample & [Method] \\
+Recruitment and mode & [Method, languages, dates] \\
+Unweighted sample and subgroups & [Counts] \\
+Weighting and design effect & [Variables, benchmarks, effect] \\
+Response or participation & [Definition and rate, if available] \\
+Question wording & [Instrument location] \\
+Precision & [Appropriate measure and assumptions] \\
+Limitations & [Coverage, nonresponse, measurement, model error] \\
+\bottomrule
+\end{longtable}
+
+\section{Interview Evidence}
+[Describe recruitment, consent, dates, roles represented, analysis/coding
+method, saturation limitations, and privacy controls. Present themes as
+qualitative evidence; do not attach population prevalence to them.]
+
+\chapter{Competitive Landscape}
+
+\section{Relevant Product and Geographic Scope}
+[Explain substitutability, customer perspective, non-price competition,
+channels, geography, dynamic change, and alternate plausible definitions.
+Descriptive market research does not determine a legal antitrust market.]
+
+\section{Competitor-Feature Matrix}
+[Insert the validated, evidence-linked matrix. Use ``unknown'' when public
+evidence is absent. Keep product edition, geography, and as-of date constant.]
+
+\section{Shares and Concentration}
+[State the share metric and denominator: revenue, units, capacity, active
+users, or another defensible measure. Explain residual/unknown participants and
+source coverage. If HHI is shown, state the exact market definition and avoid
+turning screening indicators into legal conclusions.]
+
+\section{Competitive Dynamics}
+[Separate observed actions from interpretation. Cite filings, regulator
+records, official registries, or attributable public company material.]
+
+\chapter{Forecast Scenarios}
+
+\section{Historical Series and Revisions}
+[State source series, frequency, seasonal adjustment, vintage/retrieval date,
+revisions, transformations, and any taxonomy or methodology breaks.]
+
+\section{Scenario Definitions}
+\begin{longtable}{@{}p{0.18\textwidth}p{0.34\textwidth}p{0.38\textwidth}@{}}
+\toprule
+Scenario & Rate path or drivers & Assumptions and evidence \\
+\midrule
+\endhead
+Downside & [Path] & [Assumption and source IDs] \\
+Base & [Path] & [Assumption and source IDs] \\
+Upside & [Path] & [Assumption and source IDs] \\
+\bottomrule
+\end{longtable}
+
+\section{Range and Sensitivity}
+[Report the conditional range by year, endpoint sensitivity, breakpoints, and
+which input dominates. Do not assign scenario probabilities without a
+validated probabilistic basis.]
+
+\chapter{Regulation, Risks, and Uncertainty}
+
+\section{Regulatory Record}
+[Distinguish enacted, effective, proposed, consulted, stayed, and repealed
+rules. Record jurisdiction, authority, publication date, effective date, and
+primary legal source.]
+
+\section{Risk Register}
+[For each risk, separate evidence, likelihood judgment, impact mechanism,
+early indicators, and mitigation. Avoid false numerical precision.]
+
+\chapter{Implications and Options}
+
+\section{Implications}
+[Link each implication to findings and state what would disconfirm it.]
+
+\section{Options}
+[Compare options against explicit objectives, dependencies, costs, risks, and
+decision thresholds.]
+
+\begin{recommendationbox}[Recommendations]
+[State recommendations as judgments, not sourced facts. Include dependencies,
+owners, timing, and evidence that would trigger reconsideration.]
+\end{recommendationbox}
+
+\chapter{Limitations}
+[Consolidate evidence gaps, source conflicts, potential double counting,
+currency/base-year conversions, revision exposure, survey error, interview
+limits, competitive-intelligence limits, and forecast/model uncertainty.]
+
+\appendix
+
+\chapter{Evidence Ledger}
+[Render the complete source ledger: source ID, title, publisher, URL or
+persistent identifier, publication and retrieval dates, geography, unit,
+currency/base, taxonomy, revision status, method/sample, limitations, terms,
+and archive path.]
+
+\chapter{Claims Ledger}
+[Render claim ID, exact claim text, statement type, source IDs, calculation and
+assumption IDs, report location, scope metadata, revision status, and
+confidence label.]
+
+\chapter{Calculations and Assumptions}
+[Include formulas, raw inputs, conversions, coverage keys, denominator IDs,
+scenario paths, sensitivity values, and reconciliation.]
+
+\chapter{Research Ethics and Data Handling}
+[Document consent, privacy notices, retention, access controls,
+de-identification, lawful public-source collection, and deletion schedule.
+Confirm that no deceptive collection, PII disclosure, or trade-secret
+acquisition was used.]
+
+\end{document}

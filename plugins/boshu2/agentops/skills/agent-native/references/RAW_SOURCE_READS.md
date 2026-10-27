@@ -15,10 +15,11 @@ coverage accounting.
 ## Select access before opening bytes
 
 The caller independently supplies the expected native source/project, owner,
-task, model and destination. Existing T05 configuration and its native BD 1.2.2
-maintenance anchor must resolve successfully. The access-policy reference is an
-identity, not permission by its presence. Missing or mismatched context denies
-the read; no source content is included in the error.
+task, model and destination. The `ao config context` route and the native BD
+maintenance anchor it reads must resolve; an unsupported BD version fails
+closed. The access-policy reference is an identity, not permission by its
+presence. Missing or mismatched context denies the read; no source content is
+included in the error.
 
 The resolved `task_policy_ref` selects a `source-read-policy.v1` JSON document.
 It binds the same source/project/owner/task/model/destination to exact canonical
@@ -57,10 +58,10 @@ observation documents have a separate 1 MiB parser resource bound. No source
 locator, task, model, destination or profile has an inferred public default.
 
 Allowed `content_scope` values are `synthetic`, `already-cleared` and `restricted`.
-Current T05 reports `access_enforcement: not_attested`; restricted source reads
-are therefore unavailable. The first two scopes support explicitly authorized
-mechanism checks only. A policy label, file permission or worktree cannot supply
-the native runtime/OS and egress enforcement owned by T39.
+Every result carries the route's `access_enforcement: not_attested`, so
+restricted reads are unavailable and the first two scopes support explicitly
+authorized mechanism checks only. A policy label, file permission or worktree
+cannot supply native runtime/OS and egress enforcement.
 
 ## Read and continue the same frozen prefix
 
@@ -112,6 +113,6 @@ Every result reports `host_delivery: host-delivery-unverified`,
 `serialized_bytes` records emitted document size, not what a tool wrapper
 actually delivered. Preserve the native transcript's actual result and any
 truncation/omission markers. Even a successful producer and an observed final
-sentinel cannot prove the omitted middle was delivered or processed. T09 owns
-later identity-bound coverage/acknowledgement verification; a head-and-tail
-read still leaves the middle unread.
+sentinel cannot prove the omitted middle was delivered or processed. No AgentOps
+command verifies coverage or acknowledgement; a head-and-tail read still leaves
+the middle unread.

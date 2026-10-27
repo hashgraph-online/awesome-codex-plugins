@@ -1,0 +1,44 @@
+{
+  "name": "skill-skill",
+  "version": "1.3.0",
+  "description": "Write Claude skills that actually change what gets generated, and lint them with a 0-100 health score.",
+  "author": {
+    "name": "jack-reson8",
+    "url": "https://github.com/jack-reson8"
+  },
+  "homepage": "https://github.com/jack-reson8/skill-skill",
+  "repository": "https://github.com/jack-reson8/skill-skill",
+  "license": "MIT",
+  "keywords": [
+    "claude-skills",
+    "agent-skills",
+    "skill-creator",
+    "linter",
+    "audit",
+    "prompt-engineering",
+    "claude-code"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Skill Skill",
+    "shortDescription": "Write and lint agent skills that actually change the output",
+    "longDescription": "Turn real work into a skill with forcing functions (required artifacts, gates, scripts), write descriptions that trigger, lint SKILL.md against the Agent Skills spec with a 0-100 health score, and preflight a skill before publishing it to lists and marketplaces.",
+    "developerName": "jack-reson8",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/jack-reson8/skill-skill",
+    "defaultPrompt": [
+      "Turn what we just did into a reusable skill",
+      "Audit my installed skills and fix what fails",
+      "Check this skill repo before I submit it to awesome lists"
+    ],
+    "brandColor": "#D9480F",
+    "screenshots": [],
+    "privacyPolicyURL": "https://github.com/jack-reson8/skill-skill/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/jack-reson8/skill-skill/blob/main/LICENSE"
+  }
+}

@@ -1,106 +1,51 @@
 ---
 name: amazon-sp-sqp-asin-ngram
 description: >
-  Analyze Amazon Search Query Performance (SQP) per ASIN using funnel counts,
-  query-product relevance, product evidence and n-gram themes. Use for Brand
-  Analytics exports, per-ASIN search visibility or organic-rank questions,
-  listing/offer diagnostic hypotheses and opportunity prioritization. Explain
-  what SQP can and cannot establish about organic position. For Ads-only search
-  terms, bids or negatives, use amazon-ads-sp-search-term-explorer instead.
+  Analyze Amazon Search Query Performance (SQP) exports by ASIN and recurring
+  n-gram themes to select specific evidence-backed listing tests or no-change
+  decisions. Use for Brand Analytics, search visibility, organic-rank questions,
+  and query/product opportunity analysis. Explain SQP's limits on organic
+  position. For Ads-only search terms, bids or negatives, use
+  amazon-ads-sp-search-term-explorer instead.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
+compatibility: Optional deterministic rollup helper requires Python 3.10+ (standard library only). Supplied SQP and product evidence work without live tools.
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 ---
 
-# Amazon SQP / ASIN n-gram diagnostics
+# Amazon SQP / ASIN theme decisions
 
-Produce evidence-backed query–ASIN diagnostics and proposed tests. Amazon reporting definitions ground the metrics; ESCI informs relevance assessment and COSMO informs intent hypotheses. Our thresholds and prioritization are analyst conventions, not Amazon ranking rules.
+Find recurring query themes and return specific listing decisions in seller language: **what to change → why → what to watch**. Usually a few short paragraphs are enough. For no change, explain why the existing content should stay. For missing evidence, ask for the one fact that blocks the choice and explain what it will decide. Follow the [seller-answer contract](references/decision-records.md); the main answer must stand alone without a technical appendix.
+
+Amazon definitions ground the metrics; ESCI informs full-query relevance and COSMO informs evidence-filtered intent hypotheses. Our gates and prioritization are analyst conventions, not Amazon ranking rules.
 
 ## Workflow
 
-For Ads-only search-term, bid or negative-keyword work, use `amazon-ads-sp-search-term-explorer` when available. If it is unavailable, explain the handoff and request suitable SQP data for this workflow; do not apply SQP rules to ad-only totals.
+For Ads-only search-term, bid or negative-keyword work, use `amazon-ads-sp-search-term-explorer` when available. Otherwise explain the handoff and request suitable SQP data; do not apply SQP rules to ad-only totals.
 
-1. **Establish scope and counts.** Read [SQP metrics](references/sqp-metrics.md). Recover marketplace from request metadata or ask; validate complete reporting periods. Default to `traffic_scope: sqp_reported_scope`, never organic-only by assumption. Preserve reported rates with the known denominator-conflict note and compute analytical ratios only from raw counts. Carry `searchQueryScore` unchanged; neither it nor impression share establishes product organic position.
-2. **Obtain evidence and assess relevance.** Read [relevance and intent](references/relevance-and-intent.md). Use supplied title/bullets/attributes or available read-only catalog/listing tools with correct seller/marketplace context. Record evidence provenance, then classify full-query fit as exact, substitute, complement, irrelevant or unknown. Do not leave all rows unknown merely because SQP lacks product text: obtain or request the missing facts. Separate explicit requirements, supported capabilities and tentative use-context hypotheses.
-3. **Check sufficiency and group.** Read [priority and QA](references/opportunity-score-and-qa.md). Disclose defaults of 200 total query impressions AND 20 ASIN clicks, configurable by the user. Apply the relevance/sufficiency table and sort investigate rows by volume, then clicks. Thin data permits descriptive analysis, not strong operational recommendations.
-4. **Interpret themes and propose tests.** Preserve full-query constraints while aggregating n-grams. Apply [ASIN diagnostic rules](references/asin-rules.md): observations support hypotheses, not proven causes. Name corroborating evidence and a measurable test before proposing listing, price, shipping or variant work. Missing peers or operational facts are not invented.
-5. **Report with traceability.** Include scope, original query, ASIN, effective thresholds, relevant reported/derived metrics, evidence, relevance rationale, priority and conditional recommendations. Explain unknowns and excluded targets. Use comparable complete periods for reassessment rather than a universal cooldown. Consult the [Amazon source ledger](references/amazon-sources.md) for provenance and research limits.
+1. **Establish scope.** Read [SQP metrics](references/sqp-metrics.md). Obtain marketplace from report request metadata or ask. Use complete WEEK/MONTH/QUARTER periods. Default to `traffic_scope: sqp_reported_scope`. Preserve reported rates with the denominator-conflict note; analytical ratios use raw counts. Carry `searchQueryScore` unchanged: neither it nor impression share establishes organic position.
+2. **Get product and listing evidence.** Read [relevance and intent](references/relevance-and-intent.md). Retrieve available read-only catalog/listing evidence with correct identity/marketplace context, or use supplied facts. Reuse it per ASIN; record source, date and field coverage. Catalog discrepancies need seller/user confirmation before a factual correction. Assess each full query as exact, substitute, complement, irrelevant or unknown; do not infer capability from an intent hypothesis.
+3. **Aggregate compatible themes.** Read [theme analysis](references/theme-analysis.md). Use `scripts/rollup_sqp.py` for reproducible contiguous 1/2/3-grams, summed counts, disjoint remainder comparisons and Wilson intervals. Preserve incompatible intent and unknown/excluded members. Record pooled defaults in the supporting analysis: 200 market query impressions, 20 ASIN clicks, 3 queries and 5 ASIN purchases in each cohort; all configurable. Keep concentration and membership checks in supporting records; explain uncertainty to the seller only through its effect on the decision. Individual thin rows may form an adequate theme.
+4. **Choose the decision.** Apply [decision records](references/decision-records.md) and [ASIN rules](references/asin-rules.md). A specific verified content gap plus a localized comparison can justify one exact listing test; a seller-confirmed contradiction can justify a correction even with thin SQP. A metric gap alone cannot. Retrieve accessible decisive evidence; otherwise name one blocker. Keep no-change decisions brief.
+5. **Report and hand off.** Default to at most three distinct actions, deduplicating overlapping themes and edits. Give the seller before/after text, a plain-language reason and what to watch next. Keep decision codes, scope identifiers, API selectors, threshold lists and calculation limitations in the separate structured handoff. Do not automatically append the audit tables to the seller answer. Explain uncertainty through its consequence for the decision, not just the phrase “could be noise”. Retain supporting query diagnostics using [row priority and QA](references/opportunity-score-and-qa.md); `investigate` does not itself require an edit. Use the additive `schema_version: "2.1"` contract, retaining 2.0 diagnostic field meanings and adding `theme_rollups`/`theme_decisions`. Read the [Amazon source ledger](references/amazon-sources.md) for provenance and research limits.
 
-## Decision record, version 2.0
+Apply user-supplied corrections to the working rows before aggregation. Build every reported table from that same corrected dataset; a missing value must not survive as an earlier total in the summary. The synthetic example below is never a substitute for calculating the supplied data.
 
-This illustrative row uses user-supplied facts, not a live Amazon result. Additional reported metrics (including cart adds and stage-specific prices) remain available when supplied; missing fields stay absent or null with a reason.
+Single-query requests can use row diagnostics directly, without claiming a recurring pattern. Withhold a calculation only when its inputs are missing/invalid; preserve reported values and conflicts in the supporting records, explaining a conflict to the seller when it blocks the decision.
 
-```json
-{
-  "schema_version": "2.0",
-  "report_type": "GET_BRAND_ANALYTICS_SEARCH_QUERY_PERFORMANCE_REPORT",
-  "traffic_scope": "sqp_reported_scope",
-  "scope": {
-    "marketplace_id": "ATVPDKIKX0DER",
-    "period": "WEEK",
-    "start": "2026-10-04",
-    "end": "2026-10-10",
-    "source": "user SQP export and request metadata",
-    "retrieved_at": "2026-10-20"
-  },
-  "asin": "B0TESTBED01",
-  "search_query": "large dog bed",
-  "reported": {
-    "searchQueryVolume": 1000,
-    "searchQueryScore": 5,
-    "totalQueryImpressionCount": 5000,
-    "asinImpressionCount": 500,
-    "totalClickCount": 200,
-    "asinClickCount": 40,
-    "totalPurchaseCount": 20,
-    "asinPurchaseCount": 2,
-    "totalClickRate": 0.04
-  },
-  "derived": {
-    "market_clicks_per_search": 0.20,
-    "market_ctr": 0.04,
-    "asin_ctr": 0.08,
-    "market_purchase_per_click": 0.10,
-    "asin_purchase_per_click": 0.05,
-    "relative_conversion_index": 0.5,
-    "asin_impression_share": 0.10,
-    "asin_click_share": 0.20,
-    "asin_purchase_share": 0.10
-  },
-  "product_evidence": [{
-    "id": "p1",
-    "source": "user-supplied US listing text",
-    "as_of": "2026-10-20",
-    "facts": ["Large dog bed", "40x30 inches", "washable removable cover"]
-  }],
-  "relevance": {
-    "label": "exact",
-    "assessed_by": "analyst",
-    "rationale": "Product type and documented size support the full query.",
-    "evidence_refs": ["p1"],
-    "unmet_constraints": [],
-    "confidence": "supported by supplied attributes; historical listing state not verified"
-  },
-  "intent_hypotheses": [],
-  "qa": {
-    "minimum_query_impressions": 200,
-    "minimum_asin_clicks": 20,
-    "data_sufficient": true,
-    "limitations": ["Only two ASIN purchases", "Product evidence postdates the report", "No peer or offer evidence"],
-    "rate_note": "Reported rate preserved; schema descriptions and example denominators conflict. Derived ratios use counts."
-  },
-  "priority": "investigate",
-  "observations": ["ASIN purchase-per-click is half the market ratio; this does not identify the cause."],
-  "recommendations": [{
-    "action": "pdp_update",
-    "scope": "listing",
-    "status": "conditional_investigation",
-    "evidence_needed": ["Listing state during the report", "Current offer, matching-stage price and ASIN delivery evidence"],
-    "proposed_test": "If a verified information gap is found, clarify that attribute; otherwise do not edit.",
-    "measure": "Compare purchase-per-click over comparable complete periods, recording concurrent changes."
-  }]
-}
-```
+## Example: one size clarification, not a checklist
+
+Synthetic fixture: ASIN B0TESTBED01, SKU BED-L, US, WEEK October 4–10, 2026. Seller confirms a 40 × 30-inch sleeping surface. Complete supplied title/bullets omit dimensions; images/A+ are unavailable.
+
+> **Replace the first bullet with “Large size: 40 × 30-inch sleeping surface.”** It currently says “Available in several sizes.”
+>
+> Searches containing “large” recorded 6 purchases and 120 clicks for your bed. Your other relevant searches recorded 12 purchases from the same number of clicks. Your listing calls the bed large but never tells shoppers its dimensions, even though you have confirmed them.
+>
+> Those purchase counts are small, so we cannot yet tell whether the difference will persist. Add the dimensions because they help shoppers judge the size; these results do not prove that missing dimensions cost you sales or that adding them will increase sales.
+>
+> After the change, watch purchases per 100 clicks from the same “large” searches across complete weeks. Record other listing, price or advertising changes so you can interpret the result.
+
+If the first bullet already clearly states those dimensions: **No size edit is supported. Keep the bullet.** Do not turn the same metrics into a redundant rewrite or a dozen investigations. Evidence dated after the reporting period cannot establish historical copy or causation.
 
 ## Boundaries
 

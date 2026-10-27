@@ -57,7 +57,7 @@ Rules:
 
 ## Body cap
 
-**≤ 120 lines**, counted as the `spec` cap is counted. The Archcore CLI reports the
+**≤ 120 lines** over the whole body, headings and blank lines included. The Archcore CLI reports the
 same cap in `@templates/precision.go` (`MaxBodyLines`).
 
 ### Over the cap — split by actor, never compress

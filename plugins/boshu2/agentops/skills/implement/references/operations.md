@@ -5,7 +5,11 @@ Start from the caller's service promises, affected users, environment, accepted
 outcomes and action authority. Existing SLOs, observation windows, rollout rules
 and recovery limits remain caller-owned. If a missing promise or permission
 blocks a decision, report that gap; do not invent a target or authorize an action.
-Safe read-only investigation can continue within scope.
+Safe read-only investigation can continue within scope. Read-only describes
+the effect, not the intent: prefer a read-only identity or replica when one
+exists. A read still loads a live system, so run production queries one at a
+time against bounded, indexed selections, never scan a large table, and list a
+query whose cost you cannot bound as not run.
 
 Return observations, actions, failures and limits in the existing handoff.
 Persist additional evidence only for a request or declared consumer at the
@@ -22,12 +26,43 @@ accepted outcome. Healthy processes, low CPU or backend success counters are
 diagnostic signals; they cannot establish that the user received the right
 result. Trace the failing boundary after observing the discrepancy.
 
+When logs, traces or error events already exist, follow one concrete failing
+request by its request, trace or event ID through every source in time order
+before building a reproduction. Allow for clock skew across hosts, read each
+instance an error tracker groups together, and treat an ID that stops
+propagating as a finding. Preserve the identifiers and excerpts you need before
+retention removes them.
+
 State which users or request classes were exercised, the observation window,
 eligible attempts and failures. Preserve partial or unknown coverage. A sampled
 success cannot establish an unmeasured SLO or health of unexercised paths. When
 new tests are needed, [Test](../../test/SKILL.md) owns test design; its
 [real-service reference](../../test/references/real-service-e2e.md) covers checks
 whose failure crosses a service boundary.
+
+## A latency or freshness alert may have the wrong boundary
+
+Before changing a timeout, monitor or pipeline, measure the named operation or
+resource from the alert under relevant conditions. An aggregate run can hide
+which member is late. Inspect the effective setting at the failing call site,
+including overrides; a helper default may never govern that request.
+
+Compare the observation with the caller's actual service threshold and the
+monitor's notification rule. A maintenance action may legitimately start before
+user harm warrants notification. Establish both policies before calling their
+difference a defect; neither a monitor nor a health command automatically owns
+the service promise. Preserve an agreed early-warning requirement.
+
+Distinguish elapsed time from progress. A slow operation still advancing, a
+blocked operation and a healthy operation reported late by a stale monitor need
+different repairs. For example, if a refresh completes within its effective
+budget while the page fires below the accepted freshness limit, investigate the
+notification condition before extending the budget. If the resource actually
+exceeds that limit, quieting the alert does not repair the service.
+
+Carry the measured target, duration or freshness, effective setting location,
+progress evidence and policy comparison in the existing handoff. Missing access
+leaves the causal claim unproven; it does not justify a speculative rewrite.
 
 ## Delivery: use representative evidence before expanding
 

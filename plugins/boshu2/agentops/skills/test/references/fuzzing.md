@@ -1,6 +1,6 @@
 # Fuzzing
 
-Use this reference when `/test` targets parsers, serializers, file readers, protocol decoders, untrusted input handlers, state machines, or security-sensitive validation logic.
+Use this reference when Test targets parsers, serializers, file readers, protocol decoders, untrusted input handlers, state machines, or security-sensitive validation logic.
 
 ## Trigger
 
@@ -39,20 +39,13 @@ When fuzzing finds a failure:
 1. Minimize the input.
 2. Add it as a named regression fixture.
 3. Write a normal unit test for the minimized case.
-4. Fix the bug.
-5. Re-run fuzzing and the regression test.
+4. Fix the bug if repair is authorized; otherwise report the minimized
+   reproducer under `defects`.
+5. After a fix, re-run fuzzing and the regression test.
 
-## Output
-
-Record fuzz coverage in `.agents/scratch/tests/summary.md`:
-
-```markdown
-## Fuzz Targets
-
-| Target | Corpus Seeds | Duration | Findings |
-|---|---:|---:|---|
-| <target> | <n> | <time> | <none or issue> |
-```
+Report each target's seed count, duration and findings in
+[Test's handoff](../SKILL.md#output-specification); persist them only for a
+requested destination.
 
 ---
 

@@ -94,7 +94,7 @@ gh skill install LienDeadline/skills liendeadline
 **Claude on the web, desktop or mobile.** Nothing to install: add
 [LienDeadline from Claude's Connectors directory](https://claude.ai/directory/connectors/liendeadline).
 
-**Any other MCP client.** Connect `https://mcp.liendeadline.com/mcp` (Streamable HTTP, no sign-in).
+**Any other MCP client.** Connect `https://mcp.liendeadline.com/mcp` (Streamable HTTP). State guides need no key; supplier discovery and calculations require a dedicated caller key configured through the client's approved secret settings.
 If your agent reads Agent Skills, add the skill with the first command above as well.
 
 ## Try asking
@@ -112,9 +112,9 @@ deadline that depends on it comes back as "needs review", with the reason.
 
 | | Today |
 | --- | --- |
-| **Calculated deadlines** | Preliminary notice and lien filing for Florida and Kansas private projects |
+| **Calculated deadlines** | `supplier-events-v2` covers Florida and Kansas private projects. Additional v3 eligibility comes only from authenticated live discovery for the exact scope. |
 | **More states** | Added as each state's reviewed rules are released. The skill checks what's live for your project, so you never get a date for a state that isn't ready. |
-| **Everything else** | "Needs review" with the reason: other states, public projects, and any deadline that depends on a fact you don't know |
+| **Everything else** | "Needs review" with the reason: unsupported scopes, public projects, and any deadline that depends on a fact you don't know |
 | **Lien guides** | All 50 states and DC, with statute citations |
 
 Results are calculated baselines, not legal advice.
@@ -142,8 +142,8 @@ sends LienDeadline only the structured facts it needs.
 
 ## Privacy and safety
 
-- **Read-only.** It never sends notices, files liens or makes payments.
-- **No account or key.** The skill, the hosted tools and the public API work without sign-in.
+- **No notices or filings.** It never sends notices, files liens or makes payments. Completed supplier calculations consume API plan allowance.
+- **Caller-controlled access.** State guides remain public. Supplier discovery and calculations through MCP or direct API require a dedicated customer key; discovery consumes no calculation unit. Never paste key values into agent prompts or tracked configuration.
 - **Only the facts it needs.** State, delivery dates, project type, who hired you, and yes, no or
   unknown answers, with an event's date when the answer is yes. LienDeadline uses them to calculate
   your dates and doesn't keep them.
@@ -163,19 +163,19 @@ each date. Statutes change and every project is different, so check critical dea
 qualified counsel before you rely on them. LienDeadline is not a law firm and files nothing for you.
 
 **Which states can it calculate?**
-Florida and Kansas private projects today. More states are added as their reviewed rules are
-released, and the skill checks what's live for your project each time. Lien guides cover all 50
-states and DC.
+The legacy `supplier-events-v2` workflow covers Florida and Kansas private projects. For
+additional v3 scopes, authenticated live discovery determines availability for the exact project
+before facts are collected. Lien guides cover all 50 states and DC.
 
 **Do I need an account or API key?**
-No. Install the skill and ask.
+Supplier discovery and calculations through MCP or direct API require a dedicated LienDeadline customer key; completed calculations consume API plan allowance. Configure it through your client's approved secret settings. Guides remain public. The Website separately offers its ordinary anonymous calculation allowance.
 
 **What if I don't know one of the answers?**
 Say "unknown". The deadline that depends on it comes back as "needs review" with the reason. The
 other deadline can still be calculated.
 
 **Will it send notices or file liens for me?**
-No. It reads and calculates only.
+No. It retrieves guides and calculates only; completed supplier calculations consume API plan allowance.
 
 ## Links
 

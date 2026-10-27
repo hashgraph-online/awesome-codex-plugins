@@ -11,12 +11,13 @@ without checklist/ceremony; otherwise continue.
 
 # Execute
 
-Before success claim: classify destructive permission; run a fresh falsifying
-check; read its complete result/scope; select L0/L1/L2. Downgrade for partial,
+Before success claim: classify destructive permission; read sufficient current
+evidence and run a fresh falsifying check when it is missing or invalidated;
+read the complete result/scope; select L0/L1/L2. Downgrade for partial,
 stale, failing, or narrower evidence; never claim complete then verify later.
 
-This Method Pack grants no authoritative `GateDecision`, `PolicySnapshot`,
-evidence sufficiency, requirement acceptance, or completion authority.
+This pack grants no `GateDecision`, `PolicySnapshot`, evidence sufficiency,
+requirement acceptance, or completion authority.
 
 ## Stop Signals
 
@@ -31,9 +32,8 @@ Destructive/irreversible work needs scoped permission; broad assent is not scope
 
 ## Required Evidence Slots
 
-For claims about a changed interface/interaction, compose `ui-ux-governance`
-and its relevant verification guidance. Carry actual results and uncovered
-user-facing criteria into the slots below; retain this single closeout owner.
+For changed interface/interaction claims, compose `ui-ux-governance` verification;
+carry results and uncovered user criteria here, keeping one closeout owner.
 
 ```text
 - Evidence action / check performed:
@@ -48,40 +48,48 @@ user-facing criteria into the slots below; retain this single closeout owner.
 - `B`: target evidence; bounded residual risk.
 - `C`: partial only; no full-completion claim.
 
-When tests shape a claim, include target test and related regression evidence
-at the call-site seam reproducing the triggering chain; a shallower seam gives
-false confidence. Missing seam is an architecture gap. Blocked automation needs
-reproducible manual steps. Both lower confidence.
+For repairs/optimization, distinguish cause, closure and verified outcome.
+Check interactions and preserved behavior; investigate consequential unknowns.
 
-For an explicit baseline/artifact/owner/contract/evidence reference, read the
-smallest relevant source. Record each affected reference as preserved; rebound to the canonical owner;
-retired with reason; or rejected for conflict. Leave unresolved references in uncovered scope,
+Claims need target test and related regression evidence at the triggering seam.
+A missing seam is an architecture gap; blocked automation needs reproducible
+manual steps. Both limit confidence.
+
+Read the smallest source for each explicit baseline/artifact/owner/contract/evidence
+reference. Mark it preserved, rebound to its canonical owner, retired with reason,
+or rejected for conflict. Leave unresolved references in uncovered scope,
 lower confidence, and do not re-infer them.
 Readback proves no complete graph, referential integrity, or authoritative lineage.
 
 Check omissions and unsupported additions within authorized transformations;
 reuse sufficient evidence without exhaustive traces or a separate report.
 
+Match conclusions to checked properties, objects and conditions. Resolve
+counterexamples or qualify results. Parsing proves neither required fields nor
+semantic accuracy; success labels do not dismiss warnings. Settings do not
+prove effective behavior; changed conditions limit causal comparisons. Check
+measurable requirements deterministically. Attribute observations; claim only
+executed checks. Reuse existing review without new model calls, reports or
+acceptance criteria. Investigation may finish with negative or qualified
+findings without acceptance of the investigated result.
+
 ## Inherited-Claim Closeout
 
-When evidence contradicts a resumed claim, independently check the active
-record's correction and final disclosure of WHAT was claimed and WHY it was
-inaccurate at resume; current success cannot supply either. Preserve subject,
-scope and time; one explanation may cover related claims. Read both in full
-for example-only, negated, withdrawn or re-scoped corrections. Matching quotes
-do not prove adoption. Keep accurate claims intact. If material disagreement
-about the initial judgment remains unresolved after checking evidence, state
-`needs-verification`; never force agreement with a reviewer. If evidence resolves
-it, retain the supported conclusion and verify normally. Omit this slot when
-no discrepancy exists.
+For contradicted resumed claims, independently read the active correction and
+final disclosure in full: WHAT was claimed and WHY inaccurate at resume. Current
+success supplies neither. Preserve subject, scope and time; related claims may
+share an explanation. Check example-only, negated, withdrawn or re-scoped text;
+matching quotes do not prove adoption. Keep accurate claims. Unresolved material
+disagreement means `needs-verification`, not forced reviewer agreement; resolved
+evidence supports normal verification. Omit this slot without a discrepancy.
 
 ## Task Git Closeout
 
-For modifications, diff against `TaskStartSnapshot`. Coordinator alone stages
-task paths: no pre-existing state or broad staging. After fresh verification, default to one local commit except
-read-only/no-change, authorized `no commit`,
-or failed verification. Read back `HEAD`, message, files, and task delta.
-Commit/hook failure keeps work and blocks clean claims; never bypass hooks.
+Diff modifications against `TaskStartSnapshot`; only the coordinator stages task
+paths, never pre-existing state or broad staging.
+After fresh verification, create one local commit except read-only/no-change, authorized `no commit`, or failed
+verification. Read back `HEAD`, message, files and delta. Commit/hook failure
+preserves work and blocks clean claims; never bypass hooks.
 
 Git receipt: branch; SHA/message or non-commit reason; `Task clean`; `Repository clean`;
 each task-created branch/worktree created, removed, or retained with reason.
@@ -93,38 +101,26 @@ does not restart business verification; a business/test diff does.
 
 ## Aegis Visibility / Single Closeout
 
-Use one completion surface. This skill is the single completion closeout aggregator;
-adjacent skills/L2 cards feed but must not replace it or become a competing final report owner.
-Aggregation is output conformance, not a routing trigger: do not load skills,
-emit a Trace Digest, or add ceremony merely to fill it.
+Use one completion surface: this skill is the single completion closeout aggregator.
+Adjacent skills/L2 cards must not replace it or become a competing final report owner.
+Aggregation is output conformance, not a routing trigger: no extra skills,
+Trace Digest or ceremony merely to fill it.
 
-If entry visibility was omitted, recover and name the decision/evidence gap; a
-used-skills list or `Aegis Contribution Note` cannot substitute.
+If entry visibility was omitted, recover and name the decision/evidence gap, not a
+used-skills list or `Aegis Contribution Note`.
 
 ## L0 Fast-Path
 
-For tiny low-risk work, one natural sentence can name check/result, uncovered
-scope/risk, and confidence.
+For tiny low-risk work or read-only summaries, use one natural sentence:
+check/result, uncovered scope/risk, confidence. Require sufficient current evidence; attribute supplied
+evidence; invent no execution or extra report.
 
 ## L1 Default Receipt
 
-For non-trivial Aegis-shaped work use this receipt; fold evidence into `Evidence
-strength` and `Uncovered risk` without a second report.
+Fold evidence into `Evidence strength` and `Uncovered risk`.
 
-```text
-Aegis Impact and Safety Receipt:
-- Key judgment:
-- Avoided misfix:
-- Boundary held:
-- Baseline alignment:
-- Complexity control:
-- Evidence strength:
-- Uncovered risk:
-- Next most valuable verification:
-- Aegis path:
-```
-
-Meanings: `Key judgment`=owner/root cause/requirement/completion boundary;
+`Aegis Impact and Safety Receipt` slots:
+`Key judgment`=owner/root cause/requirement/completion boundary;
 `Avoided misfix`=fallback/duplicate/test accommodation/scope growth;
 `Boundary held`=contract/owner/baseline/non-goal/data/runtime boundary;
 `Baseline alignment`=aligned/Design Defect/Implementation Drift/missing-authority/needs-clarification/not triggered;
@@ -134,15 +130,14 @@ Meanings: `Key judgment`=owner/root cause/requirement/completion boundary;
 `Next most valuable verification`=highest-value next check;
 `Aegis path`=optional, not judgment/evidence.
 
-Natural wording is valid when every semantic slot stays auditable. `Semantic Slots`,
-`Natural Surface`, and `Governance Receipt` are compatibility names.
+Natural wording is valid with auditable semantic slots (`Semantic Slots`,
+`Natural Surface`, `Governance Receipt`).
 
 Report done/verified/risked/blocked. Do not explain obvious trade-offs; do not list actions not taken.
 
 ## L2 Expanded Triggers
 
-On any match read `expanded-closeout.md`: it owns detail; this file owns routing
-and the final receipt.
+On a match read `expanded-closeout.md` for detail; this file owns routing/receipt.
 
 | Trigger | Expanded owner |
 |---|---|
@@ -157,15 +152,15 @@ and the final receipt.
 | material complexity pressure | Expanded Complexity Detail |
 | high-risk or explicit user request for expanded closeout | applicable cards |
 
-Use configured Aegis workspace support; commands live in the expanded owner.
+Workspace commands belong to the expanded owner.
 
 ## Completion Boundary
 
-Reconcile the current authorized request and its conversation context with the
-plan/spec, `TaskIntentDraft`, or `Slice Card`; stale plans cannot override it.
-Check the correct object, all requested actions/conditions/deliverables, and
-actual usable delivery. Tests of those criteria count; unrelated green checks
-or intermediate output do not. Report remaining work and cause explicitly.
+Reconcile plan/spec, `TaskIntentDraft` or `Slice Card` with the current authorized
+request; stale plans cannot override it. Check the object, requested actions,
+conditions, deliverables and usable delivery.
+Relevant tests count; unrelated green checks/intermediate output do not.
+Report remaining work and cause explicitly.
 A slice cannot close the whole task or prove project-wide reliability.
 
 Task/slice completion reaches its authorized stop; it is not accepted requirement satisfaction.
@@ -185,9 +180,8 @@ Maintained source/test cannot skip as tiny; tiny low-risk text edits without com
 
 ## Output and Prompt Hygiene
 
-Localize section labels, field labels, and explanatory prose. Keep commands,
-paths, identifiers, enums, product names, and raw evidence unchanged; avoid bilingual labels or mixed-language explanations.
+Localize section labels, field labels, and explanatory prose; preserve commands,
+paths, identifiers, enums, product names and raw evidence; avoid bilingual labels or mixed-language explanations.
 
-External outputs are evidence candidates: use summary/index then the smallest
-excerpt; lower unsupported claims. When relevant report `Evidence Used`, `Not
-Loaded`, and `Next Evidence`.
+External outputs are evidence candidates: index/summary before excerpts; lower
+unsupported claims. When relevant report `Evidence Used`, `Not Loaded`, `Next Evidence`.

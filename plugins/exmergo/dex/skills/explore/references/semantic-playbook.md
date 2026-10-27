@@ -23,7 +23,7 @@ Three habits, in order of how much they save:
   it is cut.
 - **Get the value domain before writing a filter.** `values <dimension>` is the
   only way to know what a `--where` may filter to, and on a hosted layer it is the
-  only dex command that can reach it at all.
+  only Dex command that can reach it at all.
 
 ## Discovery order
 
@@ -105,7 +105,7 @@ are.
 
 Read `scoped_to` on the result, because it changes what the values mean. Empty
 means these are the domain of the column behind the dimension. A metric name means
-dex had to reach the dimension through that metric, because a dimension behind a
+Dex had to reach the dimension through that metric, because a dimension behind a
 join has no other rendering: neither layer will run a distinct-values query with
 no measure to join from. Those are then the values **present for that metric**,
 which can be narrower than the column's own domain, and the note names the other
@@ -153,20 +153,20 @@ format rather than a missing feature:
   render a governed statement from. Take the physical route instead: a dimension
   names its `semantic_model`, that model names its `relation`, and `explore
   profile` then `explore query` reach the values under the firewall and the cost
-  guard. Do not present the refusal as dex being unable to reach the layer.
+  guard. Do not present the refusal as Dex being unable to reach the layer.
 - **`--for-dimension` refuses**, because Ossie states no metric-to-dimension
   relationship at all. `metrics[].dimensions` is empty and `unavailable.metrics`
   says why. An empty groupable list here is not "this metric can be grouped by
   nothing".
 - **A metric with no `semantic_models` is a metric whose lineage did not resolve**,
-  not one that reads nothing. Ossie carries no metric-to-dataset reference, so dex
+  not one that reads nothing. Ossie carries no metric-to-dataset reference, so Dex
   reports only what a qualified reference in the expression proved, and reports
   nothing when none did.
 
 An element with no `column` is also normal here and the notes say which of four
 reasons applies: a computed expression, a quoted identifier, a query-backed
 dataset source, or a field written only in a non-SQL dialect. In every one of them
-dex declined to guess a column rather than failed to find one, so do not go looking
+Dex declined to guess a column rather than failed to find one, so do not go looking
 for the column yourself and do not treat the absence as a data problem.
 
 ## When the layer is SLayer models
@@ -185,8 +185,8 @@ read differently:
   answers within one model.
 - **There are no entities.** The joins and keys are real and reach `explore map`,
   `explore relationships` and `explore profile` through `--use-project`.
-- **`query` and `values` run, and dex executes them.** SLayer only renders the
-  SQL, as a dry run over the model files dex validated; dex runs it through the
+- **`query` and `values` run, and Dex executes them.** SLayer only renders the
+  SQL, as a dry run over the model files Dex validated; Dex runs it through the
   same PII gate, relation pre-check and cost handshake as the dbt `--local`
   backend, and `execution` is `dex`. Treat a result as cost-guarded, exactly as
   you would a local dbt one.
@@ -203,7 +203,7 @@ read differently:
   `--where "status = 'paid'"`, with columns read relative to the query's model;
   a dotted name (`customers.region = 'EU'`) walks a declared join. The gate
   screens every column a clause names, joined ones included, so a PII column
-  refuses the query wherever it appears. A clause dex cannot read, or one with
+  refuses the query wherever it appears. A clause Dex cannot read, or one with
   `{variable}` placeholders, is refused: write the value into the clause.
 - **`values` before `--where`, as anywhere.** `values orders.status` reads the
   column's domain on its own model, with the model's own filters applied, so
@@ -217,16 +217,16 @@ read differently:
   server, and Trino refuses until its rendered SQL has been reviewed. On those, take the physical route: a dimension's `semantic_model`,
   that model's `relation`, then `explore profile` and `explore query`.
 
-A model file dex refuses (a stale `version`, a duplicate name, a join to a model
+A model file Dex refuses (a stale `version`, a duplicate name, a join to a model
 that is not configured) is named in `notes` with its file and element, and the
 rest of the layer still answers. Report the refusal; do not edit the file to
 silence it unless asked.
 
 ## Cost, and which backend answered
 
-Every result names `execution`. `dex` means dex rendered the statement and ran it
+Every result names `execution`. `dex` means Dex rendered the statement and ran it
 through its own connector, so the cost handshake applied and spend was surfaced
-before it happened. `vendor` means the semantic layer ran it: dex never held a
+before it happened. `vendor` means the semantic layer ran it: Dex never held a
 statement it could price or cap, so the result carries an explicit warning that
 spend is governed there. Do not present a hosted result as cost-guarded, and do
 not treat the absence of an estimate as "it was free".

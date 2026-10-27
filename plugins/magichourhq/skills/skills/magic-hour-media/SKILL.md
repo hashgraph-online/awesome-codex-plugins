@@ -1,10 +1,10 @@
 ---
 name: magic-hour-media
-description: Generate, edit, and retrieve images, video, and audio with Magic Hour, including recovery of existing projects. Use when Magic Hour is requested or is the project's chosen media provider; preserve an explicitly requested alternative provider.
+description: Create, edit or retrieve media when Magic Hour is requested or configured and suitable. Animate an approved image directly, use a portrait plus audio for Talking Photo, or existing video plus audio for Lip Sync. Preserve an explicitly requested alternative provider and check the live interface's capabilities.
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.6.0"
+  version: "1.6.1"
 ---
 
 # Magic Hour media
@@ -31,14 +31,14 @@ Use live tool schemas, or the [API documentation index](https://docs.magichour.a
 | --------------------------------------------------- | ---------------------------------------------------------- | ------------------------------ |
 | Original artwork, portrait, cover or product image  | `ai_image_generator_create_image`                          | `wait_for_image_project`       |
 | Edit an existing image while preserving its content | `ai_image_editor_create_image`                             | `wait_for_image_project`       |
-| Animate a supplied image                            | `image_to_video_create_video`                              | `wait_for_video_project`       |
+| Animate an approved supplied image directly         | `image_to_video_create_video`                              | `wait_for_video_project`       |
 | Put a supplied face into existing footage           | `face_swap_create_video`                                   | `wait_for_video_project`       |
 | Replace a whole character or transfer a performance | `character_replace_create_video`                           | `wait_for_video_project`       |
 | Generate video from a text description              | `text_to_video_create_video`                               | `wait_for_video_project`       |
-| Match an existing video's mouth movement to audio   | `lip_sync_create_video`                                    | `wait_for_video_project`       |
-| Animate a portrait using supplied speech            | `ai_talking_photo_create_talking_photo`                    | `wait_for_video_project`       |
-| Generate speech from text                           | Voice Generator MCP tool when exposed, otherwise API      | `wait_for_audio_project`       |
-| Read new text in an authorized sample voice          | Voice Cloner API or matching exposed MCP tool              | `wait_for_audio_project`       |
+| Match existing video to supplied replacement audio  | `lip_sync_create_video`                                    | `wait_for_video_project`       |
+| Animate a still portrait using supplied audio       | `ai_talking_photo_create_talking_photo`                    | `wait_for_video_project`       |
+| Generate speech from text                           | Voice Generator MCP tool when exposed, otherwise API       | `wait_for_audio_project`       |
+| Read new text in an authorized sample voice         | Voice Cloner API or matching exposed MCP tool              | `wait_for_audio_project`       |
 | Create visuals from a supplied soundtrack           | `audio_to_video_create_video`                              | `wait_for_video_project`       |
 | Evolving visuals with audio-sync camera effects     | `animation_create_video`                                   | `wait_for_video_project`       |
 | Replace a face or body in a still photo             | `face_swap_photo_create_image` or `body_swap_create_image` | `wait_for_image_project`       |
@@ -48,11 +48,13 @@ Use live tool schemas, or the [API documentation index](https://docs.magichour.a
 | Exact headline, crop, trim or assembled layout      | Available local editor/compositor                          | Inspect the exported file      |
 | Retrieve a known project                            | No new creation call                                       | Matching wait or retrieve tool |
 
+Animate an approved product photo or other supplied image directly when it already meets the brief. Use Image Editor only for a requested visual change or a source problem that prevents the shot. Talking Photo requires `assets.image_file_path` and `assets.audio_file_path`; Lip Sync requires replacement `assets.audio_file_path`, `assets.video_source` and its matching video field. Both need a supported `start_seconds`/`end_seconds` interval. Text alone is not an audio input, and neither tool synthesizes speech.
+
 Tool names can have a client-specific prefix. Discover which tools are actually exposed and their current input schemas before calling them. For API operations absent from this client's MCP, use the existing authenticated API route in `references/setup.md`, or explain the exact missing access. Do not invent a tool name.
 
 Speech routes are `POST /v1/ai-voice-generator` for a supported preset and `POST /v1/ai-voice-cloner` for new text from an authorized audio sample. Read the live schema; cloning uses `assets.audio_file_path` and `style.prompt`, not a saved-item ID as `voice_name`. Review the generated speech before animation.
 
-For full-person photo placement, distinguish Body Swap's `person_file_path` and `scene_file_path` from face-only replacement. For Video-to-Video, a custom prompt is ignored under the default prompt mode. Music Video Generator's web scene-assembly workflow, Video Extender and Video Upscaler have no equivalent dedicated endpoints in the public schema as checked September 11, 2026. Recheck support; when still absent, prepare the accepted inputs and direct web handoff instead of inventing tools. The [complete use-case map](https://github.com/magichourhq/skills/blob/main/docs/use-cases.md) links those workflows.
+For full-person photo placement, distinguish Body Swap's `person_file_path` and `scene_file_path` from face-only replacement. For Video-to-Video, a custom prompt is ignored under the default prompt mode. Video Upscaler is exposed as `ai_video_upscaler_create_video` in the hosted MCP and `POST /v1/ai-video-upscaler` in its synced OpenAPI as checked October 25, 2026 UTC. Read the connected schema and [finishing guide](https://github.com/magichourhq/skills/blob/main/skills/magic-hour-video-editing/references/extend-upscale.md) for required inputs, paid-plan eligibility and completion handling. Music Video Generator's web scene-assembly workflow and Video Extender still need a separate support check; when no compatible endpoint is available, prepare the inputs and web handoff instead of inventing tools. The [complete use-case map](https://github.com/magichourhq/skills/blob/main/docs/use-cases.md) links those workflows.
 
 When installed, use `ai-video-generation` for a broad video request, `creator-video-remix` for a supplied reference format and `ai-media-quality-review` before final delivery. Use the other focused skill for image-to-video, face/body swap, text-to-video, image editing, talking video, character replace, music video, existing-video editing, product visuals, campaign kits, character consistency or thumbnails. Distinguish face-only identity changes from whole-character replacement, and a portrait's new speech from an existing video's performance. Do not require the user to memorize a skill name or install a companion just to finish a supported task. Reuse the current connection, project brief and accepted media; only ask for missing information that changes the output or authorization.
 

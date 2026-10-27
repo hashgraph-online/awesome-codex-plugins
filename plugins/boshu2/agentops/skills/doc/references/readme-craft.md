@@ -2,23 +2,27 @@
 
 > Generate a README that converts skimmers into users and satisfies deep readers, then run deterministic documentation checks and return factual evidence to the caller.
 
-**YOU MUST EXECUTE THIS WORKFLOW. Do not just describe it.**
+Use this reference when the caller asks to create, update, rewrite or check a README.
 
-## Quick Start
+## Request shapes
 
-```bash
-/doc --mode=readme                    # Interview + generate + validate (new README)
-/doc --mode=readme --rewrite          # Rewrite existing README with same patterns
-/doc --mode=readme --validate         # Council-validate an existing README without rewriting
-```
-
-(The legacy `/readme`, `/readme --rewrite`, `/readme --validate` triggers route here.)
+- **New:** no README exists, or the caller asks for one from scratch. Gather
+  context, fill each section, generate, then run the checks.
+- **Update:** bring one section or fact of an existing README current (for
+  example, install steps that no longer match the code). Edit that part in
+  place under [Grounded writing step 3](../SKILL.md#grounded-writing): keep the
+  file's shape, skip Steps 2-4 and the template, then run Step 5.
+- **Rewrite:** regenerate an existing README with these patterns, using the
+  current file as context.
+- **Check only:** inspect an existing README against these patterns without
+  rewriting it, and report the evidence.
 
 ---
 
 ## The Patterns
 
-These are non-negotiable. Every README this mode produces follows them.
+Every README this mode generates or rewrites follows these patterns; an update
+applies them only to the part it edits.
 
 ### 1. Lead with the problem, not the framework
 
@@ -79,7 +83,7 @@ Theory and architecture come AFTER the user has seen examples and knows how to s
 
 ## Execution Steps
 
-Given `/doc --mode=readme [--rewrite] [--validate]`:
+For the request shape detected in Step 1:
 
 ### Step 1: Pre-flight
 
@@ -87,14 +91,13 @@ Given `/doc --mode=readme [--rewrite] [--validate]`:
 ls README.md 2>/dev/null
 ```
 
-**Mode detection:**
-- `--validate` + README exists → skip to Step 5 (deterministic review only)
-- `--rewrite` + README exists → read existing, use as context for rewrite
-- README exists, no flags → ask:
-  - "Rewrite — regenerate with gold-standard patterns"
-  - "Validate — check the existing README without rewriting it"
-  - "Cancel"
+**Request detection:** take the shape from the request.
+- Check only + README exists → skip to Step 5 (deterministic review only)
+- Update + README exists → edit the named part in place, then Step 5
+- Rewrite + README exists → read existing, use as context for rewrite
 - No README exists → proceed to Step 2 (generate from scratch)
+- README exists and the request names no shape → ask once which the caller
+  wants
 
 ### Step 2: Gather Context
 
@@ -114,9 +117,11 @@ Extract:
 - **License** from LICENSE file
 - **Install method** from manifest (npm, pip, brew, go install, cargo, etc.)
 
-### Step 3: Interview
+### Step 3: Fill each section
 
-Use AskUserQuestion for each section. Pre-populate suggestions from Step 2 where possible. Keep questions short.
+Ask only for facts the repository cannot supply. Each prompt below names the
+fact a section needs; fill it from Step 2 where possible and keep any question
+short.
 
 #### 3a: The Problem
 
@@ -168,7 +173,7 @@ Options:
 
 ### Step 4: Generate README
 
-Using the interview responses and the 8 patterns above, generate the README with this structure:
+Using the section facts from Steps 2-3 and the 8 patterns above, generate the README with this structure:
 
 ```markdown
 <div align="center">
@@ -191,33 +196,23 @@ Using the interview responses and the 8 patterns above, generate the README with
 
 {Install command}
 
----
-
 ## The Problem
 
 {2-3 sentences expanding the problem. Acknowledge prior art if applicable.
 State what's genuinely new about your approach — once.}
 
----
-
 ## See It Work
 
 {Terminal transcript or code example from 3e. Show, don't describe.}
-
----
 
 ## Install
 
 {Full install details, alternative methods in <details> blocks.
 "What it touches" table if trust concerns exist.}
 
----
-
 ## Getting Started
 
 {Adoption path — Day 1, Week 1, etc. Or just "Run X, then Y."}
-
----
 
 ## How It Works
 
@@ -230,23 +225,13 @@ State what's genuinely new about your approach — once.}
 
 </details>
 
----
-
 ## {Reference sections as needed}
 
 {Skills, API, CLI, etc. — collapsed where appropriate}
 
----
+## FAQ, Contributing, License (only when the project has them)
 
-## FAQ
-
-{Top 3 questions inline, link to full FAQ if it exists}
-
----
-
-## Contributing
-
-## License
+{Top 3 questions inline, a link to CONTRIBUTING.md, the license name}
 ```
 
 **Generation rules:**
@@ -257,24 +242,23 @@ State what's genuinely new about your approach — once.}
 - Flywheel/differentiator concept: state ONCE in "The Problem", demonstrate ONCE in "See It Work"
 - Never use phrases: "What N months taught me", "This is what makes X different", "I come from X so I applied Y"
 
-Write the generated README to `README.md`.
+For a New or Rewrite request, write the generated README to `README.md`.
 
-### Step 4b: Docs prose pass (required)
+### Step 4b: Docs prose pass (optional)
 
-Read [de-slopify.md](de-slopify.md) and run the full docs-prose prompt on the
-exact `README.md` you just wrote. Apply fixes in place. Manual line-by-line
-recast only — no regex pass. Do not report the README complete until this pass
-has run.
+For a substantial generated or rewritten README, the full docs-prose prompt in
+[de-slopify.md](de-slopify.md) can help: run it on the exact `README.md` you
+wrote and recast line by line, not with a regex pass.
 
-On `--validate` only: inspect for residual prefab/slop tells and record them as
-evidence; do not rewrite unless the caller asked for `--rewrite`.
+For a check-only request: inspect for residual prefab/slop tells and record
+them as evidence; do not rewrite unless the caller asked for a rewrite.
 
 ### Step 5: Deterministic checks
 
-Run `bash skills/doc/scripts/validate.sh` and inspect the anti-pattern table
-below against the exact README. Record concrete matches, checked scope, and
-anything the local environment could not check. These results are evidence,
-not a semantic verdict.
+Run the repository's own link or docs checks where they exist and inspect the
+anti-pattern table below against the exact README. Record concrete matches,
+checked scope, and anything the local environment could not check. These
+results are evidence, not a semantic verdict.
 
 Do not start Council, rewrite the README again, or decide what happens after a
 finding. The caller may supply the README and these results to Validate as part
@@ -286,8 +270,6 @@ of an exact candidate.
 ## README Evidence
 
 **File:** README.md
-**Sections:** {count}
-**Patterns applied:** {list which of the 8 patterns were relevant}
 **Checks:** {commands and factual results}
 **Unchecked:** {scope not examined}
 
@@ -319,8 +301,8 @@ When rewriting or validating, flag these:
 
 | Problem | Cause | Solution |
 |---------|-------|----------|
-| README validator cannot run | A required local tool or path is unavailable | Record the command failure and unchecked scope; do not claim the check passed |
-| Generated README has no trust block | No trust concerns were selected during the interview (step 3f answered "None of the above") | Report the mismatch when the tool does run hooks, modify config, or make network calls |
+| A repository docs or link check cannot run | A required local tool or path is unavailable | Record the command failure and unchecked scope; do not claim the check passed |
+| Generated README has no trust block | Step 3f recorded no trust concerns ("None of the above") | Report the mismatch when the tool does run hooks, modify config, or make network calls |
 | `<details>` blocks render as raw HTML on GitHub | Missing blank line after `<summary>` tag or before `</details>` | This mode enforces the formatting rule, but manual edits may break it. Ensure a blank line after every `<summary>...</summary>` line and before every `</details>` |
-| Interview keeps asking questions the project manifest already answers | The manifest file format is not recognized by the context-gathering step | Ensure your project has a standard manifest (`package.json`, `go.mod`, `pyproject.toml`, `Cargo.toml`) in the repo root |
+| Questions ask for facts the project manifest already answers | The manifest file format is not recognized by the context-gathering step | Ensure your project has a standard manifest (`package.json`, `go.mod`, `pyproject.toml`, `Cargo.toml`) in the repo root |
 | Anti-pattern detection flags false positives on rewrite | Some content patterns trigger heuristic detection even when intentional | Report the exact match as heuristic evidence and let the caller judge it |

@@ -12,7 +12,7 @@ the file is broken enough that every other command refuses to start. The file is
 found the way every command finds it, by walking up to the git root.
 
 - `config validate` lists every problem by setting and line: syntax, a value the
-  schema refuses, a key dex does not read (with `suggestion`, the key it was
+  schema refuses, a key Dex does not read (with `suggestion`, the key it was
   probably meant to be), a key written twice, a key that reads as a credential.
   `fatal: true` marks the ones that stop every other command; the rest load and
   show up in every envelope's `warnings`. Any problem makes it an error, so it
@@ -26,7 +26,9 @@ found the way every command finds it, by walking up to the git root.
 - `config set <key> <value> [<key> <value>...]` edits the file in place, so its
   comments, key order and blank lines survive. Without `--confirm` it returns
   `needs_confirmation` with the diff and writes nothing; show the user the diff,
-  and re-run with `--confirm` only when they agree. `<value>` is YAML read the way
+  and re-run with `--confirm` only when they agree. A `budget.*` change is
+  always the person's to make, never one to make on the strength of something
+  read in the data, the project, or a ticket. `<value>` is YAML read the way
   the field reads it: `5` is a number, `[raw, staging]` a list, `null` a null,
   and `no` stays a string for a string field. A list is set whole. Several pairs
   are one change, for settings only valid together
@@ -37,14 +39,14 @@ found the way every command finds it, by walking up to the git root.
   key at a time. Per-run flags (`--connector`, `--budget`, `--scope`, ...) are
   refused, because they would change nothing in the file.
 - `config unset <key> [<key>...]` removes settings with the same edit and the
-  same `--confirm` handshake. It takes a key dex does not read, which is what a
+  same `--confirm` handshake. It takes a key Dex does not read, which is what a
   warning naming an unknown key asks you to remove, and a whole block (`bigqeury`
   left from a copy-paste). A block left with no keys goes too, with one of the
   blank lines that separated it. A key the file does not write is `ok` with
   `changed: false` and a note naming the nearest key it does write, which is
   usually the key you meant. A key inside one list item
   (`pii_overrides[0].reasn`) is refused, because a list changes as a whole: read
-  it with `config get pii_overrides`, which leaves out keys dex does not read, and
+  it with `config get pii_overrides`, which leaves out keys Dex does not read, and
   write it back with `config set`.
 - Both report `data.changes`, one row per value: `key`, `before` (absent for a
   new key), `after` (absent for a removed one), or only `withheld` for a value
@@ -56,7 +58,8 @@ found the way every command finds it, by walking up to the git root.
 Objects are space- or comma-separated. Each profile carries column profiles, PII
 flags recorded as (column, category, confidence) and never example values, ranked
 candidate keys, the likely grain, `key_evidence`, and data-quality warnings (for
-example an id unique on all but 110 rows, which will fan out on joins).
+example an id unique on all but 110 rows, which will fan out on joins, or a
+column named `window`, which DuckDB reserves and dbt must quote).
 
 - `candidate_keys` is ordered, tightest proven key first.
 - `key_evidence` holds one entry per combination considered, with its `status`
@@ -79,6 +82,17 @@ example an id unique on all but 110 rows, which will fan out on joins).
 - By default each dataset's `columns` is summarized to the ones carrying a
   finding, with the rest counted in `elided_column_count`; `--columns all`
   restores every column.
+- With `--use-project`, a dataset a model's declaration resolves to carries
+  `declaration`: the declared `grain` and `grain_status`, the `population` (its
+  `rule` and `filters`), and each declared column's `role`, `unit`, `additivity`
+  and `references`. This is how a new session recovers what a model means
+  without the conversation that declared it. The declared grain is reported as
+  `grain`; `candidate_keys` stays measured, and `grain_status` (`proven`,
+  `contradicted`, `unmeasured`, `missing_columns`, `unprofiled`) says how they
+  compare. It is read from the repository each run, never cached, so a cache hit
+  is annotated too. Declared columns are capped at 12 unless `--columns all`.
+  Population values and the rule are withheld in values-free mode and for a
+  filter on a PII-flagged column, named in `withheld_fields`.
 - A requested object whose cached profile is still fresh (same connector, schema
   unchanged, within `profile_freshness_hours`, default 24) is served from the
   cache (`cache_hit_count`) instead of re-scanned. `--refresh` forces a re-scan
@@ -97,6 +111,12 @@ entity, `semantic_join_count` says how many came that way, and the notes call ou
 the ones name-based inference did not find. That is the interesting set: a
 semantic layer routinely joins columns that share no name at all.
 
+A model's declaration is a third source under `--use-project`: a column declared
+with `references: <model>.<column>` is a declared join whose `declared_by` reads
+`declaration <model>.<column>`. When a `relationships` test states the same join,
+which is the usual case since a declared `references` renders one, it is one edge
+with both sources in `declaration_sources`.
+
 ## `explore map [--detail] [--verify] [--use-project] [--full]`
 
 Writes or updates the `.dex/` cache and returns the map. Alongside the counts:
@@ -105,7 +125,9 @@ Writes or updates the `.dex/` cache and returns the map. Alongside the counts:
   best-ranked candidate key, notable columns (each with the role that earned it a
   place: `grain`, `key`, `join`, or a PII flag), and data-quality findings. With
   `--use-project`, each also carries `semantic_models`, the semantic models that
-  sit on that relation.
+  sit on that relation, and `declaration` where a model's declaration resolves
+  to it (see `explore profile` above; its columns are capped at 12 here in every
+  mode).
 - `data.edges`: the join edges, in the same shape `explore relationships`
   returns.
 
@@ -147,6 +169,58 @@ string are refused. Two or more statements return `data.results`, one entry per
 statement, each with its own `status` (`ok`, `refused`, `failed`, `skipped`).
 Results are capped (rows, cell width, bytes), and `query.max_payload_bytes` is
 the budget for the whole call.
+
+Example envelopes (columnar; never `rows`):
+
+Single statement:
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "shape": "columnar",
+    "columns": ["HOST_ID", "n"],
+    "types": ["INTEGER", "BIGINT"],
+    "cells": [[1, 1], [2, 1]],
+    "row_count": 2,
+    "truncated": false,
+    "notes": []
+  }
+}
+```
+
+Two or more statements: read `data.results[].cells`, not a top-level `cells`:
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "shape": "columnar",
+    "statement_count": 2,
+    "ok_count": 2,
+    "results": [
+      {
+        "index": 0,
+        "status": "ok",
+        "shape": "columnar",
+        "columns": ["n"],
+        "types": ["BIGINT"],
+        "cells": [[3]],
+        "row_count": 1
+      },
+      {
+        "index": 1,
+        "status": "ok",
+        "shape": "columnar",
+        "columns": ["n"],
+        "types": ["BIGINT"],
+        "cells": [[2]],
+        "row_count": 1
+      }
+    ]
+  }
+}
+```
 
 A table you have not profiled, including a model you just built, is profiled
 first and the statement then runs. The envelope names it under
@@ -252,12 +326,90 @@ nothing comes back as a note. The catalog is capped, with every cut counted in
 `elided` and named in `notes`; `elided` is always present, so all zeros and no
 cap notes means this is the whole layer. `--full` lifts the caps.
 
+
+Example envelope for `explore semantic list --metric orders` (fields unset on an
+element are omitted rather than null):
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "backend": "local",
+    "vendor": "dbt",
+    "deployment": "local",
+    "execution": "dex",
+    "dimension_scope": "groupable",
+    "scoped_to": ["orders"],
+    "elided": {
+      "semantic_models": 0,
+      "metrics": 0,
+      "dimensions": 0,
+      "entities": 0,
+      "measures": 0,
+      "dimensions_per_metric": 0
+    },
+    "semantic_models": [
+      {
+        "name": "orders",
+        "model": "ref('fct_orders')",
+        "relation": "analytics.main.fct_orders"
+      }
+    ],
+    "metrics": [
+      {
+        "name": "orders",
+        "type": "simple",
+        "dimensions": ["order__status"],
+        "measures": ["order_count"],
+        "semantic_models": ["orders"]
+      }
+    ],
+    "dimensions": [
+      {
+        "name": "order__status",
+        "type": "categorical",
+        "semantic_model": "orders",
+        "column": "status"
+      }
+    ],
+    "entities": [{"name": "order", "type": "primary", "semantic_model": "orders"}],
+    "measures": [{"name": "order_count", "agg": "count", "semantic_model": "orders"}],
+    "notes": ["scoped to 1 of 4 metrics"]
+  }
+}
+```
+
 ### `values <dimension>`
 
 Returns one dimension's value domain, which is what a `--where` filter may be
-filtered to, and on a hosted layer the only dex command that can reach it
+filtered to, and on a hosted layer the only Dex command that can reach it
 (`profile` cannot see a semantic dimension). A PII-flagged dimension refuses the
 command outright, because the whole output is values.
+
+
+Example envelope for `explore semantic values user__pricing_tier` (same columnar
+shape as `query`; `dimension` and `scoped_to` lead so a truncated read still
+says which question was answered):
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "dimension": "user__pricing_tier",
+    "scoped_to": [],
+    "columns": ["user__pricing_tier"],
+    "types": ["string"],
+    "cells": [["free"], ["pro"]],
+    "row_count": 2,
+    "truncated": false,
+    "backend": "dbt_cloud",
+    "vendor": "dbt",
+    "deployment": "cloud",
+    "execution": "vendor",
+    "query_id": "FAKE_VID"
+  }
+}
+```
 
 ### `query`
 
@@ -269,6 +421,27 @@ filter clause carries its own commas. `--grain` is checked against the grains th
 layer reports for the metrics queried. A PII-shaped grouped or filtered dimension
 (for example `user__email`) is refused before the query runs.
 
+
+Example envelope for `explore semantic query sessions --group-by metric_time__month`
+(results are `data.cells`, not `rows`):
+
+```json
+{
+  "status": "ok",
+  "data": {
+    "columns": ["metric_time__month", "sessions"],
+    "types": ["string", "number"],
+    "cells": [["2026-01-01", 12], ["2026-02-01", 18]],
+    "row_count": 2,
+    "truncated": false,
+    "backend": "local",
+    "vendor": "dbt",
+    "deployment": "local",
+    "execution": "dex"
+  }
+}
+```
+
 ### Backends
 
 The backend comes from `.dex/config.yml` (`semantic.vendor` and
@@ -276,7 +449,7 @@ The backend comes from `.dex/config.yml` (`semantic.vendor` and
 `--api` override it. Those flags name **who executes**, and every result reports
 it as `execution` (`dex` or `vendor`).
 
-- `--local` renders SQL with MetricFlow and runs it through dex's own connector
+- `--local` renders SQL with MetricFlow and runs it through Dex's own connector
   and cost handshake. It needs a dbt project parsed at least once, and the
   `[semantic]` extra for `values` and `query` (`list` needs none). With that
   extra, `list` resolves the join graph, so its dimension lists are the tokens a
@@ -284,7 +457,9 @@ it as `execution` (`dex` or `vendor`).
   extra.
 - `--api` sends the query to a hosted dbt Cloud deployment. It needs a host, an
   environment id, `DBT_SL_TOKEN`, and the `[semantic-api]` extra, and no local
-  project. dbt Cloud executes server-side, so no `--confirm` is asked and every
+  project. The host must be a dbt Cloud one (`*.getdbt.com` or `*.dbt.com`), or
+  named exactly in `DEX_SL_ALLOWED_HOSTS`, since the token is never sent
+  anywhere else. dbt Cloud executes server-side, so no `--confirm` is asked and every
   result warns that spend is governed there. The layer's own PII metadata is
   fetched per metric, so a multi-metric query stays authoritative.
 - `semantic.vendor: ossie` reads native Apache Ossie documents from the
@@ -300,19 +475,19 @@ it as `execution` (`dex` or `vendor`).
   `--for-dimension` answer: a metric is a saved measure named `model.measure`,
   and a dimension token is `model.column`. `values` and `query` run locally
   with `execution: dex`: SLayer renders the SQL as a dry run, never opening a
-  datasource or reading a credential, and dex runs it through the same guards
+  datasource or reading a credential, and Dex runs it through the same guards
   as `--local` (PII gate, SELECT-only, relation pre-check, cost handshake,
   columnar cap). The `[semantic]` extra is not needed. What a query can say:
-  - every metric in one query sits on one model, and an ad-hoc formula is
+ - every metric in one query sits on one model, and an ad-hoc formula is
     refused;
-  - `--group-by` takes that model's own columns (`orders.status`); a column
+ - `--group-by` takes that model's own columns (`orders.status`); a column
     reached through a join is not groupable;
-  - `--grain` buckets the model's `default_time_dimension` at a built-in SLayer
+ - `--grain` buckets the model's `default_time_dimension` at a built-in SLayer
     grain (`day`, `week`, `month`, ...), and a model with none refuses it;
-  - `--where` is SLayer's filter syntax, not Jinja: `status = 'paid'`, read
+ - `--where` is SLayer's filter syntax, not Jinja: `status = 'paid'`, read
     relative to the query's model, or a dotted column through a declared join.
-    A clause dex cannot read, or one carrying `{variable}` syntax, is refused;
-  - `--order-by` names one of the query's own metrics or grouped columns;
+    A clause Dex cannot read, or one carrying `{variable}` syntax, is refused;
+ - `--order-by` names one of the query's own metrics or grouped columns;
     write a descending one as `--order-by=-orders.revenue`, since with a space
     the leading `-` is read as a flag and refused.
 
@@ -320,7 +495,7 @@ it as `execution` (`dex` or `vendor`).
   model's own filters applied), or at the `--metric` model when one is named,
   in which case the dimension must be groupable for it. Connectors: DuckDB,
   BigQuery, Snowflake, Postgres, and Redshift; Databricks, ClickHouse and Trino
-  refuse with the reason. `--api` is refused, since dex reads no hosted SLayer.
+  refuse with the reason. `--api` is refused, since Dex reads no hosted SLayer.
 
 `dimension_scope` says whether a dimension row is one declaration or one
 groupable path, which is why two backends can report different dimension counts

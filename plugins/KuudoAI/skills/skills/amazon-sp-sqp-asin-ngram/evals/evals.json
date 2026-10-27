@@ -1,11 +1,11 @@
 {
   "skill_name": "amazon-sp-sqp-asin-ngram",
-  "skill_version": "2.0.0",
+  "skill_version": "2.1.0",
   "evals": [
     {
       "id": 0,
       "prompt": "US marketplace ATVPDKIKX0DER, SQP WEEK 2026-10-04 through 2026-10-10. Product evidence supplied by user: ASIN B0TESTBED01 title Large dog bed; bullets: 40x30 inch sleeping surface, washable removable cover; key attributes: dog bed, large, 40x30 inches. Query large dog bed: volume 1000, market impressions 5000, clicks 200, purchases 20; ASIN impressions 500, clicks 40, purchases 2. What should we investigate?",
-      "expected_output": "Exact, sufficient, investigate; conversion gap is descriptive. Conditional PDP investigation with corroboration and comparable complete periods.",
+      "expected_output": "Preserve exact/investigate diagnostic classification and arithmetic; no supported edit without a specific listing gap. Dimensions already supplied do not justify adding them again.",
       "files": [],
       "assertions": [
         {
@@ -18,7 +18,7 @@
         },
         {
           "name": "check-3",
-          "condition": "Proposes conditional investigation and comparable complete periods rather than a guaranteed fix"
+          "condition": "Does not recommend a redundant size edit or populate the action queue merely because row priority is investigate"
         },
         {
           "name": "check-4",
@@ -357,7 +357,7 @@
     {
       "id": 17,
       "prompt": "US marketplace ATVPDKIKX0DER, SQP WEEK 2026-10-04 through 2026-10-10. Tool-returned catalog evidence for B0TESTBED01: title Large dog bed, attributes 40x30 inches, washable cover. Query large dog bed: volume 1000, market impressions 5000, clicks 200, purchases 20; ASIN impressions 500, clicks 40, purchases 2. Classify and prioritize.",
-      "expected_output": "Exact investigate, cite tool evidence.",
+      "expected_output": "Preserve exact/investigate diagnostic classification and arithmetic; no supported edit without a specific listing gap. Dimensions already supplied do not justify adding them again.",
       "files": [],
       "assertions": [
         {
@@ -611,6 +611,258 @@
         {
           "name": "no-ad-writes",
           "condition": "Does not apply bids or negative keywords or treat ad-only counts as SQP totals"
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}}",
+      "expected_output": "One large-theme bullet_point[0] dimension test with disjoint cohorts and uncertainty.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Aggregates q1\u2013q3 into large theme: ASIN 6/120=.05 versus market 60/600=.10, index .5; remainder q4\u2013q7 is 12/120=.10 versus 60/600=.10, index 1"
+        },
+        {
+          "name": "check-2",
+          "condition": "Proposes one exact size clarification for bullet_point index 0 using confirmed 40 \u00d7 30-inch sleeping surface, with before/after and a comparable complete-period cohort measure"
+        },
+        {
+          "name": "check-3",
+          "condition": "Explains in everyday language why the small purchase counts make the apparent gap uncertain and why confirmed missing dimensions still justify the proposed edit; interval numbers alone are not an explanation"
+        },
+        {
+          "name": "check-4",
+          "condition": "Does not claim causation, guaranteed lift, missing images or missing dimensions across the unseen entire PDP"
+        },
+        {
+          "name": "check-5",
+          "condition": "Does not replace the action with a generic checklist or duplicate overlapping-theme edits"
+        },
+        {
+          "name": "check-6",
+          "condition": "Does not require statistical or API vocabulary to understand the recommendation: technical intervals, indices, gates and selectors stay in supporting detail rather than the main explanation"
+        },
+        {
+          "name": "check-7",
+          "condition": "The main answer stands alone in ordinary seller language: clearly states the change or no-change choice or single evidence request, explains why, and gives only the useful next observation or fact; technical records are separate"
+        },
+        {
+          "name": "check-8",
+          "condition": "Does not append internal decision codes, threshold inventories, statistical method names, API selectors, unrelated missing-field inventories or a generic investigation checklist to the default seller answer"
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: first bullet already says Large size: 40 \u00d7 30-inch sleeping surface. All other facts unchanged.",
+      "expected_output": "No size edit; preserve existing clear bullet.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Returns no_change for the proposed size addition, with brief supporting cohort evidence"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not recommend a redundant size edit, generic investigation checklist or invent a defect"
+        },
+        {
+          "name": "check-3",
+          "condition": "Acknowledges the gap could be noise"
+        },
+        {
+          "name": "check-4",
+          "condition": "The main answer stands alone in ordinary seller language: clearly states the change or no-change choice or single evidence request, explains why, and gives only the useful next observation or fact; technical records are separate"
+        },
+        {
+          "name": "check-5",
+          "condition": "Does not append internal decision codes, threshold inventories, statistical method names, API selectors, unrelated missing-field inventories or a generic investigation checklist to the default seller answer"
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: catalog says 40 \u00d7 30 inches; first bullet says 36 \u00d7 24 inches. Seller has NOT confirmed either dimension. Remove the seller-confirmed dimension fact; all other facts remain.",
+      "expected_output": "hold_missing_evidence for one disputed dimension.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Asks seller/user to confirm this variant\u2019s sleeping-surface dimensions before correcting the bullet"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not treat the catalog value as authoritative or draft a factual correction as confirmed"
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: first bullet says 36 \u00d7 24-inch sleeping surface. Seller explicitly confirms 40 \u00d7 30-inch sleeping surface for this SKU. All ASIN clicks are 2 and purchases 0.",
+      "expected_output": "Confirmed correction despite thin data.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Returns product_fact_correction with exact bullet_point index 0 replacement using seller-confirmed dimensions"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not attribute the correction to proven conversion harm or require sufficient SQP before correcting the verified factual error"
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: q1 is irrelevant because independent variant evidence shows its requested need is unsupported; q2 and q3 remain exact. Treat supplied relevance overrides as assessed facts.",
+      "expected_output": "Exclude q1 only, hold thin recurring theme, no whole-theme exclusion.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Retains q2 and q3 as eligible large members while excluding q1; notes recurrence is now below three"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not exclude the whole large theme because one query mismatches"
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: q1, q2 and q3 are all complement, based on supplied product evidence. No unknown or eligible large members remain.",
+      "expected_output": "exclude_theme_targeting for large.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Excludes large theme targeting because all its members are known ineligible"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not suggest size-targeted listing copy for the excluded theme"
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: ASIN clicks for q1 are 400; its market clicks are 800 and market purchases are 80. All else unchanged.",
+      "expected_output": "Dominant-query guard.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Identifies q1 as exceeding 70% of large-theme clicks and recomputes without it"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not claim a recurring localized large-theme conversion pattern after remaining members fail gates"
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: each of q1\u2013q3 has only 80 market impressions, 40 ASIN impressions and 10 ASIN clicks; each still has 2 ASIN purchases.",
+      "expected_output": "Pool thin rows before theme sufficiency; .2 versus .1 is not weak.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Pools large members to 240 market impressions and 30 ASIN clicks, passing pooled volume gates despite individually thin rows"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not recommend a conversion-led size test from this now-strong theme"
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: each of q4\u2013q7 now has 1 ASIN purchase. Other counts unchanged.",
+      "expected_output": "Broad weakness, no localized large claim.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Compares the disjoint remainder and reports broad weakness rather than a localized large issue"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not infer that a large-specific content defect caused the conversion pattern"
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: no title or bullets supplied, and no live listing/catalog tools available. Seller facts remain confirmed.",
+      "expected_output": "One missing listing read.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Requests complete relevant listing text to determine whether dimensions are already clear"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not invent existing bullet text, absence or a concrete replacement target from unavailable listing evidence"
+        },
+        {
+          "name": "check-3",
+          "condition": "The main answer stands alone in ordinary seller language: clearly states the change or no-change choice or single evidence request, explains why, and gives only the useful next observation or fact; technical records are separate"
+        },
+        {
+          "name": "check-4",
+          "condition": "Does not append internal decision codes, threshold inventories, statistical method names, API selectors, unrelated missing-field inventories or a generic investigation checklist to the default seller answer"
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: q1 ASIN purchases are null, not zero. Do not estimate missing counts.",
+      "expected_output": "Withhold affected purchase ratios.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Does not compute a complete large-theme ASIN purchase total, purchase-per-click, index or interval from the partial purchase counts"
+        },
+        {
+          "name": "check-2",
+          "condition": "Keeps known counts and explains the one missing purchase count needed"
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "prompt": "Analyze this supplied SQP export and return the most useful next action with supporting theme comparisons. No live tools are available. The user is the seller and confirms the evidence. Data: {\"config\":{},\"rows\":[{\"row_id\":\"q1\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q2\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q3\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"large dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":200,\"cart_adds\":null,\"purchases\":20},\"asin_counts\":{\"impressions\":400,\"clicks\":40,\"cart_adds\":null,\"purchases\":2},\"relevance\":\"exact\"},{\"row_id\":\"q4\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"washable dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q5\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog sleeping bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q6\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"rectangular dog bed\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"},{\"row_id\":\"q7\",\"marketplace_id\":\"ATVPDKIKX0DER\",\"period\":\"WEEK\",\"start\":\"2026-10-04\",\"end\":\"2026-10-10\",\"asin\":\"B0TESTBED01\",\"query\":\"dog bed removable cover\",\"query_volume\":2000,\"market\":{\"impressions\":4000,\"clicks\":150,\"cart_adds\":null,\"purchases\":15},\"asin_counts\":{\"impressions\":400,\"clicks\":30,\"cart_adds\":null,\"purchases\":3},\"relevance\":\"exact\"}],\"evidence\":{\"source\":\"user, seller of SKU BED-L\",\"as_of\":\"2026-10-20\",\"seller_confirmed_facts\":[\"Large rectangular dog bed\",\"40 \\u00d7 30-inch sleeping surface\",\"washable removable cover\"],\"sku\":\"BED-L\",\"language_tag\":\"en_US\",\"title\":\"Large washable rectangular dog bed with removable cover\",\"bullet_point\":[\"Available in several sizes\",\"Washable removable cover for easy cleaning\"],\"coverage\":\"complete title and bullets; images and A+ unavailable\"}} Override: q1 has 12 ASIN purchases; q2 and q3 each have 0. Other counts unchanged.",
+      "expected_output": "Mixed winners and losers.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Shows the strong q1 and weak q2/q3 rather than describing all large queries as weak"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not recommend a localized conversion edit from a theme whose index is 1"
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "prompt": "Use SQP theme analysis for ASIN B0TESTBED01, US ATVPDKIKX0DER, complete WEEK 2026-10-04\u20132026-10-10. Seller confirms a large washable dog bed. Three queries large dog bed, large washable dog bed, large dog sleeping bed each report market impressions100, clicks20, purchases2 and ASIN impressions400, clicks40, purchases2. Select a listing test from these counts.",
+      "expected_output": "hold_invalid_input; ASIN same-stage counts exceed market totals, repair counts before comparative action.",
+      "files": [],
+      "assertions": [
+        {
+          "name": "check-1",
+          "condition": "Identifies ASIN impressions and clicks exceeding corresponding market totals and requests corrected counts"
+        },
+        {
+          "name": "check-2",
+          "condition": "Does not select a localized performance-based listing test from contradictory counts"
         }
       ]
     }

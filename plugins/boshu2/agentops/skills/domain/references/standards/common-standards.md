@@ -13,7 +13,6 @@
 3. [Security Principles](#security-principles)
 4. [Documentation Standards](#documentation-standards)
 5. [Code Organization Principles](#code-organization-principles)
-6. [Canonical Language Owners](#canonical-language-owners)
 
 ---
 
@@ -30,7 +29,6 @@ Errors are first-class citizens. Every language has different mechanisms (Result
 | Context | Add context when propagating | Lose the original error chain |
 | Recovery | Distinguish recoverable vs fatal | Treat all errors the same |
 | Documentation | Document error behavior in public APIs | Assume callers know failure modes |
-| Libraries | Log before raising in library boundaries | Swallow errors inside libraries |
 
 ### Error Chain Preservation
 
@@ -144,17 +142,13 @@ The table-driven pattern is universal. Define inputs and expected outputs in a d
 | Fake | Working lightweight implementation | Integration-like tests without real infra |
 | Spy | Records calls for later assertion | Interaction counting/ordering |
 
-### Coverage Targets
+### Coverage
 
-| Metric | Minimum | Target | Critical Paths |
-|--------|---------|--------|----------------|
-| Line coverage | 60% | 80% | 90%+ |
-| Branch coverage | 50% | 70% | 85%+ |
-
-**Coverage philosophy:**
-- Coverage is a floor, not a ceiling -- low coverage signals under-testing, high coverage does not guarantee quality
-- Prioritize critical paths (error handling, security, data integrity) over boilerplate
-- Measure branch coverage, not just line coverage -- untested branches hide bugs
+Set no coverage target of your own: [Test](../../../test/SKILL.md) measures
+broad coverage only in `coverage` mode or under an existing repository
+requirement. When coverage is measured, high coverage does not establish
+quality; prefer branch coverage on critical paths (error handling, security,
+data integrity) over line coverage of boilerplate.
 
 ### Property-Based Testing
 
@@ -190,8 +184,6 @@ Code examples in documentation should be executable tests. Guarantees documentat
 | Rotate secrets on exposure | Assume secrets are safe in private repos |
 | Audit git history for leaked secrets | Rely on `.gitignore` alone for protection |
 
-**Detection:** Prescan pattern P2 flags hardcoded secrets in all languages.
-
 ### Input Validation
 
 Validate at system boundaries (user input, external APIs, file reads). Trust internal code within the same trust boundary.
@@ -210,7 +202,7 @@ Validate at system boundaries (user input, external APIs, file reads). Trust int
 | SQL injection | Parameterized queries / prepared statements. NEVER string interpolation. |
 | Command injection | Use array-based exec (no shell). Avoid `eval()`, `exec()`, `system()`. |
 | Template injection | Use auto-escaping template engines. Escape user input in templates. |
-| Path traversal | Resolve to absolute path, verify within allowed directory. Block `..` sequences. |
+| Path traversal | Resolve the path, then verify by path components that it stays inside the allowed directory (see [Path Traversal Prevention](#path-traversal-prevention)). |
 | JSON/YAML injection | Use proper serialization libraries (e.g., `jq` in shell). NEVER string interpolation for structured formats. |
 
 ### Cryptographic Best Practices
@@ -243,18 +235,18 @@ Validate at system boundaries (user input, external APIs, file reads). Trust int
 
 ### OWASP Top 10 Mapping
 
-| # | OWASP Category | Prevention Pattern | Detection |
-|---|----------------|-------------------|-----------|
-| A01 | Broken Access Control | Deny by default; enforce server-side auth on every endpoint | Prescan P3: missing auth middleware |
-| A02 | Cryptographic Failures | TLS 1.2+, strong hashing (bcrypt/argon2), no plaintext secrets | Prescan P2: hardcoded secrets |
-| A03 | Injection | Parameterized queries, array-based exec, template auto-escaping | Prescan P1: string interpolation in queries/commands |
-| A04 | Insecure Design | Threat modeling, abuse case testing, rate limiting | Architecture review |
-| A05 | Security Misconfiguration | Minimal permissions, disable defaults, harden headers | Config audit |
-| A06 | Vulnerable Components | `govulncheck`, `npm audit`, `pip-audit`, `cargo audit` | CI dependency scan |
-| A07 | Auth Failures | MFA, strong passwords, session timeout, credential rotation | Auth integration tests |
-| A08 | Data Integrity Failures | Signed updates, verified CI/CD pipeline, SBOM | Supply chain review |
-| A09 | Logging Failures | Log auth events, access control failures, input validation | Log coverage audit |
-| A10 | SSRF | Allowlist outbound hosts, block internal IPs, validate URLs | Prescan P4: unvalidated URL construction |
+| # | OWASP Category | Prevention Pattern |
+|---|----------------|-------------------|
+| A01 | Broken Access Control | Deny by default; enforce server-side auth on every endpoint |
+| A02 | Cryptographic Failures | TLS 1.2+, strong hashing (bcrypt/argon2), no plaintext secrets |
+| A03 | Injection | Parameterized queries, array-based exec, template auto-escaping |
+| A04 | Insecure Design | Threat modeling, abuse case testing, rate limiting |
+| A05 | Security Misconfiguration | Minimal permissions, disable defaults, harden headers |
+| A06 | Vulnerable Components | `govulncheck`, `npm audit`, `pip-audit`, `cargo audit` in CI |
+| A07 | Auth Failures | MFA, strong passwords, session timeout, credential rotation |
+| A08 | Data Integrity Failures | Signed updates, verified CI/CD pipeline, SBOM |
+| A09 | Logging Failures | Log auth events, access control failures, input validation |
+| A10 | SSRF | Allowlist outbound hosts, block internal IPs, validate URLs |
 
 ### HTTP Handler Security Patterns
 
@@ -270,17 +262,17 @@ Validate at system boundaries (user input, external APIs, file reads). Trust int
 
 ### Path Traversal Prevention
 
-Resolve user-supplied paths to absolute form, then verify the result stays within the allowed directory.
+Resolve user-supplied paths, then verify by path components that the result stays within the allowed directory.
 
 | Language | Pattern |
 |----------|---------|
-| Go | `cleaned := filepath.Clean(userPath); if !strings.HasPrefix(filepath.Join(baseDir, cleaned), baseDir) { reject }` |
-| Python | `resolved = (base_dir / user_path).resolve(); if not str(resolved).startswith(str(base_dir.resolve())): raise` |
-| Node | `const resolved = path.resolve(baseDir, userPath); if (!resolved.startsWith(baseDir)) throw` |
-| Shell | `realpath "$user_path" | grep -q "^$base_dir" || exit 1` |
+| Go | `if !filepath.IsLocal(userPath) { reject }` before `filepath.Join(baseDir, userPath)`; or open through `root, err := os.OpenRoot(baseDir)` then `root.Open(userPath)` (1.24+), which also refuses symlink escapes |
+| Python | `resolved = (base_dir / user_path).resolve(); if not resolved.is_relative_to(base_dir.resolve()): raise` (3.9+) |
+| Node | `const rel = path.relative(baseDir, path.resolve(baseDir, userPath)); if (rel === '..' \|\| rel.startsWith('..' + path.sep) \|\| path.isAbsolute(rel)) throw` |
 
 **Key rules:**
-- Always resolve BEFORE checking — `../` sequences bypass naive prefix checks
+- Never compare string prefixes: `/srv/base-evil/secret` starts with `/srv/base`
+- Always resolve BEFORE checking; `filepath.IsLocal` and `path.relative` are lexical, so resolve symlinks (or use `os.Root`) when the tree can contain links
 - Block null bytes (`\0`) in file paths — some runtimes truncate at null
 - Reject absolute paths in user input when relative paths are expected
 
@@ -366,7 +358,7 @@ Resolve user-supplied paths to absolute form, then verify the result stays withi
 | Convention | Description |
 |------------|-------------|
 | Short, descriptive names | `config`, `handlers`, `models` -- not `configurationManager` |
-| Lowercase with language-appropriate separators | `snake_case` (Python/Rust/Go), `kebab-case` (npm/crate names), `camelCase` (TS) |
+| Lowercase with language-appropriate separators | `snake_case` (Python/Rust modules), lowercase with no separators (Go packages), `kebab-case` (npm/crate names), `camelCase` (TS) |
 | No stuttering | `config.Config` is fine; `config.ConfigConfig` is not |
 | Domain-driven grouping | Group by feature/domain, not by technical layer |
 
@@ -405,7 +397,7 @@ Language-specific standards SHOULD declare the target language/runtime version a
 |----------|---------------|------------------------|
 | Go | `go.mod` `go` directive | `slices` (1.21+), `range n` (1.22+), `t.Context()` (1.24+) |
 | Python | `pyproject.toml` `requires-python` | `match` (3.10+), `tomllib` (3.11+), exception groups (3.11+) |
-| Rust | `Cargo.toml` `edition` | `let-else` (2021+), `async fn in trait` (2024+) |
+| Rust | `Cargo.toml` `rust-version` (MSRV) | `let-else` (1.65+), `async fn in trait` (1.75+) |
 | TypeScript | `tsconfig.json` `target` | `satisfies` (4.9+), `using` (5.2+) |
 
 ### Import Ordering
@@ -420,28 +412,4 @@ Separated by blank lines. Alphabetical within each group.
 
 ---
 
-## Canonical Language Owners
-
-Language-specific guidance lives beside this document in one concise canonical
-file per language:
-
-| Language | Canonical file |
-|----------|----------------|
-| Go | `go.md` |
-| Python | `python.md` |
-| Rust | `rust.md` |
-| TypeScript | `typescript.md` |
-| JavaScript | `javascript.md` |
-| Shell | `shell.md` |
-| JSON/JSONL | `json.md` |
-| YAML | `yaml.md` |
-| Markdown | `markdown.md` |
-
-Validate consumes these standards as criteria; it does not own duplicate
-language catalogs. Universal error-handling, testing, security, documentation,
-and organization rules remain here, while language files carry only the
-syntax, tooling, and runtime details needed to apply them.
-
----
-
-**Related:** Language-specific standards in `go.md`, `python.md`, `rust.md`, `typescript.md`, `shell.md`
+**Related:** Language-specific standards in `go.md`, `python.md`, `rust.md`, `typescript.md`, `javascript.md`, `shell.md`, `json.md`, `yaml.md`, `markdown.md`

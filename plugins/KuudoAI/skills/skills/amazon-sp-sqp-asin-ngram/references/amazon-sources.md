@@ -1,5 +1,7 @@
 # Amazon sources and analytical boundaries
 
+Use these rules for analysis and supporting records. Present the recommendation using the [seller-answer contract](decision-records.md); include a technical limitation in the main answer only when it changes the decision.
+
 Sources inspected 2026-10-20. Read this ledger when explaining provenance or resolving conflicting definitions. Local rules distinguish **Amazon definitions**, **research findings**, and **analyst methods**; the latter are not Amazon recommendations.
 
 | Source | Supported use | Limits |

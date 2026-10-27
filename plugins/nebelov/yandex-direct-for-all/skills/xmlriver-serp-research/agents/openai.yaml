@@ -1,0 +1,4 @@
+interface:
+  display_name: "XMLRiver: выдача и Wordstat"
+  short_description: "Альтернатива Yandex Cloud: платный воспроизводимый сбор выдачи Яндекса и Google и Wordstat через XMLRiver."
+  default_prompt: "Используй навык xmlriver-serp-research: сначала info и plan с потолком стоимости, затем проба и сбор сырых ответов по журналу."

@@ -370,8 +370,6 @@ REQUIRED_FILES=(
   feature-catalog.md
   spec-architecture.md
   spec-code-map.md
-  spec-clone-vs-use.md
-  spec-clone-mvp.md
   spec-cli-surface.md
   spec-artifact-surface.md
   artifact-registry.json

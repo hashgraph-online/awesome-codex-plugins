@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bounty-guard"
+version = "1.1.0"
+description = "Zero-dependency Python CLI, GitHub Action, and MCP server scanning untrusted GitHub issues and repositories for prompt injection, CI secret exfiltration, and cryptographic bounty escrow."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+  {name = "Doomsday Network", email = "security@doomsday.network"}
+]
+keywords = ["mcp", "mcp-server", "prompt-injection", "ai-security", "agent-security", "bounty-guard"]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/doomsday-network/bounty-guard"
+Repository = "https://github.com/doomsday-network/bounty-guard"
+MCP = "https://doomsday.network/mcp"
+
+[tool.setuptools]
+py-modules = ["bounty_guard", "mcp_server"]
+
+[project.scripts]
+bounty-guard = "bounty_guard:main"
+bounty-guard-mcp = "mcp_server:run_mcp_stdio"

@@ -2,7 +2,7 @@
   "mcpServers": {
     "pricewin": {
       "type": "http",
-      "url": "https://mcp.price.win/mcp"
+      "url": "https://mcp.price.win/mcp?src=agent-plugin"
     }
   }
 }

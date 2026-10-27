@@ -1,6 +1,6 @@
 {
   "name": "ai-sdlc",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "The six-stage AI-native software development lifecycle from Anthropic's playbook, as an executable Codex plugin. Each stage produces one version-controlled Markdown artifact and stops at a human gate: Plan writes intent.md, Design turns an accepted intent into spec.md under org policy, Build reviews plan.md before writing any code and then implements it, Test proves the change and regression-tests the agent configuration itself, Deploy runs the REVIEW.md passes on the PR with a verifier pass and a round cap and stops for human approval, Maintain watches bands.yaml control bands and files the next intent.md when a band breaks. A change a person declares low-risk takes the fast path, entering at Build; the hooks refuse it for any sensitive path. Ships eight skills, two read-only subagents, artifact-gate and prod-guard hooks, and templates for intent.md, spec.md, plan.md, review-findings.md, project memory (written to AGENTS.md for Codex, CLAUDE.md for Claude Code, from one template so the two cannot drift), REVIEW.md and bands.yaml. Every hook is inert unless the repository contains a .sdlc/ directory.",
   "author": {
     "name": "Hieuvu7"

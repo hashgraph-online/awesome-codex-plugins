@@ -91,20 +91,23 @@ trigger/state clauses when writing or editing a line whose behavior is condition
 
 ## Body cap
 
-**≤ 120 lines, one number for every path.** Six sections, each a handful of
-numbered/bulleted points — the "reference, don't reproduce" rule (Forbidden section
-below) is what keeps a spec inside the cap even for a complex subject.
+**≤ 120 lines of contract, one number for every path.** The cap counts the five
+contract sections — Purpose & Scope, Surface, Normative Behavior, Constraints &
+Invariants, Failure Behavior — headings and blank lines included. Conformance and
+any section a project adds after it (how to verify, when to revisit, open
+questions) stay outside the count. The "reference, don't reproduce" rule (Forbidden
+section below) is what keeps a spec inside the cap even for a complex subject.
 
-The cap counts the whole body, headings and blank lines included; on the six-section
-form those alone take about 19 lines, so the room for requirements is nearer 100. The
-extra room over the former 80 goes to Normative Behavior / Constraints & Invariants,
-never to reproducing source.
+The cap measures what it exists to signal: whether the contract has more than one
+subject. A verification map or a revisit list says nothing about that, so it does
+not push a one-subject spec into a split. Sections outside the count still obey the
+Forbidden list and MUST NOT restate Conformance.
 
 The separate flagship cap that `/archcore:init` hotspot synthesis carried is folded
 into this default — a synthesized spec and an authored one are now measured alike, and
 `skills/_shared/grounding/detect-hotspots.md` "Flagship specs" keeps only the
-decomposition treatment it always governed. The Archcore CLI enforces the same 120 in
-`@templates/precision.go` (`MaxSpecBodyLines`), so the contract and the hook agree.
+decomposition treatment it always governed. The Archcore CLI reports the 120 in
+`@templates/precision.go` (`MaxSpecBodyLines`); see Enforcement for how it counts.
 
 ### Over the cap — decompose, never compress
 
@@ -166,11 +169,11 @@ hook: the mandatory sections, `SHALL` in place of a BCP 14 modal, two modals in
 one numbered line, a subjectless passive, a condition placed after the obligation
 it controls, and a clause past 25 words.
 
-The hook applies the same 120-line cap this contract states, so a spec composed at
-the cap no longer reports a finding it was never meant to trip. That agreement
-replaced an earlier split — an 80-line hook against a 120-line flagship allowance —
-in which one finding per flagship spec was expected and the composing skill was left
-to decide the finding did not apply.
+The hook reports, never blocks. A CLI that counts the whole body reports a spec whose
+contract sections fit the cap but whose Conformance and added sections push the body
+past 120. WHEN the hook reports the body cap, the composing skill MUST count the five
+contract sections itself; IF they fit, THEN the skill MUST treat the finding as not
+applying and MUST NOT split or compress the spec for it.
 
 One limit remains, and no version removes it: whether the spec covers **one** subject,
 and whether Surface references the source instead of reproducing it, is not decidable

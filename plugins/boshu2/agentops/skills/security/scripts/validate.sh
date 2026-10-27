@@ -56,6 +56,28 @@ for path in sys.argv[1:]:
 PY
 python3 -c 'import json, pathlib, sys; root=pathlib.Path(sys.argv[1]); [json.loads((root/name).read_text()) for name in ("policy-example.json", "agentops-redteam-pack.json")]' "$SKILL_DIR/references"
 
+# Seeded suite cases: Cobra grouped help must yield commands (it yielded none,
+# so the documented ao policy example failed), the starter deny list must match
+# the remote side of an lsof row, and lsof must AND its selectors (-a) so other
+# processes' sockets are not recorded.
+python3 -I - "$SKILL_DIR/scripts/security_suite.py" "$SKILL_DIR/references/policy-example.json" <<'PY'
+import importlib.util, json, re, sys
+sys.dont_write_bytecode = True
+spec = importlib.util.spec_from_file_location("security_suite", sys.argv[1])
+suite = importlib.util.module_from_spec(spec)
+sys.modules["security_suite"] = suite
+spec.loader.exec_module(suite)
+grouped = ("Usage:\n  ao [command]\n\nGetting Started:\n  init         Create\n\n"
+           "Core Commands:\n  status       Show\n\nFlags:\n  -h, --help   help\n\n"
+           'Use "ao [command] --help" for more information about a command.\n')
+assert suite._parse_subcommands(grouped) == ["init", "status"], "grouped help parse"
+assert suite._parse_subcommands("Usage: t FILE\n\nNotes:\n  Read once.\n") == [], "prose parsed as commands"
+deny = json.load(open(sys.argv[2]))["deny_network_endpoint_patterns"]
+assert any(re.search(p, "TCP 203.0.113.5:5000->10.0.0.1:443") for p in deny), "remote private missed"
+assert not any(re.search(p, "TCP 192.168.1.5:5000->203.0.113.9:443") for p in deny), "local LAN flagged"
+assert '"lsof", "-nP", "-a", "-i", "-p"' in open(sys.argv[1]).read(), "lsof selectors not ANDed"
+PY
+
 # Behavioral redteam: run the attack pack against the live repo surfaces and
 # require verdict PASS. This is what keeps the pack honest — a stale target glob
 # or pattern (the "fails against its own tree" defect) turns this red. It is

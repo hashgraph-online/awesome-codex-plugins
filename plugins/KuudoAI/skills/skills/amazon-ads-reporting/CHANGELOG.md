@@ -4,6 +4,12 @@ All notable changes to this skill are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions are semver and
 must match `metadata.version` in SKILL.md.
 
+## [0.4.3] - 2026-10-20
+
+### Fixed
+
+- Remove the obsolete test forbidding the repository-required changelog; standard-library package tests now run in CI.
+
 ## [0.4.2] - 2026-10-18
 
 ### Fixed

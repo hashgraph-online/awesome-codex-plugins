@@ -124,7 +124,12 @@ When patch-shape/ripple triage, an H-class finding, or a bounded compatibility
 mitigation fired, a locally green result does not clear the direction. Retain
 `PatchShape`, `CanonicalOwner`, `UpwardDrillSignal`, latest outcome, and one
 bounded evidence ref; do not copy raw logs or full diffs. If no fresh evidence
-exists, the state is `needs-verification` or `partial`.
+exists, the state is `needs-verification` or `partial`. For repairs or
+optimization, retain the causal scope, evidence references, unresolved
+influences that could change the solution, and verification coverage in the
+same checkpoint. Compression must not turn one confirmed cause into a complete
+root claim or erase counterevidence; recheck these unknowns before resuming
+retained changes. Do not add a parallel causal record.
 
 ## Resume Protocol
 

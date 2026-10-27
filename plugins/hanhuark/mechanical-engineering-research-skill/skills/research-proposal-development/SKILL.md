@@ -13,6 +13,8 @@ Turn an important research question into a reviewer-decision-ready proposal. Pre
 
 Read `references/proposal-development.md` before drafting a full narrative, responding to review criteria, planning proposal figures, integrating preliminary results, or polishing a submission.
 
+Read `references/budget-and-justification.md` before building a budget, writing a budget justification, preparing a subaward budget, or reconciling the budget with the narrative.
+
 ## Workflow
 
 1. Extract the solicitation's scope, eligibility, deadline, budget and duration constraints, required sections, evaluation criteria, and special requirements from primary sources.
@@ -27,4 +29,4 @@ Each paragraph should answer one reviewer question. Avoid generic impact claims,
 
 ## Final Review
 
-Check factual solicitation alignment, budget/timeline consistency, references, labels on preliminary versus proposed material, and all claimed collaborator, institutional, or facility commitments. Flag requirements that require institutional review rather than inventing compliance language.
+Check factual solicitation alignment, budget/timeline consistency (recompute the justification against the workbook and the narrative), references, labels on preliminary versus proposed material, and all claimed collaborator, institutional, or facility commitments. Flag requirements that require institutional review rather than inventing compliance language.

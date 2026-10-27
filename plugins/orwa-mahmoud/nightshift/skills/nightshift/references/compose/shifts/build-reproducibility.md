@@ -34,7 +34,7 @@ entry in artifact mode. Typical hours: 2–4.
   - Never treat cache-only success as reproducibility without naming the cache assumption.
   - Refuse owner-only install or provisioning decisions — record them in the evidence output
     and park for the owner.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every declared path is verified reproducible, documented as cache-dependent or
     non-deterministic with reason, or parked with exact environmental or owner-only blockers.
   - Verify: the item gate is green at every commit; the receipt states a finite verdict for every

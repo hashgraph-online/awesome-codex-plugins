@@ -5,5 +5,7 @@ external contracts using repository-required documentation tools. Record only
 `evidence -> implication -> decision` in the canonical plan; separate research
 files only for independent reuse/audit.
 
-Delegate bounded questions; merge findings once. Stop researching when remaining
-unknowns cannot change implementation. Ask only for unresolved material choices.
+Delegate bounded questions; merge findings once. In Claude Code, run
+[delegated agents](../../zagrosi-forge/references/providers.md#delegated-agents) in the foreground when offered.
+Stop researching when remaining unknowns cannot change implementation. Ask only
+for unresolved material choices.

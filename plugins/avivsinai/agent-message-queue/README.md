@@ -38,9 +38,8 @@ amq drain --root .agent-mail/demo --me bob --include-body
 
 This walkthrough connects **Claude Code** and **Codex CLI** on one machine.
 Install both agent CLIs and put `claude` and `codex` on `PATH` first.
-Use macOS or Linux; on Windows, use WSL with the Linux binary for this
-terminal workflow. Native Windows has a verified subset of queue and adapter
-support; see the [platform matrix](INSTALL.md#platform-capability-matrix).
+Use macOS, Linux, or WSL; native Windows supports a subset (see the
+[platform matrix](INSTALL.md#platform-capability-matrix)).
 
 ### 1. Install the binary
 
@@ -50,15 +49,9 @@ On macOS:
 brew install avivsinai/tap/amq
 ```
 
-Or on macOS/Linux, review and run the [installer](scripts/install.sh):
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/avivsinai/agent-message-queue/main/scripts/install.sh | bash
-```
-
-The script installs to a user-local directory without `sudo` and checks the
-release checksum before extraction. Confirm the install with `amq --version`.
-See [Installation](INSTALL.md) for manual downloads and source builds.
+On Linux, or without Homebrew, use the installer script or a release
+download from [Installation](INSTALL.md#binary-installation). Confirm the
+install with `amq --version`.
 
 ### 2. Install Skill
 
@@ -69,7 +62,8 @@ npx skills add avivsinai/agent-message-queue -g -y
 ```
 
 Restart the agents after installing. [Other skill installation methods](INSTALL.md)
-are available if you do not use npm.
+are available if you do not use npm. agy (Antigravity CLI) reads skills from
+`~/.gemini/config/skills`, so copy the skill there as INSTALL.md shows.
 
 ### 3. Set up the project
 
@@ -81,6 +75,9 @@ amq setup
 
 Select the agents and launcher, then confirm the preview. Setup writes the
 project configuration and creates the default session and its mailboxes.
+An agent's handle is its harness name (`claude`, `codex`) unless you enter
+`handle=harness`, for example `reviewer=claude`. Only the handle goes into the
+roster and the mailboxes.
 
 ### 4. Start both agents
 
@@ -95,23 +92,13 @@ required). Paste each complete command into a separate terminal; do not
 shorten or rebuild it.
 
 Optional, for Claude Code: `amq wake install-dialog-hook` keeps the wake from
-typing into an open AskUserQuestion, plan, or permission dialog.
+typing into an open AskUserQuestion, plan, or permission dialog. Add
+`--harness codex` or `--harness cursor` (or `--harness all`) for their
+approval prompts.
 
 Start both agents before sending the first message. Messages that arrive
 before a recipient's wake starts remain unread but do not trigger that new
 wake. The recipient can still get them with `amq drain --include-body`.
-
-### Control a session from Buzz
-
-Inside a running Claude Code session, type `/amq-remote`; inside Codex, invoke
-the skill as `$amq-remote` (Codex does not register `/` commands for skills).
-The first
-time, import that session's agent into Buzz Desktop; with the AMQ Remote
-helper imported once on the machine, Desktop opens the Create agent dialog
-instead. Each session has its own agent, pinned to it by the system prompt
-line `AMQ Remote session: <name>`. DM that agent from the Buzz app or
-Desktop, and the DM runs in that session.
-`/amq-remote off` disconnects it. See [amq-remote](cmd/amq-remote/README.md).
 
 <a id="messaging"></a>
 
@@ -165,16 +152,13 @@ AMQ is for local agent coordination, not a distributed broker. The optional
 [bridge companion](cmd/amq-bridge/README.md) exchanges messages between hosts;
 each host keeps control of its own queue.
 
-### Remote
+## Remote control
 
-The optional [remote companion](cmd/amq-remote/README.md) connects a running
-session to its own Buzz agent. The default path is the session mailbox: a DM
-arrives as an AMQ message from `buzz`, and the agent's reply is the answer.
-`--native` and the relay are the other paths. It is a separate binary: `amq`
-gains no socket. The Homebrew `amq` formula installs `amq`, `amq-acp`,
-`amq-remote`, `amq-owner-sign`, and `amq-bridge`. Commands, flags, and exit codes are in that README. The design is
-[the remote-control ADR](docs/adr-remote-control.md); pinned seams are
-[the compatibility manifest](docs/remote-compat.md).
+The optional [remote companion](cmd/amq-remote/README.md) gives a running
+Claude Code or Codex session its own Buzz agent, so you can DM that session
+from the Buzz app or Buzz Desktop. Inside the session, type `/amq-remote`
+(in Codex, `$amq-remote`); `/amq-remote off` disconnects it. Setup, commands,
+and the trust model are in that README.
 
 ## Documentation
 

@@ -5,7 +5,11 @@ description: Use when a Codex execution should report progress, artifacts, block
 
 # OrgX Runtime Reporting
 
-Use this skill when Codex should keep OrgX updated during execution.
+Use this skill when Codex should keep OrgX updated during execution within the
+user's authorized tracking scope. Reporting is not a prerequisite for local
+work, PR updates, or an authorized merge. Reuse prior authorization; do not ask
+again for each milestone. If reporting is unavailable, keep useful evidence
+locally, continue independent work, and describe the tracking gap once.
 
 ## Reporting contract
 
@@ -69,13 +73,38 @@ durable in OrgX while the session is still fresh.
 - `completed`
 
 4. Register proof of work:
-- When you produce a file, diff, document, screenshot, or report, register it as an artifact with a concrete summary.
+- Register useful evidence at meaningful milestones with a concrete summary;
+  batch related files rather than treating every edit as a separate artifact.
+- For a user-requested output attachment, use the existing `orgx_update_work`
+  when it is callable in the current connection. Inspect the current OrgX work
+  target first. Supply its persisted `type`, `id`, `workspace_id`, a stable
+  `idempotency_key`, and one `artifact`; omit `fields` for this call.
+- The artifact takes `name`, registered `artifact_type`, `location` containing
+  exactly one `artifact_url` or `external_url`, optional `description` and
+  `preview_markdown`, and optional `output_front_door`. A local path is not an
+  uploaded durable output. The front door contains a plain `answer`, at most
+  three existing `decisionId` references with `question`, `recommendation` and
+  `impact`, and producer-reported `checked` / `notChecked` notes.
+- Context state, run cost, evaluator scores and client acceptance come from
+  server records. Do not submit them as producer authority. If OrgX context
+  could not load, say so before the plan and do not assume workspace team,
+  budget, brand or open work.
+- Reuse the exact payload and key after an ambiguous attachment failure.
+  Deliberately revised output gets a new key. Require a stored artifact UUID
+  in the response, then inspect it with `orgx_inspect` and present the canonical
+  output summary and review link. Attachment does not approve or complete work.
+- A connection without this admitted operation needs a matching MCP deployment
+  and inventory refresh. Keep the output available and report the exact gap;
+  never guess an alias or claim that a local receipt proved attachment.
 
 5. Handle blockers structurally:
-- If judgment is required, request a decision with explicit options.
-- A decision waits on a person: report the blocker as waiting on them with the
+- If an unresolved choice requires human authority, request a decision with
+  explicit options. Routine implementation choices and actions already
+  authorized do not need a new approval.
+- Report the work that depends on a pending human decision as waiting with the
   decision's `review_url`. `orgx_decide` approve/reject only returns that link;
-  never report a decision as approved or rejected yourself.
+  never report a decision as approved or rejected yourself. Continue work that
+  does not depend on that decision.
 - If context is missing, report the exact missing dependency.
 
 6. Close execution cleanly:
@@ -86,6 +115,8 @@ durable in OrgX while the session is still fresh.
   classify: name decisions, artifacts, blockers, next actions, and verification.
 - Do not claim OrgX was updated unless an MCP tool or API call actually
   succeeded.
+- Wizard remains the owner of passive capture. Do not add a second plugin
+  capture hook or treat the gateway's terminal receipt outbox as output upload.
 - Do not claim delegated or spawned work finished because the spawn call
   succeeded: that only means it started. Check it with `orgx_command_status`
   (`kind: "run"` and the returned run ID) until `next_poll_after_ms` is `null`.

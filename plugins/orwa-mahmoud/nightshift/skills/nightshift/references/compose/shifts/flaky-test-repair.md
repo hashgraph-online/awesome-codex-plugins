@@ -22,7 +22,7 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to ma
     owner-provided list. Build the bounded repetition matrix in a
     `mode: flaky-matrix` receipt from `receipts/cycle-specialist-evidence.md`: seed, order, retries, isolation,
     timing, locale/timezone, environment, parallelism, and supplied CI history. Dedupe against snag-log.md
-    (ALL seen — fixed and rejected). Before work, declare a repetition budget for each suspect
+    under Snag log discipline. Before work, declare a repetition budget for each suspect
     using the project's existing runner.
   - Reproduce one suspect within its budget. If it fails, isolate the deterministic cause (shared
     state, ordering, time, randomness, concurrency, environment, or leaked resources), fix that

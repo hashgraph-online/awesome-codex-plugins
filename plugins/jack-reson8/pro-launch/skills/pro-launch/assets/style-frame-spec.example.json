@@ -1,0 +1,19 @@
+{
+  "size": [1080, 1920],
+  "frames": [
+    {"out": "docs/style-frames/A.jpg", "bg": "#F5F5F7", "layers": [
+      {"type": "text", "text": "Hello", "y": 250, "size": 190, "weight": "Heavy"},
+      {"type": "image", "src": "renders/hero.png", "box": [225, 560, 630, 840], "radius": 44, "shadow": 50},
+      {"type": "text", "text": "Tutti", "y": 1470, "size": 190, "weight": "Heavy"},
+      {"type": "text", "text": "Play your photos.", "y": 1720, "size": 44, "weight": "Medium", "color": "#6E6E73"}]},
+    {"out": "docs/style-frames/B.jpg", "bg": "#111111", "bg_image": "renders/wallpaper-face-low.png", "layers": [
+      {"type": "island"},
+      {"type": "clock", "time": "9:41", "date": "Saturday 24 October", "y": 200},
+      {"type": "notif", "y": 1500, "icon": "renders/app-icon.png", "title": "Tutti", "body": "Your photo has 12 new looks.", "dark": true}]},
+    {"out": "docs/style-frames/C.jpg", "bg": "#0A0A0C", "layers": [
+      {"type": "pills", "srcs": ["renders/1.png", "renders/2.png", "renders/3.png", "renders/4.png", "renders/5.png", "renders/6.png", "renders/7.png"],
+       "box": [60, 200, 960, 1300], "heights": [0.69, 0.9, 0.54, 1.0, 0.75, 0.86, 0.58]},
+      {"type": "text", "text": "All together now.", "y": 1600, "size": 72, "color": "#F5F5F7"},
+      {"type": "text", "text": "Tutti", "y": 1700, "size": 48, "weight": "Medium", "color": "#8C8C94"}]}
+  ]
+}

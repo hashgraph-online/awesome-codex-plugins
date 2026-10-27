@@ -20,14 +20,14 @@ docs_features:
   - 'docs/guides/spec-driven'
 groups:
   README:
-    impl: control-plane
+    impl: unclassified
     anchors: []
     notes: ""
   RELEASE_NOTES:
-    impl: control-plane
+    impl: unclassified
     anchors: []
     notes: ""
   guides:
-    impl: control-plane
+    impl: unclassified
     anchors: []
     notes: ""

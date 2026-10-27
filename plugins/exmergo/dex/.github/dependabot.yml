@@ -19,3 +19,47 @@ updates:
       github-actions:
         patterns:
           - "*"
+
+  # The engine's Python dependencies (#795), read from packages/dex-core's
+  # pyproject.toml and uv.lock. Weekly, and never a major: a major is a
+  # migration (DuckDB 2.0 changed the relation API, #797) and gets its own
+  # issue rather than an automatic pull request.
+  #
+  # Grouped by what has to move together rather than one PR per package. The
+  # dbt stack is coupled through its adapters (dbt-databricks bounds dbt-core,
+  # dbt-common, pydantic and the Databricks clients), so bumping one member
+  # alone resolves to nothing or to an untested combination. Developer tools
+  # are separate so a formatter bump never rides in with a runtime change.
+  # Bounds dex holds deliberately (sqlglot <31, duckdb <3, the Snowflake
+  # connector <5, MetricFlow's single minor, the exact motley-slayer pin) still
+  # bind: Dependabot proposes lock updates inside them and a range change only
+  # when a ceiling is widened by hand.
+  - package-ecosystem: "uv"
+    directory: "/packages/dex-core"
+    schedule:
+      interval: "weekly"
+    labels:
+      - "dependencies"
+      - "python"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+      # One exact release, held equal to SLAYER_VERSION by a test; moving it
+      # is a format migration, never a routine bump.
+      - dependency-name: "motley-slayer"
+    groups:
+      dev-tools:
+        patterns:
+          - "ruff"
+          - "towncrier"
+          - "pytest"
+      dbt-stack:
+        patterns:
+          - "dbt-*"
+          - "metricflow*"
+          - "mashumaro"
+          - "pydantic*"
+          - "databricks-*"
+      runtime:
+        patterns:
+          - "*"

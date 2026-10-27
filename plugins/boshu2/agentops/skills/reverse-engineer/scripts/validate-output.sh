@@ -43,8 +43,6 @@ required=(
   feature-catalog.md
   spec-architecture.md
   spec-code-map.md
-  spec-clone-vs-use.md
-  spec-clone-mvp.md
   analysis-root-path.txt
   validate-feature-registry.py
 )
@@ -99,22 +97,30 @@ if [[ "$phase" == complete ]]; then
     echo "error: steal-map.md lacks the required table header" >&2
     exit 1
   }
-  awk -F'|' '
-    BEGIN { found = 0 }
-    /^\|/ {
-      capability=$2; ours=$3; verdict=$4
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", capability)
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", ours)
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", verdict)
+  # Every row of the steal-map table: both cells filled, one valid verdict, a
+  # source tag in the capability cell, and no steal without code evidence.
+  awk -F'|' -v header='| Their capability | Our surface today | Verdict |' '
+    function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
+    function bad(msg) { printf "error: steal-map.md line %d: %s\n", NR, msg > "/dev/stderr"; errors++ }
+    $0 == header { in_table = 1; next }
+    in_table && !/^\|/ { in_table = 0 }
+    !in_table { next }
+    {
+      capability = trim($2); ours = trim($3); verdict = trim($4)
       gsub(/\*\*/, "", verdict)
-      if (capability != "" && capability != "Their capability" && capability !~ /^-+$/ &&
-          ours != "" && verdict ~ /^(have|gap|steal|park|reject)$/) found = 1
+      if (capability ~ /^:?-+:?$/) next
+      rows++
+      code = (capability ~ /\(code:[[:space:]]*[^)[:space:]]/)
+      if (capability == "" || ours == "") bad("both the capability and our surface need content")
+      else if (verdict !~ /^(have|gap|steal|park|reject)$/) bad("verdict must be have, gap, steal, park or reject")
+      else if (!code && capability !~ /\((docs|hosted)[:)]/) bad("tag the capability (code: <file:line>), (docs) or (hosted)")
+      else if (verdict == "steal" && !code) bad("steal needs code evidence; a docs or hosted row is gap, park or reject")
     }
-    END { exit found ? 0 : 1 }
-  ' "$steal_map" || {
-    echo "error: steal-map.md needs at least one nonempty row with a valid verdict" >&2
-    exit 1
-  }
+    END {
+      if (rows == 0) { print "error: steal-map.md table has no rows" > "/dev/stderr"; exit 1 }
+      exit errors ? 1 : 0
+    }
+  ' "$steal_map" || exit 1
 fi
 
 if [[ "$security_audit" == 1 ]]; then
@@ -134,5 +140,8 @@ else
     exit 1
   }
 fi
+
+# Secret scan over every output, in every phase and mode.
+bash "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/security/scan_secrets.sh" "$output_dir"
 
 echo "PASS: reverse-engineer $phase output is structurally valid"

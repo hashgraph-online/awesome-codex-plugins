@@ -81,16 +81,19 @@ page under the caller's independently supplied expected acceptance. A batch may
 cover every changed page and claim in one bounded review. Adding a stamp after
 review changes the content digest and requires a new matching judgment.
 
-Default retrieval still requires matching independent evidence-backed review
-and current applicability. This structural command does not implement retrieval
-or admission. Drafts and review outputs stay in caller-selected protected non-Git
-staging until exact destination disclosure eligibility passes. Only approved
-content may enter Git. Native runtime source/model/destination authorization
-must precede page access; this parser is not an access-policy enforcement tool.
+[Find / recall](../recall.md) treats a page with no matching independent review
+as unreviewed and says so; current applicability is still checked. This
+structural command does not implement retrieval or admission. Drafts and review
+outputs stay inline in the reply or in storage outside Git that the caller named
+until destination-disclosure review passes. Only approved content may enter Git.
+Native runtime source/model/destination authorization must precede page access;
+this parser is not an access-policy enforcement tool.
 
 A narrowly supported observation from one episode may remain an observation or
 maintained reference. General instructions and standing checks still need the
-separate evidence and reapply proof owned by operationalize and pattern-mining.
+separate evidence and reapply proof of
+[Research's pattern mode](../../../research/SKILL.md#pattern-evidence) and
+[Skill Builder's Distill expertise](../../../skill-builder/SKILL.md#distill-expertise).
 Preserve null, harmful, failed and contradictory outcomes; schema validity and
 retrieval counts do not demonstrate utility.
 

@@ -4,6 +4,17 @@
 
 > **Benchmark provenance (as of 2026-08):** Dollar figures in this document are planning priors, not quotes — market and auction rates drift continuously. Before any figure enters a media plan, budget, or client deliverable, refresh it live (platform dashboards and current published reports beat memory) and record it with `python "${CLAUDE_PLUGIN_ROOT}/scripts/benchmark_book.py" --action record ... --source <url>`; quote from the book thereafter (`--action quote`). Never present an unstamped figure as current market fact.
 
+## Upgraded Smart+ and the API cutoff (checked 2026-10-27)
+
+TikTok has folded manual and automated campaign setup into one **Upgraded Smart+** flow: a campaign can run fully automated, partly automated, or fully manual (manual control means the ad group budget option, with budget and bidding set per ad group). For API integrations:
+
+- **From 1 January 2027**, `/campaign/create/`, `/campaign/copy/task/create/`, `/adgroup/create/`, `/ad/create/` and `/ad/aco/create/` stop creating or copying **non-Search Legacy Manual Flow** campaigns (Sales, App Promotion and Lead Generation objectives) and their ad groups and ads. TikTok: "Please migrate affected workflows to the Upgraded Smart+ APIs as soon as possible." Search campaigns are not affected.
+- **Upgraded Smart+ endpoints** (Marketing API v1.3): `/smart_plus/campaign/create/`, `/smart_plus/adgroup/create/`, `/smart_plus/ad/create/`, with matching `get`, `update` and `status/update` paths, plus `/smart_plus/material_report/overview/` and `/breakdown/` for creative reporting.
+- **Existing campaigns keep running.** Status changes on a campaign built in the upgraded flow use `/smart_plus/campaign/status/update/`; Legacy Manual Flow and Search campaigns keep `/campaign/status/update/`. DMP's launch template carries both (`url` and `legacy_flow_url`).
+- The campaign structure below still describes how to organise ad groups and creatives; in the upgraded flow, the manual option is how you keep that control.
+
+Sources: TikTok Marketing API docs (business-api.tiktok.com/portal/docs/marketing-api/v1.3 and the endpoint pages, read through the search index on 2026-10-27, because TikTok's sites are blocked in India) and TikTok's official SDK (github.com/tiktok/tiktok-business-api-sdk). DMP's version table (`scripts/connector_resolver.py` API_VERSIONS) records the cutoff, and `tests/test_api_versions.py` fails 30 days before it if any template still calls an affected endpoint.
+
 ## Campaign Types Overview
 
 | Campaign Objective | Use Case | Optimization Event | Billing Model |

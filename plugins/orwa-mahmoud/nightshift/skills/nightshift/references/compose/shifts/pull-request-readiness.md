@@ -37,7 +37,7 @@ Never select this entry in artifact mode. Do not `git init` a notes folder to si
     request, record the request and its authority in the receipt. Refuse unless the owner
     granted explicit owner authorization for that exact action in the punch-list scope or a parked
     decision. Never comment on, approve, push, merge, or close GitHub resources without authority.
-  - Dedupe against snag-log.md (ALL seen — fixed and rejected).
+  - Dedupe against snag-log.md under Snag log discipline.
   - Ends when every scoped gap is fixed, rejected with reason, or parked, containing checks are green,
     the review map is complete, and no owner-only action was taken without authority.
   - Verify: the item gate is green at every commit; the acceptance map reads ready for human review,
