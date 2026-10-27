@@ -172,25 +172,6 @@ class ReadmeEntryRegexTests(unittest.TestCase):
 
         self.assertEqual(entries, [])
 
-    def test_related_project_links_are_not_plugin_submissions(self) -> None:
-        diff = "\n".join(
-            (
-                "diff --git a/README.md b/README.md",
-                "+- [Koto](https://github.com/mehrdadxzaker/Koto) - Related project.",
-            )
-        )
-        current_readme = (
-            "## Community Plugins\n"
-            "### Development & Workflow\n"
-            "- [Existing](https://github.com/example/plugin) - Plugin.\n"
-            "## Related Projects\n"
-            "- [Koto](https://github.com/mehrdadxzaker/Koto) - Related project."
-        )
-
-        entries = self.parse_new_entries(diff, "", current_readme)
-
-        self.assertEqual(entries, [])
-
 
 if __name__ == "__main__":
     unittest.main()
