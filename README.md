@@ -590,6 +590,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [HOL Plugin Registry](https://hol.org/registry/plugins) - Browse plugins with scanner-backed security analysis and trust scores.
 - [Koto](https://github.com/mehrdadxzaker/Koto) - Experimental local-first model selection for Codex with consented history, qualification checks, and skills for setup, diagnosis, and safe disconnect.
 - [Tura](https://github.com/Tura-AI/tura) - A local, open-source coding agent for developers who are tired of vague skill claims, token-saving extensions with no evidence, and agents that change a repository before understanding it.
+- [Metis Check](https://github.com/MetisFoundry/metis-plugins) - Checks the citations in an answer at the registries that issue them and files a signed report anyone can recheck; hosted MCP with OAuth sign-in, free for 5 checks a month.
 
 <!-- hol-sponsors:start -->
 <!-- hol-sponsors:end -->
