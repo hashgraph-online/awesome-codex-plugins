@@ -595,6 +595,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [HOL Plugin Registry](https://hol.org/registry/plugins) - Browse plugins with scanner-backed security analysis and trust scores.
 - [Koto](https://github.com/mehrdadxzaker/Koto) - Experimental local-first model selection for Codex with consented history, qualification checks, and skills for setup, diagnosis, and safe disconnect.
 - [PickAPlugin](https://pickaplugin.com) - Free, searchable directory of Codex and ChatGPT plugins and MCP servers, with GitHub stars, install commands and freshness for each listing.
+- [self-host](https://github.com/ajnart/self-host) - Lets your agent install self-hosted apps on your own hardware and set them up (admin accounts, API keys, apps connected to each other), asking before each step.
 - [Tura](https://github.com/Tura-AI/tura) - A local, open-source coding agent for developers who are tired of vague skill claims, token-saving extensions with no evidence, and agents that change a repository before understanding it.
 
 <!-- hol-sponsors:start -->
