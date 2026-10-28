@@ -67,13 +67,14 @@ def normalize_github_repo_url(url: str) -> str:
         path_parts[2] = repo.lower()
     path = "/".join(path_parts)
     return urlunsplit(
-        (parsed.scheme.lower(), parsed.netloc.lower(), path, parsed.query, parsed.fragment)
+        # GitHub view/query fragments never identify another source plugin.
+        (parsed.scheme.lower(), parsed.netloc.lower(), path, "", "")
     )
 
 
-def community_plugin_urls(readme: str) -> set[str]:
-    """Return repository URLs listed in the Community Plugins section."""
-    urls: set[str] = set()
+def community_plugin_keys(readme: str) -> set[tuple[str, str]]:
+    """Return (repository URL, entry name) keys for Community Plugins."""
+    keys: set[tuple[str, str]] = set()
     in_community_plugins = False
 
     for line in readme.splitlines():
@@ -89,9 +90,12 @@ def community_plugin_urls(readme: str) -> set[str]:
         if in_community_plugins:
             match = README_ENTRY_RE.match(line.strip())
             if match:
-                urls.add(normalize_github_repo_url(match.group(2)))
+                keys.add((
+                    normalize_github_repo_url(match.group(2)),
+                    " ".join(match.group(1).split()).casefold(),
+                ))
 
-    return urls
+    return keys
 
 
 def git(*args: str) -> str:
@@ -117,14 +121,51 @@ def fetch_repo_archive(owner: str, repo: str, source_ref: str | None = None) -> 
         return zipfile.ZipFile(io.BytesIO(response.read()))
 
 
-def find_plugin_root(archive: zipfile.ZipFile) -> PurePosixPath | None:
-    """Find the directory containing .codex-plugin/plugin.json in the archive."""
-    names = [n for n in archive.namelist() if n.endswith("/.codex-plugin/plugin.json")]
+def find_plugin_root(
+    archive: zipfile.ZipFile, display_name: str | None = None,
+    require_named_match: bool = False,
+) -> PurePosixPath | None:
+    """Select a specific nested manifest when a README entry names one bundle."""
+    names = sorted(
+        (
+            n for n in archive.namelist()
+            if n.endswith("/.codex-plugin/plugin.json")
+            and not PurePosixPath(n).is_absolute()
+            and ".." not in PurePosixPath(n).parts
+            and "\\" not in n
+        ),
+        key=len,
+    )
     if not names:
         return None
-    # If multiple, prefer root-level (shortest path)
-    names.sort(key=len)
-    return PurePosixPath(names[0]).parent.parent
+    if len(names) == 1 and not require_named_match:
+        return PurePosixPath(names[0]).parent.parent
+    if not display_name:
+        # Preserve legacy behavior for callers without a README display name.
+        return PurePosixPath(names[0]).parent.parent
+
+    expected = re.sub(r"[\W_]+", "", display_name.casefold())
+    if not expected:
+        return None
+    matches: list[PurePosixPath] = []
+    for name in names:
+        root = PurePosixPath(name).parent.parent
+        try:
+            manifest = json.loads(archive.read(name).decode("utf-8"))
+        except (ValueError, UnicodeError, KeyError, zipfile.BadZipFile, EOFError):
+            # A corrupt or truncated *different* member must not crash
+            # selection of the independently named plugin.
+            continue
+        if not isinstance(manifest, dict):
+            continue
+        interface = manifest.get("interface")
+        display = interface.get("displayName") if isinstance(interface, dict) else None
+        for candidate in (manifest.get("name"), display, root.name):
+            if re.sub(r"[\W_]+", "", str(candidate or "").casefold()) == expected:
+                matches.append(root)
+                break
+    # Do not silently validate the first unrelated bundle on a mismatched name.
+    return matches[0] if len(matches) == 1 else None
 
 
 _UNREADABLE_MANIFEST = object()
@@ -292,7 +333,9 @@ def validate_local_bundle(plugin_dir: Path) -> tuple[list[str], list[str]]:
 
 
 def validate_remote_repo(
-    owner: str, repo: str, source_ref: str | None = None
+    owner: str, repo: str, source_ref: str | None = None,
+    display_name: str | None = None,
+    require_named_match: bool = False,
 ) -> tuple[list[str], list[str]]:
     """Fetch and validate a plugin from its source GitHub repo.
 
@@ -306,12 +349,13 @@ def validate_remote_repo(
     except Exception as e:
         return ([f"Failed to fetch source repo https://github.com/{owner}/{repo}: {e}"], [])
 
-    plugin_root = find_plugin_root(archive)
+    plugin_root = find_plugin_root(archive, display_name, require_named_match)
     if plugin_root is None:
-        errors.append(
-            f"Source repo https://github.com/{owner}/{repo} does not contain "
-            f".codex-plugin/plugin.json"
+        detail = (
+            f"a uniquely matching manifest for '{display_name}'"
+            if display_name else ".codex-plugin/plugin.json"
         )
+        errors.append(f"Source repo https://github.com/{owner}/{repo} does not contain {detail}")
         return errors, warnings
 
     manifest = load_manifest_from_archive(archive, plugin_root)
@@ -415,12 +459,12 @@ def get_new_readme_entries(base_ref: str) -> list[dict[str, str]]:
     if not base_readme:
         raise RuntimeError(f"Cannot read README at merge base {merge_base}")
     current_readme = README_PATH.read_text(encoding="utf-8") if README_PATH.exists() else ""
-    base_urls = community_plugin_urls(base_readme)
-    current_urls = community_plugin_urls(current_readme)
+    base_keys = community_plugin_keys(base_readme)
+    current_keys = community_plugin_keys(current_readme)
 
     # Extract added lines matching the plugin entry pattern
     new_entries: list[dict[str, str]] = []
-    seen_urls: set[str] = set()
+    seen_keys: set[tuple[str, str]] = set()
 
     for line in diff.splitlines():
         if not line.startswith("+") or line.startswith("+++"):
@@ -431,10 +475,13 @@ def get_new_readme_entries(base_ref: str) -> list[dict[str, str]]:
             continue
         display_name, url, owner, repo = match.group(1), match.group(2), match.group(3), match.group(4)
         source_ref = unquote(match.group(5)) if match.group(5) else None
-        normalized_url = normalize_github_repo_url(url)
-        if normalized_url not in current_urls or normalized_url in seen_urls or normalized_url in base_urls:
+        semantic_key = (
+            normalize_github_repo_url(url),
+            " ".join(display_name.split()).casefold(),
+        )
+        if semantic_key not in current_keys or semantic_key in seen_keys or semantic_key in base_keys:
             continue
-        seen_urls.add(normalized_url)
+        seen_keys.add(semantic_key)
         new_entries.append({
             "display_name": display_name,
             "url": url,
@@ -513,22 +560,35 @@ def main() -> None:
 
     if new_entries:
         print(f"\nValidating {len(new_entries)} new README entry(ies) against source repos...\n")
+        # A shared repository with multiple named catalog entries must not
+        # pass validation by silently selecting its only unrelated manifest.
+        source_counts: dict[str, int] = {}
+        for source_url, _name in community_plugin_keys(README_PATH.read_text(encoding="utf-8")):
+            parts = urlsplit(source_url).path.strip("/").split("/")
+            if len(parts) >= 2:
+                source_key = f"{parts[0].casefold()}/{parts[1].casefold()}"
+                source_counts[source_key] = source_counts.get(source_key, 0) + 1
         for entry in new_entries:
             owner, repo = entry["owner"], entry["repo"]
             label = f"{entry['display_name']} ({owner}/{repo})"
 
-            # Check if a local bundle already exists (generator may have run)
+            # An existing mirrored umbrella must not skip source validation
+            # for a second independently named plugin in the same repository.
+            source_key = f"{owner.casefold()}/{repo.casefold()}"
             local_dir = PLUGINS_DIR / owner / repo
             if (
-                not entry.get("source_ref")
-                and local_dir.exists()
-                and (local_dir / ".codex-plugin" / "plugin.json").exists()
+                source_counts.get(source_key, 0) == 1
+                and not entry.get("source_ref")
+                and (local_dir / ".codex-plugin" / "plugin.json").is_file()
             ):
-                print(f"  SKIP: {label} (local bundle exists, validated above)")
+                print(f"  SKIP: {label} (single existing local bundle)")
                 continue
 
             print(f"  Fetching {owner}/{repo}...")
-            errors, warnings = validate_remote_repo(owner, repo, entry.get("source_ref"))
+            errors, warnings = validate_remote_repo(
+                owner, repo, entry.get("source_ref"), entry["display_name"],
+                require_named_match=source_counts.get(source_key, 0) > 1,
+            )
 
             if not errors:
                 print(f"  PASS: {label}")

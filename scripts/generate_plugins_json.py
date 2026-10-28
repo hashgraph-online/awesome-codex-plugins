@@ -15,12 +15,15 @@ from __future__ import annotations
 
 import datetime
 import io
+import unicodedata
 import json
 import re
 import shutil
+import stat
 import sys
 import urllib.request
 import zipfile
+import zlib
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote
 
@@ -92,14 +95,29 @@ EXTRA_MIRROR_PATHS = {
 }
 
 
+EXTRA_MIRROR_PATHS_BY_ID = {
+    repo.casefold(): paths for repo, paths in EXTRA_MIRROR_PATHS.items()
+}
+
+
 def normalize_relative_path(value: str) -> str:
-    # Normalize backslashes to forward slashes
+    """Accept bundle-relative paths only, never archive traversal targets."""
     value = value.replace("\\", "/")
-    # Strip only a leading '/' or './' prefix, preserving dot-prefixed filenames like ".mcp.json"
-    if value.startswith('/'):
-        value = value[1:]
-    if value.startswith('./'):
+    # Manifest paths are untrusted source data. An absolute/parent path could
+    # otherwise select a ZIP member outside this bundle and write it outside
+    # the destination during mirroring. Keep dot-prefixed files intact.
+    # A colon can denote a drive or alternate data stream on Windows even
+    # when the same spelling looks relative to PurePosixPath on Linux.
+    if value.startswith("/") or ":" in value or any(
+        ord(char) < 32 or ord(char) == 127 for char in value
+    ):
+        return ""
+    while value.startswith("./"):
         value = value[2:]
+    # A manifest's "." would otherwise recursively mirror the entire source
+    # root, including files never declared as installable bundle assets.
+    if value in {"", "."} or ".." in PurePosixPath(value).parts:
+        return ""
     return value
 
 
@@ -124,7 +142,8 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
     plugins: list[dict[str, str]] = []
     local_plugins: list[dict[str, str]] = []
     current_category = "Uncategorized"
-    seen: set[str] = set()
+    seen: set[tuple[str, str, str, str]] = set()
+    canonical_repos: dict[tuple[str, str], tuple[str, str]] = {}
 
     for line in section:
         category_match = re.match(r"^### (.+)", line.strip())
@@ -154,8 +173,16 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
 
         owner, repo = plugin_match.group(3), plugin_match.group(4)
         repo = repo.removesuffix(".git")
+        # GitHub repository identities are case-insensitive, but local mirror
+        # paths are not. Reuse the first source spelling for every bundle.
+        identity = (owner.casefold(), repo.casefold())
+        owner, repo = canonical_repos.setdefault(identity, (owner, repo))
         source_ref = unquote(plugin_match.group(5)) if plugin_match.group(5) else None
-        key = f"{owner}/{repo}/{source_ref or ''}/{plugin_match.group(1)}"
+        # Alias spelling/casing must not mirror the same upstream manifest twice.
+        # Keep source_ref distinct because two branches may hold different bundles.
+        display_name = plugin_match.group(1)
+        canonical_name = normalize_match_key(display_name) or display_name.strip().casefold()
+        key = (owner.casefold(), repo.casefold(), source_ref or "", canonical_name)
         if key in seen:
             continue
         seen.add(key)
@@ -177,11 +204,11 @@ def parse_plugins(readme_path: Path) -> list[dict[str, str]]:
 
     repo_counts: dict[str, int] = {}
     for plugin in plugins:
-        owner_repo = f"{plugin['owner']}/{plugin['repo']}"
+        owner_repo = f"{plugin['owner']}/{plugin['repo']}".casefold()
         repo_counts[owner_repo] = repo_counts.get(owner_repo, 0) + 1
 
     for plugin in plugins:
-        owner_repo = f"{plugin['owner']}/{plugin['repo']}"
+        owner_repo = f"{plugin['owner']}/{plugin['repo']}".casefold()
         if repo_counts[owner_repo] > 1:
             plugin["_mirror_subpath"] = "true"
 
@@ -210,7 +237,7 @@ def fetch_repo_archive(owner: str, repo: str, source_ref: str | None = None) -> 
 
 
 def normalize_match_key(value: object) -> str:
-    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+    return re.sub(r"[\W_]+", "", str(value or "").casefold())
 
 
 def find_plugin_roots(names: set[str]) -> list[PurePosixPath]:
@@ -218,6 +245,8 @@ def find_plugin_roots(names: set[str]) -> list[PurePosixPath]:
         PurePosixPath(name).parent.parent
         for name in sorted(names)
         if name.endswith("/.codex-plugin/plugin.json")
+        and normalize_relative_path(name) == name
+        and ".." not in PurePosixPath(name).parts
     ]
 
 
@@ -225,23 +254,56 @@ def resolve_plugin_root(archive: zipfile.ZipFile, names: set[str], plugin: dict[
     roots = find_plugin_roots(names)
     if not roots:
         raise ValueError("Archive does not contain .codex-plugin/plugin.json")
-    if len(roots) == 1:
+    if len(roots) == 1 and plugin.get("_mirror_subpath") != "true":
         return roots[0]
 
     expected = normalize_match_key(plugin["name"])
+    if not expected and plugin.get("_mirror_subpath") == "true":
+        raise ValueError(f"No uniquely matching nested manifest for {plugin['name']!r}")
+    matching_roots: list[PurePosixPath] = []
     for root in roots:
-        manifest = load_manifest(archive, root)
+        try:
+            manifest = load_manifest(archive, root)
+        except (ValueError, UnicodeError, KeyError, zipfile.BadZipFile, EOFError, zlib.error, RecursionError):
+            # A malformed or excessively deep sibling manifest must not
+            # prevent selection of an independently valid named bundle.
+            # The corrupt sibling still fails the unique-name gate.
+            continue
+        if not isinstance(manifest, dict):
+            continue
+        # Every separate Codex marketplace entry needs its own canonical
+        # source manifest identity. Matching only a display label from a
+        # nameless manifest would publish duplicate repository-name IDs.
+        if plugin.get("_mirror_subpath") == "true" and not (
+            isinstance(manifest.get("name"), str)
+            and manifest["name"].strip()
+        ):
+            continue
         interface = manifest.get("interface", {})
-        candidates = [
-            manifest.get("name"),
-            root.name,
-            plugin_root_relative_path(root).split("/")[-1],
-        ]
+        if plugin.get("_mirror_subpath") == "true":
+            # Folder names alone do not prove a separately publishable plugin.
+            # Match the source manifest's declared name or display name.
+            candidates = [manifest.get("name")]
+        else:
+            # Retain legacy single-repository umbrella matching behavior.
+            candidates = [
+                manifest.get("name"),
+                root.name,
+                plugin_root_relative_path(root).split("/")[-1],
+            ]
         if isinstance(interface, dict):
-            candidates.extend([interface.get("displayName"), interface.get("shortDescription")])
+            # The short description is prose, not a unique source identity.
+            candidates.append(interface.get("displayName"))
         if any(normalize_match_key(candidate) == expected for candidate in candidates):
-            return root
+            matching_roots.append(root)
 
+    if len(matching_roots) == 1:
+        return matching_roots[0]
+    if plugin.get("_mirror_subpath") == "true":
+        # Distinct README entries sharing one repo must never silently mirror
+        # the first unrelated manifest (or an ambiguous duplicate name).
+        raise ValueError(f"No uniquely matching nested manifest for {plugin['name']!r}")
+    # Preserve legacy one-entry umbrella listings until individually converted.
     return roots[0]
 
 
@@ -258,7 +320,10 @@ def plugin_root_relative_path(plugin_root: PurePosixPath) -> str:
 def build_raw_manifest_url(plugin: dict[str, str], plugin_root_relative: str) -> str:
     manifest_path = ".codex-plugin/plugin.json"
     if plugin_root_relative:
-        manifest_path = f"{plugin_root_relative}/{manifest_path}"
+        # Nested ZIP paths may contain spaces, URL delimiters, or Unicode.
+        # Quote source bytes so the public raw install URL names the verified
+        # source manifest instead of a truncated or invalid request target.
+        manifest_path = f"{quote(plugin_root_relative, safe='/')}/{manifest_path}"
     source_ref = plugin.get("source_ref")
     raw_ref = quote(source_ref, safe="/") if source_ref else RAW_DEFAULT_BRANCH_REF
     return (
@@ -283,7 +348,10 @@ def add_recursive_selection(
     for name in all_names:
         if name.startswith(prefix_with_slash):
             relative_name = PurePosixPath(name).relative_to(plugin_root).as_posix()
-            selected.add(relative_name)
+            # A malicious archive could include e.g. skills/../../other.
+            # Never copy such a member outside the mirrored plugin root.
+            if normalize_relative_path(relative_name) == relative_name:
+                selected.add(relative_name)
 
 
 def collect_selected_paths(
@@ -316,14 +384,15 @@ def collect_selected_paths(
                 if isinstance(screenshot, str):
                     add_recursive_selection(selected, all_names, plugin_root, screenshot)
 
-    for extra_path in EXTRA_MIRROR_PATHS.get(f"{plugin['owner']}/{plugin['repo']}", ()):
+    source_id = f"{plugin['owner']}/{plugin['repo']}".casefold()
+    for extra_path in EXTRA_MIRROR_PATHS_BY_ID.get(source_id, ()):
         add_recursive_selection(selected, all_names, plugin_root, extra_path)
 
     return selected
 
 
 def is_metadata_only_mirror(plugin: dict[str, str]) -> bool:
-    return f"{plugin['owner']}/{plugin['repo']}" in METADATA_ONLY_MIRROR_REPOS
+    return f"{plugin['owner']}/{plugin['repo']}".casefold() in METADATA_ONLY_MIRROR_REPOS
 
 
 def collect_metadata_only_paths(
@@ -354,7 +423,7 @@ def sanitize_metadata_only_manifest(manifest: dict[str, object], plugin: dict[st
     for key in ("skills", "commands", "hooks", "apps", "app", "appConfig"):
         sanitized.pop(key, None)
 
-    if f"{plugin['owner']}/{plugin['repo']}" == "mturac/everything-openai-codex":
+    if f"{plugin['owner']}/{plugin['repo']}".casefold() == "mturac/everything-openai-codex":
         repo_url = "https://github.com/mturac/everything-openai-codex"
         sanitized["description"] = (
             "Open-source Codex workflow collection with install profiles, repo "
@@ -384,6 +453,23 @@ def sanitize_metadata_only_manifest(manifest: dict[str, object], plugin: dict[st
     return sanitized
 
 
+def require_safe_mirror_destination(root: Path, destination: Path) -> None:
+    """Refuse output traversal and symlinked ancestors before any deletion."""
+    if root.is_symlink():
+        raise ValueError("Generated plugins root must not be a symlink")
+    try:
+        parts = destination.relative_to(root).parts
+    except ValueError as exc:
+        raise ValueError("Mirror destination is outside generated plugins root") from exc
+    current = root
+    for part in parts:
+        if part in {".", ".."} or ":" in part:
+            raise ValueError("Mirrored bundle path contains traversal or drive syntax")
+        current = current / part
+        if current.is_symlink():
+            raise ValueError(f"Mirrored bundle path must not follow a symlink: {current}")
+
+
 def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str, str]:
     owner_repo = f"{plugin['owner']}/{plugin['repo']}"
     try:
@@ -398,6 +484,12 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
     except ValueError:
         raise ValueError(f"Archive for {owner_repo} does not contain a matching .codex-plugin/plugin.json") from None
     manifest = load_manifest(archive, plugin_root)
+    # A malformed source manifest must fail before the previous valid bundle
+    # is deleted. Later marketplace formatting assumes an object interface.
+    if not isinstance(manifest, dict) or not isinstance(
+        manifest.get("interface", {}), dict
+    ):
+        raise ValueError("Source plugin manifest must have an object root and interface")
     metadata_only = is_metadata_only_mirror(plugin)
     selected_paths = (
         collect_metadata_only_paths(manifest, names, plugin_root)
@@ -406,11 +498,57 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
     )
     mirrored_manifest = sanitize_metadata_only_manifest(manifest, plugin) if metadata_only else manifest
 
+    # Duplicate entries can have order-dependent contents between ZIP readers.
+    # Reject ambiguity in any selected member before replacing an installation.
+    # Case-distinct ZIP paths can overwrite on Windows/macOS even if their
+    # raw archive names differ. Reject before replacing a working bundle.
+    folded_paths: dict[str, str] = {}
+    for relative_path in sorted(selected_paths):
+        folded = unicodedata.normalize("NFC", relative_path).casefold()
+        previous = folded_paths.get(folded)
+        if previous is not None and previous != relative_path:
+            raise ValueError(
+                f"Case-insensitive selected archive path collision: {previous!r} / {relative_path!r}"
+            )
+        folded_paths[folded] = relative_path
+
+    selected_archive_names = {
+        plugin_root.joinpath(PurePosixPath(path)).as_posix()
+        for path in selected_paths
+    }
+    seen_selected_names: set[str] = set()
+    for member in archive.infolist():
+        if member.filename in selected_archive_names:
+            if member.filename in seen_selected_names:
+                raise ValueError(f"Duplicate selected ZIP member: {member.filename!r}")
+            seen_selected_names.add(member.filename)
+
+    # Preflight selected ZIP members before deleting a previously working mirror.
+    # A corrupt source archive must not leave its old installation wiped.
+    for relative_path in selected_paths:
+        part = PurePosixPath(relative_path)
+        if (part.is_absolute() or ".." in part.parts
+            or "\\" in relative_path or ":" in relative_path):
+            raise ValueError(f"Unsafe mirrored archive path: {relative_path!r}")
+        archive_name = plugin_root.joinpath(part).as_posix()
+        info = archive.getinfo(archive_name)
+        # Git stores symlink entries as link-target text in ZIP archives.
+        # Copying that text as a regular file creates a broken runnable
+        # plugin; following its target could escape the selected bundle.
+        if info.create_system == 3 and stat.S_ISLNK(info.external_attr >> 16):
+            raise ValueError(f"Selected source file is a symlink: {relative_path!r}")
+        with archive.open(archive_name) as member:
+            while member.read(1024 * 1024):
+                pass
+
     plugin_root_relative = plugin_root_relative_path(plugin_root)
     use_subpath = plugin.get("_mirror_subpath") == "true"
     destination_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
     if use_subpath and plugin_root_relative:
         destination_root = destination_root / PurePosixPath(plugin_root_relative)
+    # Do not delete or overwrite files through a repository-controlled path
+    # that resolves to another directory (including an existing symlink).
+    require_safe_mirror_destination(PLUGINS_ROOT, destination_root)
     # Clear destination to avoid stale files from previous runs (Thread 2 fix)
     if destination_root.exists():
         shutil.rmtree(destination_root)
@@ -433,6 +571,25 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         marketplace_path = f"{marketplace_path}/{plugin_root_relative}"
 
     return mirrored_manifest, marketplace_path, plugin_root_relative
+
+
+
+def verified_mirrored_icon_path(
+    icon_reference: str, local_root: Path, marketplace_path: str
+) -> str | None:
+    """Use only a regular icon file beneath the actual mirrored bundle."""
+    if icon_reference.startswith("[") and (
+        "TODO" in icon_reference or "PLACEHOLDER" in icon_reference
+    ):
+        return None
+    rel = normalize_relative_path(icon_reference)
+    if not rel:
+        return None
+    root = local_root.resolve()
+    candidate = (root / rel).resolve()
+    if not candidate.is_relative_to(root) or not candidate.is_file():
+        return None
+    return f"{marketplace_path}/{rel}"
 
 
 def build_marketplace_entry(
@@ -516,6 +673,9 @@ def main() -> None:
     # Local README links are retention-only; never fetch them from GitHub.
     plugins = [plugin for plugin in plugins if plugin.get("_local_bundle") != "true"]
     mirrored_entries: list[dict[str, object]] = []
+    # Track individual successful bundle records. One failed sibling in a
+    # multi-plugin repository must not erase another successfully mirrored one.
+    mirrored_plugins: list[dict[str, str]] = []
     skipped: list[str] = []
     for plugin in plugins:
         owner_repo = f"{plugin['owner']}/{plugin['repo']}"
@@ -527,34 +687,27 @@ def main() -> None:
             continue
         plugin["install_url"] = build_raw_manifest_url(plugin, plugin_root_relative)
 
-        # Determine icon path if available and actually mirrored
+        # Source manifest paths must never escape the actual mirrored bundle.
+        # Merely checking a constructed path's existence could publish a
+        # traversal reference to an unrelated local file or directory.
         icon_path: str | None = None
         interface = manifest.get("interface", {})
         if isinstance(interface, dict):
             composer_icon = interface.get("composerIcon") or interface.get("logo")
             if isinstance(composer_icon, str) and composer_icon.strip():
-                # Thread 1 fix: reject placeholder values like "[TODO: ./assets/icon.png]"
-                stripped = composer_icon.strip()
-                if not (stripped.startswith('[') and ('TODO' in stripped or 'PLACEHOLDER' in stripped)):
-                    # Properly strip leading "./" or "/" only, preserving dot-prefixed filenames like ".mcp.json"
-                    rel = composer_icon
-                    if rel.startswith('./'):
-                        rel = rel[2:]
-                    elif rel.startswith('/'):
-                        rel = rel[1:]
-                    candidate = f"{marketplace_path}/{rel}"
-                    # Verify the file exists in the mirrored plugin directory
-                    local_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
-                    if plugin.get("_mirror_subpath") == "true" and plugin_root_relative:
-                        local_root = local_root / PurePosixPath(plugin_root_relative)
-                    abs_path = local_root / rel
-                    if abs_path.exists():
-                        icon_path = candidate
+                local_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
+                if plugin.get("_mirror_subpath") == "true" and plugin_root_relative:
+                    local_root = local_root / PurePosixPath(plugin_root_relative)
+                icon_path = verified_mirrored_icon_path(
+                    composer_icon, local_root, marketplace_path
+                )
 
         mirrored_entries.append(build_marketplace_entry(plugin, manifest, marketplace_path, icon_path))
+        mirrored_plugins.append(plugin)
 
-    # Filter out skipped plugins from public plugin list so counts stay accurate
-    ok_plugins = [p for p in plugins if f"{p['owner']}/{p['repo']}" not in skipped]
+    # Only individually successful records are public. A failed nested bundle
+    # cannot invalidate a distinct successfully mirrored sibling from the same repo.
+    ok_plugins = mirrored_plugins
 
     marketplace = {
         "name": "awesome-codex-plugins",

@@ -146,6 +146,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 <!-- pinned -->
 
 - [A Team](https://github.com/RBraga01/a-team) - A complete engineering team in one folder with 26 specialist agents, 20 workflow skills, an orchestrator, and quality gates; integration and hook support vary by coding platform.
+- [account-video-downloader](https://github.com/redfox-data/redfox-agent-plugins) - Batch-download videos from supported account pages on YouTube, TikTok, Douyin, Kuaishou, and Bilibili.
 - [Aegis](https://github.com/GanyuanRan/Aegis) - An agentic skills framework & software development methodology that works: planning, TDD, debugging, and collaboration workflows.
 - [Agency Continuity Audit](https://github.com/revertcreations/agency-continuity-audit) - Read-only audit that distinguishes durable agent goals, state, corrections, restart evidence, authority boundaries, scheduler claims, and commercial proof from self-reported health.
 - [Agent Deck](https://github.com/not-so-fat/agent-deck) - One MCP for context management: bind self-improving playbooks, MCP tools, and API keys to the session.
@@ -245,6 +246,8 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Honcho](https://github.com/plastic-labs/codex-honcho) - Persistent cross-session memory for Codex powered by Honcho — lifecycle hooks capture each session and inject relevant context back at session start, so Codex remembers your preferences, projects, and decisions across restarts.
 - [HOTL Plugin](https://github.com/yimwoo/hotl-plugin) - Human-on-the-Loop AI coding workflow plugin for Codex, Claude Code, and Cline with structured planning, review, and verification guardrails.
 - [Image & Media Skills](https://github.com/IgorVaryvoda/image-optimization-skill) - Eight skills that audit and fix image and video delivery for Core Web Vitals, plus Sirv image CDN, 360 spin, and AI Studio workflows.
+- [image-gen](https://github.com/redfox-data/redfox-agent-plugins) - Generate and edit images from text or input images using GPT-image-2.
+- [instagram-video-downloader](https://github.com/redfox-data/redfox-agent-plugins) - Download Instagram Reels and videos without watermarks.
 - [jev-use](https://github.com/shitianfang/jev-use) - Hands the steps of a Codex session that produce no text — is the build done, which of these elements do I click, is this shell command safe — to Jev, TypeSafe AI's judgment model, with a PreToolUse command gate and typed escalation back to the model for anything it cannot decide.
 - [Kernel](https://github.com/ariaxhan/kernel-claude) - Hook-enforced guardrails for Codex and Claude Code with blocked destructive commands, one-time human tokens for irreversible operations, context-blind verification agents, and SQLite agent memory recalled at session start.
 - [Krypton](https://github.com/jturntdev/krypton) - Goal-based planning and proof gate for Codex and Claude Code that turns requests into ownership, cutover, review-gate, and acceptance-evidence plans.
@@ -264,6 +267,8 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [oh-my-openspec](https://github.com/alexeyco/oh-my-openspec) - Spec-driven development workflow for Codex CLI and OpenCode, with planning, parallel task execution, and mechanical OpenSpec validation.
 - [Ontoly](https://github.com/0xsarwagya/ontoly-codex-plugin) - Deterministic Software Graph workflows for Codex: architecture review, dependency analysis, request tracing, configuration analysis, and impact analysis.
 - [Open Dynamic Workflows](https://github.com/Suraj1235/open-dynamic-workflows) - Local-first MIT dynamic multi-agent workflows for Codex, OpenCode, Antigravity, Cursor, and VS Code with a daemon, MCP bridge, Codex skills, OpenCode plugin, and bring-your-own-model support.
+- [overseas-trending-search](https://github.com/redfox-data/redfox-agent-plugins) - Search trends across X, TikTok, and YouTube in one query.
+- [pdf-image-text-extractor](https://github.com/redfox-data/redfox-agent-plugins) - Extract text and tables from PDFs and images while preserving layout.
 - [Personal Data Protection](https://github.com/AltByteSG/personal-data-protection-skill) - Engineer-facing personal-data-protection compliance reference — Singapore PDPA, Thailand PDPA, Indonesia UU PDP, Malaysia PDPA (Act 709 + 2024 Amendments), Philippines DPA — organised by where in the stack each obligation lands, with checklists, breach-response runbook, and a developer-view divergence table across all five.
 - [Pixeltable](https://github.com/pixeltable/pixeltable-skill) - Declarative multimodal AI data engine for tables, computed columns, embedding search, agents, and FastAPI services.
 - [PMC](https://github.com/DuncanMain/project-memory-core) - Give Codex lasting project context in an Obsidian vault you control.
@@ -276,7 +281,6 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [RAG Reviewer](https://github.com/mimfort/rag_for_git) - Agentic PR review: hybrid RAG + code graph via MCP, review skills for Codex.
 - [Receipts by Nueton](https://github.com/Kloudedge-apex/receipts-collector) - Checks every "done" claim in local Codex and Claude Code session logs against the same session's commands and prints the counts plus a shareable card, read-only and offline.
 - [Red-Green Proof](https://github.com/RooAGI/red-green-proof) - Prove suspected bugs with a red-green-red test loop: verify the cause, watch the test fail, apply the fix, and confirm the test fails again when the fix is reverted.
-- [Redfox Agent Plugins](https://github.com/redfox-data/redfox-agent-plugins) - Ten cross-platform agent skills (video download, transcripts, image gen, trend search) installable on Claude Code, Codex, Cursor, and Gemini CLI from a single repo.
 - [Registry Broker](https://github.com/hashgraph-online/registry-broker-codex-plugin) - Delegate tasks to specialist AI agents via the HOL Registry, plan, find, summon, and recover sessions.
 - [Rekall](https://github.com/DitriXNew/rekall) - Deliberate context compaction within a single Codex thread on the VS Code extension, with a verified task handoff and one-time automatic continuation.
 - [RepoPilot](https://github.com/MykytaStel/repopilot) - Snapshots each Codex session and stops the agent when it weakened tests, suppressions, or CI gates, once per signal; local and deterministic.
@@ -287,6 +291,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Runtype Skills](https://github.com/runtypelabs/skills) - Supercharge your coding agent for AI product development — build, deploy, and operate agents, flows, tools, and surfaces on Runtype's managed edge runtime.
 - [Sealos](https://github.com/labring/sealos-skills) - Deploy apps to Sealos Cloud from Codex with readiness checks, Dockerfile generation, Compose conversion, image builds, and rollout updates.
 - [Secret Guard](./plugins/mturac/secret-guard) - Pre-commit secret scanner using pattern and entropy detection.
+- [seedance-video-gen](https://github.com/redfox-data/redfox-agent-plugins) - Generate videos from text with resolution, aspect ratio, and duration controls.
 - [Session Orchestrator](https://github.com/Kanevry/session-orchestrator) - Session orchestration for Claude Code, Codex, and Cursor IDE — structured planning, wave-based execution, VCS integration (GitLab + GitHub), quality gates, and clean session close-out with issue tracking.
 - [Simple Man](https://github.com/Maksim-Burtsev/simple-man) - Strips praise, recaps and filler from agent answers while keeping every fact you act on — findings carry location and one-line fix, refusals carry the safe procedure, tutorials stay long-form — benchmarked on 2,479 preregistered live calls, 266 of them real Claude Code sessions, with all raw records committed.
 - [since-cutoff](https://github.com/MohammadHijjawi97/since-cutoff) - Finds the pinned Python dependency APIs that changed after the model's training cutoff, tests which ones the model actually gets wrong, and writes one-line AGENTS.md notes that are kept only if their example type-checks.
@@ -311,12 +316,14 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Tartiner Labs](https://github.com/tartinerlabs/skills) - Agent skills for git workflows, GitHub automation, security audits, code refactoring, and project tooling.
 - [Team Skills Platform](https://github.com/Colin4k1024/tsp) - Role-based team delivery framework — Tech Lead-orchestrated 8-role system with 195+ skills, 27 specialist agents, 80+ commands, hooks, and ECC harness for Claude Code, Codex, and OpenCode.
 - [Test Gap](./plugins/mturac/test-gap) - Find lines in your diff lacking test coverage (Cobertura, lcov, coverage.json).
+- [tiktok-video-downloader](https://github.com/redfox-data/redfox-agent-plugins) - Download TikTok videos without watermarks, including batch downloads.
 - [TODO Harvest](./plugins/mturac/todo-harvest) - TODO/FIXME/HACK scan with `git blame` author + age.
 - [TMCRA Local Memory](https://github.com/reshuibuduo/tmcra-plugin-codex) - Owner-local memory for Codex that recalls user and project evidence before each answer and carries source-attributed project context across sessions and supported agent tools.
 - [TNT House Risk-Data API](https://github.com/menantonio83-hue/codex-plugin-tnt-risk-api) - Solana token risk scoring for AI trading agents via MCP: safety score, insider wallet cluster detection, mint/freeze authority, honeypot risk, and LP-lock status in one call.
 - [token-optimizer](https://github.com/ooples/token-optimizer-mcp) - Cut token usage 60-90% with caching, compression, and smart file tools — diff-only re-reads, paths-only search, out-of-context stashing, and a per-tool savings report for Codex and Claude Code.
 - [Tool Advisor](https://github.com/dragon1086/claude-skills) - Read-only meta-skill that scans your MCP servers, skills, plugins, and CLI tools, then suggests up to three ranked approaches (Methodical / Fast / Deep) with a copy-paste Quick Action table.
 - [Tree Ring Memory](https://github.com/TerminallyLazy/tree-ring-memory-codex-plugin) - Local-first memory lifecycle guidance for Codex agents with recall, evidence-backed lessons, privacy-safe memory capture, audit, consolidation, and explicit forgetting.
+- [twitter-video-downloader](https://github.com/redfox-data/redfox-agent-plugins) - Download X/Twitter videos using direct MP4 links.
 - [UIZZE](https://github.com/uizze/uizze) - STOP UI SLOP. Gives Codex 800,000+ real web and iOS screens, a product-specific design contract, and a hard finish gate before generic UI ships; connect it at https://uizze.com.
 - [Unforgit](https://github.com/MiguelMedeiros/unforgit-codex-plugin) - Git-backed repository memory for Codex and other coding agents via MCP, with durable local knowledge for decisions, conventions, gotchas, and playbooks.
 - [Unity Agent Workflows](https://github.com/AUN-PN/unity-agent-workflows) - Codex plugin and skill for Unity 2D agents that enforces "No proof, no edit" workflows with runtime-owner proof, Teach structure maps, and validation gates.
@@ -332,6 +339,8 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Workflow Kit](https://github.com/Le-Xuan-Thang/workflow-kit) - Full product lifecycle plugin for Claude Code, Codex CLI, and OpenCode: define Vision/Mission/Core → generate workplan → execute with mandatory cross-provider reviewer agents → synthesize deliverables → maintain, with parallel task execution, crash recovery, and AgentOps metrics.
 - [Writer's Loop](https://github.com/xxsang/writers-loop) - Structured AI writing workflow for planning, critique, revision, translation, style distillation, and opt-in local preference learning.
 - [WTFM](https://github.com/SupportPages-io/wtfm/tree/codex-plugin) - Writes illustrated end-user help articles from a codebase, with screenshots rendered locally from the real interface code.
+- [youtube-digest](https://github.com/redfox-data/redfox-agent-plugins) - Extract YouTube video transcripts as text or Excel.
+- [youtube-video-downloader](https://github.com/redfox-data/redfox-agent-plugins) - Download YouTube videos with selectable resolutions.
 - [YYLO](https://github.com/yylo-dev/yylo) - Command-line orchestrator for coding agents that creates a dedicated branch/worktree per task, delegates to Pi and Codex subagents, and enforces typed task, validation, merge, and release-readiness boundaries with receipt-backed repository changes.
 - [Zagrosi Forge](https://github.com/zagrosi-code/zagrosi-forge) - Decompose broad project briefs into researched plans and implement sectioned work with TDD, quality gates, and traceability.
 - [ZCode Bridge](https://github.com/Sandyzzx/codex-zcode-bridge) - Delegate development tasks from Codex to a local ZCode runtime, follow progress, and review the resulting changes.

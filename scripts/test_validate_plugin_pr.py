@@ -100,6 +100,17 @@ class ReadmeEntryRegexTests(unittest.TestCase):
 
         self.assertEqual(len(entries), 1)
 
+    def test_ui_query_or_fragment_cannot_duplicate_same_source_and_name(self) -> None:
+        base_entry = "- [Shared](https://github.com/Example/Plugin?tab=readme) - Old."
+        new_entry = "- [Shared](https://github.com/example/plugin#readme) - New."
+        old_readme = "## Community Plugins\n" + base_entry
+        new_readme = "## Community Plugins\n" + new_entry
+        diff = "\n".join((
+            "diff --git a/README.md b/README.md",
+            "-" + base_entry, "+" + new_entry,
+        ))
+        self.assertEqual(self.parse_new_entries(diff, old_readme, new_readme), [])
+
     def test_tree_ref_and_subpath_case_are_preserved(self) -> None:
         base_readme = (
             "## Community Plugins\n"
@@ -208,6 +219,27 @@ class ReadmeEntryRegexTests(unittest.TestCase):
 
         self.assertEqual(entries, [])
 
+
+
+    def test_distinct_named_plugins_can_share_one_repo(self) -> None:
+        repo_url = "https://github.com/redfox-data/redfox-agent-plugins"
+        umbrella = f"- [Redfox Agent Plugins]({repo_url}) - Umbrella."
+        individual = [
+            f"- [account-video-downloader]({repo_url}) - Account videos.",
+            f"- [image-gen]({repo_url}) - Image generation.",
+        ]
+        diff = "\n".join(
+            ["diff --git a/README.md b/README.md", "-" + umbrella]
+            + ["+" + line for line in individual]
+        )
+        base = "## Community Plugins\n### Development & Workflow\n" + umbrella
+        head = "## Community Plugins\n### Development & Workflow\n" + "\n".join(individual)
+        entries = self.parse_new_entries(diff, base, head)
+        self.assertEqual(
+            [entry["display_name"] for entry in entries],
+            ["account-video-downloader", "image-gen"],
+        )
+        self.assertEqual({entry["url"] for entry in entries}, {repo_url})
 
 
 class MalformedManifestTests(unittest.TestCase):
@@ -410,6 +442,232 @@ class MalformedManifestTests(unittest.TestCase):
                 errors, warnings = VALIDATOR.validate_local_bundle(bundle)
         self.assertIn("Missing or invalid 'interface' object in plugin.json", errors)
         self.assertEqual(warnings, [])
+
+class MultiPluginManifestTests(unittest.TestCase):
+    """Select the named bundle and fail closed for ambiguous or unknown names."""
+
+    def build_archive(self) -> zipfile.ZipFile:
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as output:
+            for name, suffix in (("alpha", ".png"), ("beta", ".txt")):
+                manifest = {
+                    "name": name,
+                    "version": "1.0.0",
+                    "description": "Example",
+                    "repository": "https://github.com/maker/demo",
+                    "license": "MIT",
+                    "interface": {
+                        "displayName": name.title(),
+                        "shortDescription": "Example",
+                        "composerIcon": f"./assets/icon{suffix}",
+                    },
+                }
+                root = f"demo-main/plugins/{name}"
+                output.writestr(f"{root}/.codex-plugin/plugin.json", json.dumps(manifest))
+                if name == "alpha":
+                    output.writestr(f"{root}/assets/icon{suffix}", b"test")
+        return zipfile.ZipFile(io.BytesIO(buffer.getvalue()))
+
+    def test_validation_reaches_named_nested_manifest(self) -> None:
+        with self.build_archive() as archive:
+            with patch.object(VALIDATOR, "fetch_repo_archive", return_value=archive):
+                good, _warnings = VALIDATOR.validate_remote_repo(
+                    "maker", "demo", display_name="Alpha"
+                )
+                bad, _warnings = VALIDATOR.validate_remote_repo(
+                    "maker", "demo", display_name="beta"
+                )
+        self.assertEqual(good, [])
+        self.assertTrue(
+            any("Icon file not found" in error for error in bad), bad
+        )
+
+    def test_casefolded_name_selects_same_bundle_as_generator(self) -> None:
+        # The validator and mirror generator must agree on non-ASCII
+        # casefolded labels rather than selecting different nested manifests.
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as output:
+            output.writestr(
+                "demo-main/plugins/strasse/.codex-plugin/plugin.json",
+                json.dumps({"name": "STRASSE"}),
+            )
+            output.writestr(
+                "demo-main/plugins/other/.codex-plugin/plugin.json",
+                json.dumps({"name": "other"}),
+            )
+        with zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive:
+            selected = VALIDATOR.find_plugin_root(
+                archive, display_name="Straße", require_named_match=True,
+            )
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected.as_posix(), "demo-main/plugins/strasse")
+
+    def test_traversal_manifest_is_not_a_remote_named_plugin(self) -> None:
+        # Source ZIP metadata is untrusted. The validator must match only
+        # actual repository-contained nested manifests.
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as output:
+            output.writestr(
+                "demo-main/../outside/.codex-plugin/plugin.json",
+                json.dumps({"name": "outside"}),
+            )
+            output.writestr(
+                "demo-main/plugins/safe/.codex-plugin/plugin.json",
+                json.dumps({"name": "safe"}),
+            )
+        with zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive:
+            self.assertIsNone(VALIDATOR.find_plugin_root(
+                archive, display_name="outside", require_named_match=True,
+            ))
+            selected = VALIDATOR.find_plugin_root(
+                archive, display_name="safe", require_named_match=True,
+            )
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected.as_posix(), "demo-main/plugins/safe")
+
+    def test_nonlatin_manifest_name_matches_generator(self) -> None:
+        # A Unicode source name must select one verified nested manifest,
+        # not collapse to an empty ASCII-only lookup key.
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as output:
+            output.writestr(
+                "demo-main/plugins/video/.codex-plugin/plugin.json",
+                json.dumps({"name": "视频下载"}, ensure_ascii=False),
+            )
+            output.writestr(
+                "demo-main/plugins/other/.codex-plugin/plugin.json",
+                json.dumps({"name": "other"}),
+            )
+        with zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive:
+            selected = VALIDATOR.find_plugin_root(
+                archive, display_name="视频下载", require_named_match=True,
+            )
+        self.assertIsNotNone(selected)
+        self.assertEqual(selected.as_posix(), "demo-main/plugins/video")
+
+    def test_one_source_manifest_cannot_validate_two_distinct_names(self) -> None:
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as output:
+            root = "demo-main/plugins/alpha"
+            output.writestr(f"{root}/.codex-plugin/plugin.json", json.dumps({
+                "name": "alpha", "version": "1.0.0",
+                "description": "Example",
+                "repository": "https://github.com/maker/demo",
+                "license": "MIT",
+                "interface": {
+                    "displayName": "Alpha", "shortDescription": "Example",
+                    "composerIcon": "./assets/icon.png",
+                },
+            }))
+            output.writestr(f"{root}/assets/icon.png", b"image")
+        with zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive:
+            with patch.object(VALIDATOR, "fetch_repo_archive", return_value=archive):
+                good, _ = VALIDATOR.validate_remote_repo(
+                    "maker", "demo", display_name="Alpha", require_named_match=True
+                )
+                bad, _ = VALIDATOR.validate_remote_repo(
+                    "maker", "demo", display_name="Another Plugin", require_named_match=True
+                )
+                legacy, _ = VALIDATOR.validate_remote_repo(
+                    "maker", "demo", display_name="Legacy Branding"
+                )
+        self.assertEqual(good, [])
+        self.assertTrue(any("uniquely matching manifest" in x for x in bad), bad)
+        self.assertEqual(legacy, [])
+
+    def test_corrupt_unrelated_nested_manifest_does_not_crash_selection(self) -> None:
+        # A named valid bundle may share its repository archive with a
+        # corrupt unrelated manifest. Both ZIP integrity failures are handled.
+        for failure in (zipfile.BadZipFile("bad CRC"), EOFError("truncated")):
+            with self.subTest(failure=type(failure).__name__):
+                with self.build_archive() as archive:
+                    actual_read = archive.read
+
+                    def guarded_read(name, *args, **kwargs):
+                        if str(name).endswith(
+                            "/plugins/beta/.codex-plugin/plugin.json"
+                        ):
+                            raise failure
+                        return actual_read(name, *args, **kwargs)
+
+                    with patch.object(
+                        VALIDATOR, "fetch_repo_archive", return_value=archive
+                    ), patch.object(archive, "read", side_effect=guarded_read):
+                        errors, warnings = VALIDATOR.validate_remote_repo(
+                            "maker", "demo", display_name="Alpha"
+                        )
+                self.assertEqual(errors, [])
+                self.assertEqual(warnings, [])
+
+    def test_non_ascii_only_source_labels_do_not_collide(self) -> None:
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as output:
+            output.writestr(
+                "demo-main/plugins/emoji/.codex-plugin/plugin.json",
+                json.dumps({"name": "🚀", "interface": {"displayName": "🔒"}}),
+            )
+        with zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive:
+            self.assertIsNone(VALIDATOR.find_plugin_root(
+                archive, display_name="🦊", require_named_match=True,
+            ))
+
+    def test_unknown_nested_manifest_name_fails_closed(self) -> None:
+        with self.build_archive() as archive:
+            with patch.object(VALIDATOR, "fetch_repo_archive", return_value=archive):
+                errors, _warnings = VALIDATOR.validate_remote_repo(
+                    "maker", "demo", display_name="unknown"
+                )
+        self.assertTrue(
+            any("uniquely matching manifest" in error for error in errors), errors
+        )
+
+
+class ExistingMirrorSourceValidationTests(unittest.TestCase):
+    def test_second_named_plugin_is_not_skipped_by_existing_umbrella_mirror(self) -> None:
+        import contextlib
+        import io as output_io
+        import tempfile
+
+        repo_url = "https://github.com/example/multi-plugin"
+        entry = {
+            "display_name": "Beta",
+            "url": repo_url,
+            "owner": "example",
+            "repo": "multi-plugin",
+            "description": "Second separately named plugin.",
+            "source_ref": None,
+        }
+        with tempfile.TemporaryDirectory() as folder:
+            plugin_root = Path(folder) / "example" / "multi-plugin"
+            manifest_path = plugin_root / ".codex-plugin" / "plugin.json"
+            manifest_path.parent.mkdir(parents=True)
+            manifest_path.write_text('{"name": "alpha"}', encoding="utf-8")
+            for names, expected_calls in (
+                ({"Alpha", "Beta"}, 1),
+                ({"Beta"}, 0),
+            ):
+                with self.subTest(names=sorted(names)):
+                    keys = {(repo_url, name) for name in names}
+                    with (
+                        patch.object(VALIDATOR, "git", return_value="valid-base"),
+                        patch.object(VALIDATOR, "get_changed_plugin_dirs", return_value=[]),
+                        patch.object(VALIDATOR, "get_new_readme_entries", return_value=[entry]),
+                        patch.object(VALIDATOR, "community_plugin_keys", return_value=keys),
+                        patch.object(VALIDATOR, "PLUGINS_DIR", Path(folder)),
+                        patch.object(Path, "read_text", return_value="## Community Plugins"),
+                        patch.object(VALIDATOR, "validate_remote_repo", return_value=([], [])) as validate,
+                        patch.object(sys, "argv", ["validate-plugin-pr.py", "--base-ref", "origin/main"]),
+                        contextlib.redirect_stdout(output_io.StringIO()),
+                    ):
+                        with self.assertRaises(SystemExit) as finished:
+                            VALIDATOR.main()
+                    self.assertEqual(finished.exception.code, 0)
+                    self.assertEqual(validate.call_count, expected_calls)
+                    if expected_calls:
+                        validate.assert_called_once_with(
+                            "example", "multi-plugin", None, "Beta",
+                            require_named_match=True,
+                        )
 
 if __name__ == "__main__":
     unittest.main()
