@@ -159,6 +159,13 @@ What this does:
    release, set `SYSKNIFE_PINNED_SHA256SUMS=/path/to/sums`; see
    [SECURITY.md](SECURITY.md#release-artefact-trust).
 
+To check where a release binary was built, download it from the release page and
+run `gh attestation verify sysknife-vX.Y.Z-linux-x86_64 --repo lacs-project/sysknife`.
+It succeeds only if the file matches a provenance statement GitHub signed for a
+build of this repository by `release.yml`. Each release also ships that
+provenance as `sysknife-vX.Y.Z-linux-<arch>.intoto.jsonl`, so the same check works
+with `--bundle`; see [Verify the published release](docs/release.md#verify-the-published-release).
+
 | Client          | Files written                                        |
 |-----------------|------------------------------------------------------|
 | **Claude Code** | `.mcp.json` + `.claude/hookify.*.local.md`           |

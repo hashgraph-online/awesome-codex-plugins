@@ -1,6 +1,6 @@
 {
   "name": "off-the-wall",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Recalls relevant, origin-tagged correction excerpts within the same working directory, reports model-labelled correction patterns, and guides subagent model selection. Claude Code and Codex.",
   "author": {
     "name": "Junebeom Seo",

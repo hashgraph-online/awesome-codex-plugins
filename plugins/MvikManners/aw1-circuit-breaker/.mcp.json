@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "aw1-circuit-breaker": {
+      "command": "uvx",
+      "args": ["aw1-circuit-breaker"]
+    }
+  }
+}

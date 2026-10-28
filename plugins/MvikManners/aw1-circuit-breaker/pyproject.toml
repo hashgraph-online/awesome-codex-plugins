@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aw1-breaker"
+version = "2.1.0"
+description = "Deterministic AST-level circuit breaker and multi-agent arbitration engine with zero runtime dependencies."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [
+    {name = "Laveto Lab", email = "engineering@laveto.net"}
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = []
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0.0"]
+full = [
+    "mcp>=1.0.0",
+    "pydantic>=2.0.0"
+]
+
+[tool.setuptools.packages.find]
+include = ["aw1*"]
+exclude = ["tests*", "dist*", "build*"]
+
+[project.scripts]
+aw1-circuit-breaker = "aw1.cli:main"
+aw1 = "aw1.cli:main"

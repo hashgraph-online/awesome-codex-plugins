@@ -139,8 +139,25 @@ is not described here.
   relay its coverage warning rather than calling the result clean.
 - After a project-only refactor (moved model files, a renamed dbt project), use
   `maintain snapshot --project-only`. It opens no connection and carries the
-  warehouse evidence forward unchanged, so it never launders a stale warehouse
-  into a fresh one.
+  warehouse evidence forward unchanged, reporting `data.baseline.carried_forward: true`,
+  so it never launders a stale warehouse into a fresh one.
+- When a scheduled job checks a different warehouse than the one the committed
+  snapshot measured (production, a data branch), keep two baselines. The committed
+  `.dex/snapshot.json` holds the reviewed project definitions; the job keeps its
+  own copy holding the last validated warehouse state. On each run, after the build:
+  1. With the committed snapshot in place, run `maintain schema` and
+     `maintain semantic`, and fail on any `definition_*`, `declaration_*`,
+     `model_*`, `semantic_vendor_changed` or `semantic_format_changed` finding:
+     the project changed without its accepted snapshot being committed.
+  2. Install the job's copy and run `maintain snapshot --project-only`. It
+     adopts the reviewed definitions and carries the warehouse evidence forward;
+     gate on `data.baseline.carried_forward`.
+  3. Run `maintain check`. Definition drift is now zero by construction, so
+     every finding is about the warehouse.
+  4. Only after the check passes, run `maintain snapshot` and store the result
+     as the job's copy for the next run.
+  Never copy the job's snapshot over the committed one: that discards
+  definitions a pull request already accepted.
 
 ### Reading findings
 

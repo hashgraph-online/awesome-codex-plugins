@@ -13,7 +13,7 @@ import { resolve4, resolveCname } from 'node:dns/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /** Skill release. scripts/sync-plugin.sh stamps this into the plugin manifests; bump it to ship. */
-export const VERSION = '0.14.9';
+export const VERSION = '0.14.10';
 // Lets the API tell helper traffic from other REST clients in its product analytics.
 const UA = { 'User-Agent': `webly-helper/${VERSION}` };
 // The published plugin manifest is what `npx skills`, install.sh and /plugin install all read from.
@@ -86,9 +86,9 @@ Env: WEBLY_API_URL (default https://api.webly.ai), WEBLY_STATE_FILE (default ~/.
  * 'dns' (no record yet), 'https' (DNS resolves, Webly not serving it over HTTPS yet) or 'live'.
  */
 export async function domainStage(host, fetchImpl = fetch) {
-  let target;
+  let target, cname = true;
   try { target = (await resolveCname(host))[0]; }
-  catch { try { target = (await resolve4(host))[0]; } catch { return { stage: 'dns', detail: 'no DNS record found yet' }; } }
+  catch { cname = false; try { target = (await resolve4(host))[0]; } catch { return { stage: 'dns', detail: 'no DNS record found yet' }; } }
   try {
     // Judge only this host's own answer: a redirect elsewhere (say, an old host pointing at a
     // Webly site) must not count. Webly's own redirects (canonical 308) carry the header too.
@@ -96,7 +96,12 @@ export async function domainStage(host, fetchImpl = fetch) {
     if (response.headers.has('x-webly-version')) return { stage: 'live', detail: `https://${host}` };
     const moved = response.status >= 300 && response.status < 400 ? `, redirecting to ${response.headers.get('location')}` : '';
     return { stage: 'https', detail: `DNS points to ${target}, but Webly is not serving it yet (HTTP ${response.status}${moved}); the certificate may still be issuing, or the site is not published` };
-  } catch { return { stage: 'https', detail: `DNS points to ${target}; waiting for the HTTPS certificate` }; }
+  } catch {
+    // An A record on a www host is usually the registrar's parking page (or a cached answer), not Webly.
+    return { stage: 'https', detail: cname
+      ? `DNS points to ${target}; waiting for the HTTPS certificate`
+      : `DNS answers ${target} (an A record, no CNAME): if Webly gave you a CNAME, it isn't visible yet (or an old record is still there); otherwise the certificate is still issuing` };
+  }
 }
 
 /** Delete the saved secret only if it still holds this token, so a newer one saved by a parallel run survives. */

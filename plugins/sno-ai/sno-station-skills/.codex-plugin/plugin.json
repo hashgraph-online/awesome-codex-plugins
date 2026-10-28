@@ -1,6 +1,6 @@
 {
   "name": "sno-station-standalone",
-  "version": "1.0.202610242147",
+  "version": "1.0.202610272202",
   "description": "Twelve Sno Station skills for review, intent checks, end-to-end triage, work briefs, Shell, TypeScript, Python and Rust coding, and test writing that run without Sno Station programs or hooks.",
   "author": {
     "name": "Sno Station Skills contributors",

@@ -43,7 +43,7 @@ the next session. Off the Wall keeps those messages locally and, before an answe
 words up to 6 corrections recorded in the same working directory. It uses the `claude` or `codex` CLI you already run,
 so it needs no separate API key. That does not mean nothing leaves your machine; see [Privacy](#privacy).
 
-> This is the unreleased 0.2.2 safety candidate, not a stable release or a claim of live-product effectiveness. The numbers below come from one person's history with earlier versions; run the report on yours.
+> This is the unreleased 0.2.3 candidate, not a stable release. Measured so far: when the right past correction is quoted back, the agent follows personal preferences it cannot otherwise know far more often, in synthetic tests (see [Evidence](#evidence)). Not measured: a real user's long history, other models, or interactive use.
 
 > Beta note: the evidence is exploratory, from one person’s text replays, not a general guarantee of fewer corrections, lower costs or better task completion. The input classifier can still mistake automated host or plugin text for a user reply, and it is not a perfect detector of human-written input. Check source messages locally before sharing aggregate report counts, because the counts are model classifications that can be wrong.
 
@@ -135,7 +135,7 @@ publish anything. Nothing is posted for you.
 
 | Event | Claude Code | Codex |
 | :-- | :-- | :-- |
-| Each prompt | up to 6 past corrections quoted, each cut at 200 characters, only from the same normalized working directory (project key) and only if they pass the match guard. Fewer than 6, or none, is normal; there is no filler from other projects or just the latest | same |
+| Each prompt | up to 6 past corrections quoted, each cut at 200 characters, only from the same normalized working directory (project key) and only if they pass the match guard. Fewer than 6, or none, is normal; there is no filler from other projects or just the latest. The match guard is a low lexical floor (word and character-bigram similarity of 0.18 against the stored past request): in a small synthetic test, unrelated non-coding prompts still received 1-2 quotes on average, so do not read "passes the guard" as "is relevant" | same |
 | Each prompt | the previous answer and your new message are judged in a detached process; a correction is saved with the project hash and input origin | same |
 | Turn end | the end of the answer is kept for that judge | same |
 | Session start | the routing rule is added | the routing rule is added |
@@ -196,6 +196,22 @@ cached.
 
 ## Evidence
 
+### Latest measurements (2026-10-28): personal preferences the model cannot know
+Claude Code 2.1.311, haiku, headless, plugin 0.2.1/0.2.3 code, synthetic store and tasks written by other models than the experimenter, automatic scoring, plans fixed before the runs. 11 tasks where the default model rarely follows the preference (commit format, tooling, tone, date format, spelling...), 3 runs each:
+
+| | followed the preference |
+|---|---|
+| no recall | 1/33 |
+| Off the Wall, default | 9/33 |
+| Off the Wall, `recallWide` (opt-in) | 17/33 |
+
+- The result was seen twice on two different stores (16/33 vs 8/33, then 17/33 vs 9/33). Against no recall, task by task: wide recall was better in 8 tasks and worse in none (sign test p = 0.008); the default was better in 5 and worse in none (p = 0.063).
+- The mechanism is retrieval: when the right correction is among the quotes shown the model follows it far more often; when it is not found, nothing changes. Offline, the default finds the right correction for 8 of 20 tasks (13 of 20 when the same correction has been repeated); `recallWide` finds more.
+- It does not always work: a shown correction is sometimes ignored (2 of 11 tasks stayed at 0/3 in every condition).
+- No benefit was found where the default model already avoids the mistake (14 of 16 tasks passed without any recall), and the quoted correction did not beat a plain list of rules at 150 records. Such a list stops fitting as a history grows; that case was not tested.
+- Not shown: effect on a real user's history, other models, interactive sessions or long-term correction rates; the corrections here are written by a model.
+- Records, scripts and data: [docs/](docs/) (experiments 1-5), including the weaknesses found by an independent review.
+
 - [Live Codex smoke record (macOS, 0.2.0 on codex-cli 0.162.1; Claude Code not tested)](docs/live-codex-smoke-2026-10-27.md). This supplied historical record is not a live verification of 0.2.2.
 
 <p align="center">
@@ -247,11 +263,12 @@ mapping follows the same classes by analogy and has not been measured.
 
 ## Settings
 
-`~/.otw/config.json` is optional; a missing file uses normal defaults. Valid partial settings keep the same schema, and explicit values override detection. `recall`, `capture` and `routing` must be actual JSON booleans, not strings. One leading UTF-8 BOM is supported. An existing file that is unreadable, malformed, not an object, has wrong types, unknown keys or invalid nested values fails closed: all three flags become `false`, and manual `report` stops before reading history or calling a provider. `node bin/otw.mjs status` shows sanitized `config-invalid`, never raw config values or errors.
+`~/.otw/config.json` is optional; a missing file uses normal defaults. Valid partial settings keep the same schema, and explicit values override detection. `recall`, `recallWide`, `capture` and `routing` must be actual JSON booleans, not strings. One leading UTF-8 BOM is supported. An existing file that is unreadable, malformed, not an object, has wrong types, unknown keys or invalid nested values fails closed: all four flags become `false`, and manual `report` stops before reading history or calling a provider. `node bin/otw.mjs status` shows sanitized `config-invalid`, never raw config values or errors.
 
 ```json
 {
   "recall": true,
+  "recallWide": false,
   "capture": true,
   "routing": true,
   "judge": { "claude": "haiku", "codex": "gpt-6.1-sol" },
@@ -263,6 +280,13 @@ mapping follows the same classes by analogy and has not been measured.
 ```
 
 `node bin/otw.mjs status` shows what is stored.
+
+### Opt-in wide recall
+
+Set `"recallWide": true` in `~/.otw/config.json` (default `false`) to rank up to six distinct eligible same-project quotes using a tiny positive similarity floor instead of 0.18, still excluding zero overlap and respecting `recall: false`.
+In two synthetic tests of 11 personal-preference tasks (3 runs each, Claude Code with haiku), wide recall passed 16/33 and 17/33 against 8/33 and 9/33 for the default (sign test across tasks p = 0.063 and 0.25 against the default, 0.008 against no recall in the second). It also injects about 6 quotes on every prompt, including unrelated ones; a check that this does not hurt tasks with no applicable preference is still pending, so it stays off by default and is not evidence of benefit on a real history.
+
+[Experiment details](docs/preference-experiment-2026-10-28.md) · [Data](docs/data/exp4)
 
 ## Privacy
 

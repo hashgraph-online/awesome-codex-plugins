@@ -39,7 +39,7 @@ What it **does** touch:
   `CLANK_EVENT_SECRET` (event-bus bearer token), and `NPM_TOKEN` from a gitignored
   `.env.local` (publish flow only). It never persists them; `CLANK_EVENT_SECRET` is
   transmitted as a bearer token when the event bus is configured. See
-  [.env.example](.env.example).
+  `.env.example` in the source repository.
 - **Outbound network, all opt-in and off by default** — event-bus webhook POSTs
   (only when `CLANK_EVENT_URL` *and* `CLANK_EVENT_SECRET` are set), GitLab API
   baseline fetches (only with `GITLAB_TOKEN`), and anonymous usage telemetry

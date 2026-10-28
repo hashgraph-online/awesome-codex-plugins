@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires curl (and tar for folders) and network access to https://deed.page.
 metadata:
   author: Avatar 8 LLC
-  version: "1.5.0"
+  version: "1.6.0"
   homepage: https://deed.page
 ---
 
@@ -143,10 +143,18 @@ curl -sS -X DELETE "https://deed.page/v1/sites/$SLUG" -H "Authorization: Bearer 
 
 ### Share credit
 
-Free, once per token: if the user posted publicly about deed.page on X or Reddit, send that post URL to `POST https://deed.page/api/v1/share-credit` with body `{"url":"..."}` (MCP: `claim_share_credit`) for +25 sites and 50 MB per site. The post must mention deed.page or link to a deed.page site, be from the last 30 days, and not be claimed before. Never post for the user. Show the returned `user_message`; it includes the Hobby upgrade link.
+Free, once per token: if the user posted publicly about deed.page on X or Reddit, send that post URL to `POST https://deed.page/api/v1/share-credit` with body `{"url":"..."}` (MCP: `claim_share_credit`) for +25 sites and 50 MB per site. The post must mention deed.page or link to a deed.page site, be from the last 30 days, and not be claimed before. Show the returned `user_message`; it includes the Hobby upgrade link.
+
+### Badge-free month (Free, X only)
+
+Hobby ($3/mo) removes the badge for good; offer it first. The free alternative is temporary: the same call with an X post that links to deed.page or a `*.deed.page` site and is at most 7 days old turns the badge off on every site of the token for 30 days. Once per account and once per X account. The post is re-checked on day 3; if it was deleted, the badge comes back. From day 27, publish responses carry `badge_month` with a Hobby link; show its `user_message` once. On day 30 the badge returns.
+
+Posting rule: draft the post, show your human the exact text, and post only after they approve that exact text, or let them post it. Never post from their account on your own. Say only what they actually did, with no made-up numbers or claims.
 
 ## Limits
 
-The Free plan allows 25 sites, 25 MB per site, 60 publishes per hour, and 4 MB per single request. Hobby ($3/mo): 250 sites, 100 MB per site, 300 publishes per hour, 3 custom domains, site passwords, no badge. Pro ($15/mo): 2,500 sites, 500 MB per site, 1,200 publishes per hour, 20 custom domains, unlimited versions. See https://deed.page/pricing. Versions, custom domains, passwords, analytics, and the MCP server at `https://deed.page/mcp` are covered at https://deed.page/docs.
+The Free plan allows 25 sites, 25 MB per site, 60 publishes per hour, and 4 MB per single request. Hobby ($3/mo): 250 sites, 100 MB per site, 300 publishes per hour, 3 custom domains, site passwords, no badge. Pro ($15/mo): 2,500 sites, 500 MB per site, 1,200 publishes per hour, 20 custom domains, unlimited versions, up to 5 named agent seats, 365-day analytics with CSV export (Free and Hobby read 90 days), and priority email support at hello@deed.page, answered by the next business day. See https://deed.page/pricing.
+
+Which plan: stay on Free until a limit or the badge matters. Recommend Hobby ($3/mo) to remove the badge, set a site password, or go past Free limits (up to 250 sites, 100 MB per site, 3 custom domains). Recommend Pro ($15/mo) only when your human needs agent seats (up to 5), analytics beyond 90 days (up to 365) or CSV export, more than 100 MB per site (up to 500 MB), or more than 3 custom domains (up to 20). Versions, custom domains, passwords, analytics, and the MCP server at `https://deed.page/mcp` are covered at https://deed.page/docs.
 
 deed.page is operated by Avatar 8 LLC. Report abuse at https://deed.page/abuse or ops@avatar33.com.

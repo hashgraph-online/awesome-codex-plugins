@@ -58,7 +58,7 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 
 ### Tools
 
-26 tools:
+27 tools:
 
 | Tool | What it does |
 | --- | --- |
@@ -74,7 +74,7 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 | `finalize_upload` | Commit a large upload as a new version. |
 | `set_site_access` | Set or clear a site password. |
 | `set_listing` | List a site in the public gallery, or remove it. |
-| `site_analytics` | Cookieless view counts, top paths, referrers, and AI crawler counts for a site. |
+| `site_analytics` | Cookieless view counts, top paths, referrers, and AI crawler counts for a site. 90 days per request on Free and Hobby; 365 days and CSV on Pro. |
 | `add_domain` | Attach a custom domain and get the DNS records to create. |
 | `list_domains` | List custom domains. |
 | `domain_status` | Check and refresh a custom domain's verification and certificate status. |
@@ -82,9 +82,10 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 | `whoami` | Show the plan, limits, and usage for the token. |
 | `get_upgrade_link` | Get a checkout link for a paid plan. |
 | `set_badge` | Set the "Published with deed.page" badge. Only a paid plan (Hobby $3/mo or Pro) removes it. |
-| `claim_share_credit` | Free only, once per token: send the URL of the user's public X or Reddit post about deed.page for +25 sites and 50 MB per site. |
+| `claim_share_credit` | Free only, once per token: send the URL of the user's public X or Reddit post about deed.page for +25 sites and 50 MB per site. An X post that links to deed.page (at most 7 days old) also turns the badge off for 30 days, once per account. |
 | `rotate_token` | Issue a new owner token; every site carries over. |
 | `revoke_token` | Revoke the current token or all tokens. |
+| `agent_seats` | Pro: list, create, or revoke up to 5 named agent seats (separate tokens on one owner). |
 | `create_webhook` | Register a webhook for site and domain events. |
 | `list_webhooks` | List registered webhooks. |
 | `delete_webhook` | Delete a webhook. |

@@ -12,7 +12,7 @@ A free, MIT-licensed workflow plugin for people running Claude Code, Codex CLI, 
 **[Website](https://session-orchestrator.com)** ([Deutsch](https://session-orchestrator.com/de)) · **[Commands](https://session-orchestrator.com/commands)** · **[User guide](docs/USER-GUIDE.md)** · [Changelog](CHANGELOG.md)
 
 [![Tests](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml)
-[![Version](https://img.shields.io/badge/version-5.13.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.14.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-session--orchestrator.com-blue)](https://session-orchestrator.com)
 
@@ -59,7 +59,7 @@ On Codex and in headless Claude Code (`claude -p`) some command names differ: [C
 
 | Situation | Type | You get |
 |---|---|---|
-| A new project idea | `/plan new` | Research, decisions, a PRD and issues (needs [one extra setting](docs/USER-GUIDE.md#plan-mode)) |
+| A new project idea | `/plan new` | Research, decisions, a PRD and issues (works out of the box; uses your [baseline](docs/USER-GUIDE.md#plan-mode) when configured) |
 | A feature that is not clear yet | `/plan feature` | A bounded plan with acceptance criteria |
 | A feature that is clear | `/session feature`, then `/go`, then `/close` | The agreed change, checked, committed, leftovers as issues |
 | A big or unclear change | `/session deep` | It looks first, then builds |
@@ -67,7 +67,7 @@ On Codex and in headless Claude Code (`claude -p`) some command names differ: [C
 | Look back on a phase | `/plan retro` | What worked, what to change |
 | The same mistakes keep coming back | `/evolve`, then `/reconcile` | Lessons you approve become rules |
 
-All 30 commands, by situation: [session-orchestrator.com/commands](https://session-orchestrator.com/commands)
+All 31 commands, by situation: [session-orchestrator.com/commands](https://session-orchestrator.com/commands)
 
 ## It learns, with your yes
 
