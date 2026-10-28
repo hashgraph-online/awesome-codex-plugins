@@ -1,8 +1,0 @@
-.DS_Store
-.env
-.env.*
-node_modules/
-coverage/
-test/
-docs/
-*.log

@@ -1,5 +1,0 @@
-# Exclude OS and editor cruft from the published Codex plugin bundle.
-.DS_Store
-*.log
-*.tmp
-*.swp

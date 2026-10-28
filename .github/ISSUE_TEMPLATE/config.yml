@@ -1,8 +1,0 @@
-blank_issue_enabled: false
-contact_links:
-  - name: Plugin Submission
-    url: https://github.com/internet-dot/awesome-codex-plugins/issues/new?template=plugin-submission.yml
-    about: Submit a new Codex plugin to the list
-  - name: Bug Report / Suggestion
-    url: https://github.com/internet-dot/awesome-codex-plugins/issues/new?template=bug-report.yml
-    about: Report an issue or suggest improvements

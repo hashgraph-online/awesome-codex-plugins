@@ -1,5 +1,0 @@
-{
-  "mcpServers": {
-    "rekall": {"command": "node", "args": ["${PLUGIN_ROOT}/bridge.mjs", "mcp"]}
-  }
-}

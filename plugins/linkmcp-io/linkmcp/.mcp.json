@@ -1,5 +1,0 @@
-{
-  "mcpServers": {
-    "linkmcp": { "type": "http", "url": "https://app.linkmcp.io/api/mcp?ref=claude-directory" }
-  }
-}

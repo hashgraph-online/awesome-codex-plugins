@@ -1,4 +1,0 @@
-interface:
-  display_name: "Technical Book Lab Design"
-  short_description: "Design runnable technical chapters"
-  default_prompt: "Use $technical-book-lab-design to turn this technical chapter into a runnable lab."

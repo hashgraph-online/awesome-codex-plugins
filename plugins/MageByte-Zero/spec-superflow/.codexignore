@@ -1,6 +1,0 @@
-# Codex plugin scanner ignore patterns
-# Directories that are not part of the plugin distribution
-changes/
-node_modules/
-.claude/
-tmp/

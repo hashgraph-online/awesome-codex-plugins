@@ -1,7 +1,0 @@
-# Files Codex should not package with this plugin.
-.git/
-.github/
-.DS_Store
-.env
-.env.*
-*.log

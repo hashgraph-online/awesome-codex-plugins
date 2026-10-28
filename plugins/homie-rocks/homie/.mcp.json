@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "homie": {
-      "type": "http",
-      "url": "https://homie.rocks/mcp"
-    }
-  }
-}

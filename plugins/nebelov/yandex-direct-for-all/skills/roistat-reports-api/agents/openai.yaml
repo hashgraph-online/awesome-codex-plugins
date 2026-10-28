@@ -1,4 +1,0 @@
-interface:
-  display_name: "Roistat Reports API"
-  short_description: "Roistat reports via API only"
-  default_prompt: "Use Roistat API to inspect existing reports, assemble new analytics report specs, fetch report data, and validate attribution/report logic without using the UI."

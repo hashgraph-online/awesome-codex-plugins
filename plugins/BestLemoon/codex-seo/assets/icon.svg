@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
-  <title id="title">Codex SEO icon</title>
-  <desc id="desc">A navy rounded square with a magnifier and signal bars.</desc>
-  <rect width="128" height="128" rx="28" fill="#1e3a5f"/>
-  <circle cx="54" cy="54" r="24" fill="none" stroke="#faf9f7" stroke-width="10"/>
-  <path d="M70 70l18 18" stroke="#b8860b" stroke-width="10" stroke-linecap="round"/>
-  <path d="M92 34v28M104 42v20M116 50v12" stroke="#2d6a4f" stroke-width="6" stroke-linecap="round"/>
-</svg>

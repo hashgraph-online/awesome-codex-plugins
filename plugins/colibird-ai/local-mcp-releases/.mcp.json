@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "local-mcp": {
-      "command": "npx",
-      "args": ["-y", "local-mcp@latest"]
-    }
-  }
-}

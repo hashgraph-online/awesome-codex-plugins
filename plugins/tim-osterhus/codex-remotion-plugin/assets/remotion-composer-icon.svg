@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
-  <title id="title">Remotion Composer Icon</title>
-  <desc id="desc">A dark rounded square with layered video bars and a play triangle.</desc>
-  <rect width="64" height="64" rx="18" fill="#0F172A"/>
-  <rect x="12" y="14" width="40" height="8" rx="4" fill="#22C55E"/>
-  <rect x="12" y="28" width="40" height="8" rx="4" fill="#38BDF8" opacity="0.92"/>
-  <rect x="12" y="42" width="40" height="8" rx="4" fill="#F8FAFC" opacity="0.9"/>
-  <path d="M28 22 42 32 28 42Z" fill="#F97316"/>
-</svg>

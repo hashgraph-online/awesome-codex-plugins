@@ -1,7 +1,0 @@
-__pycache__/
-*.pyc
-.pytest_cache/
-dist/
-.env
-*.env
-hq.db

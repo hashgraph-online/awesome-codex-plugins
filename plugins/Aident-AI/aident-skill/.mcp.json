@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "aident-loadout": {
-      "type": "http",
-      "url": "https://loadout.aident.ai/codex/mcp"
-    }
-  }
-}

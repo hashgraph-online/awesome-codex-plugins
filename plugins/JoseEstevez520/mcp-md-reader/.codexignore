@@ -1,7 +1,0 @@
-.git/
-.github/
-node_modules/
-src/
-test/
-dist/
-*.log

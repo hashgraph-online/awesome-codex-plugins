@@ -1,4 +1,0 @@
-interface:
-  display_name: "Rust Domain Boundaries"
-  short_description: "Model Rust service invariants with types"
-  default_prompt: "Make this Rust service code safer with domain types and parser boundaries."

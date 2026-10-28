@@ -1,7 +1,0 @@
-.DS_Store
-.env
-.env.*
-*.key
-*.pem
-node_modules/
-dist/

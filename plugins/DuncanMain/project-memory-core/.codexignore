@@ -1,7 +1,0 @@
-.git/
-.github/
-docs/
-*.zip
-*.log
-__pycache__/
-*.pyc

@@ -1,3 +1,0 @@
-display_name: Codex 漂移审计
-short_description: 检查范围、命名、架构和任务是否跑偏。
-default_prompt: 请做一次漂移检查，对照项目真相源文件，指出哪里跑偏，并给出收敛动作。

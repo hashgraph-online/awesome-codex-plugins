@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "codex-reset": {
-      "type": "http",
-      "url": "https://codex-reset.com/mcp"
-    }
-  }
-}

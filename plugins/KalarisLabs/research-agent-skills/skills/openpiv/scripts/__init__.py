@@ -1,1 +1,0 @@
-"""OpenPIV skill scripts."""

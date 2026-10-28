@@ -1,5 +1,0 @@
-.git/
-.vscode/
-__pycache__/
-*.pyc
-.coverage

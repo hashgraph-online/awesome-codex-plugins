@@ -1,4 +1,0 @@
-interface:
-  display_name: "Яндекс.Директ — переходник жизненного цикла"
-  short_description: "Перенаправляет в единый навык Яндекс.Директа"
-  default_prompt: "Открой yandex-direct-unified и следуй его основному порядку."

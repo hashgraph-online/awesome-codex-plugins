@@ -1,7 +1,0 @@
-.venv/
-target/
-dbt_packages/
-logs/
-.user.yml
-profiles.yml
-.DS_Store

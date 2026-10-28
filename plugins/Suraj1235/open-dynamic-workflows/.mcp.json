@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "odw": {
-      "command": "node",
-      "args": ["packages/mcp-server/src/index.js"]
-    }
-  }
-}

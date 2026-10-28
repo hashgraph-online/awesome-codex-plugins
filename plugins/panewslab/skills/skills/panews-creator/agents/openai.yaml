@@ -1,7 +1,0 @@
-interface:
-  display_name: "PANews Creator"
-  short_description: "Write, manage, and publish PANews articles with authenticated creator tools"
-  default_prompt: "Use $panews-creator to write, manage, and publish PANews articles with authenticated creator tools, including session validation, drafts, submissions, image uploads, tag search, column applications, and article creation or updates."
-
-policy:
-  allow_implicit_invocation: true

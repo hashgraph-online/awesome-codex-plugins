@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "context-pack": {
-      "type": "stdio",
-      "command": "context-pack",
-      "args": ["--mcp-server"]
-    }
-  }
-}

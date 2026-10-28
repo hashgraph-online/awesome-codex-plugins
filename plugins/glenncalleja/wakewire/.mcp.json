@@ -1,6 +1,0 @@
-{
-  "wakewire": {
-    "command": "npx",
-    "args": ["-y", "wakewire", "mcp"]
-  }
-}

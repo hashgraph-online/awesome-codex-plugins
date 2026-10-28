@@ -1,8 +1,0 @@
-.git/
-.github/
-.project_context/
-.claude/
-tests/
-__pycache__/
-*.pyc
-.DS_Store

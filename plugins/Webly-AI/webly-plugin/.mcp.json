@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "webly": {
-      "type": "http",
-      "url": "https://api.webly.ai/v1/mcp"
-    }
-  }
-}

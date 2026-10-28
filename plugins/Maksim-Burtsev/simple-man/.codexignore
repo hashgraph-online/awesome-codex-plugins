@@ -1,7 +1,0 @@
-# Nothing generated or credential-shaped belongs in the packaged bundle.
-__pycache__/
-*.pyc
-.env
-.env.*
-*.pem
-*.key

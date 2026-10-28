@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title>Context Pack</title>
-  <rect width="64" height="64" rx="16" fill="#0f172a"/>
-  <path d="M14 22c0-3.314 2.686-6 6-6h9l4 4h11c3.314 0 6 2.686 6 6v16c0 3.314-2.686 6-6 6H20c-3.314 0-6-2.686-6-6V22Z" fill="#1f6feb"/>
-  <path d="M14 28h36v14c0 3.314-2.686 6-6 6H20c-3.314 0-6-2.686-6-6V28Z" fill="#60a5fa"/>
-  <path d="M24 25h16v4H24z" fill="#dbeafe"/>
-  <path d="M22 34h20v4H22zM22 40h14v4H22z" fill="#0f172a"/>
-</svg>

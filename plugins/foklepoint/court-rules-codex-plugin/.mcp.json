@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "court-rules": {
-      "type": "http",
-      "url": "https://mcp.courtrules.app/mcp"
-    }
-  }
-}

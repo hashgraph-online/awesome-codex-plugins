@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "mnemoverse": {
-      "type": "http",
-      "url": "https://mcp.mnemoverse.com/mcp"
-    }
-  }
-}
