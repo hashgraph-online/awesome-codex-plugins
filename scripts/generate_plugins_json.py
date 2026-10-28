@@ -24,11 +24,14 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote
 
+# Both direct script execution and importlib-based tests load this helper.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from plugin_output_utils import prune_unlisted_bundles, require_real_mirror_parents, safe_mirrored_icon_path, sanitize_metadata_only_manifest, verify_archive_members, write_json
+
 README = Path(__file__).parent.parent / "README.md"
 OUTPUT = Path(__file__).parent.parent / "plugins.json"
 MARKETPLACE_OUTPUT = Path(__file__).parent.parent / ".agents" / "plugins" / "marketplace.json"
 PLUGINS_ROOT = Path(__file__).parent.parent / "plugins"
-RETIRED_BUNDLE_IDENTITIES = {("samuelbushi", "uizze"), ("waynehamadi", "datacircle-plugin")}
 REQUEST_TIMEOUT_SECONDS = 60
 MAX_RETRIES = 3
 USER_AGENT = "awesome-codex-plugins-generator"
@@ -59,6 +62,11 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Context Guard's hook runtime and startup assets are not declared as Skills.
+    "GreenLv/codex-context-guard": (
+        "hooks", "scripts", "assets/state.schema.json", "assets/core-intent-v2.json",
+        "assets/core-observation-v2.schema.json",
+    ),
     # Workflow MCP bootstrap loads the sibling control-plane runtime; its MCP
     # App also reads assets/sidebar-icon.svg and Skills reference helper scripts.
     "TohmaN233/codex-agents-workflow": ("control-plane", "scripts", "assets"),
@@ -274,7 +282,9 @@ def add_recursive_selection(
     relative_path: str,
 ) -> None:
     normalized = normalize_relative_path(relative_path)
-    if not normalized:
+    # A "." source path points at the whole repository. A plugin must not
+    # mirror undeclared source files simply because its manifest names ".".
+    if not normalized or PurePosixPath(normalized) == PurePosixPath("."):
         return
     archive_prefix = plugin_root.joinpath(PurePosixPath(normalized)).as_posix()
     if archive_prefix in all_names:
@@ -316,8 +326,24 @@ def collect_selected_paths(
                 if isinstance(screenshot, str):
                     add_recursive_selection(selected, all_names, plugin_root, screenshot)
 
-    for extra_path in EXTRA_MIRROR_PATHS.get(f"{plugin['owner']}/{plugin['repo']}", ()):
+    # GitHub resolves repository names regardless of capitalization.
+    repo_key = f"{plugin['owner']}/{plugin['repo']}".casefold()
+    source_paths = {key.casefold(): paths for key, paths in EXTRA_MIRROR_PATHS.items()}
+    for extra_path in source_paths.get(repo_key, ()):
         add_recursive_selection(selected, all_names, plugin_root, extra_path)
+
+    # Context Guard's published .codexignore excludes transient build/cache
+    # artifacts. Never ship them merely because its hook runtime uses scripts/.
+    if repo_key == "greenlv/codex-context-guard":
+        ignored_dirs = {
+            ".codex", ".git", ".venv", "__pycache__",
+            ".pytest_cache", ".ruff_cache", "build", "dist",
+        }
+        selected = {
+            path for path in selected
+            if not ignored_dirs.intersection(PurePosixPath(path).parts)
+            and not path.endswith(".pyc")
+        }
 
     return selected
 
@@ -348,42 +374,6 @@ def collect_metadata_only_paths(
     return selected
 
 
-def sanitize_metadata_only_manifest(manifest: dict[str, object], plugin: dict[str, str]) -> dict[str, object]:
-    sanitized = json.loads(json.dumps(manifest))
-
-    for key in ("skills", "commands", "hooks", "apps", "app", "appConfig"):
-        sanitized.pop(key, None)
-
-    if f"{plugin['owner']}/{plugin['repo']}" == "mturac/everything-openai-codex":
-        repo_url = "https://github.com/mturac/everything-openai-codex"
-        sanitized["description"] = (
-            "Open-source Codex workflow collection with install profiles, repo "
-            "conventions, validation checks, and documentation."
-        )
-        sanitized["author"] = {
-            "name": "Mehmet Turac",
-            "url": "https://github.com/mturac",
-        }
-        sanitized["homepage"] = repo_url
-
-        interface = sanitized.setdefault("interface", {})
-        if isinstance(interface, dict):
-            interface["shortDescription"] = (
-                "Codex workflow collection with install profiles, repo conventions, "
-                "validation checks, and documentation."
-            )
-            interface["longDescription"] = (
-                "Everything OpenAI Codex (EOC) is a community-maintained Codex "
-                "workflow collection. The upstream repository contains the full "
-                "documentation, install profiles, skills, commands, and validation material."
-            )
-            interface["developerName"] = "Mehmet Turac"
-            interface["category"] = "Coding"
-            interface["websiteURL"] = repo_url
-
-    return sanitized
-
-
 def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str, str]:
     owner_repo = f"{plugin['owner']}/{plugin['repo']}"
     try:
@@ -404,14 +394,26 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         if metadata_only
         else collect_selected_paths(manifest, names, plugin_root, plugin)
     )
+    # Refuse unsafe ZIP members before clearing an existing published bundle.
+    for relative_path in selected_paths:
+        path = PurePosixPath(relative_path)
+        if (
+            path.is_absolute() or ".." in path.parts
+            or "\\" in relative_path or ":" in relative_path
+        ):
+            # A colon can identify an NTFS alternate data stream. Mirrored
+            # bundle files must be safe to install on Windows as well.
+            raise ValueError(f"Unsafe mirrored archive path: {relative_path!r}")
     mirrored_manifest = sanitize_metadata_only_manifest(manifest, plugin) if metadata_only else manifest
+
+    verify_archive_members(archive, plugin_root, selected_paths)
 
     plugin_root_relative = plugin_root_relative_path(plugin_root)
     use_subpath = plugin.get("_mirror_subpath") == "true"
     destination_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
     if use_subpath and plugin_root_relative:
         destination_root = destination_root / PurePosixPath(plugin_root_relative)
-    # Clear destination to avoid stale files from previous runs (Thread 2 fix)
+    require_real_mirror_parents(PLUGINS_ROOT, destination_root)
     if destination_root.exists():
         shutil.rmtree(destination_root)
     destination_root.mkdir(parents=True, exist_ok=True)
@@ -469,45 +471,6 @@ def build_marketplace_entry(
     return entry
 
 
-def write_json(path: Path, data: dict[str, object]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-
-
-def prune_unlisted_bundles(root: Path, plugins: list[dict[str, str]]) -> list[str]:
-    """Remove only explicitly reviewed retirements that are absent from README.
-
-    Omission from the parsed catalog never authorizes another retirement.
-    Keep listed repositories even if this run cannot fetch them, and preflight
-    the two-level tree for symlinks before deleting any approved bundle.
-    """
-    if not plugins:
-        raise ValueError("Refusing bundle cleanup from an empty parsed README; explicit maintainer retirement is required")
-    retained = {(plugin["owner"].casefold(), plugin["repo"].casefold()) for plugin in plugins}
-    removed: list[str] = []
-    if root.is_symlink():
-        raise ValueError("Generated plugins root must not be a symlink")
-    if not root.exists():
-        return removed
-    # Preflight the entire tree before retiring anything. A later invalid
-    # directory must not leave an earlier bundle partially retired.
-    retired: list[Path] = []
-    for owner in sorted(root.iterdir()):
-        if owner.is_symlink():
-            raise ValueError(f"Generated owner directory must not be a symlink: {owner}")
-        if not owner.is_dir():
-            continue
-        for repo in sorted(owner.iterdir()):
-            if repo.is_symlink():
-                raise ValueError(f"Generated repo directory must not be a symlink: {repo}")
-            identity = (owner.name.casefold(), repo.name.casefold())
-            if repo.is_dir() and identity in RETIRED_BUNDLE_IDENTITIES and identity not in retained:
-                retired.append(repo)
-    for repo in retired:
-        shutil.rmtree(repo)
-        removed.append(f"{repo.parent.name}/{repo.name}")
-    return removed
-
 
 def main() -> None:
     plugins = parse_plugins(README)
@@ -527,7 +490,6 @@ def main() -> None:
             continue
         plugin["install_url"] = build_raw_manifest_url(plugin, plugin_root_relative)
 
-        # Determine icon path if available and actually mirrored
         icon_path: str | None = None
         interface = manifest.get("interface", {})
         if isinstance(interface, dict):
@@ -536,20 +498,13 @@ def main() -> None:
                 # Thread 1 fix: reject placeholder values like "[TODO: ./assets/icon.png]"
                 stripped = composer_icon.strip()
                 if not (stripped.startswith('[') and ('TODO' in stripped or 'PLACEHOLDER' in stripped)):
-                    # Properly strip leading "./" or "/" only, preserving dot-prefixed filenames like ".mcp.json"
-                    rel = composer_icon
-                    if rel.startswith('./'):
-                        rel = rel[2:]
-                    elif rel.startswith('/'):
-                        rel = rel[1:]
-                    candidate = f"{marketplace_path}/{rel}"
-                    # Verify the file exists in the mirrored plugin directory
+                    # Only publish paths that resolve to an actual mirrored icon.
                     local_root = PLUGINS_ROOT / plugin["owner"] / plugin["repo"]
                     if plugin.get("_mirror_subpath") == "true" and plugin_root_relative:
                         local_root = local_root / PurePosixPath(plugin_root_relative)
-                    abs_path = local_root / rel
-                    if abs_path.exists():
-                        icon_path = candidate
+                    rel = safe_mirrored_icon_path(local_root, composer_icon)
+                    if rel is not None:
+                        icon_path = f"{marketplace_path}/{rel}"
 
         mirrored_entries.append(build_marketplace_entry(plugin, manifest, marketplace_path, icon_path))
 
