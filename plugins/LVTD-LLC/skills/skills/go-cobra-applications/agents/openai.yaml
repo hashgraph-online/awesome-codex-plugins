@@ -1,4 +1,0 @@
-interface:
-  display_name: "Go Cobra Applications"
-  short_description: "Build structured Cobra command applications"
-  default_prompt: "Use $go-cobra-applications to structure and implement this Cobra-based Go CLI."

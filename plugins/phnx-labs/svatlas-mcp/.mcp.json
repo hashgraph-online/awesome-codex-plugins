@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "svatlas": {
-      "type": "http",
-      "url": "https://svatlas.io/mcp"
-    }
-  }
-}

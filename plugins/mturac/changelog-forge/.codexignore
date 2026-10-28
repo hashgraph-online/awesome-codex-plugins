@@ -1,6 +1,0 @@
-# Files to exclude from Codex plugin packaging
-tests/
-examples/
-*.pyc
-__pycache__/
-.DS_Store

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" role="img" aria-label="OpenProject logo">
-  <rect width="320" height="96" rx="18" fill="#F3F7FB"/>
-  <rect x="12" y="12" width="72" height="72" rx="16" fill="#1A67A3"/>
-  <path d="M34 48c0-10.5 8.5-19 19-19h12v10H53c-5 0-9 4-9 9s4 9 9 9h12v10H53c-10.5 0-19-8.5-19-19Z" fill="#fff"/>
-  <text x="102" y="58" font-family="Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#1A67A3">OpenProject</text>
-</svg>

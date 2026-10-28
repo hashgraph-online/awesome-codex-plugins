@@ -1,3 +1,0 @@
-display_name: Codex 阶段收尾
-short_description: 更新快照、任务队列和决策记录，方便新对话接上。
-default_prompt: 请做阶段收尾，总结完成内容、遗留问题、冻结内容，并更新状态快照。

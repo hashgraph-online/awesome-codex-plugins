@@ -1,7 +1,0 @@
-interface:
-  display_name: "Vibe Portrait"
-  short_description: "Analyze conversation history and generate a developer personality portrait"
-  default_prompt: "Use $vibe-portrait to analyze my conversation history and generate my developer personality portrait."
-
-policy:
-  allow_implicit_invocation: true

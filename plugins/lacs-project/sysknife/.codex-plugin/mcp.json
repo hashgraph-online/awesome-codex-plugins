@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "sysknife": {
-      "command": "sysknife",
-      "args": ["mcp-server"]
-    }
-  }
-}

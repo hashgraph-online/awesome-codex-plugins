@@ -1,2 +1,0 @@
-phrase	frequency	verdict	reason	target_action	minus_action	source_file	note
-example phrase	0	TARGET	possible buyer intent	keep in keywords		sample.json	

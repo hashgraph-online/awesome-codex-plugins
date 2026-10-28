@@ -1,8 +1,0 @@
-interface:
-  display_name: "Claude Code Harness"
-  short_description: "Design request assembly, loops, memory, and recovery"
-  default_prompt: "Use $claude-code-harness to produce a harness blueprint for this agentic system."
-
-policy:
-  allow_implicit_invocation: true
-

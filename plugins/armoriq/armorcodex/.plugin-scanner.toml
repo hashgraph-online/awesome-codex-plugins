@@ -1,3 +1,0 @@
-[ignore]
-rules = ["HARDCODED_SECRET"]
-paths = ["tests/", "tests/*.test.mjs"]

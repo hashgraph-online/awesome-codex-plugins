@@ -1,5 +1,0 @@
-node_modules/
-dist/
-runs/*.jsonl
-config/*.local.*
-.DS_Store

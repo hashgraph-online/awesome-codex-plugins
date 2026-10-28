@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "swapwallet": {
-      "type": "http",
-      "url": "https://swapwallet.app/mcp"
-    }
-  }
-}

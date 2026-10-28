@@ -1,8 +1,0 @@
-{
-  "swaggerUrl": "http://your-api/doc#/",
-  "cachePath": "./swagger-spec-cache.json",
-  "token": "",
-  "headers": {
-    "Authorization": "Bearer optional-token"
-  }
-}

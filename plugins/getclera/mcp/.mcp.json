@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "clera": {
-      "type": "http",
-      "url": "https://mcp.getclera.com"
-    }
-  }
-}

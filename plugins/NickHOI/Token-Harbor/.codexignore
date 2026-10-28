@@ -1,8 +1,0 @@
-node_modules/
-game/node_modules/
-output/
-test-artifacts/
-tmp/
-.token-harbor-data/
-design-reference-option-1.png
-design-qa.md

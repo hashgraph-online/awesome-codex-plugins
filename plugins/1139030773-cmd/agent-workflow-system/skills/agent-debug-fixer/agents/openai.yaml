@@ -1,3 +1,0 @@
-display_name: Codex 调试修复
-short_description: 复现问题、定位根因、做最小修复并验证。
-default_prompt: 进入调试模式。请先复现问题，再找根因，然后做最小修复并验证。

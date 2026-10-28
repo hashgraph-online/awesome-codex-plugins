@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "revid": {
-      "type": "http",
-      "url": "https://www.revid.ai/api/mcp"
-    }
-  }
-}

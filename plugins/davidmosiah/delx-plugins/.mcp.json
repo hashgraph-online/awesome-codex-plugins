@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "delx": {
-      "type": "http",
-      "url": "https://api.delx.ai/v1/mcp/protocol?src=plugin"
-    }
-  }
-}

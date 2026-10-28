@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "swarmmemo": {
-      "type": "http",
-      "url": "https://swarmmemo.com/mcp/assistant"
-    }
-  }
-}

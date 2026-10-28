@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "papersflow-mcp": {
-      "type": "http",
-      "url": "https://doxa.papersflow.ai/mcp"
-    }
-  }
-}

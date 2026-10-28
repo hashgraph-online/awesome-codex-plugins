@@ -1,7 +1,0 @@
-interface:
-  display_name: "Simple Man"
-  short_description: "Concise agent communication without reduced work quality."
-  default_prompt: "Use $simple-man: minimum user-facing words; same work quality."
-
-policy:
-  allow_implicit_invocation: true

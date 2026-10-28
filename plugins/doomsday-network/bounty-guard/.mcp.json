@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "bounty-guard": {
-      "type": "http",
-      "url": "https://doomsday.network/mcp"
-    }
-  }
-}

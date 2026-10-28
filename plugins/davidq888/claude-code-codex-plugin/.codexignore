@@ -1,6 +1,0 @@
-# Local Codex scanner ignore list
-.git/
-node_modules/
-.env
-.env.*
-*.log

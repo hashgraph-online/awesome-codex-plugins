@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "md-reader": {
-      "command": "node",
-      "args": ["${PLUGIN_ROOT}/plugin/mcp-md-reader.cjs"]
-    }
-  }
-}

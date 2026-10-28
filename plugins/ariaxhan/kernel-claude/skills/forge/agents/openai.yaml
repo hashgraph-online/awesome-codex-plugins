@@ -1,6 +1,0 @@
-interface:
-  display_name: "KERNEL Forge"
-  short_description: "Run the budget-capped autonomous engine"
-  default_prompt: "Run KERNEL forge with an explicit budget."
-policy:
-  allow_implicit_invocation: false

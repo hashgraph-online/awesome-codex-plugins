@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "eigenheim-market": {
-      "type": "http",
-      "url": "https://eigenheim-invest.de/mcp/"
-    }
-  }
-}

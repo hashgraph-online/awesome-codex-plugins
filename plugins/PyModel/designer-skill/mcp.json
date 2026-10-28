@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "designer-skill": {
-      "command": "npx",
-      "args": ["-y", "@pymodel/designer-skill-mcp@0.22.0"]
-    }
-  }
-}

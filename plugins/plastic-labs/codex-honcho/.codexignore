@@ -1,7 +1,0 @@
-node_modules/
-dist/
-test/
-*.log
-.DS_Store
-.honcho/
-bun.lock

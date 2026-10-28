@@ -1,9 +1,0 @@
-{
-  "vidseeds": {
-    "type": "http",
-    "url": "https://vidseeds.ai/api/mcp",
-    "headers": {
-      "Authorization": "Bearer ${VIDSEEDS_PAT}"
-    }
-  }
-}

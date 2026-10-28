@@ -1,9 +1,0 @@
-{
-  "name": "papersflow-codex-plugin",
-  "private": true,
-  "version": "1.0.0",
-  "description": "Codex plugin packaging for PapersFlow research workflows.",
-  "scripts": {
-    "validate": "node ./scripts/validate-plugin.mjs"
-  }
-}

@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "plori": {
-      "type": "http",
-      "url": "https://api.plori.ai/mcp"
-    }
-  }
-}

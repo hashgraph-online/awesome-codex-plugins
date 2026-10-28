@@ -1,7 +1,0 @@
-interface:
-  display_name: "amoCRM API Control"
-  short_description: "OAuth и API-управление amoCRM"
-  default_prompt: "Use $amocrm-api-control to obtain amoCRM OAuth access, dump schema, and prepare safe API control or retargeting automation."
-
-policy:
-  allow_implicit_invocation: true
