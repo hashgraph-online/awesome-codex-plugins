@@ -1,0 +1,23 @@
+{
+  "description": "SteinWall for Codex: action guard, cost brake, loop rescue, limit handoff, extension scanner. The command works the same in bash, cmd and PowerShell because it reads PLUGIN_ROOT inside Node instead of relying on shell expansion.",
+  "hooks": {
+    "PreToolUse": [
+      { "hooks": [ { "type": "command", "command": "node -e \"import(require('url').pathToFileURL((process.env.PLUGIN_ROOT||process.env.CLAUDE_PLUGIN_ROOT)+'/dist/bin/codex-hook.js').href)\"", "timeout": 10 } ] }
+    ],
+    "PostToolUse": [
+      { "matcher": "^(Bash|apply_patch)$", "hooks": [ { "type": "command", "command": "node -e \"import(require('url').pathToFileURL((process.env.PLUGIN_ROOT||process.env.CLAUDE_PLUGIN_ROOT)+'/dist/bin/codex-hook.js').href)\"", "timeout": 10 } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "node -e \"import(require('url').pathToFileURL((process.env.PLUGIN_ROOT||process.env.CLAUDE_PLUGIN_ROOT)+'/dist/bin/codex-hook.js').href)\"", "timeout": 10 } ] }
+    ],
+    "Stop": [
+      { "hooks": [ { "type": "command", "command": "node -e \"import(require('url').pathToFileURL((process.env.PLUGIN_ROOT||process.env.CLAUDE_PLUGIN_ROOT)+'/dist/bin/codex-hook.js').href)\"", "timeout": 10 } ] }
+    ],
+    "SubagentStop": [
+      { "hooks": [ { "type": "command", "command": "node -e \"import(require('url').pathToFileURL((process.env.PLUGIN_ROOT||process.env.CLAUDE_PLUGIN_ROOT)+'/dist/bin/codex-hook.js').href)\"", "timeout": 10 } ] }
+    ],
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "node -e \"import(require('url').pathToFileURL((process.env.PLUGIN_ROOT||process.env.CLAUDE_PLUGIN_ROOT)+'/dist/bin/codex-hook.js').href)\"", "timeout": 10 } ] }
+    ]
+  }
+}

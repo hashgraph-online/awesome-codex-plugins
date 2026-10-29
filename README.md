@@ -51,7 +51,7 @@
 New plugin workflow:
 
 1. Create with `$plugin-creator`
-2. **Validate with [`plugin-scanner`](https://github.com/hashgraph-online/hol-guard)**. The catalog-owned centralized scan must report a normalized score ≥ 80/100 before merge.
+2. **Validate with [`plugin-scanner`](https://github.com/hashgraph-online/hol-guard)**. The catalog-owned centralized scan must report a normalized score ≥ 75/100 before merge.
 3. **Optionally gate your source repo with the [HOL scanner GitHub Action](https://github.com/hashgraph-online/ai-plugin-scanner-action)**. Catalog admission uses the centralized scan; source-repo scanner CI is recommended but not required.
 4. Ship or submit with confidence
 
@@ -68,7 +68,7 @@ All plugins submitted to **Awesome Codex Plugins** must pass the HOL AI Plugin S
 
 | Requirement  | Threshold                                      |
 | ------------ | ---------------------------------------------- |
-| **Centralized score** | ≥ 80 / 100 (normalized) |
+| **Centralized score** | ≥ 75 / 100 (normalized) |
 | **Source CI** | Optional; recommended for pre-submission feedback |
 | **Action status** | Advisory when the numeric centralized score is available |
 
@@ -169,8 +169,10 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [assay](https://github.com/awss1i/assay) - Opens a web page you changed, drives every control on it, and reports what it did and what happened in one line, clean or broken.
 - [AtomLane](https://github.com/cloudguo123/atomlane) - Parallelizes only work proven safe by compiling resource-aware atomic plans for builds, tests, Make/Compose workflows, and long-running jobs with live progress and measured savings.
 - [Auto Pilot](https://github.com/minsu0707/auto-pilot) - Intake-first Codex plugin that turns a short project request into a structured, resumable execution workflow with one-question-at-a-time intake, project contract files, blocker triage, and resume support.
+- [AW-1 Circuit Breaker](https://github.com/MvikManners/aw1-circuit-breaker) - Application-layer AST and argument policy gate for agent tool calls that checks configured rules before Python execution; complements, but does not replace, operating-system sandbox isolation.
 - [BABOK Analyst](https://github.com/GSkuza/BABOK_ANALYST) - BABOK v3 business analysis agent with 16 MCP tools, a 9-stage pipeline, and human-in-the-loop approval gates.
 - [BGS Modding Superpowers](https://github.com/BB-84C/bgs-modding-superpowers) - Agentic Bethesda Game Studio modpack curation toolkit with MCP-driven xEdit conflict audit, MO2 control plane, BA2/BSA and Papyrus tooling, and skills for setup, dev-log, and release-changelog workflows.
+- [Bindry](https://github.com/bindryai/Plugins/tree/codex-distribution) - Compiles public or workspace Binders into version-pinned agent skills, checks instruction drift, and supports optional MCP-based live mode.
 - [Boss](https://github.com/echoVic/boss-skill) - BMAD pipeline plugin that orchestrates a full requirements-to-deploy workflow across nine specialist agents with an auditable runtime DAG and quality gates, for Claude Code, Codex, OpenClaw, and Antigravity.
 - [Bring Your AI Migration Auditor](https://github.com/unitedideas/bringyour-mcp) - Read-only audit of AGENTS.md/CLAUDE.md scope, hooks, MCP config, skills, secret references, and validation notes before Codex edits migrated projects.
 - [Brooks Lint](https://github.com/hyhmrright/brooks-lint) - AI code reviews grounded in six classic engineering books — decay risk diagnostics with book citations, severity labels, and four analysis modes (PR review, architecture audit, tech debt, test quality).
@@ -256,8 +258,9 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Masaka for Codex](https://github.com/masakaai/codex-multiple-env) - Keeps each ChatGPT account and workspace in an isolated `CODEX_HOME`, shows official usage windows, and selects the identity used by the next native Codex process.
 - [memi](https://github.com/sarveshsea/memi) - Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin.
 - [ML Pipeline](https://github.com/jananthan30/ml-pipeline) - Enforces a strict 16-step data-first ML workflow — data inspection, EDA, and problem definition before any model training — with explicit user-permission gates, marimo notebooks, and matplotlib figures at every step; also works in Claude Code and Kimi.
+- [Multi-LLM](https://github.com/beastlabai/multi-llm-plugin) - Parallel plan, code, and commit reviews across 19 coding CLIs, with validated findings, task generation, implementation, and automated revision.
 - [Nightshift](https://github.com/orwa-mahmoud/nightshift) - Accountable, time-bounded Codex shifts with a persistent punch list, parked decisions, and reviewable run history.
-- [Off the Wall](https://github.com/toranalytics/off-the-wall) - Quotes your own past corrections back to Codex, word for word, before each answer; `otw report` shows what you correct most from your local history, and subagent routing names a cheaper model per subagent. No API key.
+- [Off the Wall](https://github.com/toranalytics/off-the-wall) - Quotes your own past corrections back to Codex, word for word, before each answer; `otw report` shows what you correct most from your local history, and a routing rule asks the orchestrator to name a model for each subagent. No API key.
 - [Oh My Cassette](https://github.com/Cassette-Editor/oh-my-cassette) - Turn raw local clips into a finished cut by chatting: beat-synced edits, auto-matched music, subtitles, and transitions through a local stdio MCP server, with a timeline delta and contact-sheet preview every turn before anything renders.
 - [oh-my-openspec](https://github.com/alexeyco/oh-my-openspec) - Spec-driven development workflow for Codex CLI and OpenCode, with planning, parallel task execution, and mechanical OpenSpec validation.
 - [Ontoly](https://github.com/0xsarwagya/ontoly-codex-plugin) - Deterministic Software Graph workflows for Codex: architecture review, dependency analysis, request tracing, configuration analysis, and impact analysis.
@@ -292,12 +295,13 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [skill-sync-publisher](https://github.com/liuyewang/skill-sync-publisher) - Safely synchronize this Codex skill across public agent-skill registries.
 - [Sno Station Skills](https://github.com/sno-ai/sno-station-skills) - Peer review, delegation, handoff and self-improvement skills that give Codex and Claude Code the working habits of a real team.
 - [Spec-Driven Development](https://github.com/Habib0x0/spec-driven-plugin) - Three-phase Requirements → Design → Tasks workflow for Claude Code and Codex — EARS notation acceptance criteria, autonomous execution loop, cross-spec dependencies, and post-implementation acceptance testing.
-- [spec-superflow](https://github.com/MageByte-Zero/spec-superflow) - Lean spec workflow with direct or planned execution, optional specifications, one final review by default, recoverable state, and a bundled same-version CLI runtime.
+- [spec-superflow](https://github.com/MageByte-Zero/spec-superflow) - Lean spec workflow with direct or planned execution, optional specifications, one final review, recoverable state, a bundled same-version CLI, Windows-compatible Qoder/WorkBuddy installers, and a CatPaw (妙手) import-package preview.
 - [Spellbook Skills](https://github.com/yyykf/spellbook-skills) - Practical Claude Code and Codex skills for worktrees, PR/MR automation, review cleanup, YApi lookup, and Java DDD guidance.
 - [stacked-prs](https://github.com/Qabbout/stacked-prs-skill) - Agent skill for Claude Code and Codex to split large changes into reviewable PRs, carry fixes through dependent branches, and land them in dependency order with automated Git checks.
 - [Staff Engineer Mode](https://github.com/sirmarkz/staff-engineer-mode) - Routes engineering design, delivery, reliability, security, operations, and maintenance prompts to focused staff-level specialist guidance for AI coding agents.
 - [Standup Generator](./plugins/mturac/standup-gen) - Daily standup notes from git activity across repos.
 - [Stark](https://github.com/f0d010c/stark) - UI/UX design plugin for AI coding agents with product-flow routing, platform-native interface guidance, asset planning, and shipped-reference analysis before code.
+- [SteinWall](https://github.com/maxxstm/steinwall) - Cost brake, action guard, loop rescue and extension scanner that run locally as Codex hooks.
 - [stickypane](https://github.com/LeeSwallow/stickypane) - A terminal board Codex writes to and you read, with kanban, checklists, charts, forms and live logs kept as plain Markdown files.
 - [Stop That Shit](https://github.com/lennney/stop-that-shit) - Local-first scope guard for Codex with explicit task modes, before-action checks, and bounded dependency, hash, and subagent decisions.
 - [Supercov](https://github.com/supercorp-ai/supercov) - Coverage, security and code quality for coding agents.
@@ -342,7 +346,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [AgentDomains](https://github.com/tashfeenahmed/AgentDomains-skill) - Claim and manage free subdomains under makes.fyi or agentdomains.co for the sites and APIs AI agents build.
 - [Agentgram](https://github.com/jerryfane/agentgram) - Send explicit Telegram messages from Codex and local AI agents through a Telegram bot token and chat id.
 - [AgentMart](https://github.com/mustafaakmese/agentmart-plugins) - Hosted webhook inbox, memory locker, wake-up calls, uptime and heartbeat watch and ask-my-human utilities for agents over remote MCP with OAuth sign-in, paid from a prepaid balance the human tops up.
-- [Aident Loadout](https://github.com/Aident-AI/aident-skill) - Remote MCP server connecting Codex, Claude Code, Cursor, ChatGPT and other MCP clients to 1,000+ apps and 400+ Skills through one reusable setup, with Vault-protected credentials and Audit logging. Website: https://aident.ai
+- [Aident Loadout](https://github.com/Aident-AI/aident-skill) - Remote MCP server connecting Codex, Claude Code, Cursor, ChatGPT and other MCP clients to their connected apps and 400+ Skills through one reusable setup, with Vault-protected credentials and Audit logging. Website: https://aident.ai
 - [Aient](https://github.com/aient-ai/aient-codex-plugin) - AI operations plugin for Codex that connects production telemetry, problem lifecycle context, and remediation workflows through Aient's MCP server.
 - [Anime Reaction GIF](https://github.com/LIghtJUNction/anime-reaction-gif) - Create original anime reaction stickers with image-generated pose sheets, expressive timing, and looping GIF and MP4 exports.
 - [Antigravity 2.0](https://github.com/comprono/antigravity-2-codex-plugin) - Local Codex bridge for Antigravity desktop with setup checks, model limit summaries, DevTools UI automation, and safe project/chat handoff.
@@ -351,6 +355,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [AutoCAD Tianzheng Tools](https://github.com/summer521521/AutoCAD_Tianzheng_plugin) - Connects Codex to AutoCAD and Tianzheng HVAC through a local MCP server for DWG-aware HVAC drawing inspection and workflow automation.
 - [AxonFlow](https://github.com/getaxonflow/axonflow-codex-plugin) - Runtime governance for Codex with policy enforcement on terminal commands, advisory checks for non-terminal tools via skills, PII/secret detection, and compliance-grade audit trails. Self-hosted via Docker.
 - [BabelDOC PDF Translate](https://github.com/reliable-ly0411/babeldoc-pdf-translate) - Translate PDFs with local BabelDOC typesetting, configurable translation providers, bilingual output and custom terminology.
+- [BankBridge](https://github.com/bankbridge-money/bankbridge-plugin) - Remote MCP server and skill that give Codex read-only access to your own US bank, credit card and investment accounts, fetched live, for questions about spending, subscriptions, cashflow and holdings; paid, $5/month per connected bank.
 - [Bitbucket CLI](https://github.com/avivsinai/bitbucket-cli) - Manage Bitbucket repos, PRs, branches, issues, webhooks, and pipelines for Data Center and Cloud.
 - [BountyGuard](https://github.com/doomsday-network/bounty-guard) - Pre-flight GitHub bounty security scanner and on-chain Proof-of-Escrow MCP verifier that classifies open bounties before AI agents invest compute.
 - [Build Remote Agent](https://github.com/LinespottingOrg/GrokBuildRemote-Agents) - Pair a phone as spectator to a local Codex session via gbr-agent (QR / 8-char) and attach at 127.0.0.1:8788 or gbr-mcp.
@@ -423,7 +428,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [LinkedIn Skills](https://github.com/sergebulaev/linkedin-skills) - Codex-ready LinkedIn marketing bundle with a native .codex-plugin manifest and 10 skills: post writing with 16 tested hook formulas, AI-tell humanizer, pre-publish audit, comment and reply drafting, hook extraction, content planning, profile optimization, engager analytics, and thread monitoring; also works in Claude Code.
 - [LinkMCP](https://github.com/linkmcp-io/linkmcp) - Connects Codex to your own LinkedIn account through the hosted LinkMCP server for profile and company lookups, people and Sales Navigator search, inbox, posts, connection requests and work email finding (closed source; paid plans with a 7-day free trial).
 - [LLMSlim](https://github.com/Thanatos9404/llmslim) - Long-term memory for Codex with no LLM in the loop: a local MCP server stores messages word for word in SQLite and recalls the ones that answer a question within a token budget.
-- [LMCP](https://github.com/colibird-ai/local-mcp-releases) - Local tools that let Codex use Mail, Calendar, Contacts, Teams, Slack, WhatsApp (Mac), OneDrive, Google Drive, Notion, Outlook (Windows) and Office files on Mac and Windows.
+- [LMCP](https://github.com/colibird-ai/local-mcp-releases) - Local tools that let Codex use Mail, Calendar, Contacts, Teams, Slack, WhatsApp, OneDrive, Google Drive, Notion, Outlook and Microsoft 365 mail and calendar, and Office files on Mac and Windows.
 - [Loomaly](https://github.com/loomaly/loomaly) - Ranks your site's SEO problems by what to fix first, gives Codex a fix prompt for your framework to apply in your repo, and re-checks the live page once the fix is deployed, via a hosted MCP server and four skills.
 - [Maestro: Costguard](https://github.com/mbanderas/costguard) - Cost auditor for Codex that flags CI/cron and cloud-spend waste via read-only provider checks, then previews and applies surgical CI workflow fixes locally without writing to provider accounts or pushing git.
 - [Magic Hour](https://github.com/magichourhq/skills) - Create and finish AI images and videos through Magic Hour's MCP or API with reusable media workflows, output review, and account-credit requirements.
@@ -590,6 +595,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [Email Marketing Bible](https://github.com/CosmoBlk/email-marketing-bible) - Codex skill (SKILL.md) for email marketing: automation flows, deliverability triage, copy de-slopping, AI email design, ESP control via MCP with send-safety gates, compliance and 19 industry playbooks.
 - [HOL Plugin Registry](https://hol.org/registry/plugins) - Browse plugins with scanner-backed security analysis and trust scores.
 - [Koto](https://github.com/mehrdadxzaker/Koto) - Experimental local-first model selection for Codex with consented history, qualification checks, and skills for setup, diagnosis, and safe disconnect.
+- [PickAPlugin](https://pickaplugin.com) - Free, searchable directory of Codex and ChatGPT plugins and MCP servers, with GitHub stars, install commands and freshness for each listing.
 - [Tura](https://github.com/Tura-AI/tura) - A local, open-source coding agent for developers who are tired of vague skill claims, token-saving extensions with no evidence, and agents that change a repository before understanding it.
 
 <!-- hol-sponsors:start -->

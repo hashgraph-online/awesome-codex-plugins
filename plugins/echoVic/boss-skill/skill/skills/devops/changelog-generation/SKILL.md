@@ -1,4 +1,5 @@
 ---
+
 name: devops/changelog-generation
 description: 自动生成 CHANGELOG，基于 git 提交历史和 pipeline 产物信息，遵循 Conventional Commits 和 Keep a Changelog 规范
 version: 1.0.0
@@ -7,13 +8,14 @@ type: workflow
 user-invocable: false
 agent-invocable: true
 dependencies:
-  - devops/deployment-process
-triggers:
-  - 部署成功完成后
-  - 需要生成版本变更日志时
-  - 发布新版本时
-metadata:
+- devops/deployment-process
+  triggers:
+- 部署成功完成后
+- 需要生成版本变更日志时
+- 发布新版本时
+  metadata:
   internal: true
+
 ---
 
 # CHANGELOG 自动生成
@@ -30,10 +32,12 @@ metadata:
 ### 步骤 1：信息收集
 
 1. **Git 历史解析**：
+
    ```bash
    # 获取从上次 tag 到 HEAD 的所有提交
    git log $(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD --pretty=format:"%H|%s|%an|%ai"
    ```
+
    - 如果没有 tag，取最近 50 条提交
    - 解析 Conventional Commits 格式：`type(scope): description`
 
@@ -51,16 +55,16 @@ metadata:
 
 按 Conventional Commits 规范分类：
 
-| 类型 | CHANGELOG 分类 | 说明 |
-|------|---------------|------|
-| `feat` | **Added** | 新增功能 |
-| `fix` | **Fixed** | 修复问题 |
-| `perf` | **Performance** | 性能优化 |
-| `refactor` | **Changed** | 重构（非功能变更） |
-| `docs` | **Documentation** | 文档更新 |
-| `style` | _(不记录)_ | 代码格式 |
-| `test` | _(不记录)_ | 测试相关 |
-| `chore` | _(不记录)_ | 构建/工具变更 |
+| 类型              | CHANGELOG 分类          | 说明                   |
+| ----------------- | ----------------------- | ---------------------- |
+| `feat`            | **Added**               | 新增功能               |
+| `fix`             | **Fixed**               | 修复问题               |
+| `perf`            | **Performance**         | 性能优化               |
+| `refactor`        | **Changed**             | 重构（非功能变更）     |
+| `docs`            | **Documentation**       | 文档更新               |
+| `style`           | _(不记录)_              | 代码格式               |
+| `test`            | _(不记录)_              | 测试相关               |
+| `chore`           | _(不记录)_              | 构建/工具变更          |
 | `BREAKING CHANGE` | **⚠️ Breaking Changes** | 破坏性变更（始终置顶） |
 
 对于非 Conventional Commits 格式的提交：
@@ -75,18 +79,23 @@ metadata:
 ## [版本号] - YYYY-MM-DD
 
 ### ⚠️ Breaking Changes
+
 - 破坏性变更描述 ([commit-hash])
 
 ### Added
+
 - 新功能描述（来自 PRD 的用户价值说明） ([commit-hash])
 
 ### Changed
+
 - 变更描述 ([commit-hash])
 
 ### Fixed
+
 - 修复描述 ([commit-hash])
 
 ### Performance
+
 - 优化描述 ([commit-hash])
 ```
 
@@ -101,7 +110,6 @@ metadata:
 ### 步骤 4：输出写入
 
 **两种输出模式：**
-
 1. **产物模式**（默认）：写入 `.boss/<feature>/changelog.md`
 2. **追加模式**：如项目根目录已有 `CHANGELOG.md`，将新版本内容追加到文件顶部（在 `# Changelog` 标题之后）
 
@@ -122,6 +130,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [版本号] - 日期
+
 ...
 ```
 

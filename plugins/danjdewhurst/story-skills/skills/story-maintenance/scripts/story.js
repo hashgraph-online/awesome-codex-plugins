@@ -31893,7 +31893,7 @@ function messageReader(onMessage, onProblem) {
 }
 
 // src/version.js
-var VERSION = "0.24.0";
+var VERSION = "0.24.1";
 
 // src/language-server.js
 var CHECK_DELAY_MS = 300;

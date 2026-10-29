@@ -21,6 +21,15 @@ SPEC.loader.exec_module(PUBLISHER)
 
 
 class CentralizedPublisherTests(unittest.TestCase):
+    def test_centralized_scans_use_the_inclusive_75_point_minimum(self) -> None:
+        root = SCRIPTS.parent
+        for workflow in ("sweep-open-prs.yml", "validate-contribution.yml"):
+            with self.subTest(workflow=workflow):
+                text = (root / ".github/workflows" / workflow).read_text()
+                self.assertIn("min_score: 75", text)
+                self.assertIn("fail_on_severity: none", text)
+                self.assertNotIn("min_score: 80", text)
+
     def setUp(self) -> None:
         self.scan_result = {
             "pr_number": 12,
@@ -46,7 +55,7 @@ class CentralizedPublisherTests(unittest.TestCase):
                 conclusion, title, summary = PUBLISHER.check_summary(self.scan_result, jobs)
                 self.assertEqual(conclusion, "failure")
                 self.assertIn("score not established", title.lower())
-                self.assertIn("at least 80/100", summary)
+                self.assertIn("at least 75/100", summary)
 
     def test_scan_comments_are_single_paragraphs_and_recommend_optional_source_ci(self) -> None:
         for jobs in ({12: ["success"]}, {12: ["failure"]}):
@@ -58,7 +67,7 @@ class CentralizedPublisherTests(unittest.TestCase):
             self.assertNotIn("\\n", comment)
             if conclusion == "failure":
                 self.assertIn("recommended, not required", comment)
-                self.assertIn("score is below 80", comment)
+                self.assertIn("score is below 75", comment)
                 self.assertIn("source repository does not already run the scanner", comment)
 
     def test_no_new_entry_success_comment_does_not_claim_a_score(self) -> None:

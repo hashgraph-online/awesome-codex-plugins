@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Consolidated Multi-LLM Review Report</title>
+  <style>
+    /* CSS Reset and Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-card: #ffffff;
+      --bg-hover: #f1f3f5;
+      --text-primary: #212529;
+      --text-secondary: #495057;
+      --text-muted: #6c757d;
+      --border-color: #dee2e6;
+      --border-light: #e9ecef;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --importance-high: #dc3545;
+      --importance-high-bg: #f8d7da;
+      --importance-medium: #fd7e14;
+      --importance-medium-bg: #ffe5d0;
+      --importance-low: #0d6efd;
+      --importance-low-bg: #cfe2ff;
+      --validation-valid: #198754;
+      --validation-valid-bg: #d1e7dd;
+      --validation-invalid: #dc3545;
+      --validation-invalid-bg: #f8d7da;
+      --validation-human: #6f42c1;
+      --validation-human-bg: #e2d9f3;
+      --validation-failed: #6c757d;
+      --validation-failed-bg: #e9ecef;
+      --accent-blue: #0d6efd;
+      --accent-green: #198754;
+
+      /* Suggestion backgrounds (distinct from content) */
+      --suggestion-bg: #eef2ff;
+      --suggestion-bar-bg: #e0e7ff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1a1a2e;
+        --bg-secondary: #16213e;
+        --bg-card: #1f1f3a;
+        --bg-hover: #2a2a4a;
+        --text-primary: #e9ecef;
+        --text-secondary: #adb5bd;
+        --text-muted: #6c757d;
+        --border-color: #3d3d5c;
+        --border-light: #2d2d4a;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+        --importance-high-bg: #4a1a1f;
+        --importance-medium-bg: #4a3010;
+        --importance-low-bg: #0a2a5a;
+        --validation-valid-bg: #0a3a2a;
+        --validation-invalid-bg: #4a1a1f;
+        --validation-human-bg: #2a1a4a;
+        --validation-failed-bg: #2a2a3a;
+
+        /* Suggestion backgrounds dark */
+        --suggestion-bg: #1a2040;
+        --suggestion-bar-bg: #1e2550;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .header-toggle {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0.25rem 0.625rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .header-toggle:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent-blue);
+      color: var(--text-primary);
+    }
+
+    .header-toggle .toggle-icon {
+      transition: transform 0.2s ease;
+      font-size: 0.625rem;
+    }
+
+    .header-collapsible {
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.2s ease, margin-top 0.3s ease;
+      max-height: 500px;
+      opacity: 1;
+      margin-top: 0.5rem;
+    }
+
+    .header-collapsible.collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0;
+    }
+
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .header-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-meta strong {
+      color: var(--text-primary);
+    }
+
+    /* A failed reviewer beside the models that answered: the same
+       `model: reason` entries as the phase report's failure row. */
+    .meta-failed {
+      color: var(--importance-high);
+    }
+
+    /* Notice / warning bars — the phase report's, so the consolidated page
+       carries the same failed-reviewer warning (decision 11.12). */
+    .report-notice {
+      padding: 0.5rem 1rem;
+      font-size: 0.8125rem;
+      background: var(--importance-medium-bg);
+      color: var(--importance-medium);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .report-notice.info {
+      background: var(--importance-low-bg);
+      color: var(--importance-low);
+    }
+
+    .report-notice.warning {
+      background: var(--importance-medium-bg);
+      color: var(--importance-medium);
+    }
+
+    .consolidation-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      font-size: 0.9375rem;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-md);
+    }
+
+    .consolidation-stats .stat-value {
+      font-weight: 700;
+      color: var(--accent-blue);
+    }
+
+    .full-report-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--accent-green);
+      color: white;
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 1rem;
+      transition: opacity 0.15s;
+    }
+
+    .full-report-link:hover {
+      opacity: 0.9;
+    }
+
+    /* Filter Controls */
+    .filter-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .filter-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-options {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.375rem 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent-blue);
+    }
+
+    .filter-btn.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: white;
+    }
+
+    .filter-btn.importance-high.active {
+      background: var(--importance-high);
+      border-color: var(--importance-high);
+    }
+
+    .filter-btn.importance-medium.active {
+      background: var(--importance-medium);
+      border-color: var(--importance-medium);
+    }
+
+    .filter-btn.importance-low.active {
+      background: var(--importance-low);
+      border-color: var(--importance-low);
+    }
+
+    select.filter-select {
+      padding: 0.375rem 2rem 0.375rem 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+    }
+
+    select.filter-select:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    /* Action Buttons */
+    .action-section {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.75rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0b5ed7;
+    }
+
+    .export-indicator {
+      display: inline-block;
+      font-size: 0.8rem;
+      color: var(--accent-green, #16a34a);
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    .btn-warning {
+      background: var(--importance-medium);
+      color: white;
+    }
+
+    .btn-warning:hover {
+      opacity: 0.9;
+    }
+
+    /* Main Content */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Consolidated Group Cards */
+    .group-card {
+      background: var(--suggestion-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: box-shadow 0.2s ease;
+    }
+
+    .group-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .group-card.skipped {
+      opacity: 0.6;
+    }
+
+    .group-card.singleton {
+      border-color: var(--border-light);
+      border-style: dashed;
+    }
+
+    .group-header {
+      padding: 1rem 1.25rem;
+      background: var(--suggestion-bar-bg);
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .group-header-top {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .group-id {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    .group-title {
+      flex: 1;
+      font-weight: 500;
+      color: var(--text-primary);
+      min-width: 200px;
+    }
+
+    .group-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      margin-left: 1.5rem;
+    }
+
+    /* Badges */
+    .badge {
+      padding: 0.1875rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-importance-high {
+      background: var(--importance-high-bg);
+      color: var(--importance-high);
+    }
+
+    .badge-importance-medium {
+      background: var(--importance-medium-bg);
+      color: var(--importance-medium);
+    }
+
+    .badge-importance-low {
+      background: var(--importance-low-bg);
+      color: var(--importance-low);
+    }
+
+    .badge-category {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+
+    .badge-singleton {
+      background: var(--validation-failed-bg);
+      color: var(--validation-failed);
+      font-style: italic;
+    }
+
+    .badge-validation-valid {
+      background: var(--validation-valid-bg);
+      color: var(--validation-valid);
+    }
+
+    .badge-validation-invalid {
+      background: var(--validation-invalid-bg);
+      color: var(--validation-invalid);
+    }
+
+    .badge-validation-needs-human {
+      background: var(--validation-human-bg);
+      color: var(--validation-human);
+    }
+
+    .badge-validation-failed {
+      background: var(--validation-failed-bg);
+      color: var(--validation-failed);
+    }
+
+    .badge-merged {
+      background: var(--validation-valid-bg);
+      color: var(--validation-valid);
+    }
+
+    .badge-provider {
+      color: white;
+      opacity: 0.9;
+    }
+
+    .badge-model {
+      color: white;
+      opacity: 0.9;
+    }
+
+    .model-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-right: 2px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .model-badge-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    /* Skip and Override Controls */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .skip-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
+    .skip-control input[type="checkbox"] {
+      width: 1rem;
+      height: 1rem;
+      cursor: pointer;
+      accent-color: var(--accent-blue);
+    }
+
+    .validation-override {
+      padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 0.75rem;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.375rem center;
+    }
+
+    .validation-override:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    /* Group Content */
+    .group-content {
+      padding: 1rem 1.25rem;
+    }
+
+    .group-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.75rem;
+    }
+
+    .group-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .section-ref {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      padding: 0.25rem 0.5rem;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+    }
+
+    /* Description */
+    .description-block {
+      padding: 0.75rem;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      margin-bottom: 0.75rem;
+    }
+
+    .description-block strong,
+    .description-block b {
+      font-weight: 600;
+    }
+
+    .description-block em,
+    .description-block i {
+      font-style: italic;
+    }
+
+    .description-block code {
+      background: var(--bg-hover);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.8125rem;
+    }
+
+    .description-block pre {
+      background: var(--bg-hover);
+      padding: 0.75rem;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+
+    .description-block pre code {
+      background: none;
+      padding: 0;
+    }
+
+    .description-block ul,
+    .description-block ol {
+      margin: 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .description-block li {
+      margin: 0.25rem 0;
+    }
+
+    .description-block p {
+      margin: 0.5rem 0;
+    }
+
+    .description-block p:first-child {
+      margin-top: 0;
+    }
+
+    .description-block p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Reasoning Block */
+    .reasoning-block {
+      padding: 0.625rem 0.75rem;
+      border-left: 3px solid var(--border-color);
+      background: var(--bg-secondary);
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    .reasoning-block .reasoning-label {
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-right: 0.375rem;
+    }
+
+    .reasoning-collapsed {
+      cursor: pointer;
+    }
+
+    .reasoning-collapsed summary {
+      list-style: none;
+      font-weight: 600;
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+    }
+
+    .reasoning-collapsed summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .reasoning-collapsed summary::before {
+      content: '\25B8';
+      font-size: 0.625rem;
+      margin-right: 0.375rem;
+      transition: transform 0.15s;
+      display: inline-block;
+    }
+
+    .reasoning-collapsed[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .reasoning-collapsed .reasoning-text {
+      margin-top: 0.375rem;
+      color: var(--text-muted);
+    }
+
+    /* Underlying Groups (expandable) */
+    .underlying-section {
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+    }
+
+    .underlying-section summary {
+      padding: 0.625rem 0.75rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      list-style: none;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      font-weight: 500;
+    }
+
+    .underlying-section[open] summary {
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .underlying-section summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .underlying-section summary::before {
+      content: '\25B8';
+      font-size: 0.625rem;
+      transition: transform 0.15s;
+    }
+
+    .underlying-section[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .underlying-content {
+      padding: 0.75rem;
+    }
+
+    .underlying-group {
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .underlying-group:last-child {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+    }
+
+    .underlying-group-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .underlying-suggestion {
+      padding: 0.5rem 0.75rem;
+      margin-top: 0.375rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+    }
+
+    .underlying-suggestion-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.375rem;
+      margin-bottom: 0.375rem;
+      font-size: 0.75rem;
+    }
+
+    .underlying-suggestion-id {
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .underlying-suggestion-title {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .underlying-suggestion-desc {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .underlying-suggestion-desc p {
+      margin: 0.25rem 0;
+    }
+
+    .underlying-suggestion-desc p:first-child {
+      margin-top: 0;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header {
+        padding: 1rem;
+      }
+
+      .header-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .filter-controls {
+        flex-direction: column;
+      }
+
+      main {
+        padding: 1rem;
+      }
+
+      .group-header-top {
+        flex-wrap: wrap;
+      }
+
+      .group-badges {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        width: 100%;
+      }
+
+      .skip-control {
+        margin-left: 0;
+        margin-top: 0.5rem;
+      }
+
+      .controls-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="header-title-row">
+        <h1 class="header-title" id="report-title">Consolidated Multi-LLM Review Report</h1>
+        <button class="header-toggle" id="header-toggle" onclick="toggleHeaderPanel()">
+          <span class="toggle-icon" id="toggle-icon">&#9660;</span>
+          <span id="toggle-label">Hide filters</span>
+        </button>
+      </div>
+      <div class="header-collapsible" id="header-collapsible">
+        <div class="header-meta">
+          <span><strong>Generated:</strong> <span id="meta-timestamp">-</span></span>
+          <span><strong>Models:</strong> <span id="meta-models">-</span></span>
+          <!-- Stage U: the run total, hidden outright when nothing reported. -->
+          <span id="meta-usage-wrap" style="display:none"><strong>Usage:</strong> <span id="meta-usage">-</span></span>
+          <!-- The models that produced nothing; hidden when none failed. -->
+          <span id="meta-failed-wrap" class="meta-failed" style="display:none"><strong>Failed:</strong> <span id="meta-failed">-</span></span>
+          <span><strong>Phase:</strong> <span id="meta-phase">-</span></span>
+          <span><strong>Plan:</strong> <span id="meta-plan-path">-</span></span>
+        </div>
+
+        <div class="consolidation-stats" id="consolidation-stats">
+          <span><span class="stat-value" id="stat-original">-</span> groups</span>
+          <span>&rarr;</span>
+          <span><span class="stat-value" id="stat-consolidated">-</span> consolidated</span>
+          <span>(<span class="stat-value" id="stat-reduction">-</span>% reduction)</span>
+          <span><span class="stat-value" id="stat-merged">-</span> merged, <span class="stat-value" id="stat-singletons">-</span> singletons</span>
+        </div>
+
+        <a class="full-report-link" id="full-report-link" href="#">View full per-suggestion report</a>
+
+        <div class="filter-controls">
+          <div class="filter-group">
+            <span class="filter-label">Importance</span>
+            <div class="filter-options" id="importance-filters">
+              <button class="filter-btn importance-high active" data-importance="HIGH">HIGH</button>
+              <button class="filter-btn importance-medium active" data-importance="MEDIUM">MEDIUM</button>
+              <button class="filter-btn importance-low active" data-importance="LOW">LOW</button>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Section</span>
+            <select class="filter-select" id="section-filter">
+              <option value="">All Sections</option>
+            </select>
+          </div>
+
+          <div class="filter-group" id="validation-filter-group" style="display:none;">
+            <span class="filter-label">Validation</span>
+            <div class="filter-options" id="validation-filters">
+              <button class="filter-btn active" data-validation="valid">Valid</button>
+              <button class="filter-btn active" data-validation="needs-human-decision">Needs Human</button>
+              <button class="filter-btn active" data-validation="validation_failed">Failed</button>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Singletons</span>
+            <div class="filter-options">
+              <button class="filter-btn active" id="singleton-toggle">Show Singletons</button>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Sort</span>
+            <select class="filter-select" id="sort-order" onchange="applySorting()">
+              <option value="priority">Priority</option>
+              <option value="original">Original Order</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="action-section">
+          <div class="action-buttons">
+            <button class="btn btn-primary" id="btn-export">Export Selections (JSON)</button>
+            <span class="export-indicator" id="export-indicator" style="display:none"></span>
+            <button class="btn btn-secondary" id="btn-skip-singletons">Skip All Singletons</button>
+            <button class="btn btn-secondary" id="btn-skip-low">Skip All LOW Importance</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notice bar, outside the groups container so no empty state hides it. -->
+  <div id="report-notices"></div>
+
+  <main id="groups-container">
+    <div class="empty-state">
+      <div class="empty-state-icon">Loading...</div>
+      <p>Loading report data...</p>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify/dist/purify.min.js"></script>
+
+  <script>
+    // Header collapse/expand
+    function toggleHeaderPanel() {
+      var panel = document.getElementById('header-collapsible');
+      var icon = document.getElementById('toggle-icon');
+      var label = document.getElementById('toggle-label');
+      var isCollapsed = panel.classList.toggle('collapsed');
+      icon.style.transform = isCollapsed ? 'rotate(-90deg)' : '';
+      label.textContent = isCollapsed ? 'Show filters' : 'Hide filters';
+      localStorage.setItem('multi-llm-header-collapsed', isCollapsed ? '1' : '');
+    }
+
+    // Restore header state on load
+    (function() {
+      if (localStorage.getItem('multi-llm-header-collapsed') === '1') {
+        var panel = document.getElementById('header-collapsible');
+        var icon = document.getElementById('toggle-icon');
+        var label = document.getElementById('toggle-label');
+        if (panel) {
+          panel.classList.add('collapsed');
+          icon.style.transform = 'rotate(-90deg)';
+          label.textContent = 'Show filters';
+        }
+      }
+    })();
+
+    // Data placeholder - replaced by generator
+    var reportData = /* REPORT_DATA_PLACEHOLDER */null;
+
+    // State
+    var selections = {
+      format_version: 2,
+      last_file_export_at: null,
+      skipped_groups: {},
+      validation_overrides: {},
+      _labels: {}
+    };
+
+    // --- Utilities ---
+
+    function getStorageKey() {
+      if (!reportData) return 'multi-llm-selections-consolidated';
+      return 'multi-llm-selections-consolidated-' + reportData.planPath;
+    }
+
+    function migrateLegacyOverrides(overrides) {
+      if (!overrides) return;
+      Object.keys(overrides).forEach(function(k) {
+        if (overrides[k] === 'claude_decide') overrides[k] = 'judge_decide';
+      });
+    }
+
+    function loadSelections() {
+      var stored = localStorage.getItem(getStorageKey());
+      if (stored) {
+        try {
+          var parsed = JSON.parse(stored);
+          if (parsed.skipped_groups) selections.skipped_groups = parsed.skipped_groups;
+          // A selection saved before the judge rename says 'claude_decide' (utils/judge_vocab.py).
+          migrateLegacyOverrides(parsed.validation_overrides);
+          if (parsed.validation_overrides) selections.validation_overrides = parsed.validation_overrides;
+          if (parsed._labels) selections._labels = parsed._labels;
+          if (parsed.last_file_export_at) selections.last_file_export_at = parsed.last_file_export_at;
+        } catch (e) {
+          console.error('Failed to load selections:', e);
+        }
+      }
+    }
+
+    function saveSelections() {
+      localStorage.setItem(getStorageKey(), JSON.stringify(selections));
+    }
+
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      var div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    function renderMarkdown(text) {
+      if (!text) return '';
+      var raw = marked.parse(text);
+      return DOMPurify.sanitize(raw);
+    }
+
+    function getImportanceBadgeClass(importance) {
+      switch (importance ? importance.toUpperCase() : '') {
+        case 'HIGH': return 'badge-importance-high';
+        case 'MEDIUM': return 'badge-importance-medium';
+        case 'LOW': return 'badge-importance-low';
+        default: return 'badge-category';
+      }
+    }
+
+    function getValidationBadgeClass(status) {
+      switch (status) {
+        case 'valid': return 'badge-validation-valid';
+        case 'invalid': return 'badge-validation-invalid';
+        case 'needs-human-decision': return 'badge-validation-needs-human';
+        case 'validation_failed': return 'badge-validation-failed';
+        default: return 'badge-category';
+      }
+    }
+
+    function getValidationLabel(status) {
+      switch (status) {
+        case 'valid': return 'Valid';
+        case 'invalid': return 'Invalid';
+        case 'needs-human-decision': return 'Needs Human';
+        case 'validation_failed': return 'Validation Failed';
+        default: return status;
+      }
+    }
+
+    function getModelBadgeHtml(modelString) {
+      var metadata = reportData.modelMetadata ? reportData.modelMetadata[modelString] : null;
+      if (!metadata) {
+        return '<span class="badge badge-model" style="background: #6B7280;">' + escapeHtml(modelString) + '</span>';
+      }
+      var html = '<span class="model-badge-group">';
+      if (metadata.provider_icon) {
+        html += '<img class="model-icon" src="' + metadata.provider_icon + '" alt="" />';
+      }
+      if (metadata.icon) {
+        html += '<img class="model-icon" src="' + metadata.icon + '" alt="" />';
+      }
+      if (metadata.provider) {
+        html += '<span class="badge badge-provider" style="background: ' + metadata.provider_color + ';">' +
+                escapeHtml(metadata.provider) + '</span>';
+      }
+      html += '<span class="badge badge-model" style="background: ' + metadata.model_color + ';">' +
+              escapeHtml(metadata.model) + '</span>';
+      // Stage U: what this slot spent, when the adapter reported it. The text
+      // is `usage_label`, rendered server-side by the one `describe_usage` the
+      // markdown report and the failed-slot log line also use — this template
+      // deliberately does not re-derive it from `metadata.usage` (the numbers
+      // are there for anything that wants to compute), because three templates
+      // each rounding a cost their own way is three answers to "what did this
+      // run cost". A model that reported nothing has no key and renders no
+      // badge — never `$0.00`, which would claim a free run.
+      if (metadata.usage_label) {
+        html += '<span class="badge badge-usage" style="background: #6B7280;" title="Estimated from the CLI\'s own price catalog, not a vendor invoice">' +
+                escapeHtml(metadata.usage_label) + '</span>';
+      }
+      html += '</span>';
+      return html;
+    }
+
+    // --- Rendering ---
+
+    function renderHeader() {
+      if (!reportData) return;
+
+      var planTitle = reportData.planTitle || reportData.planPath || 'Unknown';
+      var phaseLabelMap = {'review-plan': 'Plan Review', 'review-tasks': 'Task Review', 'code-review': 'Code Review'};
+      var phaseLabel = phaseLabelMap[reportData.phase] || 'Plan Review';
+      document.getElementById('report-title').textContent = 'Consolidated ' + phaseLabel + ' Report: ' + planTitle;
+      document.getElementById('meta-timestamp').textContent = reportData.generatedAt || '-';
+      document.getElementById('meta-models').textContent = (reportData.models || []).join(', ') || '-';
+      var usageWrap = document.getElementById('meta-usage-wrap');
+      if (usageWrap) {
+        if (reportData.usageTotalLabel) {
+          document.getElementById('meta-usage').textContent = reportData.usageTotalLabel;
+          usageWrap.style.display = '';
+        } else {
+          usageWrap.style.display = 'none';
+        }
+      }
+      // `failedModels` is a {spec: reason} object: "N of M requested" when
+      // `requestedModels` is set, then one `model: reason` entry per model.
+      var failedWrap = document.getElementById('meta-failed-wrap');
+      if (failedWrap) {
+        var failedModels = reportData.failedModels || {};
+        var failedSpecs = Object.keys(failedModels);
+        if (failedSpecs.length > 0) {
+          var failedCount = (typeof reportData.requestedModels === 'number')
+            ? failedSpecs.length + ' of ' + reportData.requestedModels + ' requested'
+            : failedSpecs.length + (failedSpecs.length === 1 ? ' model' : ' models');
+          var failedEntries = failedSpecs.map(function(spec) {
+            return spec + ': ' + failedModels[spec];
+          });
+          document.getElementById('meta-failed').textContent =
+            failedCount + ' — ' + failedEntries.join('; ');
+          failedWrap.style.display = '';
+        } else {
+          failedWrap.style.display = 'none';
+        }
+      }
+      document.getElementById('meta-phase').textContent = reportData.phase || '-';
+      document.getElementById('meta-plan-path').textContent = reportData.planPath || '-';
+
+      // Consolidation stats
+      var summary = reportData.summary || {};
+      var totalOrig = summary.totalOriginal || 0;
+      var totalCons = summary.totalConsolidated || 0;
+      var reduction = totalOrig > 0 ? Math.round((1 - totalCons / totalOrig) * 100) : 0;
+
+      document.getElementById('stat-original').textContent = totalOrig;
+      document.getElementById('stat-consolidated').textContent = totalCons;
+      document.getElementById('stat-reduction').textContent = reduction;
+      document.getElementById('stat-merged').textContent = summary.mergedCount || 0;
+      document.getElementById('stat-singletons').textContent = summary.singletonCount || 0;
+
+      // Full report link
+      var fullLink = document.getElementById('full-report-link');
+      if (reportData.fullReportPath) {
+        fullLink.href = reportData.fullReportPath;
+      } else {
+        fullLink.style.display = 'none';
+      }
+
+      // Populate section filter
+      var sections = new Set();
+      (reportData.consolidatedGroups || []).forEach(function(cg) {
+        if (cg.reference) sections.add(cg.reference);
+      });
+      var sectionFilter = document.getElementById('section-filter');
+      sectionFilter.innerHTML = '<option value="">All Sections</option>';
+      Array.from(sections).sort().forEach(function(sec) {
+        sectionFilter.innerHTML += '<option value="' + escapeHtml(sec) + '">' + escapeHtml(sec) + '</option>';
+      });
+
+      // Show validation filter if any groups have validation status
+      var hasValidation = (reportData.consolidatedGroups || []).some(function(cg) {
+        return !!cg.validationStatus;
+      });
+      if (hasValidation) {
+        document.getElementById('validation-filter-group').style.display = '';
+      }
+    }
+
+    function renderGroups() {
+      var container = document.getElementById('groups-container');
+      var groups = reportData ? reportData.consolidatedGroups : null;
+
+      if (!groups || !groups.length) {
+        container.innerHTML = '<div class="empty-state">' +
+          '<div class="empty-state-icon">No Data</div>' +
+          '<p>No consolidated groups found in the report data.</p>' +
+          '</div>';
+        return;
+      }
+
+      // Build _labels map for debugging: hash -> display label
+      groups.forEach(function(cg) {
+        if (cg.consolidatedId) {
+          selections._labels[cg.consolidatedId] = 'CG' + cg.displayIndex;
+        }
+        if (cg.underlyingGroups) {
+          cg.underlyingGroups.forEach(function(ug) {
+            if (ug.suggestions) {
+              ug.suggestions.forEach(function(s) {
+                if (s.id && s.displayLabel) {
+                  selections._labels[s.id] = s.displayLabel;
+                }
+              });
+            }
+          });
+        }
+      });
+
+      var html = '';
+      groups.forEach(function(cg) {
+        var cgId = cg.consolidatedId;
+        var displayId = 'CG' + cg.displayIndex;
+        var isSkipped = !!selections.skipped_groups[cgId];
+        var overrideVal = selections.validation_overrides[cgId] || '';
+
+        // Card classes
+        var cardClasses = 'group-card';
+        if (isSkipped) cardClasses += ' skipped';
+        if (cg.isSingleton) cardClasses += ' singleton';
+
+        var validationStatus = cg.validationStatus || '';
+
+        html += '<div class="' + cardClasses + '"' +
+          ' data-cg-id="' + escapeHtml(cgId) + '"' +
+          ' data-importance="' + escapeHtml(cg.importance || '') + '"' +
+          ' data-reference="' + escapeHtml(cg.reference || '') + '"' +
+          ' data-singleton="' + (cg.isSingleton ? 'true' : 'false') + '"' +
+          ' data-validation="' + escapeHtml(validationStatus) + '"' +
+          ' data-original-index="' + cg.displayIndex + '">';
+
+        // Header
+        html += '<div class="group-header">' +
+          '<div class="group-header-top">' +
+          '<span class="group-id">' + escapeHtml(displayId) + ':</span>' +
+          '<span class="group-title">' + escapeHtml(cg.title || 'Untitled') + '</span>' +
+          '</div>' +
+          '<div class="group-badges">';
+
+        // Importance badge
+        if (cg.importance) {
+          html += '<span class="badge ' + getImportanceBadgeClass(cg.importance) + '">' + escapeHtml(cg.importance) + '</span>';
+        }
+
+        // Type badge
+        if (cg.type) {
+          html += '<span class="badge badge-category">' + escapeHtml(cg.type) + '</span>';
+        }
+
+        // Singleton/merged badge
+        if (cg.isSingleton) {
+          html += '<span class="badge badge-singleton">Singleton</span>';
+        } else {
+          html += '<span class="badge badge-merged">' + (cg.modelCount || 0) + ' models</span>';
+        }
+
+        // Validation status badge
+        if (validationStatus) {
+          html += '<span class="badge ' + getValidationBadgeClass(validationStatus) + '">' + getValidationLabel(validationStatus) + '</span>';
+        }
+
+        // Covers list
+        if (cg.coversList) {
+          html += '<span class="badge badge-category">Covers: ' + escapeHtml(cg.coversList) + '</span>';
+        }
+
+        html += '</div>'; // end badges
+
+        // Controls row: skip checkbox + validation override
+        html += '<div class="controls-row">' +
+          '<select class="validation-override" data-cg-id="' + escapeHtml(cgId) + '">' +
+          '<option value=""' + (overrideVal === '' ? ' selected' : '') + '>-- No override --</option>' +
+          '<option value="valid"' + (overrideVal === 'valid' ? ' selected' : '') + '>Mark Valid</option>' +
+          '<option value="invalid"' + (overrideVal === 'invalid' ? ' selected' : '') + '>Mark Invalid</option>' +
+          '<option value="needs-human-decision"' + (overrideVal === 'needs-human-decision' ? ' selected' : '') + '>Needs Human Attention</option>' +
+          (validationStatus === 'needs-human-decision' ?
+            '<option value="judge_decide"' + (overrideVal === 'judge_decide' ? ' selected' : '') + '>Let the agent decide</option>' : '') +
+          '</select>' +
+          '<label class="skip-control">' +
+          '<input type="checkbox" data-cg-id="' + escapeHtml(cgId) + '"' + (isSkipped ? ' checked' : '') + '>' +
+          'Skip ' + escapeHtml(displayId) +
+          '</label>' +
+          '</div>';
+
+        html += '</div>'; // end header
+
+        // Content
+        html += '<div class="group-content">';
+
+        // Meta line
+        html += '<div class="group-meta">';
+        if (cg.reference) {
+          html += '<span class="section-ref">Section: ' + escapeHtml(cg.reference) + '</span>';
+        }
+        html += '</div>';
+
+        // Description
+        html += '<div class="description-block">' + renderMarkdown(cg.description) + '</div>';
+
+        // Reasoning block
+        if (cg.reasoning) {
+          if (cg.isSingleton) {
+            // Collapsed for singletons
+            html += '<details class="reasoning-collapsed reasoning-block">' +
+              '<summary>Reasoning</summary>' +
+              '<div class="reasoning-text">' + escapeHtml(cg.reasoning) + '</div>' +
+              '</details>';
+          } else {
+            // Visible for merged
+            html += '<div class="reasoning-block">' +
+              '<span class="reasoning-label">Reasoning:</span>' +
+              escapeHtml(cg.reasoning) +
+              '</div>';
+          }
+        }
+
+        // Underlying groups (expandable)
+        if (cg.underlyingGroups && cg.underlyingGroups.length > 0) {
+          var totalSugs = 0;
+          cg.underlyingGroups.forEach(function(ug) {
+            totalSugs += (ug.suggestions || []).length;
+          });
+          html += '<details class="underlying-section">' +
+            '<summary>Original suggestions (' + totalSugs + ' from ' + cg.underlyingGroups.length + ' groups)</summary>' +
+            '<div class="underlying-content">';
+
+          cg.underlyingGroups.forEach(function(ug) {
+            var ugLabel = ug.displayLabel || ('G' + ug.groupIndex);
+            html += '<div class="underlying-group">' +
+              '<div class="underlying-group-header">' +
+              '<span>' + ugLabel + ': ' + escapeHtml(ug.theme) + '</span>';
+
+            // Validation badge for this underlying group
+            if (ug.validationStatus) {
+              html += '<span class="badge ' + getValidationBadgeClass(ug.validationStatus) + '">' + getValidationLabel(ug.validationStatus) + '</span>';
+            }
+
+            // Model badges for this underlying group
+            if (ug.models) {
+              ug.models.forEach(function(m) {
+                html += getModelBadgeHtml(m);
+              });
+            }
+            html += '</div>';
+
+            // Suggestions in this underlying group
+            if (ug.suggestions) {
+              ug.suggestions.forEach(function(s) {
+                var sLabel = s.displayLabel || s.id;
+                html += '<div class="underlying-suggestion">' +
+                  '<div class="underlying-suggestion-header">' +
+                  '<span class="underlying-suggestion-id">' + escapeHtml(sLabel) + '</span>' +
+                  '<span class="underlying-suggestion-title">' + escapeHtml(s.title) + '</span>';
+                if (s.importance) {
+                  html += '<span class="badge ' + getImportanceBadgeClass(s.importance) + '">' + escapeHtml(s.importance) + '</span>';
+                }
+                if (s.model) {
+                  html += getModelBadgeHtml(s.model);
+                }
+                html += '</div>' +
+                  '<div class="underlying-suggestion-desc">' + renderMarkdown(s.description) + '</div>' +
+                  '</div>';
+              });
+            }
+
+            html += '</div>'; // end underlying-group
+          });
+
+          html += '</div></details>'; // end underlying-content, underlying-section
+        }
+
+        html += '</div>'; // end group-content
+        html += '</div>'; // end group-card
+      });
+
+      container.innerHTML = html;
+    }
+
+    // --- Event Handlers ---
+
+    function handleSkipChange(e) {
+      var checkbox = e.target;
+      if (!checkbox.matches('input[type="checkbox"][data-cg-id]')) return;
+      var cgId = checkbox.dataset.cgId;
+      if (checkbox.checked) {
+        selections.skipped_groups[cgId] = true;
+      } else {
+        delete selections.skipped_groups[cgId];
+      }
+      saveSelections();
+      var card = document.querySelector('.group-card[data-cg-id="' + cgId + '"]');
+      if (card) {
+        card.classList.toggle('skipped', checkbox.checked);
+      }
+    }
+
+    function handleOverrideChange(e) {
+      var select = e.target;
+      if (!select.matches('select.validation-override[data-cg-id]')) return;
+      var cgId = select.dataset.cgId;
+      if (select.value) {
+        selections.validation_overrides[cgId] = select.value;
+      } else {
+        delete selections.validation_overrides[cgId];
+      }
+      saveSelections();
+    }
+
+    function skipAllSingletons() {
+      if (!reportData || !reportData.consolidatedGroups) return;
+      reportData.consolidatedGroups.forEach(function(cg) {
+        if (cg.isSingleton) {
+          selections.skipped_groups[cg.consolidatedId] = true;
+        }
+      });
+      saveSelections();
+      renderGroups();
+      attachCardListeners();
+    }
+
+    function skipAllLowImportance() {
+      if (!reportData || !reportData.consolidatedGroups) return;
+      reportData.consolidatedGroups.forEach(function(cg) {
+        if (cg.importance && cg.importance.toUpperCase() === 'LOW') {
+          selections.skipped_groups[cg.consolidatedId] = true;
+        }
+      });
+      saveSelections();
+      renderGroups();
+      attachCardListeners();
+    }
+
+    // --- Filtering ---
+
+    function applyFilters() {
+      var activeImportance = [];
+      document.querySelectorAll('#importance-filters .filter-btn.active').forEach(function(btn) {
+        activeImportance.push(btn.dataset.importance);
+      });
+
+      var activeValidation = [];
+      document.querySelectorAll('#validation-filters .filter-btn.active').forEach(function(btn) {
+        activeValidation.push(btn.dataset.validation);
+      });
+
+      var selectedSection = document.getElementById('section-filter').value;
+      var showSingletons = document.getElementById('singleton-toggle').classList.contains('active');
+
+      document.querySelectorAll('.group-card').forEach(function(card) {
+        var importance = (card.dataset.importance || '').toUpperCase();
+        var reference = card.dataset.reference || '';
+        var isSingleton = card.dataset.singleton === 'true';
+        var validation = card.dataset.validation || '';
+
+        var importanceMatch = !importance || activeImportance.indexOf(importance) !== -1;
+        var sectionMatch = !selectedSection || reference === selectedSection;
+        var singletonMatch = showSingletons || !isSingleton;
+        var validationMatch = !validation || activeValidation.indexOf(validation) !== -1;
+
+        card.style.display = (importanceMatch && sectionMatch && singletonMatch && validationMatch) ? '' : 'none';
+      });
+    }
+
+    // --- Sorting ---
+
+    function applySorting() {
+        var select = document.getElementById('sort-order');
+        var value = select ? select.value : 'priority';
+        var container = document.getElementById('groups-container');
+        if (!container) return;
+
+        var cards = Array.from(container.querySelectorAll('.group-card'));
+        if (cards.length === 0) return;
+
+        // Get sort config from embedded data, with hardcoded fallbacks
+        var validationOrder, importanceOrder, unknownStatusRank, unknownImportanceRank;
+        try {
+            var config = (typeof reportData !== 'undefined' && reportData.sortConfig) || null;
+            if (config && config.validationOrder && config.importanceOrder) {
+                validationOrder = config.validationOrder;
+                importanceOrder = config.importanceOrder;
+                unknownStatusRank = config.unknownStatusRank || 5;
+                unknownImportanceRank = config.unknownImportanceRank || 3;
+            } else {
+                throw new Error('missing');
+            }
+        } catch (e) {
+            console.warn('sortConfig missing or malformed, using hardcoded defaults');
+            validationOrder = {"needs-human-decision": 0, "valid": 1, "validation_failed": 2, "invalid": 3, "pending": 4};
+            importanceOrder = {"HIGH": 0, "MEDIUM": 1, "LOW": 2, "": 3};
+            unknownStatusRank = 5;
+            unknownImportanceRank = 3;
+        }
+
+        cards.sort(function(a, b) {
+            if (value === 'original') {
+                return (parseInt(a.dataset.originalIndex) || 0) - (parseInt(b.dataset.originalIndex) || 0);
+            }
+            // Priority sort
+            var aStatus = a.dataset.validation || '';
+            var bStatus = b.dataset.validation || '';
+            var aStatusRank = (aStatus in validationOrder) ? validationOrder[aStatus] : unknownStatusRank;
+            var bStatusRank = (bStatus in validationOrder) ? validationOrder[bStatus] : unknownStatusRank;
+            if (aStatusRank !== bStatusRank) return aStatusRank - bStatusRank;
+
+            var aImp = a.dataset.importance || '';
+            var bImp = b.dataset.importance || '';
+            var aImpRank = (aImp in importanceOrder) ? importanceOrder[aImp] : unknownImportanceRank;
+            var bImpRank = (bImp in importanceOrder) ? importanceOrder[bImp] : unknownImportanceRank;
+            if (aImpRank !== bImpRank) return aImpRank - bImpRank;
+
+            return (parseInt(a.dataset.originalIndex) || 0) - (parseInt(b.dataset.originalIndex) || 0);
+        });
+
+        cards.forEach(function(card) { container.appendChild(card); });
+
+        // Persist preference
+        try {
+            localStorage.setItem('multi-llm-sort-preference-consolidated', value);
+        } catch (e) { /* localStorage unavailable */ }
+    }
+
+    // Restore saved preference on load
+    (function restoreSortPreference() {
+        try {
+            var saved = localStorage.getItem('multi-llm-sort-preference-consolidated');
+            if (saved === 'priority' || saved === 'original') {
+                var select = document.getElementById('sort-order');
+                if (select) select.value = saved;
+                applySorting();
+            }
+        } catch (e) { /* localStorage unavailable, default to priority */ }
+    })();
+
+    // --- Export indicator ---
+
+    function timeAgo(isoString) {
+      if (!isoString) return '';
+      var diff = Date.now() - new Date(isoString).getTime();
+      var seconds = Math.floor(diff / 1000);
+      if (seconds < 60) return 'just now';
+      var minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return minutes + 'm ago';
+      var hours = Math.floor(minutes / 60);
+      if (hours < 24) return hours + 'h ago';
+      var days = Math.floor(hours / 24);
+      return days + 'd ago';
+    }
+
+    function updateExportIndicator() {
+      var el = document.getElementById('export-indicator');
+      if (!el) return;
+      if (selections.last_file_export_at) {
+        el.textContent = '\u2713 Exported ' + timeAgo(selections.last_file_export_at);
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    // --- Export ---
+
+    function exportSelections() {
+      var now = new Date().toISOString();
+      selections.last_file_export_at = now;
+      saveSelections();
+      var output = {
+        plan_path: reportData ? reportData.planPath : '',
+        format_version: 2,
+        exported_at: now,
+        skipped_groups: selections.skipped_groups,
+        validation_overrides: selections.validation_overrides,
+        _labels: selections._labels
+      };
+      var json = JSON.stringify(output, null, 2);
+      var blob = new Blob([json], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'consolidated_user_selections.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      updateExportIndicator();
+    }
+
+    // --- Attach listeners to dynamically rendered cards ---
+
+    function attachCardListeners() {
+      document.querySelectorAll('input[type="checkbox"][data-cg-id]').forEach(function(cb) {
+        cb.removeEventListener('change', handleSkipChange);
+        cb.addEventListener('change', handleSkipChange);
+      });
+      document.querySelectorAll('select.validation-override[data-cg-id]').forEach(function(sel) {
+        sel.removeEventListener('change', handleOverrideChange);
+        sel.addEventListener('change', handleOverrideChange);
+      });
+    }
+
+    // Notices: identical to the phase report's `renderNotices`, so the
+    // consolidated page shows the same bar for the same `reportData.notices`.
+    function renderNotices() {
+      if (!reportData) return;
+      var container = document.getElementById('report-notices');
+      if (!container) return;
+      var html = '';
+      var notices = reportData.notices || [];
+      notices.forEach(function(n) {
+        var cls = 'report-notice';
+        if (n.type === 'info') cls += ' info';
+        else if (n.type === 'warning') cls += ' warning';
+        html += '<div class="' + cls + '">' + escapeHtml(n.message) + '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    // --- Initialize ---
+
+    function init() {
+      if (!reportData) {
+        document.getElementById('groups-container').innerHTML = '<div class="empty-state">' +
+          '<div class="empty-state-icon">No Data</div>' +
+          '<p>Report data not loaded. This template requires data injection.</p>' +
+          '</div>';
+        return;
+      }
+
+      marked.setOptions({ breaks: true });
+
+      renderHeader();
+      loadSelections();
+      updateExportIndicator();
+      renderNotices();
+      renderGroups();
+      attachCardListeners();
+
+      // Filter listeners
+      document.querySelectorAll('#importance-filters .filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          btn.classList.toggle('active');
+          applyFilters();
+        });
+      });
+
+      document.querySelectorAll('#validation-filters .filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          btn.classList.toggle('active');
+          applyFilters();
+        });
+      });
+
+      document.getElementById('section-filter').addEventListener('change', applyFilters);
+
+      document.getElementById('singleton-toggle').addEventListener('click', function() {
+        this.classList.toggle('active');
+        this.textContent = this.classList.contains('active') ? 'Show Singletons' : 'Hide Singletons';
+        applyFilters();
+      });
+
+      // Action buttons
+      document.getElementById('btn-export').addEventListener('click', exportSelections);
+      document.getElementById('btn-skip-singletons').addEventListener('click', skipAllSingletons);
+      document.getElementById('btn-skip-low').addEventListener('click', skipAllLowImportance);
+    }
+
+    // Wait for CDN scripts to load
+    function waitForDeps() {
+      if (typeof marked !== 'undefined' && typeof DOMPurify !== 'undefined') {
+        init();
+      } else {
+        setTimeout(waitForDeps, 50);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', waitForDeps);
+    } else {
+      waitForDeps();
+    }
+  </script>
+</body>
+</html>

@@ -23,6 +23,7 @@ If --base-ref is not provided, defaults to origin/main.
 
 from __future__ import annotations
 
+import html
 import io
 import json
 import os
@@ -126,15 +127,18 @@ def find_plugin_root(archive: zipfile.ZipFile) -> PurePosixPath | None:
     return PurePosixPath(names[0]).parent.parent
 
 
+_UNREADABLE_MANIFEST = object()
+
+
 def load_manifest_from_archive(
     archive: zipfile.ZipFile, plugin_root: PurePosixPath
-) -> dict | None:
-    """Load plugin.json from the archive at the given root."""
+) -> object:
+    """Return decoded JSON, or a distinct sentinel for missing/invalid JSON."""
     manifest_name = plugin_root.joinpath(".codex-plugin", "plugin.json").as_posix()
     try:
         return json.loads(archive.read(manifest_name).decode("utf-8"))
-    except (KeyError, json.JSONDecodeError):
-        return None
+    except (KeyError, UnicodeDecodeError, json.JSONDecodeError, zipfile.BadZipFile, EOFError):
+        return _UNREADABLE_MANIFEST
 
 
 # ---------------------------------------------------------------------------
@@ -142,14 +146,18 @@ def load_manifest_from_archive(
 # ---------------------------------------------------------------------------
 
 
-def validate_manifest_fields(manifest: dict) -> list[str]:
-    """Validate manifest fields. Works for both local and fetched manifests."""
+def validate_manifest_fields(manifest: object) -> list[str]:
+    """Validate manifest fields, including an invalid JSON root shape."""
     errors: list[str] = []
+    if not isinstance(manifest, dict):
+        return ["plugin.json must contain a JSON object"]
 
     for field in REQUIRED_MANIFEST_FIELDS:
         val = manifest.get(field)
         if val is None or (isinstance(val, str) and not val.strip()):
             errors.append(f"Missing or empty required field: {field}")
+        elif not isinstance(val, str):
+            errors.append(f"Required field '{field}' must be a string")
 
     interface = manifest.get("interface")
     if not isinstance(interface, dict):
@@ -160,6 +168,8 @@ def validate_manifest_fields(manifest: dict) -> list[str]:
         val = interface.get(field)
         if val is None or (isinstance(val, str) and not val.strip()):
             errors.append(f"Missing or empty interface.{field}")
+        elif not isinstance(val, str):
+            errors.append(f"interface.{field} must be a string")
 
     version = manifest.get("version", "")
     if version and not re.match(r"^\d+\.\d+\.\d+", str(version)):
@@ -171,6 +181,46 @@ def validate_manifest_fields(manifest: dict) -> list[str]:
 
     return errors
 
+
+
+
+def normalize_icon_relative_path(raw_icon: str) -> str | None:
+    """Keep declared icon paths inside their own plugin, on all platforms."""
+    icon_rel = raw_icon[2:] if raw_icon.startswith("./") else raw_icon
+    if icon_rel.startswith("/"):
+        icon_rel = icon_rel[1:]  # Existing root-relative manifest convention.
+    if not icon_rel or "\\" in icon_rel or ":" in icon_rel:
+        return None
+    relative = PurePosixPath(icon_rel)
+    if relative.is_absolute() or ".." in relative.parts or not relative.parts:
+        return None
+    return relative.as_posix()
+
+
+def validate_icon_bytes(icon_rel: str, icon_data: bytes) -> list[str]:
+    """Apply the same icon checks to local files and remote source archives."""
+    errors: list[str] = []
+    suffix = PurePosixPath(icon_rel).suffix.lower()
+    if suffix not in ICON_EXTENSIONS:
+        errors.append(f"Icon has unsupported format '{suffix}'. Use SVG (preferred) or PNG.")
+    if len(icon_data) > MAX_ICON_SIZE_BYTES:
+        errors.append(f"Icon is {len(icon_data) / 1024:.1f}KB, exceeds 50KB limit.")
+    if suffix == ".svg":
+        content = icon_data.decode("utf-8", errors="replace")
+        # SVG/XML character references can conceal embedded image data URIs.
+        content = html.unescape(content)
+        # Only flag image data URIs used as resources, not harmless prose.
+        resource_uri = re.search(
+            r"(?:\b(?:xlink:)?href|\bsrc)\s*=\s*['\"]\s*data:image/"
+            r"|url\(\s*['\"]?\s*data:image/",
+            content,
+            re.IGNORECASE,
+        )
+        if resource_uri:
+            errors.append("SVG icon contains embedded base64 raster data.")
+        if "TODO" in content or "PLACEHOLDER" in content:
+            errors.append("SVG icon contains TODO/PLACEHOLDER text.")
+    return errors
 
 def validate_local_bundle(plugin_dir: Path) -> tuple[list[str], list[str]]:
     """Validate a committed plugin directory. Returns (errors, warnings)."""
@@ -187,40 +237,44 @@ def validate_local_bundle(plugin_dir: Path) -> tuple[list[str], list[str]]:
     if not manifest_path.exists():
         errors.append(f"Missing .codex-plugin/plugin.json in {rel_path}")
         return errors, warnings
+    # Treat directory-shaped and escaping symlink manifests as contributor
+    # errors instead of reading outside the bundle or raising a traceback.
+    if (
+        not manifest_path.is_file()
+        or not manifest_path.resolve().is_relative_to(plugin_dir.resolve())
+    ):
+        errors.append(f"plugin.json must be a regular file within {rel_path}")
+        return errors, warnings
 
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as e:
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
         errors.append(f"plugin.json is not valid JSON: {e}")
         return errors, warnings
 
     errors.extend(validate_manifest_fields(manifest))
+    # The manifest-field validator has already recorded these errors. Do not
+    # attempt interface/icon lookup on malformed JSON object shapes.
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("interface"), dict):
+        return errors, warnings
 
     # Validate icon locally
     interface = manifest.get("interface", {})
     composer_icon = str(interface.get("composerIcon", "")).strip()
     if composer_icon:
-        icon_rel = composer_icon
-        if icon_rel.startswith("./"):
-            icon_rel = icon_rel[2:]
-        elif icon_rel.startswith("/"):
-            icon_rel = icon_rel[1:]
-        icon_path = plugin_dir / icon_rel
-        if not icon_path.exists():
-            errors.append(f"Icon file not found: {icon_rel} (resolved to {icon_path.relative_to(REPO_ROOT)})")
+        icon_rel = normalize_icon_relative_path(composer_icon)
+        if icon_rel is None:
+            errors.append("composerIcon must be a safe plugin-relative path")
         else:
-            suffix = icon_path.suffix.lower()
-            if suffix not in ICON_EXTENSIONS:
-                errors.append(f"Icon has unsupported format '{suffix}'. Use SVG (preferred) or PNG.")
-            size = icon_path.stat().st_size
-            if size > MAX_ICON_SIZE_BYTES:
-                errors.append(f"Icon is {size / 1024:.1f}KB, exceeds 50KB limit.")
-            if suffix == ".svg":
-                content = icon_path.read_text(encoding="utf-8", errors="replace")
-                if "data:image/" in content or "base64" in content:
-                    errors.append("SVG icon contains embedded base64 raster data.")
-                if "TODO" in content or "PLACEHOLDER" in content:
-                    errors.append("SVG icon contains TODO/PLACEHOLDER text.")
+            icon_path = plugin_dir / icon_rel
+            if not icon_path.resolve().is_relative_to(plugin_dir.resolve()):
+                errors.append("composerIcon must stay within its plugin bundle")
+            elif not icon_path.is_file():
+                # Directory-shaped icon paths must report a contributor error,
+                # not crash the validation job with IsADirectoryError.
+                errors.append(f"Icon file not found or not a regular file: {icon_rel} (resolved to {icon_path.relative_to(REPO_ROOT)})")
+            else:
+                errors.extend(validate_icon_bytes(icon_rel, icon_path.read_bytes()))
 
     # README entry check (warning only)
     parts = plugin_dir.relative_to(REPO_ROOT).parts
@@ -261,31 +315,42 @@ def validate_remote_repo(
         return errors, warnings
 
     manifest = load_manifest_from_archive(archive, plugin_root)
-    if manifest is None:
+    if manifest is _UNREADABLE_MANIFEST:
         errors.append("Could not read valid plugin.json from source repo")
         return errors, warnings
 
     errors.extend(validate_manifest_fields(manifest))
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("interface"), dict):
+        return errors, warnings
 
     # Check icon exists in the archive
     interface = manifest.get("interface", {})
     composer_icon = str(interface.get("composerIcon", "")).strip()
     if composer_icon:
-        icon_rel = composer_icon
-        if icon_rel.startswith("./"):
-            icon_rel = icon_rel[2:]
-        elif icon_rel.startswith("/"):
-            icon_rel = icon_rel[1:]
-        icon_archive_path = plugin_root.joinpath(PurePosixPath(icon_rel)).as_posix()
-        try:
-            icon_data = archive.read(icon_archive_path)
-            if len(icon_data) > MAX_ICON_SIZE_BYTES:
-                errors.append(f"Icon is {len(icon_data) / 1024:.1f}KB, exceeds 50KB limit.")
-        except KeyError:
-            errors.append(
-                f"Icon file not found in source repo at: {icon_rel} "
-                f"(referenced by composerIcon in plugin.json)"
-            )
+        icon_rel = normalize_icon_relative_path(composer_icon)
+        if icon_rel is None:
+            errors.append("composerIcon must be a safe plugin-relative path")
+        else:
+            icon_archive_path = plugin_root.joinpath(PurePosixPath(icon_rel)).as_posix()
+            try:
+                # A source archive can compress an oversized image to very few
+                # bytes. Reject it by ZIP metadata before expanding the member.
+                icon_info = archive.getinfo(icon_archive_path)
+                if icon_info.file_size > MAX_ICON_SIZE_BYTES:
+                    errors.append(
+                        f"Icon is {icon_info.file_size / 1024:.1f}KB, exceeds 50KB limit."
+                    )
+                else:
+                    errors.extend(validate_icon_bytes(icon_rel, archive.read(icon_archive_path)))
+            except KeyError:
+                errors.append(
+                    f"Icon file not found in source repo at: {icon_rel} "
+                    f"(referenced by composerIcon in plugin.json)"
+                )
+            except (zipfile.BadZipFile, EOFError) as exc:
+                # A broken ZIP member should yield an actionable contributor
+                # diagnostic instead of aborting validation with a traceback.
+                errors.append(f"Could not read source icon {icon_rel}: corrupt archive member ({type(exc).__name__})")
 
     return errors, warnings
 
@@ -297,7 +362,7 @@ def validate_remote_repo(
 
 def get_changed_plugin_dirs(base_ref: str) -> list[Path]:
     """Find plugin directories that were added or modified in this branch."""
-    output = git("diff", "--name-only", "--diff-filter=ACMR", base_ref, "--", "plugins/")
+    output = git("diff", "--merge-base", "--no-renames", "--name-only", "--diff-filter=ACMRD", base_ref, "HEAD", "--", "plugins/")
     if not output:
         return []
 
@@ -310,6 +375,13 @@ def get_changed_plugin_dirs(base_ref: str) -> list[Path]:
             continue
 
         if len(relative.parts) < 3 or relative.parts[0] != "plugins":
+            continue
+
+        # A removed manifest must still reach local validation, even when
+        # the entire bundle has disappeared from the contributor branch.
+        # --no-renames keeps a moved manifest visible as a deletion too.
+        if relative.parts[-2:] == (".codex-plugin", "plugin.json") and not file_path.is_file():
+            changed_dirs.add(file_path.parent.parent)
             continue
 
         current = file_path if file_path.is_dir() else file_path.parent
@@ -328,13 +400,20 @@ def get_new_readme_entries(base_ref: str) -> list[dict[str, str]]:
     Returns list of dicts with keys: display_name, url, owner, repo, description.
     """
     # Get the diff of README.md
-    diff = git("diff", base_ref, "--", "README.md")
+    diff = git("diff", "--merge-base", base_ref, "HEAD", "--", "README.md")
     if not diff:
         return []
 
     # Only the Community Plugins section contains Codex plugin listings.
     # Other sections such as Related Projects can link to non-plugin projects.
-    base_readme = git("show", f"{base_ref}:README.md")
+    # Diff and duplicate detection must compare against the SAME common ancestor.
+    # Reading the moving base-branch tip can hide a listing added on both branches.
+    merge_base = git("merge-base", base_ref, "HEAD")
+    if not merge_base:
+        raise RuntimeError(f"Cannot find merge base for README validation: {base_ref}")
+    base_readme = git("show", f"{merge_base}:README.md")
+    if not base_readme:
+        raise RuntimeError(f"Cannot read README at merge base {merge_base}")
     current_readme = README_PATH.read_text(encoding="utf-8") if README_PATH.exists() else ""
     base_urls = community_plugin_urls(base_readme)
     current_urls = community_plugin_urls(current_readme)
@@ -388,9 +467,14 @@ def main() -> None:
 
     rev_parse = git("rev-parse", "--verify", base_arg)
     if not rev_parse:
-        print(f"WARNING: Base ref '{base_arg}' not found, skipping validation")
-        print("  (This is normal for the first commit on a new branch without CI)")
-        sys.exit(0)
+        print(f"ERROR: Base ref '{base_arg}' not found; validation cannot run")
+        sys.exit(1)
+
+    # A PR may be behind main. Comparing both tips mislabels newer base
+    # changes as changes from the PR; compare only its own branch commits.
+    if not git("merge-base", base_arg, "HEAD"):
+        print(f"ERROR: No merge base between '{base_arg}' and HEAD")
+        sys.exit(1)
 
     has_failures = False
     total_errors = 0

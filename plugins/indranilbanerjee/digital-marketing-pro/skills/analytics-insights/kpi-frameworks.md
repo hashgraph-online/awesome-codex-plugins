@@ -155,7 +155,7 @@ Your North Star must satisfy all five criteria:
 | Net Revenue Retention | 100-130% | N/A | N/A | N/A | High |
 | Monthly Churn | 0.5-2% | N/A | 5-10% (sub) | 3-5% (sellers) | Medium |
 | Organic Traffic Share | 40-60% | 30-50% | 20-35% | 40-60% | Medium |
-| Email Open Rate | 20-25% | 15-22% | 18-25% | 15-20% | Medium |
+| Email Open Rate (directional only: Apple Mail Privacy Protection inflates opens) | 20-25% | 15-22% | 18-25% | 15-20% | Low |
 | Paid CAC Trend | Rising 10-15% YoY | Rising 15-25% YoY | Rising 20-30% YoY | Varies | Medium |
 
 ---

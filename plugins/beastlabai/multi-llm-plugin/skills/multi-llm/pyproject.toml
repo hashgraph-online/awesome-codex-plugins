@@ -1,0 +1,38 @@
+[project]
+name = "multi-llm"
+version = "0.1.2"
+description = "Multi-LLM automation for plan review, task generation, implementation, and code review"
+requires-python = ">=3.10"
+dependencies = ["pyyaml>=6.0"]
+
+[dependency-groups]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "pytest-xdist>=3.0", "ruff>=0.1.0", "jsonschema>=4.0"]
+
+[tool.pytest.ini_options]
+markers = [
+    "robustness: marks tests for LLM error handling robustness scenarios",
+    "live: marks tests that require Claude Code CLI and API (skipped in CI)",
+    "timeout: marks tests with a timeout limit (requires pytest-timeout)",
+    "config_override: opts out of the autouse per-project config isolation fixture (tests that exercise override discovery/env themselves)",
+    "model_catalog: opts out of the autouse stub that pins OpenCodeProvider.describe_unlisted_model to known=None (tests that drive the real `opencode models` read, or patch it themselves)",
+    "debug_config: opts out of the autouse stub that answers `opencode debug config` with a failed read (tests that drive the reader themselves, with a fake binary or a patched spawn)",
+    "sandbox_probe: opts out of the autouse guard that answers a real provider CLI's sandbox probe with `unknown` (tests that deliberately drive the developer's own `codex sandbox`)",
+    "slow: marks tests that drive several real orchestrator invocations end to end (the instruction-refactor golden guard); runs in CI, not deselected by default",
+    "container: marks tests that build and drive the E2E container image (needs a Docker daemon; opt in with -m container). Deselected by default via addopts below",
+    "package: marks rows that need a packaging artifact plain CI does not build (an `npm pack` tarball, a staged tree). Named for what it *needs*, not for npm specifically, so a second host's packaging plan can reuse it. Deselected by default via addopts below and run by the Linux-only PR package job with `-m \"package and not container\"`; note `pytest -m package` with zero matches exits 5, so a per-host leg must not run it for a host that declares no such rows",
+    "live_provider: marks the credentialed provider lane (harness-expansion.md §7.4) — a real CLI against https://openrouter.ai on the user's own key, so it SPENDS CREDITS. Carried in addition to `container`, so the addopts default already deselects it and CI's `not container` does too; `make e2e-live-provider` is the only thing that sources the key",
+    "live_native_phase: marks the host lane's claude-code per-phase rows (chain-lane-write-runner-matrix.md §3.4) — each one a native Task dispatch the host performs itself, anchored on `claude-code-apply-native`'s measured $0.586302 pass rather than on a read row. Carried IN ADDITION TO `container` and `live`, so the addopts default and CI's `not container` keep excluding it with no further edit, and `make e2e-container-host` excludes it explicitly (`-m \"container and live and not live_native_phase\"`) so the cheap tier's cost does not move. `make e2e-container-host-phases` is the only target that selects it, with its own MLLM_E2E_BUDGET_USD: the $2.00 default is a BETWEEN-ROWS pytest.exit, and a ~$3-5 tier crosses it around the fourth row, stranding the rest",
+    "live_next_command: marks the host lane's T10 next-command rows (next-phase-command.md T10) — one `generate-tasks` row per host and route plus a short typed follow-up session, graded by `TestTheNextCommandLiveCheck`. Carried IN ADDITION TO `container` and `live`, so the addopts default and CI's `not container` keep excluding it, and `make e2e-container-host` excludes it explicitly so the ordinary tier's cost does not move. `make e2e-container-host-next-command` is the only target that selects it",
+    "landlock: marks tier 2/3 rows of the plugin-landlock sandbox rung (codex-sandbox-unavailable-findings-and-fixes §8.1): the real `utils/landlock_exec.py` against the real kernel. They need a kernel whose Landlock ABI query returns >= 3 and SKIP otherwise, naming the errno or ABI found; `MULTI_LLM_REQUIRE_LANDLOCK=1` turns that skip into a failure, so a host that must run them cannot pass by skipping. Not deselected by default: zero-spend and fast where the kernel supports it",
+    "codex_jail: marks tier 3 of the plugin-landlock rung — the installed `codex` inside the real jail, against the localhost stub (throwaway CODEX_HOME, zero spend). Opt in with -m codex_jail; deselected by default via addopts below, like `container`, because it drives the developer's own codex binary. Carried IN ADDITION TO `landlock`, so it also skips without a usable kernel",
+]
+# A marker deselects nothing on its own — it only gives a -m expression something
+# to exclude. This default is what keeps a bare `pytest` green on a machine with no
+# container runtime. It is a *default*: an explicit -m on the command line replaces
+# it, which is why .github/workflows/test.yml has to say `not container` (and
+# `not codex_jail`) itself.
+addopts = "-m 'not container and not package and not codex_jail'"
+# Filter out warnings about dataclass fixtures being collected by pytest
+filterwarnings = [
+    "ignore:cannot collect test class.*FixturePlan.*:pytest.PytestCollectionWarning",
+]

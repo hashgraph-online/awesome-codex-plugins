@@ -1,6 +1,6 @@
 {
   "name": "@supportpages.io/wtfm",
-  "version": "0.6.0",
+  "version": "0.7.3",
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
@@ -8,9 +8,9 @@
     "@clack/prompts": "1.6.0",
     "@modelcontextprotocol/sdk": "1.32.1",
     "marked": "17.0.6",
-    "puppeteer": "25.11.0",
+    "puppeteer": "25.16.0",
     "yauzl": "3.4.0",
-    "zod": "4.4.3"
+    "zod": "4.6.7"
   },
   "engines": {
     "node": ">=22.12.0"

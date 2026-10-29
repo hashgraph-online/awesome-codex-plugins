@@ -6,9 +6,11 @@ The latest minor release of Digital Marketing Pro receives security fixes. Older
 
 | Version | Supported |
 |---------|-----------|
-| 3.17.x  | ✅ |
-| 3.16.x  | ⚠️ Security fixes only when trivially backportable |
-| < 3.6   | ❌ Please upgrade |
+| 3.40.x (the latest minor release) | ✅ |
+| The previous minor release | ⚠️ Security fixes only when trivially backportable |
+| Anything older | ❌ Please upgrade |
+
+A test (`tests/test_brand_names_paths_encodings.py`) fails when the first row doesn't name the version in `.claude-plugin/plugin.json`, so this table moves with every minor release.
 
 ## Reporting a Vulnerability
 

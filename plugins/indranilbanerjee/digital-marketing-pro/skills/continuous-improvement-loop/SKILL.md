@@ -9,6 +9,8 @@ view-preference: both
 
 # /digital-marketing-pro:continuous-improvement-loop — Part 12 Continuous Loop
 
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
+
 Part 12 is the continuous improvement loop that runs alongside live operations from go-live onwards. It aggregates market signals and operating signals into recommendations that feed back into the brand's product, offering, and service decisions.
 
 ## Context efficiency
@@ -182,7 +184,8 @@ engagements/{id}/part-12-continuous-improvement/ad-hoc-briefs/{YYYY-MM-DD}-{slug
    - Competitor monitoring outputs for the quarter
    - Customer feedback aggregations
    - Living Project Instruction File (current truth)
-3. **Aggregate signals** into the four categories
+3. **Check the recommendations that fell due**: `python "${CLAUDE_PLUGIN_ROOT}/scripts/recommendation-tracker.py" --brand {slug} --action due`. For each, read its metric now, then record it: `--action close --id <id> --observed "<value>" --outcome worked|did-not-work|unclear`. Count them in the brief as signals: what the audits recommended and whether it moved the metric.
+3a. **Aggregate signals** into the four categories
 4. **Synthesise implications** for strategy, channels, and product/offering
 5. **Draft recommendations** for marketing, product/business, leadership
 6. **Identify v2.x update-back triggers** if any

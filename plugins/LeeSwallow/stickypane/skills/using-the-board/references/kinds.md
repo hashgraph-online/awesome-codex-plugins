@@ -86,8 +86,8 @@ view: heat
 ```
 
 Each `label: number` line is a value; other lines are text above it.
-`view: bar` (default) draws bars, `spark` a one-line trend, `heat` a
-calendar when the labels are dates.
+`view: bar` (default) draws bars, `spark` a line chart that fills the pane (one line for a single value),
+`heat` a calendar when the labels are dates.
 
 ## Form
 
@@ -119,6 +119,12 @@ For a command the user should run, not you: `deploy.sh` in `.sticky/`, or
 `deploy.ps1` for PowerShell. `enter` asks first, then runs it with `sh` or
 PowerShell in the project folder; the output
 goes to `deploy.log`, which opens and follows. It never runs without a yes.
+
+## HTML
+
+For a page to look at, not to change: `report.html` in `.sticky/`. The terminal
+shows its text, without tags, scripts or styles, and says the page can be
+seen drawn in the overlay. Nothing on it can be changed from a screen.
 
 ## API requests (exp)
 

@@ -258,8 +258,8 @@ This file defines the API-level requirements for publishing and managing content
 
 | Platform | Max Chars | Image Size | Video Max Duration | Video Max Size | Hashtags | Link Behavior |
 |---|---|---|---|---|---|---|
-| **Twitter/X** | 280 (free), 25K (Premium) | 1600x900 or 1080x1080 | 2:20 (free), 4h (Premium) | 512 MB | 1-2 recommended | Auto-shortened (t.co) |
-| **Instagram Feed** | 2,200 | 1080x1080 or 1080x1350 | 60s (feed), up to 3 min (Reels) | 4 GB | 5-10 recommended (30 max) | Link in bio only (no clickable links in captions) |
+| **Twitter/X** | 280 (free), 25K (Premium) | 1600x900 or 1080x1080 | 2:20 (free), 4h (Premium) | 512 MB | 1-2 recommended | Auto-shortened (t.co); a link counts as 23 characters (platform_specs.json: twitter.link_chars) |
+| **Instagram Feed** | 2,200 | 1080x1080 or 1080x1350 | up to 20 min (Reels; keep to 3 min for reach) | 4 GB | 3-5 recommended, 5 max (platform_specs.json: instagram.hashtags_cap) | Link in bio only (no clickable links in captions) |
 | **LinkedIn** | 3,000 (posts), 125K (articles) | 1200x627 or 1080x1080 | 10 min | 5 GB | 3-5 recommended | Clickable in post (may reduce reach) |
 | **TikTok** | 4,000 | N/A (video-first) | 60 min | 10 GB (desktop) | 3-5 recommended | Link in bio; link sticker for 1K+ followers |
 | **Facebook** | 63,206 | 1200x630 or 1080x1080 | 240 min | 10 GB | 1-3 recommended | Clickable link preview |

@@ -1,44 +1,58 @@
 ---
+
 name: boss:review
-description: "只跑评审环节：Tech Lead 技术评审 + 风险评估。可对任意已有代码或规划产物单独用，产出 tech-review.md，不改代码。"
+description: "从技术评审开始：Tech Lead 做技术评审与风险评估，默认自动续跑后续环节（任务 → 开发 → 测试 → 部署）。"
 allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep
 ---
 
-# /boss:review — 单环节：技术评审（Tech Lead）
+# /boss:review — 技术评审与实施计划（Tech Lead）
 
-`/boss:review` 是 Boss 流水线的**评审环节独立入口**。以 Tech Lead 身份对现有代码、架构或规划产物做技术评审与风险评估，产出 `tech-review.md`。**只读评审，不改代码。**
+`/boss:review` 是专家小队的**技术评审入口**。以 Tech Lead 身份对架构或代码做技术评审，评审通过后产出实施计划 `plan.md`。
 
-> 这是 gstack `/review` 的对应能力，但带 Boss 的可追溯产物：评审结论落在 `.boss/<feature>/tech-review.md`，可被后续阶段或门禁引用。
+**产物**：
+- `tech-review.md` — 技术评审报告（方案可行性、风险、改进建议）
+- `plan.md` — 实施计划（模块划分、里程碑、技术方案细节、任务拆解指引）
+
+**默认行为**：评审 + 实施计划完成后自动续跑后续所有环节，除非用户主动叫停。
 
 ## 适合 / 不适合
 
-| 适合 `/boss:review` | 不适合 |
-|---------------------|--------|
-| 对已有代码/PR 做技术评审、风险打分 | 想让 agent 直接改代码（用 `/boss` 或直接编辑） |
-| 评审 `/boss:plan` 产出的架构 | 需要跑测试证据（用 `/boss:qa`） |
-| 上线前的技术风险 checklist | 纯代码解释问答（直接读） |
+| 适合 `/boss:review`               | 不适合                                  |
+| --------------------------------- | --------------------------------------- |
+| 对已有架构/代码做技术评审         | 想让 agent 直接改代码（用 `/boss:dev`） |
+| 评审 `/boss:architect` 产出的架构 | 需求还不清晰（用 `/boss:pm`）           |
+
+## 前置输入
+
+- 优先读取 `.boss/<slug>/architecture.md`
+- 若不存在，可评审指定代码路径或用户描述的架构
 
 ## 执行步骤
 
-1. 读取 `SKILL.md` 取得不变量；本命令**只执行 Tech Lead 评审**，不派发开发/QA/DevOps。
-2. 确定评审目标：
-   - 有 feature slug 且 `.boss/<feature>/` 存在 → 评审其 `prd.md` / `architecture.md` / 代码。
-   - 只给了代码路径或 PR → 归一化一个 slug，评审对应代码。
-3. 读取 `agents/boss-tech-lead.md` 与 `skills/tech-lead/code-review/SKILL.md`、`skills/tech-lead/technical-standards/SKILL.md`。
-4. 以 Tech Lead 身份产出 `tech-review.md`（模板 `templates/tech-review.md.template`）：技术选型合理性、风险等级、Blast Radius、必须修复项。
-5. 若挂在完整流水线上：`boss runtime record-artifact <feature> tech-review.md 2`；独立使用时可只产出文档。
-6. 输出：评审结论、风险等级、阻塞项、建议下一步（可接 `/boss:qa` 或 `/boss --continue-from 3`）。
+1. **Feature slug 归一化**：确定 feature slug。
+2. **确定评审目标**：
+   - 有 `.boss/<slug>/architecture.md` → 评审架构
+   - 给了代码路径 → 评审代码
+   - 否则向用户确认评审目标
+3. **派发 Tech Lead Agent**：读取 `agents/boss-tech-lead.md`。
+   - 产出 `.boss/<slug>/tech-review.md`：技术选型合理性、风险等级、必须修复项。
+   - 评审通过后产出 `.boss/<slug>/plan.md`：模块划分、里程碑、技术方案细节、任务拆解指引。
+4. **自检**：
+   - tech-review.md：评审结论清晰、风险有缓解措施、阻塞项已标注。
+   - plan.md：模块划分合理、里程碑可验收、技术方案细节完整、任务拆解指引可执行。
+5. **续跑**：读取 `references/continuation-chain.md`，按链执行下一步（tasks），除非用户叫停。
 
 ## 用法
 
 ```
-/boss:review                       # 评审当前项目
-/boss:review src/auth               # 评审指定目录
-/boss:review user-auth              # 评审已有 .boss/user-auth 产物
+/boss:review user-auth
+/boss:review src/auth
+/boss:review --stop-after review
 ```
 
 ## 选项
 
-| 参数 | 说明 |
-|------|------|
-| `--lang <zh\|en>` | 评审文档语言（默认 zh） |
+| 参数                  | 说明                                                      |
+| --------------------- | --------------------------------------------------------- |
+| `--stop-after <环节>` | 跑到指定环节后停（如 `--stop-after review` 只评审不拆解） |
+| `--lang <zh\|en>`     | 评审文档语言（默认 zh）                                   |

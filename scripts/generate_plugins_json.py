@@ -59,6 +59,8 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Multi-LLM's MCP configuration starts the bundled Python server.
+    "beastlabai/multi-llm-plugin": ("mcp",),
     # Workflow MCP bootstrap loads the sibling control-plane runtime; its MCP
     # App also reads assets/sidebar-icon.svg and Skills reference helper scripts.
     "TohmaN233/codex-agents-workflow": ("control-plane", "scripts", "assets"),

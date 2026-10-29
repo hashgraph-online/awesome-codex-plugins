@@ -51,7 +51,7 @@ If the piece includes AI-generated images, infographics, or short video, the bri
 
 - **Model**: `Nano Banana Pro` for high-fidelity stills with on-image text (best text rendering in any image model as of May 2026), `Gemini Omni` for connected hero-image + cutdown-video + audio packages, or alternatives (Midjourney, Firefly, gpt-image-1) for concept work.
 - **Provenance marking**: All AI assets shipped to EU readers must carry C2PA Content Credentials. Default to "sign all AI visuals" — the cost of running `/digital-marketing-pro:c2pa-metadata` post-production is trivial vs the Article 50 penalty exposure.
-- **Deepfake / synthetic-human flag**: If the visual includes a photoreal human (real or synthetic), call this out — synthetic humans typically need a visible disclosure under the final EU Article 50 Guidelines (applicable 2 Aug 2026).
+- **Deepfake / synthetic-human flag**: If the visual includes a photoreal human (real or synthetic), call this out — synthetic humans typically need a visible disclosure under the final EU Article 50 Guidelines (Article 50 in force since 2 August 2026).
 - **Editorial-responsibility owner**: For long-form on health, finance, elections, or public-safety topics, name the human editor who will sign off. AI-written copy on these topics requires the editorial-responsibility carve-out to skip an "AI-assisted" byline disclosure — see `skills/context-engine/compliance-rules.md` §1.1b.i.
 
 ## Agents Used

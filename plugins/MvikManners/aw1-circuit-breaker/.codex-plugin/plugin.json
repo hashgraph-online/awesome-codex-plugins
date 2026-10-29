@@ -1,0 +1,31 @@
+{
+  "name": "aw1-circuit-breaker",
+  "version": "2.1.1",
+  "description": "Deterministic AST-level static policy enforcement for autonomous AI agent tool calls.",
+  "author": {
+    "name": "MvikManners",
+    "url": "https://github.com/MvikManners"
+  },
+  "homepage": "https://github.com/MvikManners/aw1-circuit-breaker",
+  "repository": "https://github.com/MvikManners/aw1-circuit-breaker",
+  "websiteURL": "https://github.com/MvikManners/aw1-circuit-breaker",
+  "privacyPolicyURL": "https://github.com/MvikManners/aw1-circuit-breaker/blob/main/PRIVACY.md",
+  "termsOfServiceURL": "https://github.com/MvikManners/aw1-circuit-breaker/blob/main/TERMS.md",
+  "license": "Apache-2.0",
+  "mcpServers": "./.mcp.json",
+  "keywords": [
+    "security",
+    "circuit-breaker",
+    "mcp",
+    "ast",
+    "agent-safety",
+    "policy-enforcement",
+    "guardrails"
+  ],
+  "interface": {
+    "displayName": "AW-1 Circuit Breaker",
+    "shortDescription": "Deterministic AST-level static policy enforcement for autonomous AI agent tool calls.",
+    "composerIcon": "assets/icon.png"
+  },
+  "composerIcon": "assets/icon.png"
+}

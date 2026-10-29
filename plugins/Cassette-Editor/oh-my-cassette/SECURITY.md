@@ -14,7 +14,7 @@ Report vulnerabilities privately through [GitHub private vulnerability reporting
 ## Trust boundaries
 
 Everything this repository ships runs on the user's machine. Every host (Claude Code, Codex,
-OpenCode, Hermes) launches `uvx oh-my-cassette==0.5.1` as a local stdio child process. The bridge
+OpenCode, Hermes) launches `uvx oh-my-cassette==0.6.0` as a local stdio child process. The bridge
 opens no port; only an explicit `login` briefly binds an ephemeral loopback callback for the browser
 sign-in.
 

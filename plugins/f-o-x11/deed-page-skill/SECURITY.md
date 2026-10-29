@@ -10,7 +10,7 @@ Report abusive or phishing sites hosted on deed.page at https://deed.page/abuse.
 
 This repository contains instructions and configuration only. It ships no executable code, install scripts, or hooks.
 
-- `skills/deed-page/SKILL.md` tells the agent to run `curl` (and `tar` for folders) against `https://deed.page/v1/sites` when the user asks to publish something.
+- `skills/deed-page/SKILL.md` tells the agent to run `curl` (and `tar` for folders) against `https://deed.page/v1/sites` when the user asks to publish, deploy, host, or share a link, or confirms that upload after seeing the public URL and the exact file list. A create-only request stays a local draft. An unattended run publishes only when its instructions explicitly authorize publishing.
 - `mcp.json` and `.mcp.json` point to the hosted deed.page MCP server at `https://deed.page/mcp`.
 
 ## Network endpoints

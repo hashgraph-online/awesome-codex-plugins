@@ -185,11 +185,6 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
     did not create; these go around that record. The hold names the studio's own Worker, database
     or bucket when the change does. Creating something new and reading anything are not held, and
     `--local` never is;
-  - a Clef model downloaded through Ollama (`ollama pull clef-flash`, about 11 GB; `clef`, the 27B,
-    about 18 GB; a request at Ollama's `/api/pull` naming one), with its size, anywhere: Homie never
-    downloads a model by itself. `ollama run` of a Clef model is held only when Ollama's own list on
-    this computer (`/api/tags`) does not have it yet. Other models and Ollama's other commands are not
-    held.
   - a note to Homie from Claude (the Homie MCP's `homie_feedback` with `action: "send"`, local or remote): asked
     with **Send** / **Don't send** and the note's exact words (all of them in the Hold pane). A draft is not
     held (it sends nothing); the mod fills in the studio's and the plugin's versions and the app, and tells
@@ -199,6 +194,13 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
   with a reason Claude can act on. The guards hold even in bypass-permissions mode. What each guard
   holds or refuses, and its words, are decided in `hooks/lib/holds.mjs`, which Homie's hooks for Codex
   share (see "Homie's holds in Codex").
+- **Warned, and it runs** (a toast, or a line in Codex and Grok; nobody is asked):
+  - a `git add` or `git commit` that would put a file over 5 MB under `games/` into git (what is
+    staged is read from git itself), naming each file and its size: big files go to the studio's
+    R2, raw models stay in `art/<slug>/raw/`;
+  - a Clef model downloaded through Ollama (`ollama pull clef-flash`, about 11 GB; `clef`, the 27B,
+    about 18 GB; a request at Ollama's `/api/pull` naming one), with its size. `ollama run` of a Clef
+    model Ollama's own list on this computer (`/api/tags`) already has says nothing.
 - **Refused outright** (nobody is asked; the reason says what to do instead):
   - an Edit, Write or MultiEdit to `games/<id>/codex/decisions.json` that changes the value or the
     state of a decision the person locked, or leaves the file unreadable while one is locked: a
@@ -207,9 +209,6 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
   - a production deploy while a public game (not private or invite-only)
     ships an asset whose `assets/manifest.json` entry has no licence, a kind the studio does not
     know, TurboSquid's licence, or CC BY without an attribution line. When every asset is licensed, the deploy's hold says so;
-  - a `git add` or `git commit` that would put a file over 5 MB under `games/` into git (what is
-    staged is read from git itself), naming each file and its size: big files go to the studio's
-    R2, raw models stay in `art/<slug>/raw/`;
   - a write through Stripe's MCP (`stripe_api_write`, from Stripe's plugin, `claude mcp add` or the
     Claude app's connector) that makes a webhook endpoint, or an event destination with its signing
     secret included: Stripe answers the secret in that call, so it would land in the conversation.
@@ -247,9 +246,9 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
 | --- | --- | --- |
 | `paneAutoOpen` | on | The Studio pane when a build starts, the parts pane for two agents |
 | `band` | on | The band above the prompt |
-| `guardFiles` | on | Holding edits to protected files; refusing changes to locked art decisions and files over 5 MB under `games/` into git |
+| `guardFiles` | on | Holding edits to protected files; refusing changes to locked art decisions; a one-line warning for a file over 5 MB under `games/` into git |
 | `guardDeploys` | on | Holding production deploys, and changes to the studio's Cloudflare account outside its deploy (deletes, secrets, hand rollouts, writes to the live database, by Wrangler or Cloudflare's MCP); refusing a deploy that ships an asset with no allowed licence |
-| `guardSpend` | on | Holding paid media calls past the budget (the models skill's too), and the ones whose cost cannot be read first (a provider's own CLI, MCP server or API); and holding a Clef model download through Ollama (about 11 GB) |
+| `guardSpend` | on | Holding paid media calls past the budget (the models skill's too), and the ones whose cost cannot be read first (a provider's own CLI, MCP server or API); and a one-line note with the size of a Clef model download through Ollama (about 11 GB) |
 | `redactSecrets` | on | Taking secrets out of tool output |
 | `renderResults` | on | Homie's results and command rows drawn natively |
 | `arcade` | on | `/arcade` and the live Watch views |
@@ -296,8 +295,8 @@ Inside a studio (a folder with `studio.json` at or above where Claude Code runs)
   command ran (for drawing it) and which agent ran what (for the parts). It never changes a tool's
   input.
 - `tool.call` on Edit, Write, MultiEdit, NotebookEdit (protected files, locked art decisions); on
-  Bash (big files into git, deploys and their licences, Cloudflare changes, paid calls, Clef model
-  downloads); on
+  Bash (deploys and their licences, Cloudflare changes, paid calls; a warning for big files into git and a
+  Clef model download's size); on
   `studio_deploy` (a deploy and its licences); on the Homie MCP's `homie_feedback` (a note's send waits for your
   Send; a draft gets the studio's facts); on Stripe's `stripe_api_write` (a webhook secret); on fal, ElevenLabs and
   Tripo MCP tools (paid calls); on Cloudflare MCP tools (account changes): the guards. They hold or
@@ -390,7 +389,7 @@ toolkit also reads the app from its environment) reads it as a row, **Homie's ho
 from the last ten minutes, off otherwise, with how to turn them on (in Grok Build: trust the plugin, which
 `grok plugin install … --trust` does, and start a new session). The `studio-setup` skill passes it on: one
 sentence in the first reply when they are off, and from then on the AI asks before a deploy, a Cloudflare
-change, a paid call or a model download itself. When they are on nothing changes. The row is a report, not
+change or a paid call itself. When they are on nothing changes. The row is a report, not
 a lock: a mark can be forged like any file, and nothing reads it to let a call through.
 
 **How a hold is answered.** A Codex hook can refuse a call or let it through, but it cannot ask the
@@ -416,8 +415,8 @@ Codex's own approval prompts, sandbox and rules still apply on top.
 | An unlicensed asset in a public game's deploy | Refused | Refused |
 | A Cloudflare change outside the deploy (Wrangler, Cloudflare's MCP servers) | Held, naming the studio's own Worker, database or bucket | Held, the same |
 | A paid call (fal, ElevenLabs, Tripo; the skills, the providers' CLIs, MCP servers and APIs) | Held past a budget or when it cannot be priced first; a toast with the price when inside | Held the same; inside the budget, a line with the price for the person |
-| A Clef model download (Ollama) | Held, with its size | Held, with its size |
-| A file over 5 MB under `games/` into git | Refused | Refused |
+| A Clef model download (Ollama) | Runs, with a line saying its size | Runs, with a line saying its size |
+| A file over 5 MB under `games/` into git | Runs, with a warning and the R2 route | Runs, with a warning and the R2 route |
 | A Stripe MCP write that would hand back a webhook's signing secret | Refused | Refused |
 | A note to Homie (`homie_feedback` send) | Held with the note's exact words: **Send** / **Don't send**; a draft is not held | Held with the note's exact words; `proceed <code>` sends exactly that note, once |
 | Secrets in a tool's result | Taken out before Claude reads it. The transcript keeps the redacted copy. A one-time owner link goes to the Studio pane | Taken out before the model reads it. Codex's own screen and its session file keep the raw output, and a one-time owner link stays there for the person |

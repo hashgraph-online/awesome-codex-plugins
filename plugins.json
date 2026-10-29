@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-10-26",
-  "total": 336,
+  "last_updated": "2026-10-28",
+  "total": 341,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -250,6 +250,16 @@
       "install_url": "https://raw.githubusercontent.com/minsu0707/auto-pilot/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "AW-1 Circuit Breaker",
+      "url": "https://github.com/MvikManners/aw1-circuit-breaker",
+      "owner": "MvikManners",
+      "repo": "aw1-circuit-breaker",
+      "description": "Application-layer AST and argument policy gate for agent tool calls that checks configured rules before Python execution; complements, but does not replace, operating-system sandbox isolation.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/MvikManners/aw1-circuit-breaker/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "BABOK Analyst",
       "url": "https://github.com/GSkuza/BABOK_ANALYST",
       "owner": "GSkuza",
@@ -268,6 +278,17 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/BB-84C/bgs-modding-superpowers/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Bindry",
+      "url": "https://github.com/bindryai/Plugins/tree/codex-distribution",
+      "owner": "bindryai",
+      "repo": "Plugins",
+      "description": "Compiles public or workspace Binders into version-pinned agent skills, checks instruction drift, and supports optional MCP-based live mode.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/bindryai/Plugins/codex-distribution/.codex-plugin/plugin.json",
+      "source_ref": "codex-distribution"
     },
     {
       "name": "Boss",
@@ -1050,6 +1071,16 @@
       "install_url": "https://raw.githubusercontent.com/jananthan30/ml-pipeline/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Multi-LLM",
+      "url": "https://github.com/beastlabai/multi-llm-plugin",
+      "owner": "beastlabai",
+      "repo": "multi-llm-plugin",
+      "description": "Parallel plan, code, and commit reviews across 19 coding CLIs, with validated findings, task generation, implementation, and automated revision.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/beastlabai/multi-llm-plugin/HEAD/packaging/codex/multi-llm/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Nightshift",
       "url": "https://github.com/orwa-mahmoud/nightshift",
       "owner": "orwa-mahmoud",
@@ -1064,7 +1095,7 @@
       "url": "https://github.com/toranalytics/off-the-wall",
       "owner": "toranalytics",
       "repo": "off-the-wall",
-      "description": "Quotes your own past corrections back to Codex, word for word, before each answer; `otw report` shows what you correct most from your local history, and subagent routing names a cheaper model per subagent. No API key.",
+      "description": "Quotes your own past corrections back to Codex, word for word, before each answer; `otw report` shows what you correct most from your local history, and a routing rule asks the orchestrator to name a model for each subagent. No API key.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/toranalytics/off-the-wall/HEAD/.codex-plugin/plugin.json"
@@ -1394,7 +1425,7 @@
       "url": "https://github.com/MageByte-Zero/spec-superflow",
       "owner": "MageByte-Zero",
       "repo": "spec-superflow",
-      "description": "Lean spec workflow with direct or planned execution, optional specifications, one final review by default, recoverable state, and a bundled same-version CLI runtime.",
+      "description": "Lean spec workflow with direct or planned execution, optional specifications, one final review, recoverable state, a bundled same-version CLI, Windows-compatible Qoder/WorkBuddy installers, and a CatPaw (妙手) import-package preview.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/MageByte-Zero/spec-superflow/HEAD/.codex-plugin/plugin.json"
@@ -1428,6 +1459,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/f0d010c/stark/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "SteinWall",
+      "url": "https://github.com/maxxstm/steinwall",
+      "owner": "maxxstm",
+      "repo": "steinwall",
+      "description": "Cost brake, action guard, loop rescue and extension scanner that run locally as Codex hooks.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/maxxstm/steinwall/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "stickypane",
@@ -1825,7 +1866,7 @@
       "url": "https://github.com/Aident-AI/aident-skill",
       "owner": "Aident-AI",
       "repo": "aident-skill",
-      "description": "Remote MCP server connecting Codex, Claude Code, Cursor, ChatGPT and other MCP clients to 1,000+ apps and 400+ Skills through one reusable setup, with Vault-protected credentials and Audit logging. Website: https://aident.ai",
+      "description": "Remote MCP server connecting Codex, Claude Code, Cursor, ChatGPT and other MCP clients to their connected apps and 400+ Skills through one reusable setup, with Vault-protected credentials and Audit logging. Website: https://aident.ai",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Aident-AI/aident-skill/HEAD/aident-loadout/.codex-plugin/plugin.json"
@@ -1909,6 +1950,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/reliable-ly0411/babeldoc-pdf-translate/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "BankBridge",
+      "url": "https://github.com/bankbridge-money/bankbridge-plugin",
+      "owner": "bankbridge-money",
+      "repo": "bankbridge-plugin",
+      "description": "Remote MCP server and skill that give Codex read-only access to your own US bank, credit card and investment accounts, fetched live, for questions about spending, subscriptions, cashflow and holdings; paid, $5/month per connected bank.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/bankbridge-money/bankbridge-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Bitbucket CLI",
@@ -2605,7 +2656,7 @@
       "url": "https://github.com/colibird-ai/local-mcp-releases",
       "owner": "colibird-ai",
       "repo": "local-mcp-releases",
-      "description": "Local tools that let Codex use Mail, Calendar, Contacts, Teams, Slack, WhatsApp (Mac), OneDrive, Google Drive, Notion, Outlook (Windows) and Office files on Mac and Windows.",
+      "description": "Local tools that let Codex use Mail, Calendar, Contacts, Teams, Slack, WhatsApp, OneDrive, Google Drive, Notion, Outlook and Microsoft 365 mail and calendar, and Office files on Mac and Windows.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/colibird-ai/local-mcp-releases/HEAD/.codex-plugin/plugin.json"

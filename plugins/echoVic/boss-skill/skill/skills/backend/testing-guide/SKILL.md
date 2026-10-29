@@ -1,10 +1,11 @@
 ---
+
 name: backend/testing-guide
 description: 后端测试编写指南，包括单元测试、集成测试和E2E测试的编写方法和最佳实践
 type: methodology
 agent: boss-backend
 metadata:
-  internal: true
+internal: true
 ---
 
 # 后端测试编写指南
@@ -15,10 +16,10 @@ metadata:
 
 ### 测试金字塔
 
-| 测试类型 | 占比 | 要求 |
-|----------|------|------|
-| **单元测试** | ~70% | Service 层、业务逻辑必须有测试 |
-| **集成测试** | ~20% | API 端点、数据库操作测试 |
+| 测试类型     | 占比 | 要求                            |
+| ------------ | ---- | ------------------------------- |
+| **单元测试** | ~70% | Service 层、业务逻辑必须有测试  |
+| **集成测试** | ~20% | API 端点、数据库操作测试        |
 | **E2E 测试** | ~10% | **必须编写**，完整 API 流程测试 |
 
 ## 单元测试编写
@@ -63,7 +64,7 @@ describe('UserService', () => {
     it('creates user with valid data', async () => {
       const createData = { name: 'Bob', email: 'bob@example.com' };
       const mockUser = { id: '2', ...createData };
-      
+
       userRepository.findByEmail.mockResolvedValue(null);
       userRepository.create.mockResolvedValue(mockUser);
 
@@ -76,7 +77,11 @@ describe('UserService', () => {
 
     it('throws ConflictError when email already exists', async () => {
       const createData = { name: 'Bob', email: 'existing@example.com' };
-      userRepository.findByEmail.mockResolvedValue({ id: '1', name: 'Existing', email: 'existing@example.com' });
+      userRepository.findByEmail.mockResolvedValue({
+        id: '1',
+        name: 'Existing',
+        email: 'existing@example.com',
+      });
 
       await expect(userService.create(createData)).rejects.toThrow('Email already exists');
     });
@@ -159,10 +164,7 @@ describe('User API', () => {
         email: 'alice@example.com',
       };
 
-      const response = await request(app)
-        .post('/api/users')
-        .send(userData)
-        .expect(201);
+      const response = await request(app).post('/api/users').send(userData).expect(201);
 
       expect(response.body.success).toBe(true);
       expect(response.body.data).toMatchObject(userData);
@@ -175,10 +177,7 @@ describe('User API', () => {
         email: 'invalid-email',
       };
 
-      const response = await request(app)
-        .post('/api/users')
-        .send(userData)
-        .expect(400);
+      const response = await request(app).post('/api/users').send(userData).expect(400);
 
       expect(response.body.success).toBe(false);
       expect(response.body.error.code).toBe('VALIDATION_ERROR');
@@ -194,10 +193,7 @@ describe('User API', () => {
       await request(app).post('/api/users').send(userData);
 
       // 尝试创建重复邮箱的用户
-      const response = await request(app)
-        .post('/api/users')
-        .send(userData)
-        .expect(409);
+      const response = await request(app).post('/api/users').send(userData).expect(409);
 
       expect(response.body.error.code).toBe('CONFLICT');
     });
@@ -213,18 +209,14 @@ describe('User API', () => {
       const userId = createResponse.body.data.id;
 
       // 获取用户
-      const response = await request(app)
-        .get(`/api/users/${userId}`)
-        .expect(200);
+      const response = await request(app).get(`/api/users/${userId}`).expect(200);
 
       expect(response.body.data.id).toBe(userId);
       expect(response.body.data.name).toBe('Dave');
     });
 
     it('returns 404 for non-existent user', async () => {
-      const response = await request(app)
-        .get('/api/users/non-existent-id')
-        .expect(404);
+      const response = await request(app).get('/api/users/non-existent-id').expect(404);
 
       expect(response.body.error.code).toBe('NOT_FOUND');
     });
@@ -260,14 +252,10 @@ describe('User API', () => {
       const userId = createResponse.body.data.id;
 
       // 删除用户
-      await request(app)
-        .delete(`/api/users/${userId}`)
-        .expect(200);
+      await request(app).delete(`/api/users/${userId}`).expect(200);
 
       // 验证用户已删除
-      await request(app)
-        .get(`/api/users/${userId}`)
-        .expect(404);
+      await request(app).get(`/api/users/${userId}`).expect(404);
     });
   });
 });
@@ -358,7 +346,7 @@ describe('User CRUD E2E', () => {
       .send({
         name: 'John Doe',
         email: 'john@example.com',
-        password: 'password123',
+        password: '<PASSWORD>',
       })
       .expect(201);
 
@@ -366,9 +354,7 @@ describe('User CRUD E2E', () => {
     const userId = createResponse.body.data.id;
 
     // 2. 读取用户
-    const getResponse = await request(app)
-      .get(`/api/users/${userId}`)
-      .expect(200);
+    const getResponse = await request(app).get(`/api/users/${userId}`).expect(200);
 
     expect(getResponse.body.data.name).toBe('John Doe');
     expect(getResponse.body.data.email).toBe('john@example.com');
@@ -382,21 +368,15 @@ describe('User CRUD E2E', () => {
     expect(updateResponse.body.data.name).toBe('John Updated');
 
     // 4. 验证更新
-    const verifyResponse = await request(app)
-      .get(`/api/users/${userId}`)
-      .expect(200);
+    const verifyResponse = await request(app).get(`/api/users/${userId}`).expect(200);
 
     expect(verifyResponse.body.data.name).toBe('John Updated');
 
     // 5. 删除用户
-    await request(app)
-      .delete(`/api/users/${userId}`)
-      .expect(200);
+    await request(app).delete(`/api/users/${userId}`).expect(200);
 
     // 6. 验证删除
-    await request(app)
-      .get(`/api/users/${userId}`)
-      .expect(404);
+    await request(app).get(`/api/users/${userId}`).expect(404);
   });
 });
 ```
@@ -413,7 +393,7 @@ describe('Authentication Flow E2E', () => {
       .send({
         name: 'Alice',
         email: 'alice@example.com',
-        password: 'password123',
+        password: '<PASSWORD>',
       })
       .expect(201);
 
@@ -429,17 +409,14 @@ describe('Authentication Flow E2E', () => {
     expect(profileResponse.body.data.email).toBe('alice@example.com');
 
     // 3. 登出
-    await request(app)
-      .post('/api/auth/logout')
-      .set('Authorization', `Bearer ${token}`)
-      .expect(200);
+    await request(app).post('/api/auth/logout').set('Authorization', `Bearer ${token}`).expect(200);
 
     // 4. 登录
     const loginResponse = await request(app)
       .post('/api/auth/login')
       .send({
         email: 'alice@example.com',
-        password: 'password123',
+        password: '<PASSWORD>',
       })
       .expect(200);
 
@@ -451,7 +428,7 @@ describe('Authentication Flow E2E', () => {
       .post('/api/auth/login')
       .send({
         email: 'alice@example.com',
-        password: 'wrong-example',
+        password: '<WRONG_PASSWORD>',
       })
       .expect(401);
   });
@@ -470,7 +447,7 @@ describe('Order Flow E2E', () => {
     // 注册并登录
     const registerResponse = await request(app)
       .post('/api/auth/register')
-      .send({ name: 'Buyer', email: 'buyer@example.com', password: 'pass123' });
+      .send({ name: 'Buyer', email: 'buyer@example.com', password: '<PASSWORD>' });
     authToken = registerResponse.body.data.token;
 
     // 创建测试商品
@@ -505,9 +482,7 @@ describe('Order Flow E2E', () => {
     expect(paymentResponse.body.data.status).toBe('paid');
 
     // 3. 验证库存减少
-    const productResponse = await request(app)
-      .get(`/api/products/${productId}`)
-      .expect(200);
+    const productResponse = await request(app).get(`/api/products/${productId}`).expect(200);
 
     expect(productResponse.body.data.stock).toBe(8); // 10 - 2
 
@@ -568,16 +543,12 @@ describe('Boundary conditions', () => {
   });
 
   it('handles maximum page size', async () => {
-    const response = await request(app)
-      .get('/api/users?pageSize=1000')
-      .expect(400);
+    const response = await request(app).get('/api/users?pageSize=1000').expect(400);
     expect(response.body.error.message).toContain('pageSize');
   });
 
   it('handles invalid UUID', async () => {
-    await request(app)
-      .get('/api/users/invalid-uuid')
-      .expect(400);
+    await request(app).get('/api/users/invalid-uuid').expect(400);
   });
 });
 ```
@@ -586,13 +557,17 @@ describe('Boundary conditions', () => {
 
 ```typescript
 it('handles concurrent requests', async () => {
-  const requests = Array(10).fill(null).map(() =>
-    request(app).post('/api/users').send({ name: 'User', email: `user${Math.random()}@example.com` })
-  );
+  const requests = Array(10)
+    .fill(null)
+    .map(() =>
+      request(app)
+        .post('/api/users')
+        .send({ name: 'User', email: `user${Math.random()}@example.com` }),
+    );
 
   const responses = await Promise.all(requests);
 
-  responses.forEach(response => {
+  responses.forEach((response) => {
     expect(response.status).toBe(201);
   });
 });
@@ -615,11 +590,11 @@ npm test -- --coverage
 实现完成后，在输出中包含：
 
 **测试添加**：
-| 类型 | 文件 | 描述 |
-|------|------|------|
-| 单元测试 | `src/services/userService.test.ts` | UserService 业务逻辑测试 |
-| 集成测试 | `src/controllers/userController.test.ts` | User API 端点集成测试 |
-| **E2E 测试** | `e2e/user-crud.test.ts` | 用户 CRUD 完整流程 E2E 测试 |
+| 类型         | 文件                                     | 描述                        |
+| ------------ | ---------------------------------------- | --------------------------- |
+| 单元测试     | `src/services/userService.test.ts`       | UserService 业务逻辑测试    |
+| 集成测试     | `src/controllers/userController.test.ts` | User API 端点集成测试       |
+| **E2E 测试** | `e2e/user-crud.test.ts`                  | 用户 CRUD 完整流程 E2E 测试 |
 
 **测试结果**：
 - 通过：42 / 失败：0

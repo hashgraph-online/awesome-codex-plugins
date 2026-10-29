@@ -1,6 +1,6 @@
 ---
 name: serp-tracker
-description: "Deprecated; use rank-monitor --features for SERP features. \"track SERP features\""
+description: "Deprecated; use rank-monitor --features. \"track SERP features\""
 ---
 
 # /digital-marketing-pro:serp-tracker (deprecated → rank-monitor)

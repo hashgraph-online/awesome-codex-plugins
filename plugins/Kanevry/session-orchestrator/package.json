@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "5.13.0",
+  "version": "5.14.0",
   "description": "Your coding agents get an agreed plan, a check after each round of changes and a handover to the next session. For Claude Code, Codex CLI, Cursor and Pi.",
   "type": "module",
   "homepage": "https://session-orchestrator.com",
@@ -67,6 +67,7 @@
     "test:coverage": "node scripts/check-package-manager.mjs && vitest --run --coverage",
     "test:watch": "node scripts/check-package-manager.mjs && vitest",
     "test:pack": "node scripts/check-package-manager.mjs && SO_PACK_TEST=1 vitest --run tests/scripts/pack-install-lifecycle.test.mjs",
+    "test:mirror": "node scripts/ci/plugin-smoke.mjs",
     "quality-gate": "node scripts/run-quality-gate.mjs --variant full-gate",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

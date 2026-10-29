@@ -363,6 +363,21 @@
       "icon": "./plugins/minsu0707/auto-pilot/assets/auto-pilot.png"
     },
     {
+      "name": "aw1-circuit-breaker",
+      "displayName": "AW-1 Circuit Breaker",
+      "source": {
+        "source": "local",
+        "path": "./plugins/MvikManners/aw1-circuit-breaker"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Application-layer AST and argument policy gate for agent tool calls that checks configured rules before Python execution; complements, but does not replace, operating-system sandbox isolation.",
+      "icon": "./plugins/MvikManners/aw1-circuit-breaker/assets/icon.png"
+    },
+    {
       "name": "babok_analyst",
       "displayName": "BABOK Analyst",
       "source": {
@@ -390,6 +405,21 @@
       },
       "category": "Development & Workflow",
       "description": "Agentic Bethesda Game Studio modpack curation toolkit with MCP-driven xEdit conflict audit, MO2 control plane, BA2/BSA and Papyrus tooling, and skills for setup, dev-log, and release-changelog workflows."
+    },
+    {
+      "name": "bindry",
+      "displayName": "Bindry",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bindryai/Plugins"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Compiles public or workspace Binders into version-pinned agent skills, checks instruction drift, and supports optional MCP-based live mode.",
+      "icon": "./plugins/bindryai/Plugins/assets/icon.svg"
     },
     {
       "name": "boss",
@@ -1549,6 +1579,21 @@
       "description": "Enforces a strict 16-step data-first ML workflow — data inspection, EDA, and problem definition before any model training — with explicit user-permission gates, marimo notebooks, and matplotlib figures at every step; also works in Claude Code and Kimi."
     },
     {
+      "name": "multi-llm",
+      "displayName": "Multi-LLM",
+      "source": {
+        "source": "local",
+        "path": "./plugins/beastlabai/multi-llm-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Parallel plan, code, and commit reviews across 19 coding CLIs, with validated findings, task generation, implementation, and automated revision.",
+      "icon": "./plugins/beastlabai/multi-llm-plugin/assets/icon.svg"
+    },
+    {
       "name": "nightshift",
       "displayName": "Nightshift",
       "source": {
@@ -1575,7 +1620,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Quotes your own past corrections back to Codex, word for word, before each answer; `otw report` shows what you correct most from your local history, and subagent routing names a cheaper model per subagent. No API key.",
+      "description": "Quotes your own past corrections back to Codex, word for word, before each answer; `otw report` shows what you correct most from your local history, and a routing rule asks the orchestrator to name a model for each subagent. No API key.",
       "icon": "./plugins/toranalytics/off-the-wall/assets/icon.png"
     },
     {
@@ -2063,7 +2108,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Lean spec workflow with direct or planned execution, optional specifications, one final review by default, recoverable state, and a bundled same-version CLI runtime.",
+      "description": "Lean spec workflow with direct or planned execution, optional specifications, one final review, recoverable state, a bundled same-version CLI, Windows-compatible Qoder/WorkBuddy installers, and a CatPaw (妙手) import-package preview.",
       "icon": "./plugins/MageByte-Zero/spec-superflow/assets/icon.svg"
     },
     {
@@ -2109,6 +2154,21 @@
       },
       "category": "Development & Workflow",
       "description": "UI/UX design plugin for AI coding agents with product-flow routing, platform-native interface guidance, asset planning, and shipped-reference analysis before code."
+    },
+    {
+      "name": "steinwall",
+      "displayName": "SteinWall",
+      "source": {
+        "source": "local",
+        "path": "./plugins/maxxstm/steinwall"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Cost brake, action guard, loop rescue and extension scanner that run locally as Codex hooks.",
+      "icon": "./plugins/maxxstm/steinwall/assets/icon.svg"
     },
     {
       "name": "board",
@@ -2697,7 +2757,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Remote MCP server connecting Codex, Claude Code, Cursor, ChatGPT and other MCP clients to 1,000+ apps and 400+ Skills through one reusable setup, with Vault-protected credentials and Audit logging. Website: https://aident.ai",
+      "description": "Remote MCP server connecting Codex, Claude Code, Cursor, ChatGPT and other MCP clients to their connected apps and 400+ Skills through one reusable setup, with Vault-protected credentials and Audit logging. Website: https://aident.ai",
       "icon": "./plugins/Aident-AI/aident-skill/assets/aident-icon.png"
     },
     {
@@ -2816,6 +2876,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Translate PDFs with local BabelDOC typesetting, configurable translation providers, bilingual output and custom terminology."
+    },
+    {
+      "name": "bankbridge",
+      "displayName": "BankBridge",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bankbridge-money/bankbridge-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remote MCP server and skill that give Codex read-only access to your own US bank, credit card and investment accounts, fetched live, for questions about spending, subscriptions, cashflow and holdings; paid, $5/month per connected bank.",
+      "icon": "./plugins/bankbridge-money/bankbridge-plugin/assets/icon.png"
     },
     {
       "name": "bkt",
@@ -3854,7 +3929,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Local tools that let Codex use Mail, Calendar, Contacts, Teams, Slack, WhatsApp (Mac), OneDrive, Google Drive, Notion, Outlook (Windows) and Office files on Mac and Windows.",
+      "description": "Local tools that let Codex use Mail, Calendar, Contacts, Teams, Slack, WhatsApp, OneDrive, Google Drive, Notion, Outlook and Microsoft 365 mail and calendar, and Office files on Mac and Windows.",
       "icon": "./plugins/colibird-ai/local-mcp-releases/assets/logo.png"
     },
     {

@@ -36,7 +36,7 @@ The user must provide (or will be prompted for):
 
 Any brand sending at bulk volume (~5,000+ messages/day to a mailbox provider) must meet the mailbox-provider sender requirements or mail is throttled or rejected. Bake these into the sequence's implementation notes (ported from `/digital-marketing-pro:send-email-campaign`, with Outlook 2025 added):
 
-- **Authenticate the sending domain**: SPF **and** DKIM **and** a published DMARC policy (at least `p=none`, aligned) — required by **Gmail & Yahoo (Feb 2024)** and **Microsoft Outlook / Outlook.com (rolling out through 2025 for senders ≥5,000/day)**.
+- **Authenticate the sending domain**: SPF **and** DKIM **and** a published DMARC policy (at least `p=none`, aligned) — required by **Gmail & Yahoo (Feb 2024)** and **Microsoft Outlook / Outlook.com for senders of over 5,000 a day (enforced since 5 May 2025: non-compliant mail goes to junk, rejection announced)**.
 - **One-click unsubscribe**: include the `List-Unsubscribe` header with one-click support (RFC 8058), and honour opt-outs within 2 days. A visible unsubscribe link in the body is still required in addition.
 - **Keep the spam-complaint rate under 0.3%** (measured in Google Postmaster Tools / Yahoo / Microsoft SNDS) — ideally under 0.1%.
 - **Send from a consistent, PTR/reverse-DNS-valid IP over TLS**, with a warmed-up sending domain and consistent from-address.

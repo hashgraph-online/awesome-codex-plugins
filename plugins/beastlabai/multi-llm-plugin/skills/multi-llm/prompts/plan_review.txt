@@ -1,0 +1,105 @@
+You are reviewing an implementation plan for completeness, correctness, and clarity.
+
+## Plan File
+{plan_path}
+
+Read this file to understand the proposed implementation. The plan should contain:
+1. Problem statement and objectives
+2. Technical approach and architecture decisions
+3. File changes and their purposes
+4. Testing strategy and acceptance criteria
+
+## Out of Scope: Task Decomposition
+Breaking the plan into implementation tasks, with their ids, dependencies and order, is a separate later phase (task generation) that works from the plan as written. A plan is a design document, not a task list. Do NOT report that the plan lacks a task breakdown, task list, implementation order, dependency graph or milestones, and do not suggest adding one. Do still report a missing or unclear design decision that would block someone writing those tasks, and an existing order or dependency in the plan that is wrong. A missing ordering constraint between parts of the design (a data migration that must precede the schema switch) is a design gap, not a task order: report it.
+
+## Your Task
+1. Read the plan file at the path above
+2. Analyze it thoroughly for issues and gaps
+3. Report each issue you find, specifically
+
+Report what an implementer needs to be told. Skip anything an implementer would sort out without asking, such as a line number that has moved, a detail they can fill in from the code, or wording and formatting. If you are unsure whether an implementer could sort a detail out without asking, report it.
+
+## What to Look For
+
+### Premise & Approach
+- **Problem framing**: Is the stated problem the real problem, or a symptom of something deeper?
+- **Fundamental assumptions**: What assumptions does this plan rest on? Are they valid?
+- **Alternative approaches**: Is there a simpler, more effective, or fundamentally different way to achieve the same goal? If you propose an alternative to a choice the plan explains, say why its stated reason doesn't hold or what it misses.
+- **Scope appropriateness**: Is this plan solving the right problem at the right level? Is it too narrow or too broad?
+- **Cost vs. benefit**: Is the proposed effort justified by the expected outcome, or is there a higher-leverage path?
+
+### Completeness
+- **Missing requirements**: Are all features fully specified?
+- **Incomplete steps**: Where the plan describes work, does it have enough detail to implement?
+- **Missing dependencies**: Are dependencies the plan states, or that the design implies between its parts, identified?
+- **Missing edge cases**: Are error conditions and edge cases addressed?
+- **Missing tests**: Is the testing strategy adequate? Would a test or acceptance criterion offered as evidence for a behaviour still pass with that behaviour missing or broken, or is any check unable to fail?
+
+### Correctness
+- **Technical feasibility**: Is the proposed approach technically sound?
+- **Architecture issues**: Are there design flaws or anti-patterns?
+- **Security concerns**: Are there potential vulnerabilities? Could data leak through logs, telemetry, caches, test output or committed files?
+- **Performance issues**: Will the approach scale appropriately?
+- **Integration issues**: Will the changes work with existing code?
+
+### Clarity
+- **Ambiguous requirements**: Are any requirements unclear or open to interpretation?
+- **Vague steps**: Does each described piece of work clearly specify what needs to be done?
+- **Missing context**: Is there sufficient background for implementers?
+- **Conflicting statements**: Do parts of the plan contradict each other? Look especially for numbers or limits that differ between sections, and for one thing called by two names.
+- **Dangling references**: Does the plan refer to a section, decision or ID of its own that it never defines? A reference to one defined in a document the plan names, such as another plan, a tasks file or a file in the repository, is not dangling.
+- **Questions already answered**: Does the plan list as open a question it answers elsewhere?
+
+### Implementation Quality
+- **Over-engineering**: Is the solution more complex than necessary?
+- **Under-engineering**: Is the solution too simplistic for the problem?
+- **Code organization**: Is the proposed file structure sensible?
+
+{working_limits}
+
+## Output Format
+Return ONLY a valid JSON array with no additional text. Each element must have exactly these fields:
+- "title": string (5-10 word summary of the issue)
+- "desc": string (what is wrong and why it matters. Where it helps, add the evidence: the plan text it rests on, with its section and a short quote, or a repository location as path:line, only if you opened that file and checked what is there. If the plan or a file you opened shows which value or behaviour is intended, say which, for example which of two numbers that disagree is the right one. You don't need to propose a fix; whoever applies the finding decides it. But if the right fix is a design choice the plan does not settle, propose the one you would make, so that validation can weigh it.)
+- "importance": "high" | "medium" | "low"
+  - high = critical gaps, security issues, architectural flaws, blockers
+  - medium = missing details, unclear requirements, potential issues
+  - low = a real problem with a small impact (not a style or wording preference)
+- "reference": string (which section of the plan this affects, e.g., "## Requirements" or "### Task 3")
+- "type": "addition" | "modification" | "deletion" | "clarification"
+  - addition = something is missing and should be added
+  - modification = something exists but needs to be changed
+  - deletion = something should be removed (unnecessary, harmful)
+  - clarification = something is unclear and needs better explanation
+
+Example output:
+[
+  {{
+    "title": "Batch size differs between two sections",
+    "desc": "Section 2 caps uploads at 'at most 50 files per request', but the sizing table in Section 4 assumes 100 per request, so its memory estimate is twice what Section 2 allows. Section 2 states the cap as a rule and the table only assumes a figure, so the table's 100 is the wrong one. No step depends on that estimate, so the impact is small.",
+    "importance": "low",
+    "reference": "## 4. Sizing",
+    "type": "modification"
+  }},
+  {{
+    "title": "Retry steps rely on a hook the plan never defines",
+    "desc": "Section 3 attaches every retry to an 'on_upload_failed hook', but no section of the plan defines that hook or says which component calls it. Every retry step in Section 3 rests on it.",
+    "importance": "high",
+    "reference": "## 3. Retry Design",
+    "type": "clarification"
+  }},
+  {{
+    "title": "Acceptance check passes without the feature",
+    "desc": "The only acceptance criterion for retries is 'the upload command exits 0', which it already does today. It would pass with retries missing, so nothing checks that a dropped upload is sent again.",
+    "importance": "medium",
+    "reference": "## 5. Testing",
+    "type": "addition"
+  }}
+]
+
+If a finding involves a secret (a key, token or password), say where it is and never copy its value into any field. That includes evidence: cite where the value is, and leave it out of any quote.
+
+If no issues are found, return an empty array: []
+
+## Output Location
+{output_location}

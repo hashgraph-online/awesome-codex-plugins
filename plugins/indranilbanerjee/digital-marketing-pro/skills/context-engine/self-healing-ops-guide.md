@@ -83,7 +83,7 @@ Every active campaign receives a 0–100 health score, recalculated on each moni
 | **DKIM failure** | Any DKIM failure on sent emails | DNS misconfiguration or key rotation needed |
 | **SPF failure** | Any SPF failure | Sending IP not in SPF record |
 | **DMARC failure** | Any DMARC failure | DKIM or SPF not aligned with From domain |
-| **Open rate collapse** | >40% drop from 7-day moving avg | Deliverability issue or list fatigue |
+| **Click rate collapse** | >40% drop from 7-day moving avg (a sudden open-rate collapse still flags inbox placement, though Apple Mail Privacy Protection hides it for Apple users) | Deliverability issue or list fatigue |
 
 ### Pacing Analysis
 
@@ -245,7 +245,7 @@ Logs stored at `~/.claude-marketing/brands/{slug}/ops-log.json` and surfaced via
 |---|---|---|---|
 | Deliverability score | Per send | Score <90 | Alert with authentication check |
 | Bounce classification | Per send | Hard bounce >1% | Auto-suppress bounced addresses, alert |
-| Engagement metrics | Per send | Open rate <50% of prior 5-send avg | Alert with subject line / list analysis |
+| Engagement metrics | Per send | Click rate <50% of prior 5-send avg | Alert with subject line / list analysis |
 | List decay rate | Weekly | >2% invalid addresses per month | Alert with list cleaning recommendation |
 | Spam trap hits | Per send | Any spam trap hit | Alert immediately — potential blocklist risk |
 

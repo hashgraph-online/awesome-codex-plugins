@@ -5,21 +5,20 @@
 
 # Dex
 
-**Analytics engineering for your coding agent, with the guardrails built into the engine.**
+**Analytics engineering for your coding agent, with guardrails and lifecycle built into the engine.**
 
-Dex is analytics engineering for Claude Code and any agent: data warehouse
-exploration, dbt transformation and semantic modeling, and schema-drift
-maintenance.
+Dex lets your agent build your analytics: data warehouse exploration, dbt data transformation and semantic modeling, 
+and schema-drift maintenance.
 
-**Built by [Exmergo](https://exmergo.com)** · **Documentation: [docs.exmergo.com/dex](https://docs.exmergo.com/dex)**
+**Built by [Exmergo](https://www.exmergo.com)**
 
-[![Docs](https://img.shields.io/badge/docs-docs.exmergo.com%2Fdex-165dfc?logo=readthedocs&logoColor=white)](https://docs.exmergo.com/dex)
 [![PyPI](https://img.shields.io/pypi/v/exmergo-dex-core?logo=pypi&logoColor=white&color=165dfc)](https://pypi.org/project/exmergo-dex-core/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-165dfc)](LICENSE)
 [![data-eng-bench](https://img.shields.io/badge/data--eng--bench-57%25-33cf56)](benchmarks/data-eng-bench/README.md)
 [![ADE-bench](https://img.shields.io/badge/ADE--bench-76%25-33cf56)](benchmarks/ade_bench/README.md)
 [![CI](https://github.com/exmergo/dex/actions/workflows/ci.yml/badge.svg)](https://github.com/exmergo/dex/actions/workflows/ci.yml)
 
+[![Docs](https://img.shields.io/badge/docs-docs.exmergo.com%2Fdex-165dfc?logo=readthedocs&logoColor=white)](https://docs.exmergo.com/dex)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Exmergo-165dfc?logo=linkedin&logoColor=white)](https://www.linkedin.com/company/exmergo/)
 [![X](https://img.shields.io/badge/Follow-%40exmergo-165dfc?logo=x&logoColor=white)](https://x.com/exmergo)
 [![Star the repo!](https://img.shields.io/github/stars/exmergo/dex?style=flat&label=Star%20the%20repo!%20%E2%AD%90&labelColor=555&logo=github&logoColor=white&color=165dfc)](https://github.com/exmergo/dex)
@@ -285,9 +284,9 @@ query by name rather than inventing semantics. See the
 ## See it on a real project
 
 **[github-repo-analytics](https://github.com/exmergo/github-repo-analytics)** is a template that tracks GitHub traffic, stars, downloads and contributors for your open-source projects, free on GitHub Actions.   
-Every model and metric was built and is maintained with Dex. Its audit trail (https://github.com/exmergo/github-repo-analytics/blob/main/.dex/review/README.md) holds the raw envelopes, including the drift Dex blocked and the proposals that were rejected.
+Every model and metric was built and is maintained with Dex. Its [audit trail](https://github.com/exmergo/github-repo-analytics/blob/main/.dex/review/README.md) holds the raw envelopes, including the drift Dex blocked.
 
-## Use it as a Python library
+## The Core Python Library you can use
 
 The engine is a plain Python package, `exmergo-dex-core`:
 
@@ -326,22 +325,16 @@ More in the [package README](packages/dex-core/README.md).
 We run Dex on two public analytics-engineering benchmarks and commit every run's
 raw per-task results, including the ones that flatter us least.
 
-| Benchmark | Setup | Result | Dex ran on | Details |
-|---|---|---|---|---|
-| **data-eng-bench** (Snowflake, 103 tasks) | Dex + Claude Sonnet 5 | **57.3%** resolved, 89.7% of assertions pass | 98% of trials | [README](benchmarks/data-eng-bench/README.md) |
-| **ADE-bench** (dbt Labs, 75 tasks) | Dex + Claude Sonnet 5 | **76%** resolved, at 2.5x lower cost than Fable 5 | 15 of 75 trials | [README](benchmarks/ade_bench/README.md) |
+| Benchmark | Setup | Result | Details |
+|---|---|---|---|
+| **data-eng-bench** (Snowflake, 103 tasks) | Dex + Claude Sonnet 5 | **57.3%** resolved, 89.7% of assertions pass | [README](benchmarks/data-eng-bench/README.md) |
+| **ADE-bench** (dbt Labs, 75 tasks) | Dex + Claude Sonnet 5 | **76%** resolved, at 2.5x lower cost than Fable 5 | [README](benchmarks/ade_bench/README.md) |
 
 <img width="719" height="283" alt="ADE-bench accuracy and cost by model" src="https://github.com/user-attachments/assets/9f8bca64-6508-4590-9fa7-bb1ac077263d" />
 
-**How to read these.** Both are single runs, one attempt per task, so small gaps
-are noise. On data-eng-bench, 57.3% is statistically indistinguishable from the
-56.6% Snowflake published for Sonnet 5: read it as parity, not a win. On ADE-bench,
-Dex fired on only 15 of 75 trials, so the 76% is mostly a statement about the model.
-We report how often Dex actually ran next to every score for exactly this reason.
-
-A pass rate also misses what matters most: trust in a diff, cost surfaced before
-spend, and sensitive data kept out of context. We optimize for that experience and
-treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/dex/reference/evaluation))
+We believe that benchmarks are important, but not as important as user/agent experience.  
+Trust in a diff, cost surfaced before spend, and sensitive data kept out of context. We optimize for that experience
+and treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/dex/reference/evaluation))
 
 ## What Dex sends where
 

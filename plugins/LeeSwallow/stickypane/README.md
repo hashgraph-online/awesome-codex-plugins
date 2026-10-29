@@ -63,10 +63,12 @@ in your repository, readable without stickypane.
 
 - [Install](#install): Homebrew, a release archive, `go install`, from source
 - [Quick start](#quick-start): the board next to your agent in four steps
+- [Usage](#usage): getting started, and help for each command
 - [The folder is the board](#the-folder-is-the-board) and [the shapes of a note](#shapes-of-a-markdown-note)
 - [Keys](#keys), [mouse](#mouse), [settings](#settings), [themes](#themes)
 - [Notes that link](#notes-that-link), [notes that react](#notes-that-react), [the index](#the-index)
 - [Command line and MCP](#command-line-and-mcp)
+- [What is recorded in `~/.stickypane`](#what-stickypane-records-on-this-machine)
 - [Contributing](#contributing), [support](#support), [license](#license)
 
 ## Install
@@ -134,7 +136,7 @@ go build -o stickypane ./cmd/stickypane
 ### Check that it works
 
 ```sh
-stickypane version     # stickypane 0.1.0
+stickypane version     # stickypane 0.1.1
 stickypane env         # the system, shell, pane tool, locale and editor it found
 ```
 
@@ -142,7 +144,8 @@ stickypane env         # the system, shell, pane tool, locale and editor it foun
 
 Update the way you installed it: `brew upgrade --cask stickypane`, a newer
 archive, or `go install ...@latest` again. To remove it, run
-`stickypane setup --undo` if you installed the plugin, then
+`stickypane setup --undo` if you installed the plugin (with the same
+`--scope`, and `--mcp` if you registered the MCP server), then
 `brew uninstall --cask stickypane` or delete the program. Your notes stay
 in each project's `.sticky/` folder; they are plain files, yours to keep or
 delete.
@@ -200,13 +203,21 @@ writes the skill instead of the instruction files and `--no-agent-docs`
 makes the folder only.
 
 `stickypane setup` installs the plugin for every agent it finds, through
-the agents' own commands:
+the agents' own commands. It makes no board and writes no instruction
+file, so it is safe to run from any folder; `stickypane init` in a project
+makes its board, and in a project that already has one takes out a guide
+the plugin now teaches.
 
 ```sh
 stickypane setup                       # asks, then installs for Claude Code and Codex
 stickypane setup --scope project --mcp --yes
-stickypane setup --undo                # takes it out again
+stickypane setup --undo                # uninstalls the plugin again
 ```
+
+`--undo` uninstalls the plugin from each agent found (from Claude Code at
+the `--scope` given, `user` unless you say). With `--mcp` it also removes
+the `stickypane` MCP server. It leaves the marketplace entry, the boards
+and any guide `init` wrote in place.
 
 `--scope` is where Claude Code installs it: `user` (every project, the
 default), `project` (this repository, shared with the team) or `local`
@@ -225,6 +236,89 @@ project that has one. In a git repository the agent's first
 `stickypane show` or `stickypane todo` makes the board, so no setup step
 is needed.
 
+## Usage
+
+The help is in the program, in the language of the screen (`stickypane language ko`). New to the board? This is the way in; `stickypane help start` prints it, and `stickypane help` prints it first where there is no board yet.
+
+```text
+Getting started
+
+1. Give the project a board, and tell your agents it is there:
+     stickypane init
+2. Pin something up. Agents and scripts write files; so can you:
+     echo "- [ ] try the board" | stickypane write plan --type checklist --open
+   (stickypane kinds shows every shape a note can take)
+3. Open the board in a pane beside your agent:
+     stickypane
+   (not sure how in your terminal? stickypane env knows)
+4. Hook up your agent, once:
+     stickypane setup
+   (or setup --mcp, or the lines init left in CLAUDE.md / AGENTS.md)
+5. Rather see it outside the terminal? The desktop app shows the
+   same board and starts stickypane bridge on its own.
+
+Next: stickypane help, then stickypane help <command>.
+```
+
+The overview, grouped by task. `stickypane help <command>` is one command with its arguments, examples and related commands; `stickypane help <shape>` is a note's file format and an example, as `stickypane kinds <shape>` prints it.
+
+```text
+stickypane - sticky notes for coding agents. They pin, you glance.
+
+Start
+  [path]    open the board of the project at path (default: here)
+  init      make .sticky/ and tell your agents about it
+  kinds     list the shapes a note can take
+  env       say what the board found about where it runs
+  version   print the version
+  help      this help: a command, a shape, or getting started
+
+Notes
+  list      list the notes
+  index     every note in a line: title, counts, a gist
+  show      put a note, a file or a folder on the screen
+  hide      fold a note away
+  cat       print a note's file
+  write     create or replace a note from standard input
+  todo      add, tick or untick a checklist item
+  card      add or move a card of a board
+  chart     set or add to a number of a chart
+  log       append a line to a log note
+  say       add a message to a chat note
+  set       change keys of a note or its place on the board
+
+Arrange
+  mv        rename a note or move it into a tab or book
+  link      show a file or folder of the project without copying
+  rm        move a note, a page or a folder to .trash/
+  restore   bring back what rm removed last
+  archive   move a note out of sight into archive/
+
+Settings
+  theme     list the themes or choose one
+  language  list the screen's languages or choose one
+  config    list, read or change a setting
+
+Agents
+  setup     install the board plugin for Claude Code and Codex
+  guide     print the agent guide
+  answers   print what the user answered in a form
+  wait      wait for a form's button, then print the answers
+  mcp       serve the notes over MCP
+
+Scripts
+  api       (experimental) send the requests of a .http note
+  watch     print what happens on the board as it happens
+  bridge    serve the board to the desktop app
+
+stickypane help <command>   one command, with examples
+stickypane help <shape>     a note's file format and an example
+stickypane help start       getting started
+stickypane help --all       every command with every option
+```
+
+`stickypane help --all` prints every command with every option on one page. A name that matches nothing suggests the closest command. The agent guide (`stickypane guide`) stays English.
+
 ## The folder is the board
 
 One file in `.sticky/` is one note. Create a file to stick a note, edit it to
@@ -242,6 +336,7 @@ What a file is depends on its name:
 | `*.md`                  | a note; its front matter may give it a shape (below)   |
 | `*.log` `*.txt` `*.out` | a log: shown as it is and followed as it grows         |
 | `*.sh` `*.ps1`          | a script: shown with a Run button, run with sh or PowerShell |
+| `*.html` `*.htm`        | a web page, to look at: its text here (the overlay, in progress, will draw it) |
 | a folder                | a tab: a screen of its own, with the files in it as notes |
 | a folder in a tab       | a book: one note whose pages are the files in it       |
 | anything else           | not shown                                              |
@@ -307,7 +402,7 @@ folder's settings in the folder. The board writes them as you press keys:
 ```json
 {
   "notes": {
-    "10-plan.md": { "open": true, "size": "half", "pin": true },
+    "10-plan.md": { "open": true, "size": "1/2", "pin": true },
     "build.log": { "title": "CI build", "open": true, "rows": 12 },
     "docs": { "open": true, "color": "blue" }
   },
@@ -326,11 +421,16 @@ are only in the root file.
 | Key in `notes` | Values                                        | Key on the board |
 | -------------- | --------------------------------------------- | ---------------- |
 | `open`         | `true` shows the note, `false` folds it away  | `o`, `enter`     |
-| `size`         | `page` (whole width), `half`, `card`          | `+` `-`          |
-| `rows`         | the height in lines the note asks for         |                  |
+| `size`         | the width, a share of the screen: `1/4` `1/3` `1/2` `2/3` `3/4` `1` | `+` `-`, drag the right edge |
+| `rows`         | the height in lines the note asks for; `-1` is as tall as its content, over what the note or its kind says | `shift+up` `shift+down`, `0`, drag the bottom edge |
 | `color`        | `yellow` `pink` `blue` `green` `purple` `orange` | `c`           |
 | `pin`          | `true` keeps the note first                   | `p`              |
 | `title`        | a name for a book, a log or a script          | `R`              |
+
+Two more root keys are for the desktop overlay (in progress, #10); the
+terminal ignores them. `view` is `terminal` (the default), `overlay` or
+`both`, and `style` is `doodle` or `neat`. A key at its default is not
+written.
 
 Next to `notes`, `theme` names the theme (`T` on the board), `language` the
 language of the screen (`stickypane language ko`; `auto` follows `LANG`),
@@ -345,6 +445,10 @@ linked README can be opened, sized and named although it has no front matter.
 The board never rewrites a note because you rearranged the screen, so it
 cannot collide with your agent writing that note. And you can commit the file
 to share a layout, or leave it out of git to keep it yours.
+
+The old size names are still read: `page` is `1`, `half` is `1/2`, and
+`card` is the narrowest share a 36-cell card fits in (`1/2` of 80 cells,
+`1/4` of 160). The board writes a fraction the next time the size changes.
 
 A Markdown note may still carry `open`, `size`, `rows`, `color` and `pin` in
 its front matter. That is the note's own proposal, which is how an agent says
@@ -387,7 +491,9 @@ the same thing without front matter.
 
 **Chart.** Each `label: number` line is a value; any other line is shown as
 text above the chart. `view` picks the drawing: `bar` (default), `spark` for
-a one-line trend, or `heat` for a calendar of days when the labels are dates.
+a line chart as wide as the pane (six rows; one line for a single value), or
+`heat` for a calendar of days when the labels are dates. Both grow with the
+pane, and most when the note is zoomed.
 
 ```markdown
 ---
@@ -508,7 +614,9 @@ file that does not fit its shape is still shown, never hidden.
 | `tab` / `shift+tab` | next, previous note     | `h` `l`                 | change column        |
 | `enter`             | open, then zoom         | `j` `k`                 | change card or item  |
 | `o`                 | open or close           | `H` `L`                 | move a card sideways |
-| `+` / `-`           | bigger, smaller         | `J` `K`                 | reorder a card       |
+| `+` / `-`           | wider, narrower         | `J` `K`                 | reorder a card       |
+| `shift+up` / `down` | taller, shorter (`pgup` `pgdn`: by five) | |              |
+| `0`                 | as tall as its content  |                         |                      |
 | `N`                 | jot a note              | `space`                 | tick an item         |
 | `a`                 | add by shape            | `n`                     | new card or item     |
 | `p` / `c` / `R`     | pin, color, rename      | **Open script**         |                      |
@@ -531,13 +639,18 @@ own, `j` `k` `g` `G` and the paging keys (`pgdn` `pgup`, `space` `b`,
 `ctrl+f` `ctrl+b`, `ctrl+d` `ctrl+u`) scroll it inside its pane; a note with
 a cursor scrolls to keep the cursor in view.
 
-**How the screen is shared.** Open notes are placed left to right by `size`
-(`page` takes a row, two `half` notes share one, `card`s sit three or more
-to a row) and each row is stretched to the full width. The rows then share
-the height: a short note takes what it needs and the long ones split the
-rest, so the screen is always full and never scrolls as a whole. A note gets
-at least ten lines; notes that would get less go to the next screen, shown
-as `2/3` under the title bar. A form uses `enter` itself,
+**How the screen is shared.** Open notes are placed left to right by `size`,
+a share of the screen's width (`1` takes a row, two `1/2` notes share one,
+four `1/4` notes sit side by side; on a narrow screen a share under 20 cells
+takes the next one up), and each row is stretched to the full width, its
+notes growing by their shares. The rows then share the height: a short note
+takes what it needs and the long ones split the rest, so the screen is
+always full and never scrolls as a whole. A note gets at least six lines, or
+all it needs if that is less; notes that would get less go to the next
+screen, shown as `2/3` under the title bar. `+` and `-` step a note through
+the shares and its border says the new one for a moment; `shift+up` and
+`shift+down` make it a line taller or shorter (`shift+pgup` and
+`shift+pgdn` five), and `0` lets it be as tall as its content again. A form uses `enter` itself,
 so `z` is the way to zoom into one.
 
 ## Notes that link
@@ -810,6 +923,9 @@ there.
 | double-click a note        | zoom; on a script, run it after a yes           |
 | click Yes or No on a question | answer it; a click anywhere else is no       |
 | wheel                      | scroll the note under the pointer               |
+| drag a note's right edge   | its width, snapped to the nearest share         |
+| drag a note's bottom edge  | its height in lines                             |
+| double-click a bottom edge | as tall as its content again                    |
 
 In tmux the mouse reaches stickypane only with `set -g mouse on`.
 
@@ -853,7 +969,7 @@ stickypane chart tokens set input 1,200      # tokens.md: input = 1,200
 stickypane chart tokens add input 800        # tokens.md: input = 2,000
 stickypane log worklog --time "tests passed" # worklog.md: 12 lines
 stickypane say chat "41/41 pass" --as claude # chat.md: 3 messages
-stickypane set plan open=true size=half      # to sticky.json
+stickypane set plan open=true size=1/2       # to sticky.json
 stickypane set plan title="The plan"         # to the note's front matter
 ```
 
@@ -881,9 +997,33 @@ without the plugin reads the same ones.
 claude mcp add stickypane -- stickypane mcp
 ```
 
+`stickypane bridge` is not for agents or for typing: it serves the board
+as JSON lines on standard input and output to the desktop overlay (in
+progress, #10). It ends, and stops the scripts it started, when its input
+closes.
+
 `write` and `write_note` replace the whole note, exactly as overwriting the
 file would. Read a note before rewriting it. A name may point into a book
 (`docs/intro`) or at a log (`build.log`).
+
+## What stickypane records on this machine
+
+Only if the folder `~/.stickypane` (or `$STICKYPANE_HOME`) already exists.
+stickypane never makes it: the desktop overlay does, so a person who only
+uses the terminal gets nothing in their home. Where it exists, stickypane
+writes two things there, to let the overlay list your boards:
+
+- `events/YYYY-MM-DD.jsonl`, one JSON line per event, `{v: 1, at, type, …}`:
+  the time, the type (`session.start`, `session.end`, `project.init`, `project.touch`), the
+  project's path, and for a session its process id and kind (`tui`, `mcp`,
+  `watch`, `bridge`); for `project.touch` the name of the command, at most
+  once a minute per project and command.
+- `run/<pid>.json` while a session lives: process id, project path, kind
+  and start time. It is removed when the session ends. `run/touch-*` files
+  are empty markers that keep the once-a-minute count.
+
+No note text, no arguments, no file contents. Nothing leaves your machine.
+Delete the folder to stop it.
 
 ## How edits are written
 

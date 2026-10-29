@@ -2,6 +2,8 @@
   <strong>English</strong> | <a href="README.ko.md">한국어</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh-CN.md">中文</a>
 </p>
 
+0.2.2: Avoid duplicate routing context on primed session resume; compact still re-injects ([CHANGELOG](CHANGELOG.md)).
+
 <p align="center">
   <img src="assets/hero.png" alt="Off the Wall: a pixel-art parrot on a terminal, quoting your past corrections" width="100%" />
 </p>
@@ -41,7 +43,7 @@ the next session. Off the Wall keeps those messages locally and, before an answe
 words up to 6 corrections recorded in the same working directory. It uses the `claude` or `codex` CLI you already run,
 so it needs no separate API key. That does not mean nothing leaves your machine; see [Privacy](#privacy).
 
-> This is the 0.2.0 unreleased safety candidate, with source published for review. It is not a stable release or a claim of live-product effectiveness. The numbers below come from one person's history with earlier versions; run the report on yours.
+> This is the unreleased 0.3.0 candidate, not a stable release. Measured so far: when the right past correction is quoted back, the agent follows personal preferences it cannot otherwise know far more often, in synthetic tests (see [Evidence](#evidence)). Not measured: a real user's long history, other models, or interactive use.
 
 > Beta note: the evidence is exploratory, from one person’s text replays, not a general guarantee of fewer corrections, lower costs or better task completion. The input classifier can still mistake automated host or plugin text for a user reply, and it is not a perfect detector of human-written input. Check source messages locally before sharing aggregate report counts, because the counts are model classifications that can be wrong.
 
@@ -88,11 +90,19 @@ node bin/otw.mjs report --host claude --claude-dir examples/claude-history --day
 node bin/otw.mjs report --seed
 ```
 
+`report` without `--seed` is an explicit provider-processing action and can run with `capture: false`. `--seed` requires capture enabled and unchanged storage/config through classification; if authorization is revoked, results are not saved.
+
 `--seed` rereads the history you chose and stores corrections with their provenance (project hash and input origin)
 where the host history records a working directory. Turns with no known working directory are not stored (the count of skipped turns is reported)
 and are not promoted automatically. See [Scope and legacy records](#scope-and-legacy-records).
 
-Requires Node 18 or newer. Historical: an earlier version was tried on macOS with Claude Code 2.1.301 and codex-cli 0.162.1. This 0.2.0 candidate has only had synthetic launcher and worker checks on macOS. It has not been run in a current live Claude Code or Codex session.
+Requires Node 18 or newer. Historical: an earlier version was tried on macOS with Claude Code 2.1.301 and codex-cli 0.162.1. A later Codex-only 0.2.0 live smoke record is linked under Evidence; Claude Code integration remains unverified in a live host. Live-host reload and effects of this 0.3.0 candidate remain unverified.
+
+### If nothing happens
+
+Codex does not run plugin hooks until you trust them in `/hooks` (or accept "Hooks need review" at startup and choose **Trust all**). `otw status` now shows the latest hook activity recorded in the local sessions directory and, when readable, the number of Codex trust entries. These diagnostics are not proof that hooks are currently enabled or that recall is effective. Claude Code integration remains unverified in a live host.
+
+Disabling the plugin in Codex config may not stop already-trusted hooks in `codex exec`; to stop OTW, set `{"recall":false,"routing":false,"capture":false}` in `~/.otw/config.json`.
 
 ## See what you correct most
 
@@ -125,7 +135,7 @@ publish anything. Nothing is posted for you.
 
 | Event | Claude Code | Codex |
 | :-- | :-- | :-- |
-| Each prompt | up to 6 past corrections quoted, each cut at 200 characters, only from the same normalized working directory (project key) and only if they pass the match guard. Fewer than 6, or none, is normal; there is no filler from other projects or just the latest | same |
+| Each prompt | by default, prompts of 20+ trimmed characters get up to 6 eligible same-project quotes regardless of similarity, ranked by similarity, with zero-overlap records excluded. Each quote is cut at 200 characters. Prompts under 20 characters keep the 0.18 similarity floor; `"recallWide": false` restores that floor for all prompts. There is no filler from other projects or just the latest; relevance is not guaranteed | same |
 | Each prompt | the previous answer and your new message are judged in a detached process; a correction is saved with the project hash and input origin | same |
 | Turn end | the end of the answer is kept for that judge | same |
 | Session start | the routing rule is added | the routing rule is added |
@@ -154,9 +164,9 @@ report. It shows the format only. It is not a real selection by relevance, worki
   stores new unscoped records, and there is no automatic "safe" promotion.
 - The input classifier leaves out text from an explicit meta or non-human source and known automation envelopes, and
   keeps ordinary Markdown and long English text. It is a filter, not a perfect detector of human-written input.
-- The match guard decides whether a stored correction is similar enough to the request to be quoted. Its current
-  threshold is an initial engineering setting. It is a filter, not a calibrated accuracy figure, and no precision or
-  recall is claimed for it.
+- By default, prompts of 20+ trimmed characters get up to 6 quotes regardless of similarity, ranked by similarity
+  and excluding zero overlap. The match guard uses the 0.18 floor for shorter prompts; `"recallWide": false` restores
+  that floor for all prompts. These are engineering settings, not calibrated accuracy or relevance guarantees.
 - There is no memory-management UI or delete command in this iteration. To clear local records, delete files under
   `~/.otw` yourself (see [Privacy](#privacy)). With `capture: false`, new prompt and answer excerpts are not kept
   (corrections already stored are not erased). `node bin/otw.mjs status` shows how many records are scoped and
@@ -185,6 +195,24 @@ need the conversation. Otherwise the whole history is copied into it, and on a d
 cached.
 
 ## Evidence
+
+### Latest measurements (2026-10-28): personal preferences the model cannot know
+Claude Code 2.1.311, haiku, headless, plugin 0.2.1/0.2.3 code, synthetic store and tasks written by other models than the experimenter, automatic scoring, plans fixed before the runs. 11 tasks where the default model rarely follows the preference (commit format, tooling, tone, date format, spelling...), 3 runs each:
+
+| | followed the preference |
+|---|---|
+| no recall | 1/33 |
+| Off the Wall, former narrow default | 9/33 |
+| Off the Wall, `recallWide` (default since 0.3.0) | 17/33 |
+
+- The result was seen twice on two different stores (16/33 vs 8/33, then 17/33 vs 9/33). Against no recall, task by task: wide recall was better in 8 tasks and worse in none (sign test p = 0.008); the former narrow default was better in 5 and worse in none (p = 0.063).
+- The mechanism is retrieval: when the right correction is among the quotes shown the model follows it far more often; when it is not found, nothing changes. Offline, the former narrow default finds the right correction for 8 of 20 tasks (13 of 20 when the same correction has been repeated); `recallWide` finds more.
+- It does not always work: in one of the 11 tasks (a strict one-sentence answer format) the shown correction was not followed in any run. A second task that also stayed at 0/3 was a scoring defect found afterwards (the scorer rejected answers wrapped in a code fence); re-read from the transcripts, 5 of 6 runs that saw the correction followed it against 0 of 3 that did not. That recount is post hoc and the reported numbers above are the original ones, so they understate the effect.
+- No benefit was found where the default model already avoids the mistake (14 of 16 tasks passed without any recall), and the quoted correction did not beat a plain list of rules at 150 records. Such a list stops fitting as a history grows; that case was not tested.
+- Not shown: effect on a real user's history, other models, interactive sessions or long-term correction rates; the corrections here are written by a model.
+- Records, scripts and data: [docs/](docs/) (experiments 1-5), including the weaknesses found by an independent review.
+
+- [Live Codex smoke record (macOS, 0.2.0 on codex-cli 0.162.1; Claude Code not tested)](docs/live-codex-smoke-2026-10-27.md). This supplied historical record is not a live verification of 0.2.2.
 
 <p align="center">
   <img src="assets/evidence.svg" alt="Wins, ties and losses against nothing attached: actual correction 36/3/0, Off the Wall 25/11/3, random rules 18/15/6, distilled rules 14/17/8" width="92%" />
@@ -235,11 +263,12 @@ mapping follows the same classes by analogy and has not been measured.
 
 ## Settings
 
-`~/.otw/config.json`, every key optional. What you set here wins over what is detected:
+`~/.otw/config.json` is optional; a missing file uses normal defaults. Valid partial settings keep the same schema, and explicit values override detection. `recall`, `recallWide`, `capture` and `routing` must be actual JSON booleans, not strings. One leading UTF-8 BOM is supported. An existing file that is unreadable, malformed, not an object, has wrong types, unknown keys or invalid nested values fails closed: all four flags become `false`, and manual `report` stops before reading history or calling a provider. `node bin/otw.mjs status` shows sanitized `config-invalid`, never raw config values or errors.
 
 ```json
 {
   "recall": true,
+  "recallWide": true,
   "capture": true,
   "routing": true,
   "judge": { "claude": "haiku", "codex": "gpt-6.1-sol" },
@@ -251,6 +280,16 @@ mapping follows the same classes by analogy and has not been measured.
 ```
 
 `node bin/otw.mjs status` shows what is stored.
+
+### Wide recall (default since 0.3.0)
+
+Wide recall is now on by default. For prompts of 20+ trimmed characters it ranks up to six distinct eligible same-project quotes by similarity regardless of the normal 0.18 floor, using a tiny positive floor and still excluding zero overlap. Project scoping, provenance and deduplication are unchanged; `recall: false` still disables recall. Set `"recallWide": false` in `~/.otw/config.json` to restore the old 0.18 floor. Prompts under 20 trimmed characters keep that narrow guard even in wide mode, so short follow-ups do not automatically receive six weak matches. Status adds `recall narrow` only when wide recall is off.
+
+Cost: up to 6 quotes of at most 200 characters each, roughly 300 tokens per prompt, on every prompt including unrelated ones (subject to the short-prompt guard and eligibility filters).
+
+Evidence: two synthetic runs on two stores, with 11 personal-preference tasks and 3 runs each in Claude Code with haiku, passed 16/33 and 17/33 with wide recall against 8/33 and 9/33 with the former narrow default. A harm check on 14 tasks with no applicable preference (42 runs per condition) passed 40/42 with no recall against 41/42 with wide recall; no task lost 2 or more of 3 runs. Output tokens were about 9 percent higher on average (2,026 vs 2,210), and seconds were 16.5 vs 17.8 (not significant, indicative only). All tests were synthetic, on one small model, headless; they do not establish benefit on real histories or other models. The short-prompt guard itself was not measured.
+
+[Experiment details](docs/preference-experiment-2026-10-28.md) · [Preference data](docs/data/exp4) · [Second-store data](docs/data/exp5) · [Harm-check data](docs/data/exp6)
 
 ## Privacy
 
@@ -272,8 +311,19 @@ large fail closed: project and pending state are not guessed from them. Deleting
 or Codex histories or any copies kept by a provider. There is no delete command yet. Sharing is manual: the Discussions
 link only prefills counts and kind names, and you review it before publishing.
 
+### Capture controls and deletion
+
+- An eligible foreground capture or explicit `report --seed` initializes `.capture-generation` and empty target files when needed. Jobs bind to that generation, the store root and corrections-file identities, and the config filesystem revision. They recheck before provider dispatch and before appending. Legacy queued jobs without this storage authorization are dropped; old corrections are preserved without silent migration. When config is absent, jobs also bind the root-directory revision; unrelated root-entry creation/deletion can conservatively invalidate older jobs.
+
+- Turning capture off, changing the config revision, deleting `corrections.jsonl`, or deleting/replacing the whole store prevents old results from being saved, including debug excerpts. Workers do not recreate directories. A new foreground human prompt/session can initialize fresh storage, but old results cannot enter it. Deleting the whole store also removes its config, so normal defaults can enable capture again on a new eligible prompt/session.
+
+- This revokes result storage, not the process or text already sent. An already-dispatched provider call may finish and consume usage. Manual file edits or truncation are not an erase/revocation command: delete the corrections file or store folder. Filesystem metadata/timestamp sensitivity varies; this is not a promise of atomic, instant cancellation against every external write.
+
+- On POSIX, new directories/files request `0700`/`0600`; existing permissions are not globally changed. Session writes use atomic temporary-file/rename replacement, not a guarantee of full concurrent-hook ordering or recovery from corrupt state. There is no per-memory UI or new clear/pause command.
+
 ## Limits
 
+- Native judge tool/context isolation remains unfixed; live-host reload and effects remain unverified.
 - Windows: CI covers Node 18/20/22 on Windows, Linux and macOS; see the current PR checks for results. Live Windows Claude Code/Codex sessions remain unverified. The two POSIX configured fake-provider tests are skipped on Windows.
 - The judge sometimes misses (Claude Haiku: precision 0.82, recall 0.72, on one user's labels). Historically, on Codex, live
   sessions of an earlier version installed from this repository caught 2 of 2 corrections with the default judge; the earlier gpt-6-luna

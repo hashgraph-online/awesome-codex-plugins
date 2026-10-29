@@ -58,7 +58,8 @@ found the way every command finds it, by walking up to the git root.
 Objects are space- or comma-separated. Each profile carries column profiles, PII
 flags recorded as (column, category, confidence) and never example values, ranked
 candidate keys, the likely grain, `key_evidence`, and data-quality warnings (for
-example an id unique on all but 110 rows, which will fan out on joins).
+example an id unique on all but 110 rows, which will fan out on joins, or a
+column named `window`, which DuckDB reserves and dbt must quote).
 
 - `candidate_keys` is ordered, tightest proven key first.
 - `key_evidence` holds one entry per combination considered, with its `status`
@@ -81,6 +82,17 @@ example an id unique on all but 110 rows, which will fan out on joins).
 - By default each dataset's `columns` is summarized to the ones carrying a
   finding, with the rest counted in `elided_column_count`; `--columns all`
   restores every column.
+- With `--use-project`, a dataset a model's declaration resolves to carries
+  `declaration`: the declared `grain` and `grain_status`, the `population` (its
+  `rule` and `filters`), and each declared column's `role`, `unit`, `additivity`
+  and `references`. This is how a new session recovers what a model means
+  without the conversation that declared it. The declared grain is reported as
+  `grain`; `candidate_keys` stays measured, and `grain_status` (`proven`,
+  `contradicted`, `unmeasured`, `missing_columns`, `unprofiled`) says how they
+  compare. It is read from the repository each run, never cached, so a cache hit
+  is annotated too. Declared columns are capped at 12 unless `--columns all`.
+  Population values and the rule are withheld in values-free mode and for a
+  filter on a PII-flagged column, named in `withheld_fields`.
 - A requested object whose cached profile is still fresh (same connector, schema
   unchanged, within `profile_freshness_hours`, default 24) is served from the
   cache (`cache_hit_count`) instead of re-scanned. `--refresh` forces a re-scan
@@ -92,12 +104,26 @@ Returns inferred and declared joins with confidences, plus notes on what the
 inference examined, so an empty list is meaningful. `--verify` measures each join
 with an aggregate overlap probe (orphan fraction, confidence adjusted).
 
+With a dev or replica schema in scope beside its sources, each foreign key keeps
+its join to the parent in its own schema: a built mart joins `stg_customers` and
+`dim_customers` beside it, not the raw `customers` table. The same join to a
+parent of that entity in another schema, and a join between copies of one entity
+across schemas (raw `customers` to `stg_customers`), is folded and counted in the
+notes. A raw join is kept only where
+nothing was built for that entity.
+
 A declared join has two sources: a `relationships` test, and (with
 `--use-project`) an entity two semantic models share, which the layer states
 outright with the key named per model. `declared_by` on an edge names that
 entity, `semantic_join_count` says how many came that way, and the notes call out
 the ones name-based inference did not find. That is the interesting set: a
 semantic layer routinely joins columns that share no name at all.
+
+A model's declaration is a third source under `--use-project`: a column declared
+with `references: <model>.<column>` is a declared join whose `declared_by` reads
+`declaration <model>.<column>`. When a `relationships` test states the same join,
+which is the usual case since a declared `references` renders one, it is one edge
+with both sources in `declaration_sources`.
 
 ## `explore map [--detail] [--verify] [--use-project] [--full]`
 
@@ -107,7 +133,9 @@ Writes or updates the `.dex/` cache and returns the map. Alongside the counts:
   best-ranked candidate key, notable columns (each with the role that earned it a
   place: `grain`, `key`, `join`, or a PII flag), and data-quality findings. With
   `--use-project`, each also carries `semantic_models`, the semantic models that
-  sit on that relation.
+  sit on that relation, and `declaration` where a model's declaration resolves
+  to it (see `explore profile` above; its columns are capped at 12 here in every
+  mode).
 - `data.edges`: the join edges, in the same shape `explore relationships`
   returns.
 

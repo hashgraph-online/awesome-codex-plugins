@@ -72,7 +72,7 @@ specialized Python API can inspect and disrupt the validated local
 | --- | --- |
 | Metadata inspection and stripping | `remove-ai-watermarks` |
 | Photograph AI-versus-camera classification | `remove-ai-watermarks[classify]` |
-| OpenAI/Google/unknown source-export classification | `remove-ai-watermarks[source-classify]` |
+| 10-provider source-export & model-version classification | `remove-ai-watermarks[source-classify]` |
 | Visible detection and removal | `remove-ai-watermarks[visible]` |
 | Visible video processing | `remove-ai-watermarks[video]` |
 | Video SynthID removal | `remove-ai-watermarks[video,diffusion]` |
@@ -110,14 +110,19 @@ remove-ai-watermarks classify image.png
 
 Guide: [photo pixel classification](docs/photo-classify.md).
 
-For a lightweight, abstaining OpenAI/Google/unknown source-export signal after
-metadata removal, use the separate Python API. It is not a SynthID detector:
+For a lightweight, abstaining 10-provider source-export and model-version
+signal after metadata removal (`classify_source` and CLI `classify-source`),
+use the separate API or CLI command. It is not a SynthID detector:
+
+```bash
+remove-ai-watermarks classify-source image.png
+```
 
 ```python
 import remove_ai_watermarks as raiw
 
 result = raiw.classify_source("image.png")
-print(result.label, result.reason)
+print(result.label, result.version_subfamily, result.reason)
 ```
 
 Install `remove-ai-watermarks[source-classify]`. Guide:

@@ -1,0 +1,44 @@
+{
+  "name": "aw1-circuit-breaker",
+  "interface": {
+    "displayName": "AW-1 Sovereign Circuit Breaker"
+  },
+  "plugins": [
+    {
+      "name": "aw1-breaker",
+      "version": "2.1.1",
+      "description": "Deterministic AST-level static policy enforcement for autonomous AI agent tool calls.",
+      "license": "Apache-2.0",
+      "websiteURL": "https://github.com/MvikManners/aw1-circuit-breaker",
+      "privacyPolicyURL": "https://github.com/MvikManners/aw1-circuit-breaker/blob/main/PRIVACY.md",
+      "termsOfServiceURL": "https://github.com/MvikManners/aw1-circuit-breaker/blob/main/TERMS.md",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "NONE"
+      },
+      "category": "Security"
+    },
+    {
+      "name": "aw1-circuit-breaker",
+      "version": "2.1.1",
+      "description": "Deterministic AST-level static policy enforcement for autonomous AI agent tool calls.",
+      "license": "Apache-2.0",
+      "websiteURL": "https://github.com/MvikManners/aw1-circuit-breaker",
+      "privacyPolicyURL": "https://github.com/MvikManners/aw1-circuit-breaker/blob/main/PRIVACY.md",
+      "termsOfServiceURL": "https://github.com/MvikManners/aw1-circuit-breaker/blob/main/TERMS.md",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "NONE"
+      },
+      "category": "Security"
+    }
+  ]
+}

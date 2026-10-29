@@ -1,0 +1,19 @@
+---
+name: multi-llm
+description: "Orchestrate plan reviews, task generation, implementation and code reviews across several LLM CLIs in parallel, or ask every model one free-text question about a plan. Use when the user says: review my plan, multi-llm, run a code review, generate tasks from a plan, implement this plan, ask the models about my plan."
+---
+
+# Multi-LLM
+
+Call the `multi_llm` tool with the argument text, converted to its four properties exactly
+as that tool's own argument descriptions specify. The tool is the only supported entry point
+on this host: it appends the flags this host requires, refuses the ones it owns, and
+supervises the run to a terminal result. Do not reach the dispatcher any other way. The tool
+runs outside the exec sandbox, and on the modes that apply changes it writes to the workspace. {LONG_CALL_RULE}
+
+Read the result's `exit` and `next` the way the dispatcher's own contract reads them; on `state: partial`, name the failed models and their reasons from `progress.models`; when the result carries `validation_counts` (a review phase's does), report them, and if `needs_human_decision` or `validation_failed` is non-zero point at `report.md` for those groups; they are decided later, when the suggestions are applied. A result without that key has no counts to report, so do not mention them. When the result carries a `notice` (`result.notice`, a finished run's: what it left out or could not check, such as items it did not apply or that nothing ran this repository's tests), report what it says, every part of it, as plain text. Put it above the closing section, and repeat nothing that section says.
+On this host `next` arrives as arguments for this same tool, not as a command: "running" it means calling the tool again with exactly those arguments, never a shell.
+{NEEDS_HUMAN_RULE} `user_next_step` is the phase after this one, for the user to type: never run it yourself; end your report with its `markdown`, copied as it is (its words and order, each command alone in its fenced block, each why and note plain text, the manual tasks it lists included, no caption of your own). Only that `markdown` says "Workflow complete.": never write those words yourself. Copy it word for word, never wrapped in a fenced block of your own (its commands are fenced already), and say none of it twice: its whys, notes, manual tasks and "Workflow complete." appear only in it, never above it. It is never a tool call, unlike `next`, which is one. At a stop, `resume_markdown` is the stop's options, already written: end your report with it the same way, in place of any list, recap or summary of the options or ways forward of your own.
+
+If that tool is not listed, the plugin's server did not start: `codex mcp get multi_llm`
+names the command it tried, and `python3 >= 3.9` must be on `PATH`.

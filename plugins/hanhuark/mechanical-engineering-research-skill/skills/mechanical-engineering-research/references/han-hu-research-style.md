@@ -67,6 +67,7 @@ Use [paper-writing-style.md](paper-writing-style.md) for paper structure, [liter
 - Place subfigure labels `(a)`, `(b)`, and so forth outside the plotting box near the upper-left corner, aligned just above the y-axis label and level with the top of the axes with a small cushion, when the journal layout permits.
 - Give every subplot a unique sequential label. Remove excessive whitespace and prevent labels, legends, annotations, and data from overlapping.
 - Write descriptive captions as continuous prose. Identify the quantities, conditions, subfigure mapping, visual encodings, uncertainty treatment, and data-reduction choices without using the word "panel."
+- Confine the caption to description. Move results, interpretation, and the justification for a plotting choice into the section that uses them, and do not restate values already printed on the figure. Keep the protocol, calibration, or scope statement that bounds what the figure supports.
 - Discuss figures with enough detail to identify both axes, the experimental or modeled conditions, the principal observation, and the physical interpretation.
 - Use publication-facing operating conditions rather than internal case IDs. Use author-year labels for individual literature datasets.
 - Do not use a generic corner uncertainty marker unless it is explicitly requested and its meaning is unambiguous.

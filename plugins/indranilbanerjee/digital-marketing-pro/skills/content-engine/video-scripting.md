@@ -13,6 +13,11 @@
 | Facebook In-Feed | 16:9, 1:1, or 4:5 | 240 minutes | 15-60 seconds | Yes (sound off) | SRT, auto-generated |
 | Facebook Stories | 9:16 | 20 seconds | 15 seconds | Yes (sound off) | Burned-in only |
 
+**YouTube rules that change a script or a plan** (YouTube Help, read 2026-10-28):
+- Shorts views count every start or replay, with no minimum watch time, since 2025-03-31; compare Shorts on "Engaged views" ([10059070](https://support.google.com/youtube/answer/10059070)).
+- Repetitive or mass-produced videos (templates, one script reskinned) are "inauthentic content", ineligible for monetisation since the 2025-07-15 policy update ([1311392](https://support.google.com/youtube/answer/1311392)).
+- Realistic AI-generated or altered footage must be disclosed at upload ("AI use"); YouTube may label files carrying C2PA metadata automatically ([14328491](https://support.google.com/youtube/answer/14328491)).
+
 ### Platform Behavioral Notes
 
 1. **YouTube** — Viewers actively choose to watch; longer attention spans. Optimize for watch time and session duration. Thumbnails and titles drive clicks; the first 30 seconds determine retention.

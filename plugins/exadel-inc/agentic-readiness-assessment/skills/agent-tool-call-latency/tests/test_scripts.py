@@ -277,11 +277,10 @@ class Adapters(unittest.TestCase):
 
 def pb_varint(n):
     out = b""
-    while True:
-        byte, n = n & 0x7F, n >> 7
-        out += bytes([byte | (0x80 if n else 0)])
-        if not n:
-            return out
+    while n > 0x7F:
+        out += bytes([n & 0x7F | 0x80])
+        n >>= 7
+    return out + bytes([n])
 
 
 def pb(num, value):
