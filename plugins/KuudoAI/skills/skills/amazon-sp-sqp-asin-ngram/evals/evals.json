@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-sp-sqp-asin-ngram",
-  "skill_version": "2.1.0",
+  "skill_version": "2.1.1",
   "evals": [
     {
       "id": 0,

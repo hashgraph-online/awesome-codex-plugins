@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-sp-repricing",
-  "skill_version": "0.2.0",
+  "skill_version": "0.2.1",
   "evals": [
     {
       "id": 0,

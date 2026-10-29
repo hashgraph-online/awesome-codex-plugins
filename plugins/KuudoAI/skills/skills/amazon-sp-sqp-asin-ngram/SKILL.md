@@ -10,7 +10,8 @@ description: >
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Optional deterministic rollup helper requires Python 3.10+ (standard library only). Supplied SQP and product evidence work without live tools.
 metadata:
-  version: "2.1.0"
+  display-name: "Amazon SP Search Query Performance ASIN N-grams"
+  version: "2.1.1"
 ---
 
 # Amazon SQP / ASIN theme decisions

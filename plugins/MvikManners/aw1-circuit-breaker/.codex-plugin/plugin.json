@@ -1,0 +1,19 @@
+{
+  "name": "aw1-circuit-breaker",
+  "version": "2.2.1",
+  "description": "Deterministic sub-0.2ms AST security circuit breaker and runtime agent containment engine.",
+  "author": {
+    "name": "Laveto Wisdom",
+    "url": "https://p20.laveto.net/wisdom"
+  },
+  "homepage": "https://p20.laveto.net/wisdom/",
+  "repository": "https://github.com/MvikManners/aw1-circuit-breaker",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "circuit-breaker",
+    "mcp",
+    "ast-unpacker",
+    "zero-ambient-authority"
+  ]
+}

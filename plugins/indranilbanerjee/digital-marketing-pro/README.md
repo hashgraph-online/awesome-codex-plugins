@@ -6,16 +6,16 @@ Run `/digital-marketing-pro:engagement` against each brand. Same 12-Part Strateg
 
 Open-source AI marketing plugin — **164 skills, 24 specialist agents, EU AI Act Article 50 ready, Cowork team-persistent**. Built for marketing agencies, in-house teams running 50–200 brands, and consultancies. Installs on **Claude Code** (CLI + IDE), **Anthropic Cowork**, **OpenAI Codex**, **Cursor 2.5+**, **GitHub Copilot CLI**, **Google Antigravity 2.0**, **Hermes Agent**, **OpenClaw**, and **Grok** + 35+ Agent Skills platforms. Created by [Indranil Banerjee](https://indranil.in) · [LinkedIn](https://www.linkedin.com/in/askneelnow/) · [X](https://x.com/askneelnow).
 
-[![Version](https://img.shields.io/badge/version-3.39.1-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.40.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/indranilbanerjee/digital-marketing-pro?style=flat&logo=github&color=yellow)](https://github.com/indranilbanerjee/digital-marketing-pro/stargazers)
-[![Tests](https://img.shields.io/badge/tests-882%2F882%20passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1027%2F1027%20passing-brightgreen.svg)](tests/)
 [![Platforms](https://img.shields.io/badge/platforms-9%20native%20%2B%2035%20Agent%20Skills-success.svg)](#works-on-40-agent-harnesses-via-the-agent-skills-open-standard)
 [![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Article%2050%20ready-darkred.svg)](skills/context-engine/compliance-rules.md)
 
 [![Built by Indranil "Neel" Banerjee — Neelverse Marketing Suite — Sponsor this project](docs/assets/author-banner.svg)](https://github.com/sponsors/indranilbanerjee)
 
-> 🆕 **Just shipped — v3.39.1 (October 27, 2026):** without a live model list, the model router now also checks the vendor deprecations record that ships with it, so a shut-down model is refused offline too, and a model list cut off at the page limit is never used short. [What's new](#whats-new) · [Changelog](CHANGELOG.md)
+> 🆕 **Just shipped — v3.40.0 (October 28, 2026):** an audit release. A connector key goes only to its own vendor; brands can't overwrite each other; the quality gate applies your brand's settings and blocks on critical issues; audits say how you'll know a recommendation worked; and the platform facts were re-read at their source. Some behaviours are stricter: see the [upgrade guide](UPGRADE-GUIDE.md). [What's new](#whats-new) · [Changelog](CHANGELOG.md)
 
 ```bash
 # Install — one command (Claude Code 2.1.292 or newer)
@@ -204,7 +204,7 @@ Other marketing plugins exist, including Anthropic's own marketing plugin and co
 | AEO / GEO | **A 6-platform audit, including Google AI Mode** |
 | Where it runs | **9 native hosts**: Claude Code, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes, OpenClaw, Grok |
 | Live-write safety | **Single-use approval record for writes it sends itself; MCP writes: typed yes + host prompt** |
-| Tests | **882 stdlib unittest** tests |
+| Tests | **1027 stdlib unittest** tests |
 | License | **MIT: no telemetry, no seats** |
 
 ---
@@ -221,7 +221,7 @@ Most AI marketing tools generate isolated outputs — a campaign brief here, an 
 | **Two-Views Model** (v1 unbiased + v2 client-validated) | You never lose the original market view when the client pushes back |
 | **Decision Matrix** — maps validation responses to re-runs | Stops over-running (wasted hours) and under-running (broken strategy) |
 | **Living Project Instruction File** — single source of truth per engagement | All skills read it first; corrections propagate automatically |
-| **EU AI Act Article 50 readiness** built in | C2PA provenance signing, deepfake disclosure, final Article 50 Guidelines + Code of Practice (10 June 2026) in compliance |
+| **EU AI Act Article 50 compliance** built in | C2PA provenance signing, deepfake disclosure, final Article 50 Guidelines + Code of Practice (10 June 2026) in compliance |
 | **6-platform AEO/GEO audit** (incl. Google AI Mode) | Treats AI Mode as a distinct surface from AI Overviews |
 
 ---
@@ -301,7 +301,7 @@ Output: HTTP calls for the 8 executable connectors (Slack, HubSpot, Klaviyo, Sen
 
 ---
 
-## Supported surfaces (v3.39.1)
+## Supported surfaces (v3.40.0)
 
 | Platform | Install command | Manifest path | Status |
 |---|---|---|---|
@@ -413,6 +413,10 @@ If you run into a platform-specific install snag, file a [GitHub issue](https://
 
 ## What's new
 
+### v3.40.0 — an audit release: safer keys and brands, a gate that blocks, facts re-read at source (October 28, 2026)
+
+Outside audits and customer-journey tests on an installed copy of 3.39.1 found real problems, and this release fixes them. A Mailchimp key with a crafted ending could send itself to another host; now every connector key goes only to its own vendor, and no key, whether a connector's or a model provider's, follows a redirect. Creating a brand that already existed replaced its profile with a blank one, and brand names in Hindi, Chinese or emoji all shared one folder; both are now refused or kept apart, and no file a skill writes can land outside its brand. The quality gate never applied a brand's own settings; it does now, and it blocks a draft with a critical issue. Audits end with how you'll know each recommendation worked (a metric, a direction and a date), and the continuous-improvement loop checks them when they fall due. `connector-status.py --action probe` proves a key works with one read-only request. AI-visibility numbers come with their formula, and social-platform limits now live in one sourced file. Platform facts were re-read at their source: Instagram's 5-hashtag cap, Google Ads' data-driven default, Privacy Sandbox's retirement, YouTube's Shorts and monetisation rules, New York's synthetic-performer law and more. Some behaviours are stricter, so read the [upgrade guide](UPGRADE-GUIDE.md) before you upgrade a wrapper. 1027 tests.
+
 ### v3.39.1 — offline checks read the deprecations record too (October 27, 2026)
 
 When the model router can't reach a provider's live list, it checks a model you name against what ships with the plugin. Until now that meant only the model registry, not the deprecations page record that sits right beside it. So, offline, a model the vendor's page retires could slip through: OpenAI's o3, which isn't in the registry, or a Google model switched off in June. A model whose requests Google now hands to a newer one got no word about it either. The router now checks both and acts on the stricter, saying which one it followed. A plugin calling Google through Vertex AI, which retires models on its own timetable, can say the record doesn't apply. A provider list cut off at the page limit is now refused rather than used short, since a short list would make a model look withdrawn. 882 tests.
@@ -420,10 +424,6 @@ When the model router can't reach a provider's live list, it checks a model you 
 ### v3.39.0 — the model router reaches Google (October 27, 2026)
 
 The model router can now pick Google models the same way it picks Anthropic and OpenAI ones: from the list of models your key can use, by job, never by name. Google's list gives no retirement or release dates, so the router reads them from Google's deprecations page, recorded with the date it was read. That page gives the earliest possible shutdown dates and marks the models already switched off, and the router follows both. It never picks a model whose requests Google now sends to a different model. Your Google key goes only in a request header, never in a web address where logs would keep it. No DMP feature uses Google yet; the router ships here as the master copy that [SocialForge](https://github.com/indranilbanerjee/socialforge) uses for its photo indexing. One fix for all providers: when a retiring model's replacement comes from a vendor's deprecations page, the warning now says so instead of calling it the router's choice. The two can differ. The registry's drift report now also keeps the Google key out of web addresses and reads every page of each provider's list; it used to stop at the first page and wrongly flag models listed further on. 868 tests.
-
-### v3.38.2 — deprecation checks offline too; public files point only at what a reader can open (October 27, 2026)
-
-When the model router couldn't reach a provider's live model list (offline mode, a timeout, provider trouble), it sent a model asked for by name without any lifecycle check, even one the shipped registry knows is retiring, such as Claude Sonnet 4.5 on 30 November. It now checks that registry instead: a deprecated model gets a warning with its date and replacement, and one past its shutdown is refused before anything is sent, just as with the live list. Separately, a few shipped files named the internal work sessions behind this plugin and pointed at private notes, including the model registry's "last updated by" field. They now link only to vendor pages and documents in this repository, and a test keeps it that way. 841 tests.
 
 Older releases are in [CHANGELOG.md](CHANGELOG.md).
 
@@ -524,17 +524,17 @@ Every skill answers to `/digital-marketing-pro:<skill-name>`. Five more are stan
 
 Every other skill works the same way — `:competitor-monitor`, `:churn-risk`, `:autopilot-status`, `:agency-dashboard`, `:aeo-audit`, `:geo-monitor`, `:c2pa-metadata`, `:client-onboarding`, `:journey-design` … see `/digital-marketing-pro:help` after install for the full list, or browse `skills/` in the repo.
 
-### 98 Python scripts (optional)
-Plugin works fully without Python — all marketing knowledge, frameworks, agent capabilities, and skills work out of the box via the 177 reference knowledge files.
+### 99 Python scripts (optional)
+Plugin works fully without Python — all marketing knowledge, frameworks, agent capabilities, and skills work out of the box via the 178 reference knowledge files.
 
 | Mode | Size | Adds |
 |---|---|---|
-| **Knowledge-only** (default) | 0 MB | All 164 skills + 24 agents + 177 reference files |
+| **Knowledge-only** (default) | 0 MB | All 164 skills + 24 agents + 178 reference files |
 | **Lite** (`python scripts/setup.py --install lite`) | ~15 MB | Brand-voice scoring, content quality scoring, readability analysis |
 | **Full** (`python -m pip install -r scripts/requirements.txt`, exact pins) | ~50 MB | Competitor scraping, QR generation, AI visibility API checking, GEO tracking, C2PA signing |
 
-### 14 HTTP MCP connectors
-Notion · Slack · Canva · Figma · HubSpot · Amplitude · Ahrefs · SimilarWeb · Klaviyo · Google Calendar · Gmail · Stripe · Asana · Webflow
+### 35 HTTP MCP connectors
+Ready-to-copy entries in `.mcp.json.connectors-reference`: first-party servers such as Notion · Slack · Canva · Figma · HubSpot · Amplitude · Ahrefs · SimilarWeb · Klaviyo · Google Calendar · Gmail · Stripe · Asana · Webflow, plus official ad-platform, image and video, and aggregator MCPs. `.mcp.json.example` adds 3 vendor npx entries.
 
 These are an **opt-in catalog** — no `.mcp.json` ships (it is gitignored), so nothing auto-connects; enable only the ones you need. All HTTP, all Cowork-compatible. For services without first-party HTTP MCPs (Google Sheets, Drive, Salesforce, etc.), see `.mcp.json.connectors-reference` for **Pipedream / Composio / Zapier / Make.com** aggregator paths.
 
@@ -554,7 +554,7 @@ Two user-team complaints from the v3.7.5 cycle drove this release: "dm pro is ta
 /digital-marketing-pro:resume engagement <run-id>          # pick a specific run
 ```
 
-**Fix 2 — Visible output folder.** Every artifact a workflow produces is now copied to TWO locations: the internal tracking copy under `~/.claude-marketing/brands/{brand}/output/{workflow}/...` (system-of-record), and a user-visible published copy under `~/Documents/DigitalMarketingPro/{brand}/{workflow}/{YYYY-MM}/{filename}` (visible in Windows Explorer / macOS Finder by default). Override the visible root with `DIGITAL_MARKETING_PRO_PUBLISH_DIR=/path` (e.g. a Dropbox share for the team). Reveal the folder any time with:
+**Fix 2 — Visible output folder.** Every artifact a workflow produces is now copied to TWO locations: the internal tracking copy under `~/.claude-marketing/brands/{brand}/output/{workflow}/...` (system-of-record), and a user-visible published copy under `~/Documents/DigitalMarketingPro/{brand}/{workflow}/{YYYY-MM}/{filename}` (visible in Windows Explorer / macOS Finder by default; on Windows the script uses the Documents folder Explorer shows, including one OneDrive has moved). Override the visible root with `DIGITAL_MARKETING_PRO_PUBLISH_DIR=/path` (e.g. a Dropbox share for the team). Reveal the folder any time with:
 
 ```
 /digital-marketing-pro:output-folder                       # opens ~/Documents/DigitalMarketingPro/{brand}/
@@ -585,7 +585,7 @@ Check what's live in your environment any time:
 
 **Test coverage:** the resolver's action layer ships tests in `tests/test_connector_resolver.py`. A fuller 27-scenario development harness (14 actions × unconfigured / configured / local-execution variants) was used while building this out, but it is a dev tool and is not shipped in the repo.
 
-**Implementation:** `scripts/_connector_registry.py` (catalog of 33 connectors, 11 categories, `is_connector_configured()` probe) + `scripts/connector_resolver.py` (`ACTION_SPECS` map + per-action manifest builders + local executors) + `scripts/action-doctor.py` (the doctor command's underlying script).
+**Implementation:** `scripts/_connector_registry.py` (catalog of 36 connectors, 11 categories, `is_connector_configured()` probe) + `scripts/connector_resolver.py` (`ACTION_SPECS` map + per-action manifest builders + local executors) + `scripts/action-doctor.py` (the doctor command's underlying script).
 
 ### v3.7.11 — actions can actually fire HTTP requests from Python
 
@@ -640,15 +640,15 @@ DM Pro carries jurisdiction-specific compliance rules that auto-apply when a bra
 
 🇪🇺 EU (GDPR + AI Act Article 50) · 🇺🇸 US Federal (CAN-SPAM) · 🇺🇸 California (CCPA/CPRA) · US 20+ state privacy laws · 🇨🇦 Canada (CASL + PIPEDA) · 🇧🇷 Brazil (LGPD) · 🇬🇧 UK (UK GDPR + PECR) · 🇦🇺 Australia (Privacy Act + Spam Act) · 🇸🇬 Singapore (PDPA) · 🇨🇳 China (PIPL) · 🇮🇳 India (DPDPA) · 🇯🇵 Japan (APPI) · 🇰🇷 South Korea (PIPA) · 🇸🇦 Saudi Arabia (PDPL) · 🇦🇪 UAE (Federal Decree-Law No. 45) · 🇹🇭 Thailand (PDPA)
 
-**EU AI Act Article 50 readiness (applicable 2 August 2026):**
+**EU AI Act Article 50 (has applied since 2 August 2026; generative systems that existed before then have until 2 December 2026 to mark their output under Article 50(2)):**
 - C2PA content-provenance signing via `/digital-marketing-pro:c2pa-metadata` (end-to-end tested against c2pa-python 0.32 — 75-byte test PNG → 42,818-byte signed PNG with `manifest_embedded_and_verified=true`)
 - Pre-publish gate (`/digital-marketing-pro:check`) treats missing C2PA on AI-flagged assets in EU campaigns as CRITICAL → BLOCKED
 - Final Article 50 Guidelines + final Code of Practice on Transparency of AI-Generated Content (10 June 2026) in `compliance-rules.md` §1.1b.i with six-row clarification table + five-point action list
 - Production cert guide at `docs/c2pa-production-cert-guide.md` covers the four CAI-recognised authorities (Adobe Content Credentials, Truepic, Numbers Protocol, Microsoft Azure Confidential Ledger)
 
-**Other May 2026 regulatory updates baked in:**
-- NY synthetic-performer disclosure law (live June 2026, $1K–$5K per violation, $10K repeat) — applies to synthetic influencers + AI endorsements
-- FTC May 2026 endorsement guidance — synthetic influencers, AI testimonials, AI-edited creator content
+**Other regulatory updates baked in:**
+- NY synthetic-performer disclosure law S.8420-A (in force 2026-06-09; $1,000 for a first violation, $5,000 after) — ads that use AI-generated performers
+- FTC Consumer Reviews and Testimonials Rule (in force 2024-10-21) and Endorsement Guides — fake reviews and testimonials, AI-generated ones included
 - CJEU March 2026 ruling — pseudonymized cookie IDs are personal data when re-identification is feasible
 - CCPA ADMT regulations (in effect 1 Jan 2026; ADMT compliance from 1 Jan 2027) + AI-derived sensitive data classification
 - DPDP Phase II preparation — consent manager registration opens Nov 2026
@@ -658,13 +658,13 @@ DM Pro carries jurisdiction-specific compliance rules that auto-apply when a bra
 ## AEO / GEO — what changed in 2026
 
 The search landscape pivoted hard in 2025–2026:
-- Google AI Overviews appear on ~55% of all Google searches (Seer Interactive, Sept 2025); organic CTR on AI Overview queries dropped ~61% (1.76% → 0.61%); ~58% of Google searches are now zero-click
-- **Google AI Mode** became the default conversational search experience for opted-in users at I/O 2026 (19 May 2026), backed by Gemini 3.5 Flash — ~1B MAUs
-- ChatGPT search reaches ~883M MAU; Perplexity heavily skews citations to Reddit (47% of factual cites); Wikipedia drives 48% of ChatGPT citations
+- AI Overviews and lower click-through on the queries that show them: the figures come from vendor studies (for example Seer Interactive, September 2025) and differ by study. Google's own statement is that clicks from AI Overviews are "higher quality".
+- **Google AI Mode** has more than one billion monthly users and runs on Gemini 3.5 Flash by default; AI Overviews remain the default search surface (Google, I/O 2026, 2026-05-19).
+- **ChatGPT**: more than 1.2 billion people use it each week (OpenAI, October 2026). Which sites the engines cite (Reddit, Wikipedia) comes from vendor studies and varies by study.
 
 DM Pro's AEO/GEO skills (`/digital-marketing-pro:aeo-audit`, `:geo-monitor`, `:entity-audit`) reflect this:
 - **6-platform audit standard** — ChatGPT, Perplexity, Google AI Mode, Google AI Overviews, Gemini, Microsoft Copilot (was 5 — AI Mode added May 2026)
-- Schema strategy refresh — Google's March 2026 core update demoted FAQ/Review/HowTo schema on non-primary pages. Skills emphasise entity-rich JSON-LD (Article + Organization + Person + Product) and offer an optional **LLMs.txt** companion (Google states it is not required for AI-features eligibility)
+- Schema strategy — Google: "Structured data isn't required for generative AI search, and there's no special schema.org markup you need to add" (AI optimization guide, updated 2026-07-10). Skills keep structured data that matches the visible text (Article, Organization, Person, Product) for the rich results it still earns. Google Search ignores llms.txt; the skills add one only when a client insists, as harmless
 - Citation tracking across all 6 surfaces, with Profound / Otterly / Conductor AgentStack integration paths in the connectors layer
 - **Share of AI Voice** as a first-class metric in `/digital-marketing-pro:performance-report`
 
@@ -672,10 +672,10 @@ DM Pro's AEO/GEO skills (`/digital-marketing-pro:aeo-audit`, `:geo-monitor`, `:e
 
 ## Channel guidance — 2026 platform changes built in
 
-- **LinkedIn (March 2026 algorithm shift):** external links and engagement bait penalized ~60%. New **Depth Score** measures dwell time. Followers no longer guarantee reach. Skills optimize for relevance and Depth Score.
-- **Email:** Apple MPP affects ~64% of B2C opens — open rate is functionally dead as a primary KPI. **DMARC + RFC 8058 one-click POST unsubscribe** mandatory; non-compliant bulk mail to Gmail/Yahoo/Microsoft gets permanent 550 rejections. Spam threshold tightened to <0.10%.
-- **TikTok (post Jan 22 2026 USDS Joint Venture closing):** US data + algorithm under USDS LLC; ByteDance retains <20%. AI-generated creators require disclosure label; AI content excluded from Creator Rewards Program; daily shoppable-post limits effective May 11 2026.
-- **Meta Advantage+ Leads** (global as of May 2026), **Threads ads** (global, image-only), **brand-safety inventory tiers** (Expanded/Moderate/Limited — Limited costs ~30% reach).
+- **LinkedIn:** links in the post body may reduce reach, so test per account; native documents and video travel further. LinkedIn has published no ranking statement with a number, so the skills quote none.
+- **Email:** Apple Mail Privacy Protection inflates opens, so the skills score clicks, conversions and complaints (one sourced figure in `skills/context-engine/platform-specs.md`). Gmail and Yahoo require authentication (DMARC at least p=none), one-click unsubscribe for bulk senders, and a spam rate under 0.3% (0.1% recommended) (Gmail sender guidelines, support.google.com/a/answer/81126, and Yahoo's sender best practices, senders.yahooinc.com, read 2026-10-27); Gmail has ramped up enforcement since November 2025, with temporary and then permanent rejections. Outlook.com sends non-compliant mail from senders of over 5,000 a day to junk since 5 May 2025, with rejection announced. Honor unsubscribes within 2 days.
+- **TikTok (post Jan 22 2026 USDS Joint Venture closing):** US data + algorithm under USDS LLC; ByteDance keeps a minority stake (reported). AI-generated creators require disclosure label; AI content excluded from Creator Rewards Program; daily shoppable-post limits effective May 11 2026.
+- **Meta Advantage+ Leads** (global as of May 2026), **Threads ads** (global; image, carousel, video, catalog and app ads), **brand-safety inventory tiers** (Expanded/Moderate/Limited: Limited trades reach for the strictest filter).
 - **WhatsApp** per-message pricing (since 1 July 2025) — India marketing template ≈ USD 0.0118 per message; 72-hour free service window from CTWA ads or Page CTAs.
 - **Third-party cookies — deprecation cancelled.** First-party data is the strategic priority. The `attribution-model` skill defaults to first-party + MMM + incrementality stack.
 - **Sora dependency note:** OpenAI consumer Sora app discontinued April 26 2026; Sora API September 24 2026. AI creative briefs default to **Veo 3.1, Kling v3.0 Pro, Runway Gen-4, Gemini Omni**.
@@ -727,7 +727,7 @@ Yes. Each brand has its own `~/.claude-marketing/brands/<brand-slug>/` directory
 Skip to `/digital-marketing-pro:campaign-plan`. Every individual surface (campaign / SEO / content / competitor / email / report) is independently runnable. The full engagement is the canonical path, not the only path.
 
 **Q: Will this work on Codex / Cursor / Copilot CLI / Antigravity?**
-Yes — verified-real native manifests ship for all 9 surfaces (CC, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw, Grok). See [Supported surfaces](#supported-surfaces-v3391) above for per-platform install commands.
+Yes — verified-real native manifests ship for all 9 surfaces (CC, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw, Grok). See [Supported surfaces](#supported-surfaces-v3400) above for per-platform install commands.
 
 **Q: I run my team on Anthropic Cowork. Does brand state persist between sessions?**
 Yes — but you need to run `/digital-marketing-pro:cowork-setup` once per team first (v3.12.0). Cowork's per-session filesystem is ephemeral, and `${CLAUDE_PLUGIN_DATA}` is too ([open issue #51398](https://github.com/anthropics/claude-code/issues/51398)). The setup wizard routes brand profiles + plans + reports through a Google Drive MCP so everything survives across sessions and is shared across the team. Multi-team isolation via per-team folder names.
@@ -800,7 +800,7 @@ Use the direct repo form: `grok plugin install indranilbanerjee/digital-marketin
 ### General (any platform)
 
 **"Tests in `tests/` fail when I `git clone` locally"**
-Run `python tests/run_all.py` from the repo root. All 882 tests are stdlib-only — no `pip install` needed. If they fail, the most likely cause is a Python version mismatch (DMP supports Python 3.10+; `scripts/setup.py` recommends 3.11 or newer, and the floor moves to 3.11 once Claude's Cowork environment does) or a clone that omitted some `skills/` subdirectories. Try `git clone --depth=1` again.
+Run `python tests/run_all.py` from the repo root. All 1027 tests are stdlib-only — no `pip install` needed. If they fail, the most likely cause is a Python version mismatch (DMP supports Python 3.10+; `scripts/setup.py` recommends 3.11 or newer, and the floor moves to 3.11 once Claude's Cowork environment does) or a clone that omitted some `skills/` subdirectories. Try `git clone --depth=1` again.
 
 **"`/digital-marketing-pro:doctor` shows my action as stub_unconfigured"**
 That action needs an MCP connector configured. Run `python scripts/connector-status.py --action setup-guide --name <connector-name>` for the exact setup snippet. Add it to your `.mcp.json` under `mcpServers`, restart your agent, and the action becomes `manifest_ready`. See [Connector-aware action resolver](#connector-aware-action-resolver) for the full readiness model.

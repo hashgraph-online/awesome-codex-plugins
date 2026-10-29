@@ -363,6 +363,20 @@
       "icon": "./plugins/minsu0707/auto-pilot/assets/auto-pilot.png"
     },
     {
+      "name": "aw1-circuit-breaker",
+      "displayName": "AW-1 Circuit Breaker",
+      "source": {
+        "source": "local",
+        "path": "./plugins/MvikManners/aw1-circuit-breaker"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Application-layer AST and argument policy gate for agent tool calls that checks configured rules before Python execution; complements, but does not replace, operating-system sandbox isolation."
+    },
+    {
       "name": "babok_analyst",
       "displayName": "BABOK Analyst",
       "source": {
@@ -1564,6 +1578,21 @@
       "description": "Enforces a strict 16-step data-first ML workflow — data inspection, EDA, and problem definition before any model training — with explicit user-permission gates, marimo notebooks, and matplotlib figures at every step; also works in Claude Code and Kimi."
     },
     {
+      "name": "multi-llm",
+      "displayName": "Multi-LLM",
+      "source": {
+        "source": "local",
+        "path": "./plugins/beastlabai/multi-llm-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Parallel plan, code, and commit reviews across 19 coding CLIs, with validated findings, task generation, implementation, and automated revision.",
+      "icon": "./plugins/beastlabai/multi-llm-plugin/assets/icon.svg"
+    },
+    {
       "name": "nightshift",
       "displayName": "Nightshift",
       "source": {
@@ -2124,6 +2153,21 @@
       },
       "category": "Development & Workflow",
       "description": "UI/UX design plugin for AI coding agents with product-flow routing, platform-native interface guidance, asset planning, and shipped-reference analysis before code."
+    },
+    {
+      "name": "steinwall",
+      "displayName": "SteinWall",
+      "source": {
+        "source": "local",
+        "path": "./plugins/maxxstm/steinwall"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Cost brake, action guard, loop rescue and extension scanner that run locally as Codex hooks.",
+      "icon": "./plugins/maxxstm/steinwall/assets/icon.svg"
     },
     {
       "name": "board",
@@ -2712,7 +2756,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Remote MCP server connecting Codex, Claude Code, Cursor, ChatGPT and other MCP clients to 1,000+ apps and 400+ Skills through one reusable setup, with Vault-protected credentials and Audit logging. Website: https://aident.ai",
+      "description": "Remote MCP server connecting Codex, Claude Code, Cursor, ChatGPT and other MCP clients to their connected apps and 400+ Skills through one reusable setup, with Vault-protected credentials and Audit logging. Website: https://aident.ai",
       "icon": "./plugins/Aident-AI/aident-skill/assets/aident-icon.png"
     },
     {
@@ -3336,6 +3380,21 @@
       "category": "Tools & Integrations",
       "description": "Search the coding sessions already on your disk — Codex, Claude Code, Cursor, opencode and nineteen more — including work from before it was installed, indexed locally with no model in the loop.",
       "icon": "./plugins/vshulcz/deja-vu/assets/icon.svg"
+    },
+    {
+      "name": "design-os-3d-blender",
+      "displayName": "DESIGN:OS 3D Blender",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jangtrinh/design-os-3d-blender"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Source-available skills and MCP server that let Codex model, render and verify mechanical parts natively in Blender 5.2 LTS, licensed under PolyForm Shield.",
+      "icon": "./plugins/jangtrinh/design-os-3d-blender/docs/images/composer-icon.svg"
     },
     {
       "name": "dex",
@@ -4858,6 +4917,21 @@
       "category": "Tools & Integrations",
       "description": "Build and deploy serverless TypeScript on Val Town from Codex — hosted MCP server plus skills for HTTP vals, cron, SQLite, email, OAuth, and React UI.",
       "icon": "./plugins/val-town/plugins/assets/icon.svg"
+    },
+    {
+      "name": "varg",
+      "displayName": "varg",
+      "source": {
+        "source": "local",
+        "path": "./plugins/vargHQ/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "How to make any AI video: find the skill, the options to show and the steps (no key needed), with the keyless varg how to MCP and the varg MCP for video, image, voice and music generation.",
+      "icon": "./plugins/vargHQ/skills/assets/varg-512.png"
     },
     {
       "name": "vidseeds",

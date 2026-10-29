@@ -1,0 +1,32 @@
+{
+  "id": "paper-simplex-noise-spots",
+  "label": "Spots (Paper SimplexNoise)",
+  "shader": "SimplexNoise",
+  "page": "https://shaders.paper.design/simplex-noise",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Spots\" preset for SimplexNoise, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.6,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#ff7b00",
+      "#f9ffeb",
+      "#320d82"
+    ],
+    "stepsPerColor": 1,
+    "softness": 0
+  }
+}

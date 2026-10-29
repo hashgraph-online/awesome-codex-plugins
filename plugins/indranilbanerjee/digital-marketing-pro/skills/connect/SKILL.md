@@ -69,7 +69,8 @@ The user must provide (or will be prompted for):
 
 5. **Verify after setup** (for npx connectors): After the user confirms they've set up credentials, offer to verify connectivity:
    - Check that all required environment variables are set and non-empty
-   - Suggest running a read-only test via the connector to confirm it works
+   - Prove it with one read: `python "${CLAUDE_PLUGIN_ROOT}/scripts/connector-status.py" --action probe --name <connector>`. It makes a single read-only GET with the key (Slack auth.test, one HubSpot contact, the Klaviyo account, the SendGrid key's scopes, the Brevo account, Customer.io campaigns, Mailchimp ping, Ahrefs usage limits), never writes, and returns only the HTTP status and a count. Ask the user before running it: it sends their key to the vendor.
+   - A connector that runs through the host's MCP connection or OAuth (Google Ads, Meta, LinkedIn, TikTok and the rest) returns `not_probeable`: say so, and ask the user to run one read in the MCP tool, instead of calling it connected
    - Report success or diagnose failure with specific guidance
 
 ## Output

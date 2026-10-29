@@ -1,0 +1,35 @@
+{
+  "id": "paper-metaballs-default",
+  "label": "Default (Paper Metaballs)",
+  "shader": "Metaballs",
+  "page": "https://shaders.paper.design/metaballs",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for Metaballs, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colors": [
+      "#6e33cc",
+      "#ff5500",
+      "#ffc105",
+      "#ffc800",
+      "#f585ff"
+    ],
+    "count": 10,
+    "size": 0.83
+  }
+}

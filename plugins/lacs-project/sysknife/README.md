@@ -159,6 +159,13 @@ What this does:
    release, set `SYSKNIFE_PINNED_SHA256SUMS=/path/to/sums`; see
    [SECURITY.md](SECURITY.md#release-artefact-trust).
 
+To check where a release binary was built, download it from the release page and
+run `gh attestation verify sysknife-vX.Y.Z-linux-x86_64 --repo lacs-project/sysknife`.
+It succeeds only if the file matches a provenance statement GitHub signed for a
+build of this repository by `release.yml`. Each release also ships that
+provenance as `sysknife-vX.Y.Z-linux-<arch>.intoto.jsonl`, so the same check works
+with `--bundle`; see [Verify the published release](docs/release.md#verify-the-published-release).
+
 | Client          | Files written                                        |
 |-----------------|------------------------------------------------------|
 | **Claude Code** | `.mcp.json` + `.claude/hookify.*.local.md`           |
@@ -295,11 +302,22 @@ sysknife-brain   →   approval gate    →   sysknife-daemon
                      takes y/n          every action
 ```
 
-The approval gate is a surface, not a component. In the maintained paths it is
-`sysknife approve <transaction-id>` in your terminal — for the CLI and for MCP
-alike, which is why an AI client cannot approve its own plan. The paused Tauri
-GUI (`sysknife-shell`) is a third implementation of that same gate, not a step
-the other two route through.
+The approval gate is a surface, not a component, and it depends on how you
+reach SysKnife:
+
+- **MCP:** a plan from an AI client needs a receipt from
+  `sysknife approve <transaction-id>`, typed in your terminal, so the client
+  cannot approve its own plan.
+- **The standalone CLI:** `sysknife "<intent>"` asks about each step at its own
+  prompt, or approves up to `--max-risk` under `--yes`. It never calls
+  `sysknife approve`.
+- **An agent with a shell on your account** can drive the CLI by itself. In that
+  case the daemon's role limits
+  ([SECURITY.md, layer 3](SECURITY.md#layer-3--role-based-authorization-sysknife-daemon))
+  are the boundary that holds.
+
+The paused Tauri GUI (`sysknife-shell`) is a third implementation of the gate,
+not a step the other two route through.
 
 1. You type a natural-language request.
 2. The brain proposes a plan — each step is a **typed action** with

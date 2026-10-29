@@ -1,0 +1,37 @@
+{
+  "id": "paper-warp-passion",
+  "label": "Passion (Paper Warp)",
+  "shader": "Warp",
+  "page": "https://shaders.paper.design/warp",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Passion\" preset for Warp, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 3,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 2.5,
+    "rotation": 1.35,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#3b1515",
+      "#954751",
+      "#ffc085"
+    ],
+    "proportion": 0.5,
+    "softness": 1,
+    "distortion": 0.09,
+    "swirl": 0.9,
+    "swirlIterations": 6,
+    "shapeScale": 0.25,
+    "shape": "checks"
+  }
+}

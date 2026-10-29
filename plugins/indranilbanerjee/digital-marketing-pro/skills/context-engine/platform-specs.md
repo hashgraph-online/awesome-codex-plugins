@@ -1,7 +1,7 @@
 # Platform Specifications Reference
 
 > Last updated: 2026-02-11
-> This file is consumed by an AI agent to validate marketing content against platform requirements. All specs reflect current 2026 platform standards.
+> This file is consumed by an AI agent to validate marketing content against platform requirements. A value tagged `(platform_specs.json: platform.field)` comes from `scripts/platform_specs.json`, where each limit carries its source, the date it was checked and a review date, and the social scripts read the same file. Untagged values are carried from earlier releases and were last reviewed as a whole on the date above: check the vendor's page before relying on one for a hard commitment.
 
 ---
 
@@ -19,8 +19,9 @@
 | Square image | 1080 x 1080 px (1:1) |
 | Portrait image | 1080 x 1350 px (4:5) |
 | Landscape image | 1080 x 566 px (1.91:1) |
+| Profile grid crop | 3:4. Since January 2025 profile-grid thumbnails crop to 3:4 (reported: trade press quoting Instagram's head; no Instagram help page found). Post 4:5 or 3:4 and keep the subject inside the 3:4 centre |
 | Max file size (image) | 30 MB |
-| Hashtag limit | 30 max, 3-5 recommended |
+| Hashtag limit | 5 (platform_specs.json: instagram.hashtags_cap); 3-5 recommended; keep them in the caption |
 | Algorithm priority signals | Saves, shares, comments, watch time, relationship closeness |
 | Best posting times | Tue-Thu 9-11 AM, Wed 11 AM, Fri 10-11 AM (local) |
 
@@ -28,14 +29,14 @@
 
 | Spec | Value |
 |---|---|
-| Duration | 15s, 30s, 60s, 90s (up to 3 min with some accounts) |
+| Duration | Up to 20 min (platform_specs.json: instagram.reel_max_seconds); keep to 3 min (platform_specs.json: instagram.reel_recommended_max_seconds) or less to be recommended to new audiences |
 | Aspect ratio | 9:16 (vertical) |
 | Resolution | 1080 x 1920 px |
 | Video format | MP4, MOV |
 | Max file size | 4 GB |
 | Cover photo | 1080 x 1920 px |
 | Caption limit | 2,200 characters |
-| Hashtag limit | 30 max, 3-8 recommended |
+| Hashtag limit | 5 (platform_specs.json: instagram.hashtags_cap); 3-5 recommended |
 | Algorithm priority signals | Watch-through rate, replays, shares, audio usage, originality |
 | Best posting times | Mon-Thu 9 AM, 12 PM, 7-8 PM (local) |
 
@@ -77,7 +78,7 @@
 | Resolution | 1080 x 1920 px minimum |
 | Video format | MP4, MOV, WebM |
 | Max file size | 10 GB (desktop), 287 MB (mobile) |
-| Caption limit | 4,000 characters |
+| Caption limit | 2200 characters (platform_specs.json: tiktok.caption_chars); sources disagree (2,200 vs 4,000), so 2,200 fits either until an in-app check (owner to check in the app) |
 | Hashtag limit | No hard limit; 3-5 relevant hashtags recommended |
 | Photo mode | Up to 35 images per carousel post |
 | Algorithm priority signals | Completion rate, rewatch rate, shares, comments, profile visits after viewing, content diversity score |
@@ -92,11 +93,11 @@
 
 | Spec | Value |
 |---|---|
-| Character limit | 3,000 |
+| Character limit | 3,000 (platform_specs.json: linkedin.post_chars) |
 | Optimal length | 800-1,200 characters for engagement |
 | Image dimensions | 1200 x 627 px (landscape), 1080 x 1080 px (square), 1080 x 1350 px (portrait) |
 | Image format | JPEG, PNG, GIF |
-| Max image file size | 8 MB |
+| Max image file size | 5 MB (platform_specs.json: linkedin.image_max_mb) for a photo in a post |
 | Video duration | 3 seconds to 10 minutes |
 | Video format | MP4 |
 | Max video file size | 5 GB |
@@ -111,7 +112,7 @@
 | Spec | Value |
 |---|---|
 | Headline limit | 100 characters |
-| Body limit | 125,000 characters |
+| Body limit | 125,000 characters (platform_specs.json: linkedin.article_chars) |
 | Cover image | 1920 x 1080 px recommended |
 | Supports | Rich text, images, embeds, links |
 | Algorithm priority signals | Read-through rate, comments, external shares |
@@ -124,7 +125,7 @@
 | Description limit | 250 characters |
 | Logo image | 300 x 300 px |
 | Cover image | 1920 x 1080 px |
-| Body limit | Same as Article (125,000 characters) |
+| Body limit | Same as Article: 125,000 characters (platform_specs.json: linkedin.article_chars) |
 | Frequency options | Daily, weekly, biweekly, monthly |
 | Algorithm priority signals | Subscriber growth rate, open rate, engagement rate |
 
@@ -134,11 +135,11 @@
 
 | Spec | Value |
 |---|---|
-| Character limit (free) | 280 |
+| Character limit (free) | 280 (platform_specs.json: twitter.post_chars) |
 | Character limit (Premium) | 25,000 |
 | Optimal tweet length | 71-100 characters for engagement |
 | Image dimensions | 1600 x 900 px (16:9) recommended |
-| Image formats | JPEG, PNG, GIF, WebP |
+| Image formats | GIF, JPEG, PNG; X accepts no other format |
 | Max images per tweet | 4 |
 | Max image file size | 5 MB (static), 15 MB (GIF) |
 | Video duration | 0.5s to 140 seconds (up to 240 min for Premium) |
@@ -161,8 +162,8 @@
 | Character limit | 63,206 |
 | Optimal length | 40-80 characters for engagement |
 | Image dimensions | 1200 x 630 px (landscape), 1080 x 1080 px (square) |
-| Image format | JPEG, PNG, GIF, WebP |
-| Max image file size | 30 MB |
+| Image format | JPEG, PNG, GIF (a Page photo upload also takes BMP and TIFF, nothing else) |
+| Max image file size | 10 MB (platform_specs.json: facebook.image_max_mb); keep a PNG under 1 MB. The 30 MB in Meta Ads below is for ads |
 | Link preview image | 1200 x 630 px minimum |
 | Video duration | 1 second to 240 minutes |
 | Video format | MP4, MOV |
@@ -175,7 +176,7 @@
 
 | Spec | Value |
 |---|---|
-| Duration | Up to 90 seconds |
+| Duration | Any length: Facebook posts every video as a reel (platform_specs.json: facebook.reel_max_seconds) |
 | Aspect ratio | 9:16 |
 | Resolution | 1080 x 1920 px |
 | Video format | MP4, MOV |
@@ -213,16 +214,9 @@
 | Algorithm priority signals | Save rate, click-through rate, pin quality score, domain quality, keyword relevance, freshness |
 | Best posting times | Sat 8-11 PM, Fri-Sun for lifestyle; Tue-Thu for B2B (local) |
 
-#### Idea Pin
+#### Idea Pin (retired)
 
-| Spec | Value |
-|---|---|
-| Pages | Up to 20 |
-| Image resolution | 1080 x 1920 px (9:16) |
-| Video duration per page | Up to 60 seconds |
-| Video format | MP4, MOV |
-| Title limit | 100 characters |
-| Algorithm priority signals | View-through rate, saves, follows from pin, topic tag relevance |
+Pinterest unified its formats into one Pin and stopped new Idea Pin creation (Pinterest's creator blog; the date is REPORTED, about 2025). A client who asks for an Idea Pin means a multi-image or video Pin: use the standard Pin specs above.
 
 #### Video Pin
 
@@ -266,6 +260,8 @@
 | Resolution | 1080 x 1920 px |
 | Title limit | 100 characters |
 | Algorithm priority signals | Swipe-away rate (lower is better), replays, likes, subscriber conversion from Shorts |
+| View counting | Since 2025-03-31 a view counts each time a Short starts or replays, with no minimum watch time; the old metric is "Engaged views" in YouTube Analytics (https://support.google.com/youtube/answer/10059070, read 2026-10-28) |
+| Monetisation through Shorts | YouTube Partner Program: 1,000 subscribers and 10 million qualified Shorts views in the last 90 days (https://support.google.com/youtube/answer/72851, read 2026-10-28) |
 
 #### YouTube Live
 
@@ -424,7 +420,7 @@
 
 | Impact | Detail |
 |---|---|
-| Open tracking | Unreliable. Apple pre-fetches all images (including tracking pixels) via proxy, inflating open rates. Approximately 50-60% of Apple Mail users have MPP enabled. |
+| Open tracking | Unreliable. Apple pre-fetches all images (including tracking pixels) via proxy, inflating open rates. Apple's mail clients account for about 62% of tracked opens (Litmus, July 2026, through vendor summaries: REPORTED). This is the one place DMP states that figure. Score clicks, conversions and complaints; treat opens as directional. |
 | IP-based geolocation | No longer accurate for Apple Mail users. Apple proxies mask true IP. |
 | Device detection | Unreliable. User-agent data is obscured. |
 | Recommended response | Shift KPIs to click-through rate, conversion rate, and revenue attribution. Use UTM parameters for tracking. Build engagement segments based on clicks, not opens. |
@@ -470,13 +466,13 @@
 |---|---|
 | Images | Up to 20. Landscape (1200x628), square (1200x1200), portrait (960x1200). Min 1 landscape and 1 square required. |
 | Logos | Up to 5. Square (1200x1200) required. Landscape (1200x300) recommended. |
-| Videos | Up to 5. Landscape (16:9), square (1:1), vertical (9:16). Min 10 seconds. If none provided, Google auto-generates from assets. |
+| Videos | Up to 15 per asset group (support.google.com/google-ads/answer/14528532, "About video assets for Performance Max campaigns", read 2026-10-28; the setup guide support.google.com/google-ads/answer/15865151 still says 5). Landscape (16:9), square (1:1), vertical (9:16). Min 10 seconds. If none provided, Google auto-generates from assets. |
 | Headlines | Up to 5, max 30 characters each |
 | Long headlines | Up to 5, max 90 characters each |
 | Descriptions | Up to 5, max 90 characters each. Plus 1 short description max 60 characters. |
 | Business name | Max 25 characters |
 | CTA | Automated or manual selection from standard options |
-| Audience signals | Required: custom segments, interests, demographics, remarketing lists |
+| Audience signals | Optional, and recommended: they guide Google's learning rather than limit targeting (support.google.com/google-ads/answer/15865151, read 2026-10-28). Custom segments, interests, demographics, remarketing lists |
 
 #### YouTube Ads
 
@@ -660,7 +656,7 @@
 | Video resolution | 1080 px width minimum |
 | Video format | MP4, MOV |
 | Video max file size | 2 GB |
-| Idea Pin ad | Up to 20 pages, 1080 x 1920 px per page |
+| Idea Pin ad (retired: use a video or carousel Pin ad) | No longer created |
 | Shopping ad | Linked to product catalog; standard Pin specs |
 | CTA options | Automated based on campaign objective |
 

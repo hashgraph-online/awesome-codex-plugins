@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1] - 2026-10-28
+
+### Added
+
+- `metadata.display-name` "Using Kuudo": a human-readable label for catalogs
+  and skill pickers. Instructions and triggering are unchanged.
+
 ## [0.2.0] - 2026-10-18
 
 ### Changed

@@ -1,4 +1,4 @@
 interface:
   display_name: "Pixeltable"
-  short_description: "Build multimodal apps with declarative Pixeltable tables"
-  default_prompt: "Use $pixeltable to build or debug this Pixeltable application."
+  short_description: "Multimodal RAG, video/image/audio search, and agent memory"
+  default_prompt: "Use $pixeltable for multimodal RAG, video search, image similarity, agent memory, or embeddings stored with your data."

@@ -1,7 +1,7 @@
 {
   "name": "deed-page",
-  "version": "1.5.0",
-  "description": "Publish files to a permanent deed.page URL. No account.",
+  "version": "1.6.1",
+  "description": "Publish files to a public deed.page URL only when the user asks to publish, deploy, host, or share a link. Create-only stays local. No account.",
   "author": {
     "name": "Avatar 8 LLC",
     "email": "ops@avatar33.com",
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "deed.page",
     "shortDescription": "Permanent links for your sites",
-    "longDescription": "Publish an HTML file or a static folder to a permanent https://<slug>.deed.page/ URL with one request. No account, API key, or email code. Bundles the deed-page skill and the deed.page MCP server.",
+    "longDescription": "Publish an HTML file or a static folder to a public https://<slug>.deed.page/ URL when the user asks to publish, deploy, host, or share a link. Create-only requests stay a local draft until they confirm. No account, API key, or email code. Bundles the deed-page skill and the deed.page MCP server.",
     "developerName": "Avatar 8 LLC",
     "category": "Developer Tools",
     "capabilities": [

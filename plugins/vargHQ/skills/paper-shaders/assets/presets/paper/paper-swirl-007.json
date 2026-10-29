@@ -1,0 +1,36 @@
+{
+  "id": "paper-swirl-007",
+  "label": "007 (Paper Swirl)",
+  "shader": "Swirl",
+  "page": "https://shaders.paper.design/swirl",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"007\" preset for Swirl, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#E9E7DA",
+    "colors": [
+      "#000000"
+    ],
+    "bandCount": 5,
+    "twist": 0.3,
+    "center": 0,
+    "proportion": 0,
+    "softness": 0,
+    "noiseFrequency": 0.5,
+    "noise": 0
+  }
+}

@@ -1,5 +1,11 @@
 # Changelog
 
+## [2.1.1] - 2026-10-28
+
+### Added
+- `metadata.display-name` "Amazon SP Search Query Performance ASIN N-grams": a human-readable label for catalogs
+  and skill pickers. Instructions and triggering are unchanged.
+
 ## [2.1.0] - 2026-10-20
 
 - Use a seller-facing change/reason/next-step contract for edits, no-change decisions and evidence requests; keep complete technical diagnostics in separate supporting records.

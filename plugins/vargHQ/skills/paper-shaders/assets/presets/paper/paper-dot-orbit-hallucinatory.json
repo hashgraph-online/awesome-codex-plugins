@@ -1,0 +1,33 @@
+{
+  "id": "paper-dot-orbit-hallucinatory",
+  "label": "Hallucinatory (Paper DotOrbit)",
+  "shader": "DotOrbit",
+  "page": "https://shaders.paper.design/dot-orbit",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Hallucinatory\" preset for DotOrbit, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.5,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#000000"
+    ],
+    "colorBack": "#ffe500",
+    "stepsPerColor": 2,
+    "size": 0.65,
+    "sizeRange": 0,
+    "spreading": 0.3
+  }
+}

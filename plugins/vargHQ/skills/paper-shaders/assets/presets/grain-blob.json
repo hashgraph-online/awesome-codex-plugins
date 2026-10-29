@@ -1,0 +1,41 @@
+{
+  "id": "grain-blob",
+  "label": "Grain blob backdrop",
+  "shader": "GrainGradient",
+  "page": "https://shaders.paper.design/grain-gradient",
+  "paperShaders": "0.0.82",
+  "use": "Soft grainy backdrop behind a quote, a product shot or a speaker cut-out.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {
+    "colorBack": "base",
+    "colors": [
+      "accent",
+      "accent-light",
+      "deep"
+    ]
+  },
+  "params": {
+    "colorBack": "#070708",
+    "colors": [
+      "#ff5315",
+      "#ff9a5c",
+      "#24124f"
+    ],
+    "softness": 0.7,
+    "intensity": 0.3,
+    "noise": 0.35,
+    "shape": "blob",
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0
+  }
+}

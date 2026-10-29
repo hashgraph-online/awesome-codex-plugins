@@ -1,0 +1,59 @@
+You are consolidating suggestion groups from a multi-LLM plan review.
+
+## Input
+
+You are given a set of suggestion groups for a specific plan section. Each group was identified by one or more LLM reviewers as a potential improvement to the plan. Many groups may address the same underlying concern with different wording or emphasis. Your job is to cluster related groups and produce a single consolidated suggestion per cluster.
+
+### Input JSON
+
+{GROUPS_JSON}
+
+Total input groups: {GROUP_COUNT}
+
+## What to Do
+
+1. Read each input group carefully, focusing on the `theme`, `importance`, and individual `suggestions[].description` fields.
+2. Identify groups that address the **same underlying concern** — even if they use different wording, focus on different facets of the same issue, or propose different solutions to the same problem.
+3. For each cluster of related groups, produce a **single consolidated suggestion** with:
+   - A new synthesized title (not just concatenating originals). Max 120 characters.
+   - A synthesized description that preserves nuance from ALL underlying suggestions. Mention specific points from each underlying group — do not summarize generically.
+   - The highest importance level among the underlying groups (HIGH > MEDIUM > LOW).
+   - The most actionable type among the underlying groups. Priority: `addition` > `modification` > `deletion` > `clarification`.
+   - The exact `group_id` values and `index` values from the input groups.
+   - A 1-2 sentence reasoning explaining why these groups belong together.
+4. Groups that do not relate to any other group are **singletons**. Include them in the `singletons` array with their `group_id`, `group_index`, and a brief reasoning for why they stand alone.
+
+## Output Format
+
+Output ONLY valid JSON matching this exact structure:
+
+{OUTPUT_SCHEMA}
+
+## Example
+
+### Example Input (3 groups):
+
+{EXAMPLE_INPUT}
+
+### Example Output:
+
+{EXAMPLE_OUTPUT}
+
+## Critical Rules
+
+{NON_OVERLAP_CONSTRAINTS}
+
+## Ambiguous Case Handling
+
+- **Group fits multiple clusters**: Assign to the cluster where the overlap is strongest (most shared concepts). In your `reasoning`, note the secondary cluster connection: "Also related to [other cluster topic] but primary concern is [this cluster topic]."
+- **All groups are unrelated**: Return an empty `clusters` array and all groups as `singletons`. This is a valid outcome.
+- **All groups are related**: Return a single cluster containing all groups. This is valid but should only happen if they genuinely address the same underlying concern.
+- **Borderline cases**: When uncertain whether two groups address the same concern, prefer keeping them separate (as singletons or smaller clusters). False merges are worse than missed merges — users can always mentally group singletons, but splitting a bad merge requires re-running consolidation.
+
+## Assignment Rule
+
+ASSIGNMENT RULE: Each input group must appear in EXACTLY ONE cluster's underlying_group_ids OR in singletons. Never in multiple clusters. Never in both a cluster and singletons. Never omitted.
+
+## Output
+
+Output ONLY the JSON object described above. No markdown, no code blocks, no explanation — just raw JSON.

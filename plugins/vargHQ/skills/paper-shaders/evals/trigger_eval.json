@@ -1,0 +1,23 @@
+{
+  "skill": "paper-shaders",
+  "should_trigger": [
+    "Put an animated mesh gradient in our brand colors behind the title card",
+    "Make a 2-second liquid metal logo sting from assets/logo.svg",
+    "Give this HyperFrames video a grainy gradient backdrop",
+    "Halftone print look on the product still in the intro",
+    "Add a paper texture finish to the poster frame",
+    "Use Paper Shaders in my Remotion video without flicker between render workers",
+    "God rays behind the logo as it appears",
+    "A dithered two-color background for the end card",
+    "Smoke ring around the countdown before the launch video starts"
+  ],
+  "should_not_trigger": [
+    { "query": "Generate a 10-second cinematic clip of a lighthouse at dusk", "use_instead": "varg-ai" },
+    { "query": "Add film grain and a warm grade to this footage", "use_instead": "HyperFrames media treatments (media-use)" },
+    { "query": "Warp and displace this video layer with noise", "use_instead": "HyperFrames data-vfx-chain" },
+    { "query": "Write a WebGL shader for my website hero section", "use_instead": "a frontend skill; this one targets rendered video" },
+    { "query": "Build a 3D product turntable in three.js", "use_instead": "a Three.js skill" },
+    { "query": "Add word-by-word captions to this interview", "use_instead": "a captions skill" },
+    { "query": "Make a PowerPoint deck with gradient slide backgrounds", "use_instead": "a slides skill" }
+  ]
+}

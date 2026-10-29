@@ -129,7 +129,12 @@ fetches the engine's dependencies from PyPI or your configured index.
    to leave open. For a declared mart, also read `data.semantic_proposal`: the
    semantic model the declaration implies, already in the plan
    (`mode: included`) or offered for `semantic plan --definitions-file`
-   (`mode: proposed`), with every gap it could not fill named.
+   (`mode: proposed`), with every gap it could not fill named. When the user
+   wants models that already exist declared, run `transform declare <models>`
+   (none selects every model, 25 per plan). It proposes only what each model's
+   YAML does not state and lists every model it skipped; relay `data.skipped`
+   (especially `unprofiled_inputs`, with its `explore profile` command), apply,
+   and run it again for the next batch. Never run it unasked.
 5. **Read the plan** (rules below), then `transform apply <plan-id>`.
 6. **Build and verify:** `transform build --target dev --verify`.
 7. **Measure the tests** right after you author or scaffold them, and before
@@ -348,9 +353,10 @@ a field, flag, or macro you need is not described here.
 - `${CLAUDE_SKILL_DIR}/references/edit-kinds.md`: the edits payload, every
   `kind`, its path family and validation, the three kinds of test, and deletes.
 - `${CLAUDE_SKILL_DIR}/references/declarations.md`: the `declarations` payload,
-  every field and its allowed values, and what each renders into.
+  every field and its allowed values, what each renders into, and
+  `transform declare` for models that already exist.
 - `${CLAUDE_SKILL_DIR}/references/commands.md`: `references`, `rename`, `remove`,
-  `place`, `build`, `build --verify`, `test --mutate`, and `deps` in detail.
+  `place`, `declare`, `build`, `build --verify`, `test --mutate`, and `deps` in detail.
 - `${CLAUDE_SKILL_DIR}/references/init-and-dev-target.md`: per-connector init and
   how to prepare a dev target.
 - `${CLAUDE_SKILL_DIR}/references/semantic-layer.md`: authoring dbt semantic

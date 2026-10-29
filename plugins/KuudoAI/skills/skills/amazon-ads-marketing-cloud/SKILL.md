@@ -15,7 +15,8 @@ description: >
   _for_audiences variants.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "0.5.0"
+  display-name: "Amazon Marketing Cloud"
+  version: "0.5.1"
 ---
 
 # Amazon Marketing Cloud (AMC) Skill

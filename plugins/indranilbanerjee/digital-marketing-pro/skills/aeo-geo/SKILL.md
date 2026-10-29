@@ -5,6 +5,8 @@ description: "Plan AEO/GEO strategy to get cited by AI: content, entities, schem
 
 # AEO/GEO Intelligence
 
+> **Metrics:** mention rate, citation rate, share of model, share of AI voice, sentiment and the AI Visibility Score are defined, with formulas, in `skills/context-engine/ai-visibility-metrics.md`. Report every score with its formula and its sample size (n).
+
 > **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 ## When to Use This Skill
@@ -21,7 +23,7 @@ Activate this module when the user's request involves any of the following:
 
 **Trigger phrases**: "AI visibility," "how does ChatGPT describe my brand," "Perplexity results," "AI Mode optimization," "AI Overview optimization," "answer engine," "generative engine," "LLM optimization," "AI citations," "entity consistency," "Knowledge Graph"
 
-**Google AI Mode (May 2026 — treat as a distinct surface)**: At Google I/O on 19 May 2026 AI Mode became the default search experience for opted-in users, crossed ~1B MAUs, and switched to Gemini 3.5 Flash as the base model. AI Mode is **not** the same as AI Overviews — it is a separate conversational tab with deeper reasoning, multi-turn follow-ups, and a citation pattern that frequently diverges from AI Overviews for the same query. Brands must audit AI Mode independently. Practical implication: an AEO program that only tests AI Overviews + ChatGPT + Perplexity now has a measurable blind spot.
+**Google AI Mode (May 2026 — treat as a distinct surface)**: This is DMP's one statement of the fact; other files point here. Google AI Mode has more than one billion monthly users, Gemini 3.5 Flash is its default model, and it is reachable from every AI Overview worldwide (Google, "Google Search's I/O 2026 updates", 2026-05-19). AI Overviews remain the default search surface: AI Mode is a separate conversational tab, not the default search experience. AI Mode is **not** the same as AI Overviews — it is a separate conversational tab with deeper reasoning, multi-turn follow-ups, and a citation pattern that frequently diverges from AI Overviews for the same query. Brands must audit AI Mode independently. Practical implication: an AEO program that only tests AI Overviews + ChatGPT + Perplexity now has a measurable blind spot.
 
 **Additional I/O 2026 announcements that change AEO scope** ([source: blog.google/products-and-platforms/products/search/search-io-2026](https://blog.google/products-and-platforms/products/search/search-io-2026/)):
 
@@ -29,7 +31,7 @@ Activate this module when the user's request involves any of the following:
 - **Personal Intelligence in AI Mode** is expanding to ~200 countries and 98 languages, no subscription required, with Gmail / Photos / Calendar connections. AEO implication: AI answers are increasingly personalized — generic brand-search results will be reweighted against the user's own context. Brand schema completeness and entity consistency (NAP, services, hours) matter even more.
 - **AI Information Agents** (user-created, monitoring blogs/news/social 24/7) launch for AI Pro & Ultra subscribers in summer 2026. AEO implication: brands that publish structured, dated updates on owned channels will be more legible to user-configured agents than those relying on third-party PR pickup.
 
-**Official Google guidance on AI search optimization** (updated 15 May 2026 — [Google AI Optimization Guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide)):
+**Official Google guidance on AI search optimization** (last updated 2026-07-10 — [Google AI Optimization Guide](https://developers.google.com/search/docs/fundamentals/ai-optimization-guide)):
 
 - **No `llms.txt` file is needed.** Google's official position: "You don't need to create new machine readable files, AI text files, markup, or Markdown to appear in generative AI search." Do not waste time generating `llms.txt` for Google AI Features. (Other AI search engines may or may not consume it; current Anthropic / OpenAI / Perplexity public positions are also that they do not require it. Document any client pressure to ship `llms.txt` as a low-priority deliverable with no measurable upside.)
 - **No special AI-specific schema is needed.** "Structured data isn't required for generative AI search, and there's no special schema.org markup you need to add." Schema continues to matter for classic SEO and rich results.
@@ -42,7 +44,7 @@ Activate this module when the user's request involves any of the following:
 - **Search generative AI control (Search Console → Settings → Search generative AI; worldwide since 31 Aug 2026).** Excluding a property removes its links and content from AI Overviews, AI Mode and generative AI features in Discover. Google: it "isn't used as a ranking or inclusion signal affecting other parts of Search" and "doesn't affect AI training" (that is `Google-Extended`); exclusion takes effect in a day or two. **Decide on evidence, not fear:** opting out gives up every AI-feature impression the Search Console generative AI report shows, and it also removes the "preferred" badge in AI Mode and AI Overviews for readers who chose the site as a Preferred Source. Recommend it only where AI answers demonstrably substitute for a paid or licensed product (for example paywalled reference content), and record the before/after impressions. Source: [Search Console help](https://support.google.com/webmasters/answer/16908024), read 2026-10-27.
 - **Preferred Sources (playbook item).** Readers can mark a site as a Preferred Source; its stories then appear more often in Top Stories with a "preferred" badge, and its content can carry that badge in AI Mode and AI Overviews. Google says use of the feature has grown more than 7x since the start of 2026 ([blog.google](https://blog.google/products-and-platforms/products/search/more-ways-to-connect-with-the-web-from-search/), 15 Oct 2026). For publishers and brands with a news or blog cadence: add Google's "add as preferred source" button or the deep link `https://www.google.com/preferences/source?q=<your domain>` to articles, newsletters and social posts. Only domains and subdomains qualify (not subdirectories), and the AI Mode badge needs the site to stay **included** in Search generative AI features. Source: [Search Central: Preferred sources](https://developers.google.com/search/docs/appearance/preferred-sources) (updated 2026-09-18).
 
-**EU AI Act Article 50 (applicable 2 August 2026)** — for AI-generated marketing content surfaced in EU markets, see `skills/context-engine/eu-code-of-practice.md` for the voluntary Code of Practice (WG1 providers / WG2 deployers) and the C2PA `c2pa.ai-disclosure` assertion path. Compliance is plugin-level and applies to `c2pa-metadata` outputs.
+**EU AI Act Article 50 (has applied since 2 August 2026; generative systems that existed before then have until 2 December 2026 to mark their output under Article 50(2))** — for AI-generated marketing content surfaced in EU markets, see `skills/context-engine/eu-code-of-practice.md` for the voluntary Code of Practice (WG1 providers / WG2 deployers) and the C2PA `c2pa.ai-disclosure` assertion path. Compliance is plugin-level and applies to `c2pa-metadata` outputs.
 
 ## Brand Context (Auto-Applied)
 
@@ -82,7 +84,7 @@ If the user cannot provide all context, proceed with what is available and flag 
 - **Entity Consistency Audit**: Cross-referencing brand information across Google Knowledge Graph, Wikidata, Wikipedia, Crunchbase, LinkedIn, and industry databases to identify inconsistencies
 - **LLM Content Strategy**: Creating content specifically designed to be ingested and accurately represented by language models
 - **AI Answer Monitoring Framework**: Setting up systematic tracking of AI mentions and citations over time
-- **Structured Data for AI Citation**: Implementing Organization, Product, FAQ, HowTo, and other schema types that improve AI comprehension
+- **Structured data that matches the page**: Organization, Product, Article and the types that still earn rich results. Google: "Structured data isn't required for generative AI search, and there's no special schema.org markup you need to add" (guide to optimizing for generative AI features, last updated 2026-07-10).
 - **Knowledge Graph Optimization**: Improving entity representation in structured knowledge bases
 - **Topical Authority Mapping**: Identifying content gaps that prevent a brand from being recognized as an authority by AI models
 - **AI-First Content Formatting**: Restructuring existing content with clear definitions, factual statements, and citation-worthy snippets
@@ -101,7 +103,7 @@ If the user cannot provide all context, proceed with what is available and flag 
 
 2. **AI Platform Testing**
    - For each target query, document how the brand appears (or fails to appear) on:
-     - **Google AI Mode** (default conversational surface, Gemini 3.5 Flash backbone — May 2026)
+     - **Google AI Mode** (the conversational tab; see the AI Mode note above)
      - Google AI Overviews (classic SERP summary block)
      - ChatGPT (latest model, web-search mode on)
      - Perplexity
@@ -131,7 +133,7 @@ If the user cannot provide all context, proceed with what is available and flag 
 6. **Monitoring & Iteration**
    - Define monitoring cadence (weekly for priority queries, monthly for full audit)
    - Set up tracking framework to detect citation changes
-   - Establish KPIs: citation rate, accuracy score, query coverage percentage
+   - Establish KPIs: mention rate and citation rate (formulas in `skills/context-engine/ai-visibility-metrics.md`), the share of judged answers that describe the brand accurately (n stated), and query coverage (prompts tested ÷ prompts planned)
    - Track competitor citation changes as part of ongoing monitoring
    - Re-test after major content updates or schema implementations to measure impact
    - Log all AI platform model updates that may affect visibility (new model releases, retrieval changes)
@@ -145,7 +147,7 @@ If the user cannot provide all context, proceed with what is available and flag 
    - Clear definitional statements (AI models favor content with unambiguous definitions)
    - Structured formatting (clear headings, bullet points, tables that AI can parse)
    - Source credibility signals (author credentials, citations to primary research, organizational authority)
-4. Implement supporting schema markup (FAQ, HowTo, Article, Organization as appropriate)
+4. Keep supporting structured data that matches the visible text (Article, Organization, Product as appropriate); FAQ and HowTo markup doesn't improve AI citation
 5. Build inbound authority signals (internal links from high-authority pages, external citations)
 6. Re-test AI platform responses 2-4 weeks after publication to measure citation pickup
 
@@ -200,13 +202,14 @@ If the user cannot provide all context, proceed with what is available and flag 
 
 ## Tips & caveats
 
-- **Google's official position (15 May 2026):** no `llms.txt`, no AI-specific schema, no separate AI eligibility gate. Don't manufacture work around fictional ranking factors — schema + entity consistency + citation-worthy formatting are what works.
-- **AI Mode citation patterns frequently differ from AI Overviews** on the same query (internal observation, 05/2026 — the "40-60%" figure is a rough estimate, re-verify against your own probe set). Audit and optimise for both, treating them as distinct surfaces.
+- **Google's official position (AI features guide, last updated 2026-07-10):** no `llms.txt`, no AI-specific schema, no separate AI eligibility gate. Don't manufacture work around fictional ranking factors — schema + entity consistency + citation-worthy formatting are what works.
+- **AI Mode citation patterns frequently differ from AI Overviews** on the same query (no figure is published, so measure the overlap in your own probe set). Audit and optimise for both, treating them as distinct surfaces.
+- **Agentic commerce: discovery feed first; checkout is partner-gated** on ChatGPT and on Google (OpenAI, 2026-03-24; Merchant Center help 16837055, read 2026-10-28). Get the product feed right before planning for in-chat checkout; sources and checks in `/digital-marketing-pro:agent-readiness-audit`.
 - **Entity consistency across Knowledge Graph, Wikidata, Wikipedia, LinkedIn, Crunchbase is the single highest-leverage AEO investment** — more impactful than schema tweaks.
 - **AI citations are stickier than blue-link rankings** but slower to win. Expect 3-6 months of consistent work before measurable shift.
 - **Don't try to "trick" AI into citing you** with stuffed content or fake authority signals. AI platforms detect and demote this faster than traditional search.
 - **`Google-Extended` (robots.txt) opts out of Google's *other* AI systems** (Gemini training, Vertex grounding) — distinct from the Search generative AI control in Search Console, which covers AI Overviews, AI Mode and Discover's AI features and is not a ranking signal elsewhere in Search.
-- **EU markets** require Article 50 disclosure on AI-generated content (applicable 2 Aug 2026) — see `skills/context-engine/eu-code-of-practice.md`.
+- **EU markets** require Article 50 disclosure on AI-generated content (in force since 2 August 2026) — see `skills/context-engine/eu-code-of-practice.md`.
 
 ## Related Skills
 

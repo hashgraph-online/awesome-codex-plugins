@@ -1,0 +1,133 @@
+You are reviewing implementation tasks that were generated from a feature plan. Your primary job is to verify that the tasks fully cover all plan requirements, and secondarily to check task quality.
+
+## Input Files
+
+### 1. Requirements Source of Truth
+{plan_path}
+
+Read this file FIRST. This is the original plan containing all proposed features, requirements, deliverables, and acceptance criteria. Treat it as the authoritative specification.
+
+### 2. Review Target
+{tasks_path}
+
+Read this file SECOND. This contains the generated implementation tasks (T001, T002, etc.) that you will evaluate against the plan. Each task has an ID, title, description, dependencies, file references, acceptance criteria, and complexity estimate.
+
+## Your Task
+
+### Step 1: Extract Requirement Checklist
+
+Read the plan file and enumerate every distinct requirement, feature, deliverable, and acceptance criterion as a numbered checklist. Be thorough -- include explicit requirements, implicit requirements (e.g., error handling implied by a feature), testing requirements, and any stated acceptance criteria. Each checklist item should be a single, concrete requirement.
+
+### Step 2: Map Requirements to Tasks
+
+For each checklist item from Step 1, identify one or more task IDs (T001, T002, etc.) that implement or address it. A requirement is covered if at least one task's description, acceptance criteria, or file references clearly address it. Record each mapping.
+
+### Step 3: Flag Unmapped Requirements (Coverage Gaps)
+
+Any checklist item with NO corresponding task ID is a coverage gap. For EACH unmapped requirement, emit a HIGH importance finding with:
+- `reference` set to "Plan Coverage" or the relevant plan section heading (e.g., "## Authentication" or "### Error Handling")
+- `type` set to "addition" (a task is missing and should be added)
+
+## Secondary Concerns
+
+After completing coverage analysis, also review the tasks for:
+
+### Dependency Correctness
+- Are `depends_on` references accurate? Does task B actually need task A's output?
+- Are there missing dependencies (task uses something another task creates, but doesn't list it)?
+- Are there circular or unnecessary dependencies that would block parallel execution?
+
+### Task Granularity
+- Are tasks appropriately sized (1-5 files, 15-60 minutes each)?
+- Should any large task be split into smaller, independently testable pieces?
+- Should any trivially small tasks be merged?
+
+### Description Completeness
+- Does each task description cover: (1) What to implement, (2) How -- approach and patterns to reuse, (3) Interface contracts -- what this task produces/consumes for other tasks?
+- Are integration points between tasks clearly specified?
+
+### Acceptance Criteria Specificity
+- Are acceptance criteria concrete and verifiable (not vague like "works correctly")?
+- Does each criterion describe an observable outcome that can be checked?
+- Are there missing criteria for important behaviors?
+
+### File Reference Accuracy
+- Do `files_to_modify` references point to files that likely exist?
+- Do `files_to_create` references use sensible paths following project conventions?
+- Are any file references missing for work described in the task?
+
+### Complexity Estimates
+- Do complexity ratings (low/medium/high) seem reasonable for the scope described?
+- Are any tasks underestimated (could cause delays) or overestimated?
+
+### Subagent Type Assignments
+- Is each task assigned to the right subagent type (general-purpose or human)?
+- Are any human tasks that could be automated, or automated tasks that require manual action?
+
+{working_limits}
+
+## Output Format
+Return ONLY a valid JSON array with no additional text. Each element must have exactly these fields:
+- "title": string (5-10 word summary of the issue)
+- "desc": string (text explaining the issue and recommended fix)
+- "importance": "high" | "medium" | "low"
+  - high = coverage gaps (unmapped plan requirements), missing critical dependencies, tasks that would fail
+  - medium = incomplete descriptions, missing acceptance criteria, questionable granularity
+  - low = minor improvements to estimates, subagent types, style
+- "reference": string (task ID like "T001" or "T003" for task-specific issues; "Plan Coverage" or a plan section heading like "## Authentication" for missing-task issues)
+- "type": "addition" | "modification" | "deletion" | "clarification"
+  - addition = a task or dependency is missing and should be added
+  - modification = an existing task needs changes (description, criteria, dependencies, etc.)
+  - deletion = a task or dependency is unnecessary and should be removed
+  - clarification = a task description or criterion is ambiguous and needs better explanation
+
+Example output:
+[
+  {{
+    "title": "Plan requirement for rate limiting has no task",
+    "desc": "The plan specifies rate limiting for all API endpoints (see '## API Design' section), but no task implements this. Add a task to configure rate limiting middleware with the thresholds defined in the plan (100 req/min per user, 1000 req/min global).",
+    "importance": "high",
+    "reference": "Plan Coverage",
+    "type": "addition"
+  }},
+  {{
+    "title": "Plan's rollback strategy not covered by any task",
+    "desc": "The plan's '## Deployment' section requires a database rollback strategy for failed migrations, but no task addresses reversible migrations or rollback procedures. Add a task or extend the migration task to include rollback scripts.",
+    "importance": "high",
+    "reference": "## Deployment",
+    "type": "addition"
+  }},
+  {{
+    "title": "T003 missing dependency on T001 database schema",
+    "desc": "T003 creates API routes that query the user_features table, but does not list T001 (which creates that table) in its depends_on array. Without this dependency, T003 could be executed before the table exists. Add 'T001' to T003's depends_on.",
+    "importance": "high",
+    "reference": "T003",
+    "type": "modification"
+  }},
+  {{
+    "title": "T005 description lacks interface contract details",
+    "desc": "T005 says 'integrate with the notification service' but doesn't specify which functions to call, what payload format to use, or what T004 exports. Add specifics: call sendNotification() from lib/notifications.ts with {{ type, userId, message }} payload.",
+    "importance": "medium",
+    "reference": "T005",
+    "type": "clarification"
+  }},
+  {{
+    "title": "T002 acceptance criteria too vague",
+    "desc": "T002's criterion 'service layer works correctly' is not verifiable. Replace with specific criteria like 'createFeature() returns the created record with a generated UUID' and 'listFeatures(userId) returns only records matching the given user_id'.",
+    "importance": "medium",
+    "reference": "T002",
+    "type": "modification"
+  }},
+  {{
+    "title": "T007 complexity underestimated as low",
+    "desc": "T007 involves creating 3 new files, integrating with 2 existing services, and adding authentication middleware. This is closer to medium complexity. Underestimating may cause scheduling issues.",
+    "importance": "low",
+    "reference": "T007",
+    "type": "modification"
+  }}
+]
+
+If no issues are found, return an empty array: []
+
+## Output Location
+{output_location}

@@ -59,6 +59,8 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Multi-LLM's MCP configuration starts the bundled Python server.
+    "beastlabai/multi-llm-plugin": ("mcp",),
     # Workflow MCP bootstrap loads the sibling control-plane runtime; its MCP
     # App also reads assets/sidebar-icon.svg and Skills reference helper scripts.
     "TohmaN233/codex-agents-workflow": ("control-plane", "scripts", "assets"),
@@ -301,6 +303,24 @@ def collect_selected_paths(
 
     for key in ("skills", "scripts", "mcpServers", "apps", "app", "appConfig", "hooks"):
         value = manifest.get(key)
+        if key == "skills" and value in (".", "./"):
+            # Root-based collections contain sibling skill directories. Keep
+            # their helpers without copying unrelated repository contents.
+            relative_names = {
+                PurePosixPath(name).relative_to(plugin_root)
+                for name in all_names
+                if PurePosixPath(name).is_relative_to(plugin_root)
+                and ".." not in PurePosixPath(name).parts
+            }
+            skill_roots = {
+                path.parent for path in relative_names
+                if path.name == "SKILL.md" and len(path.parts) > 1
+            }
+            selected.update(
+                path.as_posix() for path in relative_names
+                if any(path.is_relative_to(root) for root in skill_roots)
+            )
+            continue
         if isinstance(value, str):
             add_recursive_selection(selected, all_names, plugin_root, value)
 

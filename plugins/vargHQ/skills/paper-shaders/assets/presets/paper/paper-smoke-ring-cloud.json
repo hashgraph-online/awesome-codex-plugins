@@ -1,0 +1,34 @@
+{
+  "id": "paper-smoke-ring-cloud",
+  "label": "Cloud (Paper SmokeRing)",
+  "shader": "SmokeRing",
+  "page": "https://shaders.paper.design/smoke-ring",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Cloud\" preset for SmokeRing, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 2.5,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#81ADEC",
+    "colors": [
+      "#ffffff"
+    ],
+    "noiseScale": 3,
+    "noiseIterations": 10,
+    "radius": 0.5,
+    "thickness": 0.65,
+    "innerShape": 0.85
+  }
+}

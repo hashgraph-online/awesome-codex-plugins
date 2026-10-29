@@ -1,0 +1,281 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "State File",
+  "type": "object",
+  "required": ["schema_version", "plan_path", "plan_hash", "created_at", "head_at_start", "branch_name", "review_phase_completed", "tracked_files", "task_status"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "plan_path": { "type": "string" },
+    "plan_hash": {
+      "type": "string",
+      "description": "Hash of plan content for detecting changes"
+    },
+    "plan_changed": {
+      "type": "boolean",
+      "description": "Flag indicating plan content has changed since last run"
+    },
+    "created_at": { "type": "string", "format": "date-time" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "head_at_start": { "type": "string" },
+    "head_before_implement": {
+      "type": "string",
+      "description": "Git HEAD captured when implement phase starts; preferred over head_at_start for code review diffs"
+    },
+    "branch_name": { "type": "string" },
+    "review_phase_completed": { "type": "boolean" },
+    "tracked_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "action", "task_id"],
+        "properties": {
+          "path": { "type": "string" },
+          "action": { "type": "string", "enum": ["created", "modified", "deleted"] },
+          "task_id": { "type": "string" }
+        }
+      }
+    },
+    "task_status": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "task_status_reasons": {
+      "type": "object",
+      "description": "Per-task reason for current status (e.g., why a task was skipped)",
+      "additionalProperties": { "type": ["string", "null"] }
+    },
+    "task_titles": {
+      "type": "object",
+      "description": "Implement task titles by task id, recorded when implement decomposes the task list (names a deferred task on completion)",
+      "additionalProperties": { "type": "string" }
+    },
+    "implement_task_ids": {
+      "type": "array",
+      "description": "The task ids of the decomposition implement ran last, replaced on every run (scopes the deferred manual tasks named on completion)",
+      "items": { "type": "string" }
+    },
+    "task_check_findings": {
+      "type": "object",
+      "description": "Per implement check task (no declared files) whose check ran, changed nothing and reported problems: the findings from its reply's structured `check` object. Present only while some task has findings; read by status, the result notice and review-code's implementation record",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "task_batch_check": {
+      "type": "object",
+      "description": "Per implement task that edits files and whose own check (a test, a build it ran on its edits) failed: the findings from its reply's `check` object. Never a hold: the edits are kept and nothing waits for the task. Present only while some task's own check fails; read by status and review-code's implementation record",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "task_batch_check_accepted": {
+      "type": "object",
+      "description": "Per implement task released by an accepted check (--human-task <check>=done) whose own check reported again only what the user accepted for that check: those findings, by check id. Not the task's own failure (never in task_batch_check); every other record of the task clears it. Present only while some task has one; read by status",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "task_batch_check_repeats": {
+      "type": "object",
+      "description": "Per implement task that edits files whose own check reported findings that are the same findings (the strict comparison) a check task of the run reported: those findings, by that check's id (fix round 28). Not the task's own failure (never in task_batch_check), recorded whichever of the two was recorded first; every other record of the task clears it. Present only while some task has one; read by status and the tests line",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "task_own_check_note": {
+      "type": "object",
+      "description": "Per implement task that edits files and whose reply's check carried a note: its own words about the checks it ran (fix round 28). Recorded and shown beside its check, never read as a finding or matched on; every other record of the task clears it. Present only while some task has one",
+      "additionalProperties": { "type": "string" }
+    },
+    "task_own_text": {
+      "type": "object",
+      "description": "Per implement task with a failing own check (task_batch_check): what the task itself says, its title, `## Task` section and acceptance criteria (fix round 29). Read when a check task reports the same finding in a later run, to judge whether the check is the task's own job before recording its finding as a repeat; never shown. Clearing the task's failing own check clears it. Present only while some task has one",
+      "additionalProperties": { "type": "string" }
+    },
+    "task_own_check_ran": {
+      "type": "array",
+      "description": "The implement tasks that edit files whose last record carried a report of their own checks (passed, failing, or repeating only accepted findings), sorted. Every other record of the task clears it. Present only while some task has one; read by the line saying what ran the repository's tests",
+      "items": { "type": "string" }
+    },
+    "apply_fix_batch_checks": {
+      "type": "object",
+      "description": "Per apply-code-fixes batch whose reply reported its own checks: its prior_changes_id and grouped_sha256 (the record belongs to that batch's fixes of that review), its failing checks and, per known check command its prompt listed, what it says that check did (passed, failed, not run). Never a hold; read by the next batch's prompt, status and the line saying nothing ran the tests",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "prior_changes_id": { "type": "string" },
+          "grouped_sha256": { "type": "string" },
+          "findings": { "type": "array", "items": { "type": "string" } },
+          "listed": { "type": "object", "additionalProperties": { "type": "string" } },
+          "note": { "type": "string", "description": "The batch's own words about its checks (its reply's check.note, fix round 28): shown, never read as a finding" }
+        }
+      }
+    },
+    "task_check_trees": {
+      "type": "object",
+      "description": "Native leg only: per check task with findings, a fingerprint of the files git saw when the run that recorded them ended. A --resume hands the check out again only when the files changed since",
+      "additionalProperties": { "type": "string" }
+    },
+    "implement_task_reset_at": {
+      "type": "object",
+      "description": "Per implement task: when a run that hands it out again (a start-over, a --task rerun) set its earlier record aside. A native --resume does not count a prior-changes line no newer than this as one the run left unrecorded",
+      "additionalProperties": { "type": "string", "format": "date-time" }
+    },
+    "human_task_strategy": {
+      "type": "string",
+      "description": "Chosen strategy for handling human tasks during implementation",
+      "enum": ["pause-and-ask", "skip-continue", "skip-dependents", "cancel"]
+    },
+    "dependency_overrides": {
+      "type": "object",
+      "description": "Tasks whose human-task dependencies were overridden (skip-continue strategy)",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "overridden_deps": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Human task IDs whose dependency was treated as satisfied"
+          },
+          "timestamp": { "type": "string", "format": "date-time" }
+        },
+        "required": ["overridden_deps", "timestamp"]
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Task subagent resource usage metrics per phase",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z-]+$": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" },
+              "subagent_type": { "type": ["string", "null"] },
+              "token_count": { "type": ["integer", "null"] },
+              "tool_uses": { "type": ["integer", "null"] },
+              "duration_ms": { "type": ["integer", "null"] },
+              "timestamp": { "type": "string", "format": "date-time" }
+            },
+            "required": ["label", "timestamp"]
+          }
+        }
+      }
+    },
+    "commit_range": {
+      "type": "object",
+      "description": "The commit range a commit front door (--review-commits, --apply-commit-fixes, --improve-commits, util commit-brief) recorded for this commit brief (plans/review-commits.md §2.1, §2.4). Written through StateManager.record_commit_range before the fronted phase loads state, or by a detached worker applying its launch's stage; the phases carry it unchanged. base and head are full SHAs (base null on a root range, diffed against the empty tree); phrase and window are the first resolution's; header_sha256 is the review's identity hash and reviewed_header_sha256 the one the review on record answered (written when a round starts); guard is the apply's decision (the apply phase's)",
+      "properties": {
+        "base": { "type": ["string", "null"] },
+        "head": { "type": "string" },
+        "commits": {
+          "type": "array",
+          "description": "Every first-parent commit of the range, newest first",
+          "items": {
+            "type": "object",
+            "properties": {
+              "sha": { "type": "string" },
+              "date": { "type": "string" },
+              "subject": { "type": "string" },
+              "merge": { "type": "boolean" },
+              "outside_window": { "type": "boolean" }
+            },
+            "required": ["sha"]
+          }
+        },
+        "phrase": { "type": ["string", "null"] },
+        "window": { "type": ["object", "null"], "description": "A window phrase's cutoff and end (epoch seconds, local texts), the SHAs tagged outside the window and the count of newer commits left off" },
+        "notes": { "type": "array", "items": { "type": "string" } },
+        "size": {
+          "type": "object",
+          "properties": {
+            "commits": { "type": "integer" },
+            "files": { "type": "integer" },
+            "added": { "type": "integer" },
+            "deleted": { "type": "integer" },
+            "lines": { "type": "integer" },
+            "large": { "type": "boolean" }
+          }
+        },
+        "brief": { "type": "string", "description": "The brief's path, repository-relative" },
+        "plan": { "type": ["string", "null"], "description": "The context plan, repository-relative in git's form" },
+        "plan_snapshot": { "type": ["string", "null"], "description": "The context plan's frozen copy, <slug>/context-plan.md, repository-relative" },
+        "plan_sha256": { "type": ["string", "null"] },
+        "focus": { "type": ["string", "null"] },
+        "header_sha256": { "type": "string" },
+        "reviewed_header_sha256": { "type": ["string", "null"] },
+        "drifted": { "type": "array", "items": { "type": "string" }, "description": "Scope files that differed on disk from head when the front door last checked" },
+        "resolved_at": { "type": "string", "description": "When a front door last resolved this range (ISO-8601 UTC); every entry, a reuse included, refreshes it" },
+        "guard": { "type": "object", "description": "The apply guard's decision about the review on record (the apply phase's)" }
+      },
+      "required": ["head"]
+    },
+    "head_ref": {
+      "type": "object",
+      "description": "A direct review-code --base-ref A --head-ref B round's two commits (plans/review-commits.md §2.5): written when the round starts and removed by a round without --head-ref; a fronted run writes commit_range instead. A direct run's apply guard lives under head_ref.guard",
+      "properties": {
+        "base": { "type": ["string", "null"] },
+        "head": { "type": "string" },
+        "drifted": { "type": "array", "items": { "type": "string" } },
+        "resolved_at": { "type": "string" },
+        "guard": { "type": "object" }
+      },
+      "required": ["head"]
+    }
+  },
+  "patternProperties": {
+    "^human_decisions_": {
+      "type": "object",
+      "description": "Human decisions keyed by group_id",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "decision": { "type": "string", "enum": ["approved", "skipped", "deferred"] },
+          "reason": { "type": ["string", "null"] },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "batch_context": {
+            "type": "object",
+            "properties": {
+              "batch_id": { "type": "string" },
+              "batch_action": { "type": "string" },
+              "importance_at_decision": { "type": "string" }
+            }
+          },
+          "remapped": { "type": "boolean" }
+        },
+        "required": ["decision", "timestamp"]
+      }
+    },
+    "^progress_": {
+      "type": "object",
+      "description": "Progress tracking for a phase",
+      "properties": {
+        "total_items": { "type": "integer" },
+        "processed_items": { "type": "integer" },
+        "current_batch": { "type": "integer" },
+        "total_batches": { "type": "integer" },
+        "last_updated": { "type": "string", "format": "date-time" }
+      }
+    },
+    "^processed_": {
+      "type": "object",
+      "description": "Processed items keyed by group_id, written per apply batch by both legs in one shape (util batch-done on the native leg, the write scheduler on the executor leg): applied, no-op (the executor read the batch as changing nothing), declined or skipped with details.reason, failed for a batch that did not finish. details also carries task_id, prior_changes_id, grouped_sha256 (the review the batch applied) and leg (native or executor). One difference between the legs: the native leg records a verified no-op batch as applied (util batch-done takes no flag for it; the runbooks record it --status completed) where the executor records no-op; no reader tells the two apart (a --resume counts both as applied)",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["applied", "no-op", "skipped", "failed", "declined"] },
+          "details": { "type": "object" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        },
+        "required": ["status", "timestamp"]
+      }
+    }
+  },
+  "additionalProperties": true
+}

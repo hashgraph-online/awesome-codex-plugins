@@ -4,7 +4,7 @@
 
 Ensuring brand information is consistent across all knowledge sources that AI models reference. Inconsistencies confuse AI platforms and reduce citation confidence.
 
-**Why this matters more for Google AI Mode (mid-2026):** AI Mode — Google's conversational search surface, default for opted-in users since I/O on 19 May 2026 — adds "Personal Intelligence" that reweights answers against each user's own context (Gmail / Calendar / Photos connections). That personalization runs on top of the same entity graph, so gaps or contradictions in your NAP, services, hours, founding date, and leadership degrade AI Mode answers even harder than they degrade AI Overviews. Entity completeness and consistency is the highest-leverage AI Mode investment. AI Mode is a **distinct surface** from AI Overviews — verify entity representation in both.
+**Why this matters more for Google AI Mode (mid-2026):** AI Mode — Google's conversational search tab (see the AI Mode note in `skills/aeo-geo/SKILL.md`) — adds "Personal Intelligence" that reweights answers against each user's own context (Gmail / Calendar / Photos connections). That personalization runs on top of the same entity graph, so gaps or contradictions in your NAP, services, hours, founding date, and leadership degrade AI Mode answers even harder than they degrade AI Overviews. Entity completeness and consistency is the highest-leverage AI Mode investment. AI Mode is a **distinct surface** from AI Overviews — verify entity representation in both.
 
 ---
 

@@ -1,0 +1,2454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-LLM Review Report</title>
+  <style>
+    /* CSS Reset and Base */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-card: #ffffff;
+      --bg-hover: #f1f3f5;
+      --text-primary: #212529;
+      --text-secondary: #495057;
+      --text-muted: #6c757d;
+      --border-color: #dee2e6;
+      --border-light: #e9ecef;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --importance-high: #dc3545;
+      --importance-high-bg: #f8d7da;
+      --importance-medium: #fd7e14;
+      --importance-medium-bg: #ffe5d0;
+      --importance-low: #0d6efd;
+      --importance-low-bg: #cfe2ff;
+      --validation-valid: #198754;
+      --validation-valid-bg: #d1e7dd;
+      --validation-invalid: #dc3545;
+      --validation-invalid-bg: #f8d7da;
+      --validation-human: #6f42c1;
+      --validation-human-bg: #e2d9f3;
+      --validation-failed: #6c757d;
+      --validation-failed-bg: #e9ecef;
+      --accent-blue: #0d6efd;
+      --accent-green: #198754;
+
+      /* Suggestion backgrounds (distinct from content) */
+      --suggestion-bg: #eef2ff;
+      --suggestion-bar-bg: #e0e7ff;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #1a1a2e;
+        --bg-secondary: #16213e;
+        --bg-card: #1f1f3a;
+        --bg-hover: #2a2a4a;
+        --text-primary: #e9ecef;
+        --text-secondary: #adb5bd;
+        --text-muted: #6c757d;
+        --border-color: #3d3d5c;
+        --border-light: #2d2d4a;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+        --importance-high-bg: #4a1a1f;
+        --importance-medium-bg: #4a3010;
+        --importance-low-bg: #0a2a5a;
+        --validation-valid-bg: #0a3a2a;
+        --validation-invalid-bg: #4a1a1f;
+        --validation-human-bg: #2a1a4a;
+        --validation-failed-bg: #2a2a3a;
+
+        /* Suggestion backgrounds dark */
+        --suggestion-bg: #1a2040;
+        --suggestion-bar-bg: #1e2550;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1.5rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header-title-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .header-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 0;
+      color: var(--text-primary);
+      flex: 1;
+    }
+
+    .header-toggle {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 0.25rem 0.625rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .header-toggle:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent-blue);
+      color: var(--text-primary);
+    }
+
+    .header-toggle .toggle-icon {
+      transition: transform 0.2s ease;
+      font-size: 0.625rem;
+    }
+
+    .header-collapsible {
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.2s ease, margin-top 0.3s ease;
+      max-height: 500px;
+      opacity: 1;
+      margin-top: 0.5rem;
+    }
+
+    .header-collapsible.collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0;
+    }
+
+    .header-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-bottom: 1rem;
+    }
+
+    .header-meta span {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-meta strong {
+      color: var(--text-primary);
+    }
+
+    /* A failed reviewer beside the models that answered: the same
+       `model: reason` entries as the PR report's "Failed models" row. */
+    .meta-failed {
+      color: var(--importance-high);
+    }
+
+    /* Notice / warning bars — the PR report's, so reportData.notices renders
+       the same in either report style (a failed reviewer included). */
+    .report-notice {
+      padding: 0.5rem 1rem;
+      font-size: 0.8125rem;
+      background: var(--importance-medium-bg);
+      color: var(--importance-medium);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .report-notice.info {
+      background: var(--importance-low-bg);
+      color: var(--importance-low);
+    }
+
+    .report-notice.warning {
+      background: var(--importance-medium-bg);
+      color: var(--importance-medium);
+    }
+
+    /* Filter Controls */
+    .filter-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .filter-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-options {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      padding: 0.375rem 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-btn:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent-blue);
+    }
+
+    .filter-btn.active {
+      background: var(--accent-blue);
+      border-color: var(--accent-blue);
+      color: white;
+    }
+
+    .filter-btn.importance-high.active {
+      background: var(--importance-high);
+      border-color: var(--importance-high);
+    }
+
+    .filter-btn.importance-medium.active {
+      background: var(--importance-medium);
+      border-color: var(--importance-medium);
+    }
+
+    .filter-btn.importance-low.active {
+      background: var(--importance-low);
+      border-color: var(--importance-low);
+    }
+
+    .filter-btn.validation-valid.active {
+      background: var(--validation-valid);
+      border-color: var(--validation-valid);
+    }
+
+    .filter-btn.validation-invalid.active {
+      background: var(--validation-invalid);
+      border-color: var(--validation-invalid);
+    }
+
+    .filter-btn.validation-needs-human.active {
+      background: var(--validation-human);
+      border-color: var(--validation-human);
+    }
+
+    .filter-btn.validation-failed.active {
+      background: var(--validation-failed);
+      border-color: var(--validation-failed);
+    }
+
+    select.filter-select {
+      padding: 0.375rem 2rem 0.375rem 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.5rem center;
+    }
+
+    select.filter-select:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    /* Multi-select dropdown */
+    .multi-select {
+      position: relative;
+      min-width: 150px;
+    }
+
+    .multi-select-trigger {
+      padding: 0.375rem 2rem 0.375rem 0.75rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 0.8125rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+    }
+
+    .multi-select-trigger::after {
+      content: '';
+      position: absolute;
+      right: 0.5rem;
+      width: 12px;
+      height: 12px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    .multi-select-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-md);
+      z-index: 200;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .multi-select.open .multi-select-dropdown {
+      display: block;
+    }
+
+    .multi-select-option {
+      padding: 0.5rem 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .multi-select-option:hover {
+      background: var(--bg-hover);
+    }
+
+    .multi-select-option input {
+      margin: 0;
+    }
+
+    /* Action Buttons */
+    .action-section {
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .action-help {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .action-help summary {
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-weight: 500;
+      padding: 0.25rem 0;
+    }
+
+    .action-help-content {
+      margin-top: 0.5rem;
+      padding: 0.75rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+    }
+
+    .action-help-content p {
+      margin: 0.5rem 0;
+    }
+
+    .action-help-content p:first-child {
+      margin-top: 0;
+    }
+
+    .action-help-content strong {
+      color: var(--text-primary);
+    }
+
+    .action-help-content code {
+      background: var(--bg-hover);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.75rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary {
+      background: var(--accent-blue);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0b5ed7;
+    }
+
+    .export-indicator {
+      display: inline-block;
+      font-size: 0.8rem;
+      color: var(--accent-green, #16a34a);
+      margin-left: 0.5rem;
+      vertical-align: middle;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      border-color: var(--border-color);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-hover);
+    }
+
+    /* Main Content */
+    main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Group Cards */
+    .group-card {
+      background: var(--suggestion-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      transition: box-shadow 0.2s ease;
+    }
+
+    .group-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+
+    .group-card.skipped {
+      opacity: 0.6;
+    }
+
+    .group-header {
+      padding: 1rem 1.25rem;
+      background: var(--suggestion-bar-bg);
+      border-bottom: 1px solid var(--border-light);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .group-header-top {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .group-toggle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+    }
+
+    .group-card.collapsed .group-toggle {
+      transform: rotate(-90deg);
+    }
+
+    .group-id {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 1rem;
+    }
+
+    .group-title {
+      flex: 1;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .group-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      margin-left: 1.5rem;
+    }
+
+    /* Badges */
+    .badge {
+      padding: 0.1875rem 0.5rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-importance-high {
+      background: var(--importance-high-bg);
+      color: var(--importance-high);
+    }
+
+    .badge-importance-medium {
+      background: var(--importance-medium-bg);
+      color: var(--importance-medium);
+    }
+
+    .badge-importance-low {
+      background: var(--importance-low-bg);
+      color: var(--importance-low);
+    }
+
+    .badge-category {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+
+    .badge-provider {
+      color: white;
+      opacity: 0.9;
+    }
+
+    .badge-model {
+      color: white;
+      opacity: 0.9;
+    }
+
+    .model-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-right: 2px;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .model-badge-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .badge-validation-valid {
+      background: var(--validation-valid-bg);
+      color: var(--validation-valid);
+    }
+
+    .badge-validation-invalid {
+      background: var(--validation-invalid-bg);
+      color: var(--validation-invalid);
+    }
+
+    .badge-validation-needs-human {
+      background: var(--validation-human-bg);
+      color: var(--validation-human);
+    }
+
+    .badge-validation-failed {
+      background: var(--validation-failed-bg);
+      color: var(--validation-failed);
+    }
+
+    /* Validation Override */
+    .validation-override {
+      padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      background: var(--bg-card);
+      color: var(--text-primary);
+      font-size: 0.75rem;
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236c757d' d='M3 5l3 3 3-3'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.375rem center;
+      margin-left: 0.5rem;
+    }
+
+    .validation-override:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+    }
+
+    select.suggestion-override {
+      font-size: 0.75rem;
+      padding: 2px 4px;
+    }
+
+    /* Skip Checkbox */
+    .skip-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: auto;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
+    .skip-control input[type="checkbox"] {
+      width: 1rem;
+      height: 1rem;
+      cursor: pointer;
+      accent-color: var(--accent-blue);
+    }
+
+    /* Group Content */
+    .group-content {
+      padding: 0;
+    }
+
+    .group-card.collapsed .group-content {
+      display: none;
+    }
+
+    /* Validation Section */
+    .validation-section {
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .validation-section summary {
+      padding: 0.75rem 1.25rem;
+      cursor: pointer;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      list-style: none;
+    }
+
+    .validation-section summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .validation-section summary::before {
+      content: '\25B8';
+      font-size: 0.75rem;
+      transition: transform 0.15s;
+    }
+
+    .validation-section[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .validation-content {
+      padding: 0 1.25rem 1rem 2rem;
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .confidence-bar {
+      width: 60px;
+      height: 6px;
+      background: var(--border-color);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-left: 0.5rem;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background: var(--validation-valid);
+      border-radius: 3px;
+    }
+
+    /* Suggestion Items */
+    .suggestion-item {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+
+    .suggestion-item.skipped {
+      opacity: 0.5;
+      background: var(--bg-secondary);
+    }
+
+    .suggestion-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .suggestion-id {
+      font-weight: 600;
+      color: var(--text-primary);
+      font-size: 0.9375rem;
+    }
+
+    .suggestion-title {
+      flex: 1;
+      min-width: 200px;
+      color: var(--text-primary);
+    }
+
+    .section-ref {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      cursor: help;
+      position: relative;
+      padding: 0.25rem 0.5rem;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+    }
+
+    .section-ref:hover .section-tooltip {
+      display: block;
+    }
+
+    .file-ref {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      padding: 0.25rem 0.5rem;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+    }
+
+    .file-ref code {
+      font-family: 'SF Mono', 'Monaco', 'Menlo', 'Consolas', monospace;
+      font-size: 0.75rem;
+      background: var(--bg-hover);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .section-tooltip {
+      display: none;
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      font-size: 0.8125rem;
+      color: var(--text-primary);
+      white-space: pre-wrap;
+      max-width: 400px;
+      min-width: 250px;
+      box-shadow: var(--shadow-lg);
+      z-index: 50;
+      margin-bottom: 0.5rem;
+    }
+
+    .section-tooltip::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 6px solid transparent;
+      border-top-color: var(--border-color);
+    }
+
+    /* Editable Description */
+    .description-editor {
+      width: 100%;
+      min-height: 2.5rem;
+      padding: 0.75rem;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      resize: vertical;
+      transition: border-color 0.15s, background 0.15s;
+      overflow: hidden;
+    }
+
+    .description-editor:focus {
+      outline: none;
+      border-color: var(--accent-blue);
+      background: var(--bg-card);
+    }
+
+    .description-editor.modified {
+      border-color: var(--accent-green);
+      background: #19875410;
+    }
+
+    .description-editor.hidden {
+      display: none;
+    }
+
+    /* Rendered Markdown Display */
+    .description-rendered {
+      width: 100%;
+      min-height: 2.5rem;
+      padding: 0.75rem;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      font-size: 0.875rem;
+      line-height: 1.6;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .description-rendered:hover {
+      border-color: var(--accent-blue);
+      background: var(--bg-card);
+    }
+
+    .description-rendered.modified {
+      border-color: var(--accent-green);
+      background: #19875410;
+    }
+
+    .description-rendered.hidden {
+      display: none;
+    }
+
+    .description-rendered .edit-hint {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      font-style: italic;
+    }
+
+    /* Markdown rendered content styles */
+    .description-rendered strong,
+    .description-rendered b {
+      font-weight: 600;
+    }
+
+    .description-rendered em,
+    .description-rendered i {
+      font-style: italic;
+    }
+
+    .description-rendered code {
+      background: var(--bg-hover);
+      padding: 0.125rem 0.375rem;
+      border-radius: var(--radius-sm);
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.8125rem;
+    }
+
+    .description-rendered pre {
+      background: var(--bg-hover);
+      padding: 0.75rem;
+      border-radius: var(--radius-sm);
+      overflow-x: auto;
+      margin: 0.5rem 0;
+    }
+
+    .description-rendered pre code {
+      background: none;
+      padding: 0;
+    }
+
+    .description-rendered ul,
+    .description-rendered ol {
+      margin: 0.5rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .description-rendered li {
+      margin: 0.25rem 0;
+    }
+
+    .description-rendered p {
+      margin: 0.5rem 0;
+    }
+
+    .description-rendered p:first-child {
+      margin-top: 0;
+    }
+
+    .description-rendered p:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Suggestion Validation Section */
+    .suggestion-validation {
+      margin-top: 0.75rem;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+    }
+
+    .suggestion-validation summary {
+      padding: 0.5rem 0.75rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      list-style: none;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+    }
+
+    .suggestion-validation[open] summary {
+      border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .suggestion-validation summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .suggestion-validation summary::before {
+      content: '\25B8';
+      font-size: 0.625rem;
+      transition: transform 0.15s;
+    }
+
+    .suggestion-validation[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .suggestion-validation .validation-label {
+      font-weight: 500;
+    }
+
+    .suggestion-validation .validation-content {
+      padding: 0.75rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      background: var(--bg-card);
+      border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    }
+
+    .suggestion-validation .confidence-bar {
+      width: 50px;
+      height: 5px;
+      background: var(--border-color);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-left: 0.5rem;
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .suggestion-validation .confidence-fill {
+      height: 100%;
+      border-radius: 3px;
+    }
+
+    .suggestion-validation .confidence-fill.high {
+      background: var(--validation-valid);
+    }
+
+    .suggestion-validation .confidence-fill.medium {
+      background: var(--importance-medium);
+    }
+
+    .suggestion-validation .confidence-fill.low {
+      background: var(--importance-high);
+    }
+
+    /* Validation status colors */
+    .suggestion-validation.validation-valid {
+      border-color: var(--validation-valid);
+    }
+
+    .suggestion-validation.validation-valid summary {
+      background: var(--validation-valid-bg);
+      border-color: var(--validation-valid);
+    }
+
+    .suggestion-validation.validation-invalid {
+      border-color: var(--validation-invalid);
+    }
+
+    .suggestion-validation.validation-invalid summary {
+      background: var(--validation-invalid-bg);
+      border-color: var(--validation-invalid);
+    }
+
+    .suggestion-validation.validation-needs-human {
+      border-color: var(--validation-human);
+    }
+
+    .suggestion-validation.validation-needs-human summary {
+      background: var(--validation-human-bg);
+      border-color: var(--validation-human);
+    }
+
+    .suggestion-validation.validation-failed {
+      border-color: var(--validation-failed);
+    }
+
+    .suggestion-validation.validation-failed summary {
+      background: var(--validation-failed-bg);
+      border-color: var(--validation-failed);
+    }
+
+    /* Collapsible Details */
+    .suggestion-details {
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+    }
+
+    .suggestion-details summary {
+      cursor: pointer;
+      color: var(--text-muted);
+      padding: 0.375rem 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      list-style: none;
+    }
+
+    .suggestion-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .suggestion-details summary::before {
+      content: '\25B8';
+      font-size: 0.625rem;
+      transition: transform 0.15s;
+    }
+
+    .suggestion-details[open] summary::before {
+      transform: rotate(90deg);
+    }
+
+    .suggestion-details-content {
+      padding: 0.75rem;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      margin-top: 0.5rem;
+      white-space: pre-wrap;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.8125rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header {
+        padding: 1rem;
+      }
+
+      .header-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .filter-controls {
+        flex-direction: column;
+      }
+
+      main {
+        padding: 1rem;
+      }
+
+      .group-header-top {
+        flex-wrap: wrap;
+      }
+
+      .group-badges {
+        margin-left: 0;
+        margin-top: 0.5rem;
+        width: 100%;
+      }
+
+      .suggestion-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .skip-control {
+        margin-left: 0;
+        margin-top: 0.5rem;
+      }
+    }
+
+    /* Commit review (plans/review-commits.md §2.10): rendered only when the
+       generator passed reportData.commitRange. */
+    .commit-range-header {
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+    }
+
+    .commit-block {
+      margin: 0 0 0.5rem 0;
+      padding: 0.5rem 0.75rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+      font-size: 0.75rem;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    .commit-meta {
+      margin: 0.125rem 0;
+    }
+
+    .introduced-by {
+      font-size: 0.8125rem;
+      color: var(--text-secondary);
+      margin-top: 0.25rem;
+    }
+
+    .introduced-by code {
+      font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    }
+
+    .introduced-by-model {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+
+    .badge-drift {
+      background: #FEF3C7;
+      color: #92400E;
+      border: 1px solid #F59E0B;
+    }
+
+    /* A path absent at `head` on a pinned review (plans/review-commits.md §2.5) */
+    .file-absent-label {
+      color: var(--text-muted);
+      font-style: italic;
+      font-weight: normal;
+    }
+
+    /* Scrollbar Styling */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-secondary);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="header-title-row">
+        <h1 class="header-title" id="report-title">Multi-LLM Review Report</h1>
+        <button class="header-toggle" id="header-toggle" onclick="toggleHeaderPanel()">
+          <span class="toggle-icon" id="toggle-icon">&#9660;</span>
+          <span id="toggle-label">Hide filters</span>
+        </button>
+      </div>
+      <div class="header-collapsible" id="header-collapsible">
+        <div class="header-meta">
+          <span><strong>Generated:</strong> <span id="meta-timestamp">-</span></span>
+          <span><strong>Models:</strong> <span id="meta-models">-</span></span>
+          <!-- Stage U: the run total, hidden outright when no adapter in the
+               fan-out reported usage — an empty "Usage: -" would read as a
+               measurement that came back zero. -->
+          <span id="meta-usage-wrap" style="display:none"><strong>Usage:</strong> <span id="meta-usage">-</span></span>
+          <!-- The models that produced nothing. `Models:` above is read off the
+               groups' suggestions, so a failed reviewer with no findings is
+               otherwise absent from this page; hidden when none failed. -->
+          <span id="meta-failed-wrap" class="meta-failed" style="display:none"><strong>Failed:</strong> <span id="meta-failed">-</span></span>
+          <span><strong>Groups:</strong> <span id="meta-groups">-</span></span>
+          <span><strong>Phase:</strong> <span id="meta-phase">-</span></span>
+          <span><strong><!--MLLM:document-label--></strong> <a id="meta-plan-link" href="#">-</a></span>
+        </div>
+
+        <!-- A commit review's block, focus and context plan; hidden otherwise. -->
+        <div class="commit-range-header" id="commit-range-header" style="display:none"></div>
+
+        <div class="filter-controls">
+          <div class="filter-group">
+            <span class="filter-label">Models</span>
+            <div class="multi-select" id="model-filter">
+              <div class="multi-select-trigger">All Models</div>
+              <div class="multi-select-dropdown" id="model-dropdown"></div>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Importance</span>
+            <div class="filter-options" id="importance-filters">
+              <button class="filter-btn importance-high active" data-importance="HIGH">HIGH</button>
+              <button class="filter-btn importance-medium active" data-importance="MEDIUM">MEDIUM</button>
+              <button class="filter-btn importance-low active" data-importance="LOW">LOW</button>
+            </div>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Category</span>
+            <select class="filter-select" id="category-filter">
+              <option value="">All Categories</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Validation</span>
+            <div class="filter-options" id="validation-filters">
+              <button class="filter-btn validation-valid active" data-validation="valid">Valid</button>
+              <button class="filter-btn validation-invalid active" data-validation="invalid">Invalid</button>
+              <button class="filter-btn validation-needs-human active" data-validation="needs-human-decision">Needs Human</button>
+              <button class="filter-btn validation-failed active" data-validation="validation_failed">Failed</button>
+            </div>
+          </div>
+
+          <!-- A commit review's commit chips and "Group by commit"; hidden otherwise. -->
+          <div class="filter-group" id="commit-filter-group" style="display:none">
+            <span class="filter-label">Commit</span>
+            <div class="filter-options" id="commit-filters"></div>
+            <button class="filter-btn" id="group-by-commit" type="button">Group by commit</button>
+          </div>
+
+          <div class="filter-group">
+            <span class="filter-label">Sort</span>
+            <select class="filter-select" id="sort-order" onchange="applySorting()">
+              <option value="priority">Priority</option>
+              <option value="original">Original Order</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="action-section" id="action-section">
+          <div class="action-buttons">
+            <button class="btn btn-primary" id="btn-export">
+              <span>Export Selections (JSON)</span>
+            </button>
+            <span class="export-indicator" id="export-indicator" style="display:none"></span>
+            <button class="btn btn-secondary" id="btn-copy">
+              <span>Copy as Text</span>
+            </button>
+          </div>
+          <details class="action-help">
+            <summary>How to use these buttons?</summary>
+            <div class="action-help-content">
+              <p><strong>Export Selections (JSON):</strong> Downloads a <code>user_selections.json</code> file containing your skipped items and edited descriptions. Place this file in the same directory as <code>report.md</code> (the phase output directory). When you run the <!--MLLM:apply-commands--> command, it will automatically read your selections and skip the items you marked.</p>
+              <p><strong>Copy as Text:</strong> Copies a text summary of your selections to the clipboard. You can paste this into a file or share it. This is useful for quick reference or when you prefer a simpler workflow.</p>
+              <p><strong>Note:</strong> Your selections are automatically saved in your browser's local storage, so they persist if you refresh the page. The export is only needed when you want the orchestrator to use your selections.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Notice bar: data-source warnings and the failed-reviewer warning. Outside
+       the groups container, so the "No groups found" empty state cannot hide it. -->
+  <div id="report-notices"></div>
+
+  <main id="groups-container">
+    <div class="empty-state">
+      <div class="empty-state-icon">Loading...</div>
+      <p>Loading report data...</p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
+    marked.setOptions({ breaks: true });
+    window.markedParse = marked.parse.bind(marked);
+    window.dispatchEvent(new Event('marked-ready'));
+  </script>
+
+  <script>
+    // Header collapse/expand
+    function toggleHeaderPanel() {
+      var panel = document.getElementById('header-collapsible');
+      var icon = document.getElementById('toggle-icon');
+      var label = document.getElementById('toggle-label');
+      var isCollapsed = panel.classList.toggle('collapsed');
+      icon.style.transform = isCollapsed ? 'rotate(-90deg)' : '';
+      label.textContent = isCollapsed ? 'Show filters' : 'Hide filters';
+      localStorage.setItem('multi-llm-header-collapsed', isCollapsed ? '1' : '');
+    }
+
+    // Restore header state on load
+    (function() {
+      if (localStorage.getItem('multi-llm-header-collapsed') === '1') {
+        var panel = document.getElementById('header-collapsible');
+        var icon = document.getElementById('toggle-icon');
+        var label = document.getElementById('toggle-label');
+        if (panel) {
+          panel.classList.add('collapsed');
+          icon.style.transform = 'rotate(-90deg)';
+          label.textContent = 'Show filters';
+        }
+      }
+    })();
+
+    // Data placeholders - will be replaced by generator
+    const reportData = /* REPORT_DATA_PLACEHOLDER */null;
+    // sectionContexts and logSnippets are now accessed from reportData
+    // Read-only mode: suppresses skip/approve controls for phases like review-tasks
+    const isReadOnly = (reportData && reportData.readOnly) || false;
+
+    // Commit review state (plans/review-commits.md §2.10): '' shows every
+    // commit's findings; a SHA or 'unattributed' shows only those.
+    var commitFilter = '';
+    var groupByCommit = false;
+
+    // State
+    let selections = {
+      plan_path: '',
+      phase: '',
+      format_version: 2,
+      exported_at: null,
+      last_file_export_at: null,
+      skipped_groups: {},
+      skipped_suggestions: {},
+      edited_descriptions: {},
+      validation_overrides: {},
+      _labels: {}
+    };
+
+    // Utilities
+    function getStorageKey() {
+      return 'multi-llm-selections-' + selections.phase + '-' + selections.plan_path;
+    }
+
+    function migrateLegacyOverrides(overrides) {
+      if (!overrides) return;
+      Object.keys(overrides).forEach(function(k) {
+        if (overrides[k] === 'claude_decide') overrides[k] = 'judge_decide';
+      });
+    }
+
+    function loadSelections() {
+      const stored = localStorage.getItem(getStorageKey());
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          // Migrate v1 array-based skipped_groups to v2 object-based
+          if (Array.isArray(parsed.skipped_groups)) {
+            var migrated = {};
+            parsed.skipped_groups.forEach(function(g) { migrated[String(g)] = true; });
+            parsed.skipped_groups = migrated;
+          }
+          if (Array.isArray(parsed.skipped_suggestions)) {
+            var migratedSugg = {};
+            parsed.skipped_suggestions.forEach(function(s) { migratedSugg[String(s)] = true; });
+            parsed.skipped_suggestions = migratedSugg;
+          }
+          // A selection saved before the judge rename says 'claude_decide' (utils/judge_vocab.py).
+          migrateLegacyOverrides(parsed.validation_overrides);
+          selections = { ...selections, ...parsed };
+        } catch (e) {
+          console.error('Failed to load selections:', e);
+        }
+      }
+    }
+
+    function saveSelections() {
+      selections.exported_at = new Date().toISOString();
+      localStorage.setItem(getStorageKey(), JSON.stringify(selections));
+    }
+
+    function getModelBadgeHtml(modelString) {
+      // Get metadata from reportData if available
+      var metadata = reportData.modelMetadata ? reportData.modelMetadata[modelString] : null;
+
+      if (!metadata) {
+        // Fallback: just show the model string with default color
+        return '<span class="badge badge-model" style="background: #6B7280;">' + escapeHtml(modelString) + '</span>';
+      }
+
+      var html = '<span class="model-badge-group">';
+
+      // Provider icon (only when distinct from model icon)
+      if (metadata.provider_icon) {
+        html += '<img class="model-icon" src="' + metadata.provider_icon + '" alt="" />';
+      }
+
+      // Model icon
+      if (metadata.icon) {
+        html += '<img class="model-icon" src="' + metadata.icon + '" alt="" />';
+      }
+
+      // Provider badge (only if provider exists)
+      if (metadata.provider) {
+        html += '<span class="badge badge-provider" style="background: ' + metadata.provider_color + ';">' +
+                escapeHtml(metadata.provider) + '</span>';
+      }
+
+      // Model badge
+      html += '<span class="badge badge-model" style="background: ' + metadata.model_color + ';">' +
+              escapeHtml(metadata.model) + '</span>';
+
+      // Stage U: what this slot spent, when the adapter reported it. The text
+      // is `usage_label`, rendered server-side by the one `describe_usage` the
+      // markdown report and the failed-slot log line also use — this template
+      // deliberately does not re-derive it from `metadata.usage` (the numbers
+      // are there for anything that wants to compute), because three templates
+      // each rounding a cost their own way is three answers to "what did this
+      // run cost". A model that reported nothing has no key and renders no
+      // badge — never `$0.00`, which would claim a free run.
+      if (metadata.usage_label) {
+        html += '<span class="badge badge-usage" style="background: #6B7280;" title="Estimated from the CLI\'s own price catalog, not a vendor invoice">' +
+                escapeHtml(metadata.usage_label) + '</span>';
+      }
+
+      html += '</span>';
+      return html;
+    }
+
+    function getImportanceBadgeClass(importance) {
+      switch (importance ? importance.toUpperCase() : '') {
+        case 'HIGH': return 'badge-importance-high';
+        case 'MEDIUM': return 'badge-importance-medium';
+        case 'LOW': return 'badge-importance-low';
+        default: return 'badge-category';
+      }
+    }
+
+    function getValidationBadgeClass(status) {
+      switch (status) {
+        case 'valid': return 'badge-validation-valid';
+        case 'invalid': return 'badge-validation-invalid';
+        case 'needs-human-decision': return 'badge-validation-needs-human';
+        case 'validation_failed': return 'badge-validation-failed';
+        default: return 'badge-category';
+      }
+    }
+
+    function escapeHtml(text) {
+      if (text === null || text === undefined) return '';
+      const div = document.createElement('div');
+      div.textContent = String(text);
+      return div.innerHTML;
+    }
+
+    function escapeAttr(text) {
+      if (text === null || text === undefined) return '';
+      return escapeHtml(text).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // Markdown renderer using marked library (loaded from CDN)
+    function renderMarkdown(text) {
+      if (!text) return '';
+      return window.markedParse(text);
+    }
+
+    // Get unique values from data
+    function getUniqueModels() {
+      if (!reportData || !reportData.groups) return [];
+      const models = new Set();
+      reportData.groups.forEach(function(group) {
+        if (group.suggestions) {
+          group.suggestions.forEach(function(s) {
+            if (s.model) models.add(s.model);
+          });
+        }
+      });
+      return Array.from(models).sort();
+    }
+
+    function getUniqueCategories() {
+      if (!reportData || !reportData.groups) return [];
+      const categories = new Set();
+      reportData.groups.forEach(function(group) {
+        if (group.category) categories.add(group.category);
+        if (group.suggestions) {
+          group.suggestions.forEach(function(s) {
+            if (s.category) categories.add(s.category);
+          });
+        }
+      });
+      return Array.from(categories).sort();
+    }
+
+    // Render functions
+    function renderHeader() {
+      if (!reportData) return;
+
+      var planPath = reportData.planPath || 'Unknown';
+      var planTitle = reportData.planTitle || planPath;
+      selections.plan_path = planPath;
+      selections.phase = reportData.phase || 'review';
+
+      var phaseLabelMap = {'review-plan': 'Plan Review', 'review-tasks': 'Task Review', 'code-review': 'Code Review'};
+      var phaseLabel = phaseLabelMap[reportData.phase] || 'Plan Review';
+      document.getElementById('report-title').textContent = phaseLabel + ' Report: ' + planTitle;
+      document.getElementById('meta-timestamp').textContent = reportData.generatedAt || new Date().toISOString();
+      document.getElementById('meta-models').textContent = getUniqueModels().join(', ') || '-';
+      var usageWrap = document.getElementById('meta-usage-wrap');
+      if (usageWrap) {
+        if (reportData.usageTotalLabel) {
+          document.getElementById('meta-usage').textContent = reportData.usageTotalLabel;
+          usageWrap.style.display = '';
+        } else {
+          usageWrap.style.display = 'none';
+        }
+      }
+      // `failedModels` is a {spec: reason} object: "N of M requested" when
+      // `requestedModels` is set, then one `model: reason` entry per model.
+      var failedWrap = document.getElementById('meta-failed-wrap');
+      if (failedWrap) {
+        var failedModels = reportData.failedModels || {};
+        var failedSpecs = Object.keys(failedModels);
+        if (failedSpecs.length > 0) {
+          var failedCount = (typeof reportData.requestedModels === 'number')
+            ? failedSpecs.length + ' of ' + reportData.requestedModels + ' requested'
+            : failedSpecs.length + (failedSpecs.length === 1 ? ' model' : ' models');
+          var failedEntries = failedSpecs.map(function(spec) {
+            return spec + ': ' + failedModels[spec];
+          });
+          document.getElementById('meta-failed').textContent =
+            failedCount + ' — ' + failedEntries.join('; ');
+          failedWrap.style.display = '';
+        } else {
+          failedWrap.style.display = 'none';
+        }
+      }
+      document.getElementById('meta-groups').textContent = reportData.groups ? reportData.groups.length : 0;
+      document.getElementById('meta-phase').textContent = reportData.phase || 'review';
+
+      var planLinkEl = document.getElementById('meta-plan-link');
+      if (planPath && planPath !== 'Unknown') {
+        planLinkEl.href = 'file://' + encodeURI(planPath);
+        planLinkEl.textContent = planPath;
+      } else {
+        planLinkEl.removeAttribute('href');
+        planLinkEl.textContent = '-';
+      }
+
+      // Populate model filter
+      var modelDropdown = document.getElementById('model-dropdown');
+      var models = getUniqueModels();
+      modelDropdown.innerHTML = models.map(function(model) {
+        return '<label class="multi-select-option">' +
+          '<input type="checkbox" value="' + escapeAttr(model) + '" checked>' +
+          escapeHtml(model) +
+          '</label>';
+      }).join('');
+
+      // Populate category filter
+      var categoryFilter = document.getElementById('category-filter');
+      var categories = getUniqueCategories();
+      categoryFilter.innerHTML = '<option value="">All Categories</option>' +
+        categories.map(function(cat) {
+          return '<option value="' + escapeAttr(cat) + '">' + escapeHtml(cat) + '</option>';
+        }).join('');
+    }
+
+    // Notices: identical to the PR report's `renderNotices`, so one
+    // `reportData.notices` list renders the same bar in either report style.
+    function renderNotices() {
+      if (!reportData) return;
+      var container = document.getElementById('report-notices');
+      if (!container) return;
+      var html = '';
+      var notices = reportData.notices || [];
+      notices.forEach(function(n) {
+        var cls = 'report-notice';
+        if (n.type === 'info') cls += ' info';
+        else if (n.type === 'warning') cls += ' warning';
+        html += '<div class="' + cls + '">' + escapeHtml(n.message) + '</div>';
+      });
+      container.innerHTML = html;
+    }
+
+    function renderGroups() {
+      var container = document.getElementById('groups-container');
+
+      if (!reportData || !reportData.groups || !reportData.groups.length) {
+        container.innerHTML = '<div class="empty-state">' +
+          '<div class="empty-state-icon">No Data</div>' +
+          '<p>No groups found in the report data.</p>' +
+          '</div>';
+        return;
+      }
+
+      // Build _labels map for debugging: hash -> display label
+      reportData.groups.forEach(function(group) {
+        if (group.groupHash && group.displayLabel) {
+          selections._labels[group.groupHash] = group.displayLabel;
+        }
+        if (group.suggestions) {
+          group.suggestions.forEach(function(s) {
+            if (s.id && s.displayLabel) {
+              selections._labels[s.id] = s.displayLabel;
+            }
+          });
+        }
+      });
+
+      var html = '';
+      reportData.groups.forEach(function(group, groupIndex) {
+        var groupNum = groupIndex + 1;
+        var groupHashKey = group.groupHash || String(groupNum);
+        var groupId = group.displayLabel || ('G' + groupNum);
+        var isGroupSkipped = !!selections.skipped_groups[groupHashKey];
+        // Validation data is stored flat on group, not nested
+        var validationStatus = group.validationStatus || '';
+        var validationReason = group.validationReason || '';
+        var validationConfidence = group.validationConfidence || 0;
+        var confidencePercent = Math.round(validationConfidence * 100);
+
+        // Get unique models and max importance for this group
+        var groupModels = [];
+        var maxImportance = '';
+        if (group.suggestions) {
+          group.suggestions.forEach(function(s) {
+            if (s.model && groupModels.indexOf(s.model) === -1) {
+              groupModels.push(s.model);
+            }
+            // Track max importance (HIGH > MEDIUM > LOW)
+            var imp = (s.importance || '').toUpperCase();
+            if (imp === 'HIGH') {
+              maxImportance = 'HIGH';
+            } else if (imp === 'MEDIUM' && maxImportance !== 'HIGH') {
+              maxImportance = 'MEDIUM';
+            } else if (imp === 'LOW' && !maxImportance) {
+              maxImportance = 'LOW';
+            }
+          });
+        }
+
+        var modelBadgesHtml = groupModels.map(function(model) {
+          return getModelBadgeHtml(model);
+        }).join('');
+
+        // Build suggestions HTML
+        var suggestionsHtml = '';
+        if (group.suggestions) {
+          group.suggestions.forEach(function(suggestion, suggestionIndex) {
+            var suggestionId = suggestion.id || (groupId + 'S' + (suggestionIndex + 1));
+            var isSuggestionSkipped = !!selections.skipped_suggestions[suggestionId];
+            var editedDescription = selections.edited_descriptions[suggestionId];
+            var originalDescription = suggestion.description || suggestion.content || '';
+            var displayDescription = editedDescription !== undefined ? editedDescription : originalDescription;
+            var isModified = editedDescription !== undefined && editedDescription !== originalDescription;
+            var sectionKey = suggestion.sectionRef || suggestion.section || suggestion.section_id || '';
+            var sectionContext = (reportData && reportData.sectionContexts) ? reportData.sectionContexts[sectionKey] : null;
+            // logSnippets is keyed by model, not by suggestion id.
+            var logSnippet = (reportData && reportData.logSnippets) ? reportData.logSnippets[suggestion.model] : (suggestion.log_snippet || null);
+
+            var refHtml = '';
+            var fileRef = suggestion.fileRef || '';
+            if (sectionKey) {
+              // Plan review: show section reference with tooltip
+              refHtml = '<span class="section-ref">Section: ' + escapeHtml(sectionKey);
+              if (sectionContext) {
+                refHtml += '<span class="section-tooltip">' + escapeHtml(sectionContext) + '</span>';
+              }
+              refHtml += '</span>';
+            } else if (fileRef) {
+              // Code review: show file:line reference
+              refHtml = '<span class="file-ref">File: <code>' + escapeHtml(fileRef) + '</code>' + fileLabelHtml(fileRef) + '</span>';
+            }
+
+            var detailsHtml = '';
+            if (logSnippet) {
+              detailsHtml += '<details class="suggestion-details">' +
+                '<summary>Log snippet</summary>' +
+                '<div class="suggestion-details-content">' + escapeHtml(logSnippet) + '</div>' +
+                '</details>';
+            }
+
+            var suggestionDisplayLabel = suggestion.displayLabel || (groupId + 'S' + (suggestionIndex + 1));
+
+            suggestionsHtml += '<div class="suggestion-item' + (isSuggestionSkipped ? ' skipped' : '') + '"' +
+              ' data-suggestion-id="' + suggestionId + '"' +
+              ' data-model="' + escapeAttr(suggestion.model || '') + '"' +
+              ' data-importance="' + escapeAttr(suggestion.importance || group.importance || '') + '"' +
+              ' data-category="' + escapeAttr(suggestion.category || group.category || '') + '">' +
+              '<div class="suggestion-header">' +
+              '<span class="suggestion-id">' + suggestionDisplayLabel + ':</span>' +
+              '<span class="suggestion-title">' + escapeHtml(suggestion.title || suggestion.summary || 'Untitled') + '</span>';
+
+            if (suggestion.importance) {
+              suggestionsHtml += '<span class="badge ' + getImportanceBadgeClass(suggestion.importance) + '">' + suggestion.importance + '</span>';
+            }
+            if (suggestion.type) {
+              suggestionsHtml += '<span class="badge badge-category">' + escapeHtml(suggestion.type) + '</span>';
+            }
+            if (suggestion.model) {
+              suggestionsHtml += getModelBadgeHtml(suggestion.model);
+            }
+
+            suggestionsHtml += refHtml;
+            if (!isReadOnly) {
+              suggestionsHtml +=
+                '<label class="skip-control">' +
+                '<input type="checkbox"' + (isSuggestionSkipped ? ' checked' : '') +
+                ' onchange="toggleSuggestionSkip(\'' + suggestionId + '\', this.checked)">' +
+                'Skip</label>';
+              if ((validationStatus === 'needs-human-decision' || validationStatus === 'validation_failed') && group.suggestions.length > 1) {
+                var suggOverride = selections.validation_overrides[suggestionId] || '';
+                suggestionsHtml +=
+                  '<select class="validation-override suggestion-override" onclick="event.stopPropagation()" onchange="setSuggestionValidationOverride(\'' + suggestionId + '\', this.value)">' +
+                  '<option value=""' + (!suggOverride ? ' selected' : '') + '>-- No override --</option>' +
+                  '<option value="valid"' + (suggOverride === 'valid' ? ' selected' : '') + '>Mark Valid</option>' +
+                  '<option value="invalid"' + (suggOverride === 'invalid' ? ' selected' : '') + '>Mark Invalid</option>' +
+                  (validationStatus === 'needs-human-decision' ?
+                    '<option value="judge_decide"' + (suggOverride === 'judge_decide' ? ' selected' : '') + '>Let the agent decide</option>' : '') +
+                  '</select>';
+              }
+            }
+            suggestionsHtml +=
+              '</div>' +
+              '<div class="description-rendered' + (isModified ? ' modified' : '') + '"' +
+              ' data-suggestion-id="' + suggestionId + '"';
+            if (!isReadOnly) {
+              suggestionsHtml += ' onclick="switchToEdit(\'' + suggestionId + '\')"';
+            }
+            suggestionsHtml += '>' +
+              renderMarkdown(displayDescription);
+            if (!isReadOnly) {
+              suggestionsHtml += '<span class="edit-hint">Click to edit</span>';
+            }
+            suggestionsHtml += '</div>';
+            if (!isReadOnly) {
+              suggestionsHtml +=
+                '<textarea class="description-editor hidden' + (isModified ? ' modified' : '') + '"' +
+                ' data-suggestion-id="' + suggestionId + '"' +
+                ' data-original="' + escapeAttr(originalDescription) + '"' +
+                ' onchange="handleDescriptionEdit(\'' + suggestionId + '\', this)"' +
+                ' oninput="handleDescriptionEdit(\'' + suggestionId + '\', this)"' +
+                ' onblur="switchToView(\'' + suggestionId + '\')">' +
+                escapeHtml(displayDescription) + '</textarea>';
+            }
+
+            // Add suggestion-level validation section (uses group validation data)
+            if (validationStatus) {
+              var confidenceClass = confidencePercent >= 70 ? 'high' : (confidencePercent >= 40 ? 'medium' : 'low');
+              var validationColorClass = '';
+              if (validationStatus === 'valid') validationColorClass = ' validation-valid';
+              else if (validationStatus === 'invalid') validationColorClass = ' validation-invalid';
+              else if (validationStatus === 'needs-human-decision') validationColorClass = ' validation-needs-human';
+              else if (validationStatus === 'validation_failed') validationColorClass = ' validation-failed';
+              suggestionsHtml += '<details class="suggestion-validation' + validationColorClass + '">' +
+                '<summary>' +
+                '<span class="badge ' + getValidationBadgeClass(validationStatus) + '">' + validationStatus + '</span>' +
+                '<span class="validation-label">Validation</span>' +
+                '<span class="confidence-bar">' +
+                '<span class="confidence-fill ' + confidenceClass + '" style="width: ' + confidencePercent + '%"></span>' +
+                '</span>' +
+                '<span>(' + confidencePercent + '%)</span>' +
+                '</summary>' +
+                '<div class="validation-content">' + escapeHtml(validationReason || 'No reason provided.') + '</div>' +
+                '</details>';
+            }
+
+            if (detailsHtml) {
+              suggestionsHtml += '<div class="suggestion-details-row" style="display: flex; gap: 1rem; margin-top: 0.5rem;">' +
+                detailsHtml + '</div>';
+            }
+
+            suggestionsHtml += '</div>';
+          });
+        }
+
+        // Build validation section
+        var validationHtml = '';
+        if (validationStatus) {
+          validationHtml = '<details class="validation-section">' +
+            '<summary>Validation: ' + validationStatus;
+          if (validationConfidence) {
+            validationHtml += '<span class="confidence-bar">' +
+              '<span class="confidence-fill" style="width: ' + confidencePercent + '%"></span>' +
+              '</span>(' + confidencePercent + '%)';
+          }
+          validationHtml += '</summary>' +
+            '<div class="validation-content">' + escapeHtml(validationReason || 'No reason provided.') + '</div>' +
+            '</details>';
+        }
+
+        html += '<div class="group-card' + (isGroupSkipped ? ' skipped' : '') + '"' +
+          ' data-group-id="' + groupHashKey + '"' +
+          ' data-original-index="' + groupNum + '"' +
+          ' data-importance="' + escapeAttr(maxImportance) + '"' +
+          ' data-category="' + escapeAttr(group.category || '') + '"' +
+          ' data-validation="' + escapeAttr(validationStatus) + '"' +
+          (reportData.commitRange ? ' data-commit="' + escapeAttr(commitKeyOf(group)) + '"' : '') +
+          ' data-models="' + groupModels.join(',') + '">' +
+          '<div class="group-header" onclick="toggleGroup(\'' + groupHashKey + '\')">' +
+          '<div class="group-header-top">' +
+          '<span class="group-toggle">&#9660;</span>' +
+          '<span class="group-id">' + groupId + ':</span>' +
+          '<span class="group-title">' + escapeHtml(group.theme || group.title || 'Untitled Group') + '</span>' +
+          (isReadOnly ? '' :
+            '<label class="skip-control" onclick="event.stopPropagation()">' +
+            '<input type="checkbox"' + (isGroupSkipped ? ' checked' : '') +
+            ' onchange="toggleGroupSkip(\'' + groupHashKey + '\', this.checked)">' +
+            'Skip this group</label>') +
+          (isReadOnly ? '' :
+            (validationStatus === 'needs-human-decision' || validationStatus === 'validation_failed' ?
+              '<select class="validation-override" onclick="event.stopPropagation()" onchange="setValidationOverride(\'' + groupHashKey + '\', this.value)">' +
+              '<option value=""' + (!selections.validation_overrides[groupHashKey] ? ' selected' : '') + '>-- No override --</option>' +
+              '<option value="valid"' + (selections.validation_overrides[groupHashKey] === 'valid' ? ' selected' : '') + '>Mark Valid</option>' +
+              '<option value="invalid"' + (selections.validation_overrides[groupHashKey] === 'invalid' ? ' selected' : '') + '>Mark Invalid</option>' +
+              (validationStatus === 'needs-human-decision' ?
+                '<option value="judge_decide"' + (selections.validation_overrides[groupHashKey] === 'judge_decide' ? ' selected' : '') + '>Let the agent decide</option>' : '') +
+              '</select>' : '')) +
+          '</div>' +
+          introducedByHtml(group) +
+          '<div class="group-badges">';
+
+        if (maxImportance) {
+          html += '<span class="badge ' + getImportanceBadgeClass(maxImportance) + '">' + maxImportance + '</span>';
+        }
+        if (group.category) {
+          html += '<span class="badge badge-category">' + escapeHtml(group.category) + '</span>';
+        }
+        if (validationStatus) {
+          html += '<span class="badge ' + getValidationBadgeClass(validationStatus) + '">' + validationStatus + '</span>';
+        }
+
+        html += driftBadgeHtml(group);
+
+        html += modelBadgesHtml +
+          '</div></div>' +
+          '<div class="group-content">' +
+          validationHtml +
+          suggestionsHtml +
+          '</div></div>';
+      });
+
+      container.innerHTML = html;
+    }
+
+    // Event handlers
+    function toggleGroup(groupHashKey) {
+      var card = document.querySelector('.group-card[data-group-id="' + groupHashKey + '"]');
+      if (card) {
+        card.classList.toggle('collapsed');
+      }
+    }
+
+    function toggleGroupSkip(groupHashKey, isSkipped) {
+      if (isSkipped) {
+        selections.skipped_groups[groupHashKey] = true;
+      } else {
+        delete selections.skipped_groups[groupHashKey];
+      }
+      saveSelections();
+
+      var card = document.querySelector('.group-card[data-group-id="' + groupHashKey + '"]');
+      if (card) {
+        if (isSkipped) {
+          card.classList.add('skipped');
+        } else {
+          card.classList.remove('skipped');
+        }
+      }
+    }
+
+    function setValidationOverride(hashKey, value) {
+      if (value) {
+        selections.validation_overrides[hashKey] = value;
+      } else {
+        delete selections.validation_overrides[hashKey];
+      }
+      saveSelections();
+    }
+
+    function setSuggestionValidationOverride(suggestionId, value) {
+      if (value) {
+        selections.validation_overrides[suggestionId] = value;
+      } else {
+        delete selections.validation_overrides[suggestionId];
+      }
+      saveSelections();
+    }
+
+    function toggleSuggestionSkip(suggestionId, isSkipped) {
+      if (isSkipped) {
+        selections.skipped_suggestions[suggestionId] = true;
+      } else {
+        delete selections.skipped_suggestions[suggestionId];
+      }
+      saveSelections();
+
+      var item = document.querySelector('.suggestion-item[data-suggestion-id="' + suggestionId + '"]');
+      if (item) {
+        if (isSkipped) {
+          item.classList.add('skipped');
+        } else {
+          item.classList.remove('skipped');
+        }
+      }
+    }
+
+    function handleDescriptionEdit(suggestionId, textarea) {
+      var original = textarea.dataset.original;
+      var current = textarea.value;
+      var renderedDiv = document.querySelector('.description-rendered[data-suggestion-id="' + suggestionId + '"]');
+
+      if (current !== original) {
+        selections.edited_descriptions[suggestionId] = current;
+        textarea.classList.add('modified');
+        if (renderedDiv) {
+          renderedDiv.classList.add('modified');
+        }
+      } else {
+        delete selections.edited_descriptions[suggestionId];
+        textarea.classList.remove('modified');
+        if (renderedDiv) {
+          renderedDiv.classList.remove('modified');
+        }
+      }
+      saveSelections();
+      autoResizeTextarea(textarea);
+    }
+
+    function switchToEdit(suggestionId) {
+      var renderedDiv = document.querySelector('.description-rendered[data-suggestion-id="' + suggestionId + '"]');
+      var textarea = document.querySelector('.description-editor[data-suggestion-id="' + suggestionId + '"]');
+
+      if (renderedDiv && textarea) {
+        renderedDiv.classList.add('hidden');
+        textarea.classList.remove('hidden');
+        autoResizeTextarea(textarea);
+        textarea.focus();
+        // Move cursor to end
+        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+      }
+    }
+
+    function switchToView(suggestionId) {
+      var renderedDiv = document.querySelector('.description-rendered[data-suggestion-id="' + suggestionId + '"]');
+      var textarea = document.querySelector('.description-editor[data-suggestion-id="' + suggestionId + '"]');
+
+      if (renderedDiv && textarea) {
+        // Update rendered content with current textarea value
+        var currentValue = textarea.value;
+        var editHint = '<span class="edit-hint">Click to edit</span>';
+        renderedDiv.innerHTML = renderMarkdown(currentValue) + editHint;
+
+        renderedDiv.classList.remove('hidden');
+        textarea.classList.add('hidden');
+      }
+    }
+
+    function autoResizeTextarea(textarea) {
+      // Reset height to allow shrinking
+      textarea.style.height = 'auto';
+      // Set height to scrollHeight to fit content
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+
+    function autoResizeAllTextareas() {
+      document.querySelectorAll('.description-editor').forEach(function(textarea) {
+        autoResizeTextarea(textarea);
+      });
+    }
+
+    // Filtering
+    function applyFilters() {
+      var activeImportance = [];
+      document.querySelectorAll('#importance-filters .filter-btn.active').forEach(function(btn) {
+        activeImportance.push(btn.dataset.importance);
+      });
+
+      var activeValidation = [];
+      document.querySelectorAll('#validation-filters .filter-btn.active').forEach(function(btn) {
+        activeValidation.push(btn.dataset.validation);
+      });
+
+      var selectedCategory = document.getElementById('category-filter').value;
+
+      var selectedModels = [];
+      document.querySelectorAll('#model-dropdown input:checked').forEach(function(input) {
+        selectedModels.push(input.value);
+      });
+
+      document.querySelectorAll('.group-card').forEach(function(card) {
+        var importance = card.dataset.importance;
+        var validation = card.dataset.validation;
+        var category = card.dataset.category;
+        var models = card.dataset.models.split(',').filter(function(m) { return m; });
+
+        var importanceMatch = !importance || activeImportance.indexOf(importance.toUpperCase()) !== -1;
+        var validationMatch = !validation || activeValidation.indexOf(validation) !== -1;
+        var categoryMatch = !selectedCategory || category === selectedCategory;
+        var modelMatch = selectedModels.length === 0 || models.some(function(m) {
+          return selectedModels.indexOf(m) !== -1;
+        });
+        var commitMatch = !commitFilter || card.dataset.commit === commitFilter;
+
+        card.style.display = (importanceMatch && validationMatch && categoryMatch && modelMatch && commitMatch) ? '' : 'none';
+      });
+    }
+
+    // Export indicator
+    function timeAgo(isoString) {
+      if (!isoString) return '';
+      var diff = Date.now() - new Date(isoString).getTime();
+      var seconds = Math.floor(diff / 1000);
+      if (seconds < 60) return 'just now';
+      var minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return minutes + 'm ago';
+      var hours = Math.floor(minutes / 60);
+      if (hours < 24) return hours + 'h ago';
+      var days = Math.floor(hours / 24);
+      return days + 'd ago';
+    }
+
+    function updateExportIndicator() {
+      var el = document.getElementById('export-indicator');
+      if (!el) return;
+      if (selections.last_file_export_at) {
+        el.textContent = '\u2713 Exported ' + timeAgo(selections.last_file_export_at);
+        el.style.display = '';
+      } else {
+        el.style.display = 'none';
+      }
+    }
+
+    // Export functions
+    function exportSelections() {
+      selections.exported_at = new Date().toISOString();
+      selections.last_file_export_at = selections.exported_at;
+      saveSelections();
+      var json = JSON.stringify(selections, null, 2);
+      var blob = new Blob([json], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'user_selections.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      updateExportIndicator();
+    }
+
+    function copyAsText() {
+      var skippedGroupKeys = Object.keys(selections.skipped_groups);
+      var skippedSuggestionKeys = Object.keys(selections.skipped_suggestions);
+      var labels = selections._labels || {};
+
+      var lines = [
+        (selections.phase === 'code-review' ? 'Code Review' : 'Plan Review') + ' Report: ' + selections.plan_path,
+        'Phase: ' + selections.phase,
+        'Format Version: ' + (selections.format_version || 2),
+        'Exported: ' + new Date().toISOString(),
+        '',
+        '## Skipped Groups',
+        skippedGroupKeys.length ? skippedGroupKeys.map(function(g) { return '- ' + (labels[g] || g); }).join('\n') : '(none)',
+        '',
+        '## Skipped Suggestions',
+        skippedSuggestionKeys.length ? skippedSuggestionKeys.map(function(s) { return '- ' + (labels[s] || s); }).join('\n') : '(none)',
+        '',
+        '## Validation Overrides'
+      ];
+
+      var overrideKeys = Object.keys(selections.validation_overrides);
+      if (overrideKeys.length) {
+        overrideKeys.forEach(function(g) {
+          var label = labels[g] || g;
+          lines.push('- ' + label + ': ' + selections.validation_overrides[g]);
+        });
+      } else {
+        lines.push('(none)');
+      }
+
+      lines.push('');
+      lines.push('## Edited Descriptions');
+
+      var editedKeys = Object.keys(selections.edited_descriptions);
+      if (editedKeys.length) {
+        editedKeys.forEach(function(id) {
+          lines.push('### ' + id);
+          lines.push(selections.edited_descriptions[id]);
+          lines.push('');
+        });
+      } else {
+        lines.push('(none)');
+      }
+
+      var text = lines.join('\n');
+      navigator.clipboard.writeText(text).then(function() {
+        alert('Copied to clipboard!');
+      }).catch(function(err) {
+        console.error('Failed to copy:', err);
+        // Fallback
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('Copied to clipboard!');
+      });
+    }
+
+    // Sorting
+    function applySorting() {
+        const select = document.getElementById('sort-order');
+        const value = select ? select.value : 'priority';
+        const container = document.getElementById('groups-container') || document.querySelector('.groups-container');
+        if (!container) return;
+
+        const cards = Array.from(container.querySelectorAll('.group-card'));
+        if (cards.length === 0) return;
+
+        // Get sort config from embedded data, with hardcoded fallbacks
+        let validationOrder, importanceOrder, unknownStatusRank, unknownImportanceRank;
+        try {
+            const config = (typeof reportData !== 'undefined' && reportData.sortConfig) || null;
+            if (config && config.validationOrder && config.importanceOrder) {
+                validationOrder = config.validationOrder;
+                importanceOrder = config.importanceOrder;
+                unknownStatusRank = config.unknownStatusRank || 5;
+                unknownImportanceRank = config.unknownImportanceRank || 3;
+            } else {
+                throw new Error('missing');
+            }
+        } catch (e) {
+            console.warn('sortConfig missing or malformed, using hardcoded defaults');
+            validationOrder = {"needs-human-decision": 0, "valid": 1, "validation_failed": 2, "invalid": 3, "pending": 4};
+            importanceOrder = {"HIGH": 0, "MEDIUM": 1, "LOW": 2, "": 3};
+            unknownStatusRank = 5;
+            unknownImportanceRank = 3;
+        }
+
+        cards.sort((a, b) => {
+            if (groupByCommit) {
+                const commitOrder = commitRankOf(a.dataset.commit) - commitRankOf(b.dataset.commit);
+                if (commitOrder !== 0) return commitOrder;
+            }
+            if (value === 'original') {
+                return (parseInt(a.dataset.originalIndex) || 0) - (parseInt(b.dataset.originalIndex) || 0);
+            }
+            // Priority sort
+            const aStatus = a.dataset.validation || '';
+            const bStatus = b.dataset.validation || '';
+            const aStatusRank = (aStatus in validationOrder) ? validationOrder[aStatus] : unknownStatusRank;
+            const bStatusRank = (bStatus in validationOrder) ? validationOrder[bStatus] : unknownStatusRank;
+            if (aStatusRank !== bStatusRank) return aStatusRank - bStatusRank;
+
+            const aImp = a.dataset.importance || '';
+            const bImp = b.dataset.importance || '';
+            const aImpRank = (aImp in importanceOrder) ? importanceOrder[aImp] : unknownImportanceRank;
+            const bImpRank = (bImp in importanceOrder) ? importanceOrder[bImp] : unknownImportanceRank;
+            if (aImpRank !== bImpRank) return aImpRank - bImpRank;
+
+            return (parseInt(a.dataset.originalIndex) || 0) - (parseInt(b.dataset.originalIndex) || 0);
+        });
+
+        cards.forEach(card => container.appendChild(card));
+
+        // Persist preference
+        try {
+            localStorage.setItem('multi-llm-sort-preference-regular', value);
+        } catch (e) { /* localStorage unavailable */ }
+    }
+
+    // Restore saved preference on load
+    (function restoreSortPreference() {
+        try {
+            const saved = localStorage.getItem('multi-llm-sort-preference-regular');
+            if (saved === 'priority' || saved === 'original') {
+                const select = document.getElementById('sort-order');
+                if (select) select.value = saved;
+                applySorting();
+            }
+        } catch (e) { /* localStorage unavailable, default to priority */ }
+    })();
+
+    // Commit review (plans/review-commits.md §2.10). Everything below reads
+    // reportData.commitRange, which the generator stores only for a commit
+    // review, so a plan's report renders none of it.
+    function commitKeyOf(group) {
+      return (group && group.introducedBy) ? group.introducedBy : 'unattributed';
+    }
+
+    function commitRankOf(key) {
+      var cr = reportData && reportData.commitRange;
+      var commits = (cr && cr.commits) || [];
+      for (var i = 0; i < commits.length; i++) {
+        if (commits[i].sha === key) return i;
+      }
+      return commits.length + (key === 'unattributed' ? 1 : 0);
+    }
+
+    function introducedByHtml(group) {
+      if (!reportData.commitRange || !group || !group.introducedBy) return '';
+      var source = group.introducedBySource || '';
+      if (source === 'none' || !source) return '';
+      var html = '<div class="introduced-by">Introduced by <code>' +
+        escapeHtml(group.introducedByShort || String(group.introducedBy).substring(0, 7)) + '</code>';
+      if (group.introducedBySubject) html += ' \u2014 ' + escapeHtml(group.introducedBySubject);
+      if (source === 'model' || source === 'model-drifted') {
+        html += ' <span class="introduced-by-model" title="The reviewing model named this commit; git blame did not measure it">(model)</span>';
+      }
+      return html + '</div>';
+    }
+
+    function groupFiles(group) {
+      var files = [];
+      (group.suggestions || []).forEach(function(s) {
+        var ref = s.fileRef || '';
+        var path = ref.replace(/:\d+(-\d+)?$/, '');
+        if (path && files.indexOf(path) === -1) files.push(path);
+      });
+      return files;
+    }
+
+    // A path absent at `head` on a pinned review: its header carries the same
+    // words as its validation excerpt (plans/review-commits.md §2.5), "deleted
+    // in <range>", "renamed to <new> in <range>" or "absent at <head7>". The
+    // generator stores them as fileContexts[path].label; a plan's report has none.
+    function fileLabelHtml(fileRef) {
+      var path = String(fileRef || '').replace(/:\d+(-\d+)?$/, '');
+      var entry = ((reportData && reportData.fileContexts) || {})[path];
+      var label = (entry && !Array.isArray(entry)) ? entry.label : '';
+      if (!label) return '';
+      return ' <span class="file-absent-label">(' + escapeHtml(label) + ')</span>';
+    }
+
+    function driftBadgeHtml(group) {
+      var cr = reportData && reportData.commitRange;
+      if (!cr || !cr.drifted || !cr.drifted.length || !group) return '';
+      var hit = groupFiles(group).some(function(path) { return cr.drifted.indexOf(path) !== -1; });
+      if (!hit) return '';
+      var head7 = String(cr.head || '').substring(0, 7);
+      return '<span class="badge badge-drift" title="This file differs on disk from ' + escapeAttr(head7) +
+        ': a skip or apply decision on it is skipped anyway by the apply\'s guard">changed on disk since ' +
+        escapeHtml(head7) + '</span>';
+    }
+
+    function renderCommitHeader() {
+      var cr = reportData && reportData.commitRange;
+      var el = document.getElementById('commit-range-header');
+      if (!cr || !el) return;
+      var html = '<pre class="commit-block">' + escapeHtml((cr.blockLines || []).join('\n')) + '</pre>';
+      if (cr.focus) {
+        html += '<div class="commit-meta"><strong>Focus:</strong> ' + escapeHtml(cr.focus) + '</div>';
+      }
+      if (cr.plan) {
+        html += '<div class="commit-meta"><strong>Context plan:</strong> <code>' + escapeHtml(cr.plan) +
+          '</code> (read-only; snapshot <code>' + escapeHtml(cr.planSnapshot || 'none') +
+          '</code>, SHA-256 <code>' + escapeHtml(cr.planSha256 || 'unknown') + '</code>)</div>';
+      }
+      el.innerHTML = html;
+      el.style.display = '';
+    }
+
+    function renderCommitFilter() {
+      var cr = reportData && reportData.commitRange;
+      var wrap = document.getElementById('commit-filter-group');
+      var chips = document.getElementById('commit-filters');
+      if (!cr || !wrap || !chips) return;
+      var counts = {};
+      (reportData.groups || []).forEach(function(group) {
+        var key = commitKeyOf(group);
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      var html = '';
+      (cr.commits || []).forEach(function(c) {
+        if (!counts[c.sha]) return;
+        html += '<button class="filter-btn commit-chip" type="button" data-commit="' + escapeAttr(c.sha) +
+          '" title="' + escapeAttr(c.subject || '') + '">' + escapeHtml(c.short || String(c.sha).substring(0, 7)) +
+          ' (' + counts[c.sha] + ')</button>';
+      });
+      if (counts.unattributed) {
+        html += '<button class="filter-btn commit-chip" type="button" data-commit="unattributed">unattributed (' +
+          counts.unattributed + ')</button>';
+      }
+      chips.innerHTML = html;
+      wrap.style.display = '';
+      chips.querySelectorAll('.commit-chip').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var key = btn.getAttribute('data-commit');
+          commitFilter = (commitFilter === key) ? '' : key;
+          chips.querySelectorAll('.commit-chip').forEach(function(other) {
+            other.classList.toggle('active', other.getAttribute('data-commit') === commitFilter);
+          });
+          applyFilters();
+        });
+      });
+      var toggle = document.getElementById('group-by-commit');
+      if (toggle) {
+        toggle.addEventListener('click', function() {
+          groupByCommit = !groupByCommit;
+          toggle.classList.toggle('active', groupByCommit);
+          applySorting();
+        });
+      }
+    }
+
+    // Initialize
+    function init() {
+      if (!reportData) {
+        document.getElementById('groups-container').innerHTML = '<div class="empty-state">' +
+          '<div class="empty-state-icon">No Data</div>' +
+          '<p>Report data not loaded. This template requires data injection.</p>' +
+          '</div>';
+        return;
+      }
+
+      renderHeader();
+      loadSelections();
+      updateExportIndicator();
+      // Before the groups, and whatever they hold: a run whose only reviewer
+      // failed has no groups, and its warning must still show.
+      renderNotices();
+      renderGroups();
+      renderCommitHeader();
+      renderCommitFilter();
+      autoResizeAllTextareas();
+
+      // Hide interactive controls in read-only mode (e.g., review-tasks)
+      if (isReadOnly) {
+        var actionSection = document.getElementById('action-section');
+        if (actionSection) actionSection.style.display = 'none';
+      }
+
+      // Set up filter event listeners
+      document.querySelectorAll('#importance-filters .filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          btn.classList.toggle('active');
+          applyFilters();
+        });
+      });
+
+      document.querySelectorAll('#validation-filters .filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          btn.classList.toggle('active');
+          applyFilters();
+        });
+      });
+
+      document.getElementById('category-filter').addEventListener('change', applyFilters);
+
+      // Model multi-select
+      var modelSelect = document.getElementById('model-filter');
+      modelSelect.querySelector('.multi-select-trigger').addEventListener('click', function() {
+        modelSelect.classList.toggle('open');
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!modelSelect.contains(e.target)) {
+          modelSelect.classList.remove('open');
+        }
+      });
+
+      document.getElementById('model-dropdown').addEventListener('change', function() {
+        var checked = document.querySelectorAll('#model-dropdown input:checked');
+        var total = document.querySelectorAll('#model-dropdown input');
+        var trigger = modelSelect.querySelector('.multi-select-trigger');
+
+        if (checked.length === total.length || checked.length === 0) {
+          trigger.textContent = 'All Models';
+        } else {
+          trigger.textContent = checked.length + ' selected';
+        }
+        applyFilters();
+      });
+
+      // Action buttons
+      document.getElementById('btn-export').addEventListener('click', exportSelections);
+      document.getElementById('btn-copy').addEventListener('click', copyAsText);
+    }
+
+    // Run on DOM ready, waiting for marked library to load
+    function startWhenReady() {
+      if (window.markedParse) {
+        init();
+      } else {
+        window.addEventListener('marked-ready', init, { once: true });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', startWhenReady);
+    } else {
+      startWhenReady();
+    }
+  </script>
+</body>
+</html>

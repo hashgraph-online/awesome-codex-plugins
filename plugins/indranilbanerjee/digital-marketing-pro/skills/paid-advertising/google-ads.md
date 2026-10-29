@@ -67,7 +67,7 @@ Non-breaking additions:
 | `DemandGenVideoResponsiveAdInfo` | `videos` and `logo_images` now REQUIRED | Requests without both fields fail |
 | `VideoResponsiveAdInfo` | `videos`, `logo_images`, and `business_name` now REQUIRED | Requests without all three fields fail |
 | `Campaign.video_brand_safety_suitability` | REMOVED — moved to Customer level | Set the control once on the Customer object, not per-campaign |
-| `CallAd` / `CallAdInfo` | REMOVED (deprecation completed) | Use Call Assets instead |
+| `CallAd` / `CallAdInfo` | New call-only ads can't be created (since January 2026); existing ones serve until February 2027, then API support is removed (dated table above) | Use Responsive Search Ads with call assets |
 
 ### v23.1 (25 February 2026)
 
@@ -219,13 +219,13 @@ START: What is your primary objective?
 - [ ] Google Merchant Center connected (e-commerce)
 - [ ] Google Business Profile linked (local)
 - [ ] YouTube channel linked
-- [ ] Audience signals configured (custom segments, customer lists, website visitors)
+- [ ] Audience signals added (optional, and recommended: custom segments, customer lists, website visitors)
 - [ ] Brand exclusions applied (if available)
 
 ### Asset Group Configuration
 - [ ] 20 text assets (5 headlines, 5 long headlines, 5 descriptions, 1 business name, 4 sitelinks minimum)
 - [ ] 20 image assets (various aspect ratios: 1.91:1, 1:1, 4:5)
-- [ ] 5 video assets (landscape, portrait, square — at least 10 seconds)
+- [ ] Video assets: up to 15 per asset group (landscape, portrait, square — at least 10 seconds; limits in `skills/context-engine/platform-specs.md`)
 - [ ] Final URL expansion ON or OFF based on strategy
 - [ ] URL exclusions set to prevent irrelevant landing pages
 

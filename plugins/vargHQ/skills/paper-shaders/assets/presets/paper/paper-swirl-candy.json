@@ -1,0 +1,38 @@
+{
+  "id": "paper-swirl-candy",
+  "label": "Candy (Paper Swirl)",
+  "shader": "Swirl",
+  "page": "https://shaders.paper.design/swirl",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Candy\" preset for Swirl, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#ffcd66",
+    "colors": [
+      "#6bbceb",
+      "#d7b3ff",
+      "#ff9fff"
+    ],
+    "bandCount": 2,
+    "twist": 0.15,
+    "center": 0.2,
+    "proportion": 0.5,
+    "softness": 1,
+    "noiseFrequency": 0.5,
+    "noise": 0
+  }
+}

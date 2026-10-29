@@ -4,7 +4,8 @@ description: Use when auditing Sponsored Products campaign portfolio structure t
 compatibility: Requires a configured Amazon Ads MCP connection with reporting access. Account discovery and report creation depend on the tools and schemas exposed by that server.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "0.4.1"
+  display-name: "Amazon Ads Sponsored Products Campaign Auditor"
+  version: "0.4.2"
 ---
 
 # Sponsored Products campaign auditor

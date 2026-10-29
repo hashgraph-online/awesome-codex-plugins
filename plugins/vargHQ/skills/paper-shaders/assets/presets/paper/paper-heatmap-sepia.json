@@ -1,0 +1,36 @@
+{
+  "id": "paper-heatmap-sepia",
+  "label": "Sepia (Paper Heatmap)",
+  "shader": "Heatmap",
+  "page": "https://shaders.paper.design/heatmap",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Sepia\" preset for Heatmap, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.75,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "contour": 0.5,
+    "angle": 0,
+    "noise": 0.75,
+    "innerGlow": 0.5,
+    "outerGlow": 0.5,
+    "colorBack": "#000000",
+    "colors": [
+      "#997F45",
+      "#ffffff"
+    ],
+    "image": ""
+  }
+}

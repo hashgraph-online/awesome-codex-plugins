@@ -79,7 +79,7 @@ Before publishing any AI-assisted content, verify:
 
 ### When to Disclose
 - **Required**: When regulations mandate disclosure (evolving — check jurisdiction)
-- **Required (EU)**: EU AI Act Article 50 applies from 2 Aug 2026 — AI-generated content targeting EU audiences needs machine-readable + visible disclosure. The `eu_disclosure_if_ai` gate enforces this at publish time; use `/digital-marketing-pro:c2pa-metadata` to embed the machine-readable provenance manifest
+- **Required (EU)**: EU AI Act Article 50 has applied since 2 August 2026; generative systems that existed before then have until 2 December 2026 to mark their output under Article 50(2) — AI-generated content targeting EU audiences needs machine-readable + visible disclosure. The `eu_disclosure_if_ai` gate enforces this at publish time; use `/digital-marketing-pro:c2pa-metadata` to embed the machine-readable provenance manifest
 - **Recommended**: When content is substantially AI-generated
 - **Not needed**: When AI is used as a writing tool but human significantly edits
 

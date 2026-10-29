@@ -1,0 +1,41 @@
+{
+  "id": "paper-color-panels-glass",
+  "label": "Glass (Paper ColorPanels)",
+  "shader": "ColorPanels",
+  "page": "https://shaders.paper.design/color-panels",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Glass\" preset for ColorPanels, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 112,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#00cfff",
+      "#ff2d55",
+      "#34c759",
+      "#af52de"
+    ],
+    "colorBack": "#ffffff00",
+    "angle1": 0.3,
+    "angle2": 0.3,
+    "length": 1,
+    "edges": true,
+    "blur": 0.25,
+    "fadeIn": 0.85,
+    "fadeOut": 0.3,
+    "gradient": 0,
+    "density": 1.6
+  }
+}

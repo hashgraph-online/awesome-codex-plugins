@@ -137,6 +137,7 @@ progressions:
 - `value` is one value. A faction's `type` and `status` must stay within their allowed values
 - Keep entries in story order, and read the progressions up to the chapter being drafted before describing the place or faction in it
 - Artifacts and systems do not take progressions; track an artifact's changes with `object-state` and scene `state-changes` (see the revision-continuity skill)
+- The body of the file is prose for the writer. Describe a change in story terms ("from Festival night the city is occupied"), and do not name `progressions` or other frontmatter fields there
 
 After adding or editing progressions, run `story reindex .`, `story wordcount . --write`, and `story check .`.
 

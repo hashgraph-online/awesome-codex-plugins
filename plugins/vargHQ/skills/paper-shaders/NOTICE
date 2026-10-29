@@ -1,0 +1,20 @@
+varg paper-shaders skill
+Copyright 2026 varg. The skill's code and docs are MIT licensed (see ../LICENSE).
+
+This skill works with Paper Shaders (https://github.com/paper-design/shaders),
+licensed under the Apache License, Version 2.0 (see LICENSE-paper-shaders).
+The preset values in assets/presets/ and the parameter facts in
+assets/paper-shaders.params.json are derived from Paper Shaders 0.0.82.
+The skill does not bundle Paper Shaders code: the templates load
+@paper-design/shaders 0.0.82 from npm or jsDelivr.
+
+The NOTICE file of Paper Shaders reads:
+
+  Paper Shaders
+  Copyright 2026 Paper
+
+  Powered by Paper Shaders:
+  https://shaders.paper.design
+
+Anyone who vendors Paper Shaders into a project or a bundle ships its LICENSE
+and NOTICE with that copy.

@@ -1,0 +1,33 @@
+{
+  "id": "paper-metaballs-background",
+  "label": "Background (Paper Metaballs)",
+  "shader": "Metaballs",
+  "page": "https://shaders.paper.design/metaballs",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Background\" preset for Metaballs, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 4,
+    "rotation": 0,
+    "offsetX": -0.3,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#ae00ff",
+      "#00ff95",
+      "#ffc105"
+    ],
+    "colorBack": "#2a273f",
+    "count": 13,
+    "size": 0.81
+  }
+}

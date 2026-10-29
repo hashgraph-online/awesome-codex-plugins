@@ -12,6 +12,37 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GeneratedBundleCleanupTests(unittest.TestCase):
+    def test_root_skill_collection_keeps_skills_and_helpers_only(self):
+        root = MODULE.PurePosixPath("archive")
+        for value in (".", "./"):
+            with self.subTest(value=value):
+                selected = MODULE.collect_selected_paths(
+                    {"skills": value},
+                    {f"archive/{path}" for path in (
+                        "alpha/SKILL.md", "alpha/scripts/run.py",
+                        "beta/SKILL.md", "beta/references/guide.md",
+                        "unrelated/data.txt", "alpha/../../outside.txt",
+                    )}, root, {"owner": "example", "repo": "skills"},
+                )
+                self.assertEqual(selected, {
+                    ".codex-plugin/plugin.json", "alpha/SKILL.md",
+                    "alpha/scripts/run.py", "beta/SKILL.md",
+                    "beta/references/guide.md",
+                })
+
+    def test_multi_llm_mirror_retains_mcp_server_and_helpers(self):
+        root = MODULE.PurePosixPath("archive/packaging/codex/multi-llm")
+        paths = {
+            ".codex-plugin/plugin.json", ".mcp.json", "mcp/server.py",
+            "mcp/helpers/dispatch.py", "skills/multi-llm/SKILL.md",
+        }
+        selected = MODULE.collect_selected_paths(
+            {"skills": "./skills/", "mcpServers": "./.mcp.json"},
+            {f"{root}/{path}" for path in paths}, root,
+            {"owner": "beastlabai", "repo": "multi-llm-plugin"},
+        )
+        self.assertEqual(selected, paths)
+
     def test_branch_qualified_readme_entry_uses_source_branch_metadata(self):
         with tempfile.TemporaryDirectory() as scratch:
             readme = Path(scratch) / "README.md"

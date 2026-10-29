@@ -22,13 +22,13 @@ Reference knowledge for AI visibility monitoring, optimization execution, entity
 
 | Platform | Access Method | Notes |
 |---|---|---|
-| **ChatGPT** (OpenAI) | Web UI or API (`/v1/chat/completions`) | Test both the current default model and its lighter tier (GPT-5.6 family as of July 2026 — resolve current ids via `scripts/model_registry.json`). Web browsing mode vs. training data mode yield different results |
+| **ChatGPT** (OpenAI) | Web UI or API (`/v1/chat/completions`) | Test both the current default model and its lighter tier (for API ids, run `scripts/model_router.py` or read the registry's `latest-*-openai` aliases; never a remembered family name). Web browsing mode vs. training data mode yield different results |
 | **Perplexity** | Web UI or API | Always cites sources with links. Pro mode uses multiple search passes. Test both default and Pro |
-| **Google AI Mode** | Google Search → AI Mode tab (or default for opted-in users since I/O, 19 May 2026) | Distinct conversational surface on a Gemini 3.5 Flash backbone. Frequently cites **different** sources than AI Overviews for the same query — test it separately, don't roll it into "AI Overviews". Supports multi-turn follow-ups |
+| **Google AI Mode** | Google Search → AI Mode tab, or the follow-up box under any AI Overview (see the AI Mode note in `skills/aeo-geo/SKILL.md`) | Distinct conversational surface on a Gemini 3.5 Flash backbone. Frequently cites **different** sources than AI Overviews for the same query — test it separately, don't roll it into "AI Overviews". Supports multi-turn follow-ups |
 | **Google AI Overviews** | Google Search (standard query) | Appears above organic results for qualifying queries. Not triggered for all queries. Test from incognito/logged-out |
 | **Gemini** (Google) | Web UI or API | Integrates Google Knowledge Graph data. Test with and without Google Search grounding |
 | **Microsoft Copilot** | Web UI or Bing Chat | Bing-powered search grounding. Tests Bing index visibility. Cites sources |
-| **Claude** (Anthropic) | Web UI or API | Training data based (no web browsing by default). Tests whether brand is in training corpus |
+| **Claude** (Anthropic) | Web UI or API | Web search with citations, turned on by the user (Anthropic, 2025-03-20, updated 2025-05-27). Run AEO probes with search on, and separately with it off to see what the model knows without it |
 | **Meta AI** | WhatsApp, Instagram, Facebook, web | Llama-based with real-time search integration on some platforms |
 
 **Step 3 — Response Recording**: For each query x platform combination, capture:
@@ -100,7 +100,7 @@ Reference knowledge for AI visibility monitoring, optimization execution, entity
 
 ### Google AI Mode Optimization
 
-- **Surface**: Conversational search tab on a Gemini 3.5 Flash backbone; default for opted-in users since I/O (19 May 2026). Multi-turn, deeper reasoning, and a citation pattern that diverges from AI Overviews for the same query
+- **Surface**: Conversational search tab on a Gemini 3.5 Flash backbone; AI Overviews remain the default surface (see the AI Mode note in `skills/aeo-geo/SKILL.md`). Multi-turn, deeper reasoning, and a citation pattern that diverges from AI Overviews for the same query
 - **Source selection**: Like AI Overviews it grounds on indexed, snippet-eligible pages, but its follow-up flow rewards being the *foundational* citation a user can drill into, not just a one-line snippet source
 - **Optimization priorities**:
   1. Everything that wins AI Overviews (organic ranking, direct-answer formatting, structured data) is the floor — AI Mode is not a separate eligibility gate
@@ -113,7 +113,7 @@ Reference knowledge for AI visibility monitoring, optimization execution, entity
 - **Source selection**: Draws primarily from top-ranking organic content. Cross-references multiple sources for synthesis
 - **Optimization priorities**:
   1. Traditional SEO alignment — AI Overviews pull from pages that rank organically
-  2. Structured data (FAQ, HowTo, Product schema) increases chance of inclusion
+  2. Structured data that matches the visible text helps Google read a page, but no schema is required for AI Overviews or AI Mode (Google's AI optimization guide, 2026-07-10)
   3. Content that directly answers the query in the first 1-2 paragraphs
   4. Authoritative backlink profile signals trustworthiness for inclusion
   5. Content freshness matters — regularly updated pages preferred for topics with temporal relevance

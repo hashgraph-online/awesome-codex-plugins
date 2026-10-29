@@ -1,0 +1,43 @@
+{
+  "name": "design-os-3d-blender",
+  "description": "Parametric 3D mechanical parts generator, headless Blender Python (`bpy`) pipeline, and embedded Three.js CAD showcase engine.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Jang Trinh",
+    "url": "https://github.com/jangtrinh"
+  },
+  "homepage": "https://jangtrinh.github.io/design-os-3d-blender/",
+  "repository": "https://github.com/jangtrinh/design-os-3d-blender",
+  "license": "LicenseRef-PolyForm-Shield-1.0.0",
+  "keywords": [
+    "blender",
+    "3d-cad",
+    "threejs",
+    "parametric-modeling",
+    "gltf",
+    "ai-agents",
+    "design-os"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "DESIGN:OS 3D Blender Agent",
+    "shortDescription": "Parametric 3D mechanical parts generator, headless Blender Python (`bpy`) pipeline, and embedded Three.js CAD showcase engine.",
+    "longDescription": "Generate dimensionally accurate gears, enclosures, drone frames, and exploded mechanical assemblies from plain-English specs or JSON parameters, complete with glTF/STL exports and interactive browser inspection.",
+    "developerName": "DESIGN:OS",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://jangtrinh.github.io/design-os-3d-blender/",
+    "privacyPolicyURL": "https://github.com/jangtrinh/design-os-3d-blender/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Generate a parametric 24-tooth helical gear and mounting bracket in headless Blender and export glTF + STL artifacts.",
+      "Build an interactive Three.js CAD viewer page with exploded-view scrubbing, wireframe toggle, and orthographic camera presets.",
+      "Audit the exported mesh topology for non-manifold edges, zero-area faces, and bounding-box dimensional tolerances."
+    ],
+    "brandColor": "#202020",
+    "composerIcon": "./docs/images/composer-icon.svg",
+    "logo": "./docs/images/cover.png"
+  }
+}

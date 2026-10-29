@@ -13,6 +13,13 @@ Bump rules:
 
 Every bump also updates the `evals/evals.json` `skill_version`.
 
+## [1.1.1] - 2026-10-28
+
+### Added
+
+- `metadata.display-name` "Amazon Ads Accounts": a human-readable label for catalogs
+  and skill pickers. Instructions and triggering are unchanged.
+
 ## [1.1.0] - 2026-10-17
 
 First recorded entry; earlier versions were not logged here.

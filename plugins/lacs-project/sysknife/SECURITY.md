@@ -52,10 +52,13 @@ The layers are sequential gates, not independent walls. They all run inside
 one process, and that process runs as the `sysknife` service account
 (`User=sysknife` in `packaging/sysknife-daemon.service`), which is
 root-equivalent by design. That account holds `NOPASSWD` grants for
-`env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a /usr/bin/apt-get *`,
-`/usr/bin/snap install *` and `/usr/bin/rpm-ostree install *`, each of which
-reaches root on its own: apt through `-o APT::Update::Pre-Invoke::`, snap and
-rpm-ostree through the install hooks and scriptlets they run as root. A compromise of the daemon process is
+`/usr/bin/snap install *`, which reaches root on its own through the install
+hooks it runs as root, and for the `apt` and `rpm-ostree` verbs of
+`/usr/lib/sysknife/action-steps`, which install packages whose maintainer
+scripts and scriptlets run as root. There is no grant on `apt-get`, and none on
+an `rpm-ostree` call that takes an operand, because their own options can name
+a command, a local package or a kernel argument. A
+compromise of the daemon process is
 therefore a compromise of root on that host. An operator sizing the blast
 radius of a daemon compromise should read the grants in
 `packaging/sysknife-sudoers` alongside this model.
@@ -380,7 +383,14 @@ Every daemon execution — previewed, approved, running, succeeded, failed, or
 rolled back — is recorded in the configured transaction database. SQLite is
 the default at `SYSKNIFE_DATABASE_PATH` (packaged default:
 `/var/lib/sysknife/daemon.sqlite`); PostgreSQL is available for centralized,
-off-host durability. Both backends store the same signed hash-chain fields.
+off-host durability. Both backends store the same signed hash-chain fields
+and chain every status change as a signed `status_*` event in the same database
+transaction, and `sysknife audit verify` compares the live `status` column with
+those events on both. Through 0.26.1 the PostgreSQL backend chained no status
+event and did not run that comparison, so a rewritten outcome there went
+unreported. PostgreSQL rows written before the upgrade carry no status event
+and verify as inconclusive (exit `2`) rather than intact; see
+[`docs/the-audit-chain.md`](docs/the-audit-chain.md#execution-status-verification).
 
 The transaction database is authoritative. Query it with `sysknife history`
 and verify its chain with `sysknife audit verify`. See

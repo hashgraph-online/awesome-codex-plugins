@@ -1,0 +1,33 @@
+{
+  "id": "paper-waves-groovy",
+  "label": "Groovy (Paper Waves)",
+  "shader": "Waves",
+  "page": "https://shaders.paper.design/waves",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Groovy\" preset for Waves, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 5,
+    "rotation": 90,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorFront": "#fcfcee",
+    "colorBack": "#ff896b",
+    "shape": 3,
+    "frequency": 0.2,
+    "amplitude": 0.25,
+    "spacing": 1.17,
+    "proportion": 0.57,
+    "softness": 0
+  }
+}

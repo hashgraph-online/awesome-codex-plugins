@@ -3,7 +3,8 @@ name: amazon-ads-accounts
 description: Use when Amazon Ads work requires distinguishing advertiser accounts, profiles, entity IDs, DSP advertiser IDs, or manager accounts; listing accessible accounts; choosing a marketplace profile; or tracing account relationships.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "1.1.0"
+  display-name: "Amazon Ads Accounts"
+  version: "1.1.1"
 ---
 
 # Amazon Ads Accounts

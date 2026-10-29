@@ -32,7 +32,7 @@ Some skills work with uploaded reports or figures you provide. Live account anal
 | Keep spend on plan | [Budget pacing and daily budget proposals](skills/amazon-ads-budget-pacing/) |
 | Get the right advertising data | [Account and marketplace selection](skills/amazon-ads-accounts/), [Amazon Ads reporting](skills/amazon-ads-reporting/) |
 | Go deeper on audiences and attribution | [Amazon Marketing Cloud analysis, SQL, and audiences](skills/amazon-ads-marketing-cloud/) |
-| Build campaigns and creative | [DSP Performance+ and Brand+ setup](skills/amazon-ads-create-dsp-campaign/), [ad images and copy](skills/amazon-ads-creative-assets/) |
+| Build campaigns and creative | [DSP Performance+ and Brand+ setup](skills/amazon-ads-create-dsp-campaign/), [Review Requests campaigns for new-product reviews](skills/amazon-ads-review-requests/), [ad images and copy](skills/amazon-ads-creative-assets/) |
 | Improve your product pages | [Listing and A+ Content optimization](skills/amazon-sp-listing-optimizer/), [listing compliance checks](skills/amazon-sp-listing-compliance/), [product image creation and review](skills/amazon-product-image/) |
 | Understand what drives sales and returns | [Sales and traffic analysis](skills/amazon-sp-sales-traffic-analyzer/), [refund and return monitoring](skills/amazon-sp-refund-return-monitor/) |
 | Protect your margins | [Profitability and break-even calculations](skills/amazon-profitability-calculator/), [repricing strategy](skills/amazon-sp-repricing/) |

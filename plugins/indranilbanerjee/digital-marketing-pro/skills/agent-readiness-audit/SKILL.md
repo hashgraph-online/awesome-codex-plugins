@@ -51,10 +51,11 @@ From Google's [AI optimization guide](https://developers.google.com/search/docs/
 
 All checks run **offline** on files the user exports. The script fetches over the network only with `--fetch`.
 
-- **robots.txt**: `--robots FILE`, or `--site URL --fetch`. Add `--path /products/` (repeatable) to test the paths that matter, beyond `/`.
+- **robots.txt**: `--robots FILE`, or `--site URL --fetch`. Add `--path /products/` (repeatable) to test the paths that matter, beyond `/`. On Windows, Claude Code's Bash tool is Git Bash, which rewrites `/products/` into a Windows folder: set `MSYS_NO_PATHCONV=1` for the command (as below) or write `//products/`. The script refuses a `--path` that doesn't start with `/`.
 - **Server HTML**: `--html FILE` (repeatable). Save it as the server sends it, for example with `curl -L URL > page.html`, **not** "Save as" from a browser, which saves the post-JavaScript DOM. Add `--expect "Product name"` (repeatable) for text that must be in that HTML, such as a product name or price.
 - **Merchant Center feed export**: `--feed FILE` (TSV, CSV, or RSS/Atom XML with `g:` attributes).
-- **Agentic-commerce product feed (optional)**: `--acp-feed FILE`. Accepts the JSONL "OpenAI format" or the Google-compatible CSV/TSV ([spec](https://developers.openai.com/commerce/specs/file-upload/products)).
+- **Agentic-commerce product feed (optional)**: `--acp-feed FILE`. Accepts JSONL in OpenAI's product file format or the Google-compatible CSV/TSV ([spec](https://developers.openai.com/commerce/specs/file-upload/products)).
+- **Discovery feed first; checkout is partner-gated on both platforms.** OpenAI onboards product feeds into ChatGPT for approved partners only (apply at chatgpt.com/merchants) and recommends a full snapshot at least daily ([get started](https://developers.openai.com/commerce/guides/get-started), read 2026-10-28). On 2026-03-24 OpenAI said the first Instant Checkout "did not offer the level of flexibility" it wanted and now lets merchants use their own checkout while it focuses on discovery (OpenAI, "Powering Product Discovery in ChatGPT"). Google's UCP-powered checkout in AI Mode and the Gemini app is for select merchants, with products eligible in the US, Canada and Australia (see `native_commerce` below). So the audit scores the feed; checkout is an application the merchant makes, not a field to fill.
 - **WebMCP (optional, experimental)**: `--webmcp`.
 - **Brand policy**: `--training-policy either|allow|block`. The default, `either`, reports training-crawler rules without judging them.
 
@@ -64,9 +65,10 @@ All checks run **offline** on files the user exports. The script fetches over th
    - From the profile, take the domain, whether the brand sells products (feed checks apply), and any stated AI-training policy (sets `--training-policy`).
    - If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" or proceed with the inputs the user gives.
 2. **Collect inputs.** Ask for exports first. If the user only has a URL, confirm they want a live fetch before using `--fetch`.
-3. **Run the audit.**
+3. **Run the audit.** Create the output folder first; nothing else creates it.
    ```bash
-   python "${CLAUDE_PLUGIN_ROOT}/scripts/agent-readiness-audit.py" \
+   mkdir -p "${CLAUDE_PLUGIN_DATA}/{brand}/seo/agent-readiness/{date}"
+   MSYS_NO_PATHCONV=1 python "${CLAUDE_PLUGIN_ROOT}/scripts/agent-readiness-audit.py" \
        --robots robots.txt --path /products/ \
        --html home.html --html product.html --expect "Acme Anvil" \
        --feed products.tsv --acp-feed openai-feed.jsonl --webmcp \

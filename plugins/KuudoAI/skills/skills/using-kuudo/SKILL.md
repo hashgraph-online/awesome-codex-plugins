@@ -3,7 +3,8 @@ name: using-kuudo
 description: Use at the start of Amazon commerce work involving Amazon Ads, Seller Central, or Vendor Central when Kuudo skills are installed.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "0.2.0"
+  display-name: "Using Kuudo"
+  version: "0.2.1"
 ---
 
 # Using Kuudo

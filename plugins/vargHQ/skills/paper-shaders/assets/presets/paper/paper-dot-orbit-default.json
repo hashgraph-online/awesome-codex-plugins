@@ -1,0 +1,37 @@
+{
+  "id": "paper-dot-orbit-default",
+  "label": "Default (Paper DotOrbit)",
+  "shader": "DotOrbit",
+  "page": "https://shaders.paper.design/dot-orbit",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for DotOrbit, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colors": [
+      "#ffc96b",
+      "#ff6200",
+      "#ff2f00",
+      "#421100",
+      "#1a0000"
+    ],
+    "size": 1,
+    "sizeRange": 0,
+    "spreading": 1,
+    "stepsPerColor": 4
+  }
+}

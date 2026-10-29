@@ -215,7 +215,7 @@ Per-channel tone and format rules that may differ from the base brand voice.
 ## Instagram
 - **Tone**: Warm, visual-first, formality 4/10
 - **Format**: Caption max 2200 chars, hook in first line (before "more")
-- **Hashtags**: 15-20 in first comment, 3-5 in caption
+- **Hashtags**: 3-5 at the end of the caption; Instagram allows 5 (platform_specs.json: instagram.hashtags_cap), and whether first-comment tags count toward that is undocumented
 - **Emoji**: Yes, 2-3 per post, relevant not decorative
 - **Content types**: Behind-the-scenes, tips, user stories, reels
 - **Avoid**: Long text blocks, corporate jargon

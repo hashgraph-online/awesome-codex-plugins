@@ -17,7 +17,8 @@ description: >-
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Uses the Listings Restrictions API (getListingsRestrictions) on an SP-API MCP server. Where the host also exposes Amazon's Seller Assistant (Amazon's Selling Partner connector does), it can confirm current rules live; without it the gate runs on the bundled regulatory map and says so. Without any server it can still classify and ask, but can't check gating.
 metadata:
-  version: "0.1.1"
+  display-name: "Amazon SP Listing Compliance"
+  version: "0.1.2"
 ---
 
 # Amazon listing compliance gate

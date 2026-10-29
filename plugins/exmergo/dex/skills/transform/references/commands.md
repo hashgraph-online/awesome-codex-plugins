@@ -124,6 +124,15 @@ lacks an input, or two candidates tie. Dex will not go further upstream to pull
 an input down, because that turns one placement into an unbounded rewrite. The
 fallback duplicates the derivation in each target, and those copies will drift.
 
+## `transform declare [<model>...] [--edits-file <f>] [--limit N] [--intent "<text>"]`
+
+Proposes declarations for models that already exist, as one plan. Each selected
+model gets only the measured facts its YAML does not state, plus any intent the
+payload's `declarations` supply. Every model not proposed is listed in
+`data.skipped` with the reason. The plan is capped at 25 models (`--limit` only
+narrows), and a second run after apply moves to the next batch. Fields, skip
+reasons and the cap: `declarations.md`, "Declaring models that already exist".
+
 ## `transform build --target dev [--verify] [--for-plan <id>] [--no-install-deps]`
 
 Runs `dbt build` against a dev target, with a cost preflight first.

@@ -1,0 +1,33 @@
+{
+  "id": "paper-waves-ride-the-wave",
+  "label": "Ride the wave (Paper Waves)",
+  "shader": "Waves",
+  "page": "https://shaders.paper.design/waves",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Ride the wave\" preset for Waves, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1.7,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorFront": "#fdffe6",
+    "colorBack": "#1f1f1f",
+    "shape": 2.25,
+    "frequency": 0.2,
+    "amplitude": 1,
+    "spacing": 1.25,
+    "proportion": 1,
+    "softness": 0
+  }
+}

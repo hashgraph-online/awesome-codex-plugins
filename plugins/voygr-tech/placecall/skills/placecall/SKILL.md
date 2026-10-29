@@ -4,7 +4,7 @@ description: PlaceCall lets your agent call US businesses for reservations, inqu
 license: MIT
 compatibility: Uses the PlaceCall MCP tools when a plugin has connected them (browser sign-in, no key). Otherwise needs curl and outbound HTTPS to api.voygr.tech, the only host this skill contacts and the only place it sends PLACECALL_API_KEY. Places calls to US numbers only, except Indiana, Louisiana, Minnesota, Montana and Nebraska.
 metadata:
-  version: "6.5.0"
+  version: "6.5.1"
   author: voygr-tech
   openclaw:
     primaryEnv: PLACECALL_API_KEY
@@ -446,7 +446,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   The MCP `place_call` tool has no voice option.
 
 **Response:** `202 Accepted` with a flat body. Take the **top-level
-`call_id`** (if a response nests the call instead, read `call.call_id`). Calls
+`call_id`**. No `call_id` in the response? Stop: don't poll with an empty id. Calls
 are queued and dialed in turn, so a new call starts as `status: "queued"`;
 follow it with the poll loop below. `credits_reserved` in the response reads
 `0`; the 30-credit hold still applies ([Credits](#credits--top-ups)).
@@ -779,9 +779,16 @@ the header).
 
 ```sh
 ID=<call_id>; LAST=0; STOP=$(($(date +%s)+120))
+[ -n "$ID" ] || { echo "### NO call_id: take the top-level call_id from POST /calls ###"; STOP=0; }
 while [ "$(date +%s)" -lt "$STOP" ]; do
-  OUT=$(curl -s --max-time 20 -H "X-API-Key: $PLACECALL_API_KEY" \
+  OUT=$(curl -s --max-time 20 -w '\n%{http_code}' -H "X-API-Key: $PLACECALL_API_KEY" \
         "https://api.voygr.tech/calls/$ID/events?after_event_id=$LAST")
+  CODE=$(printf '%s' "$OUT" | tail -n 1); OUT=$(printf '%s' "$OUT" | sed '$d')
+  case "$CODE" in
+    200) ;;
+    429|5??|000) sleep 5; continue ;;
+    *) echo "### HTTP $CODE: stop, check the call_id ### $OUT"; break ;;
+  esac
   [ -n "$OUT" ] && echo "$OUT"
   N=$(printf '%s' "$OUT" | sed -n 's/^id: //p' | tail -1); [ -n "$N" ] && LAST=$N
   printf '%s' "$OUT" | grep -q '^event: outcome'  && { echo "### OUTCOME — done ###"; break; }
@@ -794,6 +801,9 @@ done
   with `LAST=` the printed value to wait for the outcome. The bot waits a
   bounded window (~60s), then proceeds without you, so answer promptly. The
   backfill can repeat events, so **de-dup `ask_user` by `request_id`**.
+- `### NO call_id ###` or `### HTTP 404 ###` → the id is wrong or empty.
+  Re-read the top-level `call_id` from the `POST /calls` response before you
+  poll again. The loop retries `429`, `5xx` and timeouts by itself.
 - `### OUTCOME ###` → terminal; report `result` + `ended_by` + `line_kind` +
   `result_reason` + `summary` from the `data:` JSON. It also carries the
   deprecated `outcome_type` and `charge_cents`.
@@ -1092,7 +1102,8 @@ request went out is the opposite case: the call may have been placed. See
 1. **Put ALL details in the `brief`.** The bot can only say what it was given.
 2. **Take the top-level `call_id`**: `POST /calls` answers `202` with a flat
    body (`call_id`, `status: "queued"`) on both the freeform and the structured
-   path. If a response nests the call instead, read `call.call_id`.
+   path. With an empty id, every poll returns `404`. Stop on an empty id or a
+   `404`: a loop that ignores them runs until its timeout and misses the call.
 3. **Poll until `outcome_type` is non-null**: a just-completed call can still
    show `null` outcome/transcript for a few seconds (see above).
 4. **Follow events with `?after_event_id=N`, not the `Last-Event-ID` header.**
@@ -1144,8 +1155,7 @@ calling `get_call_result` until `transcript_status` is `final`.
    inputs.
 1. Write a clear `brief` with every detail (or start from the card's
    `call_brief`).
-2. `POST /calls` → capture the top-level `call_id` (`call.call_id` if a
-   response nests it).
+2. `POST /calls` → capture the top-level `call_id`; stop if it is empty.
 3. Run the poll loop; answer any `ask_user` promptly, then re-poll.
 4. On outcome, poll `GET /calls/{id}` until `outcome_type` is non-null (it is
    the column that lands last, so it is the readiness signal), then read the

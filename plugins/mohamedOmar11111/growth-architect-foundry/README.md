@@ -54,6 +54,7 @@ follows those conventions.
 | Freebuff / Codebuff | same installer (they read `.agents/skills/`) |
 | Cursor, others reading `AGENTS.md` | same installer (adds a managed block to your `AGENTS.md`; Cursor also has `.cursor/rules/`) |
 | ChatGPT (web) | build the Custom GPT pack, see below |
+| claude.ai (web/desktop) | `python scripts/build_claude_web_pack.py`, then Customize, Plugins, Upload plugin (offline: no live ad accounts) |
 | Plain terminal / API key only | `python foundry.py account audit --client Aurora_Skincare`, or `python core/engine/agent_shim.py content-engine --task "..."` |
 
 `install_agent.py --scope user` installs the skill for every project. It copies files (no symlinks, works on

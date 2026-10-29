@@ -1,0 +1,37 @@
+{
+  "id": "paper-warp-kelp",
+  "label": "Kelp (Paper Warp)",
+  "shader": "Warp",
+  "page": "https://shaders.paper.design/warp",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Kelp\" preset for Warp, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 20,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.8,
+    "rotation": 50,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#dbff8f",
+      "#404f3e",
+      "#091316"
+    ],
+    "proportion": 0.67,
+    "softness": 0,
+    "distortion": 0,
+    "swirl": 0.2,
+    "swirlIterations": 3,
+    "shapeScale": 1,
+    "shape": "stripes"
+  }
+}

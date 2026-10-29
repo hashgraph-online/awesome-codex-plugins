@@ -1,0 +1,35 @@
+{
+  "id": "paper-voronoi-default",
+  "label": "Default (Paper Voronoi)",
+  "shader": "Voronoi",
+  "page": "https://shaders.paper.design/voronoi",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for Voronoi, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.5,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#ff8247",
+      "#ffe53d"
+    ],
+    "stepsPerColor": 3,
+    "colorGlow": "#ffffff",
+    "colorGap": "#2e0000",
+    "distortion": 0.4,
+    "gap": 0.04,
+    "glow": 0
+  }
+}

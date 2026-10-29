@@ -1,0 +1,334 @@
+{
+ "title": "I Don't Wanna Pick (v4)",
+ "model": "byteplus:dreamina-seedance-2-5-260628",
+ "resolution": "480p",
+ "look": "1980s anime cel animation in the style of Macross and Bubblegum Crisis, hand-drawn line art, painted backgrounds, magenta, cyan and violet neon on deep navy, chrome, soft VHS bloom.",
+ "rules": "Full-bleed 9:16 frame, no borders, no letterbox. No text, letters, numbers, logos or UI anywhere in the frame (all graphics are added later). No dialogue, no lip-sync.",
+ "refs": {
+  "pilot_sheet": {
+   "file": "pilot_sheet.png",
+   "copy_from": null,
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_f4814c0d535a.png",
+   "role": "the pilot's character sheet: same face, black hair with violet highlights, amber eyes, white cropped flight jacket with two orange stripes on each shoulder, black turtleneck, black fingerless gloves, black boots, headset with a boom mic on his left side."
+  },
+  "M_cockpit": {
+   "file": "M_cockpit.jpg",
+   "copy_from": "stills/v4/anchors/M_cockpit.jpg",
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_b8b142f9042c.jpg",
+   "role": "the master shot of the cockpit. Every cockpit shot happens in this exact cockpit: round silver console in front of his lap with cyan and magenta buttons and one round orange button in the middle, flight stick at his right hand, throttle at his left hand, a small glowing orange orb floating above the console, dark leather seat, glass canopy with a spiderweb crack in its upper right."
+  },
+  "ship_sheet": {
+   "file": "ship_sheet.jpg",
+   "copy_from": "stills/v4/anchors/A_ship_sheet.jpg",
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_ecdd809815bd.jpg",
+   "role": "the ship's model sheet: white-silver fighter, rounded nose, glass canopy, two rear engines with orange glow, swept wings. The man on the sheet shows scale: the ship is far bigger than a person. Every fighter in this sequence uses this design."
+  },
+  "drones_only": {
+   "file": "drones_only.jpg",
+   "copy_from": null,
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_77af2d8fd2dc.jpg",
+   "role": "the enemy drones: black spheres with one red ring-shaped eye and red exhaust, much smaller than the ship."
+  },
+  "503_sheet": {
+   "file": "503_sheet.jpg",
+   "copy_from": "stills/v4/anchors/A_503_sheet.jpg",
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_b53b38cde662.jpg",
+   "role": "THE 503, the giant enemy: a dome of dead grey TV screens in dark red frames wrapped in black cables, one huge red eye on top, a wide mouth full of steel teeth; and its drones (black spheres with a red ring-eye). THE 503 is hundreds of times bigger than the ship."
+  },
+  "M_space": {
+   "file": "M_space.jpg",
+   "copy_from": "stills/v4/anchors/M_space.jpg",
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_75bd415d985a.jpg",
+   "role": "the master shot of the space battle: deep navy space with magenta and cyan nebulae, the drone swarm, THE 503 looming far behind."
+  },
+  "deck_master": {
+   "file": "deck_master.jpg",
+   "copy_from": "stills/v4/p13.jpg",
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_43f59e9b473d.jpg",
+   "role": "the carrier deck master: dark violet runway with cyan neon edges, parked white fighters, a striped synthwave sun on the horizon, and the squadron of women pilots in white-chrome flight suits with helmets under the arm."
+  },
+  "lead_pilot": {
+   "file": "lead_pilot.jpg",
+   "copy_from": "stills/v4/p14.jpg",
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_858b1bf1a801.jpg",
+   "role": "the lead woman pilot: keep her face, hair and suit identical in every shot."
+  },
+  "M_throat": {
+   "file": "M_throat.jpg",
+   "copy_from": "stills/v4/anchors/M_throat.jpg",
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_e77cb4c96f22.jpg",
+   "role": "the master shot of the beast's throat: an octagonal red tunnel lined with dead TV screens, black cables and cyan and magenta neon strips; the ship flies down its centre and is much bigger than the pilot."
+  },
+  "sax_still": {
+   "file": "sax_still.jpg",
+   "copy_from": "stills/v4/x28.jpg",
+   "url": "https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_748fa6e921c4.jpg",
+   "role": "the pilot standing on the hull with a golden saxophone: use it for the sax design and his playing pose."
+  }
+ },
+ "runs": [
+  {
+   "key": "A1",
+   "title": "Cockpit · red alarm",
+   "shots": [
+    "h01",
+    "v03",
+    "v04",
+    "v05",
+    "v06"
+   ],
+   "refs": [
+    "pilot_sheet",
+    "M_cockpit"
+   ],
+   "notes": [
+    "Only one person in the cockpit; every visible hand and sleeve belongs to him.",
+    "After the jolt in shot 1, red emergency light floods the cockpit for the rest of the sequence."
+   ]
+  },
+  {
+   "key": "B1",
+   "title": "Space · swarm",
+   "shots": [
+    "h02",
+    "v07"
+   ],
+   "refs": [
+    "ship_sheet",
+    "drones_only"
+   ],
+   "notes": [
+    "The pilot is inside the ship and not visible. No giant creature in these shots, only drones."
+   ]
+  },
+  {
+   "key": "B2",
+   "title": "Space · THE 503 appears",
+   "shots": [
+    "v08",
+    "v10"
+   ],
+   "refs": [
+    "ship_sheet",
+    "503_sheet",
+    "M_space"
+   ],
+   "notes": [
+    "Red light from THE 503's eye once it opens."
+   ]
+  },
+  {
+   "key": "A2",
+   "title": "Cockpit · red alarm (2)",
+   "shots": [
+    "v09",
+    "v11",
+    "v12"
+   ],
+   "refs": [
+    "pilot_sheet",
+    "M_cockpit"
+   ],
+   "notes": [
+    "Only one person in the cockpit; every visible hand and sleeve belongs to him.",
+    "Red emergency light throughout."
+   ]
+  },
+  {
+   "key": "C",
+   "title": "Carrier deck",
+   "shots": [
+    "p13",
+    "p14",
+    "c18"
+   ],
+   "refs": [
+    "deck_master",
+    "lead_pilot",
+    "ship_sheet"
+   ],
+   "notes": [
+    "Cold violet and magenta evening light. Fashion-show elegance, no sexualised framing."
+   ]
+  },
+  {
+   "key": "D",
+   "title": "Cockpit · the agent wakes · approve",
+   "shots": [
+    "p15",
+    "c16",
+    "c17",
+    "c19",
+    "c20"
+   ],
+   "refs": [
+    "pilot_sheet",
+    "M_cockpit"
+   ],
+   "notes": [
+    "Only one person in the cockpit; every visible hand and sleeve belongs to him.",
+    "The light goes from dim red to warm orange in shot 2 and stays orange to the end."
+   ]
+  },
+  {
+   "key": "E1",
+   "title": "Dogfight",
+   "shots": [
+    "c21",
+    "c22",
+    "c23"
+   ],
+   "refs": [
+    "ship_sheet",
+    "503_sheet",
+    "M_space"
+   ],
+   "notes": [
+    "Orange is our side (missiles, engines), red is the enemy."
+   ]
+  },
+  {
+   "key": "E2a",
+   "title": "Assault on THE 503",
+   "shots": [
+    "c24",
+    "c25"
+   ],
+   "refs": [
+    "ship_sheet",
+    "503_sheet",
+    "M_space"
+   ],
+   "notes": [
+    "Orange is our side (missiles, engines), red is the enemy."
+   ]
+  },
+  {
+   "key": "E2b",
+   "title": "Dive into the mouth",
+   "shots": [
+    "c26"
+   ],
+   "refs": [
+    "ship_sheet",
+    "503_sheet"
+   ],
+   "notes": [
+    "Orange is our side, red is the enemy."
+   ]
+  },
+  {
+   "key": "F1",
+   "title": "Inside the beast · entry",
+   "shots": [
+    "x27",
+    "x28"
+   ],
+   "refs": [
+    "pilot_sheet",
+    "ship_sheet",
+    "M_throat",
+    "sax_still"
+   ],
+   "notes": [
+    "Red darkness, the orange orb is the only warm light until the throat lights up."
+   ]
+  },
+  {
+   "key": "F2",
+   "title": "Inside the beast · trench run",
+   "shots": [
+    "x29",
+    "x30"
+   ],
+   "refs": [
+    "pilot_sheet",
+    "ship_sheet",
+    "M_throat",
+    "sax_still",
+    "drones_only"
+   ],
+   "notes": [
+    "Red throat, orange and cyan sound rings."
+   ]
+  },
+  {
+   "key": "F3",
+   "title": "Inside the beast · the core",
+   "shots": [
+    "x31",
+    "x33"
+   ],
+   "refs": [
+    "pilot_sheet",
+    "ship_sheet",
+    "M_throat"
+   ],
+   "notes": [
+    "We are deep inside the monster: no stars, no open space, no outside view of the monster until the stargate.",
+    "The core is a giant round red eye with a dark pupil and a glowing red ring, set into the far end of the throat among dead screens and cables.",
+    "Red darkness turning to pure white light."
+   ]
+  },
+  {
+   "key": "G",
+   "title": "Outro · calm cockpit",
+   "shots": [
+    "o36"
+   ],
+   "refs": [
+    "pilot_sheet",
+    "M_cockpit"
+   ],
+   "notes": [
+    "Only one person in the cockpit; every visible hand and sleeve belongs to him."
+   ]
+  }
+ ],
+ "reuse": {
+  "x32": "existing eye close-up",
+  "x34": "existing s13b-e + worlds grid",
+  "x35": "existing o3 (nebula)"
+ },
+ "lipsync": [
+  "v03",
+  "v06",
+  "c17",
+  "o36"
+ ],
+ "actions": {
+  "h01": "Extreme close-up of his eyes, calm, a soft green screen glow on his face and in his pupils. At 0.9 s something hits the ship off-screen with a hard jolt: the green light snaps to red alarm light and his head jerks back. Nothing but his face is in frame.",
+  "v03": "Medium close-up from slightly left: he sings hard with his mouth wide open, both hands gripping the flight stick and fighting it, sparks fly from the console.",
+  "v04": "Over his right shoulder: his own right arm in the white sleeve hammers a cyan console button three times on the beat with a gloved fist, a small burst of sparks on every hit.",
+  "v05": "Medium close-up: he pulls a glowing cyan key card out of a slot in the console and lifts it to his chest; the card crumbles into red pixel dust in his hand.",
+  "v06": "Close-up from the right: he presses the headset to his left ear with two fingers and sings, frustrated.",
+  "h02": "Exterior wide, the camera arcs around the ship: the white ship does a full barrel roll through a swarm of black drones while thin red missile trails curl around it in tight spirals (Macross Itano Circus).",
+  "v07": "Closer exterior over the rear top of the ship: a black drone dives in from the upper left and bites off the thin antenna behind the canopy; the antenna tumbles away and golden sparks scatter into space.",
+  "v08": "Low angle behind the tiny ship, tilting up: a wall of grey TV static in front of the ship parts like a curtain to the left and right; behind it THE 503 rises from below, gigantic, filling the sky; at the very end its red eye snaps open. Static stays only as a band at the bottom of the frame, never a full white-out.",
+  "v10": "Close to THE 503's hide: a cyan energy bolt and then a magenta energy bolt fly in from below the camera and both ricochet off the screen-tile armour in sparks without leaving a mark.",
+  "v09": "Low front angle over the console: both his gloved hands flip a row of small toggle switches very fast, alternating on every half beat.",
+  "v11": "Over his right shoulder from behind the seat: he clutches his hair with both hands in despair while red alarm light pulses across the canopy glass in front of him.",
+  "v12": "Front medium shot: he covers his face with both hands; a huge dark shadow sweeps across the whole cockpit from left to right as something enormous passes outside, the red light dims under it and returns.",
+  "p13": "Low camera on the runway slowly tracking back: five women pilots in white-chrome flight suits with short capes walk toward camera in a V formation, the lead in front, helmets under their left arm, a confident hero walk; the striped synthwave sun is huge behind them.",
+  "p14": "Behind the lead woman pilot as she walks away from camera: she turns her head back over her shoulder, then lifts her helmet with both hands and puts it on.",
+  "c18": "Low camera at the edge of the deck: six white fighters catapult-launch one after another down the runway away from camera, each leaving an orange exhaust trail and lifting off past the bow.",
+  "p15": "Three-quarter front from his right, red light calmer now: he lets go of the flight stick and his hands lift off it, then he slides a small glowing orange card across the console to the orange orb, which takes it.",
+  "c16": "Close on the orange orb above the console, him soft behind it: the orb ignites, swells and pulses, a ring of orange light unfolds from it and the whole cockpit floods from red to warm orange.",
+  "c17": "Front medium shot, warm orange light: he leans back in the seat with both hands behind his head, singing and grinning, relaxed.",
+  "c19": "Front medium shot, slow pull back: he sits relaxed while thin blank orange light panels assemble in the air in front of him.",
+  "c20": "Close on the round orange button: his gloved fist slams it on the very first frame and an orange shockwave ring bursts out across the console.",
+  "c21": "Wide exterior: the squadron of white fighters fires hundreds of thin orange missile trails that spiral in tight curves (Macross Itano Circus) into the swarm of black drones; the drones burst into red explosions one after another; THE 503 looms far behind.",
+  "c22": "Closer on one wingmate fighter: it is hit and bursts into a red explosion, debris flies past the camera.",
+  "c23": "A replacement white fighter slides sideways into the empty slot of the formation in a drifting skid (Akira bike slide), leaving a red-orange light trail; the formation is whole again.",
+  "c24": "Behind and above the formation, THE 503 fills the horizon, jaws slightly open: the five wingmates peel off one per beat in five directions (left, right, up, down, upper right) while the hero ship in the centre holds dead straight toward the mouth, engines flaring.",
+  "c25": "Wide orbit around THE 503: white fighters strike it from five sides at once, orange missile spirals burst on its screen-tile hide in big orange explosions, its red eye flinches at every hit; the hero ship is a tiny orange streak flying straight at the open mouth.",
+  "c26": "Chase camera behind the hero ship diving at the open jaws, accelerating: orange explosions flash on the monster's left, right and top one after another; the ship vanishes into the black mouth and the jaws slam shut in front of the camera at 2.3 s: total black, only a small orange glow left.",
+  "x27": "Inside the beast: total black, only the small orange orb glows on the ship; from 0.9 s the red throat lights up section by section on the beat (dead TV screens, red walls, cyan and magenta neon strips), revealing the ship hovering in the tunnel with the pilot crouching in the open canopy.",
+  "x28": "Low front-side angle: the pilot climbs out of the open canopy and stands up on the ship's hull, raises a golden saxophone and plays the first note; a ring of orange light pulses out from the sax.",
+  "x29": "Behind and above the ship racing down the throat (Star Wars trench run): the ship flies itself while the pilot stands on the hull playing the saxophone; rings of light from the sax fly ahead on the beat and shatter the black drones into red bursts.",
+  "x30": "Close-up of his gloved fingers racing over the saxophone keys, drones bursting red in the soft background.",
+  "x31": "Low behind the ship facing the core, a giant red eye at the end of the throat: the eye fires a red laser that hits the left engine, which flickers and dies, the ship lurches; at 1.8 s the right engine ignites bright orange as the orb reroutes the power. The pilot crouches on the hull holding on.",
+  "x33": "The giant red eye cracks: white cracks spread across it, white light floods out and fills the frame; halfway through this shot cut into a 2001 slit-scan stargate corridor of colour streaks rushing past the ship.",
+  "o36": "Calm cockpit, soft blue light, slow push-in from a front medium shot to a medium close-up: the orange orb purrs above the console, the spiderweb crack is still in the canopy; he talks to camera with a relaxed smile and winks at about 8.4 s, then stays calm until the end."
+ }
+}

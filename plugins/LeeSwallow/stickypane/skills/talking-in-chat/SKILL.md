@@ -6,12 +6,13 @@ description: Use when the user wants to talk with you on the board instead of in
 # Talking in a chat note
 
 ```sh
-stickypane say chat "starting the migration: 14 files" --as claude   # chat.md: 1 message
+stickypane say chat "starting the migration: 14 files"   # chat.md: 1 message
 stickypane watch --once --note chat --type message.added --timeout 10m --json
 ```
 
-`say` adds `@claude 14:02 starting the migration: 14 files` under today's
-heading; the board writes the time. The user answers on the board with `n`,
+`say` adds `@agent 14:02 starting the migration: 14 files` under today's
+heading; the board writes the time. Pass `--as <your name>` to sign it as
+yourself, the same name every time. The user answers on the board with `n`,
 as themselves. `watch` prints the reply as one JSON line and ends:
 
 ```json
@@ -33,9 +34,7 @@ out with no reply. Over MCP: the `say` tool, then `wait_event` with
 
 ## Rules
 
-- Say as yourself, with the same `--as` every time.
-- One message is one thing, one line. Point to a file with
-  `stickypane show <path>` instead of pasting it.
+- One message is one thing, one line.
 - Only add with `say`; never rewrite `chat.md`. It is the record of the
   conversation, and the user writes to it at the same time.
 - A question with a handful of answers is a form: `asking-the-user`.

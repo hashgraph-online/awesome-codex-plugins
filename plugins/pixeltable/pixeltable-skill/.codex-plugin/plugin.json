@@ -1,7 +1,7 @@
 {
   "name": "pixeltable",
-  "version": "2.12.0",
-  "description": "Build multimodal AI applications with Pixeltable.",
+  "version": "2.13.0",
+  "description": "Multimodal RAG, video search, image similarity search, agent memory, and embeddings stored with your data.",
   "author": {
     "name": "Pixeltable",
     "url": "https://github.com/pixeltable"
@@ -13,7 +13,12 @@
     "pixeltable",
     "multimodal",
     "rag",
+    "multimodal-rag",
+    "video-search",
+    "image-similarity-search",
+    "agent-memory",
     "embeddings",
+    "vector-search",
     "agents",
     "computed-columns"
   ],
@@ -25,8 +30,8 @@
       "./assets/icon.png"
     ],
     "displayName": "Pixeltable",
-    "shortDescription": "Multimodal database, orchestration, and serving in one file",
-    "longDescription": "The backend agents build with: multimodal database, orchestration, and serving in one file. Build Pixeltable apps with declarative tables, computed columns, embeddings, retrieval, tool-calling agents, provider integrations, and the pxt CLI (schema, service, inspect).",
+    "shortDescription": "Multimodal RAG, video/image/audio search, and agent memory in one file",
+    "longDescription": "Multimodal RAG over PDFs, images, and video; video search; image similarity search; embeddings stored with your data; audio transcription search; agent memory; incremental pipelines; dataset versioning. Tables, computed columns, embedding indexes, tool-calling agents, and the pxt CLI (schema, service, inspect).",
     "developerName": "Pixeltable",
     "category": "Developer Tools",
     "capabilities": [
@@ -38,9 +43,9 @@
     "termsOfServiceURL": "https://github.com/pixeltable/pixeltable-skill/blob/main/LICENSE",
     "brandColor": "#2563EB",
     "defaultPrompt": [
-      "Start a Pixeltable project with pxt service example",
-      "Build a RAG pipeline with the pixeltable skill",
-      "Debug this Pixeltable workflow with pxt errors"
+      "Index my video library and make it searchable",
+      "Add RAG over my PDFs and images",
+      "Give my AI agent long-term memory across sessions"
     ]
   }
 }

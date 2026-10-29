@@ -1,0 +1,35 @@
+{
+  "name": "multi-llm",
+  "version": "0.1.2",
+  "description": "Orchestrate plan reviews, task generation, implementation and code reviews across several LLM CLIs in parallel, or ask every model one free-text question about a plan.",
+  "author": {
+    "name": "beastlabai",
+    "url": "https://github.com/beastlabai"
+  },
+  "homepage": "https://github.com/beastlabai/multi-llm-plugin",
+  "repository": "https://github.com/beastlabai/multi-llm-plugin",
+  "license": "MIT",
+  "keywords": [
+    "code-review",
+    "multi-llm",
+    "planning"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Multi-LLM",
+    "composerIcon": "./assets/icon.svg",
+    "shortDescription": "Review plans and code with several LLM CLIs in parallel.",
+    "longDescription": "Runs the multi-llm workflow inside a Codex session: plan reviews, task generation, implementation and code reviews fanned out across several coding CLIs in parallel, or one free-text question put to every configured model. A bundled stdio tool, multi_llm, composes the dispatcher's flags, supervises the run to a result and returns one JSON answer. Needs python3 and uv on PATH.",
+    "developerName": "beastlabai",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Review my plan with multiple models."
+    ]
+  }
+}

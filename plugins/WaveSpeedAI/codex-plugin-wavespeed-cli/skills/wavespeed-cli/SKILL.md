@@ -7,7 +7,7 @@ description: Generate, edit, animate, upscale, or transform AI media using the W
 
 Use the `wavespeed` CLI to run WaveSpeed image, video, audio, and 3D models. Every generation uses the same flow: search the live catalog, inspect the model schema, then run the model with explicit inputs.
 
-This plugin also starts the WaveSpeed MCP server. Its tools map one-to-one onto the CLI commands below: `search_models` = `wavespeed models`, `get_model_schema` = `wavespeed schema`, `get_price` = `wavespeed price`, `upload_file` = `wavespeed upload`, `run_model` = `wavespeed run`, `get_prediction` = `wavespeed show`, `get_balance` = `wavespeed balance`. Prefer the MCP tools for single generations; use the CLI when it is installed and the user wants batch or scripted runs. Both share the same login.
+This plugin also starts the WaveSpeed MCP server. Its tools map one-to-one onto the CLI commands below: `list_models` = `wavespeed models`, `get_model_schema` = `wavespeed schema`, `get_price` = `wavespeed price`, `upload_file` = `wavespeed upload`, `run_model` = `wavespeed run`, `generate_image` / `edit_image` / `generate_video` / `edit_video` / `extend_video` = `wavespeed generate|edit|extend`, `get_prediction` = `wavespeed show`, `get_balance` = `wavespeed balance`. Prefer the MCP tools for single generations; use the CLI when it is installed and the user wants batch or scripted runs. Both share the same login.
 
 ## Before Running
 
@@ -104,4 +104,9 @@ The CLI never rewrites the user's prompt or inputs.
 - Use structured inputs via `-i key=value`; inspect model help for exact names and accepted values.
 - Some models require uploaded asset URLs, not local paths.
 - If `wavespeed run` (or the `run_model` MCP tool) fails with a gateway or network error (502/503/504, connection reset, timeout), the task may still exist and be billed; the submit request is never retried automatically, so re-running can create a duplicate paid task. Do not re-run immediately. If the error contains a task id (`task_id` / prediction id), keep checking it with `wavespeed show <id> --json` (MCP: `get_prediction`) until its status is terminal (`completed`, `failed`, `cancelled`, `timeout`, `deleted`). If no id was returned, check recent predictions with `wavespeed history --json` (optionally `--model <id>`; default window is the last 24h) and re-run once only if none matches. A client-side wait timeout does not mean the task failed: tasks can run for a long time, so do not give up after a fixed time.
+- If a run fails with `Insufficient credits` (or says a top-up is required), the balance is too low: do not retry. Tell the user, and give them https://wavespeed.ai/top-up to add credits. You cannot pay for them.
 - Cost and spend: `wavespeed price <model> -i key=value --json` estimates a run without generating or charging; `wavespeed balance` shows remaining credit; `wavespeed usage` and `wavespeed billings` show what was spent.
+
+## Shortcuts for common image/video work
+
+`wavespeed generate image|video`, `wavespeed edit image|video` and `wavespeed extend video` use the WaveSpeed /chat models and choose the endpoint from the inputs (`--image`, `--first-frame`, `--ref-image/--ref-video/--ref-audio`, `--video`; `@./path` uploads). Pass `-m` only when the user names a model. Run with `--estimate --json` first for videos; the request may be adapted to the model and the changes are printed. Use `wavespeed run <model>` for exact control.

@@ -4,7 +4,8 @@ description: Use when an Amazon Ads advertiser needs to pace sponsored-ads campa
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Requires Python 3.10+. Offline proposals use bundled JSON inputs; live reads and writes require an Amazon Ads integration. Optional warehouse and sandbox runners may supply actuals or scheduled execution.
 metadata:
-  version: "0.3.0"
+  display-name: "Amazon Ads Budget Pacing"
+  version: "0.3.1"
 ---
 
 # Amazon Ads Budget Pacing

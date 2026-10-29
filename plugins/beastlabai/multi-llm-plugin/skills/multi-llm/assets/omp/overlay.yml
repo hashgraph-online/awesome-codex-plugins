@@ -1,0 +1,38 @@
+# multi-llm's per-run overlay for omp. Loaded with --config on every dispatch.
+#
+# Read at an ABSOLUTE path (utils/providers/omp.py's OVERLAY_PATH): a relative
+# --config resolves against omp's --cwd rather than the launch cwd, and a
+# missing overlay is a fast, named launch failure (exit 1 in 0.13 s, zero
+# requests, `error: Config overlay not found: <path>`) rather than a run that
+# silently used omp's own defaults.
+retry:
+  enabled: false          # §1.9: omp's default retry never terminates on a 429
+                          # (35 requests in 90 s and still going). Disabled, a
+                          # failing model call ends after the one hard-coded
+                          # layer below this one — the Responses client's 6
+                          # requests, 16 s on a 500 and 100.5 s on a 429 whose
+                          # body names a 20 s delay — which is what classifies
+                          # as `rate_limited` instead of eating the whole slot.
+                          # (12 requests, ~32 s is the completions client, which
+                          # the shipped model specs never dispatch on — see
+                          # omp.py's `internal_retries`.)
+mcp:
+  enableProjectConfig: false   # §1.8/§2.3: MCP tools are appended to the enabled
+                               # set regardless of --tools, so an unfiltered
+                               # mcp__ tool would be an unbounded `yolo`.
+                               # MEASURED 2026-09-17 at 18.2.2 (P5): with a
+                               # populated .cursor/mcp.json in the spawn cwd the
+                               # project server process starts without this key
+                               # and does NOT start with it. The user-level
+                               # ~/.cursor/mcp.json never mounted on an ordinary
+                               # dispatch — not from a repo cwd and not with
+                               # --cwd $HOME — because that mount needs
+                               # --allow-home, which this adapter never renders.
+
+# Off by decision (§2.9): this repo's AGENTS.md / CLAUDE.md are read by every
+# omp dispatch — --no-rules does not stop it, because they are the
+# `context-files` category, not `rules` (§1.8). Uncomment to keep the repo's
+# conventions out of your reviewers:
+# disabledExtensions:
+#   - context-file:project:AGENTS.md
+#   - context-file:project:CLAUDE.md

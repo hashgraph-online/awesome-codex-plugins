@@ -130,14 +130,15 @@ on any connector.
  "missing": ["assumptions", "columns.amount.unit"]}
 ```
 
-`drafted` is never written into the project. Each fact carries the `evidence` it
-rests on, and a fact the cache cannot support is left out rather than guessed:
+`transform plan` never writes `drafted` into the project; only `transform declare`
+does, and only the subset described under "Declaring models that already exist".
+Each fact carries the `evidence` it rests on, and a fact the cache cannot support is left out rather than guessed:
 
 | Drafted | When |
 |---|---|
 | `grain` | the `GROUP BY` keys when the model aggregates; otherwise a key the driving relation's profile *proved* unique, selected unchanged, with every join an equality on a key proven unique on its joined side. Any other join, a right or full join, a set operation or an `UNNEST` gives `{"value": null, "withheld": "<why>"}` |
 | `columns.<c>.from` | the upstream `relation.column` a column passes through from unchanged, followed through CTEs |
-| `columns.<c>.role` | `key` for a single-column drafted grain; `foreign_key`, with `references`, for a column carrying a join `explore relationships --verify` measured with no orphans. A join measured with orphans would fail the `relationships` test a `references` renders, so it is `references: {"value": null, "withheld": "<the orphan rate>"}` instead |
+| `columns.<c>.role` | `key` for a single-column drafted grain; `foreign_key`, with `references`, for a column carrying a join `explore relationships --verify` measured with no orphans. A join measured with orphans would fail the `relationships` test a `references` renders, so it is `references: {"value": null, "withheld": "<the orphan rate>"}` instead. Where the column joins cleanly to several relations (the raw table, its staging model, a dimension), a parent whose column is not unique and the model itself are passed over, a model of this project wins over a seed or snapshot and those over a raw table, and the model nearest this one in the project tree breaks a tie; `evidence` names the other clean parents. A warehouse that reports `STG_CUSTOMERS` resolves to the project's `stg_customers`. The joins read are the input column's; where those reach only raw tables (a staging model over a source, on a warehouse whose build lives in another schema) and the model is already built and profiled, the built relation's own clean joins are read instead, so `stg_orders.customer_id` references `stg_customers` |
 | `columns.<c>.pii` | the upstream column's PII flag, category and confidence |
 | `columns.<c>.nullable` | `true` on the outer side of a left, right or full join whatever the upstream NULL rate; otherwise from the upstream NULL fraction |
 | `columns.<c>.additivity` | `semi_additive` where `explore profile --check-cumulative` found the upstream column never decreasing |
@@ -236,6 +237,71 @@ predicate. Where attribution measured it (DuckDB, or `--attribute-rows` with the
 cost handshake on a billed connector), `row_delta` is its delta and the warning
 cites it; where it did not, the warning carries attribution's reason. Nothing
 here runs a query of its own, refuses a plan, or blocks apply.
+
+## Declaring models that already exist: `transform declare`
+
+A plan declares the models it creates or edits. Models written before
+declarations existed have none, and dex never adds them unasked. To adopt them,
+select some and let one plan propose what dex already measured:
+
+```bash
+dex transform declare stg_orders,stg_customers fct_orders
+dex transform declare --edits-file intent.json   # every model, with intent
+```
+
+The selector is the one `maintain verify` takes: model names, repeatable and
+comma-separated, case-insensitive, and none for every model. It is read from the
+repository, so nothing is compiled.
+
+**What is proposed.** Per model, only the fields its YAML does not already state:
+
+| Drafted fact | Written as | Only when |
+| --- | --- | --- |
+| `grain` | `config.meta.dex.grain`, plus `unique` and `not_null` on a single column | no grain is declared |
+| `role: key` | the column's `role` | the column has no role |
+| `role: foreign_key` | the column's `role` | the column has no role |
+| `references` | `references` and a `relationships` test | the column's role is absent or `foreign_key`, and the parent is a model, seed or snapshot of this project (a join verified to a raw table stays in `drafted`) |
+| `additivity: semi_additive` | the column's `additivity` | no additivity is declared |
+
+The unit shape, NULL facts, PII flags and value domains are evidence, not
+declarations. They stay in `data.declarations.<model>.drafted` and are never
+written. Intent (`description`, `population`, `assumptions`) is never drafted.
+
+**Supplied intent.** The payload is the `transform plan` payload with
+`declarations` only (`edits` are refused; SQL changes go through `transform plan`).
+A supplied declaration wins over the draft field by field, and its model is
+considered first. A supplied model the selector does not select is refused, and
+so is a malformed one, exactly as in `transform plan`.
+
+**Each model is accounted for.** `data.proposed` lists each model in the plan with
+`fields` (every drafted fact written, with its evidence) and `supplied` (the
+paths the payload stated). `data.skipped` lists every other selected model:
+
+| `reason` | Meaning |
+| --- | --- |
+| `not_a_model` | no `.sql` model of that name under the model paths |
+| `python_model` | a Python model; dex drafts from SQL only |
+| `versioned` | a model with `versions:`; declare each version by hand |
+| `sql_unreadable` | the SQL could not be read statically (`detail` says why) |
+| `unprofiled_inputs` | the cache has not profiled what it reads; `commands` holds the `explore profile` call for each. Nothing is scanned |
+| `nothing_drafted` | the cache proves no key, verified join or running total for it |
+| `complete` | it already declares every fact dex can draft |
+| `not_writable` | its YAML cannot be spliced predictably (a flow-style entry), or a drafted fact does not fit the SELECT list; the rest of the batch still plans |
+
+A skipped model also carries `missing`, the intent it still owes.
+
+**The cap.** At most 25 models are proposed per plan; `--limit N` narrows that and
+never widens it. Skipped models do not count. The models left over are counted in
+`data.elided_count` and in `notes`. Apply the plan and run the same command again:
+the models just declared are now `complete`, so the next batch is proposed.
+
+**Nothing to propose** returns `ok` with `plan_id: null`, no diff, and a note.
+
+Otherwise the declarations go through the same path as a `transform plan`
+declaration: rendered into the existing entry (shared files included, every
+other byte kept), gated by dbt's parse, and drafted, with `data.declarations`,
+`data.decisions` and, for a declared mart, `data.semantic_proposal`. Free on
+every connector: it reads the repository and the cache and opens no connection.
 
 ## Checked against the built relation
 

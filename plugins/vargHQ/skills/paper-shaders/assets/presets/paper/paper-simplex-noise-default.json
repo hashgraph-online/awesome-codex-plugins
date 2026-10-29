@@ -1,0 +1,34 @@
+{
+  "id": "paper-simplex-noise-default",
+  "label": "Default (Paper SimplexNoise)",
+  "shader": "SimplexNoise",
+  "page": "https://shaders.paper.design/simplex-noise",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for SimplexNoise, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#4449CF",
+      "#FFD1E0",
+      "#F94446",
+      "#FFD36B",
+      "#FFFFFF"
+    ],
+    "stepsPerColor": 2,
+    "softness": 0
+  }
+}

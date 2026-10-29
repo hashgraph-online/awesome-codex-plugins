@@ -1,0 +1,4 @@
+interface:
+  display_name: "Incremental ML pipeline"
+  short_description: "ML and data pipelines that recompute only new or changed rows"
+  default_prompt: "Use $incremental-ml-pipeline for this task, then load $pixeltable for the full Pixeltable app.py backend."

@@ -258,6 +258,10 @@ Managing shared files over MCP (the dashboard's Files page does the same):
   `resume_object_upload` returns what already landed and URLs for only the
   missing parts; run those, then `finalize_object_upload`. Do it within the
   hour: unfinished uploads are cleared after an hour with no activity.
+- Finalizing a big file (hundreds of MB) can take a minute or more. If
+  `finalize_object_upload` times out, or a file comes back with
+  `finalizing: true`, call it again every few seconds until it's ready. Never
+  cancel or re-upload a file that is finalizing.
 - `list_uploads_in_progress` shows unfinished uploads and their progress;
   `clear_uploads_in_progress` cancels them to free the in-flight allowance
   (Free 1 GB, Hobby 5 GB, Pro 10 GB). Ask first.
@@ -527,7 +531,7 @@ Needs a signed-in account (MCP) on Hobby (5 domains) or Pro (25). On Free,
 2. For a bare domain, ask first:
    - **`www.example.com` (recommended).** It works with every DNS provider.
      The person then forwards `example.com` to it at their registrar, which is
-     free and takes a minute.
+     free and takes a minute, but usually http-only (see `apexForward` below).
    - **`example.com` directly.** Only if their DNS provider supports CNAME
      flattening or ALIAS at the root (Cloudflare, Namecheap, Porkbun…).
    For a subdomain such as `shop.example.com`, just add it.
@@ -550,7 +554,13 @@ Needs a signed-in account (MCP) on Hobby (5 domains) or Pro (25). On Free,
    `_acme-challenge` TXT records. The TXT issues the HTTPS (SSL) certificate
    and is always needed; without it HTTPS can take hours. If it isn't in
    `dns.records` yet, call `verify_domain` a few seconds later and give it then.
-   For a www domain, also give the `apexForward` forwarding rule. Provider tips:
+   For a www domain, also give the `apexForward` forwarding rule (URL
+   forwarding at their registrar makes the bare domain work too, usually over
+   plain http only; for `https://` links, a provider with ALIAS can add the
+   bare domain as a second domain on the site: TXT records first, the ALIAS
+   once it's active). Check it with `verify_domain` (`apexForward.ok`,
+   `apexForward.https`), not in a browser: Chrome quietly retries a bare
+   domain with `www`. Provider tips:
    - Type only the Name shown (`www`, or `@` for the root). GoDaddy and
      Namecheap add the domain themselves.
    - On Cloudflare, set the record to "DNS only" (grey cloud).

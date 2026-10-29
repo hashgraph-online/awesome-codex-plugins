@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "varg-how-to": {
+      "type": "http",
+      "url": "https://api.varg.ai/v2/skills/mcp"
+    },
+    "varg": {
+      "type": "http",
+      "url": "https://mcp.varg.ai/mcp"
+    }
+  }
+}

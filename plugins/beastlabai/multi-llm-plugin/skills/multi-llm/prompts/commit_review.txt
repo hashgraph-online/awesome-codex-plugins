@@ -1,0 +1,93 @@
+You are reviewing the code changes made by a range of git commits.
+
+## Commit Brief
+{commit_brief_path}
+
+The commit brief stands in for a plan: it lists every commit of the range
+with its full message, the diff stat, and any focus or context plan given.
+Read it first.
+
+## Commits Under Review
+{commit_range_line}
+
+{commit_list}
+
+This list shows at most the 20 newest commits. When the range has more, the
+pointer line ("… and <k> more (full list: …)") names where the rest are: the
+commit brief, or a `git log` command. The range is every one of its commits,
+not only the ones listed here.
+
+{focus_block}{plan_block}## Files Changed in the Range
+Where this list came from: {scope_source}
+
+{tracked_files_list}
+
+This list is only the head of the review scope. The full scope is the scope manifest, {scope_file}: a path it lists is in scope whether or not the list above shows it. The working tree is not what is reviewed: ignore uncommitted changes in the repo, including edits to files the manifest lists.
+
+## Diff Access
+
+{diff_access}
+
+{drift_block}## What Is Reviewed
+The commit messages, taken together, are the stated intent of the range.
+Each message is its author's claim about the commit: check it against the
+diff, and never take it as a description of what the diff does.
+
+What you review is the net change of the whole range: the diff from the
+range's base to its last commit, one diff file per changed file. The net diff
+hides the intermediate states. A bug one commit added and a later commit
+removed is not there to find, and a message that describes one step is
+checked against what the net change leaves of it. Review the range as a
+whole: a commit-by-commit review is out of scope.
+
+## Your Task
+1. Read the commit brief (see Commit Brief above): the commits, their messages and, when given, the focus and the context plan
+2. For EACH file the scope manifest lists, examine its change in its diff file (under {diff_dir}). An entry with no diff file says why on its own line
+3. Compare the net change against what the messages, taken together, say the range does: report what they say it does and it does not (type "missing"), and what it changes that no message accounts for (type "scope")
+4. Identify any issues
+
+Look for:
+- **Bugs**: Logic errors, incorrect behavior, edge cases
+- **Security issues**: Vulnerabilities, unsafe patterns, and data exposure through logs, telemetry, caches, test output or committed files
+- **Regressions**: Behaviour that worked before the range and no longer does: a removed guard, a changed default, a caller or a test left behind
+- **Commit interactions**: How the commits combine, e.g. a later commit that breaks an assumption an earlier one relied on, or two commits that each look right and are wrong together
+- **Missing functionality**: Something a commit message says the range does that the net change does not do
+- **Tests that test nothing**: Tests in the change offered as evidence for a behaviour that would still pass with that behaviour missing or broken: they never reach the code that implements it, mock out that code, assert something that cannot fail, or are skipped unconditionally or for a reason that does not apply
+- **Scope creep**: Changes that no commit message accounts for
+- **Quality issues**: Performance problems, code smells
+
+{working_limits}
+
+## Output Format
+Return ONLY a valid JSON array with no additional text. Each issue must have this structure:
+{{
+  "title": "Short issue title (5-10 words)",
+  "desc": "What is wrong and why it matters, with evidence where it helps",
+  "importance": "high",
+  "file": "path/to/file.py",
+  "line_range": [10, 15],
+  "type": "bug",
+  "anchor_text": "exact code snippet identifying the location",
+  "introduced_by": "e4f5a6b"
+}}
+
+Field requirements:
+- "title": string, concise summary (required)
+- "desc": string, 2-4 sentences: what is wrong and why it matters, with the evidence where it helps (what in the cited lines shows it, another location as path:line, or the commit message the change contradicts). If a commit message, the context plan or the surrounding code shows the intended behaviour, say what it is. You don't need to propose a fix; whoever applies the finding decides it. But if the right fix is a design choice that neither settles, propose the one you would make, so that validation can weigh it. (required)
+- "importance": exactly "high", "medium", or "low" (required)
+  - high = bugs, security issues, incorrect behavior
+  - medium = missing functionality, significant improvements
+  - low = style issues, minor improvements
+- "file": string, relative path to affected file (required)
+- "line_range": [start, end] line numbers as they are at the range's last commit (the new side of the diff), or null (required)
+- "type": exactly "bug", "missing", "improvement", "style", or "scope" (required)
+- "anchor_text": string, 10-50 char code snippet for locating issue (required)
+  - for a secret, use a snippet without the value, such as the assignment's left-hand side ("self.api_key ="). If no 10-50 char snippet leaves the value out, a shorter snippet or "" is fine; give line_range so file and line_range locate it
+- "introduced_by": string or null (optional): the short SHA, as the commit list above shows it, of the commit that introduced the issue. For code a merge brought in, give the merge. Use null when you cannot tell. The plugin checks the value against the commits and git blame, so give your reading, never a guess
+
+If a finding involves a secret (a key, token or password), say where it is and never copy its value into any field. That includes evidence: cite where the value is, and leave it out of any quote.
+
+If no issues are found, return an empty array: []
+
+## Output Location
+{output_location}

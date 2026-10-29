@@ -6,7 +6,7 @@
 
 ## The Privacy Landscape
 
-The era of unrestricted cross-site tracking is over. Safari and Firefox have blocked third-party cookies since 2020. Chrome kept third-party cookies and is now winding down the Privacy Sandbox ads APIs, so cross-site measurement rests on consent, first-party data, and modeled conversions rather than a browser replacement. Regulations like GDPR, CCPA/CPRA, and emerging state and international laws require explicit consent for tracking. Marketers who do not adapt their measurement infrastructure will lose visibility into 40-60% of their customer journey.
+The era of unrestricted cross-site tracking is over. Safari and Firefox have blocked third-party cookies since 2020. Chrome kept third-party cookies and retired most Privacy Sandbox APIs on 2025-10-17, so cross-site measurement rests on consent, first-party data, and modeled conversions rather than a browser replacement. Regulations like GDPR, CCPA/CPRA, and emerging state and international laws require explicit consent for tracking. Marketers who do not adapt their measurement infrastructure will lose sight of a growing share of their customer journey.
 
 ### What Has Changed
 
@@ -14,7 +14,7 @@ The era of unrestricted cross-site tracking is over. Safari and Firefox have blo
 |--------|----------------------|----------|
 | Safari ITP (Intelligent Tracking Prevention) | First-party cookies capped at 7 days (24 hours for some); cross-site tracking blocked | Active since 2020 |
 | Firefox Enhanced Tracking Protection | Third-party cookies blocked by default | Active since 2019 |
-| Chrome Privacy Sandbox / Topics API | Chrome retains third-party cookies (deprecation cancelled 2025). Topics, Protected Audience, Attribution Reporting, Shared Storage, Private Aggregation and Related Website Sets are all under "Intent to Deprecate and Remove" — do not build new measurement on them | Status page checked 2026-10-04: https://privacysandbox.google.com/overview/status |
+| Chrome Privacy Sandbox | Chrome keeps third-party cookies, with the user's choice in settings. Timeline: July 2024, Google dropped the deprecation plan; April 2025, no standalone cookie prompt; 2025-10-17, Google retired Attribution Reporting, IP Protection, On-Device Personalization, Private Aggregation (with Shared Storage), Protected Audience, Protected App Signals, Related Website Sets, SelectURL, SDK Runtime and Topics. Continuing: CHIPS, FedCM, Private State Tokens, and work on an interoperable attribution standard at the W3C. Do not build measurement on the retired APIs | [privacysandbox.google.com](https://privacysandbox.google.com/blog/update-on-plans-for-privacy-sandbox-technologies) (2025-10-17, read 2026-10-28) |
 | iOS App Tracking Transparency (ATT) | Users must opt-in to cross-app tracking; ~25% opt-in rate | Active since iOS 14.5 (2021) |
 | GDPR (EU) | Requires explicit consent for non-essential cookies; fines up to 4% of global revenue | Active since 2018 |
 | CCPA/CPRA (California) | Right to opt-out of sale/sharing of personal data | Active since 2020/2023 |
@@ -36,7 +36,7 @@ The replacement for cookie-based attribution is not a single solution but a comb
 | **Consent-based tracking** | Full tracking for users who consent; modeled data for those who do not | High | Medium (depends on consent rate) | Medium |
 | **Marketing Mix Modeling** | Aggregate statistical analysis requiring no user data | Very High | Medium (strategic, not tactical) | High |
 | **Incrementality testing** | Controlled experiments measuring causal lift | Very High | High (for tested channels) | High |
-| **Privacy Sandbox APIs** | Chrome's Topics, Attribution Reporting, Protected Audience — all "Intent to Deprecate and Remove" (status checked 2026-10-04) | Low (being removed) | High (sunk cost) | Do not adopt; migrate existing use to server-side conversions + modeled measurement |
+| **Privacy Sandbox APIs** | Chrome's Topics, Attribution Reporting, Protected Audience — retired 2025-10-17 | Low (retired) | High (sunk cost) | Do not adopt; migrate existing use to server-side conversions + modeled measurement |
 | **Data clean rooms** | Secure environments for matching advertiser + publisher data without exposing PII | High | Medium-High | High |
 | **Self-reported attribution** | Asking users directly how they found you | Very High | Low-Medium (recall bias) | Low |
 
@@ -55,8 +55,8 @@ A CMP is the foundation of privacy-compliant measurement. It must handle:
 | **Consent propagation** | Pass consent signals to all tags, pixels, and server-side integrations |
 | **Consent withdrawal** | Allow users to change preferences at any time via a persistent link |
 | **Geo-based rules** | Apply GDPR rules to EU visitors, CCPA to California, etc. |
-| **TCF 2.2 compliance** | Support IAB Transparency & Consent Framework for programmatic |
-| **Google Consent Mode v2** | Required for ads in EEA — sends consent signals to Google tags |
+| **TCF 2.3 compliance** | Support the IAB Transparency & Consent Framework v2.3 for programmatic: the move from 2.2 ended 2026-02-28, and IAB Europe's CMP policy deadlines are mid-October 2026 (web) and mid-February 2027 (apps) (IAB Europe letter, 2026-05-29) |
+| **Google Consent Mode v2** | Required by Google's EU user consent policy for ad personalization and measurement of users in the EEA, the UK and Switzerland. It sends four consent signals to Google tags (table below) |
 
 ### CMP Tool Options
 
@@ -78,6 +78,12 @@ Google Consent Mode v2 allows your tags to adjust behavior based on user consent
 | `ad_storage = denied` | Cookieless pings for conversion modeling | Aggregated, modeled conversions |
 | `analytics_storage = granted` | Full GA4 tracking | User-level analytics data |
 | `analytics_storage = denied` | Cookieless pings for analytics modeling | Modeled, aggregated analytics |
+| `ad_user_data = granted` | User data may be sent to Google for advertising | Needed for enhanced conversions and tag-based conversion tracking |
+| `ad_user_data = denied` | No user data sent for advertising | Enhanced conversions and tag-based conversion tracking get no data |
+| `ad_personalization = granted` | Data may be used for personalized ads | Remarketing audiences |
+| `ad_personalization = denied` | No personalized advertising | Remarketing in Google Ads, DV360 and SA360 receives no data |
+
+Both `ad_user_data` and `ad_personalization` must be granted for personalized advertising (Google Ads consent mode reference, support.google.com/google-ads/answer/13802165, undated, read 2026-10-27).
 
 **Implementation checklist:**
 

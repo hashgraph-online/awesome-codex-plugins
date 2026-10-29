@@ -6,17 +6,21 @@ argument-hint: "[brand-name or URL]"
 
 # /digital-marketing-pro:aeo-audit
 
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
+
+> **Metrics:** mention rate, citation rate, share of model, share of AI voice, sentiment and the AI Visibility Score are defined, with formulas, in `skills/context-engine/ai-visibility-metrics.md`. Report every score with its formula and its sample size (n).
+
 ## Purpose
 
-Evaluate the brand's visibility and accuracy across AI answer engines. Analyze how the brand is cited, described, and recommended by ChatGPT, Perplexity, **Google AI Mode** (the conversational search surface that became Google's default at I/O 2026 — ~1B MAUs as of May 2026), Google AI Overviews, Gemini, and Microsoft Copilot. Produce optimization recommendations to improve AI visibility.
+Evaluate the brand's visibility and accuracy across AI answer engines. Analyze how the brand is cited, described, and recommended by ChatGPT, Perplexity, **Google AI Mode** (the conversational search tab; see the AI Mode note in `skills/aeo-geo/SKILL.md`), Google AI Overviews, Gemini, and Microsoft Copilot. Produce optimization recommendations to improve AI visibility.
 
-**AI Mode vs AI Overviews — why both matter:** AI Overviews are the summary block at the top of a classic Google SERP and trigger on a subset of queries. AI Mode is a conversational tab (and now the default search experience for opted-in users) backed by Gemini 3.5 Flash with deeper reasoning, follow-ups, and a different citation pattern. The two surfaces select different sources for the same query in a large share of cases (internal observation, 05/2026 — "40–60%" is a rough estimate; re-verify against your own probe set). Audit both.
+**AI Mode vs AI Overviews — why both matter:** AI Overviews are the summary block at the top of a classic Google SERP and trigger on a subset of queries. AI Mode is a separate conversational tab (AI Overviews remain the default) backed by Gemini 3.5 Flash with deeper reasoning, follow-ups, and a different citation pattern. The two surfaces often select different sources for the same query; no figure is published, so measure the overlap in your own probe set. Audit both.
 
 **Copilot citation gaps from Bing (13 Oct 2026):** Bing Webmaster Tools → AI Performance → **Topics Portfolio (beta)** lists, per topic, approximate citations across all sites, how many sites are cited, and **Top Opportunity Queries**: grounding queries where other sites are cited and yours is not. It is the first first-party citation-gap list; use its opportunity queries to seed this audit's probe set, and label its figures approximate (Bing does). It shows no clicks, and the tab appears only when Bing has enough data for the site. Source: [Bing Webmaster blog](https://blogs.bing.com/webmaster/2026/10/introducing-topics-portfolio-beta-in-ai-performance/).
 
 **Cross-reference with GSC AI Performance Report (rolled out 3 June 2026):** The Google Search Console AI Performance Report (UK rollout first, global to follow) gives you actual *impressions* in AI Overviews + AI Mode for verified properties. Synthetic probe results from this skill should be reconciled against GSC actuals — see `/digital-marketing-pro:gsc-ai-performance` for the workflow. Important caveat: the GSC report intentionally excludes click data; click-through attribution must come from GA4 (the new `AI Assistant` channel group, added 13 May 2026, captures `Medium=ai-assistant` referrals from ChatGPT/Gemini/Claude; see `/digital-marketing-pro:analytics-insights`).
 
-**Google's official position on AI optimization** (Google AI Optimization Guide, updated 15 May 2026): no `llms.txt`, no AI-specific schema, no separate AI eligibility gate. Pages eligible for snippets in classic Search are eligible for AI Features. Don't manufacture work around fictional ranking factors — `/digital-marketing-pro:aeo-geo` documents what *does* work (entity consistency, citation-worthy snippets, knowledge graph alignment).
+**Google's official position on AI optimization** (Google AI Optimization Guide, last updated 2026-07-10): no `llms.txt`, no AI-specific schema, no separate AI eligibility gate. Pages eligible for snippets in classic Search are eligible for AI Features. Don't manufacture work around fictional ranking factors — `/digital-marketing-pro:aeo-geo` documents what *does* work (entity consistency, citation-worthy snippets, knowledge graph alignment).
 
 **Information Agents (Google AI Pro / Ultra, summer 2026 launch):** Google announced at I/O 2026 a new class of persistent agents that continuously monitor web / news / real-time data for subscribers and deliver synthesized updates with actionable capabilities. Once these go live, they become a **7th probe target** for this skill (alongside ChatGPT / Perplexity / AI Mode / AI Overviews / Gemini / Copilot). Until then, treat AI Mode as the proxy — agents are powered by the same Gemini 3.5 Flash backbone. Source: [blog.google/search-io-2026](https://blog.google/products-and-platforms/products/search/search-io-2026/).
 
@@ -41,6 +45,22 @@ The user must provide (or will be prompted for):
 7. Evaluate structured data and knowledge panel presence
 8. Identify content gaps where the brand should appear but does not
 9. Generate optimization recommendations for improved AI visibility
+
+## How you'll know it worked
+
+Every recommendation gets a metric it should move, the direction it should move in, and a date to check it. Add this table to the report, one row per recommendation:
+
+| Recommendation | Metric | Expected direction | Check by |
+|---|---|---|---|
+| Add a dated statistic with its source to the pricing page | Citation rate on ChatGPT for 10 pricing prompts | Up | 2027-02-01 |
+
+Then record the rows so the continuous-improvement loop checks them when they fall due:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/recommendation-tracker.py" --brand {slug} --action add --source aeo-audit --data '[{"recommendation": "...", "metric": "...", "direction": "up", "check_by": "YYYY-MM-DD"}]'
+```
+
+A recommendation without a metric, a direction (up or down) and a future check-by date is refused (exit 2): if you can't say how you'd know it worked, rewrite it until you can.
 
 ## Output
 
@@ -105,7 +125,7 @@ This skill defines the plugin's **single AI-visibility scoring standard.** Every
 
 ## Tips & caveats
 
-- **AI Mode and AI Overviews frequently disagree on the same queries** (internal observation, 05/2026 — the "40-60%" figure is a rough estimate, re-verify against your own probe set) — always probe both separately, never roll them into "Google AI".
+- **AI Mode and AI Overviews frequently disagree on the same queries** (no figure is published, so measure the overlap in your own probe set) — always probe both separately, never roll them into "Google AI".
 - **Don't probe more than 25 queries per session.** Beyond that, model rate limits + token cost dominate. Pick the 10-25 highest-value queries.
 - **Citation accuracy is the audit's most-skipped step.** AI engines confidently hallucinate brand facts; if you don't fact-check, you're certifying wrong info. Always check at least the top-cited fact per platform.
 - **Synthetic probes overstate presence.** Real users phrase queries differently than the test set. The cross-reference with the GSC AI Performance Report (3 Jun 2026, UK first) is what tells you actual impressions.

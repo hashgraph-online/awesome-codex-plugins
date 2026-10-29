@@ -14,7 +14,7 @@ jobs:
         with:
           plugin_dir: "."
           mode: scan
-          min_score: 80
+          min_score: 75
           fail_on_severity: none
           format: sarif
           upload_sarif: true

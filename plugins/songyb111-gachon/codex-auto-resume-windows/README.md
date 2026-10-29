@@ -142,7 +142,7 @@ Codex and on the notification-area icon - and the pictures below breathe with it
 
 <p align="center">
 <img src="docs/images/notification-card-motion.png" alt="The notification card as the product shows it, drawn by its own code from sample data: example-project, Codex usage limit reached, this task will resume at 08:42; the card fades out and rises in again beside the notification area" width="388" align="top">
-<img src="docs/images/tray-popup.png" alt="The notification-area popup: waiting, with the next check in a minute and a half and three waiting tasks, each with its kind of interruption, when it is next checked and its Auto-resume switch, and Pause recovery and Open Dashboard buttons" width="360" align="top"><br>
+<img src="docs/images/tray-popup-motion.png" alt="The notification-area popup as the product shows it, drawn by its own code from sample data: waiting, with the next check in a minute and a half and three waiting tasks, each with its kind of interruption, when it is next checked and its Auto-resume switch, and Pause recovery and Open Dashboard buttons; its status light breathes, the first task's Auto-resume switch is turned off and on again, and the popup closes and opens again" width="360" align="top"><br>
 <sub>Left: the notification card, as the product draws it · right: what opens when you click the notification-area icon</sub>
 </p>
 
@@ -235,7 +235,7 @@ its provenance marker), and Windows registrations that belong to this installati
 
 Built by **songyb111-gachon** with the assistance of two AI development tools, OpenAI Codex and
 Anthropic Claude Code; [CONTRIBUTORS.md](docs/CONTRIBUTORS.md) has the full breakdown. Thanks to everyone who
-reported a problem, suggested a feature, tested a fix or sent one - [@cervinho](https://github.com/cervinho), [@barkshah2002-pixel](https://github.com/barkshah2002-pixel), [@ZionZhang42](https://github.com/ZionZhang42), [@aca22jy](https://github.com/aca22jy), [@Hunweibyn](https://github.com/Hunweibyn), [@Zephreo](https://github.com/Zephreo), [@Kdevaulo](https://github.com/Kdevaulo) and [@weng-wen-jun](https://github.com/weng-wen-jun) among them;
+reported a problem, suggested a feature, tested a fix or sent one - [@cervinho](https://github.com/cervinho), [@barkshah2002-pixel](https://github.com/barkshah2002-pixel), [@ZionZhang42](https://github.com/ZionZhang42), [@aca22jy](https://github.com/aca22jy), [@Hunweibyn](https://github.com/Hunweibyn), [@Zephreo](https://github.com/Zephreo), [@Kdevaulo](https://github.com/Kdevaulo), [@weng-wen-jun](https://github.com/weng-wen-jun) and [@kano0222](https://github.com/kano0222) among them;
 [CONTRIBUTORS.md](docs/CONTRIBUTORS.md) says what each of them helped with, and the [changelog](docs/CHANGELOG.md)
 names them beside the changes it led to.
 

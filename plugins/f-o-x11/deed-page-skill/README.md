@@ -58,7 +58,7 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 
 ### Tools
 
-26 tools:
+27 tools:
 
 | Tool | What it does |
 | --- | --- |
@@ -74,7 +74,7 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 | `finalize_upload` | Commit a large upload as a new version. |
 | `set_site_access` | Set or clear a site password. |
 | `set_listing` | List a site in the public gallery, or remove it. |
-| `site_analytics` | Cookieless view counts, top paths, referrers, and AI crawler counts for a site. |
+| `site_analytics` | Cookieless view counts, top paths, referrers, and AI crawler counts for a site. 90 days per request on Free and Hobby; 365 days and CSV on Pro. |
 | `add_domain` | Attach a custom domain and get the DNS records to create. |
 | `list_domains` | List custom domains. |
 | `domain_status` | Check and refresh a custom domain's verification and certificate status. |
@@ -82,16 +82,17 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 | `whoami` | Show the plan, limits, and usage for the token. |
 | `get_upgrade_link` | Get a checkout link for a paid plan. |
 | `set_badge` | Set the "Published with deed.page" badge. Only a paid plan (Hobby $3/mo or Pro) removes it. |
-| `claim_share_credit` | Free only, once per token: send the URL of the user's public X or Reddit post about deed.page for +25 sites and 50 MB per site. |
+| `claim_share_credit` | Free only, once per token: send the URL of the user's public X or Reddit post about deed.page for +25 sites and 50 MB per site. An X post that links to deed.page (at most 7 days old) also turns the badge off for 30 days, once per account. |
 | `rotate_token` | Issue a new owner token; every site carries over. |
 | `revoke_token` | Revoke the current token or all tokens. |
+| `agent_seats` | Pro: list, create, or revoke up to 5 named agent seats (separate tokens on one owner). |
 | `create_webhook` | Register a webhook for site and domain events. |
 | `list_webhooks` | List registered webhooks. |
 | `delete_webhook` | Delete a webhook. |
 
 ### Use
 
-Ask your agent to "publish this folder to deed.page" or "host this report and give me a link". The agent calls `publish_site` with the files and answers with the live URL. To change the site later, it calls `update_site` with the same slug and token.
+Ask your agent to "publish this folder to deed.page" or "host this report and give me a link". The agent calls `publish_site` with the files and answers with the live URL. A request that only says "make a website" or "build a page" stays a local draft until you ask to publish or confirm the public URL and the exact file list. An unattended run publishes only when its instructions explicitly say to. To change the site later, it calls `update_site` with the same slug and token.
 
 Free plan: 25 sites, 25 MB per site, 60 publishes per hour. Free sites are public, so do not publish secrets. Static files only. Free sites show a small "Published with deed.page" badge; Hobby ($3/mo) and Pro never do.
 
@@ -212,7 +213,7 @@ Ask your agent to "publish this", "host this report", or "give me a link". The a
 curl -sS -T index.html "https://deed.page/v1/sites?slug=my-report-7f3a2c&ref=skill-gh" -H "X-Client: <agent name>"
 ```
 
-and answers with the `url` from the JSON response. The first publish returns a `token` once. It is the key to update or delete that site, so keep it safe.
+and answers with the `url` from the JSON response. The first publish returns a `token` once. It is the key to update or delete that site, so keep it safe. A request that only says "make a website" or "build a page" produces a local draft. The agent offers to publish and uploads after you ask to publish or confirm the public URL and the exact file list. An unattended run publishes only when its instructions explicitly say to.
 
 - Free plan: 25 sites, 25 MB per site, 60 publishes per hour.
 - Free sites are public. Do not publish secrets.

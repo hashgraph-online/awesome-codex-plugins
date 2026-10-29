@@ -1,0 +1,359 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "subagent_tasks.schema.json",
+  "title": "Materialized subagent task file (tasks_schema_version 2)",
+  "description": "Validates every materialized task file the orchestrators emit — validation_tasks.json, revalidation_tasks.json, consolidation_tasks.json, salvage_task_<model>.json, human_decision_tasks.json and task_generation_tasks.json. Version 1 is the historical reference-based shape that carried no prompt; a reader that finds tasks_schema_version missing or != 2 refuses the file with exit 3 and re-materializes the phase (compatibility policy is regenerate, never upgrade-in-place). This key is deliberately distinct from metadata.schema_version, which versions validation *results*.",
+  "type": "object",
+  "required": ["tasks_schema_version", "kind", "inputs"],
+  "anyOf": [
+    {"required": ["tasks"]},
+    {"required": ["batches"]}
+  ],
+  "properties": {
+    "tasks_schema_version": {
+      "const": 2,
+      "description": "Integer task-file format version. Missing means 1."
+    },
+    "context_contract": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "The validation context contract the file was materialized under (validation/revalidation files). 2 = over-limit documents named by hash-bound snapshot path; missing means 1, whose over-limit prompts were cut at the inline limit and are retired on resume/reaggregate."
+    },
+    "kind": {
+      "$ref": "#/$defs/kind",
+      "description": "The kind every task in this file has."
+    },
+    "inputs": {
+      "$ref": "#/$defs/inputs",
+      "description": "File-level copy of the inputs block; identical to every task's own inputs."
+    },
+    "context_plan_file": {
+      "type": "string",
+      "description": "Frozen context-plan snapshot, relative to the phase directory (absolute across drives). Its raw bytes must match inputs.context_plan_sha256 before dispatch."
+    },
+    "tasks": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/task"},
+      "description": "The task list. Batched kinds carry it under the historical name `batches` instead, so the list is never duplicated on disk; use one accessor (utils.subagent_tasks.tasks_of) rather than guessing."
+    },
+    "batches": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/task"},
+      "description": "The task list under its historical name, for the batched kinds whose merge and reaggregation paths already read it."
+    }
+  },
+  "$defs": {
+    "kind": {
+      "enum": [
+        "validation",
+        "revalidation",
+        "consolidation",
+        "salvage",
+        "human_decision_judge",
+        "task_generation",
+        "apply_suggestions",
+        "apply_task_suggestions",
+        "apply_code_fixes",
+        "implement"
+      ]
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["plan_sha256"],
+      "properties": {
+        "plan_sha256": {
+          "type": "string",
+          "description": "Content hash of the plan file, computed the same way StateManager._compute_plan_hash does (sha256 hexdigest truncated to 16 chars). Empty string when the phase has no plan file."
+        },
+        "grouped_sha256": {
+          "type": "string",
+          "description": "Content hash of grouped.json."
+        },
+        "tasks_sha256": {
+          "type": "string",
+          "description": "Content hash of the task list under review \u2014 review-tasks only, whose validation prompts embed the tasks text beside the plan."
+        },
+        "diff_base": {
+          "type": "string",
+          "description": "Git ref the diff was taken against (state.head_at_start) — code-review and apply phases only."
+        },
+        "diff_sha256": {
+          "type": "string",
+          "description": "Content hash of the diff text — code-review and apply phases only."
+        },
+        "reviewed_code_sha256": {
+          "type": "string",
+          "description": "Content hash of the code excerpt the prompts embed — code-review only. Moves when a reviewed file is edited between fan-out and validation, which diff_base alone cannot see."
+        },
+        "context_plan_sha256": {
+          "type": "string",
+          "description": "SHA-256 of a commit review's frozen context-plan snapshot, as commit_range.plan_sha256 recorded it — code-review on a commit brief with --context-plan only. A resume or reaggregate whose snapshot no longer hashes to it is refused."
+        },
+        "salvage_request_sha256": {
+          "type": "string",
+          "description": "Content hash of the salvage request record — salvage only."
+        },
+        "items_sha256": {
+          "type": "string",
+          "description": "Content hash of the judged item set — human_decision_judge only."
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tasks_schema_version",
+        "task_id",
+        "kind",
+        "prompt",
+        "output_name",
+        "result_channel",
+        "context_mode",
+        "capability_tier",
+        "executor_role",
+        "inputs"
+      ],
+      "properties": {
+        "tasks_schema_version": {"const": 2},
+        "task_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable, path-free identifier for this task. Named in every refusal message."
+        },
+        "kind": {"$ref": "#/$defs/kind"},
+        "prompt": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The complete prompt. Under context_mode inline it embeds every input the subagent needs; it never names plan_file, grouped_file or output_path."
+        },
+        "output_name": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._-]+$",
+          "description": "Bare basename resolved against the phase dir the task file was loaded from."
+        },
+        "output_path": {
+          "type": "string",
+          "description": "Derived absolute convenience path for native invokers. Invoker plumbing, never a subagent instruction."
+        },
+        "prompt_path": {
+          "type": "string",
+          "description": "Optional absolute path to a sidecar holding exactly the bytes of `prompt` (validation, revalidation, consolidation and task generation only). Invoker plumbing, never a subagent instruction: a host whose subagent tool takes a prompt string may hand the subagent this file instead of re-emitting its prompt (~65 KB for a validation batch, ~21 KB for task generation) through its own context. `prompt` stays the source of truth and every other reader ignores this key."
+        },
+        "prompt_lines": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Line count of `prompt`, and therefore of the sidecar, so a host can tell a subagent to read through the last line rather than trust a default page size."
+        },
+        "result_channel": {
+          "enum": ["file", "inline-json"],
+          "description": "Producer intent. Every materialized task is `file`. `inline-json` names only the legacy Claude-Code-interactive shape and is refused before dispatch with exit 3."
+        },
+        "context_mode": {
+          "enum": ["inline", "workspace-read"],
+          "description": "How the task's inputs travel. `inline` embeds content in prompt and runs against any runner. `workspace-read` references absolute paths and requires a runner declaring supports_workspace_reads."
+        },
+        "capability_tier": {
+          "enum": ["full", "cheap"],
+          "description": "Role annotation, never a model. Resolution chain: model_hint (when set and not `auto`) -> capability_tier -> driver.subagent_runner_cheap / driver.subagent_runner -> host default. `cheap` is a permission to downgrade, and the per-kind rules below forbid it wherever AGENTS.md forbids downgrading. No currently materialized kind permits it: `cheap` is reserved for the human-decision fan-out coordinator, a dispatch-only role that writes no verdict and therefore has no task file."
+        },
+        "executor_role": {
+          "enum": ["agent", "human"],
+          "description": "`agent` means any invoker may dispatch this. `human` means no invoker ever dispatches it; it routes to the human-task pause and the executor refuses it before dispatch (exit 3)."
+        },
+        "inputs": {"$ref": "#/$defs/inputs"},
+        "model_hint": {
+          "type": "string",
+          "description": "Free-form model string, or `auto`. Keeps its historical meaning; `full`/`cheap` belong to capability_tier alone and are a schema error here.",
+          "not": {"enum": ["full", "cheap"]}
+        },
+        "subagent_type": {
+          "enum": ["general-purpose", "human"],
+          "description": "Optional Claude-Code-only metadata, demoted for one release. No reader branches on it. Must agree with executor_role."
+        },
+        "context_sources": {
+          "type": "array",
+          "description": "Validation/revalidation only, and only when some context block is not inline (plans/validation-context-by-path-and-codex-0156-fallout.md \u00a72.3 step 7). One record per context document. A `path` record is the hash-bound snapshot the prompt names by `abs_path`; `path` is relative to the phase dir when the snapshot lives there, so a moved phase dir can rebind it after re-verifying `sha256` (raw bytes). A `truncated` record says why no file is named.",
+          "items": {
+            "type": "object",
+            "required": ["label", "mode"],
+            "properties": {
+              "label": {"enum": ["plan", "tasks", "reviewed-code", "diff"]},
+              "kind": {"enum": ["plan", "tasks", "reviewed-code", "diff"]},
+              "mode": {"enum": ["inline", "path", "truncated"]},
+              "path": {"type": ["string", "null"]},
+              "abs_path": {"type": ["string", "null"]},
+              "in_phase_dir": {"type": "boolean"},
+              "sha256": {"type": ["string", "null"]},
+              "bytes": {"type": "integer", "minimum": 0},
+              "chars_shown": {"type": "integer", "minimum": 0},
+              "truncated": {"type": "boolean"},
+              "sections_total": {"type": "integer", "minimum": 0},
+              "sections_shown": {"type": "integer", "minimum": 0},
+              "dropped_sections": {"type": "array", "items": {"type": "string"}},
+              "dropped_files": {"type": "array", "items": {"type": "string"}},
+              "reason": {"type": ["string", "null"]}
+            }
+          }
+        },
+        "plan_file": {"type": "string", "description": "Provenance only."},
+        "grouped_file": {"type": "string", "description": "Provenance only."},
+        "batch_index": {"type": "integer", "minimum": 0},
+        "group_ids": {"type": "array", "items": {"type": "string"}},
+        "group_indices": {"type": "array", "items": {"type": "integer"}},
+        "groups_count": {"type": "integer", "minimum": 0},
+        "is_high_priority": {"type": "boolean"},
+        "section_key": {"type": "string"},
+        "group_id": {"type": "string", "minLength": 1},
+        "items_count": {"type": "integer", "minimum": 0},
+        "suggestion_id": {"type": "string", "minLength": 1},
+        "model": {"type": "string"},
+        "phase": {"type": "string"},
+        "repo_root": {"type": "string"},
+        "declared_files": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "WRITE kinds only. The file set this batch declares it will touch, repo-root-relative. Drives D3h's pairwise-disjoint co-scheduling admission and D3l's pre-dispatch write-policy check; an EMPTY list means 'undeclared', which runs the task alone rather than being treated as 'touches nothing'."
+        },
+        "snapshot_files": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "WRITE kinds only. Files the executor snapshots under {phase}/pre_batch/{task_id}/ before dispatch, so the post-run byte comparison (D3g) and `util restore-batch` (D3l) have a rollback point. Defaults to declared_files when absent."
+        },
+        "expected_ids": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "WRITE kinds only. The suggestion/group/task ids this batch is supposed to apply. D3g spot-checks that THESE landed rather than merely that bytes moved: a result reporting only some of them with a non-empty diff is a partial application, not a success."
+        },
+        "prior_changes_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "WRITE kinds only. The stable `--id` for `prior_changes.py append` (suggestion/group/section/task key — never the loop index), so a re-dispatched batch appends once."
+        },
+        "can_parallelize": {
+          "type": "boolean",
+          "description": "WRITE kinds only. The batcher's opinion that this task may run beside its batch siblings. Necessary but not sufficient: driver.max_concurrent_write_subagents > 1 and the disjointness check must also agree (D3h)."
+        },
+        "depends_on": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "WRITE kinds only (implement). Task ids this task depends on; the human-task strategies walk these edges (D3n)."
+        },
+        "is_human": {
+          "type": "boolean",
+          "description": "WRITE kinds only. Mirror of `executor_role == \"human\"` for readers that predate D2h. The schema requires the two to agree."
+        },
+        "file_key": {
+          "type": "string",
+          "description": "WRITE kinds only (apply_code_fixes). The file a code-fix batch is partitioned by (utils/code_fix_batcher.py). Provenance for the declared file set, never a second source of truth."
+        },
+        "task_title": {
+          "type": "string",
+          "description": "WRITE kinds only. Human-readable label for logs, metrics and the implementation summary."
+        }
+      },
+      "allOf": [
+        {
+          "if": {"required": ["kind"], "properties": {"kind": {"enum": ["validation", "revalidation"]}}},
+          "then": {
+            "required": ["batch_index", "group_ids", "capability_tier"],
+            "properties": {
+              "capability_tier": {"const": "full"},
+              "context_mode": {"enum": ["inline", "workspace-read"]},
+              "inputs": {"required": ["plan_sha256", "grouped_sha256"]}
+            }
+          }
+        },
+        {
+          "if": {"required": ["kind"], "properties": {"kind": {"not": {"enum": ["validation", "revalidation"]}}}},
+          "then": {"not": {"required": ["context_sources"]}}
+        },
+        {
+          "if": {"required": ["kind"], "properties": {"kind": {"const": "consolidation"}}},
+          "then": {
+            "required": ["batch_index", "group_ids"],
+            "properties": {
+              "capability_tier": {"const": "full"},
+              "context_mode": {"const": "inline"},
+              "inputs": {"required": ["plan_sha256", "grouped_sha256"]}
+            }
+          }
+        },
+        {
+          "if": {"required": ["kind"], "properties": {"kind": {"const": "salvage"}}},
+          "then": {
+            "required": ["suggestion_id"],
+            "properties": {
+              "capability_tier": {"const": "full"},
+              "inputs": {"required": ["salvage_request_sha256"]}
+            }
+          }
+        },
+        {
+          "if": {"required": ["kind"], "properties": {"kind": {"const": "human_decision_judge"}}},
+          "then": {
+            "required": ["group_id"],
+            "properties": {
+              "capability_tier": {"const": "full"},
+              "context_mode": {"const": "inline"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["kind"], "properties": {"kind": {"const": "task_generation"}}},
+          "then": {
+            "required": ["repo_root"],
+            "properties": {
+              "capability_tier": {"const": "full"},
+              "context_mode": {"const": "workspace-read"}
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["kind"],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "apply_suggestions",
+                  "apply_task_suggestions",
+                  "apply_code_fixes",
+                  "implement"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": ["batch_index", "declared_files", "prior_changes_id"],
+            "properties": {
+              "capability_tier": {"const": "full"},
+              "context_mode": {"const": "workspace-read"}
+            }
+          }
+        },
+        {
+          "if": {"required": ["kind"], "properties": {"kind": {"not": {"enum": ["validation", "revalidation", "consolidation", "task_generation"]}}}},
+          "then": {"not": {"anyOf": [{"required": ["prompt_path"]}, {"required": ["prompt_lines"]}]}}
+        },
+        {
+          "if": {"required": ["is_human"], "properties": {"is_human": {"const": true}}},
+          "then": {"properties": {"executor_role": {"const": "human"}}}
+        },
+        {
+          "if": {"required": ["is_human"], "properties": {"is_human": {"const": false}}},
+          "then": {"properties": {"executor_role": {"const": "agent"}}}
+        },
+        {
+          "if": {"required": ["executor_role"], "properties": {"executor_role": {"const": "human"}}},
+          "then": {"properties": {"subagent_type": {"const": "human"}}}
+        },
+        {
+          "if": {"required": ["executor_role"], "properties": {"executor_role": {"const": "agent"}}},
+          "then": {"properties": {"subagent_type": {"const": "general-purpose"}}}
+        }
+      ]
+    }
+  }
+}

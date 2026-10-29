@@ -4,7 +4,8 @@ description: Audit, optimize, fix, and edit Amazon Seller Central listings and A
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Requires an SP-API MCP server exposing Listings Items (getListingsItem, searchListingsItems, patchListingsItem) and Catalog Items; Product Type Definitions, FBA Inventory, and A+ Content operations are used when present. AI image work also needs the user's own image-model key, a storage bucket, and a host that can run the bundled Python scripts.
 metadata:
-  version: "1.2.1"
+  display-name: "Amazon SP Listing Optimizer"
+  version: "1.2.2"
 ---
 
 # Amazon Listing Optimizer

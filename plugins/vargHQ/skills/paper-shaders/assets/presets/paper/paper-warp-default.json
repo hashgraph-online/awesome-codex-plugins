@@ -1,0 +1,38 @@
+{
+  "id": "paper-warp-default",
+  "label": "Default (Paper Warp)",
+  "shader": "Warp",
+  "page": "https://shaders.paper.design/warp",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for Warp, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#121212",
+      "#9470ff",
+      "#121212",
+      "#8838ff"
+    ],
+    "proportion": 0.45,
+    "softness": 1,
+    "distortion": 0.25,
+    "swirl": 0.8,
+    "swirlIterations": 10,
+    "shapeScale": 0.1,
+    "shape": "checks"
+  }
+}

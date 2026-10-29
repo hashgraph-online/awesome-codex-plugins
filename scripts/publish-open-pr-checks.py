@@ -109,13 +109,13 @@ def check_summary(result: dict[str, object], scanner_jobs: dict[int, list[str]])
             return (
                 "success",
                 "Contribution scan passed",
-                f"All {len(jobs)} centralized scanner job(s) met the score threshold of 80/100; finding severities are advisory.",
+                f"All {len(jobs)} centralized scanner job(s) met the score threshold of 75/100; finding severities are advisory.",
             )
         job_details = ", ".join(jobs) if jobs else "no scanner job was recorded"
         return (
             "failure",
             "Centralized score not established",
-            f"The centralized scan did not establish a score of at least 80/100 ({job_details}); keep the contribution blocked until a passing score is available.",
+            f"The centralized scan did not establish a score of at least 75/100 ({job_details}); keep the contribution blocked until a passing score is available.",
         )
 
     raise RuntimeError(f"unknown validator result state: {state}")
@@ -173,13 +173,13 @@ def remediation_comment(
         guidance = "Use one root-level repository link, a one-sentence description, the correct section, and alphabetical order, then rerun the check."
     elif result.get("state") == "scan":
         guidance = "Review the scanner report and rerun the centralized scan."
-        guidance += " If the completed score is below 80/100 and your source repository does not already run the scanner, source-side CI is recommended, not required: use the SHA-pinned workflow in the scanner guide, reproduce locally, run the same pinned scanner in CI, fix or document rule-level findings, link the source run, rerun the catalog scan, and request review."
+        guidance += " If the completed score is below 75/100 and your source repository does not already run the scanner, source-side CI is recommended, not required: use the SHA-pinned workflow in the scanner guide, reproduce locally, run the same pinned scanner in CI, fix or document rule-level findings, link the source run, rerun the catalog scan, and request review."
     else:
         guidance = "Fix the catalog validation findings and rerun the contribution check."
 
     return one_paragraph(
         f"{COMMENT_MARKER} {mention}, {summary} {guidance} "
-        "Source-repository scanner CI is optional; listing requires a completed centralized score of at least 80/100. "
+        "Source-repository scanner CI is optional; listing requires a completed centralized score of at least 75/100. "
         f"[Contribution requirements](https://github.com/hashgraph-online/awesome-codex-plugins/blob/main/CONTRIBUTING.md) "
         f"[Latest sweep]({run_url})."
     )

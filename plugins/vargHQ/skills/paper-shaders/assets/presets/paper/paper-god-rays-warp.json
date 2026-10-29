@@ -1,0 +1,38 @@
+{
+  "id": "paper-god-rays-warp",
+  "label": "Warp (Paper GodRays)",
+  "shader": "GodRays",
+  "page": "https://shaders.paper.design/god-rays",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Warp\" preset for GodRays, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 2,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colorBloom": "#222288",
+    "colors": [
+      "#ff47d4",
+      "#ff8c00",
+      "#ffffff"
+    ],
+    "density": 0.45,
+    "spotty": 0.15,
+    "midIntensity": 0.4,
+    "midSize": 0.33,
+    "intensity": 0.79,
+    "bloom": 0.4
+  }
+}

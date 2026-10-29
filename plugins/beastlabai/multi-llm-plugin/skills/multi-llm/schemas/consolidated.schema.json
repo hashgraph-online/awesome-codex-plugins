@@ -1,0 +1,200 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Consolidated Suggestions",
+  "description": "Validates consolidated.json produced by the suggestion consolidation layer",
+  "type": "object",
+  "required": ["consolidated_groups", "metadata"],
+  "properties": {
+    "format_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Format version for forward/backward compatibility (current: 2)"
+    },
+    "consolidated_groups": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "consolidated_id",
+          "display_index",
+          "title",
+          "description",
+          "importance",
+          "reference",
+          "type",
+          "underlying_group_indices",
+          "underlying_group_ids",
+          "model_count",
+          "original_suggestion_count",
+          "is_singleton",
+          "reasoning"
+        ],
+        "properties": {
+          "consolidated_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{12}$",
+            "description": "Stable 12-char hex hash derived from sorted underlying group IDs"
+          },
+          "display_index": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Sequential display index for human-readable ordering (CG1, CG2, ...)"
+          },
+          "title": {
+            "type": "string",
+            "description": "Consolidated suggestion title"
+          },
+          "description": {
+            "type": "string",
+            "description": "Synthesized description preserving nuance from all underlying suggestions"
+          },
+          "importance": {
+            "type": "string",
+            "enum": ["HIGH", "MEDIUM", "LOW"],
+            "description": "Highest importance level among underlying groups"
+          },
+          "reference": {
+            "type": "string",
+            "description": "Plan section reference"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["addition", "modification", "deletion", "clarification"],
+            "description": "Most actionable type among underlying groups"
+          },
+          "underlying_group_indices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Original group indices from grouped.json"
+          },
+          "underlying_group_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Stable group_id hashes from underlying groups"
+          },
+          "model_count": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of distinct models that contributed suggestions to this consolidated group"
+          },
+          "original_suggestion_count": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Total number of individual suggestions across all underlying groups"
+          },
+          "is_singleton": {
+            "type": "boolean",
+            "description": "True if this consolidated group maps 1:1 to a single underlying group"
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "Explanation of why these groups were clustered (or why a singleton stands alone)"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": [
+        "schema_version",
+        "total_original_groups",
+        "total_consolidated",
+        "merged_count",
+        "singleton_count",
+        "consolidation_ratio",
+        "timestamp",
+        "plan_hash",
+        "grouped_hash",
+        "plan_hash_algorithm",
+        "skipped_report",
+        "sections_processed"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "description": "Schema version for migration support (initially 1.0)"
+        },
+        "total_original_groups": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of input groups before consolidation"
+        },
+        "total_consolidated": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of consolidated groups (merged + singletons)"
+        },
+        "merged_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of consolidated groups that merge 2+ underlying groups"
+        },
+        "singleton_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of consolidated groups that are 1:1 singletons"
+        },
+        "consolidation_ratio": {
+          "type": "number",
+          "description": "Ratio of original groups to consolidated groups (original / consolidated)"
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "ISO 8601 timestamp of consolidation completion"
+        },
+        "plan_hash": {
+          "type": "string",
+          "description": "SHA-256 hash of the plan file contents at consolidation time"
+        },
+        "grouped_hash": {
+          "type": "string",
+          "description": "SHA-256 hash of grouped.json contents at consolidation time"
+        },
+        "plan_hash_algorithm": {
+          "type": "string",
+          "enum": ["sha256"],
+          "description": "Hash algorithm used for plan_hash and grouped_hash"
+        },
+        "skipped_report": {
+          "type": "boolean",
+          "description": "True if consolidation found minimal overlap (<10% reduction) and reports were not generated"
+        },
+        "sections_processed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of plan sections that were processed for consolidation"
+        },
+        "partial_failures": {
+          "type": "object",
+          "properties": {
+            "count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Number of batches that failed"
+            },
+            "batches": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "description": "Indices of failed batches"
+            },
+            "fallback": {
+              "type": "string",
+              "description": "Fallback strategy applied to failed batches"
+            }
+          },
+          "required": ["count", "batches", "fallback"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

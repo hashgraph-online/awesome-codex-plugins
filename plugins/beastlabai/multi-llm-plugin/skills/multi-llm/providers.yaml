@@ -1,0 +1,1409 @@
+# providers.yaml - Multi-LLM provider configuration (BASE layer)
+#
+# This is the built-in BASE layer. Config is assembled lowest -> highest:
+#   1. this file (base; always present)
+#   2. <git-root>/.multi-llm/providers.yaml   (optional per-project override,
+#      auto-discovered; deep-merges its FULL contents — including a `providers:`
+#      block — over base, identical to the env layer below)
+#   3. MULTI_LLM_PROVIDERS_CONFIG=/path.yaml   (optional env escape hatch)
+# Each layer is deep-merged over the one below; LIST values replace wholesale.
+# Scaffold a per-project override with `--init`. See `docs/configuration.md` in
+# the repository for the full semantics.
+#
+# Note: Command construction (flags, arguments, subcommands) — and the binary
+# name itself — is handled by provider classes in utils/providers/. This config
+# only contains:
+# - default_timeout: Provider-specific timeout in seconds
+# - max_concurrent: Provider-specific concurrency ceiling
+# - models: List of supported model names for this provider
+#
+# `command:` and `supports_json_output:` used to be declared here too. Both had
+# ZERO readers (§9.2): every `is_available()` is a hardcoded `shutil.which` on a
+# literal binary name, and nothing ever consulted the JSON flag. They are gone
+# rather than left as config a user could reasonably expect to take effect. A
+# `command:` in ANY layer still merges and is still inert — it can never make
+# the tool run a different program (see TestCommandNeverLaunchesBinary).
+#
+# Version floors and ceilings (M14/§5.4). Every supported build of every CLI is
+# decided by ONE gate, in utils/providers/base.py:
+# - the FLOOR (`min_version`) and the fixture build (`verified_version`) are
+#   declared on the adapter, next to the parser they protect;
+# - the CEILING (`max_version_exclusive`) is declared on the adapter too and may
+#   be overridden here, per provider, because a vendor can ship a broken build
+#   between two releases of this skill and pinning it must not require a code
+#   edit. See `providers.opencode.max_version_exclusive` for the worked example.
+# Below the floor or at/above the ceiling is a REFUSAL before any child is
+# spawned, naming the number; above `verified_version` is a warning and never a
+# block, because blocking on new releases would rot faster than the CLIs do.
+# The rule that binds all three: a number ships with a comment naming the
+# FEATURE it protects — never a bare version. A measured-at version is an upper
+# bound on the true floor, so a floor raised to "whatever it was probed on"
+# disables installs that work; that is why a flag verified on one recent build
+# is gated per flag (the CLI's own --help, read once per process) instead.
+#
+# Effort convention: most providers accept an optional ":effort" suffix on
+# model entries, parsed on the LAST colon against a per-provider whitelist
+# (see each provider's comment; unknown suffixes pass through as part of the
+# model name). Exceptions: cursor-agent encodes effort in the model name itself;
+# gemini is config-file-only. agy is BOTH — its display names carry a tier and
+# it also has a real `--effort low|medium|high` flag, so a ":effort" suffix works
+# there too.
+#
+# Those per-provider whitelists are no longer seventeen independent opinions.
+# One canonical ladder — none, minimal, low, medium, high, xhigh, max — lives in
+# utils/providers/base.py (M12/§6.1), each adapter declares its accepted subset
+# against it as EFFORT_LADDER, and its REASONING_EFFORTS is derived from that
+# declaration. Two names in this file are per-CLI SPELLINGS of a rung rather
+# than rungs of their own: "off" is the "none" rung (goose, pi, vibe) and
+# "ultra" is the "max" rung (muse outbound, codex inbound-only). Two more,
+# "thinking" and "instant" (kilocode, opencode), are a SECOND AXIS — a mode, not
+# an amount — and are passed through without ever being compared to a rung.
+# Every adapter that declines an effort mechanism entirely now says so in code,
+# with its measured reason, instead of by having no constant.
+# tests/test_reasoning_effort_ladder.py checks all of that over the live
+# provider registry, so a new adapter cannot slip past it.
+
+# Model catalog refreshed 2026-10-22. Native IDs: `codex debug models`,
+# `cursor-agent models`, `agy models`, `grok models`, and vendor model docs.
+# OpenRouter IDs: https://openrouter.ai/api/v1/models; Kilo variants are captured
+# in tests/fixtures/kilocode/model_variants.json. Keep each provider's spelling:
+# a model available through OpenRouter may not exist in a native CLI catalog.
+providers:
+  claude-code:
+    default_timeout: 1800
+    max_concurrent: 2
+    # Model entries may carry an optional ":effort" suffix (e.g. fable:max),
+    # translated to "--effort <level>". Valid: low, medium, high, xhigh, max;
+    # unsupported levels are silently downgraded by the CLI per model.
+    # Without a suffix, the CLI's default effort applies.
+    # Moving aliases remain supported; explicit IDs pin the current generation.
+    # https://code.claude.com/docs/en/model-config
+    models:
+      - sonnet
+      - opus
+      - fable
+      - haiku
+      - claude-sonnet-5-5
+      - claude-opus-5-5
+      - claude-fable-5-1
+      - claude-haiku-5-5
+    # `--fallback-model <m1,m2>`: automatic fallback when the primary is
+    # overloaded (three consecutive 529s) or unavailable (a 404 falls back on
+    # the FIRST error — free insurance against a retired model alias above).
+    # Only works under `--print`, which is the mode this adapter already uses.
+    #
+    # DEFAULT OFF, and deliberately so: the flag is proven, but nothing here
+    # knows which model should stand in for which, and an implicit list would
+    # have multi-llm quietly answering with a model nobody configured. With this
+    # map empty the adapter emits no `--fallback-model` at all and the argv is
+    # byte-for-byte what it has always been. There is no built-in stand-in and no
+    # degrade ladder — the configured list IS the whole source, joined verbatim
+    # in your order. A fired fallback is attributed: the result records the
+    # `served_model` read from the envelope's `modelUsage`, not the requested one.
+    #
+    # Validated at load, because the CLI accepts a bad list silently: an entry
+    # that repeats, is empty, names a model not listed above, or is its own
+    # primary fails the run naming the key.
+    #
+    #   fallback_models:
+    #     sonnet: [haiku]
+    #   fallback_models_default: [haiku]   # primaries with no entry above
+    fallback_models: {}
+    # strip_vendor_keys: auto | always | never   (default: auto)
+    #
+    # M3/§2.1 — the "money bug". Measured on the wire at claude-code 2.1.233:
+    # with a subscription token present, an exported ANTHROPIC_API_KEY swaps the
+    # request's `authorization: Bearer ...` for `x-api-key: ...` and drops the
+    # subscription beta header entirely — so the run is billed per token and the
+    # subscription is not used at all. ANTHROPIC_AUTH_TOKEN overrides it the same
+    # way and ANTHROPIC_CUSTOM_HEADERS is a third x-api-key injection path (the
+    # CLI matches header names case-insensitively, so the whole variable goes).
+    # Those three names are the credential set; they are pinned in the adapter,
+    # never read out of the installed bundle at run time.
+    #
+    #   auto (default) strip only on an affirmative subscription verdict from a
+    #        SANITIZED `claude auth status` — run once per process with the
+    #        candidate strip set already removed, because run with those
+    #        variables still inherited it reports only which credential currently
+    #        wins, not whether a usable one survives the strip. Zero network,
+    #        ~0.3 s, cached for the process lifetime, and never spawned at all
+    #        for a run with no claude-code slot or no vendor credential set.
+    #        EVERY other outcome declines: not logged in, a key still reaching
+    #        the CLI from a config file or helper, a non-OAuth authMethod, a
+    #        non-zero exit, undecodable JSON, a missing binary, a probe timeout.
+    #        The gate fails OPEN — an API-key-only user's key is preserved
+    #        byte-for-byte and one warning line names the billing consequence —
+    #        because failing closed would break every claude-code slot for that
+    #        population, which is a strictly worse trade than a per-token bill.
+    #   always strip regardless of the verdict, skipping the probe.
+    #   never  disable the credential half entirely.
+    #
+    # ANTHROPIC_BASE_URL is NEVER stripped, and its presence DECLINES the
+    # credential strips under `auto`: when the org pays through a gateway the
+    # subscription-vs-API-key billing question does not apply, and stripping
+    # would authenticate against the public API with credentials meant for the
+    # gateway. That is what keeps the endpoint recipes in the repository's
+    # `docs/providers.md` working.
+    # OPENAI_API_KEY, CLAUDE_CONFIG_DIR and CODEX_HOME are never stripped either.
+    strip_vendor_keys: auto
+    # vendor_backend: auto | keep | strip   (default: auto)
+    #
+    # The SECOND, independent gate, over the seven CLAUDE_CODE_USE_* names
+    # (BEDROCK, VERTEX, FOUNDRY, ANTHROPIC_AWS, GOOGLE_CLOUD, MANTLE, GATEWAY).
+    # An inherited one is worse than a billing bug: CLAUDE_CODE_USE_BEDROCK was
+    # measured hanging for 137 s with zero requests and zero output before
+    # SIGTERM, blocking on AWS credential resolution. But for a user who really
+    # runs claude-code against Bedrock, Vertex or Foundry it IS the configured
+    # auth path, so this gate reads DECLARATION, never the probe:
+    #
+    #   auto (default) strip it iff it arrived by ambient inheritance — i.e. no
+    #        backend is named in this provider's own `env:` block below. multi-llm
+    #        never sets one itself, so an undeclared one can only have leaked in
+    #        from the invoking shell.
+    #   keep  never stripped on any lane, in any strip_vendor_keys mode. Its hang
+    #         risk is then bounded by the per-slot timeout and the process-group
+    #         kill, and that is your own choice.
+    #   strip strip regardless of declaration (an escape hatch for determinism).
+    #
+    # The two tables are independent: a Bedrock user with `vendor_backend: keep`
+    # still gets the credential row evaluated normally, and a
+    # `strip_vendor_keys: never` user still gets an undeclared backend removed.
+    #
+    # Declaring a backend is what makes it yours. The seven names above are the
+    # validation domain for this block, so the set you may declare and the set
+    # the strip reasons about cannot drift apart:
+    #
+    #   env:
+    #     CLAUDE_CODE_USE_BEDROCK: "1"
+    vendor_backend: auto
+
+  cursor-agent:
+    default_timeout: 1200
+    max_concurrent: 2
+    # Give each run its own cursor profile — CURSOR_CONFIG_DIR + CURSOR_DATA_DIR
+    # pointed at a process-scoped 0700 temp dir, removed at exit.
+    #
+    #   auto (default) redirect only where cursor's auth rule is VERIFIED not to
+    #        follow those two variables. That is Linux today, and it was
+    #        measured, not read off the bundle: auth.json is
+    #        $XDG_CONFIG_HOME/cursor/auth.json, which neither variable moves, and
+    #        a real run against an EMPTY redirected dir exited 0, authenticated
+    #        and printed nothing on stderr. Everywhere else `auto` declines and
+    #        the snapshot/restore guard below takes over.
+    #   on   always redirect, including on a platform nobody has measured. If
+    #        cursor resolves auth differently there, `on` presents every cursor
+    #        slot as logged out — a disabled provider — whereas `auto` falls back
+    #        to exactly the behaviour that shipped before the redirect existed.
+    #        That asymmetry is why the default is `auto`: use `on` to opt a
+    #        non-Linux host in once YOU have checked it.
+    #   off  today's behaviour — cursor writes to YOUR profile
+    #
+    # The trade-off: `--model` rewrites your global default model in
+    # cli-config.json and `--trust` writes a durable .workspace-trusted marker.
+    # With the redirect on, neither ever reaches your profile. With it off, a
+    # snapshot/restore guard puts them back — but that guard lives in ONE
+    # process, so two overlapping multi-llm runs still corrupt your default
+    # model permanently (the second run snapshots the first run's value as if it
+    # were yours). Turn it off only if you need cursor to see your own profile —
+    # a project-scoped rule set, an MCP config — and accept that. Setting
+    # CURSOR_CONFIG_DIR or CURSOR_DATA_DIR yourself also suppresses the
+    # redirect: a pinned profile is your decision, and it is never written or
+    # deleted.
+    isolate_profile: "auto"
+    # Effort is encoded directly in cursor-agent's own model names (e.g. the
+    # -xhigh variants); no ":effort" suffix support needed or implemented.
+    models:
+      - auto
+      - composer-2.5
+      - gpt-5.6-sol-xhigh
+      - gpt-5.6-terra-xhigh
+      - gpt-5.6-luna-high
+      - gemini-4-argon-high
+      - gemini-3.8-flash-high
+      - kimi-k3-high
+      - kimi-k3-max
+      - glm-5.2-high
+      - glm-5.2-max
+      - grok-4.7-high
+      - claude-sonnet-5-5-xhigh
+      - claude-opus-5-5-xhigh
+      - claude-fable-5-1-high
+      - claude-haiku-5-5-thinking-high
+      - muse-wonder-1.0-xhigh
+      - muse-spark-1.3-xhigh
+
+  gemini:
+    default_timeout: 1200  # Gemini can be slower
+    # No per-run effort control in gemini-cli (no flag, no env var). To control
+    # thinking, define a custom alias with a thinkingConfig under
+    # modelConfigs.customAliases in ~/.gemini/settings.json (or the project's
+    # .gemini/settings.json) and list that alias name here as the model.
+    # Current text/tool models: https://ai.google.dev/gemini-api/docs/models
+    # API-key and OAuth/Code Assist availability can differ.
+    models:
+      - gemini-4-argon
+      - gemini-3.8-flash
+      - gemini-3.5-flash-lite
+      - gemini-flash-latest
+
+  grok:
+    default_timeout: 1200
+    # Run "grok models" to see the full list of available models
+    # ":effort" suffix (e.g. grok-4.6:low) -> "--reasoning-effort <level>".
+    # Valid: none, minimal, low, medium, high, xhigh, max. Per-model support
+    # varies. `grok models` lists 4.6 as latest on this CLI (2026-10-22).
+    models:
+      - grok-4.6:high
+
+  fx:
+    default_timeout: 1200
+    max_concurrent: 2
+    # Vercel fx 0.0.14, checksummed release pinned in the container. Its `fx`
+    # binary name collides with an unrelated npm/Homebrew JSON viewer; do not
+    # resolve or install that package as this provider. Model IDs are OpenRouter
+    # slugs; no reasoning option is sent on custom connections, and prompts
+    # travel over stdin by default.
+    models:
+      - openai/gpt-6-luna
+
+  opencode:
+    default_timeout: 1200
+    # max_version_exclusive: the first opencode build multi-llm REFUSES to run,
+    # exclusive — the ceiling half of the one version gate (see the "Version
+    # floors and ceilings" note at the top of this file). Ships EMPTY, which
+    # means "no ceiling", and the empty string is the shipped value rather than a
+    # commented-out line so the key is discoverable without reading code.
+    #
+    # Why this adapter is where the key is written out: opencode is the one CLI
+    # whose npm `latest` has been a prerelease beta, i.e. the one where "newest"
+    # and "supported" measurably come apart. If such a build breaks the event
+    # stream `parse_output` reads, pin it here — e.g. `max_version_exclusive:
+    # "2.0.0"` — and every slot on that build is refused before it spawns,
+    # naming the number. The rule that comes with it: write the FEATURE (or the
+    # breakage) in a comment beside the number, never the number alone. A
+    # ceiling with no reason is unremovable, because nobody can tell what would
+    # retire it.
+    #
+    # This is deliberately NOT `verified_version` (the adapter's own
+    # declaration, which only warns that parsing is best-effort above the build
+    # the fixtures came from). A ceiling is a refusal and only ever belongs to a
+    # build measured to be broken.
+    max_version_exclusive: ""
+    # hermetic: on | auto | off  (default: on)
+    #
+    # `on`/`auto` run opencode under an empty, run-scoped XDG_CONFIG_HOME plus
+    # `--pure`, so YOUR ~/.config/opencode/opencode.json cannot silently change
+    # the model, agent or permission set a multi-llm dispatch uses; opencode's
+    # own home (OPENCODE_TEST_HOME) moves there too, so ~/.opencode/ (and the
+    # user-level skills under ~/.claude/skills) stay out as well. XDG_DATA_HOME
+    # is kept, so stored auth (auth.json) and `opencode auth list` are unaffected,
+    # and XDG_CACHE_HOME is kept so the model catalog is not re-fetched cold.
+    # Applies to fan-out/`ask` and `agent-readonly` slots; `agent-write` keeps
+    # today's inherited config until the write-slot gates are green.
+    #
+    # Known cost: the empty config home is inherited by everything opencode
+    # launches, so an MCP server that reads its own XDG config sees it too.
+    # `off` restores today's inheritance for the user that bites.
+    # Quoted on purpose: YAML 1.1 resolves a bare `on`/`off` to a boolean.
+    hermetic: "on"
+    # config_providers: a verbatim opencode `provider` map, CREDENTIALS EXCLUDED
+    # (those stay in auth.json). A hermetic run cannot see a provider that exists
+    # only in your own opencode config, so declare one here to keep using it —
+    # a slot naming such a provider is refused before spawn rather than
+    # dispatched into a silent model-resolution failure. Built-in providers need
+    # nothing here.
+    # A provider declared here passes the auth preflight wherever its key lives:
+    # in auth.json under the custom id, in an {env:VAR} reference (resolved in
+    # the dispatch's own environment, so env_allowlist applies), or nowhere at
+    # all (a keyless local server). `opencode auth list` cannot see a provider
+    # declared only in config, so the preflight reads the dispatch's resolved
+    # config (`opencode debug config`) before refusing. A built-in provider
+    # overridden without a key, or with one that does not resolve in the
+    # dispatch's environment (an unset {env:VAR}), is still refused.
+    #
+    # config_providers:
+    #   my-gateway:
+    #     options:
+    #       baseURL: https://gateway.example.com/v1
+    #     models:
+    #       my-model: {}
+    #
+    # Run "opencode models" to see the full list of available models
+    # ":effort" suffix (e.g. openai/gpt-6.1-sol:high) -> "run --variant <name>".
+    # Variant names are provider-specific (OpenAI: none/minimal/low/medium/high/xhigh;
+    # Anthropic: high/max); unknown variants are resolved/ignored server-side.
+    models:
+      - opencode/big-pickle
+      - opencode/nemotron-3-ultra-free
+      - google/gemini-4-argon
+      - openai/gpt-6.1-sol
+      - openai/gpt-6-astra
+      # Requires stored OpenRouter auth (`opencode auth login`). Keep the plain
+      # model selection: variant hangs were measured on the earlier V4 Flash;
+      # this catalog refresh does not re-probe the V4.1 variant execution path.
+      - openrouter/deepseek/deepseek-v4.1-flash-1017
+
+  codex:
+    default_timeout: 1800
+    # strip_vendor_keys defaults to `never` here and is deliberately NOT set.
+    # codex has no zero-network verdict — `codex login status` false-negatives
+    # for a CODEX_API_KEY-only user and `codex doctor --json` is advisory — so
+    # claude-code's sanitized preflight cannot be transferred, and `auto`
+    # therefore behaves as `never` for every adapter without a verdict of its
+    # own. The breakage an `always` here would accept, with its signature: a
+    # CODEX_API_KEY-only user (no usable $CODEX_HOME/auth.json) has no credential
+    # left after the strip, and codex does NOT fail fast — measured, it issues
+    # the request with no Authorization header at all, so the turn dies at the
+    # server mid-stream rather than as a 0.35 s local "Not logged in". Only a
+    # measured zero-network codex probe could raise this default; none exists.
+    # OPENAI_API_KEY is never stripped on any path: it is measured not consulted
+    # by codex at all, and stripping it breaks configs declaring
+    # `env_key = "OPENAI_API_KEY"` for a custom provider.
+    # Model entries may carry an optional ":effort" suffix (e.g. gpt-6.1-sol:high),
+    # translated by the codex adapter to "-c model_reasoning_effort=<effort>".
+    # Valid efforts: none, minimal, low, medium, high, xhigh, max — plus "ultra",
+    # which is accepted and rewritten to "max" before argv is built. `max` is
+    # advertised per model by `codex debug models` (supported_reasoning_levels)
+    # for gpt-6.1-sol/gpt-6-astra/gpt-6-luna; none/minimal are taken on the wire but
+    # advertised by no catalog entry, so pass one only when you mean it.
+    # Without a suffix, codex uses the default from the user's ~/.codex/config.toml
+    models:
+      - gpt-6.1-sol
+      - gpt-6.1-sol:xhigh
+      - gpt-6-astra
+      - gpt-6-astra:xhigh
+      - gpt-6-luna
+    # sandbox_fallback: auto | contained | off   (default: auto)
+    #
+    # D6 (2026-09-17; ladder 2026-09-22; plugin-landlock 2026-09-30) — the ONE
+    # dispatch-time override of a
+    # sandbox refusal. codex is the only reviewer on this roster that insists
+    # on its own OS sandbox: `codex exec` runs the model's shell through
+    # bubblewrap, and on a stock Ubuntu 24.04
+    # (kernel.apparmor_restrict_unprivileged_userns=1) bwrap cannot start:
+    # `bwrap: loopback: Failed RTM_NEWADDR: Operation not permitted`. Every
+    # other CLI in the fan-out — cursor-agent, pi, claude-code, muse (always
+    # `--disable-sandbox`) — runs the same read-only phases with no OS
+    # boundary at all, and always has.
+    #
+    # Once the D6 probe says the sandbox cannot start (verdict `unavailable`;
+    # never on `unknown`), codex's read-only phases walk a three-rung ladder.
+    # Read-only means the review/ask fan-out and the executor's read kinds:
+    # validation, revalidation, consolidation, salvage, task generation, the
+    # human-decision judge. On a machine where bwrap starts, no rung is ever
+    # reached: codex runs under its own sandbox.
+    #
+    #   rung 1  `landlock` — contained. `--sandbox read-only` plus a
+    #           per-dispatch `-c features.use_legacy_landlock=true`: codex's
+    #           second Linux backend, which needs no user namespace. Taken
+    #           only when its probe's canary write is DENIED by the kernel.
+    #           Writes are refused everywhere, the model's shell has no
+    #           network, reads are unrestricted. Reported as a sandbox, not a
+    #           bypass: a `[SANDBOX_FALLBACK]` line and
+    #           `sandbox: fallback-landlock` in `models_served`.
+    #           Retired from codex 0.156.1 (skipped by version, measured).
+    #   rung 2  `plugin-landlock` — the plugin's own Landlock jail
+    #           (utils/landlock_exec.py, 2026-09-30): codex runs under
+    #           `--sandbox danger-full-access` inside a Landlock ruleset that
+    #           lets it write only $CODEX_HOME, a per-attempt TMPDIR and a few
+    #           devices. Grade `incidental`, NOT contained: it stops stray
+    #           writes, not a model set on escaping (pathname Unix sockets,
+    #           $CODEX_HOME, chmod and the network are not confined). Reported
+    #           `[SANDBOX_INCIDENTAL]` / `sandbox: fallback-plugin-landlock`;
+    #           needs Landlock ABI >= 3 (absent in the Docker image).
+    #   rung 3  `unsandboxed` — `--sandbox danger-full-access` in the real repo
+    #           root, no OS boundary at all. Reported loudly: one
+    #           `[SANDBOX_BYPASSED]` line on stdout, `sandbox: bypassed` in
+    #           `models_served`, `(ran unsandboxed: sandbox_fallback=auto)` on
+    #           the report's model labels, and a `git status` taken before and
+    #           after the slot that fails it by path if the tree changed.
+    #
+    #   auto       (default) rung 1, then rung 2, then rung 3, each only when
+    #              the one before it is unusable: the bypass last.
+    #   contained  rung 1 only — yes to a real boundary, no to the jail's
+    #              incidental grade or the bypass, ever. Where rung 1 is
+    #              unusable (or gone upstream) codex is refused.
+    #   off        No rung: refuse. On such a machine codex is left out of the
+    #              fan-out and every read batch until the AppArmor repair
+    #              `multi_llm.py doctor` prints is installed. Unchanged by the
+    #              ladder.
+    #
+    # doctor's BROKEN row names the value in force and the rung its probe
+    # selected, e.g. `(fallback: auto → landlock …)`.
+    #
+    # ⚠ NEVER enable landlock globally. `codex features enable
+    # use_legacy_landlock` (i.e. `[features] use_legacy_landlock = true` in
+    # ~/.codex/config.toml) makes EVERY workspace-write dispatch panic — exit
+    # 101, "permission profiles requiring direct runtime enforcement are
+    # incompatible with --use-legacy-landlock" — `agent-write` included. The
+    # flag is only safe as the per-dispatch `-c` rung 1 adds beside
+    # `--sandbox read-only`, and that `-c` cannot clear a global one. doctor
+    # warns if it finds it; remove the line.
+    #
+    # Rung 1 is read-only ONLY, and a stopgap: codex marks
+    # `use_legacy_landlock` deprecated ("will be removed soon"; its sibling
+    # `use_linux_sandbox_bwrap` is already removed). Measured at codex 0.155.1.
+    # Owner: whoever bumps the pinned codex version — that bump is the review
+    # trigger, and `codex features list` no longer naming the flag retires the
+    # rung (auto falls back to rung 2, contained to refusal).
+    #
+    # Write profiles (user decisions 2026-09-30 and 2026-10-02): under `auto`,
+    # and only when codex's own workspace-write sandbox cannot start,
+    # `apply-suggestions` (the plan file, in place), `apply-task-suggestions`
+    # (the tasks dir or file) and, since step 3b, `apply-code-fixes` and
+    # `implement` (every repository entry outside .git, .codex, .multi-llm and
+    # the run's output folder; never the root itself) run on rung 2 and no
+    # other rung; `contained` and `off` refuse them. One exception (F5): a
+    # codex chat that is itself in `danger-full-access` lets a plan-file or
+    # tasks write the jail could not take run on rung 3 — never a repo-wide
+    # one. The AppArmor repair restores codex's own sandbox (network confined).
+    #
+    # What rung 3 gives up, in plain words: for a codex read-only slot, no OS
+    # boundary of any kind between the model's shell and this machine — reads
+    # and writes anywhere you can, network from model commands, and no
+    # prompt-injection resistance for a validation batch beyond the detective
+    # `git status` check. That is the footing four of five reviewers already
+    # run on (measured 2026-09-17: the host's own shell tool runs in the same
+    # namespaces as your terminal), which is why `auto` keeps it as the last
+    # rung rather than refusing. Measured the same day: a by-hand
+    # `danger-full-access` review over a worktree snapshot escaped the snapshot
+    # in 6 commands to read the real repo, and found 2 unique validated-high
+    # issues the sandboxed reviewers did not. Set `contained` to keep the
+    # boundary and drop the bypass. YAML booleans are read as the words they
+    # spell: `off`/`false` is `off`, `on`/`true` is `auto`.
+    #
+    # This key is read through the normal layering, so a cloned repository's
+    # `.multi-llm/providers.yaml` can set it — and since the default `auto` is
+    # the widest value, all a project layer can do with it is narrow the
+    # fallback (`contained` or `off`).
+    sandbox_fallback: auto
+
+  kilocode:
+    default_timeout: 1200
+    # Run "kilocode models" to see the full list of available models
+    # Model names use 3-part format: backend/provider/model
+    # ":variant" suffix -> "run --variant <name>". Variant names are MODEL-specific
+    # and drift, so check each model rather than assuming a family-wide ladder.
+    # Refreshed 2026-10-22 with kilocode 7.8.15: glm-5.3 publishes low/high/max;
+    # kimi-k3 none/low/high/max; nemotron-3-ultra none/medium/high;
+    # mimo-v2.6-pro low/medium/high;
+    # qwen3.8-max-0902 minimal/low/medium/high/xhigh. Prime/ultraspeed SKUs are
+    # separate speed-priced variants, not replacements for these standard IDs.
+    # Discover with "kilocode models <backend> --refresh --verbose"; the capture
+    # backing these rows is tests/fixtures/kilocode/model_variants.json.
+    # GOTCHA: an invalid/unsupported variant is SILENTLY ignored. Whitelisted
+    # suffixes: none, minimal, low, medium, high, xhigh, max, thinking, instant;
+    # anything else (e.g. ":free" model ids) passes through as part of the model name.
+    max_concurrent: 2
+    models:
+      - openrouter/moonshotai/kimi-k3:max
+      - openrouter/nvidia/nemotron-3-ultra-550b-a55b
+      - openrouter/z-ai/glm-5.3:max
+      - kilo/z-ai/glm-5.3
+      - openrouter/minimax/minimax-m3.1-flash
+      - openrouter/x-ai/grok-4.7
+      - openrouter/arcee-ai/trinity-large-thinking
+      - openrouter/xiaomi/mimo-v2.6-pro
+      - openrouter/qwen/qwen3.8-max-0902:xhigh
+      - openrouter/tencent/hy4-preview:high
+      - openrouter/stepfun/step-5-preview:high
+      - openrouter/openai/gpt-6-astra-pro
+      - openai/gpt-6-astra
+      - openrouter/nex-agi/nex-n2.5-pro
+      - openrouter/google/gemini-3.8-flash
+      - openrouter/google/gemini-4-argon
+      - google/gemini-4-argon
+      - openrouter/deepseek/deepseek-v4-pro-0813
+      - openrouter/anthropic/claude-sonnet-5.5
+      - openrouter/anthropic/claude-fable-5.1
+
+  cline:
+    default_timeout: 1200
+    # Model names use the format <cline-provider>/<model-id>, e.g.
+    # openrouter/z-ai/glm-5.3 — the segment before the first "/" is the cline
+    # backend provider (-P), the rest is the model id (-m).
+    # -m mutates the saved default in ~/.cline, so cap concurrency.
+    # ":effort" suffix -> "--thinking <level>". Valid: none, low, medium, high,
+    # xhigh; the CLI hard-errors (exit 1) on invalid levels. Unlike -m,
+    # --thinking does NOT mutate the saved default in ~/.cline.
+    # Note: xhigh may be downgraded to high on some provider paths inside cline.
+    max_concurrent: 2
+    models:
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3
+      - openrouter/openai/gpt-6-astra
+
+  goose:
+    default_timeout: 1200
+    # Model names use the format <goose-provider>/<model-id>, e.g.
+    # openrouter/z-ai/glm-5.3 — the segment before the first "/" is the goose
+    # backend provider (--provider), the rest is the model id (--model).
+    # Auth is env-only: the openrouter backend needs OPENROUTER_API_KEY in
+    # the environment.
+    # ":effort" suffix -> exported as GOOSE_THINKING_EFFORT env var for the
+    # subprocess (goose has no CLI flag). Valid: off, none, low, medium, high,
+    # max, xhigh. GOTCHA: goose SILENTLY ignores it for openrouter models it
+    # doesn't classify as reasoning-capable, and silently ignores invalid values.
+    models:
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3
+      - openrouter/openai/gpt-6-astra
+
+  aider:
+    default_timeout: 1200
+    # Model names are litellm model specs passed VERBATIM to --model, e.g.
+    # openrouter/z-ai/glm-5.3 (no provider/model splitting).
+    # Auth is env-only: openrouter/ models need OPENROUTER_API_KEY in the
+    # environment.
+    # ":effort" suffix -> "--reasoning-effort <value>". Whitelist: none, minimal,
+    # low, medium, high, xhigh. Aider passes the value through unvalidated:
+    # openrouter/ models always accept it (sent as OpenRouter's reasoning.effort),
+    # other models warn-and-ignore.
+    models:
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3
+      - openrouter/openai/gpt-6-astra
+
+  agy:
+    # This is now the ONLY number. agy's `--print-timeout` (its internal
+    # print-mode cutoff) is derived from whatever timeout resolves for a run —
+    # this value, unless overridden — minus a 30s shutdown margin, so agy
+    # reaches its own cutoff and writes its ERROR envelope before the harness's
+    # deadline fires. It used to be a hardcoded `20m` in the adapter, which made
+    # raising this key above 1200 a silent no-op and lowering it a race.
+    default_timeout: 1200
+    # Model names are the exact DISPLAY NAMES from `agy models` (spaces and
+    # parentheses included), so keep these matching `agy models` exactly.
+    # An unknown name is rejected outright: agy returns an ERROR envelope
+    # ("model ... is not recognized") listing the valid names (verified
+    # 2026-07-29; older builds silently fell back to the default model).
+    # Auth is Google OAuth only: requires a one-time `agy` sign-in
+    # (persisted in ~/.gemini/antigravity-cli/); no API keys involved.
+    # Effort appears twice, on two different axes. The display name carries the
+    # model's own tier ("(High)", "(Low)"), and `agy --effort low|medium|high`
+    # is a REAL flag on top of it (read from `agy --help`, agy 1.1.13) — this
+    # file used to deny that flag existed, so a configured effort was refused by
+    # our own whitelist. Entries may therefore carry a ":effort" suffix, e.g.
+    # "Gemini 4 Argon (High):high"; valid levels are low, medium, high ONLY, and
+    # anything else stays part of the model name (agy then rejects it out loud).
+    models:
+      - "Gemini 4 Argon (High)"
+      - "Gemini 4 Argon (Medium)"
+      - "Gemini 4 Argon (Low)"
+      - "Gemini 3.8 Flash (High)"
+      - "Gemini 3.8 Flash (Medium)"
+      - "Gemini 3.8 Flash (Low)"
+      - "Claude Opus 5.5 (High)"
+      - "Claude Opus 5.5 (Medium)"
+      - "Claude Opus 5.5 (Low)"
+      - "Claude Sonnet 5.5 (High)"
+      - "Claude Sonnet 5.5 (Medium)"
+      - "Claude Sonnet 5.5 (Low)"
+      - "GPT-OSS 120B (Medium)"
+
+  muse:
+    default_timeout: 1800
+    # Meta's Muse Code harness. Auth is a stored provider credential
+    # (`muse login` / `muse auth set`), not an env var.
+    # ":effort" suffix (e.g. muse-spark-1.3:xhigh) -> "--reasoning-effort <level>".
+    # Valid: none, minimal, low, medium, high, xhigh, ultra. GOTCHA: muse
+    # hard-errors on any other value, so an unknown suffix stays part of the
+    # model name and fails model resolution instead. WITHOUT a suffix muse does
+    # not apply the default from --help; it reads reasoning_effort from
+    # ~/.config/muse/settings.json.
+    # Timeout is generous on purpose: muse retries a failing provider call up
+    # to 10 times with exponential backoff (a 429 alone waits 60s), so an
+    # unfunded account burns minutes before reporting the 402.
+    # https://dev.meta.ai/docs/models; `muse model-profile show <id>`.
+    # Wonder Full requires a Power Usage or Maximum Usage subscription.
+    models:
+      - muse-wonder-1.0
+      - muse-wonder-1.0:xhigh
+      - muse-wonder-full-1.0
+      - muse-spark-1.3
+      - muse-spark-1.3:xhigh
+
+  pi:
+    default_timeout: 1200
+    # Model names are pi model patterns passed VERBATIM to --model; pi resolves
+    # "provider/id" forms itself (e.g. openrouter/z-ai/glm-5.3). Run
+    # "pi --list-models" to see the full list.
+    # Auth: provider API-key env vars (OPENROUTER_API_KEY, ANTHROPIC_API_KEY, ...)
+    # inherited by the subprocess, or keys stored via pi's /login.
+    # ":effort" suffix -> "--thinking <level>". Valid: off, minimal, low, medium,
+    # high, xhigh, max. The suffix is stripped before --model, so pi's own
+    # native ":level" model-suffix parsing never sees it; unknown suffixes
+    # (e.g. ":free" ids, bedrock "...-v1:0") stay part of the model name.
+    # Runs "pi --mode json" and reports token usage and pi's estimated cost.
+    models:
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3
+      - openrouter/openai/gpt-6-astra
+
+  kimi:
+    default_timeout: 1200
+    max_concurrent: 2
+    # Kimi Code (Moonshot), binary `kimi`. Measured against 0.36.1 in the §6
+    # container probe of plans/harness-expansion.md.
+    #
+    # OpenRouter slugs — BYOK generic backend. A Kimi Code subscription is a
+    # DIFFERENT catalog and these entries do not transfer to it.
+    #
+    # The slug travels in `KIMI_MODEL_NAME`, never in argv: the KIMI_MODEL_*
+    # family synthesizes a model under the fixed literal id `__kimi_env_model__`,
+    # so `kimi -m <slug>` fails with `Model "<slug>" is not configured in
+    # config.toml`. The adapter emits no `-m` at all.
+    #
+    # No ":effort" suffix — a third ":"-segment is part of the model id.
+    # KIMI_MODEL_THINKING_EFFORT exists as a name but is inert on the wire at
+    # 0.36.1 (byte-identical request body with and without it).
+    #
+    # argv-only — a large prompt exceeds the Windows command-line cap and is
+    # refused before spawn. Measured: kimi reads no stdin (`-p -` delivers the
+    # literal "-"), expands no `@file`, and has no `--prompt-file`.
+    #
+    # TELEMETRY, MEASURED AND UNFIXABLE FROM HERE: at 0.36.1 kimi resolves
+    # `telemetry-logs.kimi.com` on every run **even with KIMI_DISABLE_TELEMETRY=1**,
+    # which the adapter does set. Reproduced offline three ways (opt-out set,
+    # opt-out unset, and with KIMI_DISABLE_CRON=1): two DNS queries every time,
+    # identical in all three. The value is not the problem -- "1" is in the CLI's
+    # own true-value set and its `isTelemetryDisabledByEnv` gate reads it -- the
+    # connection attempt simply is not gated. In the container the egress
+    # allowlist refuses it and nothing leaves; on YOUR machine there is no such
+    # allowlist, so the request goes out. Re-check on the next version bump.
+    # Current OpenRouter family: Kimi K3 (2026-10-22). This adapter sends no
+    # reasoning-effort setting, so K3 uses its backend default.
+    models:
+      - moonshotai/kimi-k3
+
+  qwen-code:
+    default_timeout: 1200
+    max_concurrent: 2
+    # Qwen Code, binary `qwen` (provider key `qwen-code` -- the key names the
+    # HARNESS, not the model family, the same split as claude-code/claude).
+    # Measured against 0.21.13 in the §6 container probe of
+    # plans/harness-expansion.md.
+    #
+    # OpenRouter slugs -- BYOK generic backend, via the OPENAI_BASE_URL /
+    # OPENAI_API_KEY / OPENAI_MODEL trio. A Qwen first-party plan (OAuth or
+    # DashScope) is a DIFFERENT catalog and these entries do not transfer to it.
+    #
+    # EXITS 0 ON BACKEND FAILURE -- the defect that shapes the adapter. 401, 404,
+    # 400-overflow and 500 alike all produce rc=0, `subtype: "success"`,
+    # `is_error: false`, EMPTY STDERR, and an answer of "[API Error: <upstream
+    # text>]". The adapter declares that marker as an exit-zero failure marker and
+    # classifies before it unwraps; without both, a fan-out slot would report the
+    # error string as the model's answer.
+    #
+    # No ":effort" suffix -- a third ":"-segment is part of the model id. There is
+    # no effort/thinking/reasoning option anywhere in the full help, and a stray
+    # suffix was measured passing through to the backend VERBATIM, where it
+    # becomes a "model not found" with nothing pointing at the suffix.
+    #
+    # Structured output IS supported: `--json-schema <json literal>`, the same
+    # spelling and inline transport as claude-code, measured constraining the
+    # output and failing closed on plain text.
+    #
+    # `--max-wall-time` is derived from the slot timeout and held 30 s under it.
+    # That is load-bearing rather than tidy: only qwen's 5xx retry path
+    # self-terminates -- a 429 backend was still retrying past 180 s and a stalled
+    # one retries a ~120 s client timeout indefinitely.
+    #
+    # NOISIER THAN THE OTHER PROVIDERS, MEASURED AND DELIBERATE. The adapter
+    # ships `--max-tool-calls 0`, which aborts the run BEFORE a tool executes.
+    # Against the real backend, 4 of 14 live runs (~29%) on a trivial prompt
+    # ended that way -- `FatalBudgetExceededError: tool-call budget of 0
+    # exceeded` -- because a real model sometimes chooses to call a tool where
+    # the offline stub never does. The retry ladder normally absorbs it (the
+    # abort is transport-shaped), at the cost of a second call.
+    #
+    # That 29% is the reason the flag STAYS. It is direct evidence that the model
+    # wants to call tools on ordinary prompts, so without the cap those calls
+    # would execute in YOUR checkout -- from a provider that only ever parses the
+    # output as an answer. A structured-output dispatch (`--json-schema`) is
+    # quieter: the synthetic tool is exempt from the cap.
+    # Keep the current small model first; Max is a separate capacity tier.
+    models:
+      - qwen/qwen3.8-27b
+      - qwen/qwen3.8-max-0902
+
+  copilot:
+    default_timeout: 1200
+    max_concurrent: 2
+    # GitHub Copilot CLI, binary `copilot`. Measured against 1.0.80 in the §6
+    # container probe of plans/harness-expansion.md.
+    #
+    # OpenRouter slugs -- BYOK generic backend, via COPILOT_PROVIDER_BASE_URL
+    # (the ACTIVATION SWITCH) + _TYPE + _API_KEY. NO GITHUB ACCOUNT IS NEEDED:
+    # the vendor's own docs say "GitHub authentication is not required" in this
+    # mode. A Copilot SEAT is a DIFFERENT catalog -- the built-in
+    # `auto`/`claude-*`/`gpt-5.x`/`gemini-3.x` model list belongs to that path
+    # and is consulted only for token limits, so none of it transfers here and
+    # none of it belongs in this list.
+    #
+    # The original 1.0.80 probe recorded a completions-parser issue with
+    # reasoning_content deltas (copilot-cli#4196). This catalog refresh verifies
+    # model availability, not that parser's live compatibility with GPT-6 Luna.
+    # COPILOT_PROVIDER_WIRE_API=responses was the stub-tested fallback.
+    #
+    # Model entries may carry an optional ":effort" suffix, split on the LAST
+    # colon.  Valid: none, minimal, low, medium, high, xhigh, max
+    # (all seven accepted at 1.0.80; which ones a given backend honours is
+    # server-side and model-dependent).
+    #
+    # TOOL TIER 1, AND THE HELP TEXT IS WRONG. `--allow-all-tools` is documented
+    # as "required for non-interactive mode"; measured, it is not. All four §6.5
+    # rungs produced byte-identical output with a clean filesystem canary, so the
+    # adapter emits NO permission flag and no `--add-dir` at all. The env twin
+    # `COPILOT_ALLOW_ALL` is stripped, because it would widen the tier with no
+    # argv change and make the recorded tier unenforceable.
+    #
+    # EXITS 0 ON ONE FAILURE SHAPE: an empty provider 200 gives exit 0,
+    # `result.exitCode: 0` and an empty assistant message with no error record.
+    # There is no text for a marker to match, so the adapter detects it
+    # structurally in parse_output instead.
+    models:
+      - openai/gpt-6-luna
+
+  vibe:
+    default_timeout: 1200
+    max_concurrent: 2
+    # Mistral Vibe, binary `vibe` (PyPI package `mistral-vibe`). Measured against
+    # 2.24.1 in the §6 container probe of plans/harness-expansion.md.
+    #
+    # ENTRIES HERE ARE SEED ALIASES, NOT SLUGS -- vibe is the one adapter in this
+    # roster whose model surface is neither a flag nor a raw wire name. Each
+    # entry names a `[[models]]` alias defined in the committed seed
+    # (tests/container/home_seed/vibe/.vibe/config.toml on the container lanes,
+    # $VIBE_HOME/config.toml on a host), whose own `name` field is the OpenRouter
+    # slug that reaches the wire. The adapter carries the alias in
+    # VIBE_ACTIVE_MODEL, because vibe has NO --model flag at all.
+    #
+    # OpenRouter slugs -- BYOK generic backend, via the seed's `[[providers]]`
+    # entry (`backend = "generic"`, `api_style = "openai"`, `api_base`, and
+    # `api_key_env_var` naming OPENROUTER_API_KEY). A Mistral API key is a
+    # DIFFERENT catalog and none of this transfers to it; MISTRAL_API_KEY is
+    # stripped so a stale one cannot select the vendor backend underneath.
+    #
+    # A host alias listed here needs a matching `[[models]]` entry in the
+    # host config. Container lanes render the alias from the selected model.
+    #
+    # Model entries may carry an optional ":effort" suffix, split on the LAST
+    # colon.  Valid: off, low, medium, high, max
+    # (the accepted set of the `thinking` config key, read off the installed
+    # validator at 2.24.1). It rides VIBE_THINKING rather than argv -- vibe has no
+    # effort flag either -- but the suffix is still split here, because an alias
+    # with `:high` glued on selects no configured model.
+    #
+    # TOOL TIER: `--agent plan`, AND THE BARE INVOCATION IS NOT THE FLOOR.
+    # vibe's `default_agent` is `accept-edits`, whose AgentSafety is DESTRUCTIVE
+    # and whose write_file/edit permission is `always` -- so a bare `vibe -p ...`
+    # is the second-WIDEST rung, not tier 1. The adapter always emits
+    # `--agent plan` (SAFE, read-only), which completed a realistic review prompt
+    # with a clean filesystem canary, and pins VIBE_DEFAULT_AGENT to match so an
+    # argv change cannot silently fall back. Never --auto-approve/--yolo.
+    #
+    # SPEND: `--max-price 0.25` is the roster's only USD cap, but it is checked
+    # BETWEEN turns -- a single completion runs to completion regardless -- so
+    # `--max-turns 4` is the bound that actually stops a runaway.
+    # The container seed renders alias/name from the selected model. A host
+    # still needs the matching alias in its own $VIBE_HOME/config.toml.
+    models:
+      - openai/gpt-6-luna
+
+  omp:
+    default_timeout: 1200
+    # oh-my-pi, binary `omp`. Measured against 18.2.2 (plans/add-omp-provider.md).
+    #
+    # Model names are omp model SELECTORS passed VERBATIM to --model. Run
+    # `omp models openrouter --json` for the catalog — the field to copy is
+    # `selector` (openrouter/openai/gpt-6-luna), not `id`
+    # (openai/gpt-6-luna). The lookup is local (~/.omp/agent/models.db) and
+    # needs no network.
+    #
+    # AUTH — omp's own $env chain, in the order omp reads it:
+    #   1. the process environment. THIS adapter passes OPENROUTER_API_KEY
+    #      through explicitly (utils/providers/omp.py get_env), so the key
+    #      survives a run with `env_allowlist: on`, which would otherwise drop
+    #      it — nothing in omp's allowlist profile admits a name outside the
+    #      PI_/OMP_ family. It is passed through only when the process has one;
+    #      an empty value would shadow the file sources below.
+    #   2. a `.env` in the directory the run starts from. A checked-out repo
+    #      carrying its own OPENROUTER_API_KEY therefore OUTRANKS the key you
+    #      exported — see docs/configuration.md §Safety.
+    #   3. ~/.omp/agent/.env      <- the source that depends on nothing in the
+    #   4. ~/.omp/.env, then ~/.env   parent environment; use it when the key is
+    #                                 not exported in the shell the run starts in.
+    # No login state, no keyring, and no auth-status subcommand — so `doctor`
+    # reports omp's auth row as `unprobed`, which is not a fault.
+    #
+    # ":effort" suffix -> "--thinking <level>". Valid: off, minimal, low,
+    # medium, high, xhigh, max. omp does NOT validate the flag (it accepts and
+    # ignores anything), so this whitelist is the only guard. The suffix is
+    # stripped before --model; unknown suffixes (":free" ids, bedrock
+    # "...-v1:0", and omp's own ":auto") stay part of the model name, which is
+    # how omp:<model>:auto still reaches omp's native parser.
+    #
+    # TOOL TIER: `--approval-mode yolo`, BOUNDED BY AN EXPLICIT ALLOW-LIST
+    # (`--tools read,grep,glob,bash,edit,write`). Every narrower mode
+    # denies `bash` headless, and the measured consequence is worse than a slow
+    # failure: under `--approval-mode write` the model answered
+    # `git version 2.43.0` after three denials without ever running the command.
+    # A reviewer that invents `git diff` output is a wrong review that looks
+    # right. Tools outside the allow-list are ABSENT rather than denied, which
+    # is the shape that produced an honest refusal. See read_only_modes.omp
+    # below for the declared bypass.
+    #
+    # `find` was a seventh name on that list until 18.2.9 and is not a
+    # narrowing: at 18.2.2 it was an ALIAS of `glob` (same schema, read-class),
+    # and at 18.2.9 it is a separate, default-off (`find.enabled: false`),
+    # model-backed semantic-grep tool that `--tools` rejects outright. The
+    # globbing stays under `glob`; the new capability is excluded on the same
+    # ground as `task`. See utils/providers/omp.py OMP_TOOLS.
+    #
+    # The prompt travels on STDIN by default, not argv: a 200 KB review prompt
+    # is E2BIG from the kernel before omp starts, while the same prompt over
+    # stdin is answered in one call.
+    #
+    # Every dispatch loads assets/omp/overlay.yml with --config (retry bound,
+    # project-MCP suppression). It is read at an absolute path and a missing
+    # file is a fast, named launch failure rather than a silent fallback to
+    # omp's defaults.
+    #
+    # NOTE: this repo's AGENTS.md / CLAUDE.md are injected into every omp
+    # dispatch and `--no-rules` does not stop it. Kept on for parity with
+    # claude-code; the opt-out is a commented block in that overlay.
+    models:
+      - openrouter/openai/gpt-6-luna
+      - openrouter/z-ai/glm-5.3
+      - openrouter/moonshotai/kimi-k3
+      - openrouter/openai/gpt-6-astra
+
+
+# Default provider when model name doesn't include provider prefix
+default_provider: cursor-agent
+
+# ---------------------------------------------------------------------------
+# read_only_modes: each CLI's OWN read-only mechanism, as data (M15 / §3.5)
+# ---------------------------------------------------------------------------
+# THIS BLOCK EXECUTES NOTHING. It is a record, not a knob — no adapter, no
+# orchestrator and no spawn site reads it, and argv stays where AGENTS.md puts
+# it, in the provider classes under utils/providers/. Its only readers are
+# tests/test_read_only_modes.py and a human. It lives here because what it
+# records is per-CLI catalog data of the same kind as `models:`, and because
+# the prose it replaces (the `vibe:` comment above, and the same fact scattered
+# through a dozen adapter docstrings) is not something a test can hold anyone to.
+#
+# ONE ROW PER REGISTERED ADAPTER, and the row set is checked against
+# utils/provider_registry._PROVIDERS rather than against a list of names written
+# here: a new adapter is missing its row on the day it is registered, not on the
+# day somebody remembers this file. Nothing in the test names an adapter or a
+# count.
+#
+# `mechanism:` is the runner's own read-only mechanism — an ask/plan mode, a
+# read-only sandbox, a deny-all tool list — as the exact argv tokens it renders,
+# or `null`. A row is non-null ONLY where it was measured, `probed:` carries
+# that measurement's provenance, and the two move together in both directions.
+#
+# AN UNPROBED ROW IS `null`, NEVER A GUESS. Not from the adapter's flags, not
+# from its help text, not from its name. Three rows are measured; every other
+# row is `null` and the `null` rows ARE the probe queue. Two of them have an
+# obvious-looking candidate — opencode and vibe both already pass `--agent plan`
+# — and that is exactly the inference this rule refuses: a candidate is not a
+# measurement, and §3.5's three positives are the three that were exercised. A
+# row moves to non-null only with its own probe transcript, on §13.1's method.
+#
+# `bypass_exception:` is §3.5's named-exception disposition, and it is the only
+# thing that keeps the negative-set guard green over an adapter still emitting a
+# `--yolo`-class token from `build_command`/`get_env`. It is deliberately
+# uncomfortable to write: it names the token, the profile it is emitted on, why
+# it is still there, and what retires it. "It was already there" is not a
+# disposition. The guard is red for any such token NOT declared here, and
+# equally red for a declaration whose token is no longer emitted, so an
+# exception cannot outlive the flag it excuses.
+#
+# The guard reads the BASE layer only (provider_registry.load_base_config), so
+# no per-project `.multi-llm/providers.yaml` and no MULTI_LLM_PROVIDERS_CONFIG
+# can add an exception, retire a row or silence the scan.
+read_only_modes:
+  agy:
+    mechanism: null
+    probed: null
+    bypass_exception:
+      token: --dangerously-skip-permissions
+      profile: generate
+      reason: >-
+        agy 1.1.15's only known unattended mode, emitted by this adapter's
+        build_command since it was written. §3.5 names it a defect of the same
+        class as cursor's `-f` and gives it exactly two dispositions: replace it
+        with agy's own read-only mechanism, PROBED FIRST, or record an explicit
+        `null` row plus this named exception. The first needs a probe that does
+        not exist — `agy --help` was captured 2026-08-19 into
+        tests/container/cli-surface.yaml for the flags we already emit, and
+        nothing has ever measured what a headless `agy -p` does without this
+        one. Dropping it on the assumption that a read/analyze prompt needs no
+        tool approval is the guess this table exists to refuse, and it would
+        turn every agy slot into an unexplained timeout if the assumption were
+        wrong. So it is written down instead of waved through.
+      retires_when: >-
+        agy's read-only mode is probed and lands in `mechanism:` above, or a
+        probe shows the flag is unnecessary for a `/generate` read/analyze
+        prompt. Either way the token leaves build_command and this entry is
+        deleted with it — the guard fails on a stale exception, so the two
+        cannot drift apart.
+  aider:
+    # `/ask `, the start of `--message`'s value (aider's read-only chat mode),
+    # plus the decline supply the argv transport writes to stdin. Neither is a
+    # whole argv token, so tests/test_read_only_modes.py checks a `message:`
+    # entry against the rendered `--message` value and a `stdin:` entry against
+    # the `stdin_text` `build_command_for_transport` returns on "argv".
+    mechanism: ["message:/ask ", "stdin:s"]
+    probed: >-
+      Measured offline against aider 0.86.2 and a localhost stub
+      (plans/ask-answer-recovery-and-false-success/investigation/
+      aider-mention-autoadd-2026-09-29.md, and the T4.2 `s` re-run
+      e5_noyes_s_abs_pathsbig beside it). `/ask ` keeps aider in chat mode, where
+      it writes no file (tests/test_provider_housekeeping.py's
+      STOPS_FILE_WRITES). What `/ask ` does not stop is aider adding every
+      repo-relative path the prompt or a reply names to its context, asking
+      "Add file to the chat?" for each: answered yes — which `--yes-always` did
+      until 2026-09-29, and which EOF on stdin does — a reply naming a 2.9 MB
+      uv.lock re-sent 3.05 MB, and the 2026-09-26 incident sent 1.08M tokens.
+      With no `--yes-always` and `"s\n" * 64` on stdin (utils/providers/aider.py
+      AIDER_DECLINE_LINES), the same run read 2 lines for 10 prompts, added
+      nothing and sent one 3,207-byte request. The `--yes-always`
+      `bypass_exception` this row held was deleted with the flag (its own
+      `retires_when`); an `.aider.conf.yml` or `.env` that turns yes-always back
+      on is refused before spawn, and `AIDER_YES_ALWAYS` is stripped from the
+      child's environment.
+  claude-code:
+    # `--allowed-tools` / `--disallowed-tools`, the deny-all tool list.
+    mechanism: ["--allowed-tools", "--disallowed-tools"]
+    probed: >-
+      In-repo and enforced, which is why §3.5 counts it among the three
+      positives: build_agent_command's agent-readonly leg renders both flags,
+      AGENTS.md names it as this adapter's own denial mechanism, and
+      tests/test_providers.py cross-checks the declaration against the
+      implementation in both directions.
+  cline:
+    mechanism: null
+    probed: null
+  codex:
+    # `--sandbox read-only`, the sandbox value rewritten in place for the
+    # agent-readonly profile.
+    mechanism: ["--sandbox", "read-only"]
+    probed: >-
+      2026-08-16, harness-invocation-improvements.md §3.3. Live at
+      utils/providers/codex.py's agent-readonly leg.
+  copilot:
+    mechanism: null
+    probed: null
+  cursor-agent:
+    # `--mode ask`. `--trust` rides beside it in build_command and is NOT part
+    # of the mechanism: it satisfies a workspace-trust launch gate and grants
+    # nothing (CURSOR_REQUIRED_FLAGS explains why the pair is one change).
+    mechanism: ["--mode", "ask"]
+    probed: >-
+      2026-08-16, harness-invocation-improvements.md §3.1 — measured REFUSING
+      writes ("I'm in Ask mode, so I can't create or edit files"), re-confirmed
+      2026-08-18 over three identical runs. Q12 separately confirmed it keeps
+      its read tools (Grep/Read tool_use entries in the same transcript): a
+      positive row means read-ONLY, not read-LESS. What ask mode does about a
+      shell is not restated here: it is recorded once, with its measurement,
+      as CursorAgentProvider.runs_shell_in_generate in
+      utils/providers/cursor_agent.py, which the review-code prompt renders
+      from — so that attribute is the one value to change if a probe moves it.
+  gemini:
+    # Not a `null`-by-oversight: gemini ships no write_file tool at all under
+    # this adapter's argv (MEASURED 2026-08-19, tests/test_provider_housekeeping
+    # NO_WRITE_TOOL_AT_ALL). That is an absent capability, not a read-only MODE
+    # the adapter selects, and it fails OPEN — gemini exits 0 reporting a write
+    # that never happened. It is therefore not a mechanism this table may claim.
+    mechanism: null
+    probed: null
+  goose:
+    mechanism: null
+    probed: null
+  grok:
+    mechanism: null
+    probed: null
+  fx:
+    # fx 0.0.14 has no measured general read-only mode for this dispatch.
+    # `--auto` still invokes its shell reviewer and does not block web fetch;
+    # no OS sandbox is supplied by the adapter.
+    mechanism: null
+    probed: null
+  kilocode:
+    mechanism: null
+    probed: null
+  kimi:
+    mechanism: null
+    probed: null
+  muse:
+    mechanism: null
+    probed: null
+  omp:
+    # `generate` renders NO read-only mode, so this stays null. Two read-only
+    # mechanisms ARE measured at 18.2.2 and are recorded here for the
+    # agent-readonly follow-up rather than guessed at then:
+    #   * `--tools read,grep,glob` — the write-class tools are ABSENT, and
+    #     asked to create a file the model answered "file-writing tools are
+    #     unavailable" and none appeared. PREFERRED: an honest refusal, and the
+    #     only candidate compatible with the parser's denial policy. The
+    #     measurement was taken as `read,grep,glob,find`, where `find` was an
+    #     ALIAS of `glob`; at 18.2.9 the name is a separate default-off tool
+    #     `--tools` rejects, so it is gone from both lists and the read-class
+    #     set is unchanged (see utils/providers/omp.py OMP_TOOLS).
+    #   * `--approval-mode always-ask` — read/grep run unapproved, every
+    #     write-class tool is denied with "requires approval but no interactive
+    #     UI available". Under that mode every denied write is a FAILED run by
+    #     construction (utils/providers/omp.py parse_output step 3).
+    # Either moves into `mechanism:` on the day a profile renders it, with its
+    # own probe transcript in `probed:`.
+    mechanism: null
+    probed: null
+    bypass_exception:
+      token: "yolo"
+      profile: generate
+      reason: >-
+        `--approval-mode yolo` is what this adapter renders on `generate`, and
+        `yolo` is the one token negative_tokens_in_argv reports for that pair
+        (the flag element is in neither NEGATIVE_FLAG_TOKENS nor
+        NEGATIVE_TOKEN_PREFIXES). It is not inherited and not a default this
+        adapter fell back to: omp's FACTORY default is already `yolo` over every
+        tool, so there is no safe default to inherit and the explicit flag is
+        what makes both the factory value and the user's config.yml irrelevant.
+        Measured at 18.2.2: every narrower mode denies `bash` headless, and
+        prompts/code_review.txt tells the model to run `git diff`. Under
+        `--approval-mode write` the model answered `git version 2.43.0` after
+        three denials without ever running the command — a fabricated tool
+        output inside a review that looks right. The actual bound is the
+        allow-list `--tools read,grep,glob,bash,edit,write`, under which
+        every other tool is absent rather than denied. ACCEPTED BY THE
+        REPOSITORY OWNER, 2026-09-17, for the `generate` profile only: an
+        agent-write executor profile is a separate decision on its own
+        measurement.
+      retires_when: >-
+        omp grants a per-tool allow ON ARGV — `tools.approval.bash: allow`
+        exists today only as a config key (the denial text advertises it), and
+        putting it in the overlay would be the same bypass moved out of the
+        guard's sight, so that is rejected rather than deferred — or the
+        code-review prompt stops shelling out.
+  opencode:
+    # CANDIDATE, DELIBERATELY NOT WRITTEN AS A VALUE: `--agent plan` is already
+    # this adapter's agent-readonly leg and AGENTS.md names it. No probe on
+    # §13.1's method has ever exercised it as a read-only MODE, and §3.5's three
+    # positives are the three that were. Probe it and this row moves.
+    mechanism: null
+    probed: null
+  pi:
+    # NOT a read-only mode, and deliberately still `null`. Every `generate`
+    # dispatch pins `--tools read,grep,find,bash,write` (utils/providers/pi.py
+    # PI_TOOLS, decision 11.6) plus `--no-mcp` (pi 1.1.0's `--tools` keeps MCP
+    # tools, so pi's MCP client is switched off): the allow-list keeps `edit`
+    # out and stops the user's settings or a trusted project's
+    # `.pi/settings.json` from choosing which tool NAMES are active, but `bash` stays (the code-review prompt runs
+    # `git diff`), so the model can still run any command and write through it.
+    # It also pins names, not implementations: an extension that registers one
+    # of those names replaces the built-in (extension isolation is deferred,
+    # decision 11.8). This row moves only if `bash` leaves the list once the
+    # diff reaches reviewers by file, with its own probe transcript.
+    mechanism: null
+    probed: null
+  qwen-code:
+    # CANDIDATE, same treatment: `--max-tool-calls 0` is a zero tool budget
+    # adjudicated in STOPS_FILE_WRITES for the file-output question. Whether a
+    # zero budget is a read-only mode or an abort is exactly what a probe would
+    # settle (it exits 55 with zero stdout), so the row stays null.
+    mechanism: null
+    probed: null
+  vibe:
+    # CANDIDATE, same treatment: `--agent plan` plus VIBE_DEFAULT_AGENT=plan.
+    mechanism: null
+    probed: null
+
+# ---------------------------------------------------------------------------
+# driver: how --exec-subagents dispatches materialized subagent prompts (D3)
+# ---------------------------------------------------------------------------
+# Only consulted when the Python executor is the invoker (`--exec-subagents`,
+# or a host whose capability entry has no native subagent tool). A host with
+# native subagents (Claude Code, Cursor) never reads these on a default run —
+# the key configures the *executor's* runner, not the session's model.
+#
+# Merge semantics are the ordinary three-layer chain: this base block is always
+# present and fully populated, an override layer merges key-by-key (so setting
+# `subagent_runner` alone inherits the rest), a blank value (`subagent_runner:`
+# → YAML None) is SKIPPED and keeps the base value, and unknown keys under
+# `driver:` are rejected at load time so a typo is never silently a no-op.
+# Leaving `subagent_runner` unset in a repo shared by several hosts is the
+# healthy arrangement: each host then resolves its own CLI.
+driver:
+  # Any provider:model spec with an implemented adapter. Validated at load time
+  # (parseable spec, known adapter, declares the profile the phase needs).
+  subagent_runner: claude-code:sonnet
+  # Used for tasks whose materialized `capability_tier` is `cheap`; falls back
+  # to `subagent_runner` when unset.
+  subagent_runner_cheap: claude-code:haiku
+  # User preference, not the effective limit: the executor takes the minimum of
+  # this, the runner provider's own `max_concurrent` above, and the host's
+  # documented ceiling.
+  max_concurrent_subagents: 4
+  # WRITE phases (apply-*, implement) get their own ceiling and it defaults to 1:
+  # the batchers partition by artifact (one plan file per apply batch, one source
+  # file per code-fix batch), so the read path's fan-out would be two agents
+  # editing one file. Raising this only PERMITS parallelism — the batch must also
+  # declare `can_parallelize`, the declared file sets must be pairwise disjoint at
+  # dispatch time, and shared-artifact phases stay pinned to 1 regardless.
+  max_concurrent_write_subagents: 1
+  # null = the runner provider's `default_timeout`. A positive integer overrides it.
+  subagent_timeout_s: null
+  # Re-dispatches for TRANSPORT-shaped failures only (timeout, no parsed text,
+  # parse_output failure). A result that parsed but failed schema validation is
+  # never retried — that is a deterministic disagreement a retry would launder.
+  # A write batch that already changed files is never re-dispatched: a retry
+  # would apply it twice. It stops as a partial application, or, in an apply
+  # phase whose closing report was unreadable, is asked once to restate it.
+  subagent_retries: 1
+  # The repository's OWN post-write check, run ONCE by the executor after a
+  # code-editing phase (implement, apply-code-fixes) applied at least one batch.
+  # A shell command string — `pnpm typecheck && pnpm lint:fix`, `cargo check`,
+  # `make lint test` — run with cwd at the pinned repo root. The markdown apply
+  # phases (apply-suggestions, apply-task-suggestions) skip it: a typecheck has
+  # nothing to say about a plan file.
+  # null (the default) means THIS REPO DECLARES NO CHECK, and the phase says so
+  # in one line rather than completing silently — the two are different facts.
+  # A non-zero exit rolls NOTHING back (every batch was already verified against
+  # its own snapshot, and a revert would destroy what a human needs to read) but
+  # ends the phase at exit 3, naming the command and the tail of its output: a
+  # repo whose own check fails needs a human, not the next phase.
+  verify_command: null
+  # Wall-clock ceiling for the command above. Not optional and not inherited from
+  # a provider — nothing else knows how long this repo's build takes.
+  verify_timeout_s: 600
+  # The declared write policy for edit-capable dispatches, resolved against the
+  # pinned repo root and enforced TWICE: pre-dispatch against the batch's declared
+  # file set (refused before the runner starts) and post-run against the set the
+  # snapshot diff actually observed (batch failed, files restored, run exits 3).
+  # `.multi-llm/**` is denied to the RUNNER because the EXECUTOR owns those bytes.
+  # The runner's own sandbox stays the preventive control; this is the second,
+  # detective layer that makes a violation loud.
+  write_paths:
+    allow:
+      - '**'
+    deny:
+      - .git/**
+      - .multi-llm/**
+      - '**/.env'
+      - '**/.env.*'
+      - '**/*.pem'
+      - '**/id_rsa*'
+      - '**/.ssh/**'
+      - '**/.aws/**'
+      - '**/.npmrc'
+      - '**/node_modules/**'
+
+# ---------------------------------------------------------------------------
+# progress: how often a running fan-out says it is still alive
+# ---------------------------------------------------------------------------
+# Two knobs, because one interval cannot serve two cadences. A `[PROGRESS]`
+# ticker line is priced in log readability and costs a print and nothing else;
+# a host poll is priced in TOOL TURNS — one per poll. Coupled, a user who
+# wanted 30 s log granularity would be forcing 30 s tool-turn polls on the agent
+# host. The run's `.status.json` is a third cadence and is deliberately NOT
+# configurable: transitions are written when they happen, nothing refreshes the
+# file between them, and every elapsed figure is computed from `started_at` at
+# read time.
+#
+# Merge semantics are the ordinary three-layer chain, with one difference from
+# the open blocks: `progress:` is a CLOSED set, so an unknown key (the typo
+# `interval:`) is rejected at load time rather than silently kept at the default
+# while the user believes they configured a ticker. Values are validated on an
+# OVERRIDE layer only — this base is ours — and read once per run through the
+# typed accessors (`get_progress_interval` / `get_progress_poll`), so editing a
+# config mid-run changes nothing until the next invocation.
+progress:
+  # Cadence of the `[PROGRESS]` ticker lines, and nothing else: a stdout
+  # cadence, not a write cadence. `0` is the documented disable form — it
+  # silences the lines only, while the status file still records every
+  # event-driven transition and `--wait` is untouched. Any other value is >= 5 s.
+  interval_s: 30
+  # The host's poll cadence, and the resolved `--wait` default (an explicit
+  # `--timeout` wins, else this). Clamped under the host's shell cap, which is
+  # where 90 comes from: OpenCode's ceiling is 120 s and 120 - 30 = 90, so
+  # codex and opencode keep exactly today's wait. Floor 5 s and NO disable
+  # form — `0` here would mean a poll that returns instantly, not one switched
+  # off, so it is rejected.
+  poll_s: 90
+
+# ---------------------------------------------------------------------------
+# git_env: the non-interactive git environment every spawned CLI inherits
+# ---------------------------------------------------------------------------
+# Every provider CLI shells out to git under an agent profile, and a credential
+# prompt behind captured pipes blocks forever. Measured against a private https
+# remote under a scratch HOME: a tty prompt burns 75.1 s with two empty streams,
+# and a GUI-style credential helper burns 90.1 s AND survives the parent's kill
+# as an orphan.
+#
+# Two layers, and only the second is configurable:
+#   * ALWAYS, every provider and both lanes — GIT_TERMINAL_PROMPT=0 and
+#     GIT_ASKPASS="" (plus the inert-on-Linux SSH_ASKPASS / SSH_ASKPASS_REQUIRE /
+#     GCM_INTERACTIVE hedges). Neither suppresses a helper that ANSWERS, so
+#     authentication that works today keeps working. Not a knob.
+#   * SCOPED — GIT_CONFIG_COUNT + `credential.helper=""`, applied only to the
+#     read-only lanes: the `generate` profile (which is the model fan-out) and
+#     `agent-readonly`. NEVER to `agent-write`, which is the profile that
+#     legitimately runs git clone/fetch/commit against the user's own remotes.
+#
+# credential_helper: auto | wipe | keep
+#   auto (default) — the scoping above.
+#   keep           — never wipe. Restores today's behaviour for the read-only
+#                    lanes: a private-HTTPS clone/fetch that a helper can answer
+#                    keeps working, and a helper that HANGS is bounded only by
+#                    the slot timeout. Set this if a read-only lane legitimately
+#                    needs a private remote (a private plan repo, a submodule
+#                    fetch during review).
+#   wipe           — wipe everywhere, agent-write included. Deterministic, at the
+#                    cost of agent-write no longer reaching private HTTPS remotes.
+#
+# Settable here (global) and per provider under `providers.<name>.git_env`;
+# MULTI_LLM_GIT_CREDENTIAL_HELPER=<value> overrides both for one run. An unknown
+# value in EITHER config layer is rejected at load time (a typo that silently
+# meant `auto` would restore the hang this key exists to switch off).
+#
+# The accepted cost of `auto`, stated so nobody has to guess it from a stack
+# trace: in the scoped lanes a private-HTTPS clone/fetch fails in ~0.27 s with
+# `fatal: could not read Username for '<url>': terminal prompts disabled`. The
+# helper is never invoked and leaves no orphan; the CLI reports its own tool
+# error and the model continues the turn. Fast and legible, never a hang.
+git_env:
+  credential_helper: auto
+
+# ---------------------------------------------------------------------------
+# code_review: how `review-code` groups the paths in its scope
+# ---------------------------------------------------------------------------
+# Every path under review lands in one of four groups — source, tests,
+# fixtures, generated — tried in this order, first match wins:
+#   1. generated: the path has git's `linguist-generated` attribute (always
+#      checked, from .gitattributes), or it matches a `generated` glob below;
+#   2. fixtures:  it matches a `fixtures` glob below;
+#   3. tests:     a `tests/` or `test/` directory at any depth, or a file name
+#                 starting `test_` or containing `_test.`, `.test.`, `.spec.`;
+#   4. source:    everything else.
+# Reviewers get the list in that order, so when the prompt's file list is cut
+# for length the fixtures and generated files go first, never the source.
+#
+# collapse_paths holds the two configurable rules as glob lists matched
+# against repo-relative paths. `**/` is zero or more directories, a trailing
+# `/**` is everything beneath, `*` and `?` stay inside one directory, and a
+# pattern with no `/` matches the file name at any depth (`*.lock`). The
+# defaults reproduce the built-in rule exactly; a project layer can add e.g.
+# `**/*.lock` or `dist/**` to `generated`, and `[]` switches a rule off.
+# A malformed value (not a list of relative glob strings, or an unknown key)
+# is a config error at load time, never a silent fallback to these defaults.
+#
+# commit_reviews_dir is where --review-commits, --apply-commit-fixes and
+# --improve-commits keep each range's commit brief (<slug>.md) and its report
+# folder (<slug>/), relative to the repository root whichever layer sets it.
+# A folder the plugin creates gets a `.gitignore` holding `*`; delete that file
+# (or point the key at a tracked folder) to commit reviews. Briefs and report
+# folders under it are never code under review. An absolute path, a `..`
+# segment, `.` or an empty string is a config error at load time, and a
+# symlinked component resolving outside the repository is refused at use.
+code_review:
+  collapse_paths:
+    generated: []
+    fixtures:
+      - "**/tests/fixtures/**"
+      - "**/tests/golden/**"
+  commit_reviews_dir: plans/commit-reviews
+
+# env_allowlist: off | on   (default: off — and it SHIPS off)
+#
+# M17/§2.4. Today every provider subprocess sees every other provider's API key
+# and every cloud token in the shell. `on` replaces that with a deny-by-default
+# allowlist — proxy, CA-bundle, XDG, keyring and per-CLI home variables pass, the
+# rest does not — built inside the one shared child-env builder M3 introduced
+# (utils/providers/base.py: build_child_env), so it can never allow on one
+# dispatch lane what it denies on the other.
+#
+# WHY IT SHIPS OFF, and what turns it on. The list is only as good as the
+# per-CLI x per-platform capability matrix behind it, and that matrix is
+# **derived from the live provider registry**, never from a written roster:
+# len(registry) x 3 platforms x 4 capabilities (credential, keyring, proxy, CA
+# bundle). A matrix derived from a stale roster silently omits the newer
+# adapters' credential, keyring, proxy and CA cells, and each omission is a
+# mid-run auth or TLS failure of exactly the kind the allowlist exists to
+# prevent — a security defect, not a stale number. A cell is green only when the
+# CLI, launched under `env -i` plus the allowlist, reaches that capability at
+# parity with a full-env control; answering `--version` is not parity.
+#
+# Nothing in this pass ran a cell, so every cell reads `unmeasured`, the Linux
+# column is not green, and the default therefore stays `off` — an unrun cell
+# degrades to today's inheritance rather than to a silent failure. The macOS and
+# Windows columns are run jointly with plans/windows-macos-portability.md; until
+# a platform's column is green the allowlist stays opt-in on that platform.
+# `tests/test_env_allowlist.py` is where the gate is enforced: it reds if this
+# value is anything but `off` while a Linux cell is unmeasured.
+#
+# Quoted on purpose: YAML 1.1 resolves a bare `on`/`off` to a boolean (a bare
+# `off` is read as the documented word anyway, but the quotes keep the file
+# saying what it means).
+env_allowlist: "off"
+
+# Default models to use when no models are specified on CLI
+# If set, skips interactive selection and uses these models automatically
+# Use --interactive flag to override and force interactive selection
+defaults:
+  models:
+    #- cursor-agent:composer-2.5
+    #- cursor-agent:gpt-5.6-sol-xhigh
+    - cursor-agent:gemini-4-argon-high
+    - cursor-agent:grok-4.7-high
+    #- cursor-agent:kimi-k3-high
+    #- opencode:opencode/big-pickle
+    - opencode:openrouter/deepseek/deepseek-v4.1-flash-1017
+    # KiloCode silently ignores unsupported variants. These suffixes match
+    # `kilocode models <backend> --refresh --verbose` (7.8.15, 2026-10-22),
+    # captured in tests/fixtures/kilocode/model_variants.json and checked by
+    # tests/test_providers.py::TestKiloCodeDefaultModelSpecs.
+    - kilocode:openrouter/moonshotai/kimi-k3:max
+    - kilocode:openrouter/nvidia/nemotron-3-ultra-550b-a55b:high
+    - kilocode:openrouter/z-ai/glm-5.3:max
+    - kilocode:openrouter/minimax/minimax-m3.1-flash
+    - kilocode:openrouter/xiaomi/mimo-v2.6-pro:high
+    - kilocode:openrouter/qwen/qwen3.8-max-0902:xhigh
+    - codex:gpt-6-astra:xhigh
+    - claude-code:claude-fable-5-1:high
+    #- grok:grok-4.6
+    #- cline:openrouter/z-ai/glm-5.3
+    #- goose:openrouter/z-ai/glm-5.3
+    #- aider:openrouter/z-ai/glm-5.3
+    #- "agy:Gemini 4 Argon (High)"
+    #- pi:openrouter/z-ai/glm-5.3
+    #- omp:openrouter/openai/gpt-6-luna
+    #- muse:muse-spark-1.3:xhigh
+    #- kimi:moonshotai/kimi-k3
+    #- qwen-code:qwen/qwen3.8-max-0902
+    #- copilot:openai/gpt-6-luna
+    #- vibe:openai/gpt-6-luna
+    #- fx:openai/gpt-6-luna
+
+  # Lightweight model subset for the --quick / -q flag
+  # Used instead of defaults.models for faster reviews with fewer models
+  # Omit --quick to use the full defaults.models list, or pass --interactive to pick manually
+  quick_models:
+    - cursor-agent:grok-4.7-high
+    - codex:gpt-6-astra:xhigh
+    - claude-code:claude-fable-5-1:high
+
+  # Optional: only use defaults for specific modes
+  # modes:
+  #   review-plan:
+  #     models:
+  #       - cursor-agent:auto
+  #       - gemini:gemini-3.8-flash
+  #     quick:
+  #       - cursor-agent:auto
+  #   code-review:
+  #     models:
+  #       - cursor-agent:gpt-5.6-sol-xhigh

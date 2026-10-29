@@ -104,6 +104,14 @@ Returns inferred and declared joins with confidences, plus notes on what the
 inference examined, so an empty list is meaningful. `--verify` measures each join
 with an aggregate overlap probe (orphan fraction, confidence adjusted).
 
+With a dev or replica schema in scope beside its sources, each foreign key keeps
+its join to the parent in its own schema: a built mart joins `stg_customers` and
+`dim_customers` beside it, not the raw `customers` table. The same join to a
+parent of that entity in another schema, and a join between copies of one entity
+across schemas (raw `customers` to `stg_customers`), is folded and counted in the
+notes. A raw join is kept only where
+nothing was built for that entity.
+
 A declared join has two sources: a `relationships` test, and (with
 `--use-project`) an entity two semantic models share, which the layer states
 outright with the key named per model. `declared_by` on an edge names that

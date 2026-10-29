@@ -1,0 +1,4 @@
+interface:
+  display_name: "Social Content Generator"
+  short_description: "Generate platform-specific social media copy and images for X and Xiaohongshu"
+  default_prompt: "Generate social media content for today's AI news report."

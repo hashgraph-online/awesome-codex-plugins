@@ -1,6 +1,6 @@
 {
   "name": "placecall",
-  "version": "6.5.0",
+  "version": "6.5.1",
   "description": "PlaceCall makes AI phone calls that book, confirm, and reach US businesses. It places a real outbound call and returns a structured outcome plus a full transcript. Sign in on first use, no API key needed.",
   "author": {
     "name": "VOYGR",

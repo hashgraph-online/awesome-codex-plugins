@@ -94,7 +94,7 @@ TikTok's average attention span demands an instant hook. If you don't capture at
 |---|---|
 | Aspect ratio | 9:16 (required for best performance) |
 | Resolution | 1080x1920 minimum |
-| Video length | 15–60 seconds (sweet spot: 21–34 seconds) |
+| Video length | 5–60 seconds (one value for both files: `skills/context-engine/platform-specs.md`, In-Feed Ads) |
 | File size | Max 500 MB |
 | File type | MP4, MOV, MPEG, AVI |
 | Text overlay | Keep within safe zone (leave 150px top/bottom margin) |

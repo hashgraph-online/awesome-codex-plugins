@@ -12,7 +12,7 @@ shell, search and web tool output in the requests it sends to Anthropic's API.
 **The `llmslim` MCP server**, started with:
 
 ```bash
-uvx --from "llmslim[mcp]==0.11.2" llmslim mcp
+uvx --from "llmslim[mcp]==0.12.0" llmslim mcp
 ```
 
 | Tool | What it does | Changes data |

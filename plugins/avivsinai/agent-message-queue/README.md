@@ -155,8 +155,9 @@ each host keeps control of its own queue.
 ## Remote control
 
 The optional [remote companion](cmd/amq-remote/README.md) gives a running
-Claude Code or Codex session its own Buzz agent, so you can DM that session
-from the Buzz app or Buzz Desktop. Inside the session, type `/amq-remote`
+Claude Code or Codex session its own private Buzz channel, so you can write to
+that session from the Buzz app or Buzz Desktop. One Buzz agent per machine,
+imported once, makes each channel. Inside the session, type `/amq-remote`
 (in Codex, `$amq-remote`); `/amq-remote off` disconnects it. Setup, commands,
 and the trust model are in that README.
 

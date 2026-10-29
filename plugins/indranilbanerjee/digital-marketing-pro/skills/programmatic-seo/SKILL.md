@@ -48,11 +48,11 @@ The user must provide (or will be prompted for):
 
 ### Scaled Content Abuse Context (2025-2026)
 
-Google's Scaled Content Abuse policy (introduced March 2024) saw major enforcement escalation:
+Google's Scaled Content Abuse policy (introduced March 2024) covers many pages made mainly to rank, "no matter how it's created" (spam policies, updated 2026-08-28). What is on record since:
 
-- **June 2025**: Wave of manual actions targeting AI-generated content at scale
-- **August 2025**: SpamBrain update enhanced pattern detection for AI-generated link schemes and content farms
-- **Result**: 45% reduction in low-quality, unoriginal content in search results
+- Google's Search Status Dashboard (status.search.google.com, read 2026-10-27) lists the December 2025 core update (11-29 Dec), the March 2026 spam (24-25 Mar) and core (27 Mar-8 Apr) updates, the May 2026 core update (21 May-1 Jun), spam updates in June, August and September 2026, and the August 2025 spam update (26 Aug-21 Sep), none with a description of what changed.
+- The 45% figure often quoted is Google's own estimate for its March 2024 core update, not a later one.
+- The one dated 2026 policy change: the site reputation abuse policy is enforced in the EEA from 30 August 2026 (Search Central blog, August 2026).
 
 **Enhanced quality gates for programmatic pages:**
 

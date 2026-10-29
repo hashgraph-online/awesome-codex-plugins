@@ -13,7 +13,8 @@ description: >
   the actual artifact.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "0.2.0"
+  display-name: "Amazon Ads Sponsored Brands Performance Review"
+  version: "0.2.1"
 ---
 
 # Sponsored Brands performance review

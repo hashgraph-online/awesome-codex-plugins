@@ -1,6 +1,6 @@
 {
   "name": "board",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Put notes, checklists, kanban boards, charts, diagrams, logs and questions on the user's stickypane board and read back what the user did there.",
   "author": {
     "name": "LeeSwallow",

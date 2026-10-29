@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-sp-stockout-prevention",
-  "skill_version": "0.2.1",
+  "skill_version": "0.2.2",
   "description": "Live read evals against an SP-API MCP server through a read-only harness (blocks inbound/listing/pricing/feed writes; allows reports_createReport). Seller A2GQWJZXTY0M66 = identity 6193, US. Ground truth captured 2026-09-24: planning report has 4 OUT_OF_STOCK SKUs with demand or a ship-in recommendation (incl. FRO827R, FRO735R-stickerless), 1 WARNING (FR810R: 142 available, 353 AFN units/30d, Amazon DOS 12, recommended ship-in 715 by 2026-10-01, no inbound), healthy large SKUs (FRO599S DOS 39 w/ 431 ship-in by 2026-10-01; FRO735R 57; FRO728M 93), 9 inactive.",
   "evals": [
     {

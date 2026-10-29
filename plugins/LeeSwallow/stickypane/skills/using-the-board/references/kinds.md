@@ -1,8 +1,10 @@
 # The shapes of a note
 
 One entry per shape: what it is for, the fastest way to make one, the file,
-and how it behaves on the board. `stickypane kinds` lists the shapes and
-`stickypane kinds <shape>` prints the full example of one.
+and how it behaves on the board. Read it when you need a shape you have not
+used; `stickypane help <shape>` prints the full example of one, with the
+create options a shape takes: `stickypane write sprint --type board --opt
+columns=Backlog --opt columns=Done` has the shape write the new note itself.
 
 ## Note
 
@@ -52,9 +54,8 @@ type: checklist
 
 Shown with a progress bar, open items first and done ones below, newest
 first. The user ticks items with `space`; `stickypane todo plan check tests`
-ticks one from your side. Do not write times: the board writes
-`✅ 2026-10-03 14:02` after a ticked item by itself, even one you ticked by
-editing the file, and `created:` into a note it makes.
+ticks one from your side. The board writes `✅ 2026-10-03 14:02` after a
+ticked item, even one ticked by editing the file.
 
 ## Log
 
@@ -66,7 +67,7 @@ scrolls up. `stickypane show logs/app.log` follows a log of the project.
 
 ## Chat
 
-For talking with the user on the board. `stickypane say chat "41/41 pass" --as claude`
+For talking with the user on the board. `stickypane say chat "41/41 pass"`
 
 A note with `type: chat`: `@name HH:MM text` lines under a `## YYYY-MM-DD`
 heading. The user presses n to answer, as themselves. To wait for the
@@ -86,8 +87,8 @@ view: heat
 ```
 
 Each `label: number` line is a value; other lines are text above it.
-`view: bar` (default) draws bars, `spark` a one-line trend, `heat` a
-calendar when the labels are dates.
+`view: bar` (default) draws bars, `spark` a line chart that fills the pane (one line for a single value),
+`heat` a calendar when the labels are dates.
 
 ## Form
 
@@ -119,6 +120,12 @@ For a command the user should run, not you: `deploy.sh` in `.sticky/`, or
 `deploy.ps1` for PowerShell. `enter` asks first, then runs it with `sh` or
 PowerShell in the project folder; the output
 goes to `deploy.log`, which opens and follows. It never runs without a yes.
+
+## HTML
+
+For a page to look at, not to change: `report.html` in `.sticky/`. The terminal
+shows its text, without tags, scripts or styles, and says the page can be
+seen drawn in the desktop app. Nothing on it can be changed from a screen.
 
 ## API requests (exp)
 

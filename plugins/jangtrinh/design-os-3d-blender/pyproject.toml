@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "design-os-3d-blender"
+version = "0.2.0"
+description = "Evidence-first native Blender modeling and verification for Blender 5.2 LTS."
+readme = "README.md"
+license = "LicenseRef-PolyForm-Shield-1.0.0"
+requires-python = ">=3.10"
+authors = [
+    { name = "Jang Trinh" }
+]
+dependencies = [
+    "mcp>=1.2.0",
+]
+
+[project.scripts]
+design-os-3d-blender = "design_os_3d_blender_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/design_os_3d_blender_mcp"]
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "src",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+    "knowledge",
+    "specs",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

@@ -2,7 +2,7 @@
   "mcpServers": {
     "llmslim": {
       "command": "uvx",
-      "args": ["--from", "llmslim[mcp]==0.11.2", "llmslim", "mcp"]
+      "args": ["--from", "llmslim[mcp]==0.12.0", "llmslim", "mcp"]
     }
   }
 }

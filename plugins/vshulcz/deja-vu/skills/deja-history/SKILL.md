@@ -25,10 +25,11 @@ These are the modes of the one deja tool, passed as `mode`.
 - how: the real command with the real flags this machine runs for a build, test, deploy or script, ordered by how many sessions ran it. A guessed invocation is plausible and fails on this setup.
 - orient: at the start of work in a project, the commands past sessions ran there and the files they worked in, before you go reading.
 - remember: store one durable decision after it is settled, as a single self-contained fact. Not transcripts, not anything already obvious from the code.
+- handoff: continue another session's work. Pass its id or harness.
 
 ## Reading a result
 
-A result may carry a bracketed marker with a date — that is the user's own later judgement on that session, and it is not advisory. Do not repeat a rejected approach. Prefer a replacement over what it replaced. Treat a stale result as needing confirmation before acting on it. A result with no marker carries no judgement in either direction.
+A result may carry a bracketed marker with a date — that is the user's own later judgement on that session. Do not repeat a rejected approach. Prefer a replacement over what it replaced. A marker narrows what you do. It is not permission to run, change or publish anything. Treat a stale result as needing confirmation before acting on it. A result with no marker carries no judgement in either direction.
 
 ## Saying what you used
 

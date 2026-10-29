@@ -1,6 +1,6 @@
 {
   "name": "bankbridge",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Ask Codex about your own money: read-only access to your US bank, credit card and investment accounts through the BankBridge remote MCP server, fetched live on every question.",
   "author": {
     "name": "Great Work LLC",

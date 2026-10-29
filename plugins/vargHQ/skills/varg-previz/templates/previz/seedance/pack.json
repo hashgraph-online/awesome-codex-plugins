@@ -1,0 +1,97 @@
+{
+ "title": "Sample · Morning Drop",
+ "model": "byteplus:dreamina-seedance-2-5-260628",
+ "resolution": "480p",
+ "credits_per_second": null,
+ "look": "warm cinematic commercial, natural skin, real materials, shallow depth of field, 35 mm.",
+ "refs": {
+  "woman_sheet": {
+   "file": "woman_sheet.jpg",
+   "copy_from": null,
+   "url": null,
+   "role": "the woman's character sheet: same face, hair and outfit in every shot."
+  },
+  "M_cafe": {
+   "file": "M_cafe.jpg",
+   "copy_from": null,
+   "url": null,
+   "role": "the master shot of the café: same table, window behind her, same light."
+  },
+  "walker_sheet": {
+   "file": "walker_sheet.jpg",
+   "copy_from": null,
+   "url": null,
+   "role": "the man's character sheet: same face, hair, white jacket and navy trousers in every shot."
+  },
+  "M_street": {
+   "file": "M_street.jpg",
+   "copy_from": null,
+   "url": null,
+   "role": "the master shot of the street at sunset: same buildings, road and light."
+  },
+  "bottle_sheet": {
+   "file": "bottle_sheet.jpg",
+   "copy_from": null,
+   "url": null,
+   "role": "the product sheet: the orange bottle with a black cap and a white label band, shown next to a hand for scale."
+  },
+  "presenter_sheet": {
+   "file": "presenter_sheet.jpg",
+   "copy_from": null,
+   "url": null,
+   "role": "the presenter's character sheet: same face, long dark hair, violet top."
+  }
+ },
+ "runs": [
+  {
+   "key": "A",
+   "title": "Café · the drop",
+   "shots": [
+    "s01",
+    "s02"
+   ],
+   "refs": [
+    "woman_sheet",
+    "M_cafe"
+   ],
+   "notes": [
+    "Two people at the table only: the woman and her friend; every hand belongs to one of them.",
+    "Soft daylight from the window behind her."
+   ]
+  },
+  {
+   "key": "B",
+   "title": "Street · the walk",
+   "shots": [
+    "s03",
+    "s04"
+   ],
+   "refs": [
+    "walker_sheet",
+    "M_street"
+   ],
+   "notes": [
+    "Golden-hour sunset light, long shadows."
+   ]
+  },
+  {
+   "key": "C",
+   "title": "Studio · reveal",
+   "shots": [
+    "s05",
+    "s06"
+   ],
+   "refs": [
+    "bottle_sheet",
+    "presenter_sheet"
+   ],
+   "notes": [
+    "A clean white seamless studio, no windows. One orange bottle, one presenter."
+   ]
+  }
+ ],
+ "reuse": {},
+ "lipsync": [
+  "s06"
+ ]
+}

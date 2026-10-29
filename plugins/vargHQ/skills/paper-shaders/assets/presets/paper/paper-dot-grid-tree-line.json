@@ -1,0 +1,38 @@
+{
+  "id": "paper-dot-grid-tree-line",
+  "label": "Tree line (Paper DotGrid)",
+  "shader": "DotGrid",
+  "page": "https://shaders.paper.design/dot-grid",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Tree line\" preset for DotGrid, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "mount": {
+    "minPixelRatio": 1
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#f4fce7",
+    "colorFill": "#052e19",
+    "colorStroke": "#000000",
+    "size": 8,
+    "gapX": 20,
+    "gapY": 90,
+    "strokeWidth": 0,
+    "sizeRange": 1,
+    "opacityRange": 0.6,
+    "shape": "circle"
+  }
+}

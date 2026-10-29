@@ -6,6 +6,8 @@ Never quote CPMs, CPCs, auction mechanics, or audience sizes for these surfaces 
 
 ---
 
+> **No Perplexity ad channel.** Perplexity told the Financial Times in February 2026 that it won't pursue advertising and is winding down the ads it ran (reported by Campaign and TechSpot); it hasn't ruled ads out for good. Don't put a Perplexity ad line in a media plan: visibility there is organic (`skills/context-engine/geo-execution-guide.md`).
+
 ## 1. ChatGPT Ads as a paid channel
 
 ### 1.1 What the developer surface documents (primary)
@@ -26,16 +28,16 @@ Source: [developers.openai.com/ads](https://developers.openai.com/ads), checked 
 | **Reporting API** | Delivery, cost, product, and attributed-conversion metrics | See 1.4 |
 | **Insights API** | Aggregated insights across accounts, campaigns, ad groups, ads | Use for roll-ups |
 
-### 1.2 What is secondary-sourced only (label it in every deliverable)
+### 1.2 Scale, audience and countries
 
-The following come from trade-press reports, not from OpenAI pages we could open:
+From OpenAI's post "ChatGPT Ads expands to 26 new countries" (openai.com, October 2026, read 2026-10-27):
 
-- launch dates
-- the audience (reported as ChatGPT Free and Go users)
-- country rollout (reported as 31 European markets on 18 Aug 2026, then Southeast Asia and Taiwan on 23 Sep 2026)
-- "Sponsored Agents"
+- "More than 1.2 billion people use ChatGPT each week."
+- Ads run in 89 countries, with "over 100,000 advertisers".
+- "Ads will appear only on the Free and Go plans. Plus, Pro, and Enterprise subscriptions will remain ad-free."
+- The expansion "builds on our recent expansions across Europe and Southeast Asia and Taiwan". Ads were first announced on 2026-01-16, with a US test from 2026-02-09 (OpenAI's index, through search).
 
-Write them into a plan as *"reported, unverified"*. Before you allocate budget, confirm in the brand's own Ads Manager account that the target countries are available.
+Still secondary-sourced only: "Sponsored Agents". Write it into a plan as *"reported, unverified"*. Before you allocate budget, confirm in the brand's own Ads Manager account that the target countries are available.
 
 ### 1.3 Planning
 

@@ -1,0 +1,7 @@
+laveto_wisdom/
+**/laveto_wisdom/**
+*.bak*
+**/*.bak*
+fix_db.py
+tests/
+aw1-verification/

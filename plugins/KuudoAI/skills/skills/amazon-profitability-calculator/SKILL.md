@@ -10,7 +10,8 @@ description: >-
 compatibility: Amazon SP-API MCP (meta-tool pattern) for live fee estimates, returns, storage and settlement data; Amazon Ads MCP for the advertising line. Both optional - without them the skill runs in manual mode on seller-supplied fees and labels the output as such. Scripts need Python 3 only, no dependencies.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "0.2.0"
+  display-name: "Amazon Profitability Calculator"
+  version: "0.2.1"
 ---
 
 # Amazon Profitability

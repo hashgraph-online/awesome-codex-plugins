@@ -101,6 +101,14 @@ the video does not deliver]
   option is a decision already made; the client gets choices with reasoning.
 - **Tag the intent every time.** An untagged package is a guess about how the
   video will be found — and search and browse reward different structures.
+- **No templated packaging across a channel.** YouTube treats repetitive or
+  mass-produced content as "inauthentic content", ineligible for monetisation
+  (policy update 2025-07-15, [YouTube Help 1311392](https://support.google.com/youtube/answer/1311392), read
+  2026-10-28): every pair is written for its own video.
+- **Disclose realistic AI imagery.** Realistic AI-generated or altered people,
+  places or events need YouTube's "AI use" disclosure at upload; files carrying
+  C2PA metadata may be labelled automatically ([YouTube Help 14328491](https://support.google.com/youtube/answer/14328491),
+  read 2026-10-28).
 
 ## Pairs with
 

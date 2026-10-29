@@ -1,0 +1,4 @@
+interface:
+  display_name: "Embeddings with your data"
+  short_description: "Store embeddings alongside data; similarity search without a separate vector DB"
+  default_prompt: "Use $vector-database-alternative for this task, then load $pixeltable for the full Pixeltable app.py backend."

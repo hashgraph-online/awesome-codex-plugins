@@ -8,6 +8,7 @@ These conventions apply across all story skills. Every `SKILL.md` links here and
 - **YAML frontmatter** on every file in a story project for structured metadata (a standalone piece saved outside a project, such as a single poem, needs none)
 - **Schema version** - `story.md` frontmatter includes `schema-version: 2`
 - **Character identifiers** use the kebab-case filename without extension (e.g., `sera-voss`)
+- **Entity bodies are prose for the writer** - the markdown below an entity's frontmatter describes the character, place, or term in story terms. Do not name frontmatter fields there ("the `progressions` date the change"); say what happens and when ("from Festival night the city is occupied"), and keep the fields in the frontmatter
 - **Scene identifiers** use `chapter-{NN}-scene-{NN}` and live in `scenes/`
 
 ## Project files

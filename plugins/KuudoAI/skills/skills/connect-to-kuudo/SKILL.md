@@ -4,7 +4,8 @@ description: Use when an AI agent needs to connect to a human's Kuudo account be
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Requires the human's client to already have an MCP connection to Kuudo's Agent Auth server, exposing tools such as connect_agent, execute_capability, and agent_status, and a way to show the human a link. This skill uses the session's actual exposed tool names and schemas; it does not configure MCP, edit client config, or install anything itself.
 metadata:
-  version: "0.2.0"
+  display-name: "Connect to Kuudo"
+  version: "0.2.1"
 ---
 
 # Connect to Kuudo

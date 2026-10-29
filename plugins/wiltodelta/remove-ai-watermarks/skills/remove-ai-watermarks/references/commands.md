@@ -64,7 +64,7 @@ remove-ai-watermarks classify-source image.png --json
 
 Abstaining 10-provider source-pipeline classifier (`openai`, `google`,
 `bytedance`, `flux`, `stable_diffusion`, `meta`, `midjourney`, `ideogram`,
-`firefly`, `xai`) with Stage-2 model-version attribution, needs the
+`firefly`, `xai`) with Stage-2 model-version attribution (since CLI 0.48.0), needs the
 `source-classify` extra. Like `classify`, it is NOT provenance and NOT a SynthID
 detector (`watermark_truth` is always `unknown`), and `identify` never runs it.
 

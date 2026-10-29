@@ -1,0 +1,39 @@
+{
+  "id": "paper-static-mesh-gradient-sea",
+  "label": "Sea (Paper StaticMeshGradient)",
+  "shader": "StaticMeshGradient",
+  "page": "https://shaders.paper.design/static-mesh-gradient",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Sea\" preset for StaticMeshGradient, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#013b65",
+      "#03738c",
+      "#a3d3ff",
+      "#f2faef"
+    ],
+    "positions": 0,
+    "waveX": 0.53,
+    "waveXShift": 0,
+    "waveY": 0.95,
+    "waveYShift": 0.64,
+    "mixing": 0.5,
+    "grainMixer": 0,
+    "grainOverlay": 0
+  }
+}

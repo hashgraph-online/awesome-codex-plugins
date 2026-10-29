@@ -4,7 +4,7 @@
 
 Techniques for restructuring content so AI platforms are more likely to cite it as a source in generated answers.
 
-**Google AI Mode note (mid-2026):** AI Mode (the conversational search tab, default for opted-in users since I/O on 19 May 2026, Gemini 3.5 Flash backbone) is a **distinct surface from AI Overviews** and frequently selects different citations for the same query. Its multi-turn follow-up flow rewards content that can be *drilled into*, not just skimmed for a one-line snippet: put a clean definitional answer up top (wins the first citation) and layer genuine "why / how / compared-to" depth beneath it (wins the follow-up citations). Optimize for both AI Mode and AI Overviews; never treat them as one surface.
+**Google AI Mode note (mid-2026):** AI Mode (the conversational search tab; see the AI Mode note in `skills/aeo-geo/SKILL.md`) is a **distinct surface from AI Overviews** and frequently selects different citations for the same query. Its multi-turn follow-up flow rewards content that can be *drilled into*, not just skimmed for a one-line snippet: put a clean definitional answer up top (wins the first citation) and layer genuine "why / how / compared-to" depth beneath it (wins the follow-up citations). Optimize for both AI Mode and AI Overviews; never treat them as one surface.
 
 ---
 
@@ -65,39 +65,9 @@ Numbered processes are frequently cited for "how to" queries.
 
 ---
 
-## Schema Markup for AI Citation
+## Structured data (not required for AI citation)
 
-### FAQ Schema (JSON-LD)
-
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [{
-    "@type": "Question",
-    "name": "What is [topic]?",
-    "acceptedAnswer": {
-      "@type": "Answer",
-      "text": "Concise, definitive answer here."
-    }
-  }]
-}
-```
-
-### HowTo Schema
-
-```json
-{
-  "@context": "https://schema.org",
-  "@type": "HowTo",
-  "name": "How to [achieve outcome]",
-  "step": [{
-    "@type": "HowToStep",
-    "name": "Step name",
-    "text": "Step description"
-  }]
-}
-```
+Google: "Structured data isn't required for generative AI search, and there's no special schema.org markup you need to add" (guide to optimizing for generative AI features, last updated 2026-07-10). Keep structured data that matches the visible text, for the rich results it still earns. FAQ markup earns rich results only for well-known government and health sites (since August 2023) and HowTo rich results ended in September 2023, so neither is prescribed here.
 
 ### Organization Schema
 

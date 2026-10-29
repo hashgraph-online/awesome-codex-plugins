@@ -1,0 +1,33 @@
+{
+  "id": "paper-dot-orbit-bubbles",
+  "label": "Bubbles (Paper DotOrbit)",
+  "shader": "DotOrbit",
+  "page": "https://shaders.paper.design/dot-orbit",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Bubbles\" preset for DotOrbit, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.4,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1.64,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#D0D2D5"
+    ],
+    "colorBack": "#989CA4",
+    "stepsPerColor": 2,
+    "size": 0.9,
+    "sizeRange": 0.7,
+    "spreading": 1
+  }
+}
