@@ -600,6 +600,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [PickAPlugin](https://pickaplugin.com) - Free, searchable directory of Codex and ChatGPT plugins and MCP servers, with GitHub stars, install commands and freshness for each listing.
 - [self-host](https://github.com/ajnart/self-host) - Lets your agent install self-hosted apps on your own hardware and set them up (admin accounts, API keys, apps connected to each other), asking before each step.
 - [Tura](https://github.com/Tura-AI/tura) - A local, open-source coding agent for developers who are tired of vague skill claims, token-saving extensions with no evidence, and agents that change a repository before understanding it.
+- [UsageLoop](https://github.com/benthompsondev/usageloop) - Free, local-first standalone Windows/Linux desktop app (not a Codex plugin) that schedules the start of normal Codex five-hour usage windows, with usage checks, no automatic retry after an uncertain start, and no quota bypass.
 
 <!-- hol-sponsors:start -->
 <!-- hol-sponsors:end -->
