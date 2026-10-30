@@ -1,6 +1,7 @@
 name: Sync marketplace artifacts
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - README.md
@@ -22,7 +23,7 @@ permissions:
   id-token: none
 
 concurrency:
-  group: marketplace-artifacts-${{ github.event_name == 'push' && 'main' || github.ref }}
+  group: marketplace-artifacts-${{ github.event_name != 'pull_request' && 'main' || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -34,7 +35,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           # Queued main jobs must include earlier merges and artifact commits.
-          ref: ${{ github.event_name == 'push' && 'main' || github.ref }}
+          ref: ${{ github.event_name != 'pull_request' && 'main' || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -43,7 +44,7 @@ jobs:
           python3 scripts/generate_plugins_json.py
           if ! git diff --quiet -- plugins.json .agents/plugins/marketplace.json plugins; then
             echo "::notice::marketplace artifacts were out of sync"
-            if [ "${{ github.event_name }}" = "push" ]; then
+            if [ "${{ github.event_name }}" != "pull_request" ]; then
               echo "::notice::auto-committing synced artifacts"
               git config user.name "github-actions[bot]"
               git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
