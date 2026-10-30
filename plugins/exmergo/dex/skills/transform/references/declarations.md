@@ -361,7 +361,7 @@ reads** (`semantic.vendor`). Every vendor sits behind one hook
 | `dbt` (default) | a MetricFlow semantic model, spliced into the dbt plan |
 | `slayer` | a SLayer model file, stored as a plan of its own beside the dbt plan |
 | `cube` | a Cube model file, stored as a plan of its own beside the dbt plan |
-| `ossie` | nothing yet (#500): a warning says the layer does not carry declarations, so none is mistaken for derived |
+| `ossie` | an Ossie dataset, appended to the configured document holding its parents and stored as a plan of its own beside the dbt plan |
 
 Three rules hold for every vendor. Metrics are never derived: a measure is what a
 column holds, a metric is a business definition, and it stays the author's. Nothing
@@ -503,7 +503,36 @@ Included and proposed work as for SLayer, against `semantic.cube.files`: listed
 paths are stored as a plan of their own (`plan_id`; apply both), others are
 proposed with the `dex config set semantic.cube.files '[...]'` that adds them.
 
-### Declarations on `semantic slayer` and `semantic cube`
+### Ossie (`semantic.vendor: ossie`)
+
+One dataset per mart, appended as a new list item to a configured document:
+
+| Declaration | Ossie dataset |
+| --- | --- |
+| each declared column | a field of the same name, `expression: {sql: <column>}` |
+| a column's type, where the SQL or the cache knows it | the field's `datatype` (`Integer`, `Decimal`, `Float`, `Boolean`, `Date`, `DateTime`, `DateTimeTz`, `Time`, `String`) |
+| `time` role | `dimension: {is_time: true}` |
+| `grain` | `primary_key`, every grain field, a composite grain included |
+| `foreign_key` with `references` | a relationship `<mart>_to_<parent>` to the dataset in the same document whose field exposes the referenced column; none means no relationship and a note |
+| `measure` with `aggregation` | a dataset-scoped metric `<column>_<agg>`: `SUM`, `AVG` (`average`, `mean`), `MIN`, `MAX`, `COUNT`, `COUNT(DISTINCT ...)`. A measure is also a field, since a dataset metric aggregates its dataset's fields |
+| `median`, `semi_additive` | no metric, named in `limitations` and `not_carried` |
+| `description` | the dataset's and each field's `description` |
+| `population`, `assumptions` | the dataset's `ai_context`: the population sentence as `instructions`, and the declaration under a structured `dex` key; the sentence also closes the description. Never a filter, and never `custom_extensions`, whose opaque string a diff cannot review |
+| `unit`, `null_rule`, `additivity` | the field's `ai_context.dex` |
+
+A relationship joins datasets of one model, and a model is one document, so where
+it goes follows the foreign keys: the configured document holding the datasets
+they reference, or, with no foreign key and one configured document, that one. It
+is spliced in, so every other byte of the document stays, and stored as a plan of
+its own on the Ossie layer (`plan_id`; apply both). Where the parents span
+documents or none holds them, it is `proposed` as a document of its own,
+`<dir>/<mart>.ossie.yaml`, with the `dex config set semantic.ossie.files '[...]'`
+that adopts it. `source` follows the SLayer order (the siblings' `database.schema`,
+else the manifest relation, else the bare name as a limitation). A dataset already
+on the mart's table is `skipped`; one holding its name in the target document is
+`failed`.
+
+### Declarations on `semantic slayer`, `semantic cube` and `semantic ossie`
 
 `semantic slayer define|update|plan` take the same `declarations` key beside
 `edits`. There a declaration **annotates** a SLayer model the payload's edits or
@@ -519,8 +548,14 @@ cube (`model` is the cube's name; a view is refused, since it has no table of it
 own): grain to `primary_key` on its dimensions, a declared aggregation adds a
 measure named after the column, a `references` adds a `many_to_one` join, and
 only that cube's entry in its file is rewritten, so every other cube, view and
-comment keeps its bytes. `semantic ossie` refuses a
-`declarations` payload by name until its layer implements the hook (#500).
+comment keeps its bytes. `semantic ossie` does the same for a dataset (`model` is
+the dataset's name): the grain becomes `primary_key` on the **fields** exposing the
+grain columns (a grain column no field exposes is refused by name, since a key
+names fields; author the field first), a declared aggregation adds a dataset
+metric `<field>_<agg>`, a `references` adds a relationship to the parent dataset's
+field in the same document, and the rest lands in `ai_context` as above. Only that
+dataset's list item is rewritten, and a relationship is appended, so every other
+byte of the document is kept.
 
 Per model, `status` is one of:
 
@@ -533,8 +568,7 @@ Per model, `status` is one of:
 | `skipped` | an authored definition already sits on the mart (never overwritten), or the declaration names nothing a definition carries |
 
 The key is absent when the plan touches no declared mart. Under a vendor whose
-layer does not implement the hook (`ossie` today) nothing is derived and a
-warning says so.
+layer does not implement the hook nothing is derived and a warning says so.
 
 ## `data.decisions`
 

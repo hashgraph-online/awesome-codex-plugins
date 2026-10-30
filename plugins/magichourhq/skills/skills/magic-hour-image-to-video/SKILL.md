@@ -4,7 +4,7 @@ description: Animate a supplied product photo, portrait, character, artwork or s
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.6.1"
+  version: "1.6.2"
 ---
 
 # Magic Hour image to video
@@ -14,6 +14,8 @@ Animate an approved supplied image directly when it already meets the brief. Edi
 Generation consumes Magic Hour credits. Use a connected Magic Hour creation MCP at `https://mcp.magichour.ai/` when available. Otherwise read `references/setup.md` for the API route. Discover the current schemas before choosing a model, duration, resolution, or price.
 
 Choose the shot direction from the brief; do not ask a nontechnical user for model fields or a motion-prompt template. Honor the existing budget. When creative decisions are delegated, inspect and accept the still yourself, then continue to video unless draft approval was requested. Show the clip first and keep technical records in the project. For transformations and reveals, read [directing the moment](references/transformations.md); for stories with several beats, read [multi-shot direction](references/multi-shot.md).
+
+For product motion, packaging reveals or unboxing, read [product fidelity in motion](references/product-fidelity.md).
 
 For a first result or setup recovery, read [first video and next edit](references/first-video.md). It defines the account check, combined budget, recoverable job record and reusable deliverable.
 

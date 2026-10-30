@@ -4,7 +4,7 @@ description: Make a still portrait speak from supplied audio with Magic Hour Tal
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.3.1"
+  version: "1.3.2"
 ---
 
 # Magic Hour talking video

@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-10-30",
-  "total": 347,
+  "total": 348,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2000,6 +2000,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/LinespottingOrg/GrokBuildRemote-Agents/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Bulk BG Remove",
+      "url": "https://github.com/Btike/bulk-bg-remove",
+      "owner": "Btike",
+      "repo": "bulk-bg-remove",
+      "description": "Remove image backgrounds locally and in bulk with BiRefNet or lighter ONNX models, auto-certify clean cut-outs and export shop-ready white square JPEGs.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Btike/bulk-bg-remove/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "BulkTranscripts: YouTube Transcripts",

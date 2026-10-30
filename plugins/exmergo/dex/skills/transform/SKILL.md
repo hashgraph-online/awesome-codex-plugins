@@ -275,6 +275,9 @@ a field, flag, or macro you need is not described here.
   whole files restating every cube and view they hold. Never write a `.js` model,
   Jinja or `extends`, never generate files with `cube_dbt`, and fix each
   `file: element: [rule]` refusal at that element. The wrapper installs `[cube]`.
+  A running Cube server does not reload an applied edit: tell the user to
+  restart it before `explore semantic query` is run against the new model, which
+  Dex otherwise refuses as a stale renderer.
 - SLayer declares no entities, no aggregation on a saved measure (the formula
   carries it, as in `amount:sum`), and no per-measure time dimension (only the
   model's `default_time_dimension`). Never write those into a SLayer model.

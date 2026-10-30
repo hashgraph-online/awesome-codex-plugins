@@ -161,6 +161,11 @@ Runs `dbt build` against a dev target, with a cost preflight first.
   paths in `profiles.yml` resolve against the project. When packages are declared
   and `dbt_packages/` is missing, the engine runs `dbt deps` first;
   `--no-install-deps` refuses instead.
+- On DuckDB, a seed whose CSV header no longer matches its table in the dev
+  target (a column added, dropped or reordered) is rebuilt with
+  `dbt seed --full-refresh` before the build, only when the build selects it.
+  `data.full_refresh` names it and a warning says why, so no `dbt seed` step
+  is needed by hand.
 - Each node in `data.nodes` carries dbt's `unique_id` beside a readable `name`.
 - `data.outcome` says what the run established: `empty_selection`, `unrelated`,
   `stale`, or `validated`. `--for-plan <id>` adds `coverage`.

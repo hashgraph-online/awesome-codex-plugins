@@ -1,6 +1,6 @@
 {
   "name": "deed-page",
-  "version": "1.7.1",
+  "version": "1.8.0",
   "description": "Publish files to a public deed.page URL only when the user asks to publish, deploy, host, or share a link. Create-only stays local. No account.",
   "author": {
     "name": "Avatar 8 LLC",

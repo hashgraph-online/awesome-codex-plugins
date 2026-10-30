@@ -10,7 +10,12 @@
  * own (https://deed.page/cli/publish-large.mjs) and do not have one installed.
  * A single file over 100 MB is refused here instead of attempting multipart.
  *
- *   node publish-large.mjs ./site --slug my-page-7k --base-url https://deed.page
+ *   node publish-large.mjs ./dist --slug my-page-7k --base-url https://deed.page
+ *
+ * Only a clean output folder is uploaded. Sensitive and repo-metadata paths are
+ * skipped (see excludedName; keep in sync with publish.sh). A project root
+ * (package.json together with src/, or .git) publishes dist, build, out,
+ * public, or _site when one exists; otherwise it stops unless --allow-root.
  *
  * Auth: $DEEDPAGE_TOKEN, else $DEEDPAGE_TOKEN_FILE, else ~/.config/deed-page/token.
  * A newly minted token is saved there (mode 600, directory 700) and never printed.
@@ -18,19 +23,21 @@
  */
 import { createHash } from "node:crypto";
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { lstat, readdir, readFile, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import path from "node:path";
 
 const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const UPLOAD_CONCURRENCY = 4;
+const BUILD_DIRS = ["dist", "build", "out", "public", "_site"];
+const skipped = [];
 
 const args = process.argv.slice(2);
 const { flags, input } = readFlags(args);
 
 if (!input || flags.help) {
   console.error(
-    "usage: node publish-large.mjs <file-or-directory> [--slug name] [--base-url URL] [--origin URL] [--client NAME] [--ref REF] [--ttl SECONDS] [--spa] [--merge] [--token TOKEN]",
+    "usage: node publish-large.mjs <file-or-directory> [--slug name] [--base-url URL] [--origin URL] [--client NAME] [--ref REF] [--ttl SECONDS] [--spa] [--merge] [--token TOKEN] [--allow-root] [--dry-run]",
   );
   process.exit(flags.help ? 0 : 1);
 }
@@ -39,15 +46,38 @@ const origin = (flags.origin || process.env.DEEDPAGE_URL || "https://deed.page")
 const client = flags.client ?? process.env.DEEDPAGE_CLIENT ?? "deed-page-skill";
 const ref = flags.ref ?? "skill-script";
 const tokenFile = process.env.DEEDPAGE_TOKEN_FILE || path.join(process.env.HOME || homedir(), ".config", "deed-page", "token");
-const token = flags.token || process.env.DEEDPAGE_TOKEN || readSaved(tokenFile);
 
 try {
-  const root = path.resolve(input);
-  const files = await collectInput(root);
+  const requested = input.replace(/\/+$/, "") || input;
+  const resolved = path.resolve(requested);
+  let rootInfo;
+  try {
+    rootInfo = await stat(resolved);
+  } catch {
+    console.error(`not found: ${requested}`);
+    process.exit(2);
+  }
+  let publishRoot = resolved;
+  if (rootInfo.isDirectory()) {
+    if (excludedName(path.basename(requested))) {
+      console.error(`refusing to publish ${path.basename(requested)}: sensitive or repo-metadata path`);
+      process.exit(2);
+    }
+    const choice = await choosePublishDir(resolved, requested, Boolean(flags.allowRoot));
+    publishRoot = choice.root;
+  }
+  const files = await collectInput(publishRoot);
+  printSkipped(skipped);
   if (!files.length) {
-    console.error(`no files under ${root}`);
+    console.error("nothing to publish after exclusions");
     process.exit(1);
   }
+  if (flags.dryRun) {
+    const names = files.map((file) => file.rel).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+    for (const name of names) console.log(name);
+    process.exit(0);
+  }
+  const token = flags.token || process.env.DEEDPAGE_TOKEN || readSaved(tokenFile);
   for (const file of files) {
     if (file.size > MAX_FILE_BYTES) {
       console.error(`${file.rel} is ${file.size} bytes; this script does not upload a single file over 100 MB.`);
@@ -129,6 +159,8 @@ function readFlags(list) {
     else if (arg === "--client") out.client = list[++i];
     else if (arg === "--ref") out.ref = list[++i];
     else if (arg === "--ttl") out.ttl = list[++i];
+    else if (arg === "--allow-root") out.allowRoot = true;
+    else if (arg === "--dry-run") out.dryRun = true;
     else if (!arg.startsWith("--") && !input) input = arg;
   }
   return { flags: out, input };
@@ -140,6 +172,10 @@ async function collectInput(root) {
   if (!info.isFile()) {
     console.error(`not a file or directory: ${root}`);
     process.exit(1);
+  }
+  if (excludedName(path.basename(root))) {
+    console.error(`refusing to publish ${path.basename(root)}: sensitive or repo-metadata file`);
+    process.exit(2);
   }
   if (info.size > MAX_FILE_BYTES) {
     const rel = sitePathForFile(path.basename(root));
@@ -168,8 +204,15 @@ async function collect(base, rel = "") {
   const dirents = await readdir(path.join(base, rel), { withFileTypes: true });
   const out = [];
   for (const dirent of dirents) {
-    if (dirent.name === ".git" || dirent.name === "node_modules") continue;
     const next = rel ? `${rel}/${dirent.name}` : dirent.name;
+    if (excludedName(dirent.name)) {
+      skipped.push(dirent.isDirectory() ? `${next}/` : next);
+      continue;
+    }
+    if (dirent.isSymbolicLink()) {
+      skipped.push(next);
+      continue;
+    }
     const abs = path.join(base, next);
     if (dirent.isDirectory()) {
       out.push(...(await collect(base, next)));
@@ -262,6 +305,89 @@ function parseJson(text) {
 
 function maskToken(json) {
   return json.replace(/"token"\s*:\s*"[^"]*"/g, '"token":"[saved]"');
+}
+
+function excludedName(name) {
+  if (name === "." || name === ".." || name === ".well-known") return false;
+  if (name === ".env" || name.startsWith(".env.")) return true;
+  if (name === ".git" || name === ".github" || name === ".ssh" || name === "node_modules") return true;
+  if (name === ".npmrc" || name === ".netrc" || name === ".DS_Store") return true;
+  if (name === "credentials.json" || name.startsWith("secrets.")) return true;
+  if (name.startsWith("id_rsa")) return true;
+  if (name.endsWith(".pem") || name.endsWith(".key")) return true;
+  if (name.startsWith(".")) return true;
+  return false;
+}
+
+function printSkipped(list) {
+  const unique = [...new Set(list)].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  if (!unique.length) {
+    console.error("skipped 0");
+    return;
+  }
+  console.error(`skipped ${unique.length}: ${unique.join(", ")}`);
+}
+
+function joinDisplay(base, name) {
+  const trimmed = String(base).replace(/\/+$/, "");
+  return `${trimmed}/${name}`;
+}
+
+async function pathExists(file) {
+  try {
+    await lstat(file);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function projectRootReason(root) {
+  const hasGit = await pathExists(path.join(root, ".git"));
+  let hasPkg = false;
+  try {
+    const pkg = await stat(path.join(root, "package.json"));
+    const src = await stat(path.join(root, "src"));
+    hasPkg = pkg.isFile() && src.isDirectory();
+  } catch {
+    hasPkg = false;
+  }
+  if (!hasGit && !hasPkg) return "";
+  if (hasGit && hasPkg) return "it has .git, and package.json with src/";
+  if (hasGit) return "it has .git";
+  return "it has package.json and src/";
+}
+
+async function pickBuild(root) {
+  for (const name of BUILD_DIRS) {
+    const candidate = path.join(root, name);
+    try {
+      const info = await lstat(candidate);
+      if (info.isDirectory()) return name;
+    } catch {
+      // try the next output folder
+    }
+  }
+  return "";
+}
+
+async function choosePublishDir(root, display, allowRoot) {
+  const reason = await projectRootReason(root);
+  if (!reason) return { root, display };
+  const buildName = await pickBuild(root);
+  if (buildName && !allowRoot) {
+    const nextDisplay = joinDisplay(display, buildName);
+    console.error(`${display} looks like a project root (${reason}). Publishing ${nextDisplay} instead.`);
+    return { root: path.join(root, buildName), display: nextDisplay };
+  }
+  if (!buildName && !allowRoot) {
+    console.error(`refusing to publish ${display}: it looks like a project root (${reason}), not an output folder.`);
+    console.error("No dist, build, out, public, or _site directory was found.");
+    console.error("Pass --allow-root to publish this folder anyway. Sensitive files are still excluded.");
+    process.exit(2);
+  }
+  console.error(`${display} looks like a project root (${reason}). Publishing it because --allow-root was set.`);
+  return { root, display };
 }
 
 function readSaved(file) {

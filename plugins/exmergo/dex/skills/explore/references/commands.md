@@ -486,8 +486,13 @@ it as `execution` (`dex` or `vendor`).
   `cube.member`, and a view is a semantic model with no relation whose members
   carry their source in `vendor_params.source`. A JS model, a templated YAML
   file and an `extends` are named under `data.compiled_only` and never
-  translated. `query` refuses by name, and `values` refuses after its PII gate,
-  because Cube renders a query only inside a Cube server.
+  translated. `query` and `values` run with `execution: dex`: the Cube server at
+  `semantic.cube.url` renders the SQL over `/v1/sql` and Dex executes it under
+  the PII gate and the cost guard (needs `[cube]` and `[semantic-api]`, and
+  `CUBEJS_API_SECRET` in the environment). Members are `cube.member`; a time
+  grouping is `--group-by orders.ordered_at__month`; `--where` is Cube's JSON
+  filter (`'{"member": "orders.status", "operator": "equals", "values":
+  ["paid"]}'`).
 - `semantic.vendor: slayer` reads the SLayer model files named in
   `semantic.slayer.models` (needs the `[slayer]` extra). `list` and
   `--for-dimension` answer: a metric is a saved measure named `model.measure`,

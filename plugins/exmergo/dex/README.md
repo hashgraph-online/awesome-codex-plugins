@@ -265,15 +265,16 @@ scan on a production Postgres primary is a real cost too.
 ## Semantic layers
 
 The semantic layer is its own axis, chosen once per repository in `.dex/config.yml`.
-With Ossie or SLayer, it needs no dbt project at all. ([overview](https://docs.exmergo.com/dex/semantic-layers/overview))
+With Ossie, SLayer or Cube, it needs no dbt project at all. ([overview](https://docs.exmergo.com/dex/semantic-layers/overview))
 
 | Semantic layer | Hosted | Queryable | `vendor` / `deployment` | Read through | Documentation |
 | --- | :---: | :---: | --- | --- | --- |
 | <img src="https://www.exmergo.com/connectors/ossie.png" width="20" height="20" alt=""> **[Apache Ossie](https://github.com/apache/ossie)** (incubating) | ❌ | ❌ | `ossie` / `local` | Native documents in the repository, no dbt or MetricFlow in the path | [Docs](https://docs.exmergo.com/dex/semantic-layers/ossie) |
 | <img src="https://www.exmergo.com/connectors/dbt.png" width="20" height="20" alt=""> **[dbt](https://github.com/dbt-labs/dbt-core)** | ✅ | ✅ | `dbt` / `local` or `dbt_cloud` | MetricFlow locally, run through the Dex connector and its cost guard, or the hosted dbt Cloud Semantic Layer API | [Docs](https://docs.exmergo.com/dex/semantic-layers/overview#choosing-a-backend-ambient-like-a-connector) |
-| **[SLayer](https://github.com/MotleyAI/slayer)** | ❌ | ✅ | `slayer` / `local` | SLayer model files, validated by one pinned release; SLayer renders, Dex runs it under the cost guard | [Docs](https://docs.exmergo.com/dex/semantic-layers/overview#slayer-models-vendor-slayer) |
+| <img src="assets/cube-logo.png" width="20" height="20" alt=""> **[Cube](https://github.com/cube-js/cube)** | ❌ | ✅ | `cube` / `local` | Plain YAML model files, read statically with no Node or Cube server; querying asks a running Cube server to render, Dex runs it under the cost guard | [Docs](https://docs.exmergo.com/dex/semantic-layers/overview#cube-models-vendor-cube) |
+| <img src="assets/motley-logo.jpeg" width="20" height="20" alt=""> **[SLayer](https://github.com/MotleyAI/slayer)** (by Motley) | ❌ | ✅ | `slayer` / `local` | SLayer model files, validated by one pinned release; SLayer renders, Dex runs it under the cost guard | [Docs](https://docs.exmergo.com/dex/semantic-layers/overview#slayer-models-vendor-slayer) |
 
-**Coming next:** Cube, Snowflake Semantic Views, Looker / LookML, and Databricks Metric Views.
+**Coming next:** hosted Cube, hosted SLayer, Snowflake Semantic Views, Looker / LookML, and Databricks Metric Views.
 
 ## See it on a real project
 

@@ -98,7 +98,7 @@ Free plan: 25 sites, 25 MB per site, 60 publishes per hour. Free sites are publi
 
 ## Skill and plugins
 
-The skill is [`skills/deed-page/SKILL.md`](skills/deed-page/SKILL.md). Since 1.7.0 it also ships two optional scripts in [`skills/deed-page/scripts/`](skills/deed-page/scripts/): `publish.sh` publishes a file or folder and, above 4 MB, hands off to `publish-large.mjs` (Node 18+), which uploads through the manifest flow (`/v1/uploads`). They are the same files served at https://deed.page/cli/. The repo is also a plugin that bundles the skill with the hosted deed.page MCP server, with manifests for each agent:
+The skill is [`skills/deed-page/SKILL.md`](skills/deed-page/SKILL.md). Since 1.7.0 it also ships two optional scripts in [`skills/deed-page/scripts/`](skills/deed-page/scripts/): `publish.sh` publishes a file or a clean output folder and, above 4 MB, hands off to `publish-large.mjs` (Node 18+), which uploads through the manifest flow (`/v1/uploads`). Both skip sensitive and repo-metadata paths and refuse a project root that has no `dist`, `build`, `out`, `public`, or `_site` directory unless `--allow-root` is set. They are the same files served at https://deed.page/cli/. The repo is also a plugin that bundles the skill with the hosted deed.page MCP server, with manifests for each agent:
 
 | File | Format |
 | --- | --- |

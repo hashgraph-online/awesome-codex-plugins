@@ -59,7 +59,7 @@ and run `hermes mcp login mnemoverse` (Hermes opens the browser and waits on a l
 
 ## First run: sign in once, no API key
 
-The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Installing the plugin does not open anything by itself: run `/mcp`, select the Mnemoverse server (from this plugin it is listed as `plugin:mnemoverse:mnemoverse`) and choose Authenticate, then sign in to your Mnemoverse account in the browser (free tier at [console.mnemoverse.com](https://console.mnemoverse.com?utm_source=github&utm_medium=readme&utm_campaign=claude-plugin), no credit card) and grant the requested scopes, which include `memory:read` and `memory:write`. There is no API key to paste, and access can be revoked at any time from the console. The bundled `setup` skill walks Claude through this if anything goes wrong.
+The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Installing the plugin does not open anything by itself: run `/mcp`, select the Mnemoverse server (from this plugin it is listed as `plugin:mnemoverse:mnemoverse`) and choose Authenticate, then sign in to your Mnemoverse account in the browser (free tier at [console.mnemoverse.com](https://console.mnemoverse.com?utm_source=github&utm_medium=readme&utm_campaign=claude-plugin), no credit card) and grant the requested scopes, which include `memory:read` and `memory:write`. There is no API key to paste. To disconnect, remove the server from your client; resetting your password in the console can also disconnect all connected apps at once. The bundled `setup` skill walks Claude through this if anything goes wrong.
 
 ## What you get
 
@@ -71,10 +71,15 @@ The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Install
 | `/mnemoverse:recall` | search memory before acting, with provenance, surfacing contradictions instead of hiding them |
 | `/mnemoverse:memory-status` | counts, domains, and the newest memories |
 
-**Two skills:**
+**Seven skills:**
 
 - `agent-memory-discipline` (CC0, backend-neutral): standing rules for when to recall and what is worth saving. It names no vendor and works on any memory backend; it ships here so the connected memory is actually used.
 - `setup`: guides Claude through connecting and troubleshooting the MCP server.
+- `memory-search`: searches memory before answering, then rates which recalled memories helped.
+- `memory-save`: saves a decision, preference, correction or lesson as one self-contained fact, never a secret.
+- `memory-catch-up`: lists what was added since a given time, in personal memory or in a shared room (beta).
+- `memory-onboard`: seeds memory with a project's conventions and decisions from its README, CLAUDE.md and AGENTS.md.
+- `mnemoverse-docs`: for developers adding Mnemoverse memory to their own app or agent; picks the form and points to the docs page.
 
 **The tools come from the remote server itself**: reading and writing memories, a newest-first listing, stats, usefulness feedback, shared rooms (beta), and a vault alias listing (aliases only, values are never returned). The current list, with descriptions and schemas, is at the server's [card](https://mcp.mnemoverse.com/.well-known/mcp/server-card.json).
 
@@ -94,7 +99,7 @@ Memory content lives in your Mnemoverse account. Privacy policy: [mnemoverse.com
 
 - **No sign-in prompt**: Claude Code does not open the browser by itself. Run `/mcp`, select `plugin:mnemoverse:mnemoverse` and choose Authenticate. If the server is not listed, add it for all your projects with `claude mcp add --transport http --scope user mnemoverse https://mcp.mnemoverse.com/mcp`; it then appears in `/mcp` as `mnemoverse`, and you authenticate it the same way.
 - **`401` after it used to work**: the token expired; the next tool call normally refreshes it. If not, run `/mcp`, select the server and choose Re-authenticate.
-- **`malformed_token` in logs**: something is sending an API key as a bearer token. The remote endpoint takes OAuth tokens only; API keys are for the [REST API](https://mnemoverse.com/docs/api/reference) and the local package.
+- **`malformed_token` in logs**: the bearer token is neither an OAuth token from the sign-in nor a Mnemoverse API key, for example a key copied without its `mk_live_` prefix, or a placeholder left in a config. Since 2026-10-19 the remote endpoint accepts either: a host that cannot complete the sign-in can send an API key as `Authorization: Bearer mk_live_...` ([details](https://mnemoverse.com/docs/api/remote-mcp-server#with-an-api-key-instead-of-the-sign-in)). A revoked or unknown key gets `invalid_api_key` instead.
 
 More: [docs](https://mnemoverse.com/docs/api/remote-mcp-server).
 

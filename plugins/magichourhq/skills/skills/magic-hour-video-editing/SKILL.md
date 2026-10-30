@@ -4,12 +4,14 @@ description: Edit or repurpose existing footage with Magic Hour, choosing betwee
 license: MIT
 metadata:
   author: magichourhq
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # Magic Hour video editing
 
 Start from the requested change and inspect the existing master. Choose editing settings and a suitable layout yourself when delegated; reuse the current budget and respect requested draft approvals. Show the exported video first and keep technical records with the project. For shorter cuts, alternate placements and copy/audio revisions, read [repurpose a master](references/repurpose.md).
+
+For precise local trims, joins, audio mixing or caption finishing, read [finishing recipes](references/finishing-recipes.md).
 
 For a stylized reinterpretation, read [Video-to-Video controls](references/restyle.md). For a longer ending or higher-resolution final video, read [extension and upscaling](references/extend-upscale.md), including the Video Upscaler MCP/API route, any required web handoff and continuity checks.
 

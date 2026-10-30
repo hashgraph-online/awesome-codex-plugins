@@ -216,6 +216,8 @@ cached.
 
 `otw bench` runs 11 small tasks, each needing a habit a model cannot know, with your own `claude` CLI: once with recall off and once with Off the Wall on. It prints how often the habit was followed in each case. It needs the plugin installed in Claude Code and `claude` logged in.
 
+**Availability:** `bench` is on the repository main branch, not in the 0.3.1 release or an npm package. Clone the repository first (see Quick Start), then run the commands below from that checkout. The first run used an experimental modified plugin in an isolated profile; normal installations have not been verified. Claude Code may load global instructions and other plugins and save session transcripts.
+
 ```bash
 node bin/otw.mjs bench                        # shows what it would do and the rough cost, runs nothing
 node bin/otw.mjs bench --yes                  # 66 runs on haiku, about USD 0.4 and 13 minutes on your own plan

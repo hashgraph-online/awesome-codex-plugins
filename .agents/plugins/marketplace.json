@@ -2952,6 +2952,21 @@
       "icon": "./plugins/LinespottingOrg/GrokBuildRemote-Agents/.codex-plugin/icon.svg"
     },
     {
+      "name": "bulk-bg-remove",
+      "displayName": "Bulk BG Remove",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Btike/bulk-bg-remove"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remove image backgrounds locally and in bulk with BiRefNet or lighter ONNX models, auto-certify clean cut-outs and export shop-ready white square JPEGs.",
+      "icon": "./plugins/Btike/bulk-bg-remove/assets/icon.svg"
+    },
+    {
       "name": "bulktranscripts",
       "displayName": "BulkTranscripts: YouTube Transcripts",
       "source": {

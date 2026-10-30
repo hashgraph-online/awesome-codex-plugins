@@ -1,0 +1,21 @@
+{
+  "name": "bulk-bg-remove",
+  "interface": {
+    "displayName": "Bulk BG Remove"
+  },
+  "plugins": [
+    {
+      "name": "bulk-bg-remove",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Btike/bulk-bg-remove.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

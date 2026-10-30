@@ -13,6 +13,7 @@
   <a href="https://github.com/fainir/frugal/actions/workflows/ci.yml"><img src="https://github.com/fainir/frugal/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT license"></a>
   <a href="https://agentskills.io"><img src="https://img.shields.io/badge/Agent%20Skill-Claude%20Code%20%C2%B7%20Codex%20%C2%B7%20Cursor%20%C2%B7%20Gemini-0f172a" alt="Agent Skill for Claude Code, Codex, Cursor and Gemini CLI"></a>
+  <a href="https://github.com/hashgraph-online/awesome-codex-plugins"><img src="https://awesome.re/mentioned-badge.svg" alt="Mentioned in Awesome Codex Plugins"></a>
 </p>
 
 <p align="center">

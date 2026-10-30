@@ -102,6 +102,24 @@ transformation project.
 - An unknown key is refused as incompatible with the pinned schema: it may be a
   typo or written for a newer Ossie draft. The diagnostic names the pinned spec
   version.
+- A document is one semantic model, flat at its root: `version`, `name`,
+  `datasets`, `relationships`, `metrics`. The earlier wrapped `semantic_model:
+  [...]` shape is refused (`wrapped_document`) with the migration named: lift the
+  model to the root, one document per model, each listed in
+  `semantic.ossie.files`.
+- Keys (`primary_key`, `unique_keys`) and a relationship's `from_columns` and
+  `to_columns` name **fields** of the dataset, never source columns; one that
+  names no declared field is refused. A field's expression is what names the
+  column, so a field `customer_id` defined as `o_custkey` is a key on
+  `o_custkey`. Write a portable expression as `sql:` (`OSSIE_SQL_2026`); any
+  other dialect token is accepted and kept, and only the SQL ones are read.
+- `declarations` may ride beside (or instead of) `edits`: each annotates a
+  dataset the layer or the payload defines. Grain goes to `primary_key` on the
+  fields exposing the grain columns (refused by name where none does), a declared
+  aggregation becomes a dataset metric `<field>_<agg>`, a foreign key a
+  relationship to the parent's field, and population, assumptions, unit, NULL
+  rule and additivity go to `ai_context`. Only that dataset is rewritten. The
+  mapping: [declarations.md](declarations.md#ossie-semanticvendor-ossie).
 - On apply, Dex does not re-serialize the document, so comments, key order,
   quoting, and whitespace survive, and a configured document the payload did not
   mention is untouched. A target file that changed after planning refuses the
