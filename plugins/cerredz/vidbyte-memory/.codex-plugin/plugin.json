@@ -1,0 +1,47 @@
+{
+  "name": "vidbyte-memory",
+  "version": "0.2.0",
+  "description": "Correction-driven memory for coding agents: every correction becomes a fact, a test and a footprint commit in your repo. No API key, no database, no service.",
+  "author": {
+    "name": "cerredz",
+    "url": "https://github.com/cerredz"
+  },
+  "homepage": "https://github.com/cerredz/vidbyte-memory",
+  "repository": "https://github.com/cerredz/vidbyte-memory.git",
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "agent-memory",
+    "correction-driven-memory",
+    "agents-md",
+    "agent-skills",
+    "tests",
+    "git",
+    "codex",
+    "human-in-the-loop"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "vidbyte-memory",
+    "shortDescription": "Memory that learns from your corrections, enforced by tests.",
+    "longDescription": "Each time you correct the agent, the correction becomes a slim fact or rule it loads next time, a pytest test or verifier that fails if the mistake comes back, and a footprint commit that records how memory changed. Everything lives as markdown, tests and git in your own repo: no API key, no database, no service. Ask Codex to install vidbyte-memory in a repo and the install-memory skill sets it up, including a Stop hook that keeps the turn going while tests fail, feedback is pending or memory is uncommitted.",
+    "developerName": "cerredz",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/cerredz/vidbyte-memory",
+    "privacyPolicyURL": "https://github.com/cerredz/vidbyte-memory/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/cerredz/vidbyte-memory/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Install vidbyte-memory in this repo"
+    ],
+    "composerIcon": "./.claude-plugin/icon.png",
+    "logo": "./.claude-plugin/icon.png",
+    "screenshots": [
+      "./.github/assets/social-preview.png",
+      "./.github/assets/demo.gif"
+    ]
+  }
+}

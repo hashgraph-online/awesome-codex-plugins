@@ -2524,6 +2524,21 @@
       "icon": "./plugins/Eliasjunit/vibestretch/assets/icon.png"
     },
     {
+      "name": "vidbyte-memory",
+      "displayName": "vidbyte-memory",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cerredz/vidbyte-memory"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Correction-driven memory for Codex: turns corrections into facts and pytest checks, stages all repository changes for commits and pushes to origin unless --no-push is used, and installs a Stop hook that keeps turns open until checks pass.",
+      "icon": "./plugins/cerredz/vidbyte-memory/.claude-plugin/icon.png"
+    },
+    {
       "name": "villagesql",
       "displayName": "VillageSQL Skills",
       "source": {

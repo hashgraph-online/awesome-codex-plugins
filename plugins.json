@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-10-30",
-  "total": 348,
+  "total": 349,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1709,6 +1709,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Eliasjunit/vibestretch/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "vidbyte-memory",
+      "url": "https://github.com/cerredz/vidbyte-memory",
+      "owner": "cerredz",
+      "repo": "vidbyte-memory",
+      "description": "Correction-driven memory for Codex: turns corrections into facts and pytest checks, stages all repository changes for commits and pushes to origin unless --no-push is used, and installs a Stop hook that keeps turns open until checks pass.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/cerredz/vidbyte-memory/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "VillageSQL Skills",
