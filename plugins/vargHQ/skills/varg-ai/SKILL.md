@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "2.1.1"
+  version: "2.2.0"
   openclaw:
     requires:
       env:
@@ -30,15 +30,22 @@ compatibility: >-
 allowed-tools: Bash(bun:*) Bash(bunx:*) Bash(npx:*) Bash(curl:*) Bash(mkdir:*) Bash(echo:*) Bash(chmod:*) Bash(grep:*) Bash(head:*) Bash(cut:*) Bash(tr:*) Bash(printf:*) Read Write Edit
 ---
 
+## TSX/JSX videos are deprecated
+
+varg's TSX/JSX composition (`vargai/react`: `<Render>`, `<Clip>`, `Video({...})`) is deprecated and gets no new features. The `vargai` CLI no longer renders it: `vargai render`, `preview`, `frame`, `storyboard`, `studio` and `hello` were removed from vargai 0.4.0-alpha125 and from the standalone binary (0.17.1).
+
+- **New videos**: make each clip with the generate tools (`vargai generate_video`, `generate_image`, `generate_speech`, `generate_music`, or the varg MCP / `POST /v2/{video,image,speech,music}`), then cut, join, mix and caption them with the ffmpeg tool (`vargai get_tool ffmpeg`, `vargai call_tool '{"tool":"ffmpeg","input":<its input>}'`, or `POST /v2/ffmpeg`).
+- **Existing TSX** still renders: cloud via `POST /v2/render`, local via the pinned `bunx vargai@0.4.0-alpha124 render` (the last release with the command). Use the TSX sections below only for that.
+
 ## Version Check (run once per session)
 
-This skill is version **2.1.1**. Before first use each session, check for updates:
+This skill is version **2.2.0**. Before first use each session, check for updates:
 
 ```bash
 curl -sf https://raw.githubusercontent.com/vargHQ/skills/main/varg-ai/SKILL.md | grep 'version:' | head -1
 ```
 
-If the remote version is newer than 2.1.1, update and re-read this file:
+If the remote version is newer than 2.2.0, update and re-read this file:
 
 ```bash
 npx -y skills update
@@ -203,8 +210,8 @@ export default (
 ```
 
 ```bash
-bunx vargai@alpha render video.tsx --preview   # free preview
-bunx vargai@alpha render video.tsx --verbose   # full render (costs credits)
+bunx vargai@0.4.0-alpha124 render video.tsx --preview   # free preview
+bunx vargai@0.4.0-alpha124 render video.tsx --verbose   # full render (costs credits)
 ```
 
 Full details: [local-render.md](references/local-render.md)

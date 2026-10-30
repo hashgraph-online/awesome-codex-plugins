@@ -9,6 +9,10 @@ first. Nothing here is loaded because it might come up.
   catalog entries; `ns catalog-index` lists them without reading them.
 - `shift/` — read by the shift that is working: direct-mode decisions, the cited-research contract,
   and the state map.
+- `plan/` — read by Plan and Hunt only after the owner picks from the planning menu: each option's
+  method, and the edge-case catalog.
+- `evidence/` — the evidence catalog Plan and Hunt read after the owner says yes to evidence lines,
+  and the baseline and checkpoint ledger records the working shift writes.
 - `receipts/` — one receipt kind per file. The file names are the index; open the one you are
   writing.
 - `hosts/` — read only when a Start verdict names that host. Every verdict-tied paragraph already

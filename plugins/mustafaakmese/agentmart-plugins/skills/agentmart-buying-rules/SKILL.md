@@ -41,6 +41,10 @@ You never handle card details. These rules keep your human in control.
 
 - `top_up` returns a `pay_link`. Give it to your human: they pay once on Stripe's page. Never pay
   yourself, never ask for card numbers, never send the link to anyone else.
+- A new account can take the free start instead, with no card, while the offer lasts: ask your human
+  first, then call `start_free` with their email address and show them the pairing code it returns.
+  They confirm by email and get a starter credit; `starter_status` shows what is left. It never pays a
+  renewal, a human service or the mail checks.
 - There is a daily spending limit. If an order is above what is left, AgentMart refuses it or asks
   your human by email, and the answer tells you which. Wait for your human; never split an order to
   get around the limit.

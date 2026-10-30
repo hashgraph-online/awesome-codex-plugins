@@ -1,0 +1,38 @@
+---
+title: "Counter, odd values merged"
+---
+stateDiagram-v2
+  state Legend {
+    legend0: moving
+    legend1: rest
+    legend2: breaks NotFive in some cases
+    legend3: path to the NotFive bug
+  }
+  s0: zero
+  state "even" as s1 {
+    s2: n is 2
+    s4: n is 4
+    s5: n is 6
+  }
+  s3: odd
+  [*] --> s0
+  s0 --> s2: count
+  s0 --> s3: count
+  s1 --> s0: reset
+  s2 --> s3: count
+  s2 --> s4: count
+  s3 --> s0: reset
+  s3 --> s2: count
+  s3 --> s4: count
+  s3 --> s5: count
+  s4 --> s3: count
+  s4 --> s5: count
+  classDef mayBreak fill:#fdebd3,stroke:#d4740b,color:#6e3b04
+  class legend0 teal
+  class legend1 blue
+  class legend2 mayBreak
+  class legend3 bugPath
+  class s0 blue
+  class s2,s3,s4,s5 teal
+  class s3 mayBreak
+  class s0,s2,s4 bugPath

@@ -1,0 +1,22 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 0 and seed -1284956473878878301 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 4889] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /work/endostack/skills/statechart/scripts/test/corpus/cut/Wide.tla
+Parsing file /tmp/statechart-rec-CSLcwA/02-verdict-1/tlc.tmp/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module Wide
+Starting... (2026-10-27 16:48:14)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-27 16:48:14.
+Error: Invariant Early is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ x = 0
+/\ y = 0
+
+State 2: <Next line 5, col 12 to line 5, col 42 of module Wide>
+/\ x = 1
+/\ y = 0
+
+2 states generated, 2 distinct states found, 0 states left on queue.
+The depth of the complete state graph search is 2.
+Finished in 00s at (2026-10-27 16:48:14)

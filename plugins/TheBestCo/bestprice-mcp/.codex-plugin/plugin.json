@@ -1,0 +1,44 @@
+{
+  "name": "bestprice-shopping",
+  "version": "2.8.1",
+  "description": "Read-only shopping decisions, product search, offers, and price history for Greece.",
+  "author": {
+    "name": "BestPrice",
+    "url": "https://www.bestprice.gr/"
+  },
+  "homepage": "https://www.bestprice.gr/mcp",
+  "repository": "https://github.com/TheBestCo/bestprice-mcp",
+  "license": "Apache-2.0",
+  "keywords": [
+    "shopping",
+    "e-commerce",
+    "shopping-decisions",
+    "product-recommendations",
+    "price-comparison",
+    "delivered-price",
+    "greece",
+    "bestprice"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "BestPrice",
+    "shortDescription": "Read-only shopping decisions, product search, offers, and price history for Greece.",
+    "longDescription": "Read-only shopping decisions, product search, live offers, delivered totals, and price history for Greece. No BestPrice account or API key.",
+    "developerName": "BestPrice",
+    "category": "Shopping",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://www.bestprice.gr/mcp",
+    "privacyPolicyURL": "https://www.bestprice.gr/policies/privacy",
+    "termsOfServiceURL": "https://www.bestprice.gr/policies/terms",
+    "composerIcon": "./assets/bestprice-mcp-logo-1024.png",
+    "logo": "./assets/bestprice-mcp-logo-1024.png",
+    "defaultPrompt": [
+      "Choose the best phone under €500 for photos, with NFC and 5G required.",
+      "Find a highly rated 55-inch OLED TV under €1,000.",
+      "Compare current offers for this exact product, including delivery."
+    ]
+  },
+  "skills": "./skills/"
+}

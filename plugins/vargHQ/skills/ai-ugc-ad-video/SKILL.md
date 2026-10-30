@@ -42,7 +42,7 @@ An AI creator talks to camera about your product, holds it, uses it, and sounds 
 ## 0. Gates
 
 1. **Where does it run?** Meta ads and TikTok ads: OK, labelled. TikTok Shop video: stop and use `tiktok-shop-video` (AI voices as presenter and AI-made material are against Shop rules).
-2. **Claims:** the AI creator may **demo and state facts**. Never write "I used it for two weeks and…", before/after results, or "my skin cleared". The FTC bans fake testimonials, AI ones included (~$51,744 per violation); New York requires a synthetic-performer disclosure in ads. Real reviews may be quoted as reviews ("2,100 reviews say…").
+2. **Claims:** the AI creator may **demo and state facts**. Never write "I used it for two weeks and…", before/after results, or "my skin cleared". The FTC bans fake testimonials, AI ones included (up to $53,088 per violation); New York requires a synthetic-performer disclosure in ads. Real reviews may be quoted as reviews ("2,100 reviews say…").
 3. **Product photo:** clean, straight-on, label readable. "If the label isn't readable in the reference, the model invents its own text. That's where most people's ads die."
 4. **Cost:** quote the full batch with `estimate_cost` (assume ~3 takes per usable Seedance clip, ~1–2 for Kling 4).
 

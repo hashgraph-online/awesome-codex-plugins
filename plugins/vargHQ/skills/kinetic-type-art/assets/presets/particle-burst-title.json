@@ -1,0 +1,182 @@
+{
+  "id": "particle-burst-title",
+  "name": "Dot-burst particle title",
+  "use": "Typed titles where dots gather into one and burst into a coloured particle field",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 15,
+  "fonts": [
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "presets": [
+    {
+      "id": "particle-burst-title.meadow",
+      "label": "Meadow",
+      "look": "Greens, yellows and pinks on cream",
+      "params": {
+        "bg": "#F4F1EA",
+        "palette": [
+          "#67B346",
+          "#FFE800",
+          "#FF48B0",
+          "#00A95C"
+        ],
+        "typing": {
+          "chars_per_chunk": [
+            2,
+            4
+          ],
+          "chunk_every_f": [
+            3,
+            6
+          ]
+        },
+        "gather": {
+          "dots": [
+            5,
+            9
+          ],
+          "frames": 60,
+          "ease": "power2.inOut"
+        },
+        "merge_squeeze": 0.8,
+        "burst_frame": 156,
+        "burst_speed_px_s": [
+          600,
+          1400
+        ],
+        "drag_per_s": [
+          2.5,
+          4
+        ],
+        "settle_drift_px_s": [
+          10,
+          30
+        ],
+        "home": {
+          "frames": [
+            45,
+            60
+          ],
+          "ease": "power3.inOut",
+          "stagger": "by distance"
+        },
+        "count_canvas2d": [
+          1500,
+          4000
+        ],
+        "count_webgl": [
+          20000,
+          80000
+        ],
+        "sample_step_px": [
+          3,
+          6
+        ],
+        "dot_radius_px": [
+          1.5,
+          3
+        ],
+        "seed": 11
+      },
+      "sources": [
+        41,
+        39,
+        30
+      ]
+    },
+    {
+      "id": "particle-burst-title.evening",
+      "label": "Evening",
+      "look": "Warm oranges and violets on deep blue",
+      "params": {
+        "bg": "#1B1E3A",
+        "palette": [
+          "#FF6C2F",
+          "#FFB511",
+          "#9D7AD2",
+          "#F984CA"
+        ]
+      },
+      "sources": [
+        30
+      ]
+    },
+    {
+      "id": "particle-burst-title.monochrome",
+      "label": "Monochrome",
+      "look": "Black dots on paper",
+      "params": {
+        "bg": "#F2EFE8",
+        "palette": [
+          "#111111"
+        ],
+        "opacities": [
+          1,
+          0.6,
+          0.3
+        ]
+      },
+      "sources": [
+        11
+      ]
+    },
+    {
+      "id": "particle-burst-title.electric",
+      "label": "Electric",
+      "look": "Cyan, magenta, lime on black, additive",
+      "params": {
+        "bg": "#050505",
+        "palette": [
+          "#5EC8E5",
+          "#FF48B0",
+          "#E3ED55"
+        ],
+        "blend": "lighter"
+      },
+      "sources": [
+        30
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 11,
+      "name": "@yiannifive, voxelized type",
+      "url": "https://x.com/yiannifive/status/2023883254978531704"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 39,
+      "name": "Netguru, 12 principles of animation (Agnieszka Koniuszek)",
+      "url": "https://www.netguru.com/blog/illustrators-eye-12-principles-of-animation"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

@@ -1,0 +1,315 @@
+{
+  "id": "paper-texture",
+  "name": "Paper texture",
+  "use": "Crumpled, folded or printed paper as a background or a finish over a still or title card",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "paper-texture.signature",
+      "label": "Signature",
+      "look": "White sheet, soft folds and wrinkles, a few water drops (Paper's default)",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "PaperTexture",
+        "motion": {
+          "timeScale": 0,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 0.9,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "image": "",
+          "colorBack": "#D3D2AB",
+          "colorPaper": "#FFFFFF",
+          "colorShadow": "#CCCCCC",
+          "blending": 1,
+          "distortion": 0.75,
+          "clip": false,
+          "angle": 300,
+          "seed": 4,
+          "roughness": 0.4,
+          "roughnessSize": 0.5,
+          "roughnessRows": 0,
+          "fiber": 0.4,
+          "fiberSize": 0.5,
+          "folds": 0.5,
+          "foldSizeX": 1,
+          "foldSizeY": 1,
+          "foldOffsetX": 0,
+          "foldOffsetY": 0,
+          "wrinkles": 1,
+          "wrinkleSize": 0.65,
+          "crumples": 0,
+          "crumpleCount": 6,
+          "drops": 0.4
+        },
+        "paramsAt": "angle = 300 + 20*(t/10)  // light slowly travels"
+      },
+      "sources": [
+        5,
+        18,
+        20
+      ]
+    },
+    {
+      "id": "paper-texture.kraft",
+      "label": "Kraft",
+      "look": "Brown kraft paper, coarse fibers, a few crumples",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "PaperTexture",
+        "motion": {
+          "timeScale": 0,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 0.9,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "image": "",
+          "colorBack": "#6B4E2E",
+          "colorPaper": "#C49A6C",
+          "colorShadow": "#8A6A45",
+          "blending": 1,
+          "distortion": 0.4,
+          "clip": false,
+          "angle": 300,
+          "seed": 112,
+          "roughness": 0.7,
+          "roughnessSize": 0.4,
+          "roughnessRows": 0,
+          "fiber": 0.8,
+          "fiberSize": 0.7,
+          "folds": 0,
+          "foldSizeX": 1,
+          "foldSizeY": 1,
+          "foldOffsetX": 0,
+          "foldOffsetY": 0,
+          "wrinkles": 0,
+          "wrinkleSize": 0.65,
+          "crumples": 0.6,
+          "crumpleCount": 5,
+          "drops": 0.1
+        },
+        "paramsAt": "angle = 300 + 15*(t/10)"
+      },
+      "sources": [
+        5,
+        18
+      ]
+    },
+    {
+      "id": "paper-texture.newsprint",
+      "label": "Newsprint",
+      "look": "Grey-cream newsprint with laid-paper rows and one fold",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "PaperTexture",
+        "motion": {
+          "timeScale": 0,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 0.9,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "image": "",
+          "colorBack": "#D9D2C0",
+          "colorPaper": "#ECE6D6",
+          "colorShadow": "#B9B09A",
+          "blending": 1,
+          "distortion": 0,
+          "clip": false,
+          "angle": 0,
+          "seed": 455,
+          "roughness": 1,
+          "roughnessSize": 0.5,
+          "roughnessRows": 0.6,
+          "fiber": 0.7,
+          "fiberSize": 1,
+          "folds": 0.35,
+          "foldSizeX": 0.5,
+          "foldSizeY": 1,
+          "foldOffsetX": 0,
+          "foldOffsetY": 0,
+          "wrinkles": 0,
+          "wrinkleSize": 0.65,
+          "crumples": 0,
+          "crumpleCount": 6,
+          "drops": 0.2
+        }
+      },
+      "sources": [
+        5,
+        18,
+        20,
+        33
+      ]
+    },
+    {
+      "id": "paper-texture.poster",
+      "label": "Poster",
+      "look": "Folded poster: strong cross folds, image clipped to its alpha (Paper's Spread values)",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "PaperTexture",
+        "motion": {
+          "timeScale": 0,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 0.9,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "image": "",
+          "colorBack": "#FFFFFF00",
+          "colorPaper": "#F7F3EAB5",
+          "colorShadow": "#B3B3B3",
+          "blending": 1,
+          "distortion": -0.3,
+          "clip": true,
+          "angle": 236,
+          "seed": 613,
+          "roughness": 0.15,
+          "roughnessSize": 0.25,
+          "roughnessRows": 0,
+          "fiber": 0.5,
+          "fiberSize": 0.5,
+          "folds": 1,
+          "foldSizeX": 0.4,
+          "foldSizeY": 0.89,
+          "foldOffsetX": 0,
+          "foldOffsetY": 0,
+          "wrinkles": 0,
+          "wrinkleSize": 0.65,
+          "crumples": 0,
+          "crumpleCount": 9,
+          "drops": 0
+        },
+        "image": "required: the user's own poster art"
+      },
+      "sources": [
+        2,
+        5,
+        18,
+        20
+      ]
+    },
+    {
+      "id": "paper-texture.print",
+      "label": "Print",
+      "look": "Crumpled print: four big crumple facets, light from upper right (Paper's Creased values)",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "PaperTexture",
+        "motion": {
+          "timeScale": 0,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 0.9,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "image": "",
+          "colorBack": "#D3D2AB",
+          "colorPaper": "#FFFFFF",
+          "colorShadow": "#B3B3B3",
+          "blending": 1,
+          "distortion": -0.5,
+          "clip": false,
+          "angle": 60,
+          "seed": 49,
+          "roughness": 0.4,
+          "roughnessSize": 0.25,
+          "roughnessRows": 0,
+          "fiber": 0.4,
+          "fiberSize": 0.5,
+          "folds": 0,
+          "foldSizeX": 0.6,
+          "foldSizeY": 0.89,
+          "foldOffsetX": 0.59,
+          "foldOffsetY": 1,
+          "wrinkles": 0,
+          "wrinkleSize": 0.65,
+          "crumples": 1,
+          "crumpleCount": 4,
+          "drops": 0
+        }
+      },
+      "sources": [
+        5,
+        18,
+        20
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 2,
+      "name": "Stephen Haney: new paper shader",
+      "url": "https://x.com/stephenhaney/status/2105007065106419936"
+    },
+    {
+      "n": 5,
+      "name": "Ksenia Kondrashova: PaperTexture rebuilt",
+      "url": "https://x.com/uuuuuulala/status/2105014895309938878"
+    },
+    {
+      "n": 18,
+      "name": "Paper Shaders reference (llms.txt)",
+      "url": "https://shaders.paper.design/llms.txt"
+    },
+    {
+      "n": 20,
+      "name": "varg paper-shaders skill",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 33,
+      "name": "Paper blog: Retro print CMYK halftone",
+      "url": "https://paper.design/blog/retro-print-cmyk-halftone-shader"
+    },
+    {
+      "n": 39,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

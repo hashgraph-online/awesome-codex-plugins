@@ -1,0 +1,15 @@
+stateDiagram-v2
+  state Legend {
+    legend0: path to the ReachesFive bug
+    legend1: repeats forever so ReachesFive breaks
+  }
+  s0: 0
+  s1: 1
+  s2: 2
+  [*] --> s0
+  s0 --> s1: Next
+  s1 --> s2: Next
+  class legend0 bugPath
+  class legend1 repeats
+  class s0,s1 bugPath
+  class s2 repeats

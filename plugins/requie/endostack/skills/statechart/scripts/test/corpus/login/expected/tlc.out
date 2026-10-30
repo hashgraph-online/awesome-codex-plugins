@@ -1,0 +1,43 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 0 and seed -923831941020389047 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 10794] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /work/endostack/skills/statechart/scripts/test/corpus/login/Login.tla
+Parsing file /tmp/statechart-rec-u9LuXn/02-verdict-1/tlc.tmp/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module Login
+Starting... (2026-10-27 16:48:58)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-27 16:48:58.
+Error: Invariant NeverLocked is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ tries = 0
+/\ screen = "form"
+
+State 2: <Submit line 6, col 11 to line 6, col 68 of module Login>
+/\ tries = 0
+/\ screen = "checking"
+
+State 3: <Reject line 8, col 11 to line 8, col 84 of module Login>
+/\ tries = 1
+/\ screen = "form"
+
+State 4: <Submit line 6, col 11 to line 6, col 68 of module Login>
+/\ tries = 1
+/\ screen = "checking"
+
+State 5: <Reject line 8, col 11 to line 8, col 84 of module Login>
+/\ tries = 2
+/\ screen = "form"
+
+State 6: <Submit line 6, col 11 to line 6, col 68 of module Login>
+/\ tries = 2
+/\ screen = "checking"
+
+State 7: <Lock line 9, col 9 to line 9, col 82 of module Login>
+/\ tries = 2
+/\ screen = "locked"
+
+12 states generated, 9 distinct states found, 1 states left on queue.
+The depth of the complete state graph search is 7.
+The average outdegree of the complete state graph is 1 (minimum is 0, the maximum 2 and the 95th percentile is 2).
+Finished in 00s at (2026-10-27 16:48:59)

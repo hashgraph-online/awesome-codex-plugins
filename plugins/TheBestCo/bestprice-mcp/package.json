@@ -1,0 +1,59 @@
+{
+  "name": "bestprice-mcp",
+  "version": "2.8.1",
+  "private": true,
+  "description": "Official BestPrice MCP distribution: client manifests, a stdio bridge to the public Streamable HTTP endpoint, and the browser-native WebMCP contracts.",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "BestPrice",
+    "url": "https://www.bestprice.gr/"
+  },
+  "homepage": "https://www.bestprice.gr/mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheBestCo/bestprice-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/TheBestCo/bestprice-mcp/issues"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "webmcp",
+    "shopping",
+    "price-comparison",
+    "bestprice",
+    "greece"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "bestprice-mcp-stdio": "stdio.mjs"
+  },
+  "files": ["stdio.mjs", "src/"],
+  "scripts": {
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "check": "biome ci .",
+    "stdio": "node stdio.mjs",
+    "eval:run": "node webmcp/evals/driver.js",
+    "eval:validate": "node webmcp/evals/run-evidence.js",
+    "eval:check": "node webmcp/evals/conformance.mjs && node webmcp/evals/run-evidence.js --strict",
+    "eval:conformance": "node webmcp/evals/conformance.mjs",
+    "webmcp:snapshot": "node webmcp/evals/storefront-snapshot.mjs",
+    "benchmark:selection": "node scripts/score-selection-run.mjs",
+    "benchmark:selection:anthropic": "node scripts/run-selection-anthropic.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12",
+    "yaml": "^2.9.1"
+  }
+}

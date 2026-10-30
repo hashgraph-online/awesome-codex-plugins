@@ -1,0 +1,233 @@
+{
+  "id": "glow-bloom",
+  "name": "Glow and bloom",
+  "use": "Make the bright parts of real footage glow: neutral bloom, film halation, coloured halos or long anamorphic streaks.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 8,
+  "fonts": [],
+  "ffmpeg_note": "Chains target 1920x1080 at 30 fps: [0:v] is the footage, generated inputs are 1..n, output label [v]. For 9:16 swap 1920x1080 -> 1080x1920 in sizes and crops. Generated lavfi inputs never end, so always cap the output with -t <clip duration> (ffprobe format=duration). Encode with -c:v libx264 -crf 16 -preset slow -pix_fmt yuv420p and keep audio with -map '0:a?' -c:a copy.",
+  "presets": [
+    {
+      "id": "glow-bloom.soft-default",
+      "label": "Soft bloom",
+      "look": "Neutral multi-scale bloom: highlights get a tight core plus a wide soft halo; shadows untouched.",
+      "params": {
+        "threshold_knee": [
+          0.55,
+          0.85
+        ],
+        "blur_sigmas_px_1080p": [
+          6,
+          24,
+          72
+        ],
+        "glow_gain": 0.6,
+        "tint_hex": "#FFFFFF",
+        "blend": "screen",
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=2[base][hi];[hi]curves=all='0/0 0.55/0 0.85/1 1/1',split=3[h0][h1][h2];[h0]gblur=sigma=6:steps=1[g0];[h1]gblur=sigma=24:steps=3[g1];[h2]gblur=sigma=72:steps=3[g2];[g0][g1]blend=all_mode=addition:shortest=1[acc0];[acc0][g2]blend=all_mode=addition:shortest=1[acc1];[acc1]colorchannelmixer=rr=0.6:gg=0.6:bb=0.6[glow];[base][glow]blend=all_mode=screen:shortest=1,format=yuv420p[v]"
+        },
+        "remotion": "[glow({radius: 8, threshold: 0.6, intensity: 0.5}), glow({radius: 32, threshold: 0.6, intensity: 0.4}), glow({radius: 96, threshold: 0.6, intensity: 0.3})]",
+        "hyperframes": {
+          "css": "--hf-color-grading-bloom: 0.8 (range 0-3)"
+        }
+      },
+      "sources": [
+        3,
+        12,
+        13,
+        14
+      ]
+    },
+    {
+      "id": "glow-bloom.film-halation",
+      "label": "Film halation",
+      "look": "Thin red-orange halo hugging hard highlights (practicals, window edges), like light bouncing off the film base.",
+      "params": {
+        "threshold_knee": [
+          0.7,
+          0.95
+        ],
+        "blur_sigmas_px_1080p": [
+          4,
+          14
+        ],
+        "tint_hex": "#E6401A",
+        "mix": "rr=0.9 gg=0.25 bb=0.06",
+        "blend": "screen",
+        "rule": "glow must stay within ~20 px of the highlight edge at 1080p; never tint the whole frame",
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=2[base][hi];[hi]curves=all='0/0 0.7/0 0.95/1 1/1',split=2[h0][h1];[h0]gblur=sigma=4:steps=1[g0];[h1]gblur=sigma=14:steps=1[g1];[g0][g1]blend=all_mode=addition:shortest=1[acc0];[acc0]colorchannelmixer=rr=0.9:gg=0.25:bb=0.06[glow];[base][glow]blend=all_mode=screen:shortest=1,format=yuv420p[v]"
+        },
+        "remotion": "glow({radius: 10, threshold: 0.75, intensity: 0.8, color: '#E6401A'})"
+      },
+      "sources": [
+        15,
+        7,
+        14,
+        12
+      ]
+    },
+    {
+      "id": "glow-bloom.scifi-cyan",
+      "label": "Sci-fi cyan",
+      "look": "Cool cyan-blue bloom on screens, neon and rim light; wide halo.",
+      "params": {
+        "threshold_knee": [
+          0.5,
+          0.8
+        ],
+        "blur_sigmas_px_1080p": [
+          8,
+          32,
+          96
+        ],
+        "tint_hex": "#33BFFF",
+        "mix": "rr=0.2 gg=0.75 bb=1.0",
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=2[base][hi];[hi]curves=all='0/0 0.5/0 0.8/1 1/1',split=3[h0][h1][h2];[h0]gblur=sigma=8:steps=1[g0];[h1]gblur=sigma=32:steps=3[g1];[h2]gblur=sigma=96:steps=3[g2];[g0][g1]blend=all_mode=addition:shortest=1[acc0];[acc0][g2]blend=all_mode=addition:shortest=1[acc1];[acc1]colorchannelmixer=rr=0.2:gg=0.75:bb=1.0[glow];[base][glow]blend=all_mode=screen:shortest=1,format=yuv420p[v]"
+        },
+        "remotion": "glow({radius: 32, threshold: 0.5, intensity: 0.9, color: '#33BFFF'})"
+      },
+      "sources": [
+        3,
+        12,
+        14
+      ]
+    },
+    {
+      "id": "glow-bloom.sunset-warm",
+      "label": "Sunset warm",
+      "look": "Golden-hour bloom: low threshold, very wide amber halo that lifts the whole top end.",
+      "params": {
+        "threshold_knee": [
+          0.45,
+          0.8
+        ],
+        "blur_sigmas_px_1080p": [
+          10,
+          40,
+          120
+        ],
+        "tint_hex": "#FF8C33",
+        "mix": "rr=1.0 gg=0.55 bb=0.2",
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=2[base][hi];[hi]curves=all='0/0 0.45/0 0.8/1 1/1',split=3[h0][h1][h2];[h0]gblur=sigma=10:steps=1[g0];[h1]gblur=sigma=40:steps=3[g1];[h2]gblur=sigma=120:steps=3[g2];[g0][g1]blend=all_mode=addition:shortest=1[acc0];[acc0][g2]blend=all_mode=addition:shortest=1[acc1];[acc1]colorchannelmixer=rr=1.0:gg=0.55:bb=0.2[glow];[base][glow]blend=all_mode=screen:shortest=1,format=yuv420p[v]"
+        }
+      },
+      "sources": [
+        12,
+        14,
+        13
+      ]
+    },
+    {
+      "id": "glow-bloom.anamorphic-streaks",
+      "label": "Anamorphic streaks",
+      "look": "Long horizontal blue streaks through every bright point plus a small core glow.",
+      "params": {
+        "threshold_knee": [
+          0.6,
+          0.9
+        ],
+        "streak_sigma_h_px": 140,
+        "streak_sigma_v_px": 1.5,
+        "core_sigma_px": 10,
+        "tint_hex": "#5A99FF",
+        "mix": "rr=0.35 gg=0.6 bb=1.2",
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=2[base][hi];[hi]curves=all='0/0 0.6/0 0.9/1 1/1',split=2[h0][h1];[h0]gblur=sigma=10:steps=1[g0];[h1]gblur=sigma=140:sigmaV=1.5:steps=3[g1];[g0][g1]blend=all_mode=addition:shortest=1[acc0];[acc0]colorchannelmixer=rr=0.35:gg=0.6:bb=1.2[glow];[base][glow]blend=all_mode=screen:shortest=1,format=yuv420p[v]"
+        },
+        "remotion": "lightTrail({direction: 0, distance: 220, threshold: 0.7, decay: 0.92, samples: 48, color: '#5A99FF'}) + lightTrail({direction: 180, ...same})"
+      },
+      "sources": [
+        14,
+        2,
+        12
+      ]
+    },
+    {
+      "id": "glow-bloom.ominous-red",
+      "label": "Ominous red",
+      "look": "Darkened base, low-threshold deep-red bloom bleeding out of mid-highlights.",
+      "params": {
+        "base_curve": "0/0 0.5/0.35 1/0.9",
+        "threshold_knee": [
+          0.35,
+          0.7
+        ],
+        "blur_sigmas_px_1080p": [
+          20,
+          80
+        ],
+        "tint_hex": "#E6140D",
+        "mix": "rr=0.9 gg=0.08 bb=0.05",
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,curves=all='0/0 0.5/0.35 1/0.9',split=2[base][hi];[hi]curves=all='0/0 0.35/0 0.7/1 1/1',split=2[h0][h1];[h0]gblur=sigma=20:steps=3[g0];[h1]gblur=sigma=80:steps=3[g1];[g0][g1]blend=all_mode=addition:shortest=1[acc0];[acc0]colorchannelmixer=rr=0.9:gg=0.08:bb=0.05[glow];[base][glow]blend=all_mode=screen:shortest=1,format=yuv420p[v]"
+        }
+      },
+      "sources": [
+        12,
+        13,
+        14
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 2,
+      "name": "Xor (@XorDev) — types of blur shaders",
+      "url": "https://x.com/XorDev/status/1762944762787647954"
+    },
+    {
+      "n": 3,
+      "name": "Xor (@XorDev) — bloom at multiple blur scales",
+      "url": "https://x.com/XorDev/status/1883916173231759858"
+    },
+    {
+      "n": 7,
+      "name": "Steve Yedlin (@steveyedlin) — halation causes edge erosion only in some cases",
+      "url": "https://x.com/steveyedlin/status/1515462800629542912"
+    },
+    {
+      "n": 12,
+      "name": "Xor — GM Shaders Mini: Bloom",
+      "url": "https://mini.gmshaders.com/p/gm-shaders-mini-bloom"
+    },
+    {
+      "n": 13,
+      "name": "LearnOpenGL — Bloom",
+      "url": "https://learnopengl.com/Advanced-Lighting/Bloom"
+    },
+    {
+      "n": 14,
+      "name": "Boris FX — Sapphire S_Glow",
+      "url": "https://borisfx.com/documentation/sapphire/ae/glow/"
+    },
+    {
+      "n": 15,
+      "name": "Analog.Cafe — Halation in film photography",
+      "url": "https://www.analog.cafe/r/halation-in-film-photography-i3q4"
+    },
+    {
+      "n": 26,
+      "name": "Remotion — glow()",
+      "url": "https://www.remotion.dev/docs/effects/glow"
+    },
+    {
+      "n": 30,
+      "name": "HyperFrames — grading reference (animatable bloom)",
+      "url": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/skills/media-use/references/grading.md"
+    }
+  ]
+}

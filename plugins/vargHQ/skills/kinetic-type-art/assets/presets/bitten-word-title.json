@@ -1,0 +1,178 @@
+{
+  "id": "bitten-word-title",
+  "name": "Bitten word title",
+  "use": "A word eaten letter by letter, one scalloped bite per beat",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4,
+  "fonts": [
+    {
+      "family": "Rubik Mono One",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Rubik+Mono+One"
+    },
+    {
+      "family": "Dela Gothic One",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Dela+Gothic+One"
+    },
+    {
+      "family": "Bungee",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Bungee"
+    }
+  ],
+  "presets": [
+    {
+      "id": "bitten-word-title.lemon",
+      "label": "Lemon",
+      "look": "Yellow word, pale flesh at the bite",
+      "params": {
+        "word": "#FFE800",
+        "rim": "#FFF6A8",
+        "bg": "#FFFFFF",
+        "font": "Rubik Mono One",
+        "bpm": 120,
+        "frames_per_beat_30fps": 15,
+        "land": {
+          "frames": 10,
+          "from_scale": 0.92,
+          "ease": "back.out(1.4)"
+        },
+        "bite": {
+          "anticipation_f": 3,
+          "anticipation_rotate_deg": -3,
+          "anticipation_scale": [
+            0.97,
+            1.03
+          ],
+          "recoil_f": 7,
+          "recoil_squash": [
+            1.08,
+            0.93
+          ],
+          "recoil_ease": "elastic.out(1, 0.5)",
+          "circles": [
+            3,
+            5
+          ],
+          "circle_radius_of_cap": [
+            0.16,
+            0.22
+          ],
+          "removes_pct": [
+            25,
+            45
+          ]
+        },
+        "crumbs": {
+          "count": [
+            6,
+            12
+          ],
+          "radius_px": [
+            2,
+            6
+          ],
+          "speed_px_s": [
+            300,
+            600
+          ],
+          "gravity_px_s2": 1800,
+          "life_f": [
+            12,
+            18
+          ]
+        },
+        "cap_height_pct_of_frame_h": [
+          30,
+          40
+        ],
+        "final_hold_f": 18
+      },
+      "sources": [
+        39,
+        38,
+        30
+      ]
+    },
+    {
+      "id": "bitten-word-title.orange",
+      "label": "Orange",
+      "look": "Orange on cream",
+      "params": {
+        "word": "#FF6C2F",
+        "rim": "#FFC58F",
+        "bg": "#FFF7EC"
+      },
+      "sources": [
+        30
+      ]
+    },
+    {
+      "id": "bitten-word-title.lime",
+      "label": "Lime",
+      "look": "Green on near-white",
+      "params": {
+        "word": "#67B346",
+        "rim": "#D9F0B8",
+        "bg": "#F7FBF2"
+      },
+      "sources": [
+        30
+      ]
+    },
+    {
+      "id": "bitten-word-title.strawberry",
+      "label": "Strawberry",
+      "look": "Red with seed dots",
+      "params": {
+        "word": "#F65058",
+        "rim": "#FFD1D6",
+        "seeds": "#FFE900",
+        "seed_radius_px": [
+          2,
+          3
+        ],
+        "bg": "#FFF5F5"
+      },
+      "sources": [
+        30
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 27,
+      "name": "google/fonts METADATA (licenses, axes)",
+      "url": "https://github.com/google/fonts"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 38,
+      "name": "Silverman Sound, BPM to FPS calculator",
+      "url": "https://www.silvermansound.com/bpm-to-fps-calculator"
+    },
+    {
+      "n": 39,
+      "name": "Netguru, 12 principles of animation (Agnieszka Koniuszek)",
+      "url": "https://www.netguru.com/blog/illustrators-eye-12-principles-of-animation"
+    }
+  ]
+}

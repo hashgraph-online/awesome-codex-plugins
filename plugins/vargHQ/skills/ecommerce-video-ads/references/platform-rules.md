@@ -49,7 +49,7 @@ Tags: **[official]** read on a TikTok, Meta or FTC page · **[secondary]** a tra
 
 | Rule | Detail | Source |
 |---|---|---|
-| FTC fake reviews and testimonials | Bans fake testimonials, including AI-generated ones, and misrepresenting a reviewer as a real customer; ~$51,744 per violation | [official] [FTC final rule](https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials) |
+| FTC fake reviews and testimonials | Bans fake testimonials, including AI-generated ones, and misrepresenting a reviewer as a real customer; up to $53,088 per violation (the inflation-adjusted maximum since 17 Jan 2025) | [official] [FTC final rule](https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials), [Federal Register: 2025 penalty amounts](https://www.federalregister.gov/documents/2025/01/17/2025-01361/adjustments-to-civil-penalty-amounts) |
 | FTC endorsements | Commissions are a material connection; use the paid-partnership toggle and in-video disclosure when paid | [practitioner] |
 | New York synthetic performers | Since 9 June 2026: ads that may reach NY must conspicuously disclose synthetic performers; $1,000 first, $5,000 after | [Reed Smith](https://www.reedsmith.com/our-insights/blogs/viewpoints/102n129/fake-performer-real-penalty-what-advertisers-need-to-know-before-june-9/) |
 | EU AI Act | Transparency duties for AI-generated content from August 2026 | [secondary] |

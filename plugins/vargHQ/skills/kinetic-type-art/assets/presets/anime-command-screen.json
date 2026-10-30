@@ -1,0 +1,186 @@
+{
+  "id": "anime-command-screen",
+  "name": "Anime command screen title",
+  "use": "A compressed serif title card inside a fictional command screen with counters, glow and scanlines",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 6,
+  "fonts": [
+    {
+      "family": "Shippori Mincho",
+      "weights": [
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Shippori+Mincho"
+    },
+    {
+      "family": "Zen Old Mincho",
+      "weights": [
+        900
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Zen+Old+Mincho"
+    },
+    {
+      "family": "Archivo",
+      "weights": [
+        500,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Archivo"
+    },
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "anime-command-screen.alert",
+      "label": "Alert",
+      "look": "Orange-red alert screen, black title card, hazard stripes",
+      "params": {
+        "bg": "#0A0605",
+        "warn": "#FF3B1F",
+        "amber": "#FF8A1F",
+        "title_font": "Shippori Mincho",
+        "title_weight": 800,
+        "title_scaleX": 0.62,
+        "title_tracking_em": -0.02,
+        "title_cap_height_pct": [
+          18,
+          24
+        ],
+        "power_on": {
+          "frames": 12,
+          "ease": "expo.out"
+        },
+        "panels_draw_frames": [
+          6,
+          10
+        ],
+        "panel_stagger_f": 2,
+        "label_scramble": {
+          "frames": [
+            8,
+            12
+          ],
+          "speed": 1,
+          "revealDelay_s": 0.1
+        },
+        "title_flash": {
+          "frames": 2,
+          "opacity": 0.6
+        },
+        "counter_tick_every_f": 2,
+        "hazard_stripes": {
+          "angle_deg": 45,
+          "band_px": 24
+        },
+        "scanlines": {
+          "period_px": 3,
+          "gap_brightness": 0.12
+        },
+        "bloom_radius_px": [
+          6,
+          12
+        ],
+        "end_glitch_rgb_px": 6
+      },
+      "sources": [
+        52,
+        55,
+        36,
+        20,
+        54
+      ]
+    },
+    {
+      "id": "anime-command-screen.monitor",
+      "label": "Monitor",
+      "look": "Green line monitor grid, white title",
+      "params": {
+        "bg": "#020604",
+        "line": "#2BE38A",
+        "line_opacity": 0.6,
+        "title_font": "Zen Old Mincho",
+        "title_weight": 900,
+        "title_scaleX": 0.7,
+        "label_font": "Archivo",
+        "label_wdth": 62,
+        "label_size_px": [
+          14,
+          18
+        ],
+        "label_tracking_em": 0.1
+      },
+      "sources": [
+        52,
+        54
+      ]
+    },
+    {
+      "id": "anime-command-screen.card",
+      "label": "Title card only",
+      "look": "Black and white compressed serif card in interlocking lines",
+      "params": {
+        "bg": "#000000",
+        "ink": "#FFFFFF",
+        "title_scaleX": [
+          0.55,
+          0.75
+        ],
+        "layout": "interlocking L, 2-3 lines"
+      },
+      "sources": [
+        52
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 10,
+      "name": "@HudsandGuis, FUI archive",
+      "url": "https://x.com/HudsandGuis/status/1427767264720285701"
+    },
+    {
+      "n": 20,
+      "name": "GSAP ScrambleTextPlugin docs",
+      "url": "https://gsap.com/docs/v3/Plugins/ScrambleTextPlugin/"
+    },
+    {
+      "n": 36,
+      "name": "libretro crt-pi shader (davej)",
+      "url": "https://raw.githubusercontent.com/libretro/glsl-shaders/master/crt/shaders/crt-pi.glsl"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 52,
+      "name": "Fonts In Use, Neon Genesis Evangelion (Peiran Tan)",
+      "url": "https://fontsinuse.com/uses/28760/neon-genesis-evangelion"
+    },
+    {
+      "n": 54,
+      "name": "Pushing Pixels, David Sheldon-Hicks (Territory Studio)",
+      "url": "https://www.pushing-pixels.org/2014/08/07/the-craft-of-screen-graphics-and-movie-user-interfaces-interview-with-david-sheldon-hicks-of-territory-studio.html"
+    },
+    {
+      "n": 55,
+      "name": "Pushing Pixels, John LePore (Perception)",
+      "url": "https://pushing-pixels.org/?p=12751"
+    }
+  ]
+}

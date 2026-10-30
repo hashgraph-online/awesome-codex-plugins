@@ -226,11 +226,11 @@ console.log(`Available: ${features.join(", ")}`)
 
 if (!hasExample) {
   console.log(`\nRender your first video:`)
-  console.log(dim(`  bunx vargai@alpha render ${examplePath} --preview   ${dim("(free preview)")}`))
-  console.log(dim(`  bunx vargai@alpha render ${examplePath} --verbose   ${dim("(full render, costs credits)")}`))
+  console.log(dim(`  bunx vargai@0.4.0-alpha124 render ${examplePath} --preview   ${dim("(free preview)")}`))
+  console.log(dim(`  bunx vargai@0.4.0-alpha124 render ${examplePath} --verbose   ${dim("(full render, costs credits)")}`))
 } else {
   console.log(`\nRender:`)
-  console.log(dim(`  bunx vargai@alpha render <file.tsx> --verbose`))
+  console.log(dim(`  bunx vargai@0.4.0-alpha124 render <file.tsx> --verbose`))
 }
 
 console.log()

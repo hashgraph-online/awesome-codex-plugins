@@ -7,7 +7,7 @@ requirements:
 license: MIT
 compatibility: "Requires host MCP at https://mem.centricmem.com/mcp. Floors use the pre-1.0 0.21.x numbering; every 1.0.x satisfies them all. librarian >=0.21.50: a card is summary + key points (a keep stub is not a card); a folder is cm_keep card:false then cm_import items; archive zip is optional; share: shelf ids; cm_move takes whole paths (never lessons.md or #); cm_delete {file,shelf} a card, heading= for one ##; cm_rename {file,shelf,title}; omitting the cm_library id lists shelves; skipExisting and copy-aside FTS skip. >=0.21.51 Codex OAuth. >=0.21.55 applicant HTTPS callbacks. >=0.21.56 OAuth key picker and the ChatGPT Approve hop. >=1.0.6 host-ops detail (cm_ops)."
 metadata:
-  version: "1.0.35"
+  version: "1.0.36"
   compatible_cli: ">=0.21.50"
   changelog_url: https://github.com/zeyu-j/centricmem-skill/blob/main/CHANGELOG.md
 ---
@@ -18,6 +18,11 @@ metadata:
 Handover (when / loop). Schemas win. Branches: [REFERENCE.md](REFERENCE.md).
 **Library** → **Shelf** → **Card** (summary + key points). No Inbox / `unclassified`. One key = grants. Never paste keys in chat (REFERENCE **Bearer: where plaintext is OK vs not** — claim may write a private local MCP file; docs/plans use `${VAR}` or URL-only). **Where the key lives:** the process environment first, then the nearest `.env` walking up from the working directory, then `~/.centricmem/.env` - hooks and local wrappers read all three. So the honest thing to tell a human whose hook is not working while MCP is: put `CENTRICMEM_TOKEN=` in `.env`, never in a prompt.
 **Style** of a card (voice, length, evidence density) is yours + this agent's — not a CentricMem house voice. Structure only: REFERENCE **Card contract**.
+
+## Quick path
+`cm_health` → `cm_ambient` **with `shelf=`** → `cm_note` / `cm_log_decision` with the same `shelf=`. The rest of this file is for when those three are blocked.
+**Shelf:** `suggested_shelf=` is a cwd heuristic, not authority. If the session is not about that shelf, use the one whose charter matches and say which you chose.
+**Wrap-up:** decision unlogged? friction unlogged? stale card cited (>90d, volatile fact)? If all three are no, stop.
 
 ## Do not (full list: REFERENCE)
 

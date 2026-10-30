@@ -55,6 +55,19 @@ per-table breakdown where relevant, in the unit `--budget` takes:
 OK envelopes report actual spend under `data.spend`, which accumulates in
 `.dex/spend.jsonl`.
 
+On Snowflake most of a short command's price is the warehouse's idle tail, not
+its work: a warehouse bills at least 60 seconds per resume and then until it has
+idled for `AUTO_SUSPEND`, 600 seconds by default. The estimate shows it as its
+own `(warehouse uptime)` line and a note says what the work alone would cost. A
+command run while the tail a previous dex command paid is still running is
+charged only the gap since it, not a second tail. When `connect test` warns that
+`AUTO_SUSPEND` is long, relay its recommendation to the user (a dedicated
+warehouse with `AUTO_SUSPEND = 60`, or `snowflake.suspend_after_command: true`
+with `OPERATE` granted); do not change the warehouse or the setting yourself.
+The warning and the estimate's note both carry the exact commands to copy:
+`dex config set snowflake.suspend_after_command true`, and the `GRANT OPERATE ON
+WAREHOUSE ... TO ROLE ...` with the session's own role filled in.
+
 ### The calibration line
 
 An over-ceiling refusal carries a line drawn from `.dex/spend.jsonl`: what this

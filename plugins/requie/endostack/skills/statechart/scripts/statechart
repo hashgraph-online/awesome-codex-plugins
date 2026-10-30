@@ -1,0 +1,22 @@
+#!/bin/sh
+# Launcher for statechart.mjs. Resolves its own path through symlinks, then
+# runs the entry with Node.js 22 or later.
+set -u
+
+self=$0
+while [ -L "$self" ]; do
+  target=$(readlink "$self")
+  case $target in
+    /*) self=$target ;;
+    *) self=$(dirname "$self")/$target ;;
+  esac
+done
+dir=$(cd "$(dirname "$self")" && pwd)
+
+node_bin=${STATECHART_NODE:-node}
+version=$("$node_bin" --version 2>/dev/null | sed -n '1s/^v\([0-9][0-9]*\)\..*/\1/p')
+if [ -z "$version" ] || [ "$version" -lt 22 ]; then
+  echo "statechart needs Node.js 22 or later on PATH (found: ${version:-none})." >&2
+  exit 127
+fi
+exec "$node_bin" "$dir/statechart.mjs" "$@"

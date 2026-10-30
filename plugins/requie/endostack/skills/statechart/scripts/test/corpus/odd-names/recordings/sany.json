@@ -1,0 +1,11 @@
+{
+ "request": {
+  "kind": "sany",
+  "cfgText": null,
+  "wrapper": null
+ },
+ "exit": 0,
+ "stdout": "<?xml version=\"1.0\" encoding=\"UTF-8\"?><modules><RootModule>Odd</RootModule><context><entry><UID>185</UID><UserDefinedOpKind><location><column><begin>1</begin><end>49</end></column><line><begin>4</begin><end>6</end></line><filename>Odd</filename></location><level>2</level><uniquename>Next</uniquename><arity>0</arity></UserDefinedOpKind></entry><entry><UID>154</UID><ModuleNode><location><column><begin>1</begin><end>4</end></column><line><begin>1</begin><end>8</end></line><filename>Odd</filename></location><uniquename>Odd</uniquename><OpDeclNodeRef><UID>155</UID></OpDeclNodeRef><UserDefinedOpKindRef><UID>159</UID></UserDefinedOpKindRef><UserDefinedOpKindRef><UID>185</UID></UserDefinedOpKindRef><UserDefinedOpKindRef><UID>189</UID></UserDefinedOpKindRef></ModuleNode></entry><entry><UID>155</UID><OpDeclNode><location><column><begin>11</begin><end>11</end></column><line><begin>2</begin><end>2</end></line><filename>Odd</filename></location><level>1</level><uniquename>s</uniquename><arity>0</arity><kind>3</kind></OpDeclNode></entry><entry><UID>189</UID><UserDefinedOpKind><location><column><begin>1</begin><end>32</end></column><line><begin>7</begin><end>7</end></line><filename>Odd</filename></location><level>1</level><uniquename>Inv_1</uniquename><arity>0</arity></UserDefinedOpKind></entry><entry><UID>159</UID><UserDefinedOpKind><location><column><begin>1</begin><end>18</end></column><line><begin>3</begin><end>3</end></line><filename>Odd</filename></location><level>1</level><uniquename>Init</uniquename><arity>0</arity></UserDefinedOpKind></entry></context></modules>",
+ "stderr": "Picked up JAVA_TOOL_OPTIONS: \nSemantic processing of module Odd\n",
+ "dot": null
+}

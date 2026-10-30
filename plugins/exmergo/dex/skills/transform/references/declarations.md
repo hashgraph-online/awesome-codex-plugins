@@ -348,11 +348,37 @@ project records rather than one remembered from the conversation that wrote it.
 
 ## Derived semantic model: `data.semantic_proposal`
 
-When `transform plan` or `semantic define|update|plan` creates, edits or declares a
-model under `transform.marts_paths` (`.dex/config.yml`, default `[models/marts]`,
-relative to the dbt project, subfolders included) and the model's post-change YAML
-carries a declaration, the engine derives the MetricFlow semantic model the
-declaration already states:
+When `transform plan`, `transform declare` or `semantic define|update|plan` creates,
+edits or declares a model under `transform.marts_paths` (`.dex/config.yml`, default
+`[models/marts]`, relative to the dbt project, subfolders included) and the model's
+post-change YAML carries a declaration, the engine derives the semantic definition
+the declaration already states, **in whichever semantic layer the repository
+reads** (`semantic.vendor`). Every vendor sits behind one hook
+(`SemanticDerivationSource`), so the envelope has one shape with a `vendor` field:
+
+| `semantic.vendor` | What a declared mart gets |
+| --- | --- |
+| `dbt` (default) | a MetricFlow semantic model, spliced into the dbt plan |
+| `slayer` | a SLayer model file, stored as a plan of its own beside the dbt plan |
+| `cube` | a Cube model file, stored as a plan of its own beside the dbt plan |
+| `ossie` | nothing yet (#500): a warning says the layer does not carry declarations, so none is mistaken for derived |
+
+Three rules hold for every vendor. Metrics are never derived: a measure is what a
+column holds, a metric is a business definition, and it stays the author's. Nothing
+is guessed or renamed: an aggregation with no equivalent, a composite grain a layer
+cannot key on, a name already declared are each named. And **a population is
+metadata, never a filter**: the derived definition sits on the mart, whose SQL
+already enforces the population, so a filter would apply the rule twice and diverge
+silently the day the two disagree. It is carried structured under the vendor's
+metadata key `dex`, and as one sentence at the end of the description
+(`Population: <rule>; status is one of 'paid' or 'shipped'.`), where an agent
+reading the catalog meets it.
+
+Per model, `carried` lists every declared field that reached the definition
+(`grain`, `population`, `columns.amount.unit`) and `not_carried` names every one
+that did not, with why. A declared field never disappears without a word.
+
+### MetricFlow (`semantic.vendor: dbt`)
 
 | Declaration | Semantic model |
 | --- | --- |
@@ -363,10 +389,10 @@ declaration already states:
 | `time` | a time dimension: `day` for a date, `day` for a timestamp (noted, since finer is the author's choice), the truncated grain where the SQL truncates (`date_trunc('month', ...)`), `day` with a note where the type cannot be read. A column whose type is known not to be temporal is left out. The first time column is `defaults.agg_time_dimension`, and a note names the others |
 | `measure` with `aggregation` | a measure: `sum`, `count`, `count_distinct`, `min`, `max`, `average` (`avg`, `mean`), `median`, `sum_boolean`. Anything else (`percentile` needs parameters a declaration does not carry), a missing aggregation, or `non_additive` with a summing aggregation is left out and named. A model with no time column carries no measure, since MetricFlow aggregates over one |
 | `semi_additive` | `non_additive_dimension: {name: <default time dimension>, window_choice: max}`: each period reports its last value, which suits a balance or a season-to-date total. MetricFlow's own default is `min`; the note asks you to confirm |
-| `description` | carried onto the semantic model, dimensions and measures (MetricFlow's schema has no entity description, and a note says so) |
-
-Metrics are never derived. A measure is what a column holds; a metric is a
-business definition, and it stays the author's.
+| `non_additive` | `config.meta.dex.additivity: non_additive` on the measure, since MetricFlow reads any measure as one it may add up |
+| `description` | carried onto the semantic model, dimensions and measures (MetricFlow's schema has no entity description, and `not_carried` says so) |
+| `population`, `assumptions` | the semantic model's `config.meta.dex`, and the population sentence in its description |
+| `unit`, `null_rule` | the entity's, dimension's or measure's `config.meta.dex` |
 
 What happens to the derivation depends on the project:
 
@@ -390,6 +416,7 @@ because a semantic YAML dbt cannot parse breaks every dbt command in the project
 
 ```json
 "semantic_proposal": {
+  "vendor": "dbt",
   "mode": "proposed",
   "time_spine": "missing",
   "definitions": [{"kind": "semantic_model", "path": "models/marts/fct_orders_semantic.yml", "content": "name: fct_orders\n..."}],
@@ -401,7 +428,9 @@ because a semantic YAML dbt cannot parse breaks every dbt command in the project
       "content": "name: fct_orders\n...",
       "validation": {"schema": {"result": "passed"}, "references": {"result": "passed"}, "parse": {"result": "passed", "detail": "parsed with a throwaway time spine in the copy only; the project has none"}},
       "notes": ["..."],
-      "limitations": []
+      "limitations": [],
+      "carried": ["description", "grain", "population", "columns.order_total.unit"],
+      "not_carried": {}
     }
   },
   "next": "save this object as a file and pass it to `semantic plan --definitions-file <file>` ...",
@@ -409,19 +438,103 @@ because a semantic YAML dbt cannot parse breaks every dbt command in the project
 }
 ```
 
+### SLayer (`semantic.vendor: slayer`)
+
+One model file per mart, `models/<data_source>/<mart>.yaml` under
+`semantic.slayer.base_dir`:
+
+| Declaration | SLayer model |
+| --- | --- |
+| `grain` | `primary_key: true` on each grain column, a composite grain included |
+| any role | a column, typed from the SQL's casts or the cache's profile (`INT`, `DOUBLE`, `BOOLEAN`, `DATE`, `TIMESTAMP`, `TEXT`); a summed measure of unknown type is `DOUBLE`, with a note |
+| the first `time` column | `default_time_dimension` (only where its type is known to be a date or a timestamp) |
+| `foreign_key` with `references` | a `many_to_one` join to the SLayer model already sitting on the parent's table; where none does, no join and a note |
+| `measure` with `aggregation` | a saved measure named `<column>_<agg>`, formula `<column>:<agg>`: `sum`, `avg` (`average`, `mean`), `min`, `max`, `count`, `count_distinct`, `median`. SLayer keeps columns and measures in one namespace, so a name a column already holds fails the derivation rather than being renamed |
+| `semi_additive` | no saved measure, named in `limitations`: SLayer's `last` reports one row's value on the last period, not the total across entities on it, so `<column>:last` is the author's call |
+| `description` | the model's and each column's `description` |
+| `population`, `assumptions` | the model's `meta.dex`, and the population sentence in its description |
+| `unit`, `null_rule`, `additivity` | the column's `meta.dex` |
+
+`data_source` is the one the configured models share; models over more than one
+are not guessed between (`failed`). `sql_table` is, in order: the `database.schema`
+that the SLayer models on this dbt project's other models already read (so a mart
+lands where its siblings do); else the relation the compiled manifest names, with a
+note, since that is whatever target last compiled the project (often dev); else the
+bare table name, as a limitation, since dex's catalog then claims no relation. A
+model already on the mart's table is `skipped`; one holding its name on another
+table is `failed`.
+
+Whether it is included depends on the write surface:
+
+- **The path is already listed under `semantic.slayer.models`**: the model is
+  validated by exactly the checks `semantic slayer define` runs, read back through
+  the SLayer catalog, and stored as **a plan of its own** on the SLayer layer,
+  beside the dbt plan, because a plan holds one edit target. `mode` is `included`,
+  `plan_id` names that plan, and the hint names both:
+  `transform apply <dbt plan>` and `transform apply <plan_id>`. A bare
+  `transform apply` takes only the latest, which is the SLayer one.
+- **It is not**: `mode` is `proposed`, after the same checks. Listing a file is a
+  configuration change with its own confirmation, so `next` names it:
+  `dex config set semantic.slayer.models '[..., models/wh/fct_orders.yaml]'`, then
+  pass `data.semantic_proposal.definitions` (an edits payload) to
+  `semantic slayer define --edits-file`, or re-run the plan to include it.
+
+### Cube (`semantic.vendor: cube`)
+
+One file per mart, `<dir>/<mart>.yml`, where `<dir>` is the one directory the
+configured YAML files share (`model/cubes` where they share none):
+
+| Declaration | Cube |
+| --- | --- |
+| `grain` | `primary_key: true` on each grain dimension, a composite grain included |
+| any role but `measure` | a dimension, `sql: "{CUBE}.<column>"`, typed `time`, `number`, `boolean` or `string` from the SQL's casts or the cache's profile; a `time` role is always `time` (with a note where the type could not be read) |
+| `measure` with `aggregation` | a measure named after the column, `sql: "{CUBE}.<column>"`: `sum`, `avg` (`average`, `mean`), `min`, `max`, `count`, `count_distinct`. The column is not also a dimension, as MetricFlow does not make it one |
+| `median`, `semi_additive` | no measure, named in `limitations` and `not_carried`: Cube has no median type, and no measure that sums across entities but not across time |
+| `foreign_key` with `references` | a `many_to_one` join, `{CUBE}.<column> = {<parent>}.<parent column>`, to the cube already on the parent's table; none, or a second key to the same cube, means no join and a note |
+| `description` | the cube's and each member's `description` |
+| `population`, `assumptions` | the cube's `meta.dex`, and the population sentence in its description; never a measure filter or a segment |
+| `unit`, `null_rule`, `additivity` | the member's `meta.dex` |
+
+`sql_table` follows the SLayer order (the siblings' `database.schema`, else the
+manifest relation, else the bare name as a limitation), and `data_source` is
+written only where `semantic.cube.data_source` is not `default`. A cube already on
+the mart's table is `skipped`; a cube or view holding its name is `failed`.
+Included and proposed work as for SLayer, against `semantic.cube.files`: listed
+paths are stored as a plan of their own (`plan_id`; apply both), others are
+proposed with the `dex config set semantic.cube.files '[...]'` that adds them.
+
+### Declarations on `semantic slayer` and `semantic cube`
+
+`semantic slayer define|update|plan` take the same `declarations` key beside
+`edits`. There a declaration **annotates** a SLayer model the payload's edits or
+the layer already define (`model` is the SLayer model's name): the declared grain
+becomes `primary_key`, descriptions and the population sentence are written, a
+`references` adds a `many_to_one` join where none to that model exists, a declared
+aggregation adds its `<column>_<agg>` saved measure, and `population`,
+`assumptions`, `unit`, `null_rule` and `additivity` land in `meta.dex`. The
+declaration wins field by field and nothing else moves; a declaration naming no
+defined model is refused. `edits` may be omitted. The result is validated by the
+layer's own checks before the plan is stored. `semantic cube` does the same for a
+cube (`model` is the cube's name; a view is refused, since it has no table of its
+own): grain to `primary_key` on its dimensions, a declared aggregation adds a
+measure named after the column, a `references` adds a `many_to_one` join, and
+only that cube's entry in its file is rewritten, so every other cube, view and
+comment keeps its bytes. `semantic ossie` refuses a
+`declarations` payload by name until its layer implements the hook (#500).
+
 Per model, `status` is one of:
 
 | `status` | Meaning |
 | --- | --- |
-| `included` | in this plan |
+| `included` | in this plan, or for a native layer in the plan named by `plan_id` |
 | `proposed` | passed every check; in `definitions` |
-| `failed` | a check failed, the grain is composite, or a semantic model or measure name is already declared (renaming is yours, never the engine's); `reason` or `validation` says which. `content` is kept for you to fix, never offered |
+| `failed` | a check failed, the grain is composite (MetricFlow), a name is already declared (renaming is yours, never the engine's), or the data source is ambiguous (SLayer); `reason` or `validation` says which. `content` is kept for you to fix, never offered |
 | `unvalidated` | a check could not run (dbt absent, or the plan's own edits do not parse), so it is neither offered nor included |
-| `skipped` | an authored semantic model already sits on the mart (never overwritten), or the declaration names nothing a semantic model carries |
+| `skipped` | an authored definition already sits on the mart (never overwritten), or the declaration names nothing a definition carries |
 
-The key is absent when the plan touches no declared mart. Under `semantic.vendor:
-ossie` or `slayer` nothing is derived and a warning names the vendor's own
-authoring verb.
+The key is absent when the plan touches no declared mart. Under a vendor whose
+layer does not implement the hook (`ossie` today) nothing is derived and a
+warning says so.
 
 ## `data.decisions`
 

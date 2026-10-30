@@ -1,0 +1,245 @@
+{
+  "id": "mesh-gradient-grain",
+  "name": "Mesh gradient with grain",
+  "use": "Slow-blending colour fields with film grain behind titles, cards and lower thirds",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "mesh-gradient-grain.signature",
+      "label": "Signature",
+      "look": "Indigo, navy, coral and blush, deep base between the complementary hues",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "MeshGradient",
+        "motion": {
+          "timeScale": 0.3,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#3A2BD9",
+            "#0B1026",
+            "#FF6A3D",
+            "#F6C7B6"
+          ],
+          "distortion": 0.8,
+          "swirl": 0.1,
+          "grainMixer": 0.1,
+          "grainOverlay": 0.15
+        }
+      },
+      "sources": [
+        18,
+        19,
+        20
+      ]
+    },
+    {
+      "id": "mesh-gradient-grain.dusk",
+      "label": "Dusk",
+      "look": "Plum to peach sunset, more swirl",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "MeshGradient",
+        "motion": {
+          "timeScale": 0.25,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#1B1033",
+            "#6B2E8F",
+            "#F07A5A",
+            "#FFC79A"
+          ],
+          "distortion": 0.9,
+          "swirl": 0.2,
+          "grainMixer": 0.15,
+          "grainOverlay": 0.2
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "mesh-gradient-grain.lagoon",
+      "label": "Lagoon",
+      "look": "Bright aqua and sand, very slow",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "MeshGradient",
+        "motion": {
+          "timeScale": 0.15,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#BCECF6",
+            "#00AAFF",
+            "#0A3D62",
+            "#FFD447"
+          ],
+          "distortion": 0.8,
+          "swirl": 0.35,
+          "grainMixer": 0,
+          "grainOverlay": 0.12
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "mesh-gradient-grain.studio",
+      "label": "Studio",
+      "look": "Warm off-white paper tones for light brands; dark text sits on it",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "MeshGradient",
+        "motion": {
+          "timeScale": 0.2,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#F4F1EC",
+            "#D9D4CC",
+            "#B8B2A7",
+            "#ECE7DF"
+          ],
+          "distortion": 0.6,
+          "swirl": 0.05,
+          "grainMixer": 0,
+          "grainOverlay": 0.1
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "mesh-gradient-grain.ink",
+      "label": "Ink",
+      "look": "Black and white ink clouds, rotated 90 degrees",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "MeshGradient",
+        "motion": {
+          "timeScale": 0.3,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 90,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#FFFFFF",
+            "#000000"
+          ],
+          "distortion": 1,
+          "swirl": 0.2,
+          "grainMixer": 0.2,
+          "grainOverlay": 0.2
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "Stephen Haney: Paper Shaders open source",
+      "url": "https://x.com/stephenhaney/status/2072369858638233843"
+    },
+    {
+      "n": 11,
+      "name": "Lucas Pope: blue noise vs Bayer when downscaled; 1080p60 ProRes",
+      "url": "https://x.com/dukope/status/1300260173919866880"
+    },
+    {
+      "n": 18,
+      "name": "Paper Shaders reference (llms.txt)",
+      "url": "https://shaders.paper.design/llms.txt"
+    },
+    {
+      "n": 19,
+      "name": "Paper Shaders source (Apache-2.0)",
+      "url": "https://github.com/paper-design/shaders"
+    },
+    {
+      "n": 20,
+      "name": "varg paper-shaders skill",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 30,
+      "name": "Jimmy Chion: Grainy Gradients",
+      "url": "https://css-tricks.com/grainy-gradients/"
+    },
+    {
+      "n": 32,
+      "name": "Kevin Hufnagl: Stripe gradient effect",
+      "url": "https://kevinhufnagl.com/how-to-stripe-website-gradient-effect/"
+    },
+    {
+      "n": 39,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

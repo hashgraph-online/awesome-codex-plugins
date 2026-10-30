@@ -39,12 +39,18 @@ of or on top of hand-authored edits.
   its precedent and its parent, judges only models the plan authors, and is the
   one check a project can decline (`conventions.resolved_keys: false`).
 - `data.semantic_proposal`: for a declared model under `transform.marts_paths`
-  (default `[models/marts]`), the MetricFlow semantic model its declaration
-  states. Added to the plan (`mode: included`) where the project has a dbt
-  semantic layer and a time spine; offered for `semantic plan --definitions-file`
-  (`mode: proposed`) where it does not. Validated by MetricFlow's schemas, the
-  metric-input check and dbt's parse of a throwaway copy, never skipped. Absent
-  when no declared mart was touched. Shape and statuses in `declarations.md`.
+  (default `[models/marts]`), the semantic definition its declaration states in
+  the configured layer (`vendor`). MetricFlow: added to the plan
+  (`mode: included`) where the project has a dbt semantic layer and a time spine,
+  offered for `semantic plan --definitions-file` (`mode: proposed`) where it does
+  not, validated by MetricFlow's schemas, the metric-input check and dbt's parse
+  of a throwaway copy, never skipped. SLayer: a model file stored as a second
+  plan (`plan_id`; apply both) where its path is under `semantic.slayer.models`,
+  proposed with the `dex config set` that adopts it otherwise. Cube: a model
+  file of its own, `<dir>/<mart>.yml`, on the same terms against
+  `semantic.cube.files`. Per model,
+  `carried` and `not_carried` account for every declared field. Absent when no
+  declared mart was touched. Shape and statuses in `declarations.md`.
 
 ## `transform apply [plan-id]` and `transform plans`
 

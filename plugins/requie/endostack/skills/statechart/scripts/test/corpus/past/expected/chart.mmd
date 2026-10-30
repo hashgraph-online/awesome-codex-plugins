@@ -1,0 +1,22 @@
+stateDiagram-v2
+  state Legend {
+    legend0: breaks NotOverflow
+    legend1: path to the NotOverflow bug
+  }
+  s0: 0
+  s1: 2
+  s2: 1
+  s3: 3
+  s4: 5
+  [*] --> s0
+  s0 --> s1: Fill
+  s1 --> s2: Drain
+  s2 --> s0: Drain
+  s2 --> s3: Fill
+  s3 --> s1: Drain
+  s3 --> s4: Fill
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 breaks
+  class legend1 bugPath
+  class s4 breaks
+  class s0,s1,s2,s3 bugPath

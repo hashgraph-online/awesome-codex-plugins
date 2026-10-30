@@ -1,0 +1,180 @@
+{
+  "id": "photo-cloud-gallery",
+  "name": "3D photo cloud gallery",
+  "use": "Photos hang in a deep 3D cloud, fading into same-colour fog as the camera swings through and lands on a hero photo.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "photo-cloud-gallery.white-fog-swing",
+      "label": "White fog swing",
+      "look": "Paper-white void, photos fade into fog, camera arcs 30° and lands on a hero",
+      "params": {
+        "duration_s": 4.0,
+        "fps": 30,
+        "background": "#F4F3EF",
+        "fog": "FogExp2, colour = background",
+        "fog_density_formula": "1.73 / farDepth (95 % fog at farDepth)",
+        "far_depth_units": 18,
+        "photo_count": 80,
+        "plane_units": [
+          1.6,
+          1.0
+        ],
+        "cloud_box_units": [
+          12,
+          7,
+          24
+        ],
+        "min_spacing_x_plane_width": 1.2,
+        "photo_yaw_deg": [
+          -15,
+          15
+        ],
+        "photo_roll_deg": [
+          -3,
+          3
+        ],
+        "fov_deg": 50,
+        "camera_yaw_deg": 30,
+        "dolly_units": 16,
+        "move_s": [
+          0.6,
+          3.2
+        ],
+        "move_ease": "power2.inOut",
+        "land_s": 0.8,
+        "land_ease": "expo.out",
+        "land": "exponential dolly into hero until it fills frame, cut to hero video",
+        "dof_blur_px_max": [
+          6,
+          10
+        ],
+        "motion_blur_shutter_deg": [
+          90,
+          180
+        ],
+        "material": "unlit (MeshBasicMaterial, fog: true)"
+      },
+      "sources": [
+        1,
+        7,
+        15,
+        16,
+        29,
+        31,
+        33
+      ]
+    },
+    {
+      "id": "photo-cloud-gallery.dark-void",
+      "label": "Dark void",
+      "look": "Black void, photos glow slightly, deeper fog",
+      "params": {
+        "background": "#0B0B0D",
+        "fog": "linear, near 4, far 20",
+        "emissive": 0.15,
+        "fov_deg": 60,
+        "border": "2 % white frame"
+      },
+      "sources": [
+        31,
+        33
+      ]
+    },
+    {
+      "id": "photo-cloud-gallery.vertical-column",
+      "label": "Vertical column",
+      "look": "9:16 tall column of photos; the camera rises and turns",
+      "params": {
+        "format": "9:16",
+        "cloud_box_units": [
+          6,
+          20,
+          14
+        ],
+        "fov_deg": 60,
+        "camera_rise_units": 10,
+        "camera_yaw_deg": 45,
+        "photo_aspect": "4:5",
+        "plane_units": [
+          1.0,
+          1.25
+        ]
+      },
+      "sources": [
+        32,
+        33
+      ]
+    },
+    {
+      "id": "photo-cloud-gallery.slow-drift-loop",
+      "label": "Slow drift loop",
+      "look": "No landing; endless gentle drift for a background",
+      "params": {
+        "duration_s": 6.0,
+        "speed_units_per_s": 0.6,
+        "recycle_at": "fog far distance",
+        "yaw": "±8° sine at 0.1 Hz",
+        "loop": true
+      },
+      "sources": [
+        31,
+        33,
+        50
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "Filmdaft — Walter Murch's Rule of Six",
+      "url": "https://filmdaft.com/walter-murchs-rule-of-six-the-editors-formula-for-choosing-the-right-cut/"
+    },
+    {
+      "n": 7,
+      "name": "StudioBinder — 180-degree shutter rule",
+      "url": "https://www.studiobinder.com/blog/what-is-the-180-degree-shutter-rule/"
+    },
+    {
+      "n": 15,
+      "name": "Remotion — CameraMotionBlur",
+      "url": "https://www.remotion.dev/docs/motion-blur/camera-motion-blur"
+    },
+    {
+      "n": 16,
+      "name": "Reach & North — Smooth, Efficient, and Interruptible Zooming and Panning",
+      "url": "https://ar5iv.labs.arxiv.org/html/1801.09358"
+    },
+    {
+      "n": 29,
+      "name": "Evan Abrams, PremiumBeat — Falling Polaroids photo montage",
+      "url": "https://www.premiumbeat.com/blog/after-effects-photo-montage-tutorial"
+    },
+    {
+      "n": 31,
+      "name": "three.js — fog_fragment.glsl.js",
+      "url": "https://raw.githubusercontent.com/mrdoob/three.js/dev/src/renderers/shaders/ShaderChunk/fog_fragment.glsl.js"
+    },
+    {
+      "n": 32,
+      "name": "Remotion — @remotion/three",
+      "url": "https://www.remotion.dev/docs/three"
+    },
+    {
+      "n": 33,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 50,
+      "name": "plugin3d (@plugin3d) on X",
+      "url": "https://x.com/plugin3d/status/2079216930615927190"
+    }
+  ]
+}

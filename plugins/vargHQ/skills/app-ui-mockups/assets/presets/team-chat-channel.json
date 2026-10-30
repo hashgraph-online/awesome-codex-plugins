@@ -1,0 +1,226 @@
+{
+  "id": "team-chat-channel",
+  "name": "Team chat channel",
+  "use": "Messages, unfurls, threads and reactions landing in a Slack-style channel for B2B launches and social proof.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [
+    {
+      "family": "Lato",
+      "weights": [
+        400,
+        700,
+        900
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Lato"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "trademark_note": "Slack and its logo belong to Slack Technologies. Look-alike only: invented workspace and people, no logo, no invented quotes presented as real customers.",
+  "presets": [
+    {
+      "id": "team-chat-channel.conversation",
+      "label": "Conversation",
+      "look": "4-6 messages from 3 people",
+      "params": {
+        "hold": "clamp(0.6 + chars/15, 1.0, 6.0) s",
+        "row_in": {
+          "duration_s": 0.3,
+          "ease": "power2.out",
+          "y_from_px": 12,
+          "opacity_from": 0
+        },
+        "column_push": "same 0.3 s window",
+        "avatar_px": 36,
+        "avatar_radius_px": 8,
+        "name": "Lato 900 15px",
+        "text": "Lato 400 15px/22px",
+        "timestamp": "#616061 13px",
+        "app_scale_for_video": 1.6,
+        "channel_bg": "#FFFFFF",
+        "text_color": "#1D1C1D",
+        "sidebar_bg": "#4A154B",
+        "dark": {
+          "bg": "#1A1D21",
+          "text": "#D1D2D3"
+        },
+        "app_scale_note": "1.6 keeps 15 px app text at 24 px, above the 2.2% of frame height floor"
+      },
+      "sources": [
+        11,
+        12,
+        2,
+        44,
+        36,
+        37
+      ]
+    },
+    {
+      "id": "team-chat-channel.link-unfurl",
+      "label": "Link unfurl",
+      "look": "Message plus OpenGraph card",
+      "params": {
+        "unfurl_delay_after_text_s": [
+          0.3,
+          0.5
+        ],
+        "card": [
+          "site name",
+          "bold title",
+          "description",
+          "optional image"
+        ],
+        "left_bar_px": 4,
+        "left_bar_color": "#DDDDDD",
+        "title_color": "#1264A3",
+        "image_max_w_px": 360
+      },
+      "sources": [
+        38
+      ]
+    },
+    {
+      "id": "team-chat-channel.thread",
+      "label": "Thread",
+      "look": "Parent message and a thread panel opening",
+      "params": {
+        "panel_in": {
+          "x_from_px": 40,
+          "duration_s": 0.35,
+          "ease": "power3.out"
+        },
+        "replies_link": "3 replies + 3 stacked 20px avatars"
+      },
+      "sources": [
+        2,
+        44
+      ]
+    },
+    {
+      "id": "team-chat-channel.reactions",
+      "label": "Reactions",
+      "look": "Emoji pills pop and count up",
+      "params": {
+        "pill_h_px": 24,
+        "pill_radius_px": 12,
+        "pop": {
+          "duration_s": 0.18,
+          "ease": "back.out(2)"
+        },
+        "count_tick_s": 0.12,
+        "delay_after_message_s": [
+          0.4,
+          0.8
+        ],
+        "emoji_font": "Noto Color Emoji (OFL)"
+      },
+      "sources": [
+        2
+      ]
+    },
+    {
+      "id": "team-chat-channel.huge-type",
+      "label": "Huge type",
+      "look": "Message column only for 9:16",
+      "params": {
+        "text_pct_frame_h": 4.4,
+        "avatar_pct_frame_w": 7,
+        "column_pct_frame_w": 88,
+        "safe_zone_9x16": {
+          "x_pct": [
+            5,
+            95
+          ],
+          "y_pct": [
+            12,
+            82
+          ]
+        },
+        "camera_zoom": {
+          "scale": [
+            1.3,
+            1.6
+          ],
+          "ease": "power3.inOut",
+          "duration_s": [
+            0.8,
+            1.0
+          ],
+          "lead_s": 1.0,
+          "clamp_to_app_bounds": true
+        }
+      },
+      "sources": [
+        1,
+        63,
+        16
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "Adam Pietrasiak (@pie6k), Screen Studio",
+      "url": "https://x.com/pie6k/status/1586636942879645696"
+    },
+    {
+      "n": 2,
+      "name": "Emil Kowalski (@emilkowalski)",
+      "url": "https://x.com/emilkowalski/status/1954891053032755560"
+    },
+    {
+      "n": 11,
+      "name": "Brysbaert 2019 reading-rate meta-analysis (BPS)",
+      "url": "https://www.bps.org.uk/research-digest/most-comprehensive-review-date-finds-average-persons-reading-speed-slower"
+    },
+    {
+      "n": 12,
+      "name": "Netflix English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 16,
+      "name": "Thorsten Ball, How to Demo",
+      "url": "https://thorstenball.com/how-to-demo"
+    },
+    {
+      "n": 36,
+      "name": "Slack media kit and brand colors",
+      "url": "https://brandpalettes.com/slack-logo-color-codes/"
+    },
+    {
+      "n": 37,
+      "name": "Slack-Lato font note (DEV Community)",
+      "url": "https://dev.to/masayoshi644/how-to-customize-slack-fonts-using-stylus-for-improved-readability-706"
+    },
+    {
+      "n": 38,
+      "name": "Slack docs, Unfurling links",
+      "url": "https://docs.slack.dev/messaging/unfurling-links-in-messages"
+    },
+    {
+      "n": 44,
+      "name": "Emil Kowalski, Great animations",
+      "url": "https://emilkowal.ski/ui/great-animations"
+    },
+    {
+      "n": 63,
+      "name": "HyperFrames cursor-zoom-follow",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components/cursor-zoom-follow"
+    }
+  ]
+}

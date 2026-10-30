@@ -1,0 +1,261 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    /* the stage overscans 24 px left and right so the RGB kick's channel offsets never show a coloured edge */
+    #sh-stage {
+      position: absolute;
+      left: -24px;
+      top: 0;
+      width: 1968px;
+      height: 1080px;
+      overflow: hidden;
+    }
+    #sh-lens {
+      position: absolute;
+      left: 24px;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+    }
+    .sh-sample {
+      position: absolute;
+      inset: 0;
+    }
+    .sh-rig {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: 960px 540px;
+    }
+    .sh-pic {
+      position: absolute;
+      width: 1920px;
+      height: 1080px;
+      background-size: 1920px 1080px;
+    }
+    .sh-ridge {
+      background-image: url("assets/shots/ridge.svg");
+    }
+    .sh-dunes {
+      background-image: url("assets/shots/dunes.svg");
+    }
+    .lbl {
+      position: absolute;
+      left: 96px;
+      bottom: 62px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: #fff;
+      opacity: 0.6;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+      white-space: nowrap;
+    }
+  </style>
+  <div id="root" data-composition-id="shake" data-width="1920" data-height="1080">
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <!-- lens bulge: displacement map is drawn once at init; scale = 2*M*k1 -->
+        <filter
+          id="sh-bulge"
+          x="-120"
+          y="-120"
+          width="2160"
+          height="1320"
+          filterUnits="userSpaceOnUse"
+          primitiveUnits="userSpaceOnUse"
+          color-interpolation-filters="sRGB"
+        >
+          <feImage id="sh-map" x="-120" y="-120" width="2160" height="1320" preserveAspectRatio="none" result="map" />
+          <feDisplacementMap id="sh-disp" in="SourceGraphic" in2="map" scale="0" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+        <!-- 2-frame chromatic kick -->
+        <filter id="sh-rgb" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+          <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="r" />
+          <feOffset id="sh-rgb-r" in="r" dx="-8" dy="0" result="r2" />
+          <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="g" />
+          <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="b" />
+          <feOffset id="sh-rgb-b" in="b" dx="8" dy="0" result="b2" />
+          <feBlend in="r2" in2="g" mode="screen" result="rg" />
+          <feBlend in="rg" in2="b2" mode="screen" />
+        </filter>
+      </defs>
+    </svg>
+    <div id="sh-stage" data-layout-allow-overflow>
+      <div id="sh-lens">
+        <!-- 6 motion-blur samples (shutter 270°); each sample holds rig A and the mirrored 3x3 rig B -->
+        <div class="sh-sample" id="sh-s0">
+          <div class="sh-rig sh-a" id="sh-s0-a"><div class="sh-pic sh-ridge" style="left: 0; top: 0"></div></div>
+          <div class="sh-rig sh-b" id="sh-s0-b"></div>
+        </div>
+        <div class="sh-sample" id="sh-s1">
+          <div class="sh-rig sh-a" id="sh-s1-a"><div class="sh-pic sh-ridge" style="left: 0; top: 0"></div></div>
+          <div class="sh-rig sh-b" id="sh-s1-b"></div>
+        </div>
+        <div class="sh-sample" id="sh-s2">
+          <div class="sh-rig sh-a" id="sh-s2-a"><div class="sh-pic sh-ridge" style="left: 0; top: 0"></div></div>
+          <div class="sh-rig sh-b" id="sh-s2-b"></div>
+        </div>
+        <div class="sh-sample" id="sh-s3">
+          <div class="sh-rig sh-a" id="sh-s3-a"><div class="sh-pic sh-ridge" style="left: 0; top: 0"></div></div>
+          <div class="sh-rig sh-b" id="sh-s3-b"></div>
+        </div>
+        <div class="sh-sample" id="sh-s4">
+          <div class="sh-rig sh-a" id="sh-s4-a"><div class="sh-pic sh-ridge" style="left: 0; top: 0"></div></div>
+          <div class="sh-rig sh-b" id="sh-s4-b"></div>
+        </div>
+        <div class="sh-sample" id="sh-s5">
+          <div class="sh-rig sh-a" id="sh-s5-a"><div class="sh-pic sh-ridge" style="left: 0; top: 0"></div></div>
+          <div class="sh-rig sh-b" id="sh-s5-b"></div>
+        </div>
+      </div>
+    </div>
+    <div class="lbl" id="sh-lbl" data-layout-ignore>shake-distort-cut · bass-hit</div>
+  </div>
+  <script>
+    (function () {
+      // preset shake-distort-cut.bass-hit (assets/presets/shake-distort-cut.json)
+      const FPS = 30;
+      const D = 3.0;
+      const BEAT = 45 / FPS; // downbeat at 1.5 s (5.5 s in the film)
+      const CUT = 44 / FPS; // cut_frame 25 of the 60-frame preset = 1 frame before the beat
+      const HOP0 = CUT - 10 / FPS; // hop 4 f, then push 6 f into the cut
+      const PUSH0 = CUT - 6 / FPS;
+      const P = {
+        hop: { scale: [1.0, 1.04], yPct: -1.2 },
+        push: { scale: [1.04, 1.22], ease: "power3.in" },
+        bulgeK1: 0.35,
+        landing: { scale: [1.18, 1.0], s: 0.6, ease: "expo.out" },
+        shake: { amp: 48, freq: 10, decay: 6, yRatio: 0.8, rot: 2 },
+        rgb: { px: 8, frames: 2 },
+        shutterDeg: 270,
+        samples: 6,
+      };
+      const pushEase = gsap.parseEase(P.push.ease);
+      const landEase = gsap.parseEase(P.landing.ease);
+      const hopEase = gsap.parseEase("power2.out");
+      const bulgeOut = gsap.parseEase("power2.out");
+
+      // build the mirrored 3x3 tile of B (Motion Tile 300 % + mirror edges)
+      for (let s = 0; s < P.samples; s++) {
+        const rig = document.getElementById(`sh-s${s}-b`);
+        for (let gy = -1; gy <= 1; gy++)
+          for (let gx = -1; gx <= 1; gx++) {
+            const im = document.createElement("div");
+            im.className = "sh-pic sh-dunes";
+            im.style.left = gx * 1920 + "px";
+            im.style.top = gy * 1080 + "px";
+            im.style.transform = `scale(${gx === 0 ? 1 : -1}, ${gy === 0 ? 1 : -1})`;
+            rig.appendChild(im);
+          }
+      }
+
+      // displacement map for the bulge: centre magnified, corners fixed (src = c + d * (1 - k1 * (1 - r^2)))
+      const R = Math.hypot(960, 540);
+      const M = R / Math.sqrt(3) * (2 / 3); // max of |d|(1 - r^2) per channel
+      (function buildMap() {
+        // the map covers the filter region (frame + 120 px margin) so shaken edges are never clipped
+        const w = 540,
+          h = 330;
+        const c = document.createElement("canvas");
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext("2d");
+        const img = ctx.createImageData(w, h);
+        for (let y = 0; y < h; y++)
+          for (let x = 0; x < w; x++) {
+            const dx = ((x + 0.5) / w) * 2160 - 120 - 960;
+            const dy = ((y + 0.5) / h) * 1320 - 120 - 540;
+            const f = Math.max(0, 1 - (dx * dx + dy * dy) / (R * R));
+            const i = (y * w + x) * 4;
+            img.data[i] = Math.round(255 * (0.5 - (dx * f) / (2 * M)));
+            img.data[i + 1] = Math.round(255 * (0.5 - (dy * f) / (2 * M)));
+            img.data[i + 2] = 128;
+            img.data[i + 3] = 255;
+          }
+        ctx.putImageData(img, 0, 0);
+        const url = c.toDataURL("image/png");
+        const fe = document.getElementById("sh-map");
+        fe.setAttribute("href", url);
+        fe.setAttributeNS("http://www.w3.org/1999/xlink", "xlink:href", url);
+      })();
+
+      const lens = document.getElementById("sh-lens");
+      const stage = document.getElementById("sh-stage");
+      const disp = document.getElementById("sh-disp");
+      const samples = [...Array(P.samples)].map((_, s) => ({
+        el: document.getElementById(`sh-s${s}`),
+        a: document.getElementById(`sh-s${s}-a`),
+        b: document.getElementById(`sh-s${s}-b`),
+      }));
+
+      // rig state at time t (closed form, so any frame renders alone)
+      function rigAt(t) {
+        if (t < CUT) {
+          // A: slow 1.5 % drift, hop, then push into the cut
+          let s = 1 + 0.015 * Math.pow(Math.min(1, t / HOP0), 2);
+          let y = 0;
+          if (t >= HOP0) {
+            const h = hopEase(Math.min(1, (t - HOP0) / (PUSH0 - HOP0)));
+            s *= P.hop.scale[0] + (P.hop.scale[1] - P.hop.scale[0]) * h;
+            y = (P.hop.yPct / 100) * 1080 * h;
+          }
+          let k1 = 0;
+          if (t >= PUSH0) {
+            const p = pushEase(Math.min(1, (t - PUSH0) / (CUT - PUSH0)));
+            s *= (P.push.scale[0] + (P.push.scale[1] - P.push.scale[0]) * p) / P.push.scale[0];
+            k1 = P.bulgeK1 * p;
+          }
+          return { side: "a", s, x: 0, y, r: 0, k1 };
+        }
+        const tau = t - CUT;
+        const l = landEase(Math.min(1, tau / P.landing.s));
+        const s = P.landing.scale[0] + (P.landing.scale[1] - P.landing.scale[0]) * l;
+        const env = Math.exp(-P.shake.decay * tau);
+        const w = 2 * Math.PI * P.shake.freq;
+        const x = P.shake.amp * Math.cos(w * tau) * env;
+        const y = P.shake.yRatio * P.shake.amp * Math.sin(w * 1.13 * tau + Math.PI / 3) * env;
+        const r = P.shake.rot * Math.sin(w * 0.7 * tau + Math.PI / 2) * env;
+        const k1 = P.bulgeK1 * (1 - bulgeOut(Math.min(1, tau / (6 / FPS)))); // back to 0 within 6 f
+        return { side: "b", s, x, y, r, k1 };
+      }
+
+      function render(t) {
+        const shutter = P.shutterDeg / 360 / FPS;
+        const centre = rigAt(t);
+        for (let i = 0; i < P.samples; i++) {
+          let ts = Math.max(0, Math.min(D, t + (i / (P.samples - 1) - 0.5) * shutter));
+          // a sample never crosses the hard cut: the cut frame is all A or all B
+          if (t < CUT) ts = Math.min(ts, CUT - 1e-4);
+          else ts = Math.max(ts, CUT);
+          const st = rigAt(ts);
+          const smp = samples[i];
+          smp.el.style.opacity = String(1 / (i + 1));
+          const tf = `translate(${st.x.toFixed(2)}px, ${st.y.toFixed(2)}px) rotate(${st.r.toFixed(3)}deg) scale(${st.s.toFixed(4)})`;
+          smp.a.style.visibility = st.side === "a" ? "visible" : "hidden";
+          smp.b.style.visibility = st.side === "b" ? "visible" : "hidden";
+          (st.side === "a" ? smp.a : smp.b).style.transform = tf;
+        }
+        disp.setAttribute("scale", (2 * M * centre.k1).toFixed(2));
+        lens.style.filter = centre.k1 > 0.002 ? "url(#sh-bulge)" : "none";
+        const f = Math.round((t - CUT) * FPS);
+        stage.style.filter = f >= 0 && f < P.rgb.frames ? "url(#sh-rgb)" : "none";
+      }
+
+      const tl = gsap.timeline({ paused: true, onUpdate: () => render(tl.time()) });
+      tl.to({ p: 0 }, { p: 1, duration: D, ease: "none" }, 0);
+      tl.fromTo("#sh-lbl", { opacity: 0 }, { opacity: 0.6, duration: 0.3, ease: "power1.out" }, 0.15);
+      tl.to("#sh-lbl", { opacity: 0, duration: 0.2, ease: "power1.in" }, D - 0.3);
+      render(0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["shake"] = tl;
+    })();
+  </script>
+</template>

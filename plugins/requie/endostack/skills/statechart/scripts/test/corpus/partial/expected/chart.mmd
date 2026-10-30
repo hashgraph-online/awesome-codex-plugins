@@ -1,0 +1,18 @@
+stateDiagram-v2
+  state Legend {
+    legend0: breaks Ok
+    legend1: path to the Ok bug
+  }
+  s0: 0
+  s1: 1
+  s2: 2
+  s3: #34;two#34;
+  [*] --> s0
+  s0 --> s1: Inc
+  s1 --> s2: Inc
+  s2 --> s3: Weird
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 breaks
+  class legend1 bugPath
+  class s1 breaks
+  class s0 bugPath

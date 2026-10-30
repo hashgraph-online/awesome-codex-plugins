@@ -1,0 +1,184 @@
+{
+  "id": "halftone-footage",
+  "name": "Halftone footage",
+  "use": "Turn real footage into halftone print (one ink or CMY rosettes), an LED wall or a colour mosaic.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 8,
+  "fonts": [],
+  "ffmpeg_note": "Chains target 1920x1080 at 30 fps: [0:v] is the footage, generated inputs are 1..n, output label [v]. For 9:16 swap 1920x1080 -> 1080x1920 in sizes and crops. Generated lavfi inputs never end, so always cap the output with -t <clip duration> (ffprobe format=duration). Encode with -c:v libx264 -crf 16 -preset slow -pix_fmt yuv420p and keep audio with -map '0:a?' -c:a copy.",
+  "presets": [
+    {
+      "id": "halftone-footage.ink-on-paper",
+      "label": "Ink on paper",
+      "look": "One dark ink on warm newsprint, 45° screen, 12 px cells (90 lines per 1080 px).",
+      "params": {
+        "cell_px_1080p": 12,
+        "lines_per_frame_height": 90,
+        "screen_angle_deg": 45,
+        "dot": "round, area tracks tone (r = sqrt(2c/pi))",
+        "ink_hex": "#1B1B1F",
+        "paper_hex": "#F4EFE3",
+        "shadow_lift_curve": "0/0.08 0.5/0.62 1/1",
+        "pre_blur_sigma_px": 3,
+        "aa_blur_sigma_px": 0.6,
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip(1-PI/2*(pow((mod((X*0.70711+Y*0.70711+8192),12)-12/2)/(12/sqrt(2)),2)+pow((mod((Y*0.70711-X*0.70711+8192),12)-12/2)/(12/sqrt(2)),2)),0,1)',trim=end_frame=1,loop=-1:size=1,format=gbrp",
+            "-f lavfi -i color=c=0x1B1B1F:s=1920x1080:r=30,format=gbrp",
+            "-f lavfi -i color=c=0xF4EFE3:s=1920x1080:r=30,format=gbrp"
+          ],
+          "filter_complex": "[0:v]format=gray,curves=all='0/0.08 0.5/0.62 1/1',gblur=sigma=3,format=gbrp[l];[l][1:v][2:v][3:v]threshold,gblur=sigma=0.6,format=yuv420p[v]"
+        },
+        "hyperframes": {
+          "data-color-grading": {
+            "effects": {
+              "halftone": 0.94,
+              "halftoneSize": 0.36
+            }
+          },
+          "note": "HF Editorial Halftone is 4-ink CMYK at 15/75/0/45; for one ink use Monochrome Screen Print"
+        },
+        "remotion": "halftone({shape: 'circle', dotSize: 12, rotation: 45, colorMode: 'solid', dotColor: '#1B1B1F'}) over a #F4EFE3 <Solid>"
+      },
+      "sources": [
+        31,
+        32,
+        28,
+        29
+      ]
+    },
+    {
+      "id": "halftone-footage.cmy-color-screen",
+      "label": "Colour screen (CMY)",
+      "look": "Three process screens at 15°, 75° and 0° form rosettes; reads as printed colour up close, as the photo from afar.",
+      "params": {
+        "cell_px_1080p": 10,
+        "angles_deg": {
+          "cyan_from_R": 15,
+          "magenta_from_G": 75,
+          "yellow_from_B": 0
+        },
+        "black_angle_if_used_deg": 45,
+        "paper_inks_alt": {
+          "cyan": "#00B3FF",
+          "magenta": "#FC4F9D",
+          "yellow": "#FFD900",
+          "black": "#231F20",
+          "paper": "#FBFAF4"
+        },
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip(1-PI/2*(pow((mod((X*0.96593+Y*0.25882+8192),10)-10/2)/(10/sqrt(2)),2)+pow((mod((Y*0.96593-X*0.25882+8192),10)-10/2)/(10/sqrt(2)),2)),0,1)',trim=end_frame=1,loop=-1:size=1,format=gray",
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip(1-PI/2*(pow((mod((X*0.25882+Y*0.96593+8192),10)-10/2)/(10/sqrt(2)),2)+pow((mod((Y*0.25882-X*0.96593+8192),10)-10/2)/(10/sqrt(2)),2)),0,1)',trim=end_frame=1,loop=-1:size=1,format=gray",
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip(1-PI/2*(pow((mod((X*1.00000+Y*0.00000+8192),10)-10/2)/(10/sqrt(2)),2)+pow((mod((Y*1.00000-X*0.00000+8192),10)-10/2)/(10/sqrt(2)),2)),0,1)',trim=end_frame=1,loop=-1:size=1,format=gray",
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray",
+            "-f lavfi -i color=c=white:s=1920x1080:r=30,format=gray"
+          ],
+          "filter_complex": "[0:v]curves=all='0/0.06 0.5/0.6 1/1',gblur=sigma=2.5,format=gbrp,split=3[s1][s2][s3];[s1]extractplanes=r[pr];[s2]extractplanes=g[pg];[s3]extractplanes=b[pb];[4:v]split=3[k1][k2][k3];[5:v]split=3[w1][w2][w3];[pr][1:v][k1][w1]threshold[tr];[pg][2:v][k2][w2]threshold[tg];[pb][3:v][k3][w3]threshold[tb];[tg][tb][tr]mergeplanes=0x001020:gbrp,gblur=sigma=0.6,format=yuv420p[v]"
+        },
+        "hyperframes": {
+          "data-color-grading": {
+            "intensity": 1,
+            "adjust": {
+              "contrast": 0.04,
+              "saturation": 0.04
+            },
+            "effects": {
+              "halftone": 0.94,
+              "halftoneSize": 0.36
+            }
+          }
+        }
+      },
+      "sources": [
+        32,
+        33,
+        29,
+        31
+      ]
+    },
+    {
+      "id": "halftone-footage.led-wall",
+      "label": "LED wall",
+      "look": "Footage as a stadium LED screen: 12 px cells, one round glowing diode per cell, dark gaps.",
+      "params": {
+        "cell_px_1080p": 12,
+        "diode_radius_px": 5.2,
+        "brightness_comp_imax": 0.55,
+        "diode_glow_sigma_px": 5,
+        "glow_gain": 0.6,
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip(5.2-hypot(mod(X,12)-5.5,mod(Y,12)-5.5),0,1)',format=gbrp,trim=end_frame=1,loop=-1:size=1"
+          ],
+          "filter_complex": "[0:v]format=gbrp,pixelize=w=12:h=12,colorlevels=rimax=0.55:gimax=0.55:bimax=0.55[px];[px][1:v]blend=all_mode=multiply:shortest=1,split[a][b];[b]gblur=sigma=5,colorchannelmixer=rr=0.6:gg=0.6:bb=0.6[gl];[a][gl]blend=all_mode=screen:shortest=1,format=yuv420p[v]"
+        },
+        "registry": "halftone-field (HyperFrames block, plasma LED wall under type)",
+        "remotion": "halftone({shape: 'circle', dotSize: 10, dotSpacing: 12, colorMode: 'source', sampling: 'nearest'}) on black"
+      },
+      "sources": [
+        28,
+        32,
+        10
+      ]
+    },
+    {
+      "id": "halftone-footage.square-mosaic",
+      "label": "Colour mosaic",
+      "look": "24 px flat colour tiles with 2 px dark grout; graphic, readable at phone size.",
+      "params": {
+        "cell_px_1080p": 24,
+        "grout_px": 2,
+        "grout_hex": "#000000",
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*gte(mod(X,24),2)*gte(mod(Y,24),2)',format=gbrp,trim=end_frame=1,loop=-1:size=1"
+          ],
+          "filter_complex": "[0:v]format=gbrp,pixelize=w=24:h=24[px];[px][1:v]blend=all_mode=multiply:shortest=1,format=yuv420p[v]"
+        },
+        "remotion": "pixelate({blockSize: 24}) then gridlines() — check the gridlines docs for its params"
+      },
+      "sources": [
+        32,
+        28,
+        10
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 10,
+      "name": "FFmpeg Filters Documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 28,
+      "name": "Remotion — halftone()",
+      "url": "https://www.remotion.dev/docs/effects/halftone"
+    },
+    {
+      "n": 29,
+      "name": "HyperFrames — media-treatment recipes (Editorial Halftone)",
+      "url": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/skills/media-use/references/media-treatment-recipes.md"
+    },
+    {
+      "n": 31,
+      "name": "Wikipedia — Halftone",
+      "url": "https://en.wikipedia.org/wiki/Halftone"
+    },
+    {
+      "n": 32,
+      "name": "Maxime Heckel — Shades of Halftone",
+      "url": "https://blog.maximeheckel.com/posts/shades-of-halftone/"
+    },
+    {
+      "n": 33,
+      "name": "Paper (Ksenia Kondrashova, Agu Seguí) — Retro print: CMYK halftone shader",
+      "url": "https://paper.design/blog/retro-print-cmyk-halftone-shader"
+    }
+  ]
+}

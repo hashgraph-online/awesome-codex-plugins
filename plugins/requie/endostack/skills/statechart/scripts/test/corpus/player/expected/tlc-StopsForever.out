@@ -1,0 +1,39 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 0 and seed 4227364392626825022 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 13608] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /tmp/statechart-rec-fI6ETB/05-verdict-4/SCBound_Player.tla
+Parsing file /work/endostack/skills/statechart/scripts/test/corpus/player/Player.tla
+Parsing file /tmp/statechart-rec-fI6ETB/05-verdict-4/tlc.tmp/Naturals.tla
+Parsing file /tmp/statechart-rec-fI6ETB/05-verdict-4/tlc.tmp/TLC.tla
+Parsing file /tmp/statechart-rec-fI6ETB/05-verdict-4/tlc.tmp/Sequences.tla
+Parsing file /tmp/statechart-rec-fI6ETB/05-verdict-4/tlc.tmp/FiniteSets.tla
+Semantic processing of module Player
+Semantic processing of module Naturals
+Semantic processing of module Sequences
+Semantic processing of module FiniteSets
+Semantic processing of module TLC
+Semantic processing of module SCBound_Player
+Starting... (2026-10-27 16:49:26)
+Warning: Declaring state or action constraints during liveness checking is dangerous: Please read section 14.3.5 on page 247 of Specifying Systems (https://lamport.azurewebsites.net/tla/book.html) and optionally the discussion at https://discuss.tlapl.us/msg00994.html for more details.
+(Use the -nowarning option to disable this warning.)
+Implied-temporal checking--satisfiability problem has 1 branches.
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-27 16:49:26.
+Progress(4) at 2026-10-27 16:49:26: 17 states generated, 6 distinct states found, 0 states left on queue.
+Checking temporal properties for the complete state space with 6 total distinct states at (2026-10-27 16:49:26)
+Error: Temporal properties were violated.
+
+Error: The following behavior constitutes a counter-example:
+
+State 1: <Initial predicate>
+/\ playback = "stopped"
+/\ panel = "closed"
+
+State 2: <Play line 4, col 9 to line 4, col 72 of module Player>
+/\ playback = "playing"
+/\ panel = "closed"
+
+Back to state 1: <Stop line 6, col 9 to line 6, col 74 of module Player>
+
+Finished checking temporal properties in 00s at 2026-10-27 16:49:26
+17 states generated, 6 distinct states found, 0 states left on queue.
+Finished in 01s at (2026-10-27 16:49:26)

@@ -1,0 +1,29 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 0 and seed -7746371736422502613 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 3936] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /work/endostack/skills/statechart/scripts/test/corpus/commit/Commit.tla
+Semantic processing of module Commit
+Starting... (2026-10-27 16:48:06)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-27 16:48:06.
+Error: Invariant Consistent is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ rm = (r1 :> "working" @@ r2 :> "working")
+/\ tm = "init"
+
+State 2: <Prepare line 5, col 15 to line 5, col 86 of module Commit>
+/\ rm = (r1 :> "prepared" @@ r2 :> "working")
+/\ tm = "init"
+
+State 3: <Decide line 6, col 11 to line 6, col 94 of module Commit>
+/\ rm = (r1 :> "prepared" @@ r2 :> "working")
+/\ tm = "committed"
+
+State 4: <Apply line 8, col 13 to line 8, col 106 of module Commit>
+/\ rm = (r1 :> "committed" @@ r2 :> "working")
+/\ tm = "committed"
+
+25 states generated, 16 distinct states found, 6 states left on queue.
+The depth of the complete state graph search is 4.
+The average outdegree of the complete state graph is 2 (minimum is 0, the maximum 4 and the 95th percentile is 4).
+Finished in 00s at (2026-10-27 16:48:06)

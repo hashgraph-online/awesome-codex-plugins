@@ -1,0 +1,224 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #0b1220;
+      font-family: "Inter", sans-serif;
+    }
+    #rt-map {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: 960px 540px;
+    }
+    #rt-svg {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      overflow: visible;
+    }
+    .rt-title {
+      position: absolute;
+      left: 192px;
+      top: 116px;
+      color: #e8eef8;
+    }
+    .rt-title h1 {
+      font-weight: 700;
+      font-size: 60px;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+    .rt-title p {
+      margin-top: 14px;
+      font-weight: 500;
+      font-size: 28px;
+      color: #a9b7cf;
+      font-variant-numeric: tabular-nums;
+    }
+    .rt-city {
+      position: absolute;
+      font-weight: 600;
+      font-size: 28px;
+      line-height: 1;
+      color: #e8eef8;
+      padding: 9px 14px 10px;
+      border-radius: 8px;
+      background: rgba(11, 18, 32, 0.82);
+      box-shadow: 0 0 0 1px rgba(79, 209, 197, 0.25);
+      white-space: nowrap;
+    }
+    .lbl {
+      position: absolute;
+      left: 96px;
+      bottom: 62px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: #e8eef8;
+      opacity: 0.6;
+      white-space: nowrap;
+    }
+  </style>
+  <div id="root" data-composition-id="route" data-width="1920" data-height="1080">
+    <img id="rt-map" src="assets/map.svg" alt="" data-layout-allow-overflow />
+    <svg id="rt-svg" viewBox="0 0 1920 1080" aria-hidden="true">
+      <defs>
+        <filter id="rt-glowf" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="6" /></filter>
+        <filter id="rt-planef" x="-50%" y="-50%" width="200%" height="200%">
+          <feDropShadow dx="0" dy="0" stdDeviation="4" flood-color="#4FD1C5" flood-opacity="0.7" />
+        </filter>
+      </defs>
+      <!-- route: glow 12 px at 30 %, casing 2 px wider in the water colour, line 5 px -->
+      <path id="rt-glow" d="M592.95 880 L598.97 874.44 L605 868.87 L611.03 863.3 L617.07 857.74 L623.1 852.17 L629.14 846.6 L635.18 841.02 L641.23 835.45 L647.27 829.88 L653.32 824.3 L659.37 818.72 L665.43 813.15 L671.48 807.57 L677.54 801.99 L683.6 796.41 L689.67 790.83 L695.73 785.24 L701.8 779.66 L707.87 774.07 L713.94 768.49 L720.01 762.9 L726.09 757.31 L732.17 751.73 L738.25 746.14 L744.33 740.55 L750.42 734.96 L756.5 729.37 L762.59 723.77 L768.68 718.18 L774.77 712.59 L780.87 706.99 L786.96 701.4 L793.06 695.81 L799.16 690.21 L805.26 684.61 L811.36 679.02 L817.47 673.42 L823.58 667.82 L829.68 662.23 L835.79 656.63 L841.9 651.03 L848.02 645.43 L854.13 639.83 L860.24 634.23 L866.36 628.63 L872.48 623.03 L878.6 617.43 L884.72 611.83 L890.84 606.23 L896.97 600.63 L903.09 595.03 L909.22 589.43 L915.34 583.83 L921.47 578.23 L927.6 572.63 L933.73 567.03 L939.87 561.43 L946 555.83 L952.13 550.23 L958.27 544.63 L964.4 539.03 L970.54 533.43 L976.68 527.84 L982.82 522.24 L988.96 516.64 L995.1 511.04 L1001.24 505.44 L1007.38 499.85 L1013.52 494.25 L1019.66 488.65 L1025.81 483.06 L1031.95 477.46 L1038.1 471.87 L1044.24 466.27 L1050.39 460.68 L1056.54 455.09 L1062.68 449.49 L1068.83 443.9 L1074.98 438.31 L1081.13 432.72 L1087.28 427.13 L1093.42 421.54 L1099.57 415.95 L1105.72 410.37 L1111.87 404.78 L1118.02 399.19 L1124.17 393.61 L1130.33 388.03 L1136.48 382.44 L1142.63 376.86 L1148.78 371.28 L1154.93 365.7 L1161.08 360.12 L1167.23 354.54 L1173.38 348.97 L1179.53 343.39 L1185.68 337.82 L1191.83 332.25 L1197.98 326.67 L1204.13 321.1 L1210.28 315.53 L1216.43 309.97 L1222.58 304.4 L1228.73 298.83 L1234.88 293.27 L1241.03 287.71 L1247.18 282.15 L1253.33 276.59 L1259.47 271.03 L1265.62 265.47 L1271.77 259.92 L1277.91 254.37 L1284.06 248.81 L1290.2 243.26 L1296.34 237.72 L1302.49 232.17 L1308.63 226.62 L1314.77 221.08 L1320.91 215.54 L1327.05 210" fill="none" stroke="#4FD1C5" stroke-width="12" stroke-linecap="round" opacity="0.3" filter="url(#rt-glowf)" />
+      <path id="rt-casing" d="M592.95 880 L598.97 874.44 L605 868.87 L611.03 863.3 L617.07 857.74 L623.1 852.17 L629.14 846.6 L635.18 841.02 L641.23 835.45 L647.27 829.88 L653.32 824.3 L659.37 818.72 L665.43 813.15 L671.48 807.57 L677.54 801.99 L683.6 796.41 L689.67 790.83 L695.73 785.24 L701.8 779.66 L707.87 774.07 L713.94 768.49 L720.01 762.9 L726.09 757.31 L732.17 751.73 L738.25 746.14 L744.33 740.55 L750.42 734.96 L756.5 729.37 L762.59 723.77 L768.68 718.18 L774.77 712.59 L780.87 706.99 L786.96 701.4 L793.06 695.81 L799.16 690.21 L805.26 684.61 L811.36 679.02 L817.47 673.42 L823.58 667.82 L829.68 662.23 L835.79 656.63 L841.9 651.03 L848.02 645.43 L854.13 639.83 L860.24 634.23 L866.36 628.63 L872.48 623.03 L878.6 617.43 L884.72 611.83 L890.84 606.23 L896.97 600.63 L903.09 595.03 L909.22 589.43 L915.34 583.83 L921.47 578.23 L927.6 572.63 L933.73 567.03 L939.87 561.43 L946 555.83 L952.13 550.23 L958.27 544.63 L964.4 539.03 L970.54 533.43 L976.68 527.84 L982.82 522.24 L988.96 516.64 L995.1 511.04 L1001.24 505.44 L1007.38 499.85 L1013.52 494.25 L1019.66 488.65 L1025.81 483.06 L1031.95 477.46 L1038.1 471.87 L1044.24 466.27 L1050.39 460.68 L1056.54 455.09 L1062.68 449.49 L1068.83 443.9 L1074.98 438.31 L1081.13 432.72 L1087.28 427.13 L1093.42 421.54 L1099.57 415.95 L1105.72 410.37 L1111.87 404.78 L1118.02 399.19 L1124.17 393.61 L1130.33 388.03 L1136.48 382.44 L1142.63 376.86 L1148.78 371.28 L1154.93 365.7 L1161.08 360.12 L1167.23 354.54 L1173.38 348.97 L1179.53 343.39 L1185.68 337.82 L1191.83 332.25 L1197.98 326.67 L1204.13 321.1 L1210.28 315.53 L1216.43 309.97 L1222.58 304.4 L1228.73 298.83 L1234.88 293.27 L1241.03 287.71 L1247.18 282.15 L1253.33 276.59 L1259.47 271.03 L1265.62 265.47 L1271.77 259.92 L1277.91 254.37 L1284.06 248.81 L1290.2 243.26 L1296.34 237.72 L1302.49 232.17 L1308.63 226.62 L1314.77 221.08 L1320.91 215.54 L1327.05 210" fill="none" stroke="#0B1220" stroke-width="9" stroke-linecap="round" />
+      <path id="rt-line" d="M592.95 880 L598.97 874.44 L605 868.87 L611.03 863.3 L617.07 857.74 L623.1 852.17 L629.14 846.6 L635.18 841.02 L641.23 835.45 L647.27 829.88 L653.32 824.3 L659.37 818.72 L665.43 813.15 L671.48 807.57 L677.54 801.99 L683.6 796.41 L689.67 790.83 L695.73 785.24 L701.8 779.66 L707.87 774.07 L713.94 768.49 L720.01 762.9 L726.09 757.31 L732.17 751.73 L738.25 746.14 L744.33 740.55 L750.42 734.96 L756.5 729.37 L762.59 723.77 L768.68 718.18 L774.77 712.59 L780.87 706.99 L786.96 701.4 L793.06 695.81 L799.16 690.21 L805.26 684.61 L811.36 679.02 L817.47 673.42 L823.58 667.82 L829.68 662.23 L835.79 656.63 L841.9 651.03 L848.02 645.43 L854.13 639.83 L860.24 634.23 L866.36 628.63 L872.48 623.03 L878.6 617.43 L884.72 611.83 L890.84 606.23 L896.97 600.63 L903.09 595.03 L909.22 589.43 L915.34 583.83 L921.47 578.23 L927.6 572.63 L933.73 567.03 L939.87 561.43 L946 555.83 L952.13 550.23 L958.27 544.63 L964.4 539.03 L970.54 533.43 L976.68 527.84 L982.82 522.24 L988.96 516.64 L995.1 511.04 L1001.24 505.44 L1007.38 499.85 L1013.52 494.25 L1019.66 488.65 L1025.81 483.06 L1031.95 477.46 L1038.1 471.87 L1044.24 466.27 L1050.39 460.68 L1056.54 455.09 L1062.68 449.49 L1068.83 443.9 L1074.98 438.31 L1081.13 432.72 L1087.28 427.13 L1093.42 421.54 L1099.57 415.95 L1105.72 410.37 L1111.87 404.78 L1118.02 399.19 L1124.17 393.61 L1130.33 388.03 L1136.48 382.44 L1142.63 376.86 L1148.78 371.28 L1154.93 365.7 L1161.08 360.12 L1167.23 354.54 L1173.38 348.97 L1179.53 343.39 L1185.68 337.82 L1191.83 332.25 L1197.98 326.67 L1204.13 321.1 L1210.28 315.53 L1216.43 309.97 L1222.58 304.4 L1228.73 298.83 L1234.88 293.27 L1241.03 287.71 L1247.18 282.15 L1253.33 276.59 L1259.47 271.03 L1265.62 265.47 L1271.77 259.92 L1277.91 254.37 L1284.06 248.81 L1290.2 243.26 L1296.34 237.72 L1302.49 232.17 L1308.63 226.62 L1314.77 221.08 L1320.91 215.54 L1327.05 210" fill="none" stroke="#4FD1C5" stroke-width="5" stroke-linecap="round" />
+      <!-- ant path for the hold: dashed line 14/10 crawling 40 px/s over the line -->
+      <path id="rt-ant" d="M592.95 880 L598.97 874.44 L605 868.87 L611.03 863.3 L617.07 857.74 L623.1 852.17 L629.14 846.6 L635.18 841.02 L641.23 835.45 L647.27 829.88 L653.32 824.3 L659.37 818.72 L665.43 813.15 L671.48 807.57 L677.54 801.99 L683.6 796.41 L689.67 790.83 L695.73 785.24 L701.8 779.66 L707.87 774.07 L713.94 768.49 L720.01 762.9 L726.09 757.31 L732.17 751.73 L738.25 746.14 L744.33 740.55 L750.42 734.96 L756.5 729.37 L762.59 723.77 L768.68 718.18 L774.77 712.59 L780.87 706.99 L786.96 701.4 L793.06 695.81 L799.16 690.21 L805.26 684.61 L811.36 679.02 L817.47 673.42 L823.58 667.82 L829.68 662.23 L835.79 656.63 L841.9 651.03 L848.02 645.43 L854.13 639.83 L860.24 634.23 L866.36 628.63 L872.48 623.03 L878.6 617.43 L884.72 611.83 L890.84 606.23 L896.97 600.63 L903.09 595.03 L909.22 589.43 L915.34 583.83 L921.47 578.23 L927.6 572.63 L933.73 567.03 L939.87 561.43 L946 555.83 L952.13 550.23 L958.27 544.63 L964.4 539.03 L970.54 533.43 L976.68 527.84 L982.82 522.24 L988.96 516.64 L995.1 511.04 L1001.24 505.44 L1007.38 499.85 L1013.52 494.25 L1019.66 488.65 L1025.81 483.06 L1031.95 477.46 L1038.1 471.87 L1044.24 466.27 L1050.39 460.68 L1056.54 455.09 L1062.68 449.49 L1068.83 443.9 L1074.98 438.31 L1081.13 432.72 L1087.28 427.13 L1093.42 421.54 L1099.57 415.95 L1105.72 410.37 L1111.87 404.78 L1118.02 399.19 L1124.17 393.61 L1130.33 388.03 L1136.48 382.44 L1142.63 376.86 L1148.78 371.28 L1154.93 365.7 L1161.08 360.12 L1167.23 354.54 L1173.38 348.97 L1179.53 343.39 L1185.68 337.82 L1191.83 332.25 L1197.98 326.67 L1204.13 321.1 L1210.28 315.53 L1216.43 309.97 L1222.58 304.4 L1228.73 298.83 L1234.88 293.27 L1241.03 287.71 L1247.18 282.15 L1253.33 276.59 L1259.47 271.03 L1265.62 265.47 L1271.77 259.92 L1277.91 254.37 L1284.06 248.81 L1290.2 243.26 L1296.34 237.72 L1302.49 232.17 L1308.63 226.62 L1314.77 221.08 L1320.91 215.54 L1327.05 210" fill="none" stroke="#C9FFF8" stroke-width="5" stroke-dasharray="14 10" opacity="0" />
+      <g id="rt-pin-a" transform="translate(592.9 880) scale(0)">
+        <circle r="13" fill="#0B1220" stroke="#4FD1C5" stroke-width="4" />
+        <circle r="5" fill="#E8EEF8" />
+      </g>
+      <circle id="rt-ring" cx="1327.1" cy="210" r="13" fill="none" stroke="#4FD1C5" stroke-width="3" opacity="0" />
+      <g id="rt-pin-b" transform="translate(1327.1 210) scale(0)">
+        <circle r="13" fill="#0B1220" stroke="#4FD1C5" stroke-width="4" />
+        <circle r="5" fill="#E8EEF8" />
+      </g>
+      <!-- traveller: 44 px (4.1 % of frame height), artwork points along +x -->
+      <g id="rt-plane" opacity="0" filter="url(#rt-planef)">
+        <path
+          d="M23 0 C23 -2.6 19 -3.4 15 -3.4 L4 -3.4 L-7 -21 L-12 -21 L-5 -3.4 L-14 -3.4 L-19 -10 L-22.5 -10 L-19.5 0 L-22.5 10 L-19 10 L-14 3.4 L-5 3.4 L-12 21 L-7 21 L4 3.4 L15 3.4 C19 3.4 23 2.6 23 0 Z"
+          fill="#E8EEF8"
+        />
+      </g>
+    </svg>
+    <div class="rt-title" id="rt-title">
+      <h1>Lisbon → Helsinki</h1>
+      <p>Northwind Air NW 214 · 3,360 km great circle</p>
+    </div>
+    <div class="rt-city" id="rt-city-a">Lisbon</div>
+    <div class="rt-city" id="rt-city-b">Helsinki</div>
+    <div class="lbl" id="rt-lbl" data-layout-ignore>vector-route-map · night-transit</div>
+  </div>
+  <script>
+    (function () {
+      // preset vector-route-map.night-transit + shared beats from assets/presets/vector-route-map.json,
+      // compressed from 8 s to 4.5 s (see README)
+      const D = 4.5;
+      const T = { mapIn: [0, 0.5], pinA: [0.45, 0.8], draw: [0.85, 3.05], arrive: [3.05, 3.65], ant: 3.25 };
+      const bez = (x1, y1, x2, y2) => {
+        // cubic-bezier easing (CSS), solved with Newton steps
+        return (t) => {
+          let u = t;
+          for (let i = 0; i < 8; i++) {
+            const x = 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u - t;
+            const dx = 3 * (1 - u) * (1 - u) * x1 + 6 * (1 - u) * u * (x2 - x1) + 3 * u * u * (1 - x2);
+            if (Math.abs(dx) < 1e-6) break;
+            u = Math.min(1, Math.max(0, u - x / dx));
+          }
+          return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+        };
+      };
+      const emphDecel = bez(0.05, 0.7, 0.1, 1);
+      const drawEase = bez(0.37, 0, 0.63, 1);
+      const pop = gsap.parseEase("back.out(1.6)");
+      const ringEase = gsap.parseEase("power2.out");
+      const clamp = (v) => Math.max(0, Math.min(1, v));
+      const prog = (t, [a, b]) => clamp((t - a) / (b - a));
+
+      const map = document.getElementById("rt-map");
+      const line = document.getElementById("rt-line");
+      const glow = document.getElementById("rt-glow");
+      const casing = document.getElementById("rt-casing");
+      const ant = document.getElementById("rt-ant");
+      const plane = document.getElementById("rt-plane");
+      const pinA = document.getElementById("rt-pin-a");
+      const pinB = document.getElementById("rt-pin-b");
+      const ring = document.getElementById("rt-ring");
+      const title = document.getElementById("rt-title");
+      const cityA = document.getElementById("rt-city-a");
+      const cityB = document.getElementById("rt-city-b");
+      // the route is a polyline (great-circle samples from tools/build-map.ts): measure it from its own
+      // coordinates once, so nothing reads the DOM at render time
+      const RP = line
+        .getAttribute("d")
+        .replace(/^M/, "")
+        .split(" L")
+        .map((q) => q.trim().split(/\s+/).map(Number));
+      const CUM = [0];
+      for (let i = 1; i < RP.length; i++) CUM.push(CUM[i - 1] + Math.hypot(RP[i][0] - RP[i - 1][0], RP[i][1] - RP[i - 1][1]));
+      const L = CUM[CUM.length - 1];
+      const A = [592.9, 880];
+      const B = [1327.1, 210];
+      // labels sit on the outer side of the route
+      cityA.style.left = A[0] - 28 + "px";
+      cityA.style.top = A[1] + 24 + "px";
+      cityA.style.transform = "translateX(-100%)";
+      cityB.style.left = B[0] + 30 + "px";
+      cityB.style.top = B[1] - 22 + "px";
+      for (const p of [line, glow, casing]) p.style.strokeDasharray = `${L} ${L}`;
+      function pointAt(s) {
+        s = Math.max(0, Math.min(L, s));
+        let i = 1;
+        while (i < CUM.length - 1 && CUM[i] < s) i++;
+        const k = (s - CUM[i - 1]) / (CUM[i] - CUM[i - 1] || 1);
+        return { x: RP[i - 1][0] + (RP[i][0] - RP[i - 1][0]) * k, y: RP[i - 1][1] + (RP[i][1] - RP[i - 1][1]) * k };
+      }
+      function render(t) {
+        const mi = emphDecel(prog(t, T.mapIn));
+        map.style.opacity = mi.toFixed(3);
+        map.style.transform = `scale(${(1.03 - 0.03 * mi).toFixed(4)})`;
+        const ti = emphDecel(prog(t, [0.15, 0.65]));
+        title.style.opacity = ti.toFixed(3);
+        title.style.transform = `translateY(${(16 * (1 - ti)).toFixed(1)}px)`;
+
+        const pa = pop(prog(t, T.pinA));
+        pinA.setAttribute("transform", `translate(${A[0]} ${A[1]}) scale(${pa.toFixed(3)})`);
+        const ca = emphDecel(prog(t, [0.55, 0.95]));
+        cityA.style.opacity = ca.toFixed(3);
+
+        // one progress value drives the stroke and the traveller
+        const p = drawEase(prog(t, T.draw));
+        const off = (L * (1 - p)).toFixed(2);
+        for (const el of [line, glow, casing]) el.style.strokeDashoffset = off;
+        const s = p * L;
+        const pt = pointAt(s);
+        const pa2 = pointAt(Math.max(0, s - 2));
+        const pb2 = pointAt(Math.min(L, s + 2));
+        const ang = (Math.atan2(pb2.y - pa2.y, pb2.x - pa2.x) * 180) / Math.PI;
+        const flying = t >= T.draw[0] && t < T.arrive[0] + 0.25;
+        const fadeIn = prog(t, [T.draw[0], T.draw[0] + 0.15]);
+        const fadeOut = 1 - prog(t, [T.arrive[0], T.arrive[0] + 0.25]);
+        plane.setAttribute("opacity", flying ? Math.min(fadeIn, fadeOut).toFixed(3) : "0");
+        plane.setAttribute("transform", `translate(${pt.x.toFixed(2)} ${pt.y.toFixed(2)}) rotate(${ang.toFixed(2)})`);
+
+        const pb = pop(prog(t, [T.arrive[0], T.arrive[0] + 0.35]));
+        pinB.setAttribute("transform", `translate(${B[0]} ${B[1]}) scale(${pb.toFixed(3)})`);
+        const r = prog(t, T.arrive);
+        ring.setAttribute("r", (13 * (1 + 0.8 * ringEase(r))).toFixed(2));
+        ring.setAttribute("opacity", t >= T.arrive[0] ? (0.9 * (1 - r)).toFixed(3) : "0");
+        const cb = emphDecel(prog(t, [T.arrive[0] + 0.1, T.arrive[0] + 0.5]));
+        cityB.style.opacity = cb.toFixed(3);
+
+        // ant path on the hold: solid line drops to 40 %, dashes crawl 40 px/s toward Helsinki
+        const a = prog(t, [T.ant, T.ant + 0.3]);
+        line.setAttribute("opacity", (1 - 0.6 * a).toFixed(3));
+        ant.setAttribute("opacity", a.toFixed(3));
+        ant.style.strokeDashoffset = (-40 * Math.max(0, t - T.ant)).toFixed(2);
+      }
+
+      const tl = gsap.timeline({ paused: true, onUpdate: () => render(tl.time()) });
+      tl.to({ p: 0 }, { p: 1, duration: D, ease: "none" }, 0);
+      tl.fromTo("#rt-lbl", { opacity: 0 }, { opacity: 0.6, duration: 0.3, ease: "power1.out" }, 0.2);
+      render(0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["route"] = tl;
+    })();
+  </script>
+</template>

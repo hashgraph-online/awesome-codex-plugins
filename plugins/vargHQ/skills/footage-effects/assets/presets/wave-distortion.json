@@ -1,0 +1,144 @@
+{
+  "id": "wave-distortion",
+  "name": "Wave and heat distortion",
+  "use": "Make real footage ripple like heat haze or water, or smear itself along its own brightness.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 8,
+  "fonts": [],
+  "ffmpeg_note": "Chains target 1920x1080 at 30 fps: [0:v] is the footage, generated inputs are 1..n, output label [v]. For 9:16 swap 1920x1080 -> 1080x1920 in sizes and crops. Generated lavfi inputs never end, so always cap the output with -t <clip duration> (ffprobe format=duration). Encode with -c:v libx264 -crf 16 -preset slow -pix_fmt yuv420p and keep audio with -map '0:a?' -c:a copy.",
+  "presets": [
+    {
+      "id": "wave-distortion.heat-haze",
+      "label": "Heat haze",
+      "look": "Fine rising shimmer, strongest at the bottom of frame, fading out by 35% from the top; ±4 px horizontal, ±2 px vertical.",
+      "params": {
+        "amplitude_x_px": 4,
+        "amplitude_y_px": 2,
+        "noise": "perlin 3 octaves, persistence 0.5, xscale 4, yscale 8 (taller than wide)",
+        "rise_speed_px_per_s_1080p": 97,
+        "evolution_tscale": 0.6,
+        "mask": "vertical ramp: 0 above 35% of height, full below 75%",
+        "post_blur_sigma_px": 0.7,
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i perlin=s=480x270:r=30:octaves=3:persistence=0.5:xscale=4:yscale=8:tscale=0.6:random_mode=seed:seed=7,format=gray,scroll=vertical=0.003,scale=1920:1080:flags=bicubic,eq=contrast=0.06,format=gbrp",
+            "-f lavfi -i perlin=s=480x270:r=30:octaves=3:persistence=0.5:xscale=4:yscale=8:tscale=0.6:random_mode=seed:seed=11,format=gray,scroll=vertical=0.003,scale=1920:1080:flags=bicubic,eq=contrast=0.03,format=gbrp",
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip((Y/H-0.35)/0.4,0,1)',trim=end_frame=1,loop=-1:size=1,format=gbrp"
+          ],
+          "filter_complex": "[0:v]format=gbrp,split[o][s];[s][1:v][2:v]displace=edge=smear,gblur=sigma=0.7[d];[o][d][3:v]maskedmerge,format=yuv420p[v]"
+        },
+        "remotion": "turbulentDisplace({amount: 6, size: 40, complexity: 3, evolution: interpolate(frame, [0, 150], [0, 360]), offset: [0.5, 0.5 - frame*0.003], pinning: 'all-locked'})",
+        "ae_reference": "matte layer: Turbulent Displace 245/100, feather 250 px; adjustment: Turbulent Displace 30/30, evolution 1 rev per 5 s, Fast Blur 4"
+      },
+      "sources": [
+        38,
+        39,
+        40,
+        25,
+        10
+      ]
+    },
+    {
+      "id": "wave-distortion.water-ripple",
+      "label": "Water ripple",
+      "look": "Slow, broad liquid wobble over the whole frame; ±12 px in both axes.",
+      "params": {
+        "amplitude_px": 12,
+        "noise": "perlin 2 octaves, xscale 2, yscale 2",
+        "evolution_tscale": 0.3,
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i perlin=s=480x270:r=30:octaves=2:persistence=0.5:xscale=2:yscale=2:tscale=0.3:random_mode=seed:seed=3,format=gray,scale=1920:1080:flags=bicubic,eq=contrast=0.18,format=gbrp",
+            "-f lavfi -i perlin=s=480x270:r=30:octaves=2:persistence=0.5:xscale=2:yscale=2:tscale=0.3:random_mode=seed:seed=5,format=gray,scale=1920:1080:flags=bicubic,eq=contrast=0.18,format=gbrp"
+          ],
+          "filter_complex": "[0:v]format=gbrp[s];[s][1:v][2:v]displace=edge=mirror,gblur=sigma=0.6,format=yuv420p[v]"
+        },
+        "remotion": "turbulentDisplace({displacement: 'turbulent-smoother', amount: 24, size: 220, complexity: 2, evolution: frame * 1.2})"
+      },
+      "sources": [
+        38,
+        25,
+        5
+      ]
+    },
+    {
+      "id": "wave-distortion.self-smear",
+      "label": "Self-smear (colour-driven)",
+      "look": "The footage pushes itself around: bright areas shove pixels right/down by up to ~40 px and leave trails.",
+      "params": {
+        "map": "own luma, gblur sigma 24, contrast 0.35 (x) / 0.2 inverted (y)",
+        "max_shift_px": 40,
+        "trail_decay": 0.9,
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=3[o][mx][my];[mx]format=gray,gblur=sigma=24,eq=contrast=0.35,format=gbrp[xm];[my]format=gray,negate,gblur=sigma=24,eq=contrast=0.2,format=gbrp[ym];[o][xm][ym]displace=edge=smear,lagfun=decay=0.9,gblur=sigma=0.6,format=yuv420p[v]"
+        },
+        "ae_reference": "Displacement Map with the layer itself as the map (luminance), Turbulent Displace on top"
+      },
+      "sources": [
+        5,
+        39,
+        10
+      ]
+    },
+    {
+      "id": "wave-distortion.sine-wave",
+      "label": "Sine wave",
+      "look": "Clean horizontal sine ripple travelling down the frame: 10 px amplitude, 180 px wavelength, 0.5 cycles/s.",
+      "params": {
+        "amplitude_px": 10,
+        "wavelength_px": 180,
+        "speed_cycles_per_s": 0.5,
+        "direction": "rows shift horizontally",
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=black:s=480x270:r=30,format=gray,geq=lum='128+10*sin(2*PI*(Y*4/180-T*0.5))',scale=1920:1080:flags=bicubic,format=gbrp",
+            "-f lavfi -i color=c=0x808080:s=1920x1080:r=30,format=gbrp"
+          ],
+          "filter_complex": "[0:v]format=gbrp[s];[s][1:v][2:v]displace=edge=mirror,format=yuv420p[v]"
+        },
+        "remotion": "wave({amplitude: 10, wavelength: 180, direction: 'vertical', phase: frame / 30 * Math.PI})"
+      },
+      "sources": [
+        10,
+        5
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 5,
+      "name": "Xor (@XorDev) — turbulence: summed perpendicular sine waves",
+      "url": "https://x.com/XorDev/status/2008979114544509285"
+    },
+    {
+      "n": 10,
+      "name": "FFmpeg Filters Documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 25,
+      "name": "Remotion — turbulentDisplace()",
+      "url": "https://www.remotion.dev/docs/effects/turbulent-displace"
+    },
+    {
+      "n": 38,
+      "name": "Tiago Sousa — GPU Gems 2 ch.19, Generic Refraction Simulation",
+      "url": "https://developer.nvidia.com/gpugems/gpugems2/part-ii-shading-lighting-and-shadows/chapter-19-generic-refraction-simulation"
+    },
+    {
+      "n": 39,
+      "name": "Caleb Ward (PremiumBeat) — How to create heat waves in After Effects",
+      "url": "https://www.premiumbeat.com/blog/how-to-create-heat-waves-in-after-effects/"
+    },
+    {
+      "n": 40,
+      "name": "Video Copilot — Heat Distortion plug-in sneak peek",
+      "url": "http://www.videocopilot.net/blog/2013/10/new-heat-distortion-plug-in-sneak-peak/"
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "slug": "sample-shortcuts-04",
+  "title": "SHORTCUTS #04: Voice, Figma, Sepia",
+  "url": "",
+  "published": "2026-09-04",
+  "series": "SHORTCUTS",
+  "cover": "covers/shortcuts-04.jpg",
+  "sample": true,
+  "sections": [
+    {
+      "id": "s1",
+      "title": "Persistence is the next frontier"
+    },
+    {
+      "id": "s2",
+      "title": "Fable 5.1 dropped"
+    },
+    {
+      "id": "s3",
+      "title": "Atlas: camera control in image or video"
+    },
+    {
+      "id": "s4",
+      "title": "Talking instead of typing"
+    },
+    {
+      "id": "s5",
+      "title": "Figma integration"
+    }
+  ],
+  "items": [
+    {
+      "id": "s1-li",
+      "section": "s1",
+      "platform": "linkedin",
+      "format": "post",
+      "label": "Hook: the third chapter",
+      "copy": "Agents that don't stop when you close your laptop, you can now run jobs for hours or days, or be 'always on,' unlocking a plethora of new ways to leverage AI.\n\nIt's gone from prompting, to agentic, now persistence.\n\nTo summarize, Grok is furthest ahead on letting one agent run indefinitely without you. OpenAI's got the most ambitious version, they just haven't shipped it. Anthropic has shipped pieces one at a time, they haven't done a good job marketing persistence.\n\nFull issue: [link]",
+      "source": "Agents that don’t stop when you close your laptop , you can now run jobs for hours or days, or be ‘always on,’ unlocking a plethora of new ways to leverage AI. This is more than a product update, it’s the beginning of the third chapter in the AI story.\n\nIt’s gone from prompting, to agentic, now persistence. Early 26’ we saw agentic go mainstream with normal people starting to use programs like Code and Codex for agentic tools. Sumer brought us better models and multi agent workflows, but unless you went the lengths to set them up on sandboxed burner computers, you’ve been tethered to the wake state of your computer.\n\nTo summarize, Grok is furthest ahead on letting one agent run indefinitely without you. OpenAI’s got the most ambitious version, they just haven’t shipped it. Anthropic has shipped pieces one at a time, they haven’t done a good job marketing persistence."
+    },
+    {
+      "id": "s1-x",
+      "section": "s1",
+      "platform": "x",
+      "format": "post",
+      "label": "Forever timelines",
+      "copy": "Regardless, start playing with what you can do by running agents across 'forever' timelines, it changes the way you think about use.",
+      "source": "Regardless, start playing with what you can do by running agents across ‘forever’ timelines, it changes the way you think about use."
+    },
+    {
+      "id": "s2-x",
+      "section": "s2",
+      "platform": "x",
+      "format": "post",
+      "label": "Better at finishing",
+      "copy": "Plainly: it is not significantly smarter, but it is much better at finishing. Gains are on working for hours and recovering from mistakes.",
+      "source": "Plainly: it is not significantly smarter, but it is much better at finishing. Gains are on working for hours and recovering from mistakes."
+    },
+    {
+      "id": "s2-xt",
+      "section": "s2",
+      "platform": "x",
+      "format": "thread",
+      "label": "3-post thread: two reviewers",
+      "copy": "1/ Before execution, I currently run 2x second opinions, all from Claude code, which runs Codex and GrokBuild straight through the terminal.\n\n2/ Before I execute on any build they beat up the plan and improve it.\n\n3/ If you run two reviewers, move the first one's write-up out of the folder before you start the second. Mine read the other's report and started agreeing with it.",
+      "source": "Before execution, I currently run 2x second opinions, all from Claude code, which runs Codex and GrokBuild straight through the terminal. Before I execute on any build they beat up the plan and improve it. Read shortcuts 03 to set up a codex second opinion, to do the same with grok steal the prompt below.\n\nIf you run two reviewers, move the first one’s write-up out of the folder before you start the second. Mine read the other’s report and started agreeing with it."
+    },
+    {
+      "id": "s2-note",
+      "section": "s2",
+      "platform": "substack",
+      "format": "note",
+      "label": "Scope, then the last mile",
+      "copy": "Scope with 5.1, hand the plan to something cheap, then bring 5.1 back for the final pass. The last mile is where the recovery behaviour earns its price.",
+      "source": "Scope with 5.1, hand the plan to something cheap, then bring 5.1 back for the final pass. The last mile is where the recovery behaviour earns its price."
+    },
+    {
+      "id": "s3-x",
+      "section": "s3",
+      "platform": "x",
+      "format": "post",
+      "label": "Twenty-four frames",
+      "copy": "Feed it a handful of ground-level shots and it rebuilds the space in 3D, including angles not captured. Twenty-four frames of phone video, about a second of walking, is enough to build an environment.",
+      "source": "Feed it a handful of ground-level shots and it rebuilds the space in 3D, including angles not captured. Twenty-four frames of phone video, about a second of walking, is enough to build an environment."
+    },
+    {
+      "id": "s4-li",
+      "section": "s4",
+      "platform": "linkedin",
+      "format": "post",
+      "label": "Hook: two to three times faster",
+      "copy": "The average adult types 52 words a minute at a desk, 36 on a phone.\n\nDictation studies clock people between 90 and 160 words a minute, two to three times faster (Testing caveat, most of those measures are people reading prepared text aloud on a phone).\n\nIt is not for writing. Spoken sentences are longer, looser and more repetitive than written ones, good writing requires sitting and thinking, but ideation and capturing thoughts is where transcription excels.\n\nApple's dictation is already on your Mac, it costs nothing, and it is good enough to find out whether you like working this way.\n\nFull issue: [link]",
+      "source": "I set this up two weeks ago, the day to day interaction with Code has been amazing. It is not for writing. Spoken sentences are longer, looser and more repetitive than written ones, good writing requires sitting and thinking, but ideation and capturing thoughts is where transcription excels.\n\nThe average adult types 52 words a minute at a desk, 36 on a phone, measured across two Aalto University studies of 168,000 and 37,000 volunteers. Dictation studies clock people between 90 and 160 words a minute, two to three times faster (Testing caveat, most of those measures are people reading prepared text aloud on a phone).\n\nApple’s dictation is already on your Mac, it costs nothing, and it is good enough to find out whether you like working this way. Turn it on in System Settings / Keyboard / Dictation, and set a shortcut you can hit without thinking about it."
+    },
+    {
+      "id": "s4-xt",
+      "section": "s4",
+      "platform": "x",
+      "format": "thread",
+      "label": "3-post thread: Whisper vs Wispr",
+      "copy": "1/ Whisper is a speech-recognition model OpenAI released for free in 2022. It is not an app. Anyone can run it on their own machine.\n\n2/ Wispr Flow is a paid app from a different company. It runs in the cloud.\n\n3/ MacWhisper is a paid Mac app that runs Whisper locally on your own machine.",
+      "source": "Whisper is a speech-recognition model OpenAI released for free in 2022. It is not an app. Anyone can run it on their own machine.\n\nWispr Flow is a paid app from a different company. It runs in the cloud.\n\nMacWhisper is a paid Mac app that runs Whisper locally on your own machine."
+    },
+    {
+      "id": "s5-li",
+      "section": "s5",
+      "platform": "linkedin",
+      "format": "post",
+      "label": "Hook: build the templates first",
+      "copy": "I started by building the things I needed, social assets and layouts, and it was so iterative on the smallest details that it was slower than doing it myself. The fix is to build the templates first.\n\nPoint Claude at your best previous work alongside your references and have it build templates from both, iterating for variety.\n\nEvery INTAKE issue now turns into social assets for LinkedIn, stories and Pinterest, three sets of dimensions, in minutes. Work that used to take me a few hours.\n\nFull issue: [link]",
+      "source": "I started by building the things I needed, social assets and layouts, and it was so iterative on the smallest details that it was slower than doing it myself. The fix is to build the templates first.\n\nPoint Claude at your best previous work alongside your references and have it build templates from both, iterating for variety. You’ll now have a whole folder to pull from.\n\nEvery INTAKE issue now turns into social assets for LinkedIn, stories and Pinterest, three sets of dimensions, in minutes. Work that used to take me a few hours."
+    },
+    {
+      "id": "s5-x",
+      "section": "s5",
+      "platform": "x",
+      "format": "post",
+      "label": "Outline first",
+      "copy": "Big files break the pipe.\n\nAsk for the outline first, then pull only the frames you need.",
+      "source": "Big files break the pipe. Claude Code caps a single MCP tool response at 25,000 tokens by default, a full design pull on a real file hits that easily. It’s just a default, you can raise it with the MAXMCPOUTPUTTOKENS environment variable.\n\nAsk for the outline first, then pull only the frames you need."
+    },
+    {
+      "id": "s5-note",
+      "section": "s5",
+      "platform": "substack",
+      "format": "note",
+      "label": "Decks become cleanup",
+      "copy": "Use it for decks. Slides is writable now, decks are a huge waste of time that now become a cleanup pass.",
+      "source": "Use it for decks. Slides is writable now, decks are a huge waste of time that now become a cleanup pass."
+    }
+  ]
+}

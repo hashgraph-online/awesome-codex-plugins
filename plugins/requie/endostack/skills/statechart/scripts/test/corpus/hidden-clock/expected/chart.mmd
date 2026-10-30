@@ -1,0 +1,6 @@
+stateDiagram-v2
+  s0: mode=#34;idle#34; ticks=0
+  s1: mode=#34;running#34; ticks=0
+  [*] --> s0
+  s0 --> s1: Start
+  s1 --> s0: Halt

@@ -78,7 +78,12 @@
     "progressTokens": 100000,
     "usage": "when-available",
     "duration": "on",
-    "templatePath": ""
+    "templatePath": "",
+    "evidence": {
+      "fileMap": "off",
+      "architecture": "off",
+      "default": ""
+    }
   },
   "recovery": {
     "launchScope": "inherit-recorded-scope"

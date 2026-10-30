@@ -1,0 +1,242 @@
+{
+  "id": "cta-pill-pop",
+  "name": "CTA pill pop",
+  "use": "A follow / shop / watch-next button that pops in over footage and names one next step.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 4,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        600,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "rules": [
+    "Name the exact action and destination [38][37]",
+    "Hook <=6 s, proposition <=3 s, end with a clear CTA [3]",
+    "Say it and show it [22]",
+    "Store badges static, >=40 px, 1/4-height clear space [24]",
+    "Test 2 CTA texts per video [36]"
+  ],
+  "presets": [
+    {
+      "id": "cta-pill-pop.floating-pill",
+      "label": "Floating pill",
+      "look": "Solid brand pill, bold label, arrow, back-out pop",
+      "params": {
+        "in_s": 0.35,
+        "in_ease": "back.out(1.7)",
+        "scale_from": 0.6,
+        "hold_until_s": 3.75,
+        "out_s": 0.25,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+        "height_px_1080w": 96,
+        "radius_px": 48,
+        "pad_x_px": 40,
+        "label_px": 40,
+        "label_weight": 800,
+        "max_width_px": 660,
+        "center_px_9x16": [
+          450,
+          1120
+        ],
+        "fill": "brand",
+        "label_color": "#FFFFFF",
+        "min_contrast": "4.5:1 small / 3:1 large",
+        "attention_beat_s": 1.2,
+        "sfx": "pop at frame 7, -6 to -10 dB under VO"
+      },
+      "sources": [
+        3,
+        26,
+        27,
+        1,
+        42
+      ]
+    },
+    {
+      "id": "cta-pill-pop.glass-button",
+      "label": "Glass button",
+      "look": "Frosted capsule, white label, decelerate rise, no overshoot",
+      "params": {
+        "in_s": 0.45,
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "rise_px": 40,
+        "backdrop_blur_px": 24,
+        "fill": "rgba(255,255,255,0.18)",
+        "stroke": "1.5px rgba(255,255,255,0.4)",
+        "text_scrim": "rgba(0,0,0,0.3) when footage is bright",
+        "label_px": 40,
+        "label_weight": 700,
+        "out_s": 0.25,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)"
+      },
+      "sources": [
+        26
+      ]
+    },
+    {
+      "id": "cta-pill-pop.early-deal",
+      "label": "Early deal",
+      "look": "Pill + offer chip right after the hook",
+      "params": {
+        "in_at_s": 3.0,
+        "hold_s": 2.5,
+        "chip_stagger_s": 0.12,
+        "chip_px": 30,
+        "in_ease": "back.out(1.7)"
+      },
+      "sources": [
+        3,
+        39
+      ]
+    },
+    {
+      "id": "cta-pill-pop.end-tap",
+      "label": "End tap",
+      "look": "End-card pill with tap ripple and press",
+      "params": {
+        "start_before_end_s": 3.5,
+        "press_at_s": 0.8,
+        "press_scale": 0.94,
+        "press_frames": 3,
+        "ripple_scale": [
+          0,
+          2.2
+        ],
+        "ripple_s": 0.4,
+        "ripple_opacity": [
+          0.35,
+          0
+        ]
+      },
+      "sources": [
+        3,
+        27
+      ]
+    }
+  ],
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 3,
+      "name": "TikTok Ads Help: Creative best practices for performance ads",
+      "url": "https://ads.tiktok.com/help/article/creative-best-practices?lang=en"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 22,
+      "name": "FTC: Disclosures 101 for social media influencers",
+      "url": "https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers"
+    },
+    {
+      "n": 24,
+      "name": "Apple: App Store marketing guidelines",
+      "url": "https://developer.apple.com/app-store/marketing/guidelines/"
+    },
+    {
+      "n": 26,
+      "name": "Material Design 3 motion tokens (material-components-android Motion.md)",
+      "url": "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md"
+    },
+    {
+      "n": 27,
+      "name": "GSAP source gsap-core.js (back/elastic defaults)",
+      "url": "https://github.com/greensock/GSAP/blob/master/src/gsap-core.js"
+    },
+    {
+      "n": 36,
+      "name": "Barry Hott (@binghott): test CTAs; branding not needed in every ad",
+      "url": "https://x.com/binghott/status/1456028257246191624"
+    },
+    {
+      "n": 37,
+      "name": "Dara Denney (@DenneyDara): content-specific CTA",
+      "url": "https://x.com/DenneyDara/status/1546561057459773440"
+    },
+    {
+      "n": 38,
+      "name": "jack friks (@jackfriks): 100k views, no downloads, poor CTA",
+      "url": "https://x.com/jackfriks/status/2105708554590294063"
+    },
+    {
+      "n": 39,
+      "name": "Motion creative analytics: metrics cheat sheet + talk",
+      "url": "https://help.motionapp.com/en/articles/7730931-metrics-cheat-sheet"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 42,
+      "name": "W3C: Understanding WCAG 2.1 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html"
+    }
+  ]
+}

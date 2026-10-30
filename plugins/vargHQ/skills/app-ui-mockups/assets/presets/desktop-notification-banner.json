@@ -1,0 +1,180 @@
+{
+  "id": "desktop-notification-banner",
+  "name": "Desktop notification banner",
+  "use": "A macOS-style notification banner with an app icon that springs in at the top right and tucks back out.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "trademark_note": "macOS and its notification UI belong to Apple; SF Pro is Apple-licensed, so Inter is used. Invented app icons only.",
+  "presets": [
+    {
+      "id": "desktop-notification-banner.light",
+      "label": "Light",
+      "look": "Light frosted card over a wallpaper",
+      "params": {
+        "card_bg": "rgba(246,246,246,0.72)",
+        "backdrop": "blur(30px) saturate(140%)",
+        "radius_px_1080p": 27,
+        "width_px_1080p": 540,
+        "padding_px": [
+          18,
+          21
+        ],
+        "icon_px": 57,
+        "icon_gap_px": 15,
+        "margin_top_right_px": 24,
+        "title": {
+          "px": 20,
+          "weight": 600,
+          "color": "#000000",
+          "case": "title-style, no ending punctuation"
+        },
+        "body": {
+          "px": 20,
+          "color": "#1d1d1f",
+          "case": "sentence case, complete sentence"
+        },
+        "time": {
+          "px": 16,
+          "color": "#8e8e93",
+          "text": "now"
+        },
+        "shadow": "0 10px 30px rgba(0,0,0,0.18)",
+        "in": {
+          "from": "x +110% of card width (16:9) or y -120% (9:16)",
+          "spring": {
+            "omega": 15,
+            "zeta": 0.74,
+            "first_contact_s": 0.31,
+            "overshoot_pct": 3,
+            "settle_s": 0.7
+          },
+          "opacity_s": 0.12,
+          "remotion_spring": {
+            "stiffness": 225,
+            "damping": 22.2,
+            "mass": 1
+          }
+        },
+        "hold": "max(1.5, 0.6 + chars/15) s",
+        "out": {
+          "duration_s": 0.45,
+          "ease": "power2.in",
+          "direction": "same way it came"
+        },
+        "sfx_at_s": 0.31
+      },
+      "sources": [
+        30,
+        31,
+        32,
+        60,
+        2,
+        11,
+        12
+      ]
+    },
+    {
+      "id": "desktop-notification-banner.dark",
+      "label": "Dark",
+      "look": "Dark frosted card",
+      "params": {
+        "card_bg": "rgba(40,40,40,0.72)",
+        "border": "1px rgba(255,255,255,0.1)",
+        "title_color": "#FFFFFF",
+        "body_color": "rgba(255,255,255,0.85)"
+      },
+      "sources": [
+        60
+      ]
+    },
+    {
+      "id": "desktop-notification-banner.stack",
+      "label": "Stack",
+      "look": "Three banners 0.6 s apart, newest on top",
+      "params": {
+        "interval_s": 0.6,
+        "older": {
+          "y_px": 12,
+          "scale": 0.97,
+          "opacity": 0.75
+        },
+        "max_cards": 5
+      },
+      "sources": [
+        64
+      ]
+    },
+    {
+      "id": "desktop-notification-banner.huge",
+      "label": "Huge (phone)",
+      "look": "Big top-centre banner for 9:16",
+      "params": {
+        "width_pct_frame_w": 88,
+        "title_pct_frame_h": 3.2,
+        "body_pct_frame_h": 2.8,
+        "position": "top centre, y 6% of frame"
+      },
+      "sources": [
+        60
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 2,
+      "name": "Emil Kowalski (@emilkowalski)",
+      "url": "https://x.com/emilkowalski/status/1954891053032755560"
+    },
+    {
+      "n": 11,
+      "name": "Brysbaert 2019 reading-rate meta-analysis (BPS)",
+      "url": "https://www.bps.org.uk/research-digest/most-comprehensive-review-date-finds-average-persons-reading-speed-slower"
+    },
+    {
+      "n": 12,
+      "name": "Netflix English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 30,
+      "name": "Apple HIG Notifications",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/notifications"
+    },
+    {
+      "n": 31,
+      "name": "Apple HIG Typography",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/typography"
+    },
+    {
+      "n": 32,
+      "name": "Apple HIG Motion",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/motion"
+    },
+    {
+      "n": 60,
+      "name": "HyperFrames native-notification-pop",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components/native-notification-pop"
+    },
+    {
+      "n": 64,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

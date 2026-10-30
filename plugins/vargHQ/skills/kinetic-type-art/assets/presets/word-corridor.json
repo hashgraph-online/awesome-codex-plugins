@@ -1,0 +1,154 @@
+{
+  "id": "word-corridor",
+  "name": "Repeating word corridor",
+  "use": "A word repeated on four walls of a corridor rushing toward camera",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 7,
+  "fonts": [
+    {
+      "family": "Anton",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Anton"
+    },
+    {
+      "family": "League Gothic",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/League+Gothic"
+    }
+  ],
+  "presets": [
+    {
+      "id": "word-corridor.paper",
+      "label": "Paper",
+      "look": "Black words on off-white walls with grain",
+      "params": {
+        "bg": "#F2EFE8",
+        "ink": "#111111",
+        "font": "Anton",
+        "case": "upper",
+        "tracking_em": 0.05,
+        "perspective_px": 600,
+        "wall_depth_x_frame_width": 5,
+        "repeats_per_wall": 16,
+        "word_gap_em": 0.6,
+        "cap_height_pct_of_wall": 60,
+        "bpm": 120,
+        "pitch_per_beat": 1,
+        "drop_speed_multiplier": 2,
+        "easing": "none",
+        "fog": {
+          "start_depth": 0.6,
+          "color": "#F2EFE8"
+        },
+        "end": {
+          "match_cut_to_flat_word": true,
+          "hold_frames": 30
+        }
+      },
+      "sources": [
+        1,
+        35,
+        38,
+        41
+      ]
+    },
+    {
+      "id": "word-corridor.night",
+      "label": "Night",
+      "look": "White words in a black corridor, far end glows",
+      "params": {
+        "bg": "#0B0B0D",
+        "ink": "#F2EFE8",
+        "end_glow": "#FF5A1F",
+        "end_glow_opacity": 0.3,
+        "perspective_px": 450,
+        "fog": {
+          "start_depth": 0.6,
+          "color": "#0B0B0D"
+        }
+      },
+      "sources": [
+        1,
+        35,
+        41
+      ]
+    },
+    {
+      "id": "word-corridor.riso",
+      "label": "Riso",
+      "look": "Blue and pink words alternate walls, overprinted",
+      "params": {
+        "paper": "#F4F1EA",
+        "inks": [
+          "#3255A4",
+          "#FF48B0"
+        ],
+        "blend": "multiply",
+        "offset_px": 2,
+        "paper_texture": "paper-shaders paper-finish"
+      },
+      "sources": [
+        5,
+        30,
+        42
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "@jh3yy, CSS 3D tunnel",
+      "url": "https://x.com/jh3yy/status/1732553845530566855"
+    },
+    {
+      "n": 4,
+      "name": "@jh3yy, blow-out text along z",
+      "url": "https://x.com/jh3yy/status/1702790661911494765"
+    },
+    {
+      "n": 5,
+      "name": "@natAndrewson, three-ink riso print",
+      "url": "https://x.com/natAndrewson/status/1262744907355058186"
+    },
+    {
+      "n": 22,
+      "name": "Butterick, Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 35,
+      "name": "MDN, perspective",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/perspective"
+    },
+    {
+      "n": 38,
+      "name": "Silverman Sound, BPM to FPS calculator",
+      "url": "https://www.silvermansound.com/bpm-to-fps-calculator"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 42,
+      "name": "vargHQ/skills paper-shaders",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    .bk-shot {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: 960px 540px;
+    }
+    #bk-discs {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      mix-blend-mode: screen;
+      overflow: visible;
+    }
+    .lbl {
+      position: absolute;
+      left: 96px;
+      bottom: 62px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: #fff;
+      opacity: 0.6;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+      white-space: nowrap;
+    }
+  </style>
+  <div id="root" data-composition-id="bokeh" data-width="1920" data-height="1080">
+    <img class="bk-shot" data-layout-allow-overflow id="bk-a" src="assets/shots/harbor.svg" alt="" />
+    <img class="bk-shot" data-layout-allow-overflow id="bk-b" src="assets/shots/sea.svg" alt="" />
+    <svg id="bk-discs" viewBox="0 0 1920 1080" aria-hidden="true">
+      <defs>
+        <filter id="bk-soft" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.4" /></filter>
+      </defs>
+      <g id="bk-layer" filter="url(#bk-soft)"></g>
+    </svg>
+    <div class="lbl" id="bk-lbl" data-layout-ignore>bokeh-light-spot · warm-night</div>
+  </div>
+  <script>
+    (function () {
+      // preset bokeh-light-spot.warm-night (assets/presets/bokeh-light-spot.json)
+      const FPS = 30;
+      const D = 3.6;
+      const P = {
+        blurIn: 0.4,
+        blurInEase: "power2.in",
+        cutAt: 0.43,
+        resolve: 0.57,
+        resolveEase: "expo.out",
+        blurPx: 36, // sigma 3.3 % of frame height (preset range 2.5–4 %)
+        discPct: [14, 22],
+        discCount: 24,
+        sides: 7,
+        roundness: 0.3,
+        gain: 1.7,
+        tint: [255, 184, 107], // #FFB86B
+        tintStrength: 0.15,
+        rim: 1.1,
+      };
+      const CUT = 39 / FPS; // cut on the downbeat (11.5 s in the film)
+      const T0 = CUT - 13 / FPS; // A blur f0-f12, cut f13
+      const T1 = T0 + 1.0; // B in focus at f30
+      const inEase = gsap.parseEase(P.blurInEase);
+      const outEase = gsap.parseEase(P.resolveEase);
+
+      // brightest points of each shot (top luma), produced by tools/gen-shots.ts -> assets/shots/highlights.json
+      const HL_A = [[75,594,"#ffd9a0"],[175,594,"#ffd9a0"],[292,594,"#ffd9a0"],[416,594,"#ffd9a0"],[524,594,"#ffd9a0"],[630,594,"#ffd9a0"],[747,594,"#ffd9a0"],[860,594,"#ffd9a0"],[963,594,"#ffd9a0"],[1080,594,"#ffd9a0"],[1199,594,"#ffd9a0"],[1296,594,"#ffd9a0"],[1417,594,"#ffd9a0"],[1521,594,"#ffd9a0"],[1629,594,"#ffd9a0"],[1750,594,"#ffd9a0"],[1868,594,"#ffd9a0"],[171,718,"#ffc27a"],[415,795,"#ffc27a"],[627,815,"#ffc27a"],[861,801,"#ffc27a"],[1078,763,"#ffc27a"],[1297,761,"#ffc27a"],[1519,783,"#ffc27a"]];
+      const HL_B = [[960,490,"#fffaf0"],[888,680,"#fff1d6"],[967,575,"#fff1d6"],[933,713,"#fff1d6"],[996,717,"#fff1d6"],[960,636,"#fff1d6"],[970,685,"#fff1d6"],[820,540,"#ffe7c2"],[1100,545,"#ffe7c2"],[760,600,"#ffe2bd"],[1160,610,"#ffe2bd"],[1040,790,"#fff1d6"],[880,830,"#fff1d6"],[1000,890,"#fff1d6"],[920,960,"#fff1d6"]];
+
+      function hash(i) {
+        let a = (i * 2654435761 + 374761393) >>> 0;
+        a = Math.imul(a ^ (a >>> 15), a | 1);
+        a ^= a + Math.imul(a ^ (a >>> 7), a | 61);
+        return ((a ^ (a >>> 14)) >>> 0) / 4294967296;
+      }
+      // 7-blade iris, roundness 0.3 (0 = polygon, 1 = circle), unit radius
+      function irisPath() {
+        const n = P.sides;
+        let d = "";
+        for (let k = 0; k <= 140; k++) {
+          const th = (k / 140) * Math.PI * 2;
+          const seg = (2 * Math.PI) / n;
+          const local = ((th % seg) + seg) % seg;
+          const rp = Math.cos(Math.PI / n) / Math.cos(local - Math.PI / n);
+          const r = rp + P.roundness * (1 - rp);
+          d += (k ? "L" : "M") + (r * Math.cos(th - Math.PI / 2)).toFixed(4) + " " + (r * Math.sin(th - Math.PI / 2)).toFixed(4);
+        }
+        return d + "Z";
+      }
+      function hexToRgb(h) {
+        const n = parseInt(h.slice(1), 16);
+        return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+      }
+      function discColor(hex) {
+        // keep the source colour, +15 % saturation, 15 % global tint
+        let [r, g, b] = hexToRgb(hex);
+        const m = (r + g + b) / 3;
+        [r, g, b] = [r, g, b].map((c) => m + (c - m) * 1.15);
+        [r, g, b] = [r, g, b].map((c, i) => c * (1 - P.tintStrength) + P.tint[i] * P.tintStrength);
+        return [r, g, b].map((c) => Math.max(0, Math.min(255, Math.round(c))));
+      }
+
+      const NS = "http://www.w3.org/2000/svg";
+      const layer = document.getElementById("bk-layer");
+      const defs = document.querySelector("#bk-discs defs");
+      const path = irisPath();
+      function makeDiscs(list, side) {
+        return list.map(([x, y, hex], i) => {
+          const seed = hash(i + (side === "a" ? 11 : 97));
+          const pct = P.discPct[0] + (P.discPct[1] - P.discPct[0]) * seed;
+          const radius = (pct / 100) * 1080 * 0.5;
+          const op = 0.4 + 0.5 * hash(i * 3 + (side === "a" ? 5 : 51));
+          const [r, g, b] = discColor(hex);
+          const gid = `bk-gr-${side}${i}`;
+          const grad = document.createElementNS(NS, "radialGradient");
+          grad.setAttribute("id", gid);
+          const rim = [r, g, b].map((c) => Math.min(255, Math.round(c * P.rim)));
+          grad.innerHTML =
+            `<stop offset="0" stop-color="rgb(${r},${g},${b})" stop-opacity="0.78"/>` +
+            `<stop offset="0.82" stop-color="rgb(${r},${g},${b})" stop-opacity="0.86"/>` +
+            `<stop offset="1" stop-color="rgb(${rim.join(",")})" stop-opacity="1"/>`;
+          defs.appendChild(grad);
+          const el = document.createElementNS(NS, "path");
+          el.setAttribute("d", path);
+          el.setAttribute("fill", `url(#${gid})`);
+          layer.appendChild(el);
+          return { el, x, y, radius, op };
+        });
+      }
+      const discsA = makeDiscs(HL_A, "a");
+      const discsB = makeDiscs(HL_B, "b");
+      const imgA = document.getElementById("bk-a");
+      const imgB = document.getElementById("bk-b");
+
+      function place(discs, layerScale, size, alpha) {
+        for (const d of discs) {
+          const x = 960 + (d.x - 960) * layerScale;
+          const y = 540 + (d.y - 540) * layerScale;
+          const s = d.radius * size;
+          d.el.setAttribute("transform", `translate(${x.toFixed(1)} ${y.toFixed(1)}) scale(${s.toFixed(2)})`);
+          const a = Math.min(1, d.op * alpha * (P.gain / 1.7));
+          d.el.setAttribute("opacity", a.toFixed(3));
+          d.el.style.display = a > 0.002 ? "" : "none";
+        }
+      }
+
+      function render(t) {
+        let blurA = 0,
+          blurB = P.blurPx,
+          pA = 0,
+          pB = 1;
+        if (t >= T0) pA = inEase(Math.min(1, (t - T0) / P.blurIn));
+        blurA = P.blurPx * pA;
+        if (t >= CUT) pB = 1 - outEase(Math.min(1, (t - CUT) / (T1 - CUT)));
+        blurB = P.blurPx * pB;
+        const showB = t >= CUT;
+        imgA.style.visibility = showB ? "hidden" : "visible";
+        imgB.style.visibility = showB ? "visible" : "hidden";
+        const sA = 1 + 0.06 * pA; // overscan so the blur never pulls black in from the edges
+        const sB = 1 + 0.06 * pB;
+        imgA.style.transform = `scale(${sA.toFixed(4)})`;
+        imgB.style.transform = `scale(${sB.toFixed(4)})`;
+        imgA.style.filter = blurA > 0.05 ? `blur(${blurA.toFixed(2)}px) brightness(${(1 + 0.1 * pA).toFixed(3)})` : "none";
+        imgB.style.filter = blurB > 0.05 ? `blur(${blurB.toFixed(2)}px) brightness(${(1 + 0.1 * pB).toFixed(3)})` : "none";
+        // discs: A set grows with the defocus, cross-fades to the B set over the 4 frames round the cut,
+        // B set shrinks and fades as focus snaps back
+        const xf = Math.max(0, Math.min(1, (t - (CUT - 2 / FPS)) / (4 / FPS)));
+        const aAlpha = pA * (1 - xf);
+        const bAlpha = (t < CUT - 2 / FPS ? 0 : 1) * xf * pB;
+        place(discsA, sA, 0.2 + 0.8 * pA, aAlpha);
+        place(discsB, sB, 0.2 + 0.8 * pB, bAlpha);
+      }
+
+      const tl = gsap.timeline({ paused: true, onUpdate: () => render(tl.time()) });
+      tl.to({ p: 0 }, { p: 1, duration: D, ease: "none" }, 0);
+      tl.fromTo("#bk-lbl", { opacity: 0 }, { opacity: 0.6, duration: 0.3, ease: "power1.out" }, 0.15);
+      render(0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["bokeh"] = tl;
+    })();
+  </script>
+</template>

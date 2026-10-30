@@ -1,0 +1,287 @@
+{
+  "id": "datamosh-rain",
+  "name": "Datamosh rain",
+  "use": "Coloured compression debris falling in vertical streams over near-black, for tech, music and glitch openers",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "datamosh-rain.signature",
+      "label": "Signature",
+      "look": "Hot pink, mint and bone debris on near-black",
+      "params": {
+        "engine": "custom-glsl",
+        "blockPx1080": 16,
+        "subBlocksPx1080": [
+          8,
+          4
+        ],
+        "columnsAt1920": 120,
+        "fallSpeedPxPerS": [
+          120,
+          600
+        ],
+        "density": 0.18,
+        "trailBlocks": [
+          3,
+          8
+        ],
+        "trailDecayPerBlock": 0.85,
+        "rerollFps": 12.5,
+        "chromaShiftPx1080": [
+          2,
+          6
+        ],
+        "scanlineOpacity": 0.06,
+        "keyframeFlashEveryS": [
+          2.5,
+          4.0
+        ],
+        "keyframeFlashFrames": 2,
+        "background": "#060608",
+        "palette": [
+          "#FF3B6B",
+          "#3BFFD5",
+          "#F5F0E6"
+        ]
+      },
+      "sources": [
+        15,
+        36,
+        37
+      ]
+    },
+    {
+      "id": "datamosh-rain.datamosh",
+      "label": "Datamosh",
+      "look": "Saturated magenta, cyan, acid lime and white, denser smear",
+      "params": {
+        "engine": "custom-glsl",
+        "blockPx1080": 16,
+        "subBlocksPx1080": [
+          8,
+          4
+        ],
+        "columnsAt1920": 120,
+        "fallSpeedPxPerS": [
+          120,
+          600
+        ],
+        "density": 0.26,
+        "trailBlocks": [
+          5,
+          12
+        ],
+        "trailDecayPerBlock": 0.85,
+        "rerollFps": 12.5,
+        "chromaShiftPx1080": [
+          2,
+          6
+        ],
+        "scanlineOpacity": 0.06,
+        "keyframeFlashEveryS": [
+          2.5,
+          4.0
+        ],
+        "keyframeFlashFrames": 2,
+        "background": "#050506",
+        "palette": [
+          "#FF00A8",
+          "#00E5FF",
+          "#B6FF00",
+          "#FFFFFF"
+        ]
+      },
+      "sources": [
+        36,
+        37
+      ]
+    },
+    {
+      "id": "datamosh-rain.phosphor",
+      "label": "Phosphor",
+      "look": "Green-only terminal rain with phosphor trails",
+      "params": {
+        "engine": "custom-glsl",
+        "blockPx1080": 16,
+        "subBlocksPx1080": [
+          8,
+          4
+        ],
+        "columnsAt1920": 120,
+        "fallSpeedPxPerS": [
+          120,
+          600
+        ],
+        "density": 0.18,
+        "trailBlocks": [
+          3,
+          8
+        ],
+        "trailDecayPerBlock": 0.9,
+        "rerollFps": 12.5,
+        "chromaShiftPx1080": [
+          0,
+          0
+        ],
+        "scanlineOpacity": 0.06,
+        "keyframeFlashEveryS": [
+          2.5,
+          4.0
+        ],
+        "keyframeFlashFrames": 2,
+        "background": "#010A04",
+        "palette": [
+          "#2BFF88",
+          "#0E7A3E",
+          "#B8FFD9"
+        ]
+      },
+      "sources": [
+        36
+      ]
+    },
+    {
+      "id": "datamosh-rain.ember",
+      "label": "Ember",
+      "look": "Orange, sunflower and brick sparks falling slowly",
+      "params": {
+        "engine": "custom-glsl",
+        "blockPx1080": 16,
+        "subBlocksPx1080": [
+          8,
+          4
+        ],
+        "columnsAt1920": 120,
+        "fallSpeedPxPerS": [
+          80,
+          360
+        ],
+        "density": 0.18,
+        "trailBlocks": [
+          3,
+          8
+        ],
+        "trailDecayPerBlock": 0.85,
+        "rerollFps": 12.5,
+        "chromaShiftPx1080": [
+          2,
+          6
+        ],
+        "scanlineOpacity": 0.06,
+        "keyframeFlashEveryS": [
+          2.5,
+          4.0
+        ],
+        "keyframeFlashFrames": 2,
+        "background": "#0A0402",
+        "palette": [
+          "#FF6C2F",
+          "#FFB511",
+          "#B3260E"
+        ]
+      },
+      "sources": [
+        35,
+        36
+      ]
+    },
+    {
+      "id": "datamosh-rain.ice",
+      "label": "Ice",
+      "look": "Pale cyan and steel blue shards, sparse, fast",
+      "params": {
+        "engine": "custom-glsl",
+        "blockPx1080": 16,
+        "subBlocksPx1080": [
+          8,
+          4
+        ],
+        "columnsAt1920": 120,
+        "fallSpeedPxPerS": [
+          240,
+          900
+        ],
+        "density": 0.12,
+        "trailBlocks": [
+          3,
+          8
+        ],
+        "trailDecayPerBlock": 0.85,
+        "rerollFps": 12.5,
+        "chromaShiftPx1080": [
+          2,
+          6
+        ],
+        "scanlineOpacity": 0.06,
+        "keyframeFlashEveryS": [
+          2.5,
+          4.0
+        ],
+        "keyframeFlashFrames": 2,
+        "background": "#02060C",
+        "palette": [
+          "#9CE8FF",
+          "#4982CF",
+          "#F2FBFF"
+        ]
+      },
+      "sources": [
+        35,
+        36
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 11,
+      "name": "Lucas Pope: blue noise vs Bayer when downscaled; 1080p60 ProRes",
+      "url": "https://x.com/dukope/status/1300260173919866880"
+    },
+    {
+      "n": 12,
+      "name": "Lucas Pope: hi-contrast dither on YouTube",
+      "url": "https://x.com/dukope/status/490854690297364480"
+    },
+    {
+      "n": 15,
+      "name": "Mirza Beig: hand-drawn stepped time",
+      "url": "https://x.com/TheMirzaBeig/status/2007826704769618278"
+    },
+    {
+      "n": 20,
+      "name": "varg paper-shaders skill",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 24,
+      "name": "Inigo Quilez: Palettes",
+      "url": "https://iquilezles.org/articles/palettes/"
+    },
+    {
+      "n": 35,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 36,
+      "name": "Wikipedia: Macroblock",
+      "url": "https://en.wikipedia.org/wiki/Macroblock"
+    },
+    {
+      "n": 37,
+      "name": "Wikipedia: Compression artifact",
+      "url": "https://en.wikipedia.org/wiki/Datamoshing"
+    },
+    {
+      "n": 39,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

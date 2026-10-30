@@ -1,0 +1,85 @@
+stateDiagram-v2
+  state Legend {
+    legend0: breaks NotFour
+    legend1: path to the NotFour bug
+  }
+  s0: small=0 big=0
+  s1: small=0 big=5
+  s2: small=3 big=0
+  s3: small=3 big=2
+  s4: small=3 big=5
+  s5: small=0 big=3
+  s6: small=0 big=2
+  s7: small=3 big=3
+  s8: small=2 big=0
+  s9: small=1 big=5
+  s10: small=2 big=5
+  s11: small=1 big=0
+  s12: small=3 big=4
+  s13: small=0 big=1
+  s14: small=0 big=4
+  s15: small=3 big=1
+  [*] --> s0
+  s0 --> s1: FillBig
+  s0 --> s2: FillSmall
+  s1 --> s0: EmptyBig
+  s1 --> s3: BigToSmall
+  s1 --> s4: FillSmall
+  s2 --> s0: EmptySmall
+  s2 --> s4: FillBig
+  s2 --> s5: SmallToBig
+  s3 --> s1: SmallToBig
+  s3 --> s2: EmptyBig
+  s3 --> s4: FillBig
+  s3 --> s6: EmptySmall
+  s4 --> s1: EmptySmall
+  s4 --> s2: EmptyBig
+  s5 --> s0: EmptyBig
+  s5 --> s1: FillBig
+  s5 --> s2: BigToSmall
+  s5 --> s7: FillSmall
+  s6 --> s0: EmptyBig
+  s6 --> s1: FillBig
+  s6 --> s3: FillSmall
+  s6 --> s8: BigToSmall
+  s7 --> s2: EmptyBig
+  s7 --> s4: FillBig
+  s7 --> s5: EmptySmall
+  s7 --> s9: SmallToBig
+  s8 --> s0: EmptySmall
+  s8 --> s2: FillSmall
+  s8 --> s6: SmallToBig
+  s8 --> s10: FillBig
+  s9 --> s1: EmptySmall
+  s9 --> s4: FillSmall
+  s9 --> s7: BigToSmall
+  s9 --> s11: EmptyBig
+  s10 --> s1: EmptySmall
+  s10 --> s4: FillSmall
+  s10 --> s8: EmptyBig
+  s10 --> s12: BigToSmall
+  s11 --> s0: EmptySmall
+  s11 --> s2: FillSmall
+  s11 --> s9: FillBig
+  s11 --> s13: SmallToBig
+  s12 --> s2: EmptyBig
+  s12 --> s4: FillBig
+  s12 --> s10: SmallToBig
+  s12 --> s14: EmptySmall
+  s13 --> s0: EmptyBig
+  s13 --> s1: FillBig
+  s13 --> s11: BigToSmall
+  s13 --> s15: FillSmall
+  s14 --> s0: EmptyBig
+  s14 --> s1: FillBig
+  s14 --> s12: FillSmall
+  s14 --> s15: BigToSmall
+  s15 --> s2: EmptyBig
+  s15 --> s4: FillBig
+  s15 --> s13: EmptySmall
+  s15 --> s14: SmallToBig
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 breaks
+  class legend1 bugPath
+  class s12,s14 breaks
+  class s0,s1,s3,s6,s8,s10 bugPath

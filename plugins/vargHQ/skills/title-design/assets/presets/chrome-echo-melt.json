@@ -1,0 +1,449 @@
+{
+  "id": "chrome-echo-melt",
+  "name": "Chrome echo melt",
+  "use": "A single chrome word that melts into stepped echoes, blurs into a grainy halo and dissolves.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 6,
+  "fonts": [
+    {
+      "family": "Unbounded",
+      "weights": [
+        800,
+        900
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Unbounded"
+    },
+    {
+      "family": "Archivo Black",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Archivo+Black"
+    }
+  ],
+  "presets": [
+    {
+      "id": "chrome-echo-melt.ice",
+      "label": "Ice",
+      "look": "Cold silver-blue chrome with a blue halo.",
+      "params": {
+        "gradient_deg": 180,
+        "stops": [
+          [
+            "#FFFFFF",
+            5
+          ],
+          [
+            "#9FD8FF",
+            25
+          ],
+          [
+            "#05070A",
+            50
+          ],
+          [
+            "#FFFFFF",
+            51
+          ],
+          [
+            "#1A4CFF",
+            75
+          ],
+          [
+            "#020308",
+            95
+          ]
+        ],
+        "hard_horizon": "50% -> 51%",
+        "halo": "#6FB8FF",
+        "rgb_split_px": {
+          "rest": [
+            1,
+            2
+          ],
+          "melt_peak": 8
+        },
+        "echoes": {
+          "count": 8,
+          "spacing_f": 2,
+          "opacity_decay": 0.7,
+          "drift_px_per_step": 8,
+          "blend": "screen"
+        },
+        "blur_chain": [
+          "radial 8-12%",
+          "gaussian sigma 24-48 px",
+          "rgb-split blur 2-4 px"
+        ],
+        "grain_opacity": [
+          0.08,
+          0.12
+        ],
+        "font": "Unbounded 900",
+        "size": "16-20% H",
+        "tracking_em": -0.02,
+        "timeline_s": {
+          "form": [
+            0,
+            1.2
+          ],
+          "hold_sweep": [
+            1.2,
+            3.0
+          ],
+          "melt": [
+            3.0,
+            5.0
+          ],
+          "dissolve": [
+            5.0,
+            6.0
+          ]
+        },
+        "bg": "#050506"
+      },
+      "sources": [
+        26,
+        27,
+        38,
+        32,
+        39,
+        37,
+        29
+      ]
+    },
+    {
+      "id": "chrome-echo-melt.chrome",
+      "label": "Chrome",
+      "look": "Neutral mirror chrome.",
+      "params": {
+        "gradient_deg": 180,
+        "stops": [
+          [
+            "#FFFFFF",
+            5
+          ],
+          [
+            "#E8ECF2",
+            25
+          ],
+          [
+            "#0A0A0C",
+            50
+          ],
+          [
+            "#FFFFFF",
+            51
+          ],
+          [
+            "#5A5F6B",
+            75
+          ],
+          [
+            "#050506",
+            95
+          ]
+        ],
+        "hard_horizon": "50% -> 51%",
+        "halo": "#DDE3EA",
+        "rgb_split_px": {
+          "rest": [
+            1,
+            2
+          ],
+          "melt_peak": 8
+        },
+        "echoes": {
+          "count": 8,
+          "spacing_f": 2,
+          "opacity_decay": 0.7,
+          "drift_px_per_step": 8,
+          "blend": "screen"
+        },
+        "blur_chain": [
+          "radial 8-12%",
+          "gaussian sigma 24-48 px",
+          "rgb-split blur 2-4 px"
+        ],
+        "grain_opacity": [
+          0.08,
+          0.12
+        ],
+        "font": "Unbounded 900",
+        "size": "16-20% H",
+        "tracking_em": -0.02,
+        "timeline_s": {
+          "form": [
+            0,
+            1.2
+          ],
+          "hold_sweep": [
+            1.2,
+            3.0
+          ],
+          "melt": [
+            3.0,
+            5.0
+          ],
+          "dissolve": [
+            5.0,
+            6.0
+          ]
+        },
+        "bg": "#050506"
+      },
+      "sources": [
+        26,
+        27,
+        38,
+        32,
+        39,
+        37,
+        29
+      ]
+    },
+    {
+      "id": "chrome-echo-melt.ember",
+      "label": "Ember",
+      "look": "Hot gold-orange metal.",
+      "params": {
+        "gradient_deg": 180,
+        "stops": [
+          [
+            "#FFF6E5",
+            5
+          ],
+          [
+            "#FFC46B",
+            25
+          ],
+          [
+            "#1A0700",
+            50
+          ],
+          [
+            "#FFF1D6",
+            51
+          ],
+          [
+            "#B3260F",
+            75
+          ],
+          [
+            "#120300",
+            95
+          ]
+        ],
+        "hard_horizon": "50% -> 51%",
+        "halo": "#FF7A2F",
+        "rgb_split_px": {
+          "rest": [
+            1,
+            2
+          ],
+          "melt_peak": 8
+        },
+        "echoes": {
+          "count": 8,
+          "spacing_f": 2,
+          "opacity_decay": 0.7,
+          "drift_px_per_step": 8,
+          "blend": "screen"
+        },
+        "blur_chain": [
+          "radial 8-12%",
+          "gaussian sigma 24-48 px",
+          "rgb-split blur 2-4 px"
+        ],
+        "grain_opacity": [
+          0.08,
+          0.12
+        ],
+        "font": "Unbounded 900",
+        "size": "16-20% H",
+        "tracking_em": -0.02,
+        "timeline_s": {
+          "form": [
+            0,
+            1.2
+          ],
+          "hold_sweep": [
+            1.2,
+            3.0
+          ],
+          "melt": [
+            3.0,
+            5.0
+          ],
+          "dissolve": [
+            5.0,
+            6.0
+          ]
+        },
+        "bg": "#050506"
+      },
+      "sources": [
+        26,
+        27,
+        38,
+        32,
+        39,
+        37,
+        29
+      ]
+    },
+    {
+      "id": "chrome-echo-melt.toxic",
+      "label": "Toxic",
+      "look": "Acid green-teal metal.",
+      "params": {
+        "gradient_deg": 180,
+        "stops": [
+          [
+            "#F4FFE0",
+            5
+          ],
+          [
+            "#D9FF4A",
+            25
+          ],
+          [
+            "#031008",
+            50
+          ],
+          [
+            "#EFFFE8",
+            51
+          ],
+          [
+            "#0FA36B",
+            75
+          ],
+          [
+            "#010805",
+            95
+          ]
+        ],
+        "hard_horizon": "50% -> 51%",
+        "halo": "#7DFF5A",
+        "rgb_split_px": {
+          "rest": [
+            1,
+            2
+          ],
+          "melt_peak": 8
+        },
+        "echoes": {
+          "count": 8,
+          "spacing_f": 2,
+          "opacity_decay": 0.7,
+          "drift_px_per_step": 8,
+          "blend": "screen"
+        },
+        "blur_chain": [
+          "radial 8-12%",
+          "gaussian sigma 24-48 px",
+          "rgb-split blur 2-4 px"
+        ],
+        "grain_opacity": [
+          0.08,
+          0.12
+        ],
+        "font": "Unbounded 900",
+        "size": "16-20% H",
+        "tracking_em": -0.02,
+        "timeline_s": {
+          "form": [
+            0,
+            1.2
+          ],
+          "hold_sweep": [
+            1.2,
+            3.0
+          ],
+          "melt": [
+            3.0,
+            5.0
+          ],
+          "dissolve": [
+            5.0,
+            6.0
+          ]
+        },
+        "bg": "#050506"
+      },
+      "sources": [
+        26,
+        27,
+        38,
+        32,
+        39,
+        37,
+        29
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 10,
+      "name": "Material Design 3 motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 22,
+      "name": "FFmpeg Filters Documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 24,
+      "name": "Andrew Kramer — Colorful Glitch FX, 100% AE (Video Copilot)",
+      "url": "https://www.videocopilot.net/tutorials/colorful_glitch_fx"
+    },
+    {
+      "n": 26,
+      "name": "Steve Patterson — 80s retro text effect (Photoshop Essentials)",
+      "url": "https://www.photoshopessentials.com/?p=14254"
+    },
+    {
+      "n": 27,
+      "name": "Texturelabs — Super rad 80s chrome in Photoshop (Photoshop Roadmap)",
+      "url": "https://photoshoproadmap.com/how-to-create-super-rad-80s-chrome-in-photoshop"
+    },
+    {
+      "n": 28,
+      "name": "Motion Array — The chrome effect in video and design",
+      "url": "https://blog.motionarray.com/?p=28891"
+    },
+    {
+      "n": 29,
+      "name": "Art of the Title — Stranger Things (Imaginary Forces; Michelle Dougherty)",
+      "url": "https://www.artofthetitle.com/title/stranger-things/"
+    },
+    {
+      "n": 32,
+      "name": "CG Spectrum — Spider-Man: Into the Spider-Verse, how they got that look",
+      "url": "https://cgspectrum.com/blog/spider-man-into-the-spider-verse-how-they-got-that-mind-blowing-look"
+    },
+    {
+      "n": 37,
+      "name": "@tranmautritam (Tran Mau Tri Tam)",
+      "url": "https://x.com/tranmautritam/status/2079207566526259654"
+    },
+    {
+      "n": 38,
+      "name": "@tranmautritam (Tran Mau Tri Tam) — chromatic metal shader",
+      "url": "https://x.com/tranmautritam/status/2075885681147298085"
+    },
+    {
+      "n": 39,
+      "name": "@TheMirzaBeig (Mirza Beig)",
+      "url": "https://x.com/TheMirzaBeig/status/2104135691567243517"
+    }
+  ]
+}

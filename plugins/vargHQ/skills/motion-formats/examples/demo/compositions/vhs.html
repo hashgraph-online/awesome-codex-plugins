@@ -1,0 +1,284 @@
+<!doctype html>
+<!--
+  vhs-bouncing-logo · pal-50 (assets/presets/vhs-bouncing-logo.json)
+  Geometry from the preset: 1920x1080 frame, logo 420x180, free area 1500x900, 1000 px/s on each
+  axis (45 deg), triangle-wave position x = L - |((v*t + x0) mod 2L) - L|, corner hit at path time
+  4.5 s. This scene shows path time 1.5 -> 5.0 s, so the corner lands at scene time 3.0 s and holds
+  0.5 s. Colour hard-switches on every wall hit through the six preset colours; corner flashes white
+  for 2 f with a soft tracking glitch; each wall hit kicks chroma 5 px for 1 f.
+  Tape pass (in-browser stand-in for ntsc-rs, values from the preset's 1080p equivalents):
+  clean frame -> 480-line YIQ signal -> luma blur, chroma blur 9 px + 4 px delay (scaled to 480
+  lines), halved vertical chroma, sharpen 0.25, edge wave 0.5, seeded snow 0.025, chroma noise,
+  8-line head-switching band, 12-line tracking band rolling bottom-to-top over 0-0.5 s -> upscale.
+  Deviation: rendered at 30 fps (preview spec) instead of the preset's 50 fps field rate.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Anton"; src: url("assets/fonts/anton.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        @font-face { font-family: "VT323"; src: url("assets/fonts/vt323.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #000000;
+        }
+        #vhs-tape {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+        }
+        #vhs-osd {
+          position: absolute;
+          left: 134px;
+          top: 76px;
+          font-family: "VT323", monospace;
+          font-size: 65px;
+          line-height: 1;
+          color: #ffffff;
+          text-shadow: 2px 2px 0 #000000;
+          letter-spacing: 0.02em;
+        }
+        #vhs-label {
+          position: absolute;
+          left: 96px;
+          bottom: 72px;
+          font-family: "JetBrains Mono", monospace;
+          font-size: 17px;
+          color: #ffffff;
+          opacity: 0.6;
+        }
+      </style>
+      <div id="root" data-composition-id="vhs" data-width="1920" data-height="1080">
+        <canvas id="vhs-tape" width="854" height="480"></canvas>
+        <div id="vhs-osd">PLAY ▶</div>
+        <div id="vhs-label" data-layout-ignore>vhs-bouncing-logo · pal-50</div>
+      </div>
+      <script>
+        (function () {
+          const FPS = 30;
+          const DUR = 3.5;
+          const T0 = 1.5; // path time at scene start; corner at path 4.5 s = scene 3.0 s
+          const V = 1000;
+          const LX = 1500;
+          const LY = 900;
+          const LOGO_W = 420;
+          const LOGO_H = 180;
+          const COLOURS = ["#FF3B30", "#FFCC00", "#34C759", "#00C7FF", "#5856D6", "#FF2D92"];
+          const CW = 854;
+          const CH = 480;
+          const SX = CW / 1920;
+          const SY = CH / 1080;
+
+          const out = document.getElementById("vhs-tape");
+          const octx = out.getContext("2d", { willReadFrequently: true });
+          const clean = document.createElement("canvas");
+          clean.width = CW;
+          clean.height = CH;
+          const cctx = clean.getContext("2d", { willReadFrequently: true });
+
+          function hash(a, b, c) {
+            let h = (a * 374761393 + b * 668265263 + c * 2147483647) | 0;
+            h = Math.imul(h ^ (h >>> 13), 1274126177);
+            h ^= h >>> 16;
+            return (h >>> 0) / 4294967296;
+          }
+          const tri = (p, L) => L - Math.abs((((p % (2 * L)) + 2 * L) % (2 * L)) - L);
+          const pathPos = (tp) => [tri(V * tp, LX), tri(V * tp, LY)];
+          const hitsBefore = (tp) => Math.floor((V * tp) / LX) + Math.floor((V * tp) / LY);
+
+          // Invented logo: "NORTHWIND" over a speed-striped bar reading HOME VIDEO, all in one flat ink.
+          function drawLogo(ctx, x, y, colour) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.fillStyle = colour;
+            ctx.save();
+            ctx.transform(1, 0, -0.18, 1, 18, 0); // italic lean
+            ctx.font = '400 118px "Anton"';
+            ctx.textBaseline = "alphabetic";
+            const tw = ctx.measureText("NORTHWIND").width;
+            ctx.scale(392 / tw, 1);
+            ctx.fillText("NORTHWIND", 0, 112);
+            ctx.restore();
+            // speed bar with three stripes and a knocked-out label
+            ctx.save();
+            ctx.transform(1, 0, -0.18, 1, 0, 0);
+            const by = 128;
+            ctx.fillRect(40, by, 380, 44);
+            ctx.globalCompositeOperation = "destination-out";
+            ctx.font = '400 40px "VT323"';
+            ctx.textBaseline = "middle";
+            ctx.fillText("HOME  VIDEO", 168, by + 23);
+            ctx.fillRect(56, by + 8, 92, 6);
+            ctx.fillRect(56, by + 19, 76, 6);
+            ctx.fillRect(56, by + 30, 60, 6);
+            ctx.restore();
+            ctx.restore();
+          }
+
+          // Per-frame buffers.
+          const N = CW * CH;
+          const Y = new Float32Array(N);
+          const I = new Float32Array(N);
+          const Q = new Float32Array(N);
+          const tmp = new Float32Array(CW);
+          function blurRow(arr, row, sigma, shift) {
+            const r = Math.ceil(sigma * 2.5);
+            const k = [];
+            let ks = 0;
+            for (let i = -r; i <= r; i++) {
+              const w = Math.exp(-(i * i) / (2 * sigma * sigma));
+              k.push(w);
+              ks += w;
+            }
+            const o = row * CW;
+            for (let x = 0; x < CW; x++) {
+              let s = 0;
+              for (let i = -r; i <= r; i++) {
+                let xx = x + i - shift;
+                if (xx < 0) xx = 0;
+                else if (xx >= CW) xx = CW - 1;
+                s += arr[o + xx] * k[i + r];
+              }
+              tmp[x] = s / ks;
+            }
+            for (let x = 0; x < CW; x++) arr[o + x] = tmp[x];
+          }
+
+          function render(t) {
+            const f = Math.round(t * FPS);
+            const tp = T0 + Math.min(t, 3.0); // hold in the corner after the hit
+            const [px, py] = pathPos(tp);
+            const hits = hitsBefore(tp + 1e-6);
+            let colour = COLOURS[hits % COLOURS.length];
+            const cornerF = Math.round(3.0 * FPS);
+            if (f >= cornerF && f < cornerF + 2) colour = "#FFFFFF";
+            // wall hits within this frame -> 1-frame chroma kick
+            let kick = 0;
+            const tPrev = T0 + (f - 1) / FPS;
+            if (f > 0 && f <= cornerF && hitsBefore(tPrev + 1e-6) !== hits) kick = 5;
+
+            // 1. clean pass at 480 lines
+            cctx.setTransform(1, 0, 0, 1, 0, 0);
+            cctx.globalCompositeOperation = "source-over";
+            cctx.fillStyle = "#000000";
+            cctx.fillRect(0, 0, CW, CH);
+            cctx.setTransform(SX, 0, 0, SY, 0, 0);
+            drawLogo(cctx, px, py, colour);
+            cctx.setTransform(1, 0, 0, 1, 0, 0);
+            const src = cctx.getImageData(0, 0, CW, CH).data;
+
+            // 2. encode to YIQ
+            for (let i = 0, p = 0; i < N; i++, p += 4) {
+              const r = src[p] / 255, g = src[p + 1] / 255, b = src[p + 2] / 255;
+              Y[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+              I[i] = 0.596 * r - 0.274 * g - 0.322 * b;
+              Q[i] = 0.211 * r - 0.523 * g + 0.312 * b;
+            }
+            // 3. tape: luma blur (1.75 px @1080 -> ~0.8 px), sharpen 0.25, chroma blur 9 px (+4 px delay) @1080
+            const lumaS = 1.75 * SX;
+            const chromaS = 9 * SX;
+            const delay = Math.round(4 * SX) + Math.round(kick * SX * 2);
+            const ringTmp = new Float32Array(CW);
+            for (let row = 0; row < CH; row++) {
+              const o = row * CW;
+              for (let x = 0; x < CW; x++) ringTmp[x] = Y[o + x];
+              blurRow(Y, row, lumaS, 0);
+              // sharpen / ringing: y + 0.25 * (y - wide blur), wide blur approximated by +-3 px box
+              for (let x = 0; x < CW; x++) {
+                let s = 0;
+                for (let i = -3; i <= 3; i++) s += ringTmp[Math.min(CW - 1, Math.max(0, x + i))];
+                Y[o + x] = Y[o + x] + 0.25 * (Y[o + x] - s / 7);
+              }
+              blurRow(I, row, chromaS, delay);
+              blurRow(Q, row, chromaS, delay);
+            }
+            // halved vertical chroma resolution: average line pairs
+            for (let row = 1; row < CH; row += 2) {
+              const o = row * CW, op = (row - 1) * CW;
+              for (let x = 0; x < CW; x++) {
+                const iv = (I[o + x] + I[op + x]) * 0.5, qv = (Q[o + x] + Q[op + x]) * 0.5;
+                I[o + x] = I[op + x] = iv;
+                Q[o + x] = Q[op + x] = qv;
+              }
+            }
+
+            // tracking band: lock-in roll 0-0.5 s (bottom to top, fading), soft 2-frame glitch at the corner
+            const BAND = 12; // lines
+            let bandY = -100, bandA = 0;
+            if (t < 0.5) {
+              const u = t / 0.5;
+              bandY = Math.round(CH - u * (CH + BAND));
+              bandA = 1 - u;
+            } else if (f >= cornerF && f < cornerF + 2) {
+              bandY = Math.round(CH * 0.62 + (f - cornerF) * 18);
+              bandA = 0.55;
+            }
+            const HS = 8; // head-switching lines at the bottom
+            const img = octx.createImageData(CW, CH);
+            const d = img.data;
+            for (let row = 0; row < CH; row++) {
+              // edge wave 0.5 + per-row jitter
+              let shift = 0.5 * Math.sin(row * 0.05 + f * 0.9) + (hash(row, f, 3) - 0.5) * 0.6;
+              const inBand = row >= bandY && row < bandY + BAND;
+              if (inBand) shift += (hash(row, f, 5) - 0.5) * 15 * bandA;
+              if (row >= CH - HS) {
+                const u = (row - (CH - HS) + 3) / (HS + 3);
+                shift += 32 * u * u; // head switching, 72 px @ 720-wide -> ~32 px here
+              }
+              const ishift = Math.round(shift);
+              for (let x = 0; x < CW; x++) {
+                let xs = x - ishift;
+                if (xs < 0) xs = 0;
+                else if (xs >= CW) xs = CW - 1;
+                const i = row * CW + xs;
+                let y = Y[i];
+                let ci = I[i] + (hash(x >> 2, row, f) - 0.5) * 0.02; // chroma noise 0.1 (scaled)
+                let cq = Q[i] + (hash(x >> 2, row, f + 7) - 0.5) * 0.02;
+                y = 0.03 + y * 0.97 + (hash(x, row, f + 11) - 0.5) * 0.03; // setup pedestal + fine luma noise
+                if (hash(x >> 3, row, f + 13) < 0.025 * 0.012) y += 0.35 * hash(x, row, f + 23); // snow 0.025: short horizontal dashes
+                if (inBand) {
+                  const n = hash(x >> 1, row, f + 17);
+                  if (n < 0.25 * bandA) y = 0.75 + n;
+                  ci *= 1 - bandA * 0.7;
+                  cq *= 1 - bandA * 0.7;
+                }
+                if (row >= CH - HS) {
+                  y = y * 0.8 + 0.06 + (hash(x >> 1, row, f + 19) - 0.5) * 0.18;
+                  ci *= 0.3;
+                  cq *= 0.3;
+                }
+                let r = y + 0.956 * ci + 0.621 * cq;
+                let g = y - 0.272 * ci - 0.647 * cq;
+                let b = y - 1.106 * ci + 1.703 * cq;
+                const p = (row * CW + x) * 4;
+                d[p] = Math.max(0, Math.min(255, r * 255));
+                d[p + 1] = Math.max(0, Math.min(255, g * 255));
+                d[p + 2] = Math.max(0, Math.min(255, b * 255));
+                d[p + 3] = 255;
+              }
+            }
+            octx.putImageData(img, 0, 0);
+          }
+
+          Promise.all([document.fonts.load('400 100px "Anton"', "NORTHWIND"), document.fonts.load('400 40px "VT323"', "HOME VIDEO PLAY")]).then(() => {
+            const tl = gsap.timeline({ paused: true });
+            const clock = { t: 0 };
+            tl.fromTo(clock, { t: 0 }, { t: DUR, duration: DUR, ease: "none", onUpdate: () => render(clock.t) }, 0);
+            render(0);
+            // OSD: PLAY on screen 0-1.5 s (the VCR adds it after the tape, so it stays clean)
+            tl.set("#vhs-osd", { opacity: 1 }, 0);
+            tl.set("#vhs-osd", { opacity: 0 }, 1.5);
+            window.__timelines["vhs"] = tl;
+          });
+        })();
+      </script>
+    </template>
+  </body>
+</html>

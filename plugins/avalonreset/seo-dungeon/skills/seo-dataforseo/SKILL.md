@@ -14,7 +14,7 @@ license: MIT
 compatibility: "Uses DATAFORSEO_USERNAME or DATAFORSEO_LOGIN plus DATAFORSEO_PASSWORD from project .env; MCP optional"
 metadata:
   author: AgriciDaniel
-  version: "2.2.5"
+  version: "2.2.6"
   category: seo
 ---
 

@@ -21,9 +21,11 @@ Plain-language overview of what it does and does not do, with the test details a
 <h1 align="center">Off the Wall</h1>
 
 <p align="center">
-  <strong>Remind your coding agent what you already corrected.</strong>
+  <strong>Stop telling your coding agent the same thing twice.</strong>
   <br/>
   <sub>A plugin for <strong>Claude Code</strong> and <strong>Codex</strong> that puts your own past corrections from the same working directory in front of the next answer.</sub>
+  <br/>
+  <sub>In my tests Claude ignored a habit it could not know in 94% of runs (31 of 33). With Off the Wall: 39% (13 of 33). Made-up habits, Claude Sonnet. <a href="#check-it-yourself">Check it yourself</a>.</sub>
 </p>
 
 <p align="center">
@@ -210,6 +212,18 @@ by each model's description. For Codex, the rule also says to pass `fork_turns: 
 need the conversation. Otherwise the whole history is copied into it, and on a different model none of it is
 cached.
 
+## Check it yourself
+
+`otw bench` runs 11 small tasks, each needing a habit a model cannot know, with your own `claude` CLI: once with recall off and once with Off the Wall on. It prints how often the habit was followed in each case. It needs the plugin installed in Claude Code and `claude` logged in.
+
+```bash
+node bin/otw.mjs bench                        # shows what it would do and the rough cost, runs nothing
+node bin/otw.mjs bench --yes                  # 66 runs on haiku, about USD 0.4 and 13 minutes on your own plan
+node bin/otw.mjs bench --yes --model sonnet   # about USD 4
+```
+
+The habits are made up and the tasks are small. Your own CLAUDE.md or global rules stay active, so a rule of yours that matches a task can raise the "off" score. First real run (author's own terminal, haiku, 66 runs, USD 0.33): 3/33 with recall off, 20/33 with Off the Wall ([record](docs/data/bench-first-run/result.md)). The numbers above came from a store of 240 corrections; `otw bench` uses 11, so expect different numbers. If you run it, a line like "haiku, 66 runs: 3/33 off, 19/33 on" in an [issue](https://github.com/toranalytics/off-the-wall/issues) is plenty.
+
 ## Evidence
 
 ### Latest measurements (2026-10-28): personal preferences the model cannot know
@@ -228,7 +242,7 @@ Claude Code 2.1.311, haiku, headless, plugin 0.2.1/0.2.3 code, synthetic store a
 - It does not always work: in one of the 11 tasks (a strict one-sentence answer format) the shown correction was not followed in any run. A second task that also stayed at 0/3 was a scoring defect found afterwards (the scorer rejected answers wrapped in a code fence); re-read from the transcripts, 5 of 6 runs that saw the correction followed it against 0 of 3 that did not. That recount is post hoc and the reported numbers above are the original ones, so they understate the effect.
 - No benefit was found where the default model already avoids the mistake (14 of 16 tasks passed without any recall), and the quoted correction did not beat a plain list of rules at 150 records. Such a list stops fitting as a history grows; that case was not tested.
 - Not shown: effect on a real user's history, models other than Claude haiku and Sonnet (for example Opus or the Codex models), interactive sessions or long-term correction rates; the corrections here are written by a model.
-- Records, scripts and data: [docs/](docs/) (experiments 1-7), including the weaknesses found by an independent review.
+- Records, scripts and data: [docs/](docs/), including the weaknesses found by an independent review. Every experiment, including the ones that failed or were stopped (19 entries), is listed with its result in [docs/experiments.md](docs/experiments.md).
 
 - [Live Claude Code headless smoke record (2.1.311, plugin 0.2.1; interactive use not tested; one run produced a very long malformed output that did not reproduce in 8 reruns)](docs/live-claude-smoke-2026-10-27.md)
 - [Live Codex smoke record (macOS, 0.2.0 on codex-cli 0.162.1; Claude Code not tested)](docs/live-codex-smoke-2026-10-27.md). This supplied historical record is not a live verification of 0.2.2.

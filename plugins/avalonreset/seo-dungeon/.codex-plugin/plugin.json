@@ -1,7 +1,7 @@
 {
   "name": "legends-seo-dungeon",
-  "version": "2.2.5",
-  "description": "Legends SEO Dungeon is a Codex-first SEO game and portable skill suite with a structured local CLI bridge. 25 sub-skills (21 core + 1 orchestrator + 1 framework integration + 2 extension mirrors), 18 sub-agents, and 23 Codex profiles backed by the v2.2.5 SEO engine.",
+  "version": "2.2.6",
+  "description": "Legends SEO Dungeon is a Codex-first SEO game and portable skill suite with a structured local CLI bridge. 25 sub-skills (21 core + 1 orchestrator + 1 framework integration + 2 extension mirrors), 18 sub-agents, and 23 Codex profiles backed by the v2.2.6 SEO engine.",
   "author": {
     "name": "Avalon Reset",
     "email": "avalonreset@users.noreply.github.com",

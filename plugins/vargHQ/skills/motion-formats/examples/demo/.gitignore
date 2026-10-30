@@ -1,0 +1,5 @@
+.hyperframes/
+renders/
+*.mp4
+*.mov
+snapshots/

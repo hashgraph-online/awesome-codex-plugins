@@ -148,7 +148,7 @@ curl -s -X POST https://api.varg.ai/v2/render \
 
 ## Local Render Templates
 
-The following templates use local mode with imports. Run with `bunx vargai@alpha render <file> --verbose`.
+The following templates use local mode with imports. Run with `bunx vargai@0.4.0-alpha124 render <file> --verbose`.
 
 ---
 
@@ -470,12 +470,12 @@ export default (
 
 ```bash
 # Full render (costs credits)
-bunx vargai@alpha render template.tsx --verbose
+bunx vargai@0.4.0-alpha124 render template.tsx --verbose
 
 # Preview with placeholders (free)
-bunx vargai@alpha render template.tsx --preview
+bunx vargai@0.4.0-alpha124 render template.tsx --preview
 
 # Render in background (recommended for long jobs)
-nohup bunx vargai@alpha render template.tsx --verbose > output/render.log 2>&1 &
+nohup bunx vargai@0.4.0-alpha124 render template.tsx --verbose > output/render.log 2>&1 &
 echo "PID: $!"
 ```

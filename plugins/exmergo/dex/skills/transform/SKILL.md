@@ -16,7 +16,9 @@ until `transform apply`, and any build runs against a dev target only.
 
 Dex works in one loop: explore, transform, maintain. Every step runs one engine
 command, reads the single JSON envelope it prints, and decides the next step
-from that envelope.
+from that envelope. Step 1 only reads. Steps 2 to 4 write project files, commit
+and build on dev, so take them only when the task asks for a change; a task that
+asks what is in the data stops after step 1 and reports what it found.
 
 1. **Explore before you write.** Before writing or fixing SQL against a table
    whose columns, types, grain, or join keys you have not verified in this
@@ -119,17 +121,20 @@ fetches the engine's dependencies from PyPI or your configured index.
    derived column several models need, ask `transform place` where it belongs.
    For the semantic layer, use the command for the vendor `semantic.vendor`
    names (`dex config get semantic` reads it): `semantic define|update|plan`
-   (dbt), `semantic ossie define|update|plan` (native Ossie), or
-   `semantic slayer define|update|plan` (SLayer model files). Read
+   (dbt), `semantic ossie define|update|plan` (native Ossie),
+   `semantic slayer define|update|plan` (SLayer model files), or
+   `semantic cube define|update|plan` (Cube YAML model files). Read
    `${CLAUDE_SKILL_DIR}/references/semantic-layer.md` first.
 4. **Declare.** Read `data.declarations.<model>` on the plan envelope: `drafted`
    is what Dex measured, `declared` is what the YAML says, `missing` is the intent
    still owed. Supply the intent, confirm or override each drafted fact in the
    `declarations` entry, and re-plan until `missing` holds only what you decided
    to leave open. For a declared mart, also read `data.semantic_proposal`: the
-   semantic model the declaration implies, already in the plan
-   (`mode: included`) or offered for `semantic plan --definitions-file`
-   (`mode: proposed`), with every gap it could not fill named. When the user
+   semantic definition the declaration implies in the repository's own layer
+   (`vendor`: a MetricFlow model, or a SLayer or Cube model file stored as a
+   second plan whose id is `plan_id`), already planned (`mode: included`) or offered with
+   the commands that adopt it (`mode: proposed`), with every gap it could not
+   fill named and every declared field it could not carry in `not_carried`. When the user
    wants models that already exist declared, run `transform declare <models>`
    (none selects every model, 25 per plan). It proposes only what each model's
    YAML does not state and lists every model it skipped; relay `data.skipped`
@@ -245,8 +250,11 @@ a field, flag, or macro you need is not described here.
   one (a day-grain date model plus a `time_spine:` config) in the same or a
   separate plan, when the user has chosen to adopt a semantic layer.
 - Do not hand-write the semantic model for a declared mart: `transform plan`
-  derives it from the declaration (`data.semantic_proposal`). Where the project
-  has no semantic layer the derivation is only offered; ask before adopting one.
+  derives it from the declaration (`data.semantic_proposal`), for MetricFlow or
+  SLayer. Where the project has no semantic layer the derivation is only
+  offered; ask before adopting one. When it names a second plan (`plan_id`),
+  apply both. A population reaches it as metadata and is never a filter: do not
+  add one.
   Metrics are never derived: author each metric yourself, on the derived
   measures, with `semantic plan --definitions-file`.
 - Semantic YAML is validated against MetricFlow's schemas, so the wrapper
@@ -263,6 +271,10 @@ a field, flag, or macro you need is not described here.
   `validate-models --persist-cardinality`). The wrapper installs the `[slayer]`
   extra for `semantic slayer`; a `reason: prerequisite` refusal names the
   install to relay.
+- For Cube, edit only the plain YAML files listed in `semantic.cube.files`, as
+  whole files restating every cube and view they hold. Never write a `.js` model,
+  Jinja or `extends`, never generate files with `cube_dbt`, and fix each
+  `file: element: [rule]` refusal at that element. The wrapper installs `[cube]`.
 - SLayer declares no entities, no aggregation on a saved measure (the formula
   carries it, as in `amount:sum`), and no per-measure time dimension (only the
   model's `default_time_dimension`). Never write those into a SLayer model.

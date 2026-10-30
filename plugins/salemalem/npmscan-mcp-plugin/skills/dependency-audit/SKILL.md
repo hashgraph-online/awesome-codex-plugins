@@ -20,6 +20,23 @@ vs Y vs Z for this job," "what should we use to do X") should use the
 `compare_packages`/`suggest_alternative` for exactly that decision, which
 this skill's per-inventory vulnerability/license flow isn't built for.
 
+## Connecting the npmscan tools
+
+This skill calls the npmscan MCP server's tools (listed under "Tools used"
+below). They only read public package data: no API key or account, nothing is
+installed or changed on the user's machine, and the only server contacted is
+`https://npmscan.com/api/mcp`.
+
+- **Claude Code, Codex, Gemini CLI, Kimi, Grok:** the npmscan plugin connects
+  the server for you.
+- **OpenClaw:** `openclaw mcp add npmscan --url https://npmscan.com/api/mcp --transport streamable-http`,
+  then `openclaw mcp doctor npmscan --probe` to check it.
+- **Any other MCP client:** add a remote (streamable HTTP) server with that URL.
+
+Some clients prefix tool names with the server name (for example
+`npmscan__get_package`). If the tools aren't available at all, tell the user
+how to connect them for their client instead of answering from memory.
+
 ## Input
 
 Accept dependency name+version pairs from:

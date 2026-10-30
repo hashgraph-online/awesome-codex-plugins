@@ -69,6 +69,14 @@ temporal), `declared_relation_missing` (a table gone since the baseline), and
 Each carries the model's whole removal under `data.removal`, which is what
 `maintain reconcile` plans.
 
+Under `semantic.vendor: cube` the same four codes hold the cubes and views to
+the warehouse by Dex's own rules (Cube compares a model only inside a Cube
+server, which Dex never starts): a member whose `sql`, filter or segment reads a
+column the table no longer has, a `time` dimension on a column that is not
+temporal or a `number` dimension or summing measure on text, a cube's table gone
+since the baseline, and a member, join or view include lost to another drop.
+Each carries its cube's or view's removal under `data.removal`.
+
 ## `maintain volume [<objects>]`: freshness drift
 
 Row counts that collapsed, spiked, or went to zero: the "is the data still
@@ -103,8 +111,13 @@ complete composite, never one column at a time. Aggregates only.
 - Finding codes: `key_lost_uniqueness` (proven unique at baseline, not now),
   `declared_grain_not_unique` (declared, never held), and
   `join_cardinality_exceeded` (a join whose declared arity, SLayer's
-  `cardinality`, does not hold: the side it says is unique is not).
+  `cardinality` or Cube's `relationship`, does not hold: the side it says is
+  unique is not).
 - A join that declares no cardinality is named in `warnings` as unchecked.
+- A key or join whose table nothing counted (no free row count, and a scan
+  that does not count, as on Databricks) is named in `warnings` as not
+  verified, never passed. Where the scan counts (Postgres, Trino), the check
+  runs without a free count.
 
 ## `maintain semantic [<objects>]`: definition drift
 
@@ -114,8 +127,10 @@ is gone; a relationship whose endpoint or column pairs no longer resolve, which
 is `high` because a join nothing can resolve is a broken layer; and categorical
 dimensions whose set of values widened or narrowed underneath their metrics.
 
-The cardinality half needs a semantic model that names a transformation model.
-Ossie names none, so on an Ossie layer this command is free and offers no scan.
+The cardinality half needs a semantic model that names a table, through a
+transformation model (dbt) or directly (SLayer's `sql_table`, a Cube's
+`sql_table`), and categorical dimensions recorded against it. Ossie records
+none, so on an Ossie layer this command is free and offers no scan.
 
 **Declaration drift** is the third free focus of this axis. A declaration
 records what a model means, so changing it changes what the model's numbers
@@ -236,19 +251,29 @@ proposed as though nothing declared it.
 
 ## Cube layers (`semantic.vendor: cube`)
 
-Cube's own drift axes are not in this release. What runs today:
+Every axis runs on a Cube layer, beside a dbt project or with none, and none
+starts a Cube server or Node: each reads the configured model files and the
+metadata Dex captured through its own connection. The wrapper installs the
+`[cube]` extra for every `maintain` command where the vendor is `cube`.
 
 | Axis | On Cube |
 |---|---|
-| `snapshot` | fingerprints each cube and view, each measure (as `cube.member`), each primary key (a composite one whole), and each join with its ordered pairs and arity; records `vendor: cube` and the validator release |
-| `semantic` | definition drift, free, as everywhere: a cube, view or measure added, removed or changed, and a dimension, measure, key or join column gone from the table (`dangling_reference`, `broken_relationship`) |
-| `grain` | measures every `primary_key` (a composite one whole): `declared_grain_not_unique` |
-| `schema`, `reconcile` | the layer-neutral checks only: Cube's declared types are not compared with the warehouse's, and no Cube removal is planned |
+| `snapshot` | fingerprints each cube and view, each measure (as `cube.member`), each primary key (a composite one whole), and each join with its ordered pairs and arity; records `vendor: cube` and the validator release. Each compiled-only definition is recorded by its content (`opaque_definitions`) |
+| `schema` | adds the four `declared_*` codes on Dex's metadata: `declared_relation_missing` (a cube's table gone since the baseline), `declared_column_missing` (a member whose `sql`, filter or segment reads a column the table no longer has), `declared_type_conflict` (a `time` dimension on a column that is not temporal, a `number` dimension or a summing measure on text), and `declared_dependency_dropped` (a member, join or view include that reads something that goes). A table neither the connection nor the baseline lists is a note, not a finding, and an expression Dex cannot read is named in `warnings` as unchecked |
+| `volume` | unchanged: it reads the warehouse, not the layer |
+| `grain` | measures every `primary_key` (a composite one whole) and every join's `relationship` (`join_cardinality_exceeded`; a `one_to_many` join is checked on its one side). Cube requires a `relationship`, so a join without one does not load; a join whose `sql` is not an equality of columns is named in `warnings` as unverified |
+| `semantic` | definition drift free as everywhere, with `definition_changed` on a cube naming its table; a compiled-only definition whose content changed is `compiled_only_changed`; the dimension-cardinality half re-counts every non-time dimension that is one column (offered as a scan on a billed connector) |
+| `reconcile` | stores the `declared_*` removals as a second plan, `data.semantic_plan_id`, through `semantic cube update`, cutting only the entries that go. A cube whose table is gone is never removed, and a view source whose join path walks a removed join, and the join it walks, stay advisory |
+| `verify` | checks the dbt project only; Cube's keys and joins are measured by `grain`, not here |
 
-A compiled-only file or element (JS, Jinja, `extends`) is not fingerprinted
-structurally, and the snapshot's notes say so: a change inside one is not
-detected. The wrapper installs the `[cube]` extra for every `maintain` command
-where the vendor is `cube`.
+A compiled-only file or element (JS, Jinja, `extends`) is compared by its content
+alone, never structurally: a change is reported as `compiled_only_changed`, what
+changed is not read, and the warning saying so rides every `maintain semantic`
+and `maintain check` while the layer holds one, so the layer never reads clean.
+
+A measure whose `filters` read a dropped column goes with the column rather than
+losing its filter, because a filter removed quietly changes what the number
+counts.
 
 ## SLayer layers (`semantic.vendor: slayer`)
 
@@ -264,13 +289,13 @@ with `reason: prerequisite` and names the install.
 | `schema` | adds the four `declared_*` codes, SLayer's `validate-models` rules on Dex's metadata. A model backed by `sql` or `source_queries` is named as not compared |
 | `volume` | unchanged: it reads the warehouse, not the layer |
 | `grain` | measures every `primary_key` (a composite one whole) and `unique` column, and every join's declared `cardinality` (`join_cardinality_exceeded`); a join with none is named in `warnings` as unchecked |
-| `semantic` | definition drift free as everywhere; the dimension-cardinality half needs a `model_ref`, which SLayer has none of, so it is free and offers no scan |
+| `semantic` | definition drift free as everywhere; the dimension-cardinality half re-counts every non-temporal column on the model's `sql_table` (offered as a scan on a billed connector) |
 | `reconcile` | stores the `declared_*` removals as a second plan, `data.semantic_plan_id`, through `semantic slayer update`. A whole model is never removed; that and a type conflict's alternative stay advisory |
 | `verify` | checks the dbt project only; SLayer's declared keys are measured by `grain`, not here |
 
 What SLayer does not declare is not drift: it has no entities, no measures in
 MetricFlow's sense (a saved measure is a formula), no per-measure time
-dimension, and no `model_ref`. Read `unavailable` rather than reporting an
+dimension, and no `model_ref` (a model names its table directly). Read `unavailable` rather than reporting an
 absent element kind.
 
 Two things look like drift and are not:

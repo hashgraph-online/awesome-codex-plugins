@@ -1,0 +1,643 @@
+<!doctype html>
+<!--
+  caption-styles preview: four caption looks on the same invented line, each inside a centred
+  9:16 panel (a 1080x1920 stage shown at 50%) over a calm backdrop. 1920x1080, 30 fps, 15.6 s.
+  Every number comes from assets/presets/*.json and the references' "Timing and numbers".
+  Render: see README.md.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #0c0e1b;
+        --ink: #ffffff;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      /* ---------- outer backdrop (16:9) ---------- */
+      #backdrop {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          180deg,
+          #10132b 0%,
+          #1d1f45 30%,
+          #4a3560 48%,
+          #7a4c66 56%,
+          #4a3358 64%,
+          #221a39 78%,
+          #0f0d1f 100%
+        );
+      }
+      #shade {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(1200px 820px at 50% 54%, rgba(8, 9, 20, 0) 0%, rgba(8, 9, 20, 0.55) 70%, rgba(8, 9, 20, 0.85) 100%),
+          rgba(8, 9, 20, 0.38);
+      }
+      #glow {
+        position: absolute;
+        left: 460px;
+        top: 140px;
+        width: 1000px;
+        height: 1000px;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(255, 196, 150, 0.22) 0%, rgba(255, 196, 150, 0) 60%);
+      }
+
+      /* ---------- 9:16 panel: a 1080x1920 stage shown at 50% ---------- */
+      #panel {
+        position: absolute;
+        left: 690px;
+        top: 60px;
+        width: 540px;
+        height: 960px;
+        border-radius: 30px;
+        overflow: hidden;
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.1),
+          0 40px 120px rgba(0, 0, 0, 0.55),
+          0 12px 40px rgba(0, 0, 0, 0.35);
+      }
+      #stage {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1080px;
+        height: 1920px;
+        transform: scale(0.5);
+        transform-origin: 0 0;
+      }
+      #scene {
+        position: absolute;
+        inset: 0;
+      }
+      #scene svg {
+        position: absolute;
+        inset: 0;
+        width: 1080px;
+        height: 1920px;
+      }
+
+      /* caption region: block centre at 60% H (1152 px), max width 696 px, safe box x 120-888 */
+      .page {
+        position: absolute;
+        left: 192px;
+        width: 696px;
+        top: 0;
+        height: 1920px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-top: 384px; /* centre of 1920 + 384/2 = 1152 = 60% H */
+      }
+      .block {
+        position: relative;
+        text-align: center;
+        width: 696px;
+      }
+      .w {
+        position: relative;
+        display: inline-block;
+      }
+
+      /* 1. karaoke-fill-captions.classic-yellow */
+      .k-block {
+        font-family: "Poppins", sans-serif;
+        font-weight: 800;
+        font-size: 84px;
+        line-height: 1.28;
+        color: #ffffff;
+        -webkit-text-stroke: 8px #000000;
+        paint-order: stroke fill;
+        word-spacing: 0.04em;
+      }
+      .k-fill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        color: #ffe600;
+        white-space: nowrap;
+        clip-path: inset(-25% 100% -25% -8%);
+      }
+      .k-bar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 6.72px; /* 0.08em of 84 px */
+        width: 10px;
+        background: #ffe600;
+        border-radius: 2px;
+        box-shadow: 0 0 0 3px #000000;
+        opacity: 0;
+      }
+
+      /* 2. sliding-pill-captions.electric-blue */
+      .p-block {
+        font-family: "Montserrat", sans-serif;
+        font-weight: 900;
+        font-size: 84px;
+        line-height: 1.22;
+        color: #ffffff;
+        -webkit-text-stroke: 9px #000000;
+        paint-order: stroke fill;
+        word-spacing: 0.06em;
+      }
+      .p-block .w {
+        z-index: 2;
+      }
+      .pill {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 10px;
+        height: 10px;
+        background: #1f5bff;
+        border-radius: 42px; /* 0.5em */
+        z-index: 1;
+        opacity: 0;
+      }
+
+      /* 3. active-word-pop-captions.blue-pop */
+      .a-block {
+        font-family: "Montserrat", sans-serif;
+        font-weight: 900;
+        font-size: 88px;
+        line-height: 1.22;
+        color: #ffffff;
+        -webkit-text-stroke: 10px #000000;
+        paint-order: stroke fill;
+        word-spacing: 0.28em;
+      }
+      .a-block .w {
+        transform-origin: 50% 80%;
+      }
+
+      /* 4. frosted-panel-captions.clear-dim */
+      #f-glass {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100px;
+        height: 100px;
+        background: rgba(18, 18, 22, 0.45);
+        -webkit-backdrop-filter: blur(20px) saturate(140%);
+        backdrop-filter: blur(20px) saturate(140%);
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        border-radius: 28px;
+        opacity: 0;
+      }
+      .f-page {
+        padding-top: 384px;
+      }
+      .f-block {
+        font-family: "Inter", sans-serif;
+        font-weight: 700;
+        font-size: 80px;
+        line-height: 1.18;
+        letter-spacing: -0.01em;
+        color: #ffffff;
+        text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+        width: 600px; /* 696 px panel minus 0.6em side padding */
+      }
+      .f-block .w {
+        opacity: 0.7;
+      }
+
+      /* preset label, bottom-left corner: 1.6% H, 60% opacity */
+      .label {
+        position: absolute;
+        left: 64px;
+        bottom: 52px;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 500;
+        font-size: 17px;
+        letter-spacing: 0.02em;
+        color: rgba(255, 255, 255, 0.6);
+        white-space: nowrap;
+      }
+      .label .n {
+        color: rgba(255, 255, 255, 0.38);
+        margin-right: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="15.6"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="backdrop" class="clip" data-start="0" data-duration="15.6" data-track-index="0">
+        <div id="glow"></div>
+        <div id="shade"></div>
+      </div>
+
+      <div id="panel" class="clip" data-start="0" data-duration="15.6" data-track-index="1">
+        <div id="stage">
+          <!-- invented sunrise scene, drawn in code -->
+          <div id="scene">
+            <svg viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#121735" />
+                  <stop offset="0.3" stop-color="#2c2f62" />
+                  <stop offset="0.45" stop-color="#6a4a80" />
+                  <stop offset="0.55" stop-color="#c46f7f" />
+                  <stop offset="0.62" stop-color="#f1a072" />
+                  <stop offset="0.7" stop-color="#ffd59e" />
+                </linearGradient>
+                <radialGradient id="sunglow" cx="0.5" cy="0.5" r="0.5">
+                  <stop offset="0" stop-color="#fff2d8" stop-opacity="0.9" />
+                  <stop offset="0.25" stop-color="#ffd8a0" stop-opacity="0.5" />
+                  <stop offset="1" stop-color="#ffb07a" stop-opacity="0" />
+                </radialGradient>
+                <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#ffe2c4" stop-opacity="0" />
+                  <stop offset="0.5" stop-color="#ffe2c4" stop-opacity="0.22" />
+                  <stop offset="1" stop-color="#ffe2c4" stop-opacity="0" />
+                </linearGradient>
+                <linearGradient id="h1" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#b9708a" />
+                  <stop offset="1" stop-color="#8d5b86" />
+                </linearGradient>
+                <linearGradient id="h2" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#7a4f7f" />
+                  <stop offset="1" stop-color="#553e6e" />
+                </linearGradient>
+                <linearGradient id="h3" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#43335f" />
+                  <stop offset="1" stop-color="#2d254a" />
+                </linearGradient>
+                <linearGradient id="h4" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#211c3b" />
+                  <stop offset="1" stop-color="#141128" />
+                </linearGradient>
+              </defs>
+              <rect width="1080" height="1920" fill="url(#sky)" />
+              <g id="sun">
+                <circle cx="540" cy="870" r="560" fill="url(#sunglow)" />
+                <circle cx="540" cy="870" r="118" fill="#fff4de" />
+              </g>
+              <g id="hill1">
+                <path
+                  d="M-80 1150 C 120 1060, 300 1090, 470 1120 C 640 1150, 800 1050, 1160 1100 L1160 1920 L-80 1920 Z"
+                  fill="url(#h1)"
+                />
+              </g>
+              <rect id="mistband" x="-60" y="1120" width="1200" height="260" fill="url(#mist)" />
+              <g id="hill2">
+                <path
+                  d="M-80 1290 C 140 1220, 330 1250, 520 1300 C 700 1345, 880 1240, 1160 1270 L1160 1920 L-80 1920 Z"
+                  fill="url(#h2)"
+                />
+              </g>
+              <g id="hill3">
+                <path
+                  d="M-80 1480 C 160 1400, 380 1450, 560 1480 C 760 1510, 920 1420, 1160 1450 L1160 1920 L-80 1920 Z"
+                  fill="url(#h3)"
+                />
+              </g>
+              <g id="hill4">
+                <path
+                  d="M-80 1680 C 200 1600, 420 1660, 620 1680 C 820 1700, 960 1630, 1160 1650 L1160 1920 L-80 1920 Z"
+                  fill="url(#h4)"
+                />
+              </g>
+            </svg>
+          </div>
+
+          <!-- 1. karaoke-fill-captions.classic-yellow: whole line pages, fill follows the voice -->
+          <div id="k1" class="page clip" data-start="0.1" data-duration="1.98" data-track-index="2">
+            <div class="block k-block">
+              <span class="w">Say</span> <span class="w">less,</span><br /><span class="w">show</span>
+              <span class="w">more,</span>
+              <div class="k-bar"></div>
+            </div>
+          </div>
+          <div id="k2" class="page clip" data-start="2.15" data-duration="1.7" data-track-index="2">
+            <div class="block k-block">
+              <span class="w">let</span> <span class="w">it</span><br /><span class="w">breathe.</span>
+              <div class="k-bar"></div>
+            </div>
+          </div>
+
+          <!-- 2. sliding-pill-captions.electric-blue -->
+          <div id="p1" class="page clip" data-start="4.4667" data-duration="1.9833" data-track-index="2">
+            <div class="block p-block">
+              <div class="pill"></div>
+              <span class="w">Say</span> <span class="w">less,</span><br /><span class="w">show</span>
+              <span class="w">more,</span>
+            </div>
+          </div>
+          <div id="p2" class="page clip" data-start="6.5167" data-duration="1.2167" data-track-index="2">
+            <div class="block p-block">
+              <div class="pill"></div>
+              <span class="w">let</span> <span class="w">it</span> <span class="w">breathe.</span>
+            </div>
+          </div>
+
+          <!-- 3. active-word-pop-captions.blue-pop -->
+          <div id="a1" class="page clip" data-start="8.3667" data-duration="1.9833" data-track-index="2">
+            <div class="block a-block">
+              <span class="w">Say</span> <span class="w">less,</span><br /><span class="w">show</span>
+              <span class="w">more,</span>
+            </div>
+          </div>
+          <div id="a2" class="page clip" data-start="10.4167" data-duration="1.2167" data-track-index="2">
+            <div class="block a-block">
+              <span class="w">let</span> <span class="w">it</span> <span class="w">breathe.</span>
+            </div>
+          </div>
+
+          <!-- 4. frosted-panel-captions.clear-dim: one glass panel, two pages -->
+          <div id="f-wrap" class="clip" data-start="12" data-duration="3.6" data-track-index="3" style="position:absolute;inset:0">
+            <div id="f-glass"></div>
+          </div>
+          <div id="f1" class="page f-page clip" data-start="12.2667" data-duration="1.9833" data-track-index="2">
+            <div class="block f-block">
+              <span class="w">Say</span> <span class="w">less,</span><br /><span class="w">show</span>
+              <span class="w">more,</span>
+            </div>
+          </div>
+          <div id="f2" class="page f-page clip" data-start="14.3167" data-duration="1.2167" data-track-index="2">
+            <div class="block f-block">
+              <span class="w">let</span> <span class="w">it</span> <span class="w">breathe.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="lab1" class="label clip" data-start="0" data-duration="3.9" data-track-index="4">
+        <span class="n">01/04</span>karaoke-fill-captions · classic-yellow
+      </div>
+      <div id="lab2" class="label clip" data-start="3.9" data-duration="3.9" data-track-index="4">
+        <span class="n">02/04</span>sliding-pill-captions · electric-blue
+      </div>
+      <div id="lab3" class="label clip" data-start="7.8" data-duration="3.9" data-track-index="4">
+        <span class="n">03/04</span>active-word-pop-captions · blue-pop
+      </div>
+      <div id="lab4" class="label clip" data-start="11.7" data-duration="3.9" data-track-index="4">
+        <span class="n">04/04</span>frosted-panel-captions · clear-dim
+      </div>
+    </div>
+
+    <script>
+      function build() {
+        const F = 1 / 30;
+        const SEG = 3.9;
+        // Invented line, hand-set word times in seconds from the start of each look (illustrative, no audio).
+        const WORDS = [
+          { text: "Say", start: 0.6, end: 0.85 },
+          { text: "less,", start: 0.85, end: 1.22 },
+          { text: "show", start: 1.4, end: 1.68 },
+          { text: "more,", start: 1.68, end: 2.08 },
+          { text: "let", start: 2.65, end: 2.81 },
+          { text: "it", start: 2.81, end: 2.96 },
+          { text: "breathe.", start: 2.96, end: 3.55 },
+        ];
+        const PAGES = [
+          [0, 1, 2, 3],
+          [4, 5, 6],
+        ];
+
+        // cubic-bezier as a GSAP ease (Material emphasized tokens from the presets)
+        function bezier(x1, y1, x2, y2) {
+          const b = (u, a, c) => 3 * a * (1 - u) * (1 - u) * u + 3 * c * (1 - u) * u * u + u * u * u;
+          return function (t) {
+            if (t <= 0) return 0;
+            if (t >= 1) return 1;
+            let lo = 0,
+              hi = 1,
+              u = t;
+            for (let i = 0; i < 40; i++) {
+              const x = b(u, x1, x2);
+              if (x < t) lo = u;
+              else hi = u;
+              u = (lo + hi) / 2;
+            }
+            return b(u, y1, y2);
+          };
+        }
+        const EMPH = bezier(0.2, 0, 0, 1); // emphasized
+        const EMPH_DEC = bezier(0.05, 0.7, 0.1, 1); // emphasized-decelerate
+
+        const tl = gsap.timeline({ paused: true });
+
+        // ---------- calm backdrop + slow sunrise inside the panel (whole film) ----------
+        tl.fromTo("#sun", { y: 110 }, { y: -50, duration: 15.6, ease: "none" }, 0);
+        tl.fromTo("#hill1", { x: 0 }, { x: -18, duration: 15.6, ease: "none" }, 0);
+        tl.fromTo("#mistband", { x: 0 }, { x: -30, duration: 15.6, ease: "none" }, 0);
+        tl.fromTo("#hill2", { x: 0 }, { x: -34, duration: 15.6, ease: "none" }, 0);
+        tl.fromTo("#hill3", { x: 0 }, { x: -52, duration: 15.6, ease: "none" }, 0);
+        tl.fromTo("#hill4", { x: 0 }, { x: -76, duration: 15.6, ease: "none" }, 0);
+        tl.fromTo("#glow", { opacity: 0.7, scale: 0.96 }, { opacity: 1, scale: 1.04, duration: 15.6, ease: "none" }, 0);
+        tl.fromTo("#panel", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "expo.out" }, 0);
+
+        // ---------- labels: quiet crossfade ----------
+        ["#lab1", "#lab2", "#lab3", "#lab4"].forEach((id, i) => {
+          const s = i * SEG;
+          tl.fromTo(id, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, s + (i === 0 ? 0.15 : 0.05));
+          if (i < 3) {
+            tl.to(id, { opacity: 0, duration: 0.2, ease: "power2.in" }, s + SEG - 0.22);
+            tl.set(id, { opacity: 0 }, s + SEG - 0.02);
+          }
+        });
+
+        const words = (pageSel) => Array.from(document.querySelectorAll(pageSel + " .w"));
+        // offset box of a word inside its .block (unaffected by the 50% stage scale)
+        const box = (el) => ({ x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
+
+        // ---------- 1. karaoke fill, classic-yellow ----------
+        // line pre-roll 15 f before the first word; fill starts onset-1 f, linear over the word;
+        // underline 0.08em at baseline+0.14em, slides 4 f emphasized between words on one line, jumps across lines.
+        (function () {
+          const T0 = 0;
+          ["#k1", "#k2"].forEach((sel, pi) => {
+            const ws = words(sel);
+            const bar = document.querySelector(sel + " .k-bar");
+            const idx = PAGES[pi];
+            ws.forEach((el) => {
+              const fill = document.createElement("span");
+              fill.className = "k-fill";
+              fill.setAttribute("aria-hidden", "true");
+              fill.textContent = el.textContent;
+              el.appendChild(fill);
+            });
+            const fs = 84;
+            const baseline = 0.99 * fs; // half-leading (1.28-1.4)/2 em + Poppins ascent 1.05em
+            let prevTop = null;
+            idx.forEach((wi, j) => {
+              const w = WORDS[wi];
+              const el = ws[j];
+              const fill = el.querySelector(".k-fill");
+              const t = T0 + w.start - F;
+              tl.fromTo(
+                fill,
+                { clipPath: "inset(-25% 100% -25% -8%)" },
+                { clipPath: "inset(-25% -8% -25% -8%)", duration: w.end - w.start, ease: "none" },
+                t,
+              );
+              const b = box(el);
+              const top = b.y + baseline + 0.14 * fs;
+              if (j === 0) {
+                tl.fromTo(bar, { opacity: 0, x: b.x, y: top, width: b.w }, { opacity: 1, duration: 2 * F, ease: "none" }, t);
+              } else if (prevTop !== null && Math.abs(prevTop - top) > 1) {
+                tl.to(bar, { opacity: 0, duration: F, ease: "none" }, t - F);
+                tl.set(bar, { x: b.x, y: top, width: b.w }, t);
+                tl.to(bar, { opacity: 1, duration: 2 * F, ease: "none" }, t);
+              } else {
+                tl.to(bar, { x: b.x, y: top, width: b.w, duration: 4 * F, ease: EMPH }, t);
+              }
+              prevTop = top;
+            });
+          });
+        })();
+
+        // ---------- 2. sliding pill, electric-blue ----------
+        // pill #1F5BFF, pad .06em .22em, radius .5em, slide 5 f emphasized, lead 1 f;
+        // words under 6 f: jump in 2 f; line change: fade 2 f, scale in 0.8->1 over 4 f on the new line.
+        (function () {
+          const T0 = SEG;
+          const fs = 84;
+          const padY = 0.06 * fs,
+            padX = 0.22 * fs;
+          ["#p1", "#p2"].forEach((sel, pi) => {
+            const ws = words(sel);
+            const pill = document.querySelector(sel + " .pill");
+            const idx = PAGES[pi];
+            let prev = null;
+            idx.forEach((wi, j) => {
+              const w = WORDS[wi];
+              const b = box(ws[j]);
+              const g = { x: b.x - padX, y: b.y + 0.15 * fs - padY, width: b.w + 2 * padX, height: fs + 2 * padY };
+              const t = T0 + w.start - F;
+              if (j === 0) {
+                tl.set(pill, { ...g, opacity: 1, scale: 1 }, t);
+              } else if (Math.abs(prev.y - g.y) > 1) {
+                tl.to(pill, { opacity: 0, duration: 2 * F, ease: "none" }, t - 2 * F);
+                tl.set(pill, { ...g }, t);
+                tl.fromTo(pill, { opacity: 1, scale: 0.8 }, { opacity: 1, scale: 1, duration: 4 * F, ease: EMPH }, t);
+              } else {
+                const prevDur = WORDS[idx[j - 1]].end - WORDS[idx[j - 1]].start;
+                const d = prevDur < 6 * F ? 2 * F : 5 * F;
+                tl.to(pill, { x: g.x, width: g.width, duration: d, ease: EMPH }, t);
+              }
+              prev = g;
+            });
+          });
+        })();
+
+        // ---------- 3. active-word pop, blue-pop ----------
+        // active #4DA3FF, scale 1->1.12 in 4 f back.out(1.7), settle to 1.06 in 4 f power2.out,
+        // release to 1.0 in 3 f power2.out at the next onset, colour switch 1 f early.
+        (function () {
+          const T0 = 2 * SEG;
+          ["#a1", "#a2"].forEach((sel, pi) => {
+            const ws = words(sel);
+            const idx = PAGES[pi];
+            idx.forEach((wi, j) => {
+              const w = WORDS[wi];
+              const el = ws[j];
+              const t = T0 + w.start - F;
+              const next = j < idx.length - 1 ? T0 + WORDS[idx[j + 1]].start - F : null;
+              tl.set(el, { color: "#4DA3FF" }, t);
+              const upEnd = next ? Math.min(4 * F, next - t) : 4 * F;
+              tl.fromTo(el, { scale: 1 }, { scale: 1.12, duration: upEnd, ease: "back.out(1.7)" }, t);
+              const settleStart = t + upEnd;
+              const settleDur = next ? Math.min(4 * F, next - settleStart) : 4 * F;
+              if (settleDur > 0.001) tl.to(el, { scale: 1.06, duration: settleDur, ease: "power2.out" }, settleStart);
+              if (next) {
+                tl.set(el, { color: "#FFFFFF" }, next);
+                tl.to(el, { scale: 1, duration: 3 * F, ease: "power2.out" }, next);
+              }
+            });
+          });
+        })();
+
+        // ---------- 4. frosted panel, clear-dim ----------
+        // panel rgba(18,18,22,.45) + blur(20px) saturate(140%), border 1px rgba(255,255,255,.22), radius 28,
+        // pad .4em .6em; in: opacity 0->1, scale .96->1, blur 0->20 over 8 f emphasized-decelerate;
+        // width changes only between pages, 6 f emphasized; words .7 -> 1 + glow over 2 f.
+        (function () {
+          const T0 = 3 * SEG;
+          const fs = 80;
+          const padY = 0.4 * fs,
+            padX = 0.6 * fs;
+          const glass = document.getElementById("f-glass");
+          const pageBox = (sel) => {
+            const blk = document.querySelector(sel + " .block");
+            const ws = words(sel);
+            let minX = 1e9,
+              maxX = -1e9,
+              minY = 1e9,
+              maxY = -1e9;
+            ws.forEach((el) => {
+              const r = { x: blk.offsetLeft + el.offsetLeft, y: blk.offsetTop + el.offsetTop, w: el.offsetWidth, h: el.offsetHeight };
+              minX = Math.min(minX, r.x);
+              maxX = Math.max(maxX, r.x + r.w);
+              minY = Math.min(minY, r.y);
+              maxY = Math.max(maxY, r.y + r.h);
+            });
+            // .page sits at left 192 in the stage
+            return { x: 192 + minX - padX, y: minY - padY, width: maxX - minX + 2 * padX, height: maxY - minY + 2 * padY };
+          };
+          const g1 = pageBox("#f1");
+          const g2 = pageBox("#f2");
+          const tIn = T0 + WORDS[0].start - F;
+          tl.fromTo(
+            glass,
+            { ...g1, opacity: 0, scale: 0.96, backdropFilter: "blur(0px) saturate(140%)", webkitBackdropFilter: "blur(0px) saturate(140%)" },
+            { opacity: 1, scale: 1, backdropFilter: "blur(20px) saturate(140%)", webkitBackdropFilter: "blur(20px) saturate(140%)", duration: 8 * F, ease: EMPH_DEC },
+            tIn - 8 * F,
+          );
+          const tP2 = T0 + WORDS[4].start - F;
+          tl.to(glass, { ...g2, duration: 6 * F, ease: EMPH }, tP2 - 6 * F);
+          tl.to(glass, { opacity: 0, duration: 4 * F, ease: "power2.in" }, 15.6 - 5 * F);
+          tl.set(glass, { opacity: 0 }, 15.6 - F);
+
+          ["#f1", "#f2"].forEach((sel, pi) => {
+            const ws = words(sel);
+            const idx = PAGES[pi];
+            idx.forEach((wi, j) => {
+              const t = T0 + WORDS[wi].start - F;
+              tl.to(ws[j], { opacity: 1, textShadow: "0 1px 8px rgba(0,0,0,0.45), 0 0 18px rgba(255,255,255,0.35)", duration: 2 * F, ease: "none" }, t);
+              if (j < idx.length - 1) {
+                const n = T0 + WORDS[idx[j + 1]].start - F;
+                tl.to(ws[j], { opacity: 0.7, textShadow: "0 1px 8px rgba(0,0,0,0.45), 0 0 18px rgba(255,255,255,0)", duration: 2 * F, ease: "none" }, n);
+              }
+            });
+          });
+        })();
+
+        window.__timelines["main"] = tl;
+      }
+      // measure word boxes once, after the fonts are in; register the timeline at the end of the build
+      document.fonts.ready.then(build);
+    </script>
+  </body>
+</html>

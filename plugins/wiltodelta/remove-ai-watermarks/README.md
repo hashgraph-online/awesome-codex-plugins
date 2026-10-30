@@ -302,10 +302,15 @@ uv run remove-ai-watermarks visible demo_banana_before.png \
 `qwen-zimage` is the default profile: a Qwen-Image-2512 Lightning pass under Canny
 ControlNet, followed by SAM-masked Z-Image repair of any detected face. The
 alternative, `sdxl-zimage`, swaps the global stage for SDXL and keeps the same face
-stage. A third profile, `chroma-zimage`, uses the Apache-2.0 Chroma1 global pass
-with its own flat vendor floors; see `docs/chroma1-engine-research.md` for the
-calibration. `--pipeline auto` picks sdxl-zimage for Google, chroma-zimage for
-Microsoft, and qwen-zimage otherwise. All are CUDA only.
+stage. `chroma-zimage` uses the Apache-2.0 Chroma1 global pass with its own flat
+vendor floors; see `docs/chroma1-engine-research.md` for the calibration. An opt-in
+fourth profile, `qwen21-zimage`, swaps the global stage for Qwen-Image-2.1 (with
+`madebyollin/texture-fix-vae-for-qwen-image-2.1` and `Qwen-Image-2.1-Fun-Controlnet-Union`
+Canny); because `Qwen/Qwen-Image-2.1` is released under the Qwen Research License,
+`qwen21-zimage` is for non-commercial research, evaluation, and personal use only
+(not for commercial use). `--pipeline auto` picks sdxl-zimage for Google,
+chroma-zimage for Microsoft, and qwen-zimage otherwise, keeping `auto` commercial-safe.
+All are CUDA only.
 
 ```bash
 uv tool install --force "remove-ai-watermarks[qwen-zimage]"

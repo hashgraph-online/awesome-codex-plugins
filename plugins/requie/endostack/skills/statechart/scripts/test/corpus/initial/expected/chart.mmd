@@ -1,0 +1,51 @@
+stateDiagram-v2
+  state Legend {
+    legend0: breaks AUnderTwo or StartsZero
+    legend1: path to the AUnderTwo bug
+  }
+  s0: a=0 b=0
+  s1: a=1 b=0
+  s2: a=0 b=1
+  s3: a=2 b=0
+  s4: a=1 b=1
+  s5: a=0 b=2
+  s6: a=3 b=0
+  s7: a=2 b=1
+  s8: a=1 b=2
+  s9: a=0 b=3
+  s10: a=3 b=1
+  s11: a=2 b=2
+  s12: a=1 b=3
+  s13: a=3 b=2
+  s14: a=2 b=3
+  s15: a=3 b=3
+  [*] --> s0
+  s0 --> s1: IncA
+  s0 --> s2: IncB
+  s1 --> s3: IncA
+  s1 --> s4: IncB
+  s2 --> s4: IncA
+  s2 --> s5: IncB
+  s3 --> s6: IncA
+  s3 --> s7: IncB
+  s4 --> s7: IncA
+  s4 --> s8: IncB
+  s5 --> s8: IncA
+  s5 --> s9: IncB
+  s6 --> s10: IncB
+  s7 --> s10: IncA
+  s7 --> s11: IncB
+  s8 --> s11: IncA
+  s8 --> s12: IncB
+  s9 --> s12: IncA
+  s10 --> s13: IncB
+  s11 --> s13: IncA
+  s11 --> s14: IncB
+  s12 --> s14: IncA
+  s13 --> s15: IncB
+  s14 --> s15: IncA
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 breaks
+  class legend1 bugPath
+  class s0,s3,s6,s7,s10,s11,s13,s14,s15 breaks
+  class s0,s1 bugPath

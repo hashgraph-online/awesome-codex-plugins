@@ -1,0 +1,259 @@
+{
+  "id": "follow-tap-prompt",
+  "name": "Follow tap prompt",
+  "use": "Creator card whose Follow button gets clicked or tapped and flips to Following.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        600,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "TikTok Sans",
+      "weights": [
+        400,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/TikTok+Sans"
+    }
+  ],
+  "rules": [
+    "Ask after the payoff, not in the intro [32][33]",
+    "Tie the ask to what they get [37]",
+    "Show the state change [26]",
+    "No fake follower counts [21]",
+    "No platform logos; Instagram UI in commercials needs permission [17]"
+  ],
+  "presets": [
+    {
+      "id": "follow-tap-prompt.tiktok-style",
+      "label": "TikTok-style",
+      "look": "Dark card, red Follow pill, finger tap",
+      "params": {
+        "button": "#FE2C55",
+        "label": "#FFFFFF",
+        "card": "rgba(0,0,0,0.7)",
+        "font": "TikTok Sans 700",
+        "input": "tap",
+        "card_px": [
+          660,
+          176
+        ],
+        "avatar_px": 112,
+        "button_px": [
+          200,
+          72
+        ],
+        "button_radius_px": 36,
+        "card_center_y_px": 740
+      },
+      "sources": [
+        16
+      ]
+    },
+    {
+      "id": "follow-tap-prompt.instagram-style",
+      "label": "Instagram-style",
+      "look": "White card, blue Follow, cursor click",
+      "params": {
+        "button": "#0095F6",
+        "button_color_status": "unverified starting value, sample from a current screenshot",
+        "card": "#FFFFFF",
+        "font": "Inter 600",
+        "input": "cursor",
+        "ring_gradient": "generic pink->orange, not a brand asset"
+      },
+      "sources": [
+        17
+      ]
+    },
+    {
+      "id": "follow-tap-prompt.twitch-style",
+      "label": "Twitch-style",
+      "look": "Dark card, purple Follow with heart",
+      "params": {
+        "button": "#9147FF",
+        "card": "rgba(24,24,27,0.9)",
+        "font": "Inter 700",
+        "input": "cursor"
+      },
+      "sources": [
+        15
+      ]
+    },
+    {
+      "id": "follow-tap-prompt.x-style",
+      "label": "X-style",
+      "look": "Black/white pill",
+      "params": {
+        "button": "#000000",
+        "label": "#FFFFFF",
+        "card": "#FFFFFF",
+        "font": "Inter 700",
+        "input": "cursor"
+      },
+      "sources": []
+    }
+  ],
+  "timeline_s": {
+    "card_in": [
+      0,
+      0.45
+    ],
+    "cursor_travel": [
+      0.45,
+      1.2
+    ],
+    "press": 1.3,
+    "flip": 1.4,
+    "flip_crossfade_s": 0.2,
+    "hold_until": 4.3,
+    "out": [
+      4.3,
+      4.55
+    ]
+  },
+  "eases": {
+    "in": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+    "out": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+    "release": "back.out(1.7)",
+    "cursor": "power2.inOut"
+  },
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 14,
+      "name": "YouTube Brand Resources: Color",
+      "url": "https://brand.youtube/color/"
+    },
+    {
+      "n": 15,
+      "name": "shadcn.io DESIGN.md: Twitch tokens (third-party)",
+      "url": "https://www.shadcn.io/design/twitch/raw"
+    },
+    {
+      "n": 16,
+      "name": "shadcn.io DESIGN.md: TikTok tokens (third-party) + ColorFYI",
+      "url": "https://www.shadcn.io/design/tiktok/raw"
+    },
+    {
+      "n": 17,
+      "name": "Meta Brand Resource Center: Instagram brand",
+      "url": "https://www.meta.com/brand/resources/instagram/instagram-brand/"
+    },
+    {
+      "n": 21,
+      "name": "FTC: Final rule banning fake reviews and testimonials (2024)",
+      "url": "https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials"
+    },
+    {
+      "n": 26,
+      "name": "Material Design 3 motion tokens (material-components-android Motion.md)",
+      "url": "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md"
+    },
+    {
+      "n": 27,
+      "name": "GSAP source gsap-core.js (back/elastic defaults)",
+      "url": "https://github.com/greensock/GSAP/blob/master/src/gsap-core.js"
+    },
+    {
+      "n": 32,
+      "name": "Paddy Galloway (@PaddyG96) on intro subscribe asks",
+      "url": "https://x.com/PaddyG96/status/1518958236480720897"
+    },
+    {
+      "n": 33,
+      "name": "YouTube Creators (@YouTubeCreators): ask to subscribe at the end",
+      "url": "https://x.com/YouTubeCreators/status/1402025908123353088"
+    },
+    {
+      "n": 34,
+      "name": "Nick Nimmin (@NickNimmin): ask where it won't interrupt",
+      "url": "https://x.com/NickNimmin/status/1924991823870656562"
+    },
+    {
+      "n": 37,
+      "name": "Dara Denney (@DenneyDara): content-specific CTA",
+      "url": "https://x.com/DenneyDara/status/1546561057459773440"
+    },
+    {
+      "n": 38,
+      "name": "jack friks (@jackfriks): 100k views, no downloads, poor CTA",
+      "url": "https://x.com/jackfriks/status/2105708554590294063"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

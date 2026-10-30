@@ -4,7 +4,9 @@ description: >-
   Turns Paper Shaders (30 WebGL shaders: mesh and grain gradients, god rays, liquid metal,
   smoke ring, dithering, halftone, paper texture and more) into frame-exact backgrounds,
   textures and logo stings for HyperFrames or Remotion videos, in brand colors, with nine
-  tested presets. Every frame is drawn from timeline time, so renders are seekable, parallel
+  tested presets and 11 researched looks (liquid metal field, god rays, mesh and grain
+  gradients, dithered gradient, marbled ink, paper, contour lines, hand-drawn burst, gradient flow,
+  datamosh rain) with numbers from Inigo Quilez, Paper's designers and Lucas Pope. Every frame is drawn from timeline time, so renders are seekable, parallel
   and repeatable, and spend no varg credits. Use when a video needs an animated shader
   background, a grain, dither, halftone or paper look on graphics or stills, or a logo reveal
   or sting. NOT for generating footage (use varg-ai), grading or film grain on real footage
@@ -18,7 +20,7 @@ compatibility: >-
 allowed-tools: Bash(node:*) Bash(bun:*) Bash(npx:*) Bash(ffmpeg:*) Read Write Edit
 metadata:
   author: vargHQ
-  version: "0.1.0"
+  version: "0.2.0"
   varg.cost.typical: "0 credits; renders locally"
   varg.runtime.typical: "about 1 s of render per second of 1080p video on an M1 Pro"
   varg.models: "none"
@@ -124,6 +126,39 @@ Two sets ship. Nine varg presets in `assets/presets/`, in varg colors with brand
 
 A preset is JSON: `shader`, `motion` (`timeScale`, `frame`), optional `mount` and `image` notes, `roles` for brand mapping, and every param. `paper-preset.js` refuses a preset that leaves a uniform unset rather than render a wrong frame.
 
+## Looks: 11 researched backgrounds
+
+Eleven background looks researched from the people who build these shaders, each with 4-5 presets in exact Paper params (checked with `validate-presets.mjs`) or, where Paper has no shader for it, a custom GLSL skeleton with its numbers. Each look has a reference (how the pros do it, presets, timing, build steps, mistakes, sources) in `references/looks/` and its presets in `assets/looks/` (50 presets). The look files use their own schema: a preset's `params.paper` block is what goes into a varg preset JSON, with `params.motion` as its `motion`.
+
+| Look | Shader | Presets | Files |
+|---|---|---|---|
+| **Contour lines** | custom-glsl | Signature, Survey, Night, Blueprint | [`contour-lines.md`](references/looks/contour-lines.md) · [`json`](assets/looks/contour-lines.json) |
+| **Datamosh rain** | custom-glsl | Signature, Datamosh, Phosphor, Ember, Ice | [`datamosh-rain.md`](references/looks/datamosh-rain.md) · [`json`](assets/looks/datamosh-rain.json) |
+| **Dithered gradient** | Dithering | Signature, Newsprint, Riso, Phosphor | [`dithered-gradient.md`](references/looks/dithered-gradient.md) · [`json`](assets/looks/dithered-gradient.json) |
+| **God-ray light field** | GodRays | Overhead, Off-center, Streaks, Photograph, Bright core | [`god-ray-light-field.md`](references/looks/god-ray-light-field.md) · [`json`](assets/looks/god-ray-light-field.json) |
+| **Gradient flow** | Warp | Signature, Chroma, Ember, Aurora, Mono | [`gradient-flow.md`](references/looks/gradient-flow.md) · [`json`](assets/looks/gradient-flow.json) |
+| **Grain gradient** | GrainGradient | Signature, Riso, Ember, Sage, Night | [`grain-gradient-shapes.md`](references/looks/grain-gradient-shapes.md) · [`json`](assets/looks/grain-gradient-shapes.json) |
+| **Hand-drawn radial burst** | custom-glsl | Signature, Print, Negative, Riso | [`hand-drawn-radial-burst.md`](references/looks/hand-drawn-radial-burst.md) · [`json`](assets/looks/hand-drawn-radial-burst.json) |
+| **Liquid metal field** | LiquidMetal | Signature, Chrome, Noir, Gold | [`liquid-metal-field.md`](references/looks/liquid-metal-field.md) · [`json`](assets/looks/liquid-metal-field.json) |
+| **Marbled ink** | Warp | Signature, Ink, Ember, Sage | [`marbled-ink.md`](references/looks/marbled-ink.md) · [`json`](assets/looks/marbled-ink.json) |
+| **Mesh gradient with grain** | MeshGradient | Signature, Dusk, Lagoon, Studio, Ink | [`mesh-gradient-grain.md`](references/looks/mesh-gradient-grain.md) · [`json`](assets/looks/mesh-gradient-grain.json) |
+| **Paper texture** | PaperTexture | Signature, Kraft, Newsprint, Poster, Print | [`paper-texture.md`](references/looks/paper-texture.md) · [`json`](assets/looks/paper-texture.json) |
+
+Rules for every look:
+
+1. Mount every shader at speed 0 and compute the frame from timeline seconds; custom shaders get `u_t = seconds` only.
+2. Speed is shader-specific (internal clocks differ: Mesh 0.5x, GodRays 0.2x, Grain 0.1x, Warp 0.0625x). Behind text: Mesh 0.15–0.3, GodRays 0.25–0.6, Grain 0.3–0.5, Warp 0.8–1.5, LiquidMetal 0.4–0.7.
+3. Paper time is not periodic: loop with a 1 s crossfade into a copy offset by L × 1000 × timeScale ms.
+4. Grain and dither are what platform encoders destroy: render at delivery resolution, ≥3–4 px dither cells and ≥8 px blocks at 1080p, high bitrate.
+5. Never move or scale a dither grid; animate the source under a screen-fixed grid.
+6. Keep complementary hues apart in colour order (dark base between); 3–4 colours plus one dark anchor.
+7. Print looks: two inks, riso or warm CMYK hex (#FF48B0, #0078BF, #FFE800, #231F20 on #FBFAF4), 2–4 px misregistration with multiply.
+8. Hand-drawn or glitch feel comes from stepped time: boil at 8–12.5 fps, re-roll glitch blocks at 12.5 fps, keep the main motion smooth.
+9. Constant-width procedural lines need distance estimation (|f|/|∇f| via fwidth), not raw thresholds.
+10. Domain-warped fBM (gain 0.5, 5 octaves, 0.5 rad octave rotation, IQ offsets) is the base of marble, terrain and organic flow.
+
+Built from: Inigo Quilez; Paper's Ksenia Kondrashova (@uuuuuulala) and Stephen Haney (@stephenhaney); Lucas Pope (@dukope); Surma (Ditherpunk); Patricio Gonzalez Vivo & Jen Lowe (The Book of Shaders); Mirza Beig (@TheMirzaBeig); Rune Skovbo Johansen (@runevision); Xor; Kenny Mitchell. Sources with links: [`references/looks/sources.md`](references/looks/sources.md).
+
 ## Read this when
 
 | When | Read |
@@ -131,6 +166,7 @@ A preset is JSON: `shader`, `motion` (`timeScale`, `frame`), optional `mount` an
 | Choosing a shader, writing a new preset, working with footage | `references/shaders.md` |
 | Frames flicker, go black or differ between workers; offline, 4K or Docker renders; Remotion details | `references/determinism.md` |
 | Applying a palette, text contrast over a shader | `references/brand-mapping.md` |
+| A named look (liquid metal field, god rays, marbled ink, contour lines, datamosh rain …) or its expert numbers | `references/looks/<look>.md` and `assets/looks/<look>.json` |
 | Bumping the Paper Shaders version, vendoring it, credits, client work | `references/licensing.md` |
 
 ## Scripts

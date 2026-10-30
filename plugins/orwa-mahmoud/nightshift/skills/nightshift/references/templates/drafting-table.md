@@ -11,7 +11,8 @@
 **Item shape** — one top-level checkbox per item; all detail as indented plain `-` sub-bullets
 (never a nested checkbox — only the top line is a box, so the gate counts one open item per task).
 Every item carries its own **Verify** line, plus a **Commit** line in repository mode or an
-artifact receipt in artifact mode.
+artifact receipt in artifact mode. An **Evidence** line is optional: what shows the work to a
+reviewer at a glance. It never gates a tick, and an item without one is complete as it is.
 
 ```text
 - [ ] **1. <title>.**

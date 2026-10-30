@@ -69,7 +69,7 @@ providerOptions: { varg: { generate_audio: true } }
 providerOptions: { fal: { generate_audio: true } }
 ```
 
-Each model's spec page (`https://varg.ai/models/<id>.md`) lists its options per provider route. `audio: "native"` needs vargai ≥ 0.4.0-alpha124 (`bunx vargai@alpha`).
+Each model's spec page (`https://varg.ai/models/<id>.md`) lists its options per provider route. `audio: "native"` needs vargai ≥ 0.4.0-alpha124 (`bunx vargai@0.4.0-alpha124`).
 
 ---
 

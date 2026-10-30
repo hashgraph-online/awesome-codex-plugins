@@ -1,0 +1,202 @@
+{
+  "id": "frosted-panel-captions",
+  "name": "Frosted panel captions",
+  "use": "White text on a blurred, frosted-glass panel; inactive words are dimmed and the spoken word is full white.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 1,
+  "fonts": [
+    {
+      "family": "Inter",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter",
+      "weights": [
+        600,
+        700
+      ]
+    },
+    {
+      "family": "Manrope",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Manrope",
+      "weights": [
+        700
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "frosted-panel-captions.clear-dim",
+      "label": "Clear glass with dim",
+      "look": "Blur 20 px, dark 45% tint, white text with soft shadow",
+      "params": {
+        "font_family": "Inter",
+        "font_weight": 700,
+        "font_size_px": 80,
+        "panel_fill": "rgba(18,18,22,0.45)",
+        "backdrop_filter": "blur(20px) saturate(140%)",
+        "panel_border": "1px solid rgba(255,255,255,0.22)",
+        "panel_radius_px": 28,
+        "panel_padding_em": [
+          0.4,
+          0.6
+        ],
+        "inactive_opacity": 0.8,
+        "active_opacity": 1.0,
+        "active_glow": "0 0 18px rgba(255,255,255,0.35)",
+        "text_shadow": "0 1px 8px rgba(0,0,0,0.45)",
+        "lead_frames": 1,
+        "words_per_page": [
+          3,
+          6
+        ],
+        "max_width_px": 696,
+        "max_width_note": "outer width of the glass panel; 9:16 centred maximum from the shared safe box",
+        "bright_footage_note": "over bright mid-tones use the thick-bright-footage preset to keep 4.5:1"
+      },
+      "sources": [
+        8,
+        15,
+        22,
+        25
+      ]
+    },
+    {
+      "id": "frosted-panel-captions.thick-bright-footage",
+      "label": "Thick glass for bright footage",
+      "look": "Stronger dim and blur for snow, sky, white rooms",
+      "params": {
+        "panel_fill": "rgba(12,12,16,0.62)",
+        "backdrop_filter": "blur(28px) saturate(120%)",
+        "inactive_opacity": 0.75
+      },
+      "sources": [
+        8,
+        25
+      ]
+    },
+    {
+      "id": "frosted-panel-captions.light-glass",
+      "label": "Light glass",
+      "look": "Dark text on milky glass for bright, airy brands",
+      "params": {
+        "panel_fill": "rgba(255,255,255,0.62)",
+        "backdrop_filter": "blur(24px)",
+        "text_color": "#0A0A0A",
+        "inactive_opacity": 0.55
+      },
+      "sources": [
+        22,
+        25
+      ]
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "safe_box_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "centered_max_width": 696
+    },
+    "safe_area_16x9_pct": {
+      "vertical": 90,
+      "horizontal": 75,
+      "max_line_width_pct_w": 68
+    },
+    "reading_rate_wpm": [
+      160,
+      180
+    ],
+    "active_word_lead_frames": [
+      1,
+      2
+    ],
+    "min_contrast": 4.5
+  },
+  "sources": [
+    {
+      "n": 1,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 3,
+      "name": "Netflix — Timed Text Style Guide: Subtitle Timing Guidelines",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/360051554394-Timed-Text-Style-Guide-Subtitle-Timing-Guidelines"
+    },
+    {
+      "n": 4,
+      "name": "BBC — BBC Subtitle Guidelines",
+      "url": "https://www.bbc.co.uk/accessibility/forproducts/guides/subtitles/"
+    },
+    {
+      "n": 8,
+      "name": "W3C WAI — Understanding WCAG 2.2 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 10,
+      "name": "Meta — Instagram Reels video ad specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 11,
+      "name": "Socialync — Social media safe zones",
+      "url": "https://www.socialync.io/tools/safe-zones"
+    },
+    {
+      "n": 12,
+      "name": "TikTok — TikTok Auction In-Feed Ads",
+      "url": "https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en"
+    },
+    {
+      "n": 13,
+      "name": "Google — Safe zones for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 15,
+      "name": "Randy Hoffner / ITU-R BT.1359 — AV synchronization: how bad is bad?",
+      "url": "https://www.tvtechnology.com/opinions/av-synchronization-how-bad-is-bad"
+    },
+    {
+      "n": 18,
+      "name": "Google Material Design 3 — md-sys-motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 22,
+      "name": "MDN — backdrop-filter",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/backdrop-filter"
+    },
+    {
+      "n": 25,
+      "name": "Apple — Materials",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/materials"
+    },
+    {
+      "n": 27,
+      "name": "SIL Open Font License — OFL-FAQ",
+      "url": "https://openfontlicense.org/ofl-faq/"
+    },
+    {
+      "n": 39,
+      "name": "@wayofzorro (Zorro) — Shorts production checklist",
+      "url": "https://x.com/wayofzorro/status/2105523352261542050"
+    },
+    {
+      "n": 44,
+      "name": "Derek Coleman (OpusClip) — Video caption design and placement",
+      "url": "https://www.opus.pro/blog/video-caption-design-placement"
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+--- a/server.mjs
++++ b/server.mjs
+@@ -26,7 +26,7 @@
+       return send(res, 400, 'bad file name\n');
+     }
+     try {
+-      const body = await readFile(path.join(UPLOADS, name));
++      const body = await readFile(path.join(UPLOADS, decodeURIComponent(name)));
+       return send(res, 200, body, 'application/octet-stream');
+     } catch {
+       return send(res, 404, 'not found\n');

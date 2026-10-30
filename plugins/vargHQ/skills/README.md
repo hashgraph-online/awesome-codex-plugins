@@ -77,7 +77,7 @@ npx skills add vargHQ/skills --yes
 | [varg-video-edit-library](./varg-video-edit-library/) | 206 named edits for footage you already have, each with the look, when to use it, the common mistake, timings and a recipe for FFmpeg, HyperFrames, Remotion and CapCut: cuts and pacing (J/L cuts, match cuts, speed ramps), transitions (CapCut-style, every FFmpeg xfade, Remotion TransitionSeries, HyperFrames and GL shaders), headlines, quotes, end cards, UI walkthroughs, cursors, device mockups, code and terminal, AI agent flows, numbers and charts, logo walls, grids and backdrops | — |
 | [media-download](./media-download/) | Save videos/audio by link from X, YouTube, Instagram, Facebook, TikTok and 1800+ sites (yt-dlp), and Pinterest images by pin, board or search (gallery-dl). Local, no API key | — |
 | [short-form-ffmpeg-cookbook](./short-form-ffmpeg-cookbook/) | Short-form FFmpeg cookbook: copyable commands for Reels. Crop to 9:16, burn captions (SRT/ASS), trim and join, music with ducking; every command tested. Local, no API key | — |
-| [paper-shaders](./paper-shaders/) | Frame-exact Paper Shaders backgrounds, textures and logo stings for HyperFrames and Remotion videos | `paper-shaders` |
+| [paper-shaders](./paper-shaders/) | Frame-exact Paper Shaders backgrounds, textures and logo stings for HyperFrames and Remotion videos, plus 11 researched looks (liquid metal, god rays, marbled ink, contour lines, datamosh rain…) | `paper-shaders` |
 | [how-to-make-ai-video](./how-to-make-ai-video/) | How to make AI video skills for Claude Code and AI agents: one search over varg how to gives the best skill with its install command, the options to show (with example videos) and the steps; also lists a skill you built on varg how to | — |
 | [varg-publish-skill](./varg-publish-skill/) | Turn your agent skill into a varg how to listing: checks it against the standard, fills the one card format every listing uses, shows it to you and publishes it for review through the varg MCP | — |
 | [video-skills](./video-skills/) | Finds the right skill for any AI video, image, voice or music job on varg how to and shows the options before anything is generated | — |
@@ -110,13 +110,22 @@ npx skills add vargHQ/skills --yes
 | [product-photo-to-video](./product-photo-to-video/) | Turn a product photo into a product video ad: truth sheet, cut-out, storyboard sheet, Seedance PRODUCT LOCK, repair pass, real packshot on the last second; ASMR unboxing, macro, 360° loop, try-on | — |
 | [ad-creative-testing](./ad-creative-testing/) | Turn one winning ad into a creative testing plan: decode the winner, concepts Meta and TikTok treat as different, how many and when to judge, funnel diagnosis, kill/scale rules, naming | — |
 | [ecommerce-video-edit](./ecommerce-video-edit/) | Turn raw product footage into a TikTok ad with FFmpeg: hook moved to second 0, dead air cut, text hook and CTA in the safe zone, -14 LUFS, one MP4 per hook, 4:5 cut; tested commands, local, no API key | — |
+| [caption-styles](./caption-styles/) | 17 animated caption looks (karaoke, word pop, sliding pill, word tiles, glass, neon, serif italic…) as exact presets: font, size per format, sync 1-2 frames before the voice, 9:16 safe box, contrast; from the Netflix and BBC subtitle guides and short-form editors. Local, no API key | — |
+| [title-design](./title-design/) | Lower thirds, speaker plates, show opens and headline, CRT, chrome and glitch title reveals with broadcast rules: hold time from word count, safe areas, type scale, plate opacity, easing. Local, no API key | — |
+| [kinetic-type-art](./kinetic-type-art/) | 17 kinetic typography pieces on the beat (typeface strobe, word slams, word tunnel, manifesto, riso and photocopy posters, decrypt and glitch wordmarks) with beat maths, spacing, free font pairings and palettes. Local, no API key | — |
+| [social-overlays](./social-overlays/) | CTA pills, follow and subscribe prompts, review cards, LIVE badges, comment callouts and counters in one 9:16 safe box from TikTok, Reels and Shorts specs, timed after the payoff, real data only (FTC). Local, no API key | — |
+| [app-ui-mockups](./app-ui-mockups/) | Message threads, team chat, coding-agent terminals, code walkthroughs, 3D code slabs and exploded UIs rebuilt as HTML at measured typing and reading speeds, with theme colors from MIT sources. Local, no API key | — |
+| [transition-craft](./transition-craft/) | Shake-distort cuts, Droste infinite zooms, tile-flip mosaics, bokeh, collage and 3D gallery transitions: frame counts, beat placement, log-space zooms, decaying shakes. Local, no API key | — |
+| [motion-formats](./motion-formats/) | Seven formats with beat structures and presets: analog-horror website trailer, VHS bouncing logo, pixel-art runner on a CRT, wave wordmark, DAW one-shot music video, launch trailer, kinetic lyric video. Local, no API key | — |
+| [maps-and-data-motion](./maps-and-data-motion/) | Globe-to-country dives, satellite flyovers, route and watercolor maps, self-drawing charts, count-ups, versus timelines and audio visualizers, with map credits and tile licences built in. Local, no API key | — |
+| [footage-effects](./footage-effects/) | Glow and halation, glitch, CRT, chromatic aberration, halftone, acid photocopy, zoom blur and heat haze on real footage: 34 tested ffmpeg chains plus HyperFrames and Remotion versions. Local, no API key | — |
 
 ## Requirements
 
-- `VARG_API_KEY` (get at [varg.ai](https://varg.ai)) or the hosted varg MCP (`https://mcp.varg.ai/mcp`) -- required for varg-ai, varg-previz and the format skills (varg-music-video, varg-character-keynote, varg-consistent-characters, varg-character-design and its category recipes, varg-podcast-video, varg-product-hook, varg-dropship-reel, ecommerce-video-ads, ai-ugc-ad-video, product-photo-to-video); media-download, short-form-ffmpeg-cookbook, paper-shaders, how-to-make-ai-video, varg-publish-skill (publishes with a varg login or key, no credits), video-skills, varg-video-edit-library, varg-video-editing, ecommerce-video-edit, ad-creative-testing, product-video-hooks (written hooks) and tiktok-shop-video (scripts) need no key (varg-video-editing uses varg only for the paid edits it recommends)
+- `VARG_API_KEY` (get at [varg.ai](https://varg.ai)) or the hosted varg MCP (`https://mcp.varg.ai/mcp`) -- required for varg-ai, varg-previz and the format skills (varg-music-video, varg-character-keynote, varg-consistent-characters, varg-character-design and its category recipes, varg-podcast-video, varg-product-hook, varg-dropship-reel, ecommerce-video-ads, ai-ugc-ad-video, product-photo-to-video); media-download, short-form-ffmpeg-cookbook, paper-shaders, the motion craft skills (caption-styles, title-design, kinetic-type-art, social-overlays, app-ui-mockups, transition-craft, motion-formats, maps-and-data-motion, footage-effects), how-to-make-ai-video, varg-publish-skill (publishes with a varg login or key, no credits), video-skills, varg-video-edit-library, varg-video-editing, ecommerce-video-edit, ad-creative-testing, product-video-hooks (written hooks) and tiktok-shop-video (scripts) need no key (varg-video-editing uses varg only for the paid edits it recommends)
 - **Cloud mode**: curl only (zero dependencies)
 - **Local mode**: bun runtime + ffmpeg
-- **paper-shaders**: Node 22 and ffmpeg for HyperFrames (`npx hyperframes`), or a Remotion 4 project
+- **paper-shaders** and the motion craft skills: Node 22 and ffmpeg for HyperFrames (`npx hyperframes`), or a Remotion 4 project; footage-effects needs only ffmpeg
 
 ## What this plugin connects to
 
@@ -215,9 +224,9 @@ export VARG_API_KEY=varg_xxx
 # 3. Run setup to verify environment
 bash varg-ai/scripts/setup.sh
 
-# 4. Render your first video
-bunx vargai@alpha render hello.tsx --preview    # Free preview
-bunx vargai@alpha render hello.tsx --verbose    # Full render
+# 4. Make your first clip (TSX/JSX videos are deprecated; edit clips with the ffmpeg tool)
+curl -fsSL https://varg.ai/install | sh && vargai login
+vargai generate_video --prompt "waves at dusk" --duration 5
 ```
 
 ## Documentation

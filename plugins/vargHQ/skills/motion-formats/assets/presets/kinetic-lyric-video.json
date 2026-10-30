@@ -1,0 +1,132 @@
+{
+  "id": "kinetic-lyric-video",
+  "name": "Kinetic lyric video",
+  "use": "Lyrics animate in sync with the vocal; type size, weight and motion carry emphasis; for releases, hook teasers and social clips.",
+  "formats": ["9:16", "16:9", "1:1"],
+  "duration_s": 27,
+  "notes": "Only lyrics and audio the user owns or has licensed; never reproduce a real artist's official lyric video design.",
+  "fonts": [
+    { "family": "Anton", "weights": [400], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Anton" },
+    { "family": "Inter", "weights": [500, 800], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Inter" },
+    { "family": "Instrument Serif", "weights": [400], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Instrument+Serif" },
+    { "family": "Archivo Black", "weights": [400], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Archivo+Black" }
+  ],
+  "beat_math": {
+    "beat_s": "60 / BPM",
+    "example_100bpm": { "beat_s": 0.6, "beat_frames_30fps": 18, "bar_s": 2.4, "beats_in_27s": 45 }
+  },
+  "reading_rules": {
+    "max_cps": 20,
+    "max_words_per_s_approx": 3.3,
+    "min_event_frames_30fps": 25,
+    "gap_frames": "2, or >= 0.5 s",
+    "out_after_audio_end_s": 0.5,
+    "max_lines": 2,
+    "max_chars_per_line": { "9:16": 24, "16:9": 32 },
+    "mode_by_density": { "<=1 word/beat": "word-punch", "1-2 words/beat": "build or line-karaoke", ">2 words/beat": "line-karaoke only" }
+  },
+  "presets": [
+    {
+      "id": "kinetic-lyric-video.word-punch",
+      "label": "Word punch",
+      "look": "One huge word per beat, centered, entering from alternating directions.",
+      "params": {
+        "font": "Anton 400",
+        "size": "22% of frame height (9:16)",
+        "tracking": "-3%",
+        "entry": { "type": "slide", "frames": 5, "ease": "expo.out", "offset_px": 160, "alternate_direction": true },
+        "lead_frames": 2,
+        "exit_frames": 4,
+        "emphasis_scale": { "whisper": 0.5, "normal": 1.0, "hook": 1.8 },
+        "colors": { "bg": "#0A0A0A", "text": "#F5F5F0", "accent": "#FF3D2E" },
+        "invert_on": "chorus downbeat"
+      },
+      "sources": [106, 121, 122]
+    },
+    {
+      "id": "kinetic-lyric-video.line-karaoke",
+      "label": "Line karaoke",
+      "look": "Two lines on screen; the current word lights up on its onset.",
+      "params": {
+        "font": "Inter 800",
+        "size": "6.5% of frame height",
+        "line_height": 1.15,
+        "max_chars_per_line": 24,
+        "unsung": "#FFFFFF at 45% opacity",
+        "sung": "#FFFFFF 100% + 4px accent underline",
+        "highlight_frames": 3,
+        "line_in": { "frames": 8, "rise_px": 24, "ease": "cubic-bezier(0.16, 1, 0.3, 1)" },
+        "line_break": "after punctuation, before conjunctions/prepositions, bottom-heavy",
+        "min_event_frames": 25
+      },
+      "sources": [118, 119, 122, 124]
+    },
+    {
+      "id": "kinetic-lyric-video.ballad-drift",
+      "label": "Ballad drift",
+      "look": "Serif words fade and drift up softly with wide spacing and a slow camera push.",
+      "params": {
+        "font": "Instrument Serif 400 (italic for emphasis)",
+        "size": "9% of frame height",
+        "tracking": "0%",
+        "per_word": { "fade_frames": 10, "rise_px": 24, "ease": "power2.out" },
+        "lead_frames": 4,
+        "camera_push": { "from": 1.0, "to": 1.06, "per": "phrase", "ease": "sine.inOut" },
+        "colors": { "bg": "#14110F", "text": "#EDE6DA", "accent": "#C9A46A" },
+        "effects": "no glitch, no RGB split"
+      },
+      "sources": [121, 122, 123]
+    },
+    {
+      "id": "kinetic-lyric-video.build-and-slam",
+      "label": "Build and slam",
+      "look": "The phrase builds word by word from the right and locks centered; the hook word slams full-screen with a snap zoom.",
+      "params": {
+        "font": "Archivo Black 400",
+        "build": { "frames_per_word": 4, "push_left": true },
+        "slam": { "snap_zoom_in_frames": 6, "hold_frames": 2, "correct_frames": 1, "pull_back_frames": 8 },
+        "letter_swing": { "frames": 6, "overshoot_settle_frames": 2, "start_scale": 0.6 },
+        "highlight_edge": { "duplicate_offset_frames": 1, "color": "accent" },
+        "chromatic_kick": { "frames": 2, "offset_px": 6, "on": "hard cuts" },
+        "grain_opacity": 0.05
+      },
+      "sources": [106, 121, 126]
+    },
+    {
+      "id": "kinetic-lyric-video.in-world",
+      "label": "Lyrics in the world",
+      "look": "Lyrics placed on screens, signs and walls inside footage or a 3D scene instead of floating on top.",
+      "params": {
+        "placement": "corner-pin / perspective-matched to a surface",
+        "min_contrast": "4.5:1 against local background",
+        "scrim": "20-30% black when contrast fails",
+        "one_surface_per_line": true,
+        "camera": "the next surface is framed before the line starts (lead >= 6 frames)"
+      },
+      "sources": [125, 123]
+    }
+  ],
+  "structure_27s_100bpm": [
+    { "bars": "1", "t": [0.0, 2.4], "section": "intro/title", "treatment": "line mode title, hold" },
+    { "bars": "2-5", "t": [2.4, 12.0], "section": "verse", "treatment": "line-karaoke or build, camera drift 1.0-1.04" },
+    { "bars": "6-9", "t": [12.0, 21.6], "section": "chorus/hook", "treatment": "word-punch, snap zoom on hardest word, invert on bar 6" },
+    { "bars": "10-11.25", "t": [21.6, 27.0], "section": "tag/outro", "treatment": "last line holds >= 1.5 s, exits on final downbeat" }
+  ],
+  "safe_zones": {
+    "9:16": { "x": "8-92%", "y": "15-75%" },
+    "16:9": "5% margins",
+    "1:1": "6% margins"
+  },
+  "sources": [
+    { "n": 106, "name": "EOSHD forum — Editing (Hans Zimmer on cutting a frame ahead)", "url": "https://www.eoshd.com/comments/topic/46696-editing/" },
+    { "n": 118, "name": "Netflix — English (USA) Timed Text Style Guide", "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide" },
+    { "n": 119, "name": "Netflix — Subtitle Timing Guidelines", "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/360051554394-Timed-Text-Style-Guide-Subtitle-Timing-Guidelines" },
+    { "n": 120, "name": "Joey Korenman, School of Motion — Kinetic Typography in After Effects, Part 1", "url": "https://schoolofmotion.com/blog/kinetic-typography-after-effects-part-1" },
+    { "n": 121, "name": "Joey Korenman, School of Motion — Kinetic Typography in After Effects, Part 2", "url": "https://schoolofmotion.com/blog/kinetic-typography-after-effects-part-2" },
+    { "n": 122, "name": "Adobe — How to make a lyric video", "url": "https://www.adobe.com/creativecloud/video/discover/how-to-make-a-lyric-video" },
+    { "n": 123, "name": "Creative Commission — The creative process: how to make a lyric video", "url": "https://creative-commission.com/news/creative-process-how-make-lyric-video" },
+    { "n": 124, "name": "Storyblocks — How to make professional lyric videos", "url": "https://www.storyblocks.com/resources/tutorials/make-professional-lyric-videos" },
+    { "n": 125, "name": "@theSethian on X — kinetic-type AI music video", "url": "https://x.com/theSethian/status/2104508003948830877" },
+    { "n": 126, "name": "@Pashoke1 on X — finishing pass", "url": "https://x.com/Pashoke1/status/2115041115590037582" }
+  ]
+}

@@ -1,0 +1,257 @@
+{
+  "id": "watercolor-route-map",
+  "name": "Watercolor travel route",
+  "use": "A hand-painted watercolour map where a dashed ink route draws between two places with handwritten labels.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 7,
+  "fonts": [
+    {
+      "family": "Caveat",
+      "weights": [
+        500,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Caveat"
+    },
+    {
+      "family": "Patrick Hand",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Patrick+Hand"
+    },
+    {
+      "family": "IM Fell English",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IM+Fell+English"
+    },
+    {
+      "family": "EB Garamond",
+      "weights": [
+        500,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/EB+Garamond"
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "beats_s": {
+      "washes_bloom": [
+        0.0,
+        1.2
+      ],
+      "start_pin": [
+        1.2,
+        1.6
+      ],
+      "route_inks": [
+        1.6,
+        5.2
+      ],
+      "arrive": [
+        5.2,
+        5.8
+      ],
+      "hold": [
+        5.8,
+        7.0
+      ]
+    },
+    "route_ease": "cubic-bezier(0.37, 0, 0.63, 1)",
+    "route_technique": "static dashed path revealed through a DrawSVG mask (dashes do not slide)",
+    "route_px": [
+      4,
+      6
+    ],
+    "dash_px": [
+      14,
+      18
+    ],
+    "gap_px": [
+      10,
+      12
+    ],
+    "linecap": "round",
+    "wobble_filter": {
+      "feTurbulence": {
+        "type": "fractalNoise",
+        "baseFrequency": 0.02,
+        "numOctaves": 2,
+        "seed": 7
+      },
+      "feDisplacementMap_scale": [
+        3,
+        8
+      ],
+      "boil": "seed = floor(frame/3) mod 4 (optional)"
+    },
+    "wash_bake": {
+      "base_deform_rounds": 7,
+      "layer_deform_rounds": [
+        4,
+        5
+      ],
+      "layers": [
+        30,
+        60
+      ],
+      "layer_opacity": [
+        0.03,
+        0.05
+      ],
+      "bake_scale": 2
+    },
+    "push_in_hold_scale": [
+      1.0,
+      1.02
+    ],
+    "labels_pct_h": [
+      3.0,
+      3.6
+    ],
+    "title_pct_h": [
+      6,
+      7
+    ],
+    "write_on_s_per_word": [
+      0.35,
+      0.5
+    ],
+    "stamp": {
+      "scale": [
+        1.4,
+        1.0
+      ],
+      "rotate_deg": -6,
+      "duration_s": 0.25,
+      "ease": "power3.out"
+    }
+  },
+  "presets": [
+    {
+      "id": "watercolor-route-map.journal",
+      "label": "Travel journal",
+      "look": "Cream paper, soft blue sea, sage land, red ink route",
+      "params": {
+        "paper": "#F4ECD8",
+        "sea": "#8FB8C9",
+        "land": "#B9C7A1",
+        "route": "#C0392B",
+        "route_px": 4,
+        "dash": "14 10",
+        "label_font": "Caveat 700",
+        "label_color": "#3B2F2A"
+      },
+      "sources": [
+        32,
+        33,
+        34
+      ]
+    },
+    {
+      "id": "watercolor-route-map.bold-wash",
+      "label": "Bold wash",
+      "look": "Saturated poster washes, thick navy route, stamp badges",
+      "params": {
+        "paper": "#FBF7EE",
+        "sea": "#4F9FD1",
+        "land": "#F2C14E",
+        "route": "#1F2A44",
+        "route_px": 6,
+        "dash": "18 12",
+        "label_font": "Patrick Hand",
+        "stamp_rotate_deg": [
+          -6,
+          6
+        ]
+      },
+      "sources": [
+        32,
+        34,
+        35
+      ]
+    },
+    {
+      "id": "watercolor-route-map.antique",
+      "label": "Antique",
+      "look": "Sepia antique chart with vignette and compass rose",
+      "params": {
+        "paper": "#E9DCC0",
+        "ink": "#5B4636",
+        "sea": "#B8C4B0 @ 60%",
+        "vignette": 0.35,
+        "label_font": "IM Fell English",
+        "compass_in_s": 0.8
+      },
+      "sources": [
+        24,
+        32,
+        33
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 5,
+      "name": "Joshua Stevens on X: make maps in SVG",
+      "url": "https://x.com/jscarto/status/2114826779596599409"
+    },
+    {
+      "n": 8,
+      "name": "John Nelson (Esri) on X: subtle map animation",
+      "url": "https://x.com/John_M_Nelson/status/2027406545420493180"
+    },
+    {
+      "n": 24,
+      "name": "Natural Earth terms of use",
+      "url": "https://www.naturalearthdata.com/about/terms-of-use/"
+    },
+    {
+      "n": 31,
+      "name": "Stadia Maps: Stamen Watercolor",
+      "url": "https://docs.stadiamaps.com/map-styles/stamen-watercolor/"
+    },
+    {
+      "n": 32,
+      "name": "Tyler Hobbs: Simulating watercolor paint",
+      "url": "https://www.tylerxhobbs.com/words/a-guide-to-simulating-watercolor-paint-with-generative-art"
+    },
+    {
+      "n": 33,
+      "name": "MDN feDisplacementMap",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feDisplacementMap"
+    },
+    {
+      "n": 34,
+      "name": "GSAP DrawSVGPlugin",
+      "url": "https://gsap.com/docs/v3/Plugins/DrawSVGPlugin/"
+    },
+    {
+      "n": 35,
+      "name": "GSAP MotionPathPlugin",
+      "url": "https://gsap.com/docs/v3/Plugins/MotionPathPlugin/"
+    },
+    {
+      "n": 43,
+      "name": "Lisa Charlotte Muth: colors in data vis style guides",
+      "url": "https://www.datawrapper.de/blog/colors-for-data-vis-style-guides"
+    },
+    {
+      "n": 53,
+      "name": "easings.net easings.yml",
+      "url": "https://github.com/ai/easings.net/blob/master/src/easings.yml"
+    }
+  ],
+  "notes": "Numbers marked house in the reference file are defaults, not quotes. Platform UIs and map/imagery credits belong to their owners."
+}

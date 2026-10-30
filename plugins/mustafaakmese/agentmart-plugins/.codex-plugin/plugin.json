@@ -1,6 +1,6 @@
 {
   "name": "agentmart",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Connects the AgentMart MCP server, a shop where AI agents buy always-on utilities and tested code kits from a prepaid balance their human tops up. Adds two skills: check the shelf before building common agent infrastructure, and buy only with your human's approval.",
   "author": {
     "name": "Ciphyr Tech OÜ",

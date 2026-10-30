@@ -1,0 +1,138 @@
+<!doctype html>
+<!--
+  red-beat-words · punch + invert (assets/presets/red-beat-words.json: slam + punch + invert)
+  120 BPM = 15 f per word. Six words on beats 0-5, the last one holds 2 beats (30 f).
+  Each word is a hard cut on frame 0 of its beat, scales 112% -> 100% in 3 f (expo.out) with an
+  alternating 1.5deg rotation, and the frame shakes 8 px decaying over 4 f. Beat 4 (word 4) inverts
+  to red on white. Size: fit 89% of frame width, capped at 38% cap height; Anton caps, +0.01em.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Anton"; src: url("assets/fonts/anton.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #e4002b;
+        }
+        #slam-bg {
+          position: absolute;
+          inset: 0;
+          background: #e4002b;
+        }
+        #slam-svg {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+        }
+        #slam-svg g {
+          opacity: 0;
+        }
+        #slam-svg text {
+          font-family: "Anton";
+          font-weight: 400;
+          fill: #ffffff;
+          letter-spacing: 0.01em;
+        }
+        #slam-label {
+          position: absolute;
+          left: 96px;
+          bottom: 72px;
+          font-family: "JetBrains Mono", monospace;
+          font-size: 17px;
+          color: #ffffff;
+          opacity: 0.6;
+        }
+      </style>
+      <div id="root" data-composition-id="slam" data-width="1920" data-height="1080">
+        <div id="slam-bg"></div>
+        <svg id="slam-svg" viewBox="0 0 1920 1080" data-layout-allow-overflow>
+          <g id="sw-0"><text text-anchor="middle" x="960" y="700">BIG</text></g>
+          <g id="sw-1"><text text-anchor="middle" x="960" y="700">WORDS</text></g>
+          <g id="sw-2"><text text-anchor="middle" x="960" y="700">LAND</text></g>
+          <g id="sw-3"><text text-anchor="middle" x="960" y="700">ON</text></g>
+          <g id="sw-4"><text text-anchor="middle" x="960" y="700">EVERY</text></g>
+          <g id="sw-5"><text text-anchor="middle" x="960" y="700">BEAT</text><rect id="sw-bar" x="0" y="0" width="10" height="14" fill="#000000" /></g>
+        </svg>
+        <div id="slam-label" data-layout-ignore>red-beat-words · punch + invert</div>
+      </div>
+      <script>
+        (function () {
+          const FPS = 30;
+          const BEAT = 60 / 120; // 0.5 s = 15 f
+          const W = 1920;
+          const H = 1080;
+          const FIT_W = 0.89 * W; // fit_width_pct_16x9 86-92
+          const MAX_CAP = 0.38 * H; // max_cap_height_pct
+          const RED = "#E4002B";
+          const groups = [0, 1, 2, 3, 4, 5].map((i) => document.getElementById("sw-" + i));
+          const svg = document.getElementById("slam-svg");
+          const bg = document.getElementById("slam-bg");
+          const bar = document.getElementById("sw-bar");
+          const label = document.getElementById("slam-label");
+
+          document.fonts.load('400 100px "Anton"', "BIGWORDSLANDONEVERYBEAT").then(() => {
+            const c = document.createElement("canvas").getContext("2d");
+            c.font = '400 100px "Anton"';
+            const capR = c.measureText("H").actualBoundingBoxAscent / 100;
+            // One size for every word (one face, one weight): the cap limit or the widest word's fit.
+            let fs = MAX_CAP / capR;
+            const widths = groups.map((g) => {
+              const t = g.querySelector("text").textContent;
+              const tm = c.measureText(t);
+              return (tm.width + 0.01 * 100 * (t.length - 1)) / 100;
+            });
+            widths.forEach((wr) => {
+              if (wr * fs > FIT_W) fs = FIT_W / wr;
+            });
+            const cap = capR * fs;
+            const baseline = Math.round(H / 2 + cap / 2);
+            groups.forEach((g, i) => {
+              const t = g.querySelector("text");
+              t.setAttribute("font-size", fs.toFixed(2));
+              t.setAttribute("y", baseline);
+            });
+            // Accent bar under the last word: 14 px, black, word width.
+            const lastW = widths[5] * fs;
+            bar.setAttribute("x", (960 - lastW / 2).toFixed(1));
+            bar.setAttribute("width", lastW.toFixed(1));
+            bar.setAttribute("y", baseline + 36);
+
+            const tl = gsap.timeline({ paused: true });
+            const at = (f) => Math.max(0, f / FPS - 0.004);
+            groups.forEach((g, i) => {
+              const f = Math.round(i * BEAT * FPS); // absolute beat time, never summed
+              tl.set(groups, { opacity: 0 }, at(f));
+              tl.set(g, { opacity: 1 }, at(f));
+              const rot = i % 2 === 0 ? -1.5 : 1.5;
+              tl.fromTo(
+                g,
+                { scale: 1.12, rotation: rot, svgOrigin: "960 540" },
+                { scale: 1, rotation: 0, svgOrigin: "960 540", duration: 3 / FPS, ease: "expo.out", immediateRender: false },
+                at(f),
+              );
+              // Hit-frame shake: 8 px decaying over 4 f, direction alternates by beat.
+              const s = i % 2 === 0 ? 1 : -1;
+              const xs = [8, -5, 3, -1, 0];
+              const ys = [-6, 4, -2, 1, 0];
+              xs.forEach((x, k) => tl.set(svg, { x: s * x, y: s * ys[k] }, at(f + k)));
+              // Invert accent on beat 4 (the 4th word): red on white, then back.
+              const inv = i === 3;
+              tl.set(bg, { backgroundColor: inv ? "#FFFFFF" : RED }, at(f));
+              tl.set(label, { color: inv ? RED : "#FFFFFF" }, at(f));
+              tl.set(groups.map((x) => x.querySelector("text")), { fill: inv ? RED : "#FFFFFF" }, at(f));
+            });
+            window.__timelines["slam"] = tl;
+          });
+        })();
+      </script>
+    </template>
+  </body>
+</html>

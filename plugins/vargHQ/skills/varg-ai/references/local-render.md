@@ -1,5 +1,7 @@
 # Local Render Mode
 
+> **Deprecated.** TSX/JSX videos get no new features, and vargai 0.4.0-alpha125+ has no `render` command. This page pins `vargai@0.4.0-alpha124`, the last release that renders. For new videos, generate clips and edit them with the ffmpeg tool (see SKILL.md).
+
 Write a `.tsx` file and render locally via the varg CLI. Requires `bun` and `ffmpeg` + `ffprobe`.
 
 Local rendering is faster than cloud rendering, supports custom npm packages, Remotion components, and gives you full control over the output.
@@ -11,7 +13,7 @@ Run through this before your first render in any project:
 1. **Check runtime**: `bun --version` (>= 1.0) and `ffmpeg -version` (>= 6.0)
 2. **Check API key**: `grep VARG_API_KEY .env` -- must be set. Get one at https://varg.ai
 3. **Create directories**: `mkdir -p output .cache/ai`
-   **SDK version**: if the project has a `package.json`, pin a current SDK with `bun add vargai@alpha` (≥ 0.4.0-alpha124). The npm `latest` tag still points to an older build that talks to the legacy v1 API and has no `audio: "native"`. Always run the CLI as `bunx vargai@alpha`.
+   **SDK version**: if the project has a `package.json`, pin a current SDK with `bun add vargai@0.4.0-alpha124` (≥ 0.4.0-alpha124). The npm `latest` tag still points to an older build that talks to the legacy v1 API and has no `audio: "native"`. Always run the CLI as `bunx vargai@0.4.0-alpha124`.
 4. **JSX pragma**: First line of every `.tsx` file must be `/** @jsxImportSource vargai */`
 5. **Correct imports**:
    ```tsx
@@ -19,8 +21,8 @@ Run through this before your first render in any project:
    import { createVarg } from "vargai/ai";
    const varg = createVarg({ apiKey: process.env.VARG_API_KEY! });
    ```
-6. **Test structure first**: `bunx vargai@alpha render video.tsx --preview` validates composition for 0 credits
-7. **Then full render**: `bunx vargai@alpha render video.tsx -o output/video.mp4`
+6. **Test structure first**: `bunx vargai@0.4.0-alpha124 render video.tsx --preview` validates composition for 0 credits
+7. **Then full render**: `bunx vargai@0.4.0-alpha124 render video.tsx -o output/video.mp4`
 
 ## TSX Format
 
@@ -101,13 +103,13 @@ export default (
 
 ```bash
 # Preview with free placeholders (validate structure before paying)
-bunx vargai@alpha render video.tsx --preview
+bunx vargai@0.4.0-alpha124 render video.tsx --preview
 
 # Full render (costs credits)
-bunx vargai@alpha render video.tsx --verbose
+bunx vargai@0.4.0-alpha124 render video.tsx --verbose
 
 # Force regeneration (bypass cache -- use sparingly, costs $$$)
-bunx vargai@alpha render video.tsx --no-cache
+bunx vargai@0.4.0-alpha124 render video.tsx --no-cache
 
 # Open the result
 open output/video.mp4
@@ -118,7 +120,7 @@ open output/video.mp4
 Renders take 3-15+ minutes. Run in the background to avoid blocking:
 
 ```bash
-nohup bunx vargai@alpha render video.tsx --verbose > output/render.log 2>&1 &
+nohup bunx vargai@0.4.0-alpha124 render video.tsx --verbose > output/render.log 2>&1 &
 echo "PID: $!"
 
 # Check progress
@@ -145,5 +147,5 @@ bun scripts/setup.ts
 echo "VARG_API_KEY=varg_xxx" >> .env
 
 # 2. Quick smoke test
-bunx vargai@alpha hello
+bunx vargai@0.4.0-alpha124 hello
 ```

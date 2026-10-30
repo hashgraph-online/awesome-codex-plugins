@@ -1,0 +1,24 @@
+stateDiagram-v2
+  state Legend {
+    legend0: breaks BelowThree
+    legend1: path to the BelowThree bug
+  }
+  s0: 0
+  s1: 1
+  s2: 2
+  s3: 3
+  s4: 4
+  [*] --> s0
+  s0 --> s1: Up
+  s1 --> s0: Reset
+  s1 --> s2: Up
+  s2 --> s0: Reset
+  s2 --> s3: Up
+  s3 --> s0: Reset
+  s3 --> s4: Up
+  s4 --> s0: Reset
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 breaks
+  class legend1 bugPath
+  class s3,s4 breaks
+  class s0,s1,s2 bugPath

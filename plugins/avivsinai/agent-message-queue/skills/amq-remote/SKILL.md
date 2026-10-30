@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.119.0 # x-release-please-version
+version: 0.119.2 # x-release-please-version
 description: Let the owner reach this running agent from Buzz, on the phone or in Buzz Desktop. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -49,7 +49,8 @@ command's own message. Do not work around a refusal.
      `amq-remote attach --self --native --root "$ROOT" --json`.
    - If it exits 6 and names `amq-remote claude install-stop-hook` (Claude
      Code with `--native`), tell the user this adds one Stop hook to
-     `~/.claude/settings.json`; it always exits 0, and
+     `~/.claude/settings.json` (`$CLAUDE_CONFIG_DIR/settings.json` when set);
+     it always exits 0, and
      `amq-remote claude uninstall-stop-hook` removes it. Ask once, run it,
      then run the attach again.
    - Any other failure: show its message and stop.

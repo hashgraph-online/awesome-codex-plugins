@@ -1,0 +1,33 @@
+{
+  "name": "frugal",
+  "version": "1.0.1",
+  "description": "Before anything is bought, subscribed to or upgraded, find free tiers, the right plan, startup, student and open-source programs, verified promo codes and cheaper alternatives.",
+  "author": {
+    "name": "Nir Feinstein",
+    "url": "https://github.com/fainir"
+  },
+  "homepage": "https://github.com/fainir/frugal",
+  "repository": "https://github.com/fainir/frugal",
+  "license": "MIT",
+  "keywords": [
+    "cost-saving",
+    "discounts",
+    "promo-codes",
+    "finops",
+    "agent-skills",
+    "productivity"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Frugal",
+    "shortDescription": "Find the cheaper honest way before paying",
+    "longDescription": "Whenever a task involves paying for something (a SaaS plan, an API, cloud, a domain, a gadget, a flight), Codex first checks free tiers, plan size and billing period, startup, student, open-source and nonprofit programs, verified promo codes and cheaper alternatives, with sources, then carries on. It never pays by itself.",
+    "developerName": "Nir Feinstein",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive"
+    ],
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  }
+}

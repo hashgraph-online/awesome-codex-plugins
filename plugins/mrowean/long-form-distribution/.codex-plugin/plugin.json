@@ -1,0 +1,39 @@
+{
+  "name": "long-form-distribution",
+  "version": "0.2.4",
+  "description": "Turn a published newsletter issue or essay into social posts built from your own sentences, and track which ones went live on a local dashboard.",
+  "author": {
+    "name": "Matthew Rowean",
+    "url": "https://github.com/mrowean"
+  },
+  "homepage": "https://github.com/mrowean/long-form-distribution",
+  "repository": "https://github.com/mrowean/long-form-distribution",
+  "license": "MIT",
+  "keywords": [
+    "newsletter",
+    "distribution",
+    "linkedin",
+    "substack",
+    "writing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Long-form Distribution",
+    "shortDescription": "Social posts from your essays",
+    "longDescription": "Give it a published newsletter issue or essay. It splits the piece into sections, writes LinkedIn, X and Substack Notes posts out of your own sentences, checks every post against the piece for invented facts and dropped caveats, and puts them on a local dashboard where you tick off what went live.",
+    "developerName": "Matthew Rowean",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/mrowean/long-form-distribution",
+    "privacyPolicyURL": "https://github.com/mrowean/long-form-distribution/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/mrowean/long-form-distribution/blob/main/TERMS.md",
+    "logo": "./.claude-plugin/icon.png",
+    "composerIcon": "./.claude-plugin/icon.png",
+    "screenshots": [
+      "./docs/screenshot.png"
+    ]
+  }
+}

@@ -1,0 +1,154 @@
+{
+  "id": "perspective-photo-wall",
+  "name": "Perspective photo wall",
+  "use": "Masonry wall of photos and captions tilted back, sliding toward camera in a seamless loop",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        500,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "presets": [
+    {
+      "id": "perspective-photo-wall.gallery",
+      "label": "Gallery",
+      "look": "Light wall leaning back, slow drift",
+      "params": {
+        "perspective_px": 1100,
+        "perspective_origin": "50% 0%",
+        "rotateX_deg": 58,
+        "columns": 4,
+        "gutter_px": 24,
+        "column_width_px": 340,
+        "tile_ratios": [
+          0.75,
+          1,
+          1.33
+        ],
+        "speed_rows_per_s": 0.5,
+        "loop_rows": 5,
+        "easing": "none",
+        "bg": "#F2EFE8",
+        "caption": {
+          "font": "Inter",
+          "weight": 600,
+          "size_px": 16,
+          "tracking_em": 0.1,
+          "case": "upper",
+          "color": "#111111"
+        },
+        "fog": {
+          "start_depth": 0.65,
+          "end_depth": 1.0,
+          "color": "#F2EFE8"
+        },
+        "seed": 7
+      },
+      "sources": [
+        1,
+        35,
+        41,
+        22
+      ]
+    },
+    {
+      "id": "perspective-photo-wall.night",
+      "label": "Night",
+      "look": "Dark wall, faster travel, fog to black",
+      "params": {
+        "perspective_px": 900,
+        "perspective_origin": "50% 0%",
+        "rotateX_deg": 62,
+        "columns": 5,
+        "speed_rows_per_s": 0.8,
+        "loop_rows": 8,
+        "easing": "none",
+        "bg": "#0B0B0D",
+        "caption": {
+          "font": "Inter",
+          "weight": 600,
+          "size_px": 16,
+          "tracking_em": 0.1,
+          "color": "#F2EFE8"
+        },
+        "fog": {
+          "start_depth": 0.6,
+          "end_depth": 1.0,
+          "color": "#0B0B0D"
+        }
+      },
+      "sources": [
+        1,
+        35,
+        41
+      ]
+    },
+    {
+      "id": "perspective-photo-wall.floor",
+      "label": "Floor",
+      "look": "Wall laid flat as a floor, title on top",
+      "params": {
+        "perspective_px": 800,
+        "perspective_origin": "50% 50%",
+        "rotateX_deg": 72,
+        "rotateZ_deg": -12,
+        "columns": 6,
+        "speed_rows_per_s": 0.4,
+        "loop_rows": 4,
+        "title_scrim_opacity": 0.5
+      },
+      "sources": [
+        35,
+        4
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "@jh3yy, CSS 3D tunnel",
+      "url": "https://x.com/jh3yy/status/1732553845530566855"
+    },
+    {
+      "n": 4,
+      "name": "@jh3yy, blow-out text along z",
+      "url": "https://x.com/jh3yy/status/1702790661911494765"
+    },
+    {
+      "n": 22,
+      "name": "Butterick, Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 35,
+      "name": "MDN, perspective",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/perspective"
+    },
+    {
+      "n": 37,
+      "name": "Netflix English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 54,
+      "name": "Pushing Pixels, David Sheldon-Hicks (Territory Studio)",
+      "url": "https://www.pushing-pixels.org/2014/08/07/the-craft-of-screen-graphics-and-movie-user-interfaces-interview-with-david-sheldon-hicks-of-territory-studio.html"
+    }
+  ]
+}

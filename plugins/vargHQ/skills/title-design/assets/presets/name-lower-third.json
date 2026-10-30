@@ -1,0 +1,242 @@
+{
+  "id": "name-lower-third",
+  "name": "Name lower third",
+  "use": "Identify a speaker (name + role or handle) on first appearance.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        600,
+        700,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Instrument Serif",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Instrument+Serif"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        400,
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "name-lower-third.clean",
+      "label": "Clean",
+      "look": "Cardless name + role with a thin accent rule drawn under the name.",
+      "params": {
+        "name_font": "Inter 700",
+        "name_px_1080p": 54,
+        "role_font": "Inter 400",
+        "role_px_1080p": 34,
+        "role_opacity": 0.8,
+        "rule": {
+          "height_px": 2,
+          "color": "#FFD23F",
+          "draw_s": 0.4,
+          "ease": "cubic-bezier(0.05, 0.7, 0.1, 1)"
+        },
+        "text_shadow": "0 2px 12px rgba(0,0,0,.45)",
+        "in_s": 0.45,
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "out_s": 0.28,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+        "hold": "clamp(2 * max(words * 0.36, chars / 20), 3.0, 7.0) s",
+        "pos_16x9": {
+          "x_px": 144,
+          "bottom_px": 945
+        },
+        "pos_9x16": {
+          "x_px": 72,
+          "bottom_px": 1200,
+          "max_w_px": 778
+        }
+      },
+      "sources": [
+        14,
+        13,
+        10,
+        1,
+        3
+      ]
+    },
+    {
+      "id": "name-lower-third.boxed",
+      "label": "Boxed",
+      "look": "Dark name bar wipes from the left, accent role bar follows.",
+      "params": {
+        "plate": "#0E0F12",
+        "plate_alpha": 0.85,
+        "plate_alpha_min": 0.6,
+        "role_bar": "#FFD23F",
+        "role_text": "#111111",
+        "padding_px": [
+          18,
+          28
+        ],
+        "bar_wipe_s": 0.45,
+        "bar_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "text_delay_s": 0.1,
+        "role_bar_delay_s": 0.12,
+        "name_px_1080p": 54,
+        "role_px_1080p": 34,
+        "out_s": 0.28,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+        "hold": "clamp(2 * max(words * 0.36, chars / 20), 3.0, 7.0) s",
+        "name_font": "Inter 700",
+        "role_font": "Inter 600"
+      },
+      "sources": [
+        14,
+        9,
+        10,
+        16
+      ]
+    },
+    {
+      "id": "name-lower-third.editorial",
+      "label": "Editorial",
+      "look": "Serif name, tracked caps role, hairline above.",
+      "params": {
+        "name_font": "Instrument Serif 400",
+        "name_px_1080p": 60,
+        "role_font": "Inter 600 caps",
+        "role_px_1080p": 22,
+        "role_tracking_em": 0.1,
+        "hairline_px": 1,
+        "hairline_opacity": 0.7,
+        "reveal": "mask lines, yPercent 105->0",
+        "line_s": 0.6,
+        "line_stagger_s": 0.12,
+        "ease": "power3.out",
+        "out_s": 0.3,
+        "hold": "clamp(2 * max(words * 0.36, chars / 20), 3.0, 7.0) s"
+      },
+      "sources": [
+        7,
+        12,
+        14
+      ]
+    },
+    {
+      "id": "name-lower-third.handle",
+      "label": "Handle",
+      "look": "Creator pill: avatar dot, name and @handle.",
+      "params": {
+        "pill_radius_px": 999,
+        "pill": "#FFFFFF",
+        "pill_alpha": 0.92,
+        "text": "#111111",
+        "name_px_1080p": 40,
+        "handle_font": "IBM Plex Mono 500",
+        "handle_px_1080p": 30,
+        "in": "scale 0.9->1 + fade, 0.35 s, no overshoot",
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "out_s": 0.25,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+        "hold": "clamp(2 * max(words * 0.36, chars / 20), 3.0, 7.0) s"
+      },
+      "sources": [
+        9,
+        13,
+        10
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "EBU R 095 — Safe areas for 16:9 television production",
+      "url": "https://tech.ebu.ch/publications/r095"
+    },
+    {
+      "n": 3,
+      "name": "HopperHQ — Instagram Reel size: dimensions, aspect ratio and safe zones",
+      "url": "https://www.hopperhq.com/blog/instagram-reel-size/"
+    },
+    {
+      "n": 4,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 5,
+      "name": "Netflix — Timed Text Style Guide: General Requirements",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/215758617"
+    },
+    {
+      "n": 6,
+      "name": "Clevercast — BBC Subtitling Guidelines (summary)",
+      "url": "https://clevercast.com/bbc-subtitling-guidelines"
+    },
+    {
+      "n": 7,
+      "name": "Matthew Butterick — Practical Typography: Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 9,
+      "name": "W3C — Understanding WCAG 2.1 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 10,
+      "name": "Material Design 3 motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 12,
+      "name": "GSAP docs — SplitText",
+      "url": "https://gsap.com/docs/v3/Plugins/SplitText/"
+    },
+    {
+      "n": 13,
+      "name": "Chris Salters — Sports lower thirds (School of Motion)",
+      "url": "https://schoolofmotion.com/blog/sports-lower-thirds"
+    },
+    {
+      "n": 14,
+      "name": "Jason Boone — How to make lower third titles that don't suck (Frame.io Insider)",
+      "url": "https://blog.frame.io/2017/12/04/create-lower-thirds-titles-that-dont-suck/"
+    },
+    {
+      "n": 15,
+      "name": "Alec Chillingworth — How to get the best lower thirds (Epidemic Sound)",
+      "url": "https://www.epidemicsound.com/blog/lower-thirds/"
+    },
+    {
+      "n": 16,
+      "name": "Mackenzie Scott — A documentarian's guide to lower thirds (Soundstripe)",
+      "url": "https://www.soundstripe.com/blogs/a-documentarians-guide-to-lower-thirds"
+    },
+    {
+      "n": 34,
+      "name": "@YouTubeInsider (YouTube Creator Insider)",
+      "url": "https://x.com/YouTubeInsider/status/1560995909089067010"
+    },
+    {
+      "n": 35,
+      "name": "@sallyshin (Sally Shin)",
+      "url": "https://x.com/sallyshin/status/2046419371396833446"
+    }
+  ]
+}

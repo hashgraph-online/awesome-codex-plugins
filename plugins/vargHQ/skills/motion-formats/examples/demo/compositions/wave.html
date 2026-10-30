@@ -1,0 +1,130 @@
+<!doctype html>
+<!--
+  wave-wordmark · lift (assets/presets/wave-wordmark.json)
+  Invented wordmark "lumen labs" in Inter 800. One wave drives every glyph:
+  peak_i = t0 + i*d, y_i = -A * ease(clamp(|t - peak_i| / (2d), 0, 1)), ease(u) = 0.5*(1 + cos(pi*u)),
+  d = 0.10 s (3 f), pulse width 4d = 0.4 s, A = 30% of cap height, from "start". The crest is tinted
+  #FFD400 from the same ease value. Glyph x positions are measured once from the set word, so the
+  kerning is locked. Rest 0.4 s, crest 0.4 -> 1.5 s, exact rest pose held to 2.5 s.
+  Deviation: the rest before the crest is 0.4 s instead of 0.2 s so the cut into the scene reads.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #2d2df5;
+        }
+        #wv-word {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+        }
+        #wv-measure,
+        .wv-ch {
+          font-family: "Inter", sans-serif;
+          font-weight: 800;
+          font-size: 260px;
+          letter-spacing: -0.03em;
+          line-height: 1;
+          color: #f5f3ee;
+          white-space: pre;
+        }
+        #wv-measure {
+          position: absolute;
+          left: 0;
+          top: 0;
+          visibility: hidden;
+        }
+        .wv-ch {
+          position: absolute;
+          top: 0;
+          display: block;
+        }
+        #wv-label {
+          position: absolute;
+          left: 96px;
+          bottom: 72px;
+          font-family: "JetBrains Mono", monospace;
+          font-size: 17px;
+          color: #ffffff;
+          opacity: 0.6;
+        }
+      </style>
+      <div id="root" data-composition-id="wave" data-width="1920" data-height="1080">
+        <div id="wv-word" data-layout-allow-overflow><span id="wv-measure">lumen labs</span></div>
+        <div id="wv-label" data-layout-ignore>wave-wordmark · lift</div>
+      </div>
+      <script>
+        (function () {
+          const T0 = 0.4;
+          const D = 0.1;
+          const AMP = 0.3; // amplitude_pct_cap_height
+          const INK = [245, 243, 238];
+          const CREST = [255, 212, 0];
+          const word = document.getElementById("wv-word");
+          const meas = document.getElementById("wv-measure");
+
+          document.fonts.load('800 260px "Inter"', "lumen labs").then(() => {
+            // Measure once with canvas (the scene is not laid out before it starts): kerned prefix
+            // widths give each glyph's x, so splitting the word never changes its spacing.
+            const text = meas.textContent;
+            const FS = 260;
+            const LS = -0.03 * FS;
+            const c = document.createElement("canvas").getContext("2d");
+            c.font = '800 260px "Inter"';
+            const xs = [];
+            for (let i = 0; i < text.length; i++) xs.push(c.measureText(text.slice(0, i)).width + i * LS);
+            const totalW = c.measureText(text).width + (text.length - 1) * LS;
+            const fm = c.measureText("Hx");
+            const xh = c.measureText("x").actualBoundingBoxAscent;
+            const cap = c.measureText("H").actualBoundingBoxAscent;
+            const asc = fm.fontBoundingBoxAscent;
+            const desc = fm.fontBoundingBoxDescent;
+            const baselineInBox = (FS - (asc + desc)) / 2 + asc; // line-height: 1
+            const A = AMP * cap;
+            // Centre the word optically on its x-height band.
+            const left = Math.round((1920 - totalW) / 2);
+            const lineTop = Math.round(540 + xh / 2 - baselineInBox);
+            const chars = [];
+            for (let i = 0; i < text.length; i++) {
+              const s = document.createElement("span");
+              s.className = "wv-ch";
+              s.id = "wv-c" + i;
+              s.textContent = text[i];
+              s.style.left = (left + xs[i]).toFixed(2) + "px";
+              s.style.top = lineTop + "px";
+              word.appendChild(s);
+              chars.push(s);
+            }
+            meas.remove();
+
+            const ease = (u) => 0.5 * (1 + Math.cos(Math.PI * u));
+            const draw = (t) => {
+              chars.forEach((el, i) => {
+                const peak = T0 + i * D;
+                const u = Math.min(1, Math.abs(t - peak) / (2 * D));
+                const e = ease(u);
+                const col = INK.map((v, k) => Math.round(v + (CREST[k] - v) * e));
+                gsap.set(el, { y: -A * e, color: "rgb(" + col.join(",") + ")" });
+              });
+            };
+            const tl = gsap.timeline({ paused: true });
+            const clock = { t: 0 };
+            tl.fromTo(clock, { t: 0 }, { t: 2.5, duration: 2.5, ease: "none", onUpdate: () => draw(clock.t) }, 0);
+            draw(0);
+            window.__timelines["wave"] = tl;
+          });
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+stateDiagram-v2
+  state Legend {
+    legend0: breaks NoDeadlock
+    legend1: path to the NoDeadlock bug
+  }
+  s0: 0
+  s1: 1
+  s2: 2
+  [*] --> s0
+  s0 --> s1: Push
+  s1 --> s0: Pop
+  s1 --> s2: Push
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 breaks
+  class legend1 bugPath
+  class s2 breaks
+  class s0,s1 bugPath

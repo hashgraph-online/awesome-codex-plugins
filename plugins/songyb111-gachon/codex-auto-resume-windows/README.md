@@ -14,13 +14,13 @@
 <a href="https://github.com/songyb111-gachon/codex-auto-resume-windows/releases/latest"><img src="https://img.shields.io/github/v/release/songyb111-gachon/codex-auto-resume-windows?label=release" alt="latest release"></a>
 <a href="#install"><img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078d4" alt="platform: Windows 10/11"></a>
 <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license: MIT"></a>
-<a href="https://github.com/songyb111-gachon/codex-auto-resume-windows/blob/main/docs/GUIDE.md#languages"><img src="https://img.shields.io/badge/languages-16-0891b2" alt="languages: 16"></a>
+<a href="https://github.com/songyb111-gachon/codex-auto-resume-windows/blob/main/docs/GUIDE.md#languages"><img src="https://img.shields.io/badge/languages-18-0891b2" alt="languages: 18"></a>
 </p>
 
-<p align="center"><sub>🇰🇷 <a href="https://github.com/songyb111-gachon/codex-auto-resume-windows/blob/ko/README.md">한국어 README</a> · The app speaks sixteen languages: English · 한국어 · 日本語 · 简体中文 · 繁體中文 · Español · Deutsch · Français · Português (Brasil) · Русский · Italiano · Türkçe · Polski · Українська · Tiếng Việt · Bahasa Indonesia</sub></p>
+<p align="center"><sub>🇰🇷 <a href="https://github.com/songyb111-gachon/codex-auto-resume-windows/blob/ko/README.md">한국어 README</a> · The app speaks eighteen languages: English · 한국어 · 日本語 · 简体中文 · 繁體中文 · Español · Deutsch · Français · Português (Brasil) · Русский · Italiano · Türkçe · Polski · Українська · Tiếng Việt · Bahasa Indonesia · العربية · עברית</sub></p>
 
 <p align="center">
-<img src="docs/images/readme-motion.png" alt="The Codex Auto Resume Dashboard at work, drawn by the product's own code from synthetic sample data: the Overview with two recoveries waiting; the pointer opens Pending, right-clicks a waiting task to open its menu and closes it, then opens History, Statistics and Diagnostics, opens Settings and scrolls; it changes the interface language to Korean, saves, and the window opens again in Korean" width="750"><br>
+<img src="docs/images/readme-motion.png" alt="The Codex Auto Resume Dashboard at work, drawn by the product's own code from synthetic sample data: the Overview with two recoveries waiting; the pointer opens Pending, right-clicks a waiting task to open its menu and closes it, presses Retry now while the header's light shows work in progress, scrolls Why it is waiting to its last check, opens the task's Timeline and closes it, then opens History, Statistics and Diagnostics, opens Settings and scrolls; it changes the interface language to Korean, saves, and the window opens again in Korean, where the pointer pauses recovery and resumes it" width="750"><br>
 <sub>The exact conversation, by UUID · the reset time Codex reports · fails closed · no telemetry · standard and advanced editions</sub>
 </p>
 
@@ -50,7 +50,7 @@ setting, the notification, the command line, the safety model and privacy in ful
 | **Never touches** | user cancellation · permission · approval · content policy · invalid requests · context length · permanent authentication failures · anything unclassified |
 | **Identity** | the exact conversation UUID only — never `--last`, never "the most recent one", never a title or a folder name |
 | **Configure it** | the Dashboard from the Start Menu, a settings panel inside Codex, or the command line |
-| **Languages** | English · 한국어 · 日本語 · 简体中文 · 繁體中文 · Español · Deutsch · Français · Português (Brasil) · Русский · Italiano · Türkçe · Polski · Українська · Tiếng Việt · Bahasa Indonesia |
+| **Languages** | English · 한국어 · 日本語 · 简体中文 · 繁體中文 · Español · Deutsch · Français · Português (Brasil) · Русский · Italiano · Türkçe · Polski · Українська · Tiếng Việt · Bahasa Indonesia · العربية · עברית |
 | **Privacy** | no telemetry, no analytics, no automatic update check. Setting it up from Codex downloads the release from GitHub, and *Check for updates* asks GitHub which release is newest, and reads its list of releases on api.github.com for a newer pre-release, only when you press it - and it then also refreshes the Codex compatibility data from raw.githubusercontent.com, sending nothing about your machine; *Install another version...* reads that whole list there when you open it and again when you confirm a version, and downloads only the version you confirmed. The watcher has no network code; the usage check and the resumed turn go to OpenAI through Codex, as Codex's traffic always does |
 
 > [!IMPORTANT]
@@ -142,7 +142,7 @@ Codex and on the notification-area icon - and the pictures below breathe with it
 
 <p align="center">
 <img src="docs/images/notification-card-motion.png" alt="The notification card as the product shows it, drawn by its own code from sample data: example-project, Codex usage limit reached, this task will resume at 08:42; the card fades out and rises in again beside the notification area" width="388" align="top">
-<img src="docs/images/tray-popup-motion.png" alt="The notification-area popup as the product shows it, drawn by its own code from sample data: waiting, with the next check in a minute and a half and three waiting tasks, each with its kind of interruption, when it is next checked and its Auto-resume switch, and Pause recovery and Open Dashboard buttons; its status light breathes, the first task's Auto-resume switch is turned off and on again, and the popup closes and opens again" width="360" align="top"><br>
+<img src="docs/images/tray-popup-motion.png" alt="The notification-area popup as the product shows it, drawn by its own code from sample data: waiting, with the next check in a minute and a half and two waiting tasks, each with its kind of interruption, when it is next checked and its Auto-resume switch, and Pause recovery and Open Dashboard buttons; its status light breathes; a mouse pointer comes in and turns the first task's Auto-resume switch off and on again, then the second's, and leaves; the popup stays where it is the whole time" width="360" align="top"><br>
 <sub>Left: the notification card, as the product draws it · right: what opens when you click the notification-area icon</sub>
 </p>
 
@@ -235,7 +235,7 @@ its provenance marker), and Windows registrations that belong to this installati
 
 Built by **songyb111-gachon** with the assistance of two AI development tools, OpenAI Codex and
 Anthropic Claude Code; [CONTRIBUTORS.md](docs/CONTRIBUTORS.md) has the full breakdown. Thanks to everyone who
-reported a problem, suggested a feature, tested a fix or sent one - [@cervinho](https://github.com/cervinho), [@barkshah2002-pixel](https://github.com/barkshah2002-pixel), [@ZionZhang42](https://github.com/ZionZhang42), [@aca22jy](https://github.com/aca22jy), [@Hunweibyn](https://github.com/Hunweibyn), [@Zephreo](https://github.com/Zephreo), [@Kdevaulo](https://github.com/Kdevaulo), [@weng-wen-jun](https://github.com/weng-wen-jun) and [@kano0222](https://github.com/kano0222) among them;
+reported a problem, suggested a feature, tested a fix or sent one - [@cervinho](https://github.com/cervinho), [@barkshah2002-pixel](https://github.com/barkshah2002-pixel), [@ZionZhang42](https://github.com/ZionZhang42), [@aca22jy](https://github.com/aca22jy), [@Hunweibyn](https://github.com/Hunweibyn), [@TheEleage](https://github.com/TheEleage), [@Zephreo](https://github.com/Zephreo), [@Kdevaulo](https://github.com/Kdevaulo), [@weng-wen-jun](https://github.com/weng-wen-jun), [@kano0222](https://github.com/kano0222) and [@CuuuuteBrainGoo](https://github.com/CuuuuteBrainGoo) among them;
 [CONTRIBUTORS.md](docs/CONTRIBUTORS.md) says what each of them helped with, and the [changelog](docs/CHANGELOG.md)
 names them beside the changes it led to.
 

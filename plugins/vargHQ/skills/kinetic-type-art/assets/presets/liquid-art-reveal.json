@@ -1,0 +1,148 @@
+{
+  "id": "liquid-art-reveal",
+  "name": "Liquid artwork reveal",
+  "use": "An artwork appears through a liquid distortion that settles, then the title resolves",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Bodoni Moda",
+      "weights": [
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Bodoni+Moda"
+    },
+    {
+      "family": "Instrument Serif",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Instrument+Serif"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "presets": [
+    {
+      "id": "liquid-art-reveal.ripple",
+      "label": "Ripple",
+      "look": "Strong ripple that calms, then a title",
+      "params": {
+        "filter": "feTurbulence fractalNoise + feDisplacementMap",
+        "baseFrequency": [
+          0.012,
+          0.02
+        ],
+        "numOctaves": 2,
+        "seed": 7,
+        "scale_px": {
+          "from": 140,
+          "to": 0,
+          "start_f": 12,
+          "end_f": 84,
+          "ease": "power3.out"
+        },
+        "max_displacement_pct_width": [
+          6,
+          10
+        ],
+        "noise_drift_cycles": [
+          0.2,
+          0.5
+        ],
+        "title": {
+          "start_f": 84,
+          "frames": [
+            18,
+            24
+          ],
+          "ease": "expo.out",
+          "height_pct": [
+            8,
+            12
+          ]
+        },
+        "title_after_scale_below_pct": 15,
+        "end_microripple_px": [
+          2,
+          4
+        ]
+      },
+      "sources": [
+        34,
+        22
+      ]
+    },
+    {
+      "id": "liquid-art-reveal.marble",
+      "label": "Marble",
+      "look": "Brand-colour marbled warp resolves into the artwork",
+      "params": {
+        "shader": "Paper Warp",
+        "pattern": "checks",
+        "timeScale": 1.6,
+        "crossfade_to_image_s": 1.2,
+        "mount_speed": 0
+      },
+      "sources": [
+        42
+      ]
+    },
+    {
+      "id": "liquid-art-reveal.glass",
+      "label": "Reeded glass",
+      "look": "Reeded glass slides off the artwork",
+      "params": {
+        "shader": "Paper FlutedGlass",
+        "distortion": {
+          "from": 1,
+          "to": 0,
+          "seconds": 1.6
+        },
+        "mount_speed": 0
+      },
+      "sources": [
+        42
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 22,
+      "name": "Butterick, Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 33,
+      "name": "FFmpeg filters documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 34,
+      "name": "MDN, feDisplacementMap",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feDisplacementMap"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 42,
+      "name": "vargHQ/skills paper-shaders",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    }
+  ]
+}

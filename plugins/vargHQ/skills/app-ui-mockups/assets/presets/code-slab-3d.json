@@ -1,0 +1,224 @@
+{
+  "id": "code-slab-3d",
+  "name": "3D code slab",
+  "use": "Syntax-highlighted code on a lit, bevelled 3D slab that turns through space and settles face-on.",
+  "formats": [
+    "16:9",
+    "1:1",
+    "9:16"
+  ],
+  "duration_s": 8,
+  "fonts": [
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        400,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    }
+  ],
+  "trademark_note": "Theme palettes are MIT (Dracula, GitHub Primer, One Dark). No product logos on the slab.",
+  "presets": [
+    {
+      "id": "code-slab-3d.github-dark",
+      "label": "GitHub Dark",
+      "look": "Near-black slab, GitHub Dark tokens",
+      "params": {
+        "slab": "#0d1117",
+        "fg": "#f0f6fc",
+        "tokens": {
+          "keyword": "#ff7b72",
+          "string": "#a5d6ff",
+          "function": "#d2a8ff",
+          "constant": "#79c0ff",
+          "variable": "#ffa657",
+          "tag": "#7ee787",
+          "comment": "#9198a1"
+        },
+        "rim_light": "#79c0ff @20%",
+        "motion": {
+          "in": {
+            "scale_from": 0.94,
+            "duration_s": 0.4
+          },
+          "turn": {
+            "from_deg": {
+              "rotateY": -38,
+              "rotateX": 16,
+              "rotateZ": -4
+            },
+            "to_deg": 0,
+            "window_s": [
+              0.2,
+              3.2
+            ],
+            "ease": "power4.out"
+          },
+          "hold_s": [
+            3.2,
+            7.4
+          ],
+          "idle_drift_deg": [
+            1,
+            2
+          ],
+          "idle_period_s": 4
+        },
+        "perspective_px": [
+          2000,
+          2400
+        ],
+        "slab_w_pct_frame": 62,
+        "radius_px": 18,
+        "thickness_px": [
+          24,
+          32
+        ],
+        "bevel_px": [
+          8,
+          12
+        ],
+        "padding_px": 64,
+        "code_px_1080p": [
+          30,
+          36
+        ],
+        "line_height": 1.45,
+        "lines": [
+          6,
+          12
+        ],
+        "max_columns": 48,
+        "shadow": {
+          "offset_y_px": 20,
+          "blur_px": 68,
+          "opacity": 0.45,
+          "scale_with_slab": true
+        },
+        "texture_scale": 2
+      },
+      "sources": [
+        26,
+        28,
+        29,
+        45,
+        2,
+        47
+      ]
+    },
+    {
+      "id": "code-slab-3d.dimmed",
+      "label": "Dimmed",
+      "look": "Softer slate slab",
+      "params": {
+        "slab": "#212830",
+        "fg": "#d1d7e0",
+        "tokens": {
+          "keyword": "#f47067",
+          "string": "#96d0ff",
+          "function": "#dcbdfb",
+          "constant": "#6cb6ff",
+          "variable": "#f69d50",
+          "tag": "#8ddb8c",
+          "comment": "#9198a1"
+        },
+        "rim_light": "#6cb6ff @15%",
+        "backdrop": "#15191f"
+      },
+      "sources": [
+        26
+      ]
+    },
+    {
+      "id": "code-slab-3d.one-dark",
+      "label": "One Dark",
+      "look": "Classic grey-blue editor slab",
+      "params": {
+        "slab": "#282c34",
+        "fg": "#abb2bf",
+        "tokens": {
+          "keyword": "#c678dd",
+          "string": "#98c379",
+          "function": "#61afef",
+          "cyan": "#56b6c2",
+          "red": "#e06c75",
+          "number": "#d19a66",
+          "class": "#e5c07b",
+          "comment": "#5c6370"
+        },
+        "rim_light": "#61afef @18%"
+      },
+      "sources": [
+        27
+      ]
+    },
+    {
+      "id": "code-slab-3d.dracula",
+      "label": "Dracula",
+      "look": "Purple-grey slab, saturated tokens",
+      "params": {
+        "slab": "#282A36",
+        "fg": "#F8F8F2",
+        "selection": "#44475A",
+        "tokens": {
+          "keyword": "#FF79C6",
+          "string": "#F1FA8C",
+          "function": "#50FA7B",
+          "type": "#8BE9FD",
+          "constant": "#BD93F9",
+          "parameter": "#FFB86C",
+          "comment": "#6272A4",
+          "error": "#FF5555"
+        },
+        "rim_light": "#BD93F9 @22%"
+      },
+      "sources": [
+        25
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 2,
+      "name": "Emil Kowalski (@emilkowalski)",
+      "url": "https://x.com/emilkowalski/status/1954891053032755560"
+    },
+    {
+      "n": 25,
+      "name": "Dracula theme spec",
+      "url": "https://spec.draculatheme.com/"
+    },
+    {
+      "n": 26,
+      "name": "GitHub Primer primitives (dark, dark-dimmed)",
+      "url": "https://unpkg.com/@primer/primitives@10.3.4/dist/css/functional/themes/dark.css"
+    },
+    {
+      "n": 27,
+      "name": "Atom one-dark-syntax (MIT)",
+      "url": "https://github.com/atom/one-dark-syntax"
+    },
+    {
+      "n": 28,
+      "name": "Carbon defaults (MIT)",
+      "url": "https://github.com/carbon-app/carbon"
+    },
+    {
+      "n": 29,
+      "name": "ray.so (MIT)",
+      "url": "https://github.com/raycast/ray-so"
+    },
+    {
+      "n": 45,
+      "name": "Screen Studio guide, Animations",
+      "url": "https://screen.studio/guide/animations"
+    },
+    {
+      "n": 47,
+      "name": "GSAP Eases",
+      "url": "https://gsap.com/docs/v3/Eases/"
+    }
+  ]
+}

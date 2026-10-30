@@ -1,0 +1,259 @@
+{
+  "id": "shake-distort-cut",
+  "name": "Camera-shake distort cut",
+  "use": "An impact cut: the shot hops, punches in and bends into the cut; the next shot lands punched-in, mirror-filled, shakes and settles.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 2,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "shake-distort-cut.bass-hit",
+      "label": "Bass hit",
+      "look": "Hop, punch-in with bulge, cut on the kick, mirrored landing, fast decaying shake",
+      "params": {
+        "duration_s": 2.0,
+        "fps": 30,
+        "hop": {
+          "frames": 4,
+          "scale": [
+            1.0,
+            1.04
+          ],
+          "y_pct": -1.2
+        },
+        "push": {
+          "frames": 6,
+          "scale": [
+            1.04,
+            1.22
+          ],
+          "ease": "power3.in"
+        },
+        "bulge_k1": [
+          0,
+          0.35
+        ],
+        "cut_frame": 25,
+        "cut_offset_frames_before_beat": 1,
+        "landing": {
+          "scale": [
+            1.18,
+            1.0
+          ],
+          "s": 0.6,
+          "ease": "expo.out"
+        },
+        "shake": {
+          "type": "decaying sine",
+          "amp_px": 48,
+          "freq_hz": 10,
+          "decay": 6,
+          "y_ratio": 0.8,
+          "rot_deg": 2,
+          "settle_below_1px_s": 0.6
+        },
+        "rgb_kick": {
+          "px": 8,
+          "frames": 2
+        },
+        "edge_fill": "mirror 3x3 (Motion Tile 300 %)",
+        "shutter_deg": 270,
+        "samples": 6
+      },
+      "sources": [
+        6,
+        7,
+        8,
+        10,
+        11,
+        14,
+        15,
+        34,
+        41,
+        42
+      ]
+    },
+    {
+      "id": "shake-distort-cut.handheld-snap",
+      "label": "Handheld snap",
+      "look": "Quick snap-zoom cut with a handheld settle",
+      "params": {
+        "duration_s": 1.6,
+        "push": {
+          "frames": 5,
+          "scale": [
+            1.0,
+            1.12
+          ]
+        },
+        "landing": {
+          "scale": [
+            1.12,
+            1.0
+          ],
+          "s": 0.5,
+          "ease": "cubic-bezier(.25,0,.11,1)"
+        },
+        "shake": {
+          "amp_px": 20,
+          "freq_hz": 6,
+          "decay": 4,
+          "rot_deg": 0.8
+        },
+        "rgb_kick": {
+          "px": 4,
+          "frames": 2
+        },
+        "shutter_deg": 180
+      },
+      "sources": [
+        9,
+        10,
+        42
+      ]
+    },
+    {
+      "id": "shake-distort-cut.earthquake",
+      "label": "Earthquake",
+      "look": "Long noisy rumble across the cut",
+      "params": {
+        "duration_s": 2.0,
+        "shake": {
+          "type": "perlin noise",
+          "amp_px": 60,
+          "freq_hz": 14,
+          "rot_deg": 3,
+          "blend_in_frames": 4,
+          "blend_out_frames": 12,
+          "total_s": 0.8
+        },
+        "overscale": 1.15,
+        "shutter_deg": 360
+      },
+      "sources": [
+        11,
+        13,
+        40
+      ]
+    },
+    {
+      "id": "shake-distort-cut.vertical-reel",
+      "label": "Vertical reel",
+      "look": "9:16 phone edit with vertical-biased shake",
+      "params": {
+        "format": "9:16",
+        "duration_s": 2.0,
+        "shake": {
+          "amp_px": 40,
+          "freq_hz": 9,
+          "decay": 5,
+          "y_ratio": 1.5
+        },
+        "landing": {
+          "scale": [
+            1.25,
+            1.0
+          ],
+          "s": 0.7,
+          "ease": "expo.out"
+        },
+        "captions": "outside the shake rig"
+      },
+      "sources": [
+        10,
+        42
+      ]
+    },
+    {
+      "id": "shake-distort-cut.staccato",
+      "label": "Staccato",
+      "look": "Crisp, stuttered war-footage hit",
+      "params": {
+        "duration_s": 1.5,
+        "shutter_deg": 45,
+        "step_hold_frames": 2,
+        "shake": {
+          "amp_px": 36,
+          "freq_hz": 12,
+          "decay": 5
+        },
+        "bulge_k1": 0
+      },
+      "sources": [
+        7,
+        10
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 6,
+      "name": "No Film School — whip pan in 5 steps",
+      "url": "https://nofilmschool.com/2017/09/5-steps-create-perfect-whip-pan-transition"
+    },
+    {
+      "n": 7,
+      "name": "StudioBinder — 180-degree shutter rule",
+      "url": "https://www.studiobinder.com/blog/what-is-the-180-degree-shutter-rule/"
+    },
+    {
+      "n": 8,
+      "name": "Zaid Alkuheli, OverseerOS — How long should video transitions be",
+      "url": "https://www.overseeros.com/blog/how-long-should-video-transitions-be"
+    },
+    {
+      "n": 9,
+      "name": "Jason Boone, School of Motion — camera shake",
+      "url": "https://schoolofmotion.com/blog/how-to-simulate-camera-shake-adobe-after-effects"
+    },
+    {
+      "n": 10,
+      "name": "Dan Ebberts, MotionScript — Realistic bounce and overshoot",
+      "url": "http://www.motionscript.com/articles/bounce-and-overshoot.html"
+    },
+    {
+      "n": 11,
+      "name": "Boris FX — Sapphire S_Shake",
+      "url": "https://borisfx.com/documentation/sapphire/ae/shake"
+    },
+    {
+      "n": 13,
+      "name": "Epic Games — Camera Shakes in Unreal Engine",
+      "url": "https://dev.epicgames.com/documentation/unreal-engine/camera-shakes-in-unreal-engine"
+    },
+    {
+      "n": 14,
+      "name": "Rick Gerard, Adobe Community — Motion Tile mirror edges",
+      "url": "https://community.adobe.com/t5/after-effects-discussions/mirror-edges-not-working/m-p/11946450"
+    },
+    {
+      "n": 15,
+      "name": "Remotion — CameraMotionBlur",
+      "url": "https://www.remotion.dev/docs/motion-blur/camera-motion-blur"
+    },
+    {
+      "n": 34,
+      "name": "EOSHD forum — cutting on, before or after the beat",
+      "url": "https://www.eoshd.com/comments/topic/46696-editing/"
+    },
+    {
+      "n": 40,
+      "name": "goop (@goopsoup_) on X",
+      "url": "https://x.com/goopsoup_/status/2114615971826827569"
+    },
+    {
+      "n": 41,
+      "name": "Yaori (@Pashoke1) on X",
+      "url": "https://x.com/Pashoke1/status/2115041115590037582"
+    },
+    {
+      "n": 42,
+      "name": "Raptor (@RajAdonis) on X",
+      "url": "https://x.com/RajAdonis/status/2113906813020344579"
+    }
+  ]
+}

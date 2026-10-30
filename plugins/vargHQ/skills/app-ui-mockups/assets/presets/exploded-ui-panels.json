@@ -1,0 +1,190 @@
+{
+  "id": "exploded-ui-panels",
+  "name": "Exploded UI panels",
+  "use": "An app screen's layers float apart in 3D around an orbiting camera, then slide home into the finished screen.",
+  "formats": [
+    "16:9",
+    "1:1",
+    "9:16"
+  ],
+  "duration_s": 4,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "trademark_note": "Explode your own designed UI, never a third-party app's interface.",
+  "presets": [
+    {
+      "id": "exploded-ui-panels.orbit-collapse",
+      "label": "Orbit and collapse",
+      "look": "Three-quarter view, 25-degree orbit, lock to flat",
+      "params": {
+        "beats_s": {
+          "flat": [
+            0,
+            0.4
+          ],
+          "tilt_explode": [
+            0.4,
+            1.4
+          ],
+          "orbit_hold": [
+            1.4,
+            2.6
+          ],
+          "collapse": [
+            2.6,
+            3.7
+          ],
+          "final_still": [
+            3.7,
+            4.0
+          ]
+        },
+        "view_deg": {
+          "rotateX": 55,
+          "rotateZ": -35
+        },
+        "orbit_rotateZ_deg": 25,
+        "z_gap_px": {
+          "minor": [
+            70,
+            110
+          ],
+          "hero_card": [
+            180,
+            240
+          ]
+        },
+        "layers": [
+          4,
+          7
+        ],
+        "explode": {
+          "ease": "power3.out",
+          "stagger_s": 0.07,
+          "order": "bottom to top"
+        },
+        "collapse": {
+          "ease": "power3.inOut",
+          "stagger_s": 0.06,
+          "order": "top to bottom",
+          "duration_s": 1.1
+        },
+        "perspective_px": [
+          1800,
+          2600
+        ],
+        "layer_shadow": {
+          "offset_y": "0.12 * z",
+          "blur": "0.35 * z",
+          "opacity": [
+            0.25,
+            0.12
+          ]
+        },
+        "panel_radius_px": [
+          12,
+          16
+        ],
+        "panel_border": "1px rgba(255,255,255,0.08)",
+        "backdrop": "radial #15181D -> #0B0D10",
+        "animate_only": [
+          "transform",
+          "opacity"
+        ]
+      },
+      "sources": [
+        3,
+        43,
+        2,
+        44,
+        45,
+        48
+      ]
+    },
+    {
+      "id": "exploded-ui-panels.iso-stack",
+      "label": "Isometric stack",
+      "look": "True isometric plates with labels",
+      "params": {
+        "view_deg": {
+          "rotateX": 54.736,
+          "rotateZ": -45
+        },
+        "z_gap_px": 120,
+        "label": {
+          "font": "Inter 600",
+          "size_pct_frame_h": 2.2,
+          "side": "right of each layer"
+        }
+      },
+      "sources": [
+        43
+      ]
+    },
+    {
+      "id": "exploded-ui-panels.phone-layers",
+      "label": "Phone layers",
+      "look": "Phone screen exploding toward camera, 9:16",
+      "params": {
+        "view_deg": {
+          "rotateY": -24,
+          "rotateX": 12
+        },
+        "z_gap_px": 70,
+        "layers": 5,
+        "collapse_s": 0.9
+      },
+      "sources": [
+        2,
+        5
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 2,
+      "name": "Emil Kowalski (@emilkowalski)",
+      "url": "https://x.com/emilkowalski/status/1954891053032755560"
+    },
+    {
+      "n": 3,
+      "name": "Steve Schoger (@steveschoger)",
+      "url": "https://x.com/steveschoger/status/1795585777864184025"
+    },
+    {
+      "n": 5,
+      "name": "Bohdan Motion (@bohdanmotion)",
+      "url": "https://x.com/bohdanmotion/status/2106544538231640442"
+    },
+    {
+      "n": 43,
+      "name": "Wikipedia, Isometric projection",
+      "url": "https://en.wikipedia.org/wiki/Isometric_projection"
+    },
+    {
+      "n": 44,
+      "name": "Emil Kowalski, Great animations",
+      "url": "https://emilkowal.ski/ui/great-animations"
+    },
+    {
+      "n": 45,
+      "name": "Screen Studio guide, Animations",
+      "url": "https://screen.studio/guide/animations"
+    },
+    {
+      "n": 48,
+      "name": "Steve Lemuel, Raycast spec teaser (Contra)",
+      "url": "https://contra.com/p/llNMeeMX-raycast-kinetic-product-motion"
+    }
+  ]
+}

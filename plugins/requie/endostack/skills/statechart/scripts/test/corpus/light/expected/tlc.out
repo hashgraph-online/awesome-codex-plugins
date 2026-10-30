@@ -1,0 +1,28 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 0 and seed -2416533173791787153 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 10322] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /work/endostack/skills/statechart/scripts/test/corpus/light/Light.tla
+Semantic processing of module Light
+Starting... (2026-10-27 16:48:52)
+Implied-temporal checking--satisfiability problem has 2 branches.
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-27 16:48:53.
+Progress(3) at 2026-10-27 16:48:53: 4 states generated, 3 distinct states found, 0 states left on queue.
+Checking 2 branches of temporal properties for the complete state space with 6 total distinct states at (2026-10-27 16:48:53)
+Error: Temporal properties were violated.
+
+Error: The following behavior constitutes a counter-example:
+
+State 1: <Initial predicate>
+light = "red"
+
+State 2: <Go line 4, col 7 to line 4, col 39 of module Light>
+light = "green"
+
+State 3: <Slow line 5, col 9 to line 5, col 44 of module Light>
+light = "yellow"
+
+Back to state 1: <Stop line 6, col 9 to line 6, col 42 of module Light>
+
+Finished checking temporal properties in 00s at 2026-10-27 16:48:53
+4 states generated, 3 distinct states found, 0 states left on queue.
+Finished in 00s at (2026-10-27 16:48:53)

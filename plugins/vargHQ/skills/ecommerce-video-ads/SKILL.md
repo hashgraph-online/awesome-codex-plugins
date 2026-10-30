@@ -91,7 +91,7 @@ Meta's Reels study (Meta + Toluna) behind this order: listing benefits 5.3×, br
 | Music | Commercial Music Library | Commercial Music Library | Original audio or Meta Sound Collection |
 | Near-duplicate reposts | Suppressed; 5+ low-quality Shop videos in 7 days hide links | Grouped | Grouped as one ad (Andromeda) |
 
-Everywhere: **never write a first-person testimonial for an AI person** ("I used this for two weeks…"). The FTC rule bans fake testimonials, AI ones included, at about $51,744 per violation. New York has required a conspicuous synthetic-performer disclosure in ads since 9 June 2026. An AI presenter may demo and state facts; results and reviews must be real. Full table with sources: [references/platform-rules.md](references/platform-rules.md).
+Everywhere: **never write a first-person testimonial for an AI person** ("I used this for two weeks…"). The FTC rule bans fake testimonials, AI ones included, at up to $53,088 per violation (the maximum since January 2025). New York has required a conspicuous synthetic-performer disclosure in ads since 9 June 2026. An AI presenter may demo and state facts; results and reviews must be real. Full table with sources: [references/platform-rules.md](references/platform-rules.md).
 
 ## 5. Make it
 

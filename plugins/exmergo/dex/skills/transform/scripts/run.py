@@ -74,7 +74,7 @@ from pathlib import Path
 # Rewritten by scripts/prepare_release.sh to the tagged version. The connector
 # extra is deliberately NOT part of this pin: it is chosen at runtime (see
 # _resolve_connector), so a release artifact is connector-neutral.
-DEX_CORE_VERSION = "1.16.4"
+DEX_CORE_VERSION = "1.16.5"
 
 # Connector id -> packaging extra. The engine's connector ids and the pyproject
 # extras share names, so this is the identity set today. An unknown or unset
@@ -284,8 +284,8 @@ _OSSIE_READING_COMMANDS = (
 # `semantic` extra even though they render nothing: without it the validation
 # degrades to a structural check and the command warns instead of refusing,
 # which is the failure #639 describes. The native document commands
-# (`semantic ossie ...`, `semantic slayer ...`) validate against their own
-# schemas and take their own extras, so they are not here.
+# (`semantic ossie ...`, `semantic slayer ...`, `semantic cube ...`) validate
+# against their own schemas and take their own extras, so they are not here.
 _SEMANTIC_AUTHORING_COMMANDS = (
     ("semantic", "define"),
     ("semantic", "update"),
@@ -313,7 +313,9 @@ _SLAYER_VENDOR = "slayer"
 # already carries), and it is named explicitly so the commands that read a Cube
 # layer keep resolving what that layer needs as the extra grows. Cube renders a
 # metric query itself, so MetricFlow is never installed for a Cube `query` or
-# `values`.
+# `values`. `semantic cube` always takes it, as `semantic slayer` does: authoring
+# validates a model file with the same port of Cube's rules the reader runs.
+_CUBE_COMMANDS = (("semantic", "cube"),)
 _CUBE_VENDOR = "cube"
 
 # The vendors that render a metric query without MetricFlow.
@@ -347,8 +349,8 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
     the validation degrades to a structural check, and the warning that says so
     reads like routine news, so the authoring commands take the `semantic` extra
     and the schemas actually run. The native document commands
-    (`semantic ossie ...`, `semantic slayer ...`) validate against their own
-    schemas and take their own extras.
+    (`semantic ossie ...`, `semantic slayer ...`, `semantic cube ...`) validate
+    against their own schemas and take their own extras.
 
     `explore semantic` needs the hosted client on any of its subcommands, which is
     an httpx and nothing heavier. It needs MetricFlow only where a statement might
@@ -386,7 +388,7 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
     )
     if command in _SLAYER_COMMANDS or (vendor == _SLAYER_VENDOR and reads_layer):
         extras.append("slayer")
-    if vendor == _CUBE_VENDOR and reads_layer:
+    if command in _CUBE_COMMANDS or (vendor == _CUBE_VENDOR and reads_layer):
         extras.append("cube")
     if command in _SEMANTIC_AUTHORING_COMMANDS:
         extras.append("semantic")

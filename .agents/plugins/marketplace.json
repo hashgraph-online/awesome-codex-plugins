@@ -1148,6 +1148,21 @@
       "icon": "./plugins/ohad6k/emulo/assets/emulo.svg"
     },
     {
+      "name": "endostack",
+      "displayName": "EndoStack",
+      "source": {
+        "source": "local",
+        "path": "./plugins/requie/endostack"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Security-first workflows for coding agents that threat-model, security-review and verify code changes before they ship, across Codex, Claude Code, Cursor and Copilot.",
+      "icon": "./plugins/requie/endostack/assets/logo.png"
+    },
+    {
       "name": "epic",
       "displayName": "Epic Harness",
       "source": {
@@ -2892,6 +2907,21 @@
       "icon": "./plugins/bankbridge-money/bankbridge-plugin/assets/icon.png"
     },
     {
+      "name": "bestprice-shopping",
+      "displayName": "BestPrice",
+      "source": {
+        "source": "local",
+        "path": "./plugins/TheBestCo/bestprice-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Official remote MCP server and skill for read-only shopping decisions, product search, Greek merchant offers with delivered totals, and price history from BestPrice.gr.",
+      "icon": "./plugins/TheBestCo/bestprice-mcp/assets/bestprice-mcp-logo-1024.png"
+    },
+    {
       "name": "bkt",
       "displayName": "Bitbucket CLI",
       "source": {
@@ -3620,6 +3650,21 @@
       "icon": "./plugins/mohamedOmar11111/growth-architect-foundry/assets/codex/icon.svg"
     },
     {
+      "name": "frugal",
+      "displayName": "Frugal",
+      "source": {
+        "source": "local",
+        "path": "./plugins/fainir/frugal"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skill that has Codex check free tiers, programs, verified promo codes and cheaper alternatives before anything is bought, subscribed to or upgraded.",
+      "icon": "./plugins/fainir/frugal/assets/logo.png"
+    },
+    {
       "name": "fxmacrodata",
       "displayName": "FXMacroData",
       "source": {
@@ -3945,6 +3990,21 @@
       "category": "Tools & Integrations",
       "description": "Local tools that let Codex use Mail, Calendar, Contacts, Teams, Slack, WhatsApp, OneDrive, Google Drive, Notion, Outlook and Microsoft 365 mail and calendar, and Office files on Mac and Windows.",
       "icon": "./plugins/colibird-ai/local-mcp-releases/assets/logo.png"
+    },
+    {
+      "name": "long-form-distribution",
+      "displayName": "Long-form Distribution",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mrowean/long-form-distribution"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Turns a published essay or newsletter issue into LinkedIn, X and Substack Notes posts cut from the author's own sentences, checks each post against the source, and tracks what went live on a local dashboard.",
+      "icon": "./plugins/mrowean/long-form-distribution/.claude-plugin/icon.png"
     },
     {
       "name": "loomaly",

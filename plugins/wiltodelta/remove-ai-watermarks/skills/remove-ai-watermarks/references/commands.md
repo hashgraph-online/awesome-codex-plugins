@@ -102,9 +102,12 @@ There is no `--model`, `--steps`, or `--guidance-scale` flag, and no `--device`
 on the image path: auto-detection already finds the only device these profiles
 run on.
 
-Pipeline profiles: `qwen-zimage` (the default), `sdxl-zimage`, `chroma-zimage`,
-`auto`. All are CUDA-only and all install from the same `qwen-zimage` extra.
-`auto` picks the engine from the file's own provenance -- sdxl-zimage for Google,
+Pipeline profiles: `qwen-zimage` (the default), `qwen21-zimage`, `sdxl-zimage`,
+`chroma-zimage`, `auto`. All are CUDA-only and all install from the same
+`qwen-zimage` extra. `qwen21-zimage` (since CLI 0.51.0) uses `Qwen/Qwen-Image-2.1` under the
+**Qwen Research License** (non-commercial research and personal use only; do
+not use `qwen21-zimage` for commercial workflows).
+`auto` picks a commercial-safe engine from the file's own provenance -- sdxl-zimage for Google,
 chroma-zimage for Microsoft, qwen-zimage for OpenAI (since CLI 0.39.0), Meta and unknown
 -- so prefer it over naming an engine when the user has no reason to care. `sdxl-zimage` is the
 heavier alternative and `chroma-zimage` is the Apache-2.0 global stage.

@@ -1,0 +1,8 @@
+.DS_Store
+.git/
+.github/
+__pycache__/
+*.pyc
+.env
+.env.*
+distribution-tracker/

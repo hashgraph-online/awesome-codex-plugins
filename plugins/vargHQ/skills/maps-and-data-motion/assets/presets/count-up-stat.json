@@ -1,0 +1,233 @@
+{
+  "id": "count-up-stat",
+  "name": "Count-up statistic",
+  "use": "One big number counts to its value over footage or a plain background, lands with a small pulse and holds with a label.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        500,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Space Grotesk",
+      "weights": [
+        600,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Space+Grotesk"
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "beats_s": {
+      "enter": [
+        0.0,
+        0.4
+      ],
+      "count": [
+        0.3,
+        2.1
+      ],
+      "land": [
+        2.1,
+        2.35
+      ],
+      "hold": [
+        2.35,
+        4.0
+      ]
+    },
+    "enter": {
+      "ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+      "rise_px": 24,
+      "scale_from": 0.96
+    },
+    "count_ease": "cubic-bezier(0.16, 1, 0.3, 1)",
+    "smart_easing": {
+      "threshold": 999,
+      "eased_amount": 333,
+      "linear_fraction_of_duration": 0.55
+    },
+    "count_duration_s_by_digits": {
+      "1-2": [
+        0.8,
+        1.0
+      ],
+      "3": [
+        1.1,
+        1.3
+      ],
+      "4": [
+        1.4,
+        1.6
+      ],
+      "5-6": [
+        1.6,
+        1.9
+      ],
+      "7+": "1.8 with compact notation",
+      "decimals": [
+        1.0,
+        1.4
+      ]
+    },
+    "land_pulse_scale": 1.05,
+    "min_hold_s": 1.5,
+    "figures": "font-variant-numeric: tabular-nums; reserve final-string width",
+    "affix_size_of_number": [
+      0.6,
+      0.7
+    ],
+    "label_size_of_number": [
+      0.22,
+      0.3
+    ],
+    "label_max_words": 4,
+    "scrim_over_footage_opacity": [
+      0.45,
+      0.6
+    ],
+    "min_text_contrast": 4.5
+  },
+  "presets": [
+    {
+      "id": "count-up-stat.center-hero",
+      "label": "Centre hero",
+      "look": "Huge centred number, label below, radial scrim",
+      "params": {
+        "number_pct_h": {
+          "16:9": 22,
+          "9:16": 11,
+          "1:1": 18
+        },
+        "number_font": "Inter 800",
+        "label_pct_h": 3.2,
+        "label_font": "Inter 500",
+        "scrim": "radial 0 -> 55% #000",
+        "9x16_band_pct_h": [
+          30,
+          62
+        ]
+      },
+      "sources": [
+        49,
+        50,
+        53
+      ]
+    },
+    {
+      "id": "count-up-stat.corner-tag",
+      "label": "Corner tag",
+      "look": "Compact number + label in a rounded plate top-left",
+      "params": {
+        "plate": "rgba(10,12,16,0.72)",
+        "radius_px": 18,
+        "padding_px": [
+          20,
+          28
+        ],
+        "number_pct_h": 9,
+        "edge_offset_pct": 5
+      },
+      "sources": [
+        43,
+        50
+      ]
+    },
+    {
+      "id": "count-up-stat.lower-band",
+      "label": "Lower band",
+      "look": "Number on a lower-third band sliding in from the left",
+      "params": {
+        "band_height_pct_h": 16,
+        "band_bottom_pct_h": {
+          "16:9": 88,
+          "9:16": 78
+        },
+        "accent_bar_px": 8,
+        "slide_in_s": 0.45,
+        "slide_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)"
+      },
+      "sources": [
+        49,
+        52
+      ]
+    },
+    {
+      "id": "count-up-stat.split-compare",
+      "label": "Split compare",
+      "look": "Two stats count together; winner highlighted at landing",
+      "params": {
+        "gap_pct_w": 8,
+        "sync": "same start and duration (use the longer)",
+        "loser_opacity_at_land": 0.55,
+        "winner_color": "brand.accent",
+        "delta_format": "signDisplay: exceptZero"
+      },
+      "sources": [
+        46,
+        49,
+        51
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 4,
+      "name": "John Burn-Murdoch on X: novelty vs understanding",
+      "url": "https://x.com/jburnmurdoch/status/1419917498225512448"
+    },
+    {
+      "n": 43,
+      "name": "Lisa Charlotte Muth: colors in data vis style guides",
+      "url": "https://www.datawrapper.de/blog/colors-for-data-vis-style-guides"
+    },
+    {
+      "n": 46,
+      "name": "Heer & Robertson: Animated Transitions in Statistical Data Graphics",
+      "url": "https://idl.cs.washington.edu/files/2007-AnimatedTransitions-InfoVis.pdf"
+    },
+    {
+      "n": 49,
+      "name": "CountUp.js",
+      "url": "https://github.com/inorganik/countUp.js"
+    },
+    {
+      "n": 50,
+      "name": "MDN font-variant-numeric",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/font-variant-numeric"
+    },
+    {
+      "n": 51,
+      "name": "MDN Intl.NumberFormat",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat/NumberFormat"
+    },
+    {
+      "n": 52,
+      "name": "Material 3 motion tokens",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 53,
+      "name": "easings.net easings.yml",
+      "url": "https://github.com/ai/easings.net/blob/master/src/easings.yml"
+    },
+    {
+      "n": 71,
+      "name": "HyperFrames hyperframes-creative audio-reactive guide",
+      "url": "https://github.com/heygen-com/hyperframes"
+    }
+  ],
+  "notes": "Numbers marked house in the reference file are defaults, not quotes. Platform UIs and map/imagery credits belong to their owners."
+}

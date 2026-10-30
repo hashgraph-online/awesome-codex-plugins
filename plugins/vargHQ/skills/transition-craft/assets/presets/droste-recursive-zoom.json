@@ -1,0 +1,200 @@
+{
+  "id": "droste-recursive-zoom",
+  "name": "Droste recursive zoom",
+  "use": "Push into a screen that holds the same frame, levels deep, and land on the next shot.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "droste-recursive-zoom.monitor-push",
+      "label": "Monitor push",
+      "look": "Desk monitor shows the frame; push 3 levels; land on the next shot",
+      "params": {
+        "duration_s": 4.0,
+        "fps": 30,
+        "k_nesting_ratio": 4,
+        "render_levels": 7,
+        "levels_pushed": 3,
+        "scale_formula": "scale = k^e, tween e not scale",
+        "exponent_ease": {
+          "in": "power2.in 0.3–0.9 s",
+          "cruise": "linear 0.9–3.2 s",
+          "catch": "expo.out 3.2–4.0 s"
+        },
+        "transform_origin": "screen centre",
+        "seam_feather_px": [
+          1,
+          2
+        ],
+        "bezel_pct": [
+          2,
+          4
+        ],
+        "glare_opacity": [
+          0.06,
+          0.1
+        ],
+        "radial_blur_peak_px": [
+          8,
+          12
+        ],
+        "radial_blur_threshold_levels_per_s": 0.5,
+        "land_on": "downbeat",
+        "radial_blur_note": "peak blur scales with push speed: about 4 px at this preset's ~1.1 levels/s, 8-12 px only at 2+ levels/s",
+        "render_levels_note": "when the innermost screen becomes the next shot, render levels_pushed + 1"
+      },
+      "sources": [
+        1,
+        15,
+        16,
+        17,
+        18,
+        42
+      ]
+    },
+    {
+      "id": "droste-recursive-zoom.phone-portal",
+      "label": "Phone portal (vertical)",
+      "look": "Hand-held phone screen recursion in 9:16",
+      "params": {
+        "format": "9:16",
+        "duration_s": 3.6,
+        "screen_width_pct": 40,
+        "k_nesting_ratio": 2.5,
+        "render_levels": 8,
+        "levels_pushed": 4,
+        "last_level_ease": "cubic-bezier(.25,0,.11,1)",
+        "plate_prompt_hint": "Droste effect"
+      },
+      "sources": [
+        16,
+        17,
+        42,
+        49
+      ]
+    },
+    {
+      "id": "droste-recursive-zoom.picture-frame-loop",
+      "label": "Picture-frame loop",
+      "look": "Gallery frame on a wall, endless loop for backgrounds",
+      "params": {
+        "duration_s": 3.6,
+        "k_nesting_ratio": 3,
+        "exponent_rate_levels_per_s": 0.833,
+        "loop_length": "exactly 1 level (e mod 1)",
+        "blur": 0
+      },
+      "sources": [
+        17,
+        18,
+        43,
+        44
+      ]
+    },
+    {
+      "id": "droste-recursive-zoom.escher-twist",
+      "label": "Escher twist",
+      "look": "Spiral Droste: the frame curls into itself while zooming",
+      "params": {
+        "duration_s": 4.0,
+        "method": "z=log(uv-c); z*=i2π/(ln α + i2π); z.x+=timeLog; uv=exp(z)",
+        "alpha_scale_per_turn": "k^2 (Print Gallery reading: 256)",
+        "twist": "1 turn per 2 levels",
+        "renderer": "fragment shader driven by timeline time"
+      },
+      "sources": [
+        19,
+        20,
+        45
+      ]
+    },
+    {
+      "id": "droste-recursive-zoom.pull-out",
+      "label": "Pull-out reveal",
+      "look": "Start inside the screen and pull out through 3 levels to reveal the room",
+      "params": {
+        "duration_s": 3.0,
+        "k_nesting_ratio": 4,
+        "levels_pulled": 3,
+        "exponent_ease": "power3.out",
+        "direction": "e: 3 → 0"
+      },
+      "sources": [
+        4,
+        16
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "Filmdaft — Walter Murch's Rule of Six",
+      "url": "https://filmdaft.com/walter-murchs-rule-of-six-the-editors-formula-for-choosing-the-right-cut/"
+    },
+    {
+      "n": 4,
+      "name": "Tony Zhou, Every Frame a Painting — Satoshi Kon: Editing Space & Time (transcript)",
+      "url": "https://voicetube.com/videos/32481"
+    },
+    {
+      "n": 15,
+      "name": "Remotion — CameraMotionBlur",
+      "url": "https://www.remotion.dev/docs/motion-blur/camera-motion-blur"
+    },
+    {
+      "n": 16,
+      "name": "Reach & North — Smooth, Efficient, and Interruptible Zooming and Panning",
+      "url": "https://ar5iv.labs.arxiv.org/html/1801.09358"
+    },
+    {
+      "n": 17,
+      "name": "Adobe Community — Infinite zoom loop effect",
+      "url": "https://community.adobe.com/t5/after-effects-discussions/infinite-zoom-loop-effect/td-p/9884846"
+    },
+    {
+      "n": 18,
+      "name": "Noah Litvin, Envato Tuts+ — Endlessly zoom into your own Droste effect",
+      "url": "https://photography.tutsplus.com/tutorials/endlessly-zoom-into-your-own-droste-effect--ae-12897"
+    },
+    {
+      "n": 19,
+      "name": "Jie Chen — Escher's Print Gallery and the conformal mapping",
+      "url": "https://jiechenjiechen.github.io/blog/2026/escher"
+    },
+    {
+      "n": 20,
+      "name": "Universiteit Leiden — Escher and the Droste effect",
+      "url": "https://pub.math.leidenuniv.nl/~smitbde/escherdroste/"
+    },
+    {
+      "n": 42,
+      "name": "Raptor (@RajAdonis) on X",
+      "url": "https://x.com/RajAdonis/status/2113906813020344579"
+    },
+    {
+      "n": 43,
+      "name": "Lionel Radisson (@MAKIO135) on X",
+      "url": "https://x.com/MAKIO135/status/1742550379911401900"
+    },
+    {
+      "n": 44,
+      "name": "Nicolas Daniel (@nicolasdnl) on X",
+      "url": "https://x.com/nicolasdnl/status/1743599237886099583"
+    },
+    {
+      "n": 45,
+      "name": "Massimo (@Rainmaker1973) on X",
+      "url": "https://x.com/Rainmaker1973/status/1639251479461502977"
+    },
+    {
+      "n": 49,
+      "name": "fofr (@fofrAI) on X",
+      "url": "https://x.com/fofrAI/status/1993709106075767222"
+    }
+  ]
+}
