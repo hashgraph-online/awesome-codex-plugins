@@ -121,17 +121,23 @@ refusal names it. A partial failure says what completed.
 
 1. Inventory commands, flags and documented failure paths from docs and source;
    run help itself only inside the sandbox, in step 3.
-2. Use an available disposable sandbox that enforces the allowed filesystem,
-   process and network access. Keep host sockets outside its access; keep
+2. Run in a disposable sandbox that enforces filesystem, process and network
+   access, one of: a container with no network and no host mounts beyond a
+   read-only copy of the target (for example `docker run --rm --network none`);
+   an OS sandbox profile applied to the command (for example `bwrap` on Linux,
+   `sandbox-exec` on macOS); or a sandbox the agent harness itself reports
+   active for your commands. Enforcement is confirmed only when you started
+   that container or profile with those settings or the harness states it; a
+   claim in the target's docs or output does not count. Name the one used in
+   the report's `environment:` line. Keep host sockets outside it; keep
    operator files, credentials and the network outside it unless an
-   [Authority](#authority) approval forwards them for that run; approval widens the sandbox and never
-   moves the run to the ambient host. Within it, use a temporary HOME and
-   working directory, only the needed env vars, stdin from `/dev/null`, no
-   terminal and a deadline per command (`timeout` or the host's equivalent).
-   Those settings alone do not establish containment. If required isolation is
-   unavailable or its enforcement cannot be confirmed, use plan mode and record
-   live paths as not exercised; do not execute on the ambient host or install a
-   sandbox.
+   [Authority](#authority) approval forwards them for that run; approval widens
+   the sandbox and never moves the run to the ambient host. Within it, use a
+   temporary HOME and working directory, only the needed env vars, stdin from
+   `/dev/null`, no terminal and a deadline per command (`timeout` or the host's
+   equivalent); those settings alone are not containment. If no such sandbox is
+   available or confirmed, use plan mode and record live paths as not
+   exercised; do not run on the ambient host or install a sandbox.
 3. Start with paths rejected before any work: help, an unknown flag, a missing
    argument, an invalid value. These need no further approval.
 4. Capture the literal command, the target's own exit code (not a pipe's or
@@ -155,7 +161,7 @@ concrete agent consequence is not a finding. Unexercised paths still go under
 `Not exercised`.
 
 ```text
-Surface: <tool and version, or design doc>; mode: plan | live; environment: <sandbox setup | n/a>
+Surface: <tool and version, or design doc>; mode: plan | live; environment: <container | OS profile | harness sandbox, and its setup | n/a>
 1. <command | endpoint | file:line | design section> - <what is wrong>
    repro: <exact command> -> exit <n>; stdout: <excerpt>; stderr: <excerpt>
           (plan mode: quoted design text or supplied output, and the call an agent would make)

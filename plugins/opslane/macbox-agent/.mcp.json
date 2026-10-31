@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "macbox": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/npm/bin/macbox.js",
+        "mcp"
+      ],
+      "env": {
+        "MACBOX_API_KEY": "${user_config.api_key}"
+      }
+    }
+  }
+}

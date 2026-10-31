@@ -28,7 +28,7 @@ Read the manifest as prose and load **only** the matching guides:
 | **Apple (iPhone, iPad, Mac, Vision Pro, Watch, TV)** | `*.xcodeproj`, `Package.swift` with an app target | `references/apple.md`, plus `references/mobile.md` for iPhone and iPad |
 | **Android (Compose)** | `build.gradle(.kts)` with Compose | `references/mobile.md` + `references/android.md` |
 
-React Native/Expo: add `references/apple.md` or `references/android.md` only when the change behaves differently per OS (back navigation, sheets, pickers, haptics, system dialogs). Expo web output also loads `references/web.md`. A monorepo with several apps loads the guide for the app being touched. For another UI stack (Flutter, Kotlin Multiplatform), use `references/cross-platform.md` and the closest native guide.
+React Native/Expo: add `references/apple.md` or `references/android.md` only when the change behaves differently per OS (back navigation, sheets, pickers, haptics, system dialogs). Expo web output also loads `references/web.md`. For a landing, marketing, or launch page, also load `references/landing-pages.md`. A monorepo with several apps loads the guide for the app being touched. For another UI stack (Flutter, Kotlin Multiplatform), use `references/cross-platform.md` and the closest native guide.
 
 ## 3. Rules
 
@@ -93,5 +93,5 @@ Fix nothing in audit mode unless asked; when asked, fix in impact order.
 
 ## Boundaries
 
-- **Visual styling** (colour palettes, type scales, spacing systems) and **animation timing** (easing, springs, duration) are out of scope — defer to a visual-design or animation skill when one is installed. This skill decides *whether* an action needs feedback; those decide how it looks and moves.
+- **Visual styling** (colour palettes, type scales, spacing systems) and **animation timing** (easing, springs, duration) are out of scope — defer to the `visual-design` skill when it is available, and to an animation skill when one is installed. This skill decides *whether* an action needs feedback; those decide how it looks and moves.
 - **Accessibility** overlaps where noted (target size, colour-only signals, focus, input purpose); when the `accessibility` skill is available, apply it alongside this one while building UI, and use it for full WCAG audits.

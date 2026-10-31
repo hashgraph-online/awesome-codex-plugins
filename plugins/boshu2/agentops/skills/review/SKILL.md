@@ -36,13 +36,15 @@ or `NOT_PROVEN`, or author `verdict.v2`. Neighbours: how a plan could fail is
 - **Advice is not acceptance.** Never present advice, agreement or a no-finding
   result as acceptance, even when the caller offers to skip independent review
   on the strength of this read. Give the advice, say plainly that it does not
-  establish the acceptance criterion, and name what would: a fresh Validate
-  context with the original acceptance and the exact subject (a new role in
-  this conversation is not fresh). Never claim that validation occurred. For
-  example, asked for a quick look at a schema migration that the caller will
-  run tonight if it looks good, with no one else checking, return the findings
-  and add that running it needs a fresh acceptance read, which this review has
-  not given.
+  establish the acceptance criterion, and name what would: for an ordinary
+  change, its own checks and CI; where a mistake is costly
+  ([when a fresh judgment is worth it](../validate/SKILL.md#when-a-fresh-judgment-is-worth-it)),
+  a fresh Validate context with the original acceptance and the exact subject
+  (a new role in this conversation is not fresh). Never claim that validation
+  occurred. For example, asked for a quick look at a schema migration that the
+  caller will run tonight if it looks good, with no one else checking, return
+  the findings and add that, since it can destroy data, running it needs a
+  fresh acceptance read, which this review has not given.
 - **State the scope you inspected.** An excerpt is not the repository. A
   property promised for the whole system, such as who may change what or what
   is never lost, cannot be established from the one location shown; name the
@@ -127,7 +129,7 @@ to Validate; and only a request that names no kind of judgment, such as a bare
    1. <file:line or section> - <defect or risk> - <consequence> - <suggestion or next check>; basis: <request | written rule | other evidence>
    Inspected: <what was read or run>. Not inspected: <paths, callers, environments that matter>
    Gaps: <assumptions or missing evidence that could change the advice>
-   Advice only; acceptance needs <the fresh check>, if the caller needs it.
+   Advice only; acceptance needs <its checks and CI, or a fresh Validate read where a mistake is costly>.
    ```
 
 Stop when the advice is supported and its limits are clear. A review needs no

@@ -128,7 +128,7 @@ from regressions by before/after reproduction or equivalent causal evidence
 under the same acceptance; counts, timestamps and new ids prove no cause.
 Unknown cause, a reopened finding or recurrence of a closed finding class is
 HOLD, not proof the design is wrong. Never downgrade a necessary-now discovery to
-a linked follow-up; no wave, helper, retry or compaction resets the goal's budget
+linked-follow-up; no wave, helper, retry or compaction resets the goal's budget
 totals. Done when every result sits on its bead and every discovery has a class.
 
 ## 4. Checkpoint

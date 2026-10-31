@@ -1,0 +1,44 @@
+{
+  "name": "proxmox-writing-style",
+  "version": "1.0.0",
+  "description": "Unofficial skill. Write, edit, and review Proxmox technical documentation with the rules of the Proxmox Technical Writing Style Guide.",
+  "author": {
+    "name": "Mekan Soltanov",
+    "url": "https://github.com/msoltanov"
+  },
+  "homepage": "https://github.com/msoltanov/Proxmox-Technical-Writing-Style-Skill",
+  "repository": "https://github.com/msoltanov/Proxmox-Technical-Writing-Style-Skill",
+  "license": "MIT",
+  "keywords": [
+    "proxmox",
+    "proxmox-ve",
+    "technical-writing",
+    "documentation",
+    "style-guide"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Proxmox Writing Style",
+    "shortDescription": "Write Proxmox docs in the Proxmox style",
+    "longDescription": "Unofficial skill. Write, edit, and review Proxmox VE, Proxmox Backup Server, and Proxmox Mail Gateway documentation with the rules of the Proxmox Technical Writing Style Guide.",
+    "developerName": "Mekan Soltanov",
+    "category": "Productivity",
+    "capabilities": [
+      "Write"
+    ],
+    "websiteURL": "https://github.com/msoltanov/Proxmox-Technical-Writing-Style-Skill",
+    "privacyPolicyURL": "https://github.com/msoltanov/Proxmox-Technical-Writing-Style-Skill/blob/master/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/msoltanov/Proxmox-Technical-Writing-Style-Skill/blob/master/LICENSE",
+    "defaultPrompt": [
+      "Review this Proxmox VE documentation for style problems.",
+      "Rewrite this procedure in the Proxmox writing style.",
+      "Write release notes for this Proxmox change."
+    ],
+    "brandColor": "#1E3A5F",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.png",
+    "screenshots": [
+      "./assets/screenshot-example.png"
+    ]
+  }
+}

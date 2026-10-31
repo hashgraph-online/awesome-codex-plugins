@@ -180,8 +180,17 @@ Needs no baseline. The classes of finding:
 - **Row population**: `row_loss` where a model holds materially fewer rows than
   its **driving parent** (the relation in its FROM clause, followed through the
   CTE chain, as distinct from anything it joins) and nothing in its SQL accounts
-  for the shortfall; `row_fanout` where it holds materially more. Each names the
-  join and its key and states both counts. A model with a `WHERE`, `GROUP BY`,
+  for the shortfall; `row_fanout` where it holds materially more. Each names
+  every join beside its own key and states both counts. A fan-out on a model
+  whose declared grain (a declaration, a `unique` or
+  `unique_combination_of_columns` test, or a primary entity, never the naming
+  guess) the same run proved unique is capped at `low`, with
+  `data.grain_proven`: the extra rows are the grain the model declares (anchors
+  times windows, a date spine times entities), not duplicates. A fan-out
+  through joins whose key Dex cannot read (a range or inequality join) is
+  capped at `medium`, with `data.join_key_read: false`. Both caps name
+  themselves in `data.severity_cap_applied`, and the finding stays listed. A
+  model with a `WHERE`, `GROUP BY`,
   `DISTINCT`, `QUALIFY`, `LIMIT`, a semi or anti join, or a set operation is never
   reported for loss, and an incremental model is skipped outright. A model that
   generates its rows in SQL, such as `range(...)` or a `VALUES` clause, has no

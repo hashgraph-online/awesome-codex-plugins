@@ -504,11 +504,11 @@ hosts:
     package:
       registry: npm
       name: opencode-multi-llm
-      version: "0.1.2"
-      public_version: "0.1.1"
+      version: "0.1.3"
+      public_version: "0.1.3"
       config_key: plugin
       provides: [command, tool]
-      min_host_version: "1.19.4"   # the one supported opencode release (the
+      min_host_version: "1.19.5"   # the one supported opencode release (the
                                     # newest; `make opencode-bump` moves it with
                                     # every other pin), never a lower one that
                                     # might work: `engines` is a hard gate, and
@@ -679,8 +679,12 @@ hosts:
       # (records/20261026T175524Z-opencode-release-network-check.json, validated
       # by `registry_record.py validate --profile release`). What it does NOT
       # cover: macOS and Windows (Linux only, as packaging/opencode/README.md
-      # says), and an upgrade from an earlier npm version (there is none yet;
-      # the next release's record carries `upgrade_runs_new_payload`).
+      # says), or an upgrade from an earlier npm version (none existed at
+      # that first release). The later-release proof below covers upgrades.
+      # RECHECKED 2026-10-30 for opencode-v0.1.3 on OpenCode 1.19.5.
+      # A fresh npm install passed all nine later-release criteria, including
+      # offline use, same-pin restart, and an upgrade from 0.1.1 executing
+      # the new payload (records/20261030T214755Z-opencode-release-network-check.json).
       package: verified
       invocation: verified
       # PROMOTED BY T10 (plans/next-phase-command.md), opencode 1.18.33,

@@ -15,7 +15,7 @@ Run the installer on the target repo, show the owner the plan before writing, ap
 
 ## Tasks
 
-1. Find the installer. When this skill was loaded from the vidbyte-memory plugin or a clone, it is `scripts/install.py` two folders above this file. Otherwise clone the template into a temporary folder outside the repo, `git clone --depth 1 https://github.com/cerredz/vidbyte-memory <tmp>`, and use `<tmp>/scripts/install.py`, so the owner can read the script before it runs. Run it as `python <installer> --target <repo>` from then on.
+1. Find the installer. When this skill was loaded from the vidbyte-memory plugin or a clone, it is `scripts/install.py` two folders above this file. Otherwise clone the release this skill shipped with into a temporary folder outside the repo, `git clone --depth 1 --branch v0.3.0 https://github.com/cerredz/vidbyte-memory <tmp>`, and use `<tmp>/scripts/install.py`, so the owner can read the script before it runs and the install is the reviewed release, not whatever `main` holds today. Run it as `python <installer> --target <repo>` from then on.
 2. Run it with `--dry-run --target <repo>` and show the owner the plan: the files it would create, the agents it detected and why, and any existing files it would keep.
 3. If the plan lists a conflict on a file the memory needs (its tests helpers, its integrity test, the guard or the footprint script), stop and ask the owner how to resolve it before going on.
 4. Run it again without `--dry-run`.

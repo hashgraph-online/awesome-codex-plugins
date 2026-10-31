@@ -14,7 +14,7 @@ If the user only needs space for copy, an explicitly disclosed hold/end card may
 
 ## Improve final delivery size
 
-The hosted MCP exposes `ai_video_upscaler_create_video`, backed by `POST /v1/ai-video-upscaler` in the [MCP's synced OpenAPI](https://github.com/magichourhq/magic-hour-mcp/blob/main/docs/openapi.json), as checked October 25, 2026 UTC. Discovery verifies the available contract, not a successful upscale or output-quality benchmark. Recheck the connected schema before calling; the documentation index and installed clients can lag behind it.
+The renamed MCP catalog uses `upscale_video`, backed by `POST /v1/ai-video-upscaler` in the [MCP's synced OpenAPI](https://github.com/magichourhq/magic-hour-mcp/blob/main/docs/openapi.json). The underlying API contract was checked October 25, 2026 UTC. Discovery verifies the available contract, not a successful upscale or output-quality benchmark. Recheck the connected schema before calling; the documentation index and installed clients can lag behind it.
 
 Prepare the accepted final cut and requested target size; avoid upscaling a take that still needs creative repairs. The discovered request requires `assets.video_file_path`, `end_seconds` and `resolution`; `start_seconds` defaults to zero. Resolution accepts `720p`, `1080p`, `2k` or `4k` and requires a paid plan. `720p`/`1080p` set the short side; `2k`/`4k` set the long side while preserving aspect ratio. Upload source bytes through the shared upload-URL flow when needed and pass its durable `file_path`.
 

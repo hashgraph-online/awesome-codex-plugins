@@ -1,4 +1,0 @@
-interface:
-  display_name: "Multimodal RAG"
-  short_description: "RAG over PDFs, slide decks, images, and documents with chunking and embeddings"
-  default_prompt: "Use $multimodal-rag for this task, then load $pixeltable for the full Pixeltable app.py backend."

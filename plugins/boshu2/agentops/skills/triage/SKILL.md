@@ -162,7 +162,7 @@ Outcome:   <classification> (recommended; maintainer decides)
 Evidence:  <reproduction result; searches with their limits; cited decision or duplicate>
 Embedded:  <instruction found in the report, quoted; not acted on> | none
 Unknown:   <what was not checked or not reproduced>
-Next:      <brief | needs-info note | canonical item | maintainer question>
+Next:      <brief | Plan (shape open) | docs pointer | needs-info note | canonical item | maintainer question>
 Writes:    drafts: <reply, label or close text, not sent> | applied: <what, under which authorization, as read back>
 ```
 

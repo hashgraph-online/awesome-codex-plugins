@@ -1,6 +1,8 @@
 # The Foundry
 ### The multi-agent growth kernel for agencies — now a Claude Code plugin
 
+**Website:** https://mohamedomar11111.github.io/growth-architect-foundry/ (English and Arabic)
+
 [![Kernel-Guard](https://github.com/mohamedOmar11111/growth-architect-foundry/actions/workflows/kernel-guard.yml/badge.svg)](https://github.com/mohamedOmar11111/growth-architect-foundry/actions/workflows/kernel-guard.yml)
 [![Code-Quality-Guard](https://github.com/mohamedOmar11111/growth-architect-foundry/actions/workflows/pylint.yml/badge.svg)](https://github.com/mohamedOmar11111/growth-architect-foundry/actions/workflows/pylint.yml)
 

@@ -1,20 +1,21 @@
 # Behavior scenarios for the /reverse-engineer skill, linked by @covered-by: CI runs
 # scripts/validate.sh via tests/scripts/reverse-engineer-validate.bats;
-# self_test.sh (Go) runs by hand. In repo mode it maps the code into a feature
-# catalog and specs; in binary mode it analyzes a binary, with a security audit
-# only when --security-audit is set.
+# self_test.sh (Go) runs by hand. In repo mode it scans the code surface and
+# indexes the docs pages; in binary mode it analyzes a binary, with a security
+# audit scaffold only when --security-audit is set.
 @covered-by:tests/scripts/reverse-engineer-validate.bats
-Feature: Reverse-engineer reconstructs specs from an existing system
-  As an agent onboarding or auditing an unfamiliar system
-  I want its behavior reconstructed into a feature catalog and specs
-  So that work can proceed from a real map instead of guesswork
+Feature: Reverse-engineer tears down an external system into a steal-map
+  As a maintainer comparing us to an external tool
+  I want a source-tagged teardown and a validated steal-map
+  So that adoption choices rest on code evidence instead of a README
 
   Background:
     Given a target system provided as a repository or a binary
 
-  Scenario: Repo mode produces a feature catalog and code map
+  Scenario: Repo mode scans the code surface and indexes the docs
     When the target is a code repository
-    Then it maps the code into a feature catalog, code map, and specs
+    Then it writes the CLI, config and artifact contracts from the code
+    And it indexes the target's docs pages into the feature catalog
 
   @covered-by:skills/reverse-engineer/scripts/self_test.sh
   Scenario: Binary mode adds a security audit only on request

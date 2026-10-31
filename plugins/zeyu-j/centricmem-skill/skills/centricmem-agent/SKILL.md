@@ -21,6 +21,7 @@ Handover (when / loop). Schemas win. Branches: [REFERENCE.md](REFERENCE.md).
 
 ## Quick path
 `cm_health` → `cm_ambient` **with `shelf=`** → `cm_note` / `cm_log_decision` with the same `shelf=`. The rest of this file is for when those three are blocked.
+**Health:** `library:null` with valid `auth` / `grants` means connected with no shelf selected, not “no shelves exist.” Call `cm_ambient` with `cwd=` or a named `shelf=` and choose from `libraries=`.
 **Shelf:** `suggested_shelf=` is a cwd heuristic, not authority. If the session is not about that shelf, use the one whose charter matches and say which you chose.
 **Wrap-up:** decision unlogged? friction unlogged? stale card cited (>90d, volatile fact)? If all three are no, stop.
 

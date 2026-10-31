@@ -38,18 +38,23 @@ trap 'rm -rf "$tmp"' EXIT
 tmp="$(cd "$tmp" && pwd -P)"
 
 # The security-audit gate must fail closed on an unfilled findings scaffold
-# (the _TBD check trips before the secret scan).
+# (the _TBD check trips before the secret scan), and pass once it is filled.
 sec="$tmp/audit/security"
 mkdir -p "$sec"
 for name in threat-model attack-surface dataflow crypto-review authn-authz reproducibility; do
   printf '# %s\n' "$name" >"$sec/$name.md"
 done
 cp "$SKILL_DIR/scripts/security/validate_security_audit.sh" "$sec/validate-security-audit.sh"
-chmod +x "$sec/validate-security-audit.sh"
+cp "$SCAN" "$sec/scan-secrets.sh"
+chmod +x "$sec/validate-security-audit.sh" "$sec/scan-secrets.sh"
 printf '## Finding F-1: scaffold\nEvidence: _TBD_\nFix: _TBD_\n' >"$sec/findings.md"
-if bash "$sec/validate-security-audit.sh" "$tmp/audit" --no-sbom >/dev/null 2>&1; then
+if gate_err="$(bash "$sec/validate-security-audit.sh" "$tmp/audit" --no-sbom 2>&1 >/dev/null)"; then
   fail "security-audit gate certified an unfilled _TBD scaffold"
 fi
+[[ "$gate_err" == *_TBD* ]] || fail "security-audit gate failed before its _TBD check: $gate_err"
+printf '## Finding F-1: weak default\nEvidence: cmd/main.go:12 sets mode 0777\nFix: use 0750\n' >"$sec/findings.md"
+bash "$sec/validate-security-audit.sh" "$tmp/audit" --no-sbom >/dev/null 2>&1 \
+  || fail "security-audit gate rejected a filled audit"
 
 # Secret scan: key = value, JSON key, Bearer, dash-bearing AIza secrets and
 # PEM private-key headers (generic PKCS#8 and ENCRYPTED, not only RSA/EC/OPENSSH)
@@ -103,13 +108,14 @@ map() {
 }
 if complete; then fail "complete validator accepted a missing steal-map.md"; fi
 map '| Alpha sync (code: `src/sync.go:12`) | none: `rg -n sync cli/` found nothing | **steal** |
-| Team dashboard (hosted) | none | **park** |'
+| Team dashboard (hosted) | None: `rg -n dashboard cli/` | **park** |'
 complete || fail "complete validator rejected a valid steal-map"
 for row in \
-  '| Alpha sync (docs) | none | **steal** |' \
-  '| Alpha sync | none | **gap** |' \
-  '| Alpha sync (code: `src/sync.go:12`) | none | **adopt** |' \
-  '| Alpha sync (code: `src/sync.go:12`) |  | **have** |'; do
+  '| Alpha sync (docs) | none: `rg -n sync cli/` | **steal** |' \
+  '| Alpha sync | none: `rg -n sync cli/` | **gap** |' \
+  '| Alpha sync (code: `src/sync.go:12`) | none: `rg -n sync cli/` | **adopt** |' \
+  '| Alpha sync (code: `src/sync.go:12`) |  | **have** |' \
+  '| Team dashboard (hosted) | none | **park** |'; do
   map "$row"
   if complete; then fail "complete validator accepted: $row"; fi
 done

@@ -23,11 +23,11 @@ Read the source's actual duration, dimensions, frame rate and audio streams. Wat
 
 | Requested change                                        | Operation                                                       |
 | ------------------------------------------------------- | --------------------------------------------------------------- |
-| Change scene appearance, materials or visual style      | `ai_video_editor_create_video` using the original footage       |
-| Apply a supported animation/art style to the source     | `video_to_video_create_video` with deliberate prompt/FPS mode   |
+| Change scene appearance, materials or visual style      | `edit_video` using the original footage       |
+| Apply a supported animation/art style to the source     | `restyle_video` with deliberate prompt/FPS mode   |
 | Put another face into the same performance              | Face Swap with deliberate cast mapping                          |
 | Replace the body/character or transfer its performance  | Character Replace with the appropriate replace/animate mode     |
-| Add speech captions                                     | `auto_subtitle_generator_create_video` after picture edits      |
+| Add speech captions                                     | `add_subtitles_to_video` after picture edits      |
 | Trim, resize, reframe, add exact copy/logo, or assemble | Available compositor such as FFmpeg or an existing video editor |
 | Change a visible speaker's speech                       | Lip-sync route, not a generic visual-edit prompt                |
 
@@ -55,7 +55,7 @@ Apply subtitles to the final cut so timing and coordinates refer to the delivere
 
 Use the creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). For API use, consult the [OpenAPI](https://docs.magichour.ai/api-reference/openapi.json): `/v1/ai-video-editor`, `/v1/auto-subtitle-generator`, and `GET /v1/video-projects/{id}`. Respect current models, intervals, resolution, tier and the total authorized cost.
 
-For local footage, obtain `video_assets_generate_presigned_url`, PUT raw bytes to `upload_url` without the API bearer token, then use `file_path`. Submit once, retain the ID and `wait_for_video_project`. Resume the same job after a wait timeout; do not repeat an ambiguous creation. Preserve signed URLs exactly and download durable files.
+For local footage, obtain `get_upload_urls`, PUT raw bytes to `upload_url` without the API bearer token, then use `file_path`. Submit once, retain the ID and `wait_for_video_project`. Resume the same job after a wait timeout; do not repeat an ambiguous creation. Preserve signed URLs exactly and download durable files.
 
 Decode the final export, verify its actual dimensions/duration/audio, and inspect full playback including transitions. Compare against the original, not just the last intermediate. Our [illustrated video-edit example](https://github.com/magichourhq/skills/tree/main/examples/midnight-remix) changes the visual style but also shifts the opening head turn. Use the original as the timing reference; a pleasing style is not proof of faithful action.
 

@@ -206,8 +206,9 @@ needs Beads: `brew install beads`, then `bd init` in your repo):
    a recommended answer. You settle the outcome, its examples, domain terms,
    non-goals, authority and budget before agents go autonomous.
 2. **[Craft Goal](skills/craft-goal/SKILL.md).** Returns `SAFE_TO_CREATE` plus a
-   prompt to paste into `/goal` (Claude Code or Codex), `USE_RPI` (small enough
-   for `rpi`), or `UNSAFE_GOAL` plus what's undecided. It creates nothing itself.
+   prompt to paste into `/goal` (Claude Code or Codex), `USE_PLAN` (one change:
+   Plan or native execution), or `UNSAFE_GOAL` plus what's undecided. It creates
+   nothing itself.
 3. **[Navigate](skills/navigate/SKILL.md) each round.** Picks a few ready work
    items (beads); each gets one RPI, checks and CI, with one fresh Validate
    when requested, hard to undo, or uncovered by a deterministic check. The goal ends

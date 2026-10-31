@@ -309,7 +309,8 @@ back and report its exact path. Each durable mode keeps its own format:
   `contradictions`, `unknowns`).
 - **Claimed-state audit:** `reality-check-report.json` in the
   [reality-check-report.v1](schemas/reality-check-report.v1.schema.json) format,
-  a name kept from the retired Reality Check skill. It holds `claim`; `coverage`,
+  a name kept from the retired Reality Check skill. It holds
+  `schema_version: "reality-check-report.v1"`; `claim`; `coverage`,
   one row per stated item with `goal` (the item), `disposition` and `evidence`
   (required for confirmed and gap); and at least one `findings` entry with a
   `category` (confirmed, gap, incomplete-evidence or changed-assumption), a

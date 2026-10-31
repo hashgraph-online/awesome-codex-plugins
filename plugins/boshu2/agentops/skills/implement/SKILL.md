@@ -129,10 +129,12 @@ recovery, resilience, toil); ordinary edits owe no operations phase.
    schema [subject-manifest.v1.schema.json](https://github.com/boshu2/agentops/blob/main/schemas/subject-manifest.v1.schema.json), AgentOps source checkout only) over the complete final
    subject before judgment; an independently judged increment needs its own
    manifest. Do not generate both merely because work was delegated. Where the
-   repository records AgentOps evidence bindings, also run
+   repository records AgentOps evidence bindings, also run the advisory
    `ao provenance evidence-orphans --root <repo-root>` with one `--changed <path>`
-   per derived path (it is advisory), keep its actual output and refresh
-   flagged bindings after repairs; without `ao`, list it under `not run`.
+   per derived path. Disclose the rows whose cause is `changed_path` or `both`
+   (they bind your paths); count the rest under `gaps` as pre-existing drift,
+   and refresh a binding only when its owner asks. Without `ao`, list it under
+   `not run`.
 7. Return the handoff below, then stop.
 
 ## Handoff
@@ -180,10 +182,12 @@ unjudged increments; when the integrator owns that review, workers return their
 handoff without commissioning another. Preserve any separately required lane
 judgments; a successful process exit is not semantic PASS.
 
-An explicitly requested one-shot adapter dispatches each supplied operation
-once, reports its output or error and stops, with no scheduler, retry controller
-or store; show its dispatch count and failure reporting with a dry-run or
-fixture. Factories require the caller's selection.
+When the caller asks for a one-shot adapter (a script or command that sends
+supplied operations to a tool or runtime), it dispatches each operation once,
+reports its output or error and stops, with no scheduler, retry controller or
+store; show its dispatch count and failure reporting with a dry-run or fixture.
+A factory, an external multi-agent system with its own coordinator such as Gas
+City ([Using GC](../using-gc/SKILL.md)), runs only when the caller selects it.
 
 ## Finish
 

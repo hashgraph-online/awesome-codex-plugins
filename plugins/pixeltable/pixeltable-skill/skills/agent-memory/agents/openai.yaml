@@ -1,4 +1,0 @@
-interface:
-  display_name: "Agent memory"
-  short_description: "Long-term agent memory: store, embed, and recall facts across sessions"
-  default_prompt: "Use $agent-memory for this task, then load $pixeltable for the full Pixeltable app.py backend."

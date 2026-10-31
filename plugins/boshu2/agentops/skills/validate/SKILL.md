@@ -57,8 +57,10 @@ judge from this file and say which was unavailable.
   environment, a failure path newly silenced by an empty handler or discarded
   error, or a check made non-blocking, skipped or bypassed. Each needs a reason
   visible in the change that still serves the original intent.
-- Read receipts; do not re-run checks the author ran on this exact subject or
-  that CI will run. Re-execute only a risk-critical claim that has no receipt.
+- A receipt is check output tied to this subject: command, result, and commit
+  SHA or digest; a summary such as "suite is green" is a claim. Read receipts;
+  do not re-run checks the author ran on this exact subject or that CI will
+  run. Re-execute only a risk-critical claim that has no receipt.
 - A necessary finding never becomes an optional caveat or non-goal.
 
 Decide in this order:
@@ -103,17 +105,20 @@ approaches that cost, stop and return what is unchecked.
 The subject is a nonempty implementation candidate, held unchanged after
 required checks and known repairs; plans, audits and reviews are subjects only
 when the caller requested document review. Supplied failed-acceptance evidence
-means FAIL on that subject; do not review a moving repair. Bind its identity at
-the start and again at the end of judgment:
+proves a failure on that subject: FAIL, unless a step 1 gap makes it
+NOT_PROVEN; do not review a moving repair. Bind its identity at the start and
+again at the end of judgment:
 
 - With AgentOps installed: `ao provenance manifest --root "$REPO_ROOT" --include "$CHANGED_PATH"`,
   one `--include` per changed path ([helper commands](references/mechanics.md#helper-commands)).
+  A deleted path is bound only with `--base-manifest <base-manifest>`; without
+  a base manifest, use the Git fallback below.
 - In any Git repository: the commit SHA (`git rev-parse HEAD`) and the changed
   paths (`git diff --name-only <base>...HEAD`); for uncommitted work, the
   `git status --porcelain` listing and a `shasum -a 256` of each changed file.
 - A subject supplied only in the conversation, such as a pasted diff or a
-  described change, is exactly what was supplied; anything it does not show is
-  unverified.
+  described change, is exactly what was supplied, so its coverage is complete
+  as supplied; anything it does not show is unverified.
 
 ## Identity and freshness
 

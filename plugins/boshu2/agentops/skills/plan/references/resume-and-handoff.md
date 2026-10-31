@@ -60,7 +60,9 @@ retrospective uses the known outcome, and both stay required.
 
 ## Exact intent identity
 
-Use runtime-derived source identity and digest. If conversation intent needs
+Name the intent by its source and exact version: a commit SHA plus path for a
+committed file, its `shasum -a 256` digest for an uncommitted one, or a
+tracker item's id plus its last-updated time. If conversation intent needs
 an exact snapshot, the `ao` CLI (not shipped with the plugin) writes it to
 caller-selected protected external non-Git storage:
 `ao provenance snapshot-intent --source - --evidence-root <explicit-root>`.

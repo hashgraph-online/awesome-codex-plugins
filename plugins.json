@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-10-30",
-  "total": 349,
+  "last_updated": "2026-10-31",
+  "total": 352,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1011,6 +1011,16 @@
       "install_url": "https://raw.githubusercontent.com/LVTD-LLC/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "macbox",
+      "url": "https://github.com/opslane/macbox-agent",
+      "owner": "opslane",
+      "repo": "macbox-agent",
+      "description": "A real Mac for Codex: build, test, run and tap through iOS apps on the iOS simulator from any machine, including Linux and cloud sandboxes.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/opslane/macbox-agent/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Maestro",
       "url": "https://github.com/mbanderas/maestro",
       "owner": "mbanderas",
@@ -1209,6 +1219,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/AlexMi64/codex-project-autopilot/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Proxmox Writing Style",
+      "url": "https://github.com/msoltanov/Proxmox-Technical-Writing-Style-Skill",
+      "owner": "msoltanov",
+      "repo": "Proxmox-Technical-Writing-Style-Skill",
+      "description": "Unofficial skill that writes, edits, and reviews Proxmox VE, Proxmox Backup Server, and Proxmox Mail Gateway documentation with the rules of the Proxmox Technical Writing Style Guide.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/msoltanov/Proxmox-Technical-Writing-Style-Skill/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Quality Engineering Skills",
@@ -3170,6 +3190,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/serply-inc/skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "SFXMint",
+      "url": "https://github.com/flreey/sfxmint-mcp",
+      "owner": "flreey",
+      "repo": "sfxmint-mcp",
+      "description": "Free CC0 sound effects for apps and games: find AI-generated sounds by game or app event, as a matching set, or by description, and download the MP3 or WAV files into the project through the hosted SFXMint MCP server and skill, with no API key.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/flreey/sfxmint-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Shots",

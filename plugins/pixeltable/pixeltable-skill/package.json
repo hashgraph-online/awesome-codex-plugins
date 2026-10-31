@@ -1,6 +1,6 @@
 {
   "name": "pixeltable-skill",
-  "version": "2.13.0",
+  "version": "2.14.0",
   "description": "Multimodal RAG, video search, image similarity search, agent memory, and embeddings stored with your data. Pixeltable tables, computed columns, and embedding indexes.",
   "keywords": [
     "pi-package",

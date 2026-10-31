@@ -196,7 +196,7 @@ def test_rejects_path_traversal():
 - **Mock external services, not internal code.**
 - **ruff** linter: `ruff check` must pass.
 - **mypy** for type checking.
-- **Black** formatter with 100-character line length. Config in `pyproject.toml`.
+- Use the formatter and line length the repository configures.
 - **Type hints** on all public functions.
 - **Docstrings** on all public classes and functions.
 

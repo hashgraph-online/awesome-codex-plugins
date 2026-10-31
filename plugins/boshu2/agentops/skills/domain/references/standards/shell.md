@@ -20,7 +20,7 @@ set -euo pipefail
 
 ## Best Practices
 - Use `local` for function variables
-- Trap errors: `trap 'cleanup' ERR EXIT`
+- Clean up once on every exit: `trap cleanup EXIT` (adding `ERR` runs it twice on failure)
 - Check command existence: `command -v foo >/dev/null`
 - Use `readonly` for constants
 

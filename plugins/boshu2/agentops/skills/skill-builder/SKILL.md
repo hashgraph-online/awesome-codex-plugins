@@ -82,10 +82,12 @@ Run only the selected operation. `build.sh` and `heal.sh --fix` work on
 `skills/` of an AgentOps source checkout and refuse with exit 2 elsewhere, such
 as from a plugin install, instead of writing into its cache; `heal.sh --fix`
 checks the source first, so a target with findings exits 1 before that refusal.
-For a skill in another repository or a user's skills directory, apply the rules
-and doctrine here to that directory and use its own checks; `audit.sh` resolves
-targets from the current directory and has `portable` and
-`external-observation` profiles.
+`heal.sh` in either mode checks only its own root's `skills/` and resolves a
+relative target there, not in the current directory. For a skill in another
+repository or a user's skills directory, apply the rules and doctrine here to
+that directory and use its own checks; `audit.sh` resolves targets from the
+current directory and has `portable` and `external-observation` profiles, so it
+is the bundled check there.
 Roots, inputs, report destinations, exit codes and recovery from partial
 creation are in [build and check mechanics](references/build-mechanics.md).
 

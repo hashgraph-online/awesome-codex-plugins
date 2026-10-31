@@ -10,7 +10,7 @@ BankBridge is a remote MCP server at `https://bankbridge.money/api/mcp` that giv
 ## Setup
 
 - If the BankBridge tools (`list_accounts`, `list_transactions`, ...) are not available, the user connects once: in Claude, add BankBridge from the Connectors Directory (https://claude.ai/directory/connectors/bankbridge) or this plugin's Connectors tab; in Claude Code, run `/mcp` and sign in. Other agents: https://bankbridge.money/docs
-- If a result says `setup_required` or has a NO_CONNECTIONS notice, show the user the link in the result. It finishes the subscription or connects a bank. Pricing is $5 a month per connected bank, or $50 a year.
+- If a result says `setup_required` or has a NO_CONNECTIONS notice, show the user the link in the result. It finishes the subscription or connects a bank. Pricing is $8 a month per connected bank, or $80 a year.
 
 ## Which tool for which question
 

@@ -1,6 +1,6 @@
 # Restyle a performance without confusing the tools
 
-Use `ai_video_editor_create_video` for an instruction such as changing a room or rendering style. Use `video_to_video_create_video` when the requested result is a supported stylized reinterpretation of the source footage. Neither is a lossless editor or an exact motion-transfer guarantee.
+Use `edit_video` for an instruction such as changing a room or rendering style. Use `restyle_video` when the requested result is a supported stylized reinterpretation of the source footage. Neither is a lossless editor or an exact motion-transfer guarantee.
 
 For Video-to-Video, read the current art styles and compatible models/versions. Set `assets.video_source: file`, `video_file_path` and the source interval. `fps_resolution: FULL` requests the input frame rate; `HALF` requests half. Choosing HALF can reduce motion detail; it is not equivalent to a smooth full-rate result. Probe the actual export.
 

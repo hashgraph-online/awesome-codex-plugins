@@ -26,7 +26,7 @@ Get HOL Guard with `pipx install hol-guard` or `uv tool install hol-guard`.
 
 
 
-[![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dmvikmanners%252Faw1-circuit-breaker%26metric%3Drelease)](https://hol.org/registry/plugins/mvikmanners%2Faw1-circuit-breaker)
+[![Glama](https://glama.ai/mcp/servers/mvikmanners/aw1-circuit-breaker/badge)](https://glama.ai/mcp/servers/mvikmanners/aw1-circuit-breaker)
 
 [![PyPI version](https://img.shields.io/pypi/v/aw1-circuit-breaker.svg?color=blue)](https://pypi.org/project/aw1-circuit-breaker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
@@ -155,4 +155,4 @@ While the open-source AST circuit breaker runs entirely local with sub-0.2ms ove
 | **Team / Startup** | **BWP 2,650.00 / mo** ($199 USD) | 1,000,000 Verified Audits | 5 developer seat keys, Redis distributed state sync, rolling velocity caps, priority alerts | [👉 Subscribe Team](https://p20.laveto.net/wisdom/buy?tier=team) |
 | **Enterprise Dedicated** | **BWP 13,200.00 / mo** ($990 USD) | Unlimited Verified Audits | Dedicated gateway tenant, custom statutory risk lenses, SLA guarantees, SHA-256 Decision Assurance Dossiers | [💬 Contact Enterprise](mailto:command@laveto.net) |
 
-*Self-hosted open-source circuit breaking remains 100% free under the Apache-2.0 license.*
+*Self-hosted open-source circuit breaking remains 100% free under the Apache-2.0 license.*Fri Oct 30 18:01:42 UTC 2026

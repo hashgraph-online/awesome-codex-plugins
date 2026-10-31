@@ -1,6 +1,6 @@
 {
   "name": "multi-llm",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Orchestrate plan reviews, task generation, implementation and code reviews across several LLM CLIs in parallel, or ask every model one free-text question about a plan.",
   "author": {
     "name": "beastlabai",

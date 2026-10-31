@@ -119,14 +119,14 @@ store. Read a project `.context/` from its `README.md` map, when present, with
 
 Use only sources already authorized for the task, owner, model/provider and
 exact destination; read permission does not imply publication or Git storage.
-This path supports **public or already-cleared trial inputs only** and enforces
-no restricted-source access, so do not retrieve restricted material through it;
-`ao session read-source` grants no broader transcript access. Unavailable and
+This skill **enforces no access control**, so do not route restricted material
+through it; `ao session read-source` grants no broader transcript access. Unavailable and
 denied evidence remain explicit gaps; do not fetch then redact. Drafts and
 review proof go inline in your reply or to storage outside Git that the caller
 named; missing routing does not authorize a workspace fallback. Preserve
 requested legacy `.agents/` proof and unique evidence under owner policy.
 No blind TTL or delete operation is part of Memory. Labels and structural
-parsers do not prove isolation. In a repository checkout,
-`docs/adr/ADR-0016-state-tiers.md` owns these boundaries. Mining is budgeted
+parsers do not prove isolation.
+[ADR-0016](https://github.com/boshu2/agentops/blob/main/docs/adr/ADR-0016-state-tiers.md)
+(AgentOps source checkout only) owns these boundaries. Mining is budgeted
 separately and cannot delay an authorized change or alter its verdict.

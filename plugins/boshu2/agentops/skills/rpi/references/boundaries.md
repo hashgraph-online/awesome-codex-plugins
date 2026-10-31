@@ -47,8 +47,7 @@ helper and the limits nothing renews.
 
 ## Optional specialists and adapters
 
-Anti-ceremony, premortem, council, research, factories and runtime adapters are
-optional. Risk deepens evidence inspection without mandatory specialist dispatch.
+Premortem, council, research, factories and runtime adapters are optional. Risk deepens evidence inspection without mandatory specialist dispatch.
 A selected factory remains behind its own coordinator, doctor and supervisor
 doors; its reconciler creates and repairs sessions. Concurrent writers need
 authorized, disjoint source and regeneration scopes in separate isolation
@@ -58,13 +57,11 @@ another runtime merely because it exists.
 
 ## Fresh judgment
 
-A fresh judgment runs once, and only on the triggers in
-[RPI's charter](../SKILL.md#operating-charter) (steps 5 and 6); otherwise the
-author's checks and CI are the gate, and a check, not another judgment,
-confirms a repair. [Validate](../../validate/SKILL.md) owns the verdict rules:
-reviewer legs, the PASS, FAIL and NOT_PROVEN order, dissent and running
-mutating checks only on a disposable copy, never the judged checkout. Judge
-legs read; implementers fix. Validate returns judgment, not a repair or delivery
+[Validate](../../validate/SKILL.md) owns the triggers (linked above) and the
+verdict rules: reviewer legs, the PASS, FAIL and NOT_PROVEN order, dissent and
+running mutating checks only on a disposable copy, never the judged checkout.
+Judge legs read; implementers fix, and a check, not another judgment, confirms
+a repair. Validate returns judgment, not a repair or delivery
 instruction. RPI completes existing authorized work before reporting, within
 real bounds; it reports the subject, strongest evidence and any remaining
 acceptance gaps, and persists a machine artifact only for a declared consumer

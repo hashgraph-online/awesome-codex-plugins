@@ -98,17 +98,6 @@ does not check `docs/FAQ.md`.
 
 ---
 
-## Scoring Guide
-
-| Score Range | Status | Action |
-|-------------|--------|--------|
-| Tier 1 < 4 | Incomplete | Add missing required files |
-| Tier 1 = 4, Tier 2 < 3 | Basic | Add standard files |
-| Tier 1 = 4, Tier 2 >= 3 | Standard | Consider Tier 3 |
-| All tiers complete | Comprehensive | Maintain and update |
-
----
-
 ## Progressive Enhancement Strategy
 
 ### Phase 1: Go Public (Tier 1)

@@ -20,6 +20,7 @@ Non-goals and authority:
 Bead graph:
 - Tracker: <tracker with status, dependencies and notes>
 - Root epic: <existing id or bounded bootstrap rule>
+- First question: <falsifiable question the first wave tests>
 - Initial experiments, if known: <bead → criterion/uncertainty>
 - Record notes, scratch, evidence, verdict refs, and dependency/provenance links.
 
@@ -39,7 +40,8 @@ Experiment policy:
 - Distinguish pre-existing discovery from introduced regression using causal
   evidence; unknown cause and recurrence require HOLD, not a design diagnosis.
 - Classify discoveries as necessary-now, linked-follow-up, or HOLD/rescope.
-  Never downgrade a necessary finding to optional to obtain completion.
+  Never downgrade a necessary-now discovery to linked-follow-up to obtain
+  completion.
 - Retain evidence/provenance; revise or withdraw beliefs when evidence changes.
 
 Wave envelope:
@@ -70,9 +72,10 @@ Breaker and helper:
   bounds; the goal, not the helper, resumes, and a spent experiment bound stays
   spent. ESCALATE, an unhelpful answer or no admissible experiment reports
   NEEDS_OPERATOR; no more implementation or helper dispatch follows.
-- Cancellation stops at once. An explicit refusal, or a spent hard time/cost/
-  quota ceiling, skips the helper and reports the refusal or NOT_ACHIEVED with
-  the exact gaps. A retry threshold alone is not a spent budget, and a
+- Cancellation, an explicit refusal, or a spent hard time/cost/quota ceiling
+  stops at once with no helper. Cancellation or a spent ceiling reports
+  NOT_ACHIEVED with the exact gaps; a refusal reports NEEDS_OPERATOR naming
+  what was refused. A retry threshold alone is not a spent budget, and a
   threshold for recording blocked is bookkeeping, not permission for more work.
 
 Wave checkpoint:
@@ -83,6 +86,8 @@ Wave checkpoint:
 
 Terminal reports:
 - ACHIEVED: every terminal criterion is proven.
-- NOT_ACHIEVED: envelope or permitted search is exhausted; report exact gaps.
-- NEEDS_OPERATOR: judgment, rescope, or helper escalation; stop implementation.
+- NOT_ACHIEVED: envelope or permitted search is exhausted, or the caller
+  cancels; report exact gaps.
+- NEEDS_OPERATOR: judgment, rescope, refusal, or helper escalation; stop
+  implementation.
 ```

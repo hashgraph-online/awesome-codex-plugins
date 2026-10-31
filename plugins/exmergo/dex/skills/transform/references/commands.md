@@ -10,6 +10,24 @@ Validates the edits and returns them as diffs with a plan id; nothing is applied
 plus per-model YAML with key tests and PII meta) from the `.dex/` cache, instead
 of or on top of hand-authored edits.
 
+Model SQL with Jinja `for`/`if` control flow is compiled by dbt in a throwaway
+copy containing all edits, then checked as a single read-only SELECT. dbt and a
+dev profile passing the usual build preflight are required; failed or missing
+compilation stores no plan. The
+authored Jinja remains the reviewable edit. Compile-time SELECTs from
+`run_query`, statement blocks and `adapter.execute` pass through Dex's query
+firewall, scoped read-only connector, PII screening, query limits and cost guard.
+`get_relation()` and `is_incremental()` use Dex's scoped inventory; direct
+database handles and other unsupported adapter introspection refuse. A truncated
+macro result refuses rather than producing an incomplete model.
+
+Compilation that reads no warehouse data needs no spend confirmation. For
+compile-time queries on billed connectors, the first discovered work is quoted
+through the existing `--confirm --budget` handshake. Its estimate is partial:
+subsequent queries share the command and daily ceilings. A stopped compilation
+stores no plan and reports any completed spend; re-running may repeat queries.
+See the cost-controls reference for the shared budget mechanism.
+
 - `data.row_attribution`: on a model that already exists, every predicate, join,
   source, and grain change is named and measured on its own against the prior
   model, alongside the whole-model net. Column expressions, aliases, and ordering
@@ -193,6 +211,64 @@ test over the smaller result.
   build's estimate, and the declared-fact statements a `(declared facts)` line.
   A cold dev target that cannot be priced upfront is priced again after the
   build, against the reservation it already holds.
+
+## `transform compare [plan-id] [--model <m>] [--map old=new] [--key <column>] [--accept-type <column>] [--target dev]`
+
+Whether a stored plan keeps one model's results. Use it on a refactor, after
+`transform plan` and before `transform apply`: `data.refactor_comparison_offer` on
+the plan names the command. A green build and a matching row count do not establish
+this, since a join rewrite can keep both and still change a measure.
+
+- Read `data.status`, then `data.reason_code`. `equivalent` holds for
+  `data.input_scope` at `data.compared_at`, on the dev relations as they stand. Say
+  that when you report it. It is not a proof for future inputs.
+- `different` with `schemas_differ`: read `data.schema`. A rename is a difference
+  until `--map old=new` states it. Types are compared exactly, so `INTEGER` to
+  `BIGINT` is a difference too, and the rows are then not compared. If the change
+  is intended, `--accept-type <column>` states it: within one family (text, exact
+  numeric, float) the rows are then compared and the change is reported under
+  `accepted_type_changes`. Across families it is `invalid_type_acceptance`, since a
+  common type could make unequal values equal. A blank-padded `CHAR` is in no family.
+- `different` with `rows_differ`: `data.multiset` counts excess rows on each side,
+  so equal distinct rows with different duplicates still show. `data.keyed` adds
+  keys missing, added and changed, when `--key` or the declared grain is unique on
+  both sides; otherwise `keyed_reason` is `key_not_unique`.
+- `not_checked` is not a pass. Fix what the code names:
+
+| `reason_code` | What to do |
+|---|---|
+| `plan_applied`, `plan_stale` | plan the change again against the tree as it is |
+| `baseline_not_compilable`, `proposed_not_compilable` | the model does not compile on that side; `detail` quotes a compile error, and a connection failure says to run `dbt compile` |
+| `inputs_unsynchronized` | build the named parents on dev. A plan that changes a seed or snapshot, or a macro or project setting that changes how an untouched parent compiles, cannot be compared, because dev holds the old rows. This plan stays uncompared: once it is applied the baseline is gone (`plan_applied`). After applying and building, a further change needs its own new, unapplied plan to compare |
+| `nondeterministic_expression` | the model calls a random, uuid or current-time function, or samples, so two runs can differ on their own |
+| `unsupported_type` | the named column cannot be grouped on this connector; `detail` names it and its type |
+| `baseline_refused`, `proposed_refused` | before anything reaches the warehouse, that side's compiled SQL is not a single SELECT; fix the model |
+| `firewall_refused` | the firewall refused the generated comparison, which can happen to a valid model, for example over a relation with no usable profile; `explore profile --target dev` the relations it names, then compare again |
+| `baseline_not_executable`, `proposed_not_executable` | reading that side's output schema failed, so the warehouse would not plan it, or it returns no columns; `detail` is an exception class or a message Dex wrote, never warehouse text. Run the model on dev |
+| `comparison_unreadable` | pricing or running the comparison failed, or its result could not be read as counts, or an output column uses a name the comparison reserves; `detail` is an exception class or a message Dex wrote, never warehouse text. A reserved name needs an alias; otherwise compare again, and if it persists, run the statement's model on dev |
+| `invalid_mapping`, `invalid_key`, `invalid_type_acceptance`, `duplicate_output_name` | fix the flag, or give the model unique output names |
+| `awaiting_confirmation` | the priced ask, as on any metered command |
+| `comparison_unsupported_on_connector` | this connector has no `describe_query` |
+
+What counts as one value is the warehouse's own grouping, measured on every
+connector: NULL groups with NULL and not with `''` or `0`; NaN groups with NaN;
+`-0.0` groups with `0.0`, so a change in zero's sign is not reported; `'a'` differs
+from `'a '` and from `'A'` on these connectors with their default collation for
+`VARCHAR`. A case-insensitive collation or a blank-padded `CHAR` column on your
+warehouse applies its own equality here. Floats have no tolerance.
+
+Column names in `--key` and `--map` match case-insensitively when that names one
+column, so `--key team_id` works on Snowflake, which reports `TEAM_ID`. On ClickHouse
+a joined `select t.id` builds a column named `t.id`, so a rewrite that changes the
+join can report a real rename; alias the column.
+
+The nondeterminism check knows built-in functions only. A nondeterministic UDF or
+an unordered `LIMIT` can show as `different` with no real change, so compare again
+if a `rows_differ` looks unexplained.
+
+A plan that changes a macro or project configuration compiles both sides through
+their ancestors, and is compared when no untouched parent's SQL moved. Refused in
+values-free mode.
 
 ## `transform test --scaffold <model>`
 

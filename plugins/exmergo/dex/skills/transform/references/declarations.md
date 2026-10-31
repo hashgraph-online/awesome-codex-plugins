@@ -283,7 +283,7 @@ paths the payload stated). `data.skipped` lists every other selected model:
 | `python_model` | a Python model; dex drafts from SQL only |
 | `versioned` | a model with `versions:`; declare each version by hand |
 | `sql_unreadable` | the SQL could not be read statically (`detail` says why) |
-| `unprofiled_inputs` | the cache has not profiled what it reads; `commands` holds the `explore profile` call for each. Nothing is scanned |
+| `unprofiled_inputs` | the cache has not profiled what it reads; `commands` holds an `explore profile` call that can reach each one: `explore profile <dev namespace>.<model> --target dev` for a project model whose dev namespace the source allowlist does not reach, and none (the reason says why) for a name that matches several profiled relations, which no profile run settles. Nothing is scanned |
 | `nothing_drafted` | the cache proves no key, verified join or running total for it |
 | `complete` | it already declares every fact dex can draft |
 | `not_writable` | its YAML cannot be spliced predictably (a flow-style entry), or a drafted fact does not fit the SELECT list; the rest of the batch still plans |
@@ -345,6 +345,15 @@ column's role, unit, additivity and `references`. A `references` is also a
 declared join, `declared_by: declaration <model>.<column>`. It is read from the
 YAML on every run and never cached, so a later session reads the rule the
 project records rather than one remembered from the conversation that wrote it.
+
+A native layer is read back the same way, so `semantic ossie|slayer|cube plan`
+with `declarations` reaches `explore --use-project` with no dbt project present.
+The grain comes from the layer's own `primary_key`, and the rest from the `dex`
+metadata below. A definition with a primary key and no metadata still reports
+`declaration`, with its grain. A document annotated by an earlier release stored
+no `role` or `references`, so it reports neither until it is annotated again.
+Where a dbt model and a layer declare one relation, the dbt declaration is
+reported whole, since the layer's was derived from it, and `notes` says so.
 
 ## Derived semantic model: `data.semantic_proposal`
 
@@ -453,7 +462,7 @@ One model file per mart, `models/<data_source>/<mart>.yaml` under
 | `semi_additive` | no saved measure, named in `limitations`: SLayer's `last` reports one row's value on the last period, not the total across entities on it, so `<column>:last` is the author's call |
 | `description` | the model's and each column's `description` |
 | `population`, `assumptions` | the model's `meta.dex`, and the population sentence in its description |
-| `unit`, `null_rule`, `additivity` | the column's `meta.dex` |
+| `unit`, `null_rule`, `additivity`, `role`, `references` | the column's `meta.dex`, beside any native construct a role or a reference also renders |
 
 `data_source` is the one the configured models share; models over more than one
 are not guessed between (`failed`). `sql_table` is, in order: the `database.schema`
@@ -493,7 +502,7 @@ configured YAML files share (`model/cubes` where they share none):
 | `foreign_key` with `references` | a `many_to_one` join, `{CUBE}.<column> = {<parent>}.<parent column>`, to the cube already on the parent's table; none, or a second key to the same cube, means no join and a note |
 | `description` | the cube's and each member's `description` |
 | `population`, `assumptions` | the cube's `meta.dex`, and the population sentence in its description; never a measure filter or a segment |
-| `unit`, `null_rule`, `additivity` | the member's `meta.dex` |
+| `unit`, `null_rule`, `additivity`, `role`, `references` | the member's `meta.dex`, beside any native construct a role or a reference also renders |
 
 `sql_table` follows the SLayer order (the siblings' `database.schema`, else the
 manifest relation, else the bare name as a limitation), and `data_source` is
@@ -518,7 +527,7 @@ One dataset per mart, appended as a new list item to a configured document:
 | `median`, `semi_additive` | no metric, named in `limitations` and `not_carried` |
 | `description` | the dataset's and each field's `description` |
 | `population`, `assumptions` | the dataset's `ai_context`: the population sentence as `instructions`, and the declaration under a structured `dex` key; the sentence also closes the description. Never a filter, and never `custom_extensions`, whose opaque string a diff cannot review |
-| `unit`, `null_rule`, `additivity` | the field's `ai_context.dex` |
+| `unit`, `null_rule`, `additivity`, `role`, `references` | the field's `ai_context.dex`, beside any native construct a role or a reference also renders |
 
 A relationship joins datasets of one model, and a model is one document, so where
 it goes follows the foreign keys: the configured document holding the datasets

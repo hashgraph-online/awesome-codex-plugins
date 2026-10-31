@@ -17,12 +17,12 @@ Infer the edit from the supplied image and plain-language request; recommend one
 
 Inspect the source. Separate **change** (background, color, lighting, object, framing) from **preserve** (identity, geometry, pose, clothing, exact text, unaffected surroundings). Infer from the request; ask only when ambiguity changes the result. Do not describe unseen details as verified.
 
-If the user names a saved character or reference instead of attaching an image, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with the matching type. Match the name, paginate with `next_cursor` as needed and disambiguate multiple matches. Inspect a suitable `IMAGE` asset and reuse its durable `file_path` in `assets.image_file_paths`, without another upload. An explicitly supplied image remains authoritative.
+If the user names a saved character or reference instead of attaching an image, use `list_saved_items` (or authenticated `GET /v1/saved-items` through the existing API) with the matching type. Match the name, paginate with `next_cursor` as needed and disambiguate multiple matches. Inspect a suitable `IMAGE` asset and reuse its durable `file_path` in `assets.image_file_paths`, without another upload. An explicitly supplied image remains authoritative.
 
 Keep the source as the identity reference. If multiple references are supported, identify each role: subject, setting, or style. A style reference must not replace the subject. Check the chosen model's reference limit rather than assuming the endpoint's maximum applies to every model.
 
 - If a crop already meets the composition, use an available local image tool; do not pay to regenerate the subject.
-- For new backgrounds, lighting, colors, or missing canvas, use `ai_image_editor_create_image` with the real source. Do not reconstruct an exact product or person using text-to-image.
+- For new backgrounds, lighting, colors, or missing canvas, use `edit_image` with the real source. Do not reconstruct an exact product or person using text-to-image.
 - For background-only changes, preserve viewpoint and pose. A new angle asks the model to invent unseen details.
 - Do not claim masking, exact pixel preservation, transparent output, or a negative-prompt field unless the current tool supports it. “Keep unchanged” is an instruction, not a guarantee.
 
@@ -40,7 +40,7 @@ Do not paste the original generation prompt wholesale: it may request the backgr
 
 Use the connected creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). For API fallback, keep credentials outside chat/source code. Read the [live schema](https://docs.magichour.ai/api-reference/openapi.json) for model eligibility, resolution, aspect ratio, reference count, and cost. Web-app settings do not prove API support. Check both selected settings and omitted-field defaults against the account's effective tier. The current Image Editor default is paid-only; live guidance supplies an explicit Free-compatible combination when it fits the brief. Set those fields explicitly rather than assuming omission is plan-aware. Credits do not unlock paid-only models or resolutions. After a tier restriction, avoid an unchanged retry or blind field removal. Change settings only within delegated choices; ask before changing explicit model/resolution requirements.
 
-For local inputs, call `video_assets_generate_presigned_url`, PUT raw bytes to `upload_url`, verify success, and use its `file_path`. Never send the API bearer token to storage. Direct API creation is `POST /v1/ai-image-editor`; retrieval is `GET /v1/image-projects/{id}`. Retain the ID, use `wait_for_image_project` or retrieve that same job, and never repeat an ambiguous creation request automatically.
+For local inputs, call `get_upload_urls`, PUT raw bytes to `upload_url`, verify success, and use its `file_path`. Never send the API bearer token to storage. Direct API creation is `POST /v1/ai-image-editor`; retrieval is `GET /v1/image-projects/{id}`. Retain the ID, use `wait_for_image_project` or retrieve that same job, and never repeat an ambiguous creation request automatically.
 
 Use one output at a resolution that reveals the critical detail. A tiny preview cannot validate small label text. Stay within the existing authorized budget; ask only when it does not cover the intended work. Do not buy credits or upgrade. A model/resolution change needs a fresh cost check, not automatic reconfirmation when already authorized.
 

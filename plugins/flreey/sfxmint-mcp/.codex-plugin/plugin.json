@@ -1,0 +1,42 @@
+{
+  "name": "sfxmint",
+  "version": "1.0.5",
+  "description": "Free CC0 sound effects for apps and games: find a sound by event, set or description and download it into the project.",
+  "author": {
+    "name": "SFXMint",
+    "url": "https://sfxmint.com"
+  },
+  "homepage": "https://sfxmint.com",
+  "repository": "https://github.com/sfxmint/sfxmint-mcp",
+  "license": "CC0-1.0",
+  "keywords": [
+    "sound-effects",
+    "audio",
+    "game-audio",
+    "cc0",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "SFXMint",
+    "shortDescription": "Free CC0 sound effects for apps and games.",
+    "composerIcon": "./assets/icon.png",
+    "longDescription": "Finds sound effects in the SFXMint library by game or app event, as a matching set, or by description, and downloads the MP3 or WAV files into the project with a SOUNDS.md record. Search and downloads need no API key; every sound is CC0 and AI-generated.",
+    "developerName": "SFXMint",
+    "category": "Media",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://sfxmint.com",
+    "privacyPolicyURL": "https://sfxmint.com/privacy",
+    "termsOfServiceURL": "https://sfxmint.com/terms",
+    "defaultPrompt": [
+      "Use SFXMint to add button click and success sounds to this app.",
+      "Use SFXMint to find a sound set for this platformer: jump, coin, hit and game over.",
+      "Use SFXMint to find a soft notification chime under one second."
+    ],
+    "brandColor": "#10B981"
+  }
+}

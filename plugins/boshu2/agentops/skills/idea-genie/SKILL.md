@@ -131,11 +131,13 @@ Candidate ids are unique and `overlaps` may be empty. `dropped` is optional
 while there are candidates. When every idea overlaps or lacks support, set
 `status` to `no-new-work`, leave `candidates` empty and list each idea in
 `dropped` with the capability, decision or missing evidence that removed it.
-The validator rejects any other field, so no rank or winner rides along. For a
-person, render the same fields as a short list, one block per candidate. When
-a file is wanted, write `.agents/scratch/ideas/<run-id>/idea-portfolio.json`
-and check it with `bash "<skill-dir>/scripts/validate-output.sh" <path>` before
-returning it to the caller.
+`observations` still needs one entry or more: cite what you read, even when it
+supports no candidate. The validator rejects any other field, so no rank or
+winner rides along. For a person, render the same fields as a short list, one
+block per candidate. When a file is wanted, write
+`.agents/scratch/ideas/<run-id>/idea-portfolio.json` and check it with
+`bash "<skill-dir>/scripts/validate-output.sh" <path>` before returning it to
+the caller.
 
 ## Duel mode
 
@@ -164,13 +166,19 @@ findings, with no packet, panel, pane manager or model-family rule.
    evidence paths and asking for the return in
    [sealed perspectives](references/sealed-perspectives.md#brief). Record each
    native context id as `context_id`, and collect every perspective before
-   revealing any, so later proposals cannot anchor on earlier ones. When the
-   caller pins perspectives to model profiles, dispatch them as
+   revealing any, so later proposals cannot anchor on earlier ones. If you
+   cannot start two fresh contexts, say so, write no packet, and return the
+   open question with the check that would settle it; never play a perspective
+   yourself or make up a context id. When the caller pins perspectives to
+   model profiles, dispatch them as
    [model-dispatch](../agent-native/references/model-dispatch.md) describes
    and record each profile name as `model_identity`; disclose an unavailable
    profile and continue single-model.
-3. Reveal the sealed perspectives and cross-review every one by evidence,
-   reversibility, system fit, failure modes and cost.
+3. Reveal the sealed perspectives and cross-review every one on all five of
+   evidence, reversibility, system fit, failure modes and cost. Each review
+   comes from the reviewing perspective's own context, or from a fresh one
+   given only the proposals once that context has closed; never write a
+   review under a perspective id yourself.
    Compare perspectives by mechanism, not by name: two that rely on the same
    mechanism count as one alternative, and fewer than two distinct ones is an
    incomplete comparison, not a winner; one bounded recovery is in
@@ -210,10 +218,11 @@ findings, with no packet, panel, pane manager or model-family rule.
 
 Each perspective has a distinct `id` and `context_id` and a `proposal`, plus
 `model_identity` when pinned. Every perspective is the `subject` of at least
-one cross-review by another; `dimensions` uses only the five rubric keys, each
-holding a text finding. `disagreements` and `refutations` each need at least
-one entry. The validator rejects any other field; an older packet's `handoff`
-(`owner` `plan`, `artifact_dir`, optional `route`) still validates.
+one cross-review by another; `dimensions` holds all five rubric keys and no
+others, each a text finding. `disagreements` and `refutations` each need at
+least one entry. The validator rejects any other field except an optional
+legacy `handoff` (`owner` `plan`, `artifact_dir`, optional `route`), which new
+packets omit.
 
 ## References
 

@@ -13,11 +13,18 @@ Use it when one Codex account is not enough: you hit rate limits or quota window
 
 Using OpenCode rather than the Codex CLI? The sibling project [`oc-codex-multi-auth`](https://github.com/ndycode/oc-codex-multi-auth) is the plugin that manages the same kind of account pool there.
 
+Refresh leases block uncoordinated OAuth refresh on lock errors or timeouts.
+For live re-login behavior and interrupted-refresh recovery, see the
+[upgrade notes](docs/upgrade.md#live-credential-reload-and-refresh-coordination).
+
 ## What it does
 
 - **Account pool** — OAuth login for multiple ChatGPT accounts, stored locally under `~/.codex/multi-auth` (files `0600`, directories `0700`), with per-project pools under `projects/<project-key>/`.
 - **Switching and selection** — pin an account, pick the forecast-best one, follow saved account order within customized priority tiers with sequential scheduling, or let health- and quota-aware hybrid selection rotate for you.
-- **Runtime rotation** — a default-on, loopback-only proxy that forwards Responses API, model-discovery, image, thread-goal, and Codex dictation/transcription traffic through managed accounts during wrapper-launched Codex sessions.
+- **Runtime rotation** — a default-on, loopback-only proxy that forwards Responses API, model-discovery, image, thread-goal, web search, Codex dictation/transcription, and native voice traffic through managed accounts during wrapper-launched Codex sessions.
+- **API regions** — `codex-multi-auth login --api` supports Global and US endpoints per credential. Choose **US (us.api.openai.com)** for a US-regional project; existing credentials remain Global. Each credential stays on its chosen endpoint, and Responses failover remains within the first eligible credential’s region. Regional routes use store version 2, so older builds reject them rather than silently discard their region.
+- **PSP API pool** — `login --api` offers Regular API, ZDR, and PSP (Private Safety Processing). ZDR approval and PSP project enrollment are operator-confirmed, never inferred from a key or successful discovery. Select `api/<model>`, `zdr/<model>`, or `psp/<model>` explicitly; failover stays within that pool and the selected region on HTTP and WebSocket connections. Global/US region selection remains separate. Choosing PSP does not enroll a project or modify provider privacy settings.
+- **API model metadata** — `login --api` can attach operator-declared Daybreak Red access and reasoning efforts to a selected model when discovery omits them. These declarations enable matching routes without claiming probe verification. Reasoning declarations use store version 3, so older builds cannot silently strip them.
 - **API capability evidence** — opted-in API/ZDR routes receive daily billable checks while the router runs; status distinguishes configured access programs from verified responses. See [check behavior and controls](docs/reference/commands.md#codex-multi-auth-check).
 - **Diagnostics and repair** — status, live health checks, quota forecasts, JSON reports, and `fix`/`doctor`/`verify` commands that recover stale or damaged local state.
 - **Luna Reserve fallback** — treats `gpt-reserve` as a separately metered Luna allowance, automatically falls back after a genuine Luna quota 429, and exposes the Reserve percentage through `limits --json --refresh`.
@@ -97,7 +104,7 @@ codex-multi-auth rotation status              # is live rotation enabled?
 
 ## Runtime rotation, in one paragraph
 
-With rotation on (the default), request-bearing wrapper commands — `exec`, `review`, `resume`, `fork`, `app`, and the bare TUI — route through a local proxy that picks the healthiest account per request, refreshes tokens as needed, and fails over across the pool on rate limits within a bounded retry budget. The proxy listens on loopback only, authenticates its own clients with a per-process token, forwards only Responses API, model-discovery, image, thread-goal, and `POST /transcribe` calls, and never writes account emails or tokens to client headers or logs. Transcription preserves the incoming multipart audio body and boundary, uses managed ChatGPT OAuth, and does not replay ambiguous audio uploads across accounts. Plain `codex` is never touched: rotation exists only inside `codex-multi-auth-codex`/`mcodex` sessions, or inside the packaged desktop app after an opt-in, reversible bind. Turn it off with `codex-multi-auth rotation disable` or `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`.
+With rotation on (the default), request-bearing wrapper commands — `exec`, `review`, `resume`, `fork`, `app`, and the bare TUI — route through a local proxy that picks the healthiest account per request, refreshes tokens as needed, and fails over across the pool on rate limits within a bounded retry budget. The proxy listens on loopback only, authenticates its own clients with a per-process token, forwards only Responses API, model-discovery, image, thread-goal, `POST /transcribe`, `POST /alpha/search` (web search), and native voice calls (`/live` and `/realtime/calls`, plus the call's sideband WebSocket), and never writes account emails or tokens to client headers or logs. Transcription preserves the incoming multipart audio body and boundary, uses managed ChatGPT OAuth, and does not replay ambiguous audio uploads across accounts. Plain `codex` is never touched: rotation exists only inside `codex-multi-auth-codex`/`mcodex` sessions, or inside the packaged desktop app after an opt-in, reversible bind. Turn it off with `codex-multi-auth rotation disable` or `CODEX_MULTI_AUTH_RUNTIME_ROTATION_PROXY=0`.
 
 ### Quota cache revalidation
 
@@ -127,6 +134,8 @@ codex-multi-auth forecast --live
 
 Common symptoms — wrong active account, OAuth callback port `1455` already bound, Windows/WSL port contention, `EBUSY`/`EPERM` on Windows — are covered in [docs/troubleshooting.md](docs/troubleshooting.md).
 
+After signing in again, a running native or custom-provider router adopts the saved replacement credentials on the next authenticated request. Replacing rejected credentials clears their stale authentication block without restarting the router; account pins and independent quota limits still apply. Unchanged revoked credentials still require a new sign-in.
+
 ## Documentation
 
 | Doc | What it covers |
@@ -148,7 +157,7 @@ Common symptoms — wrong active account, OAuth callback port `1455` already bou
 
 ## Release notes
 
-- Current stable: [v2.24.0](docs/releases/v2.24.0.md) — `npm i -g codex-multi-auth`
+- Current stable: [v2.25.0](docs/releases/v2.25.0.md) — `npm i -g codex-multi-auth`
 - Earlier stable lines: [v2.6.0](docs/releases/v2.6.0.md), [v2.5.0](docs/releases/v2.5.0.md)
 - Full release archive: [docs/README.md#release-history](docs/README.md#release-history)
 

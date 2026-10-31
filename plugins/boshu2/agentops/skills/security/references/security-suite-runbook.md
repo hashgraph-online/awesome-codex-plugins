@@ -1,6 +1,6 @@
 # Security Suite Runbook
 
-Use this reference for the AgentOps repository gate, authorized binary assurance, baseline comparison, policy enforcement, and offline repo-surface redteam. The caller supplies authorization and owns every decision after the report. The repository gate and the maintainer checks run from an AgentOps checkout root; the suite and redteam commands run from the repository under review, with `<skill-dir>` as defined in [SKILL.md](../SKILL.md).
+Use this reference for the AgentOps repository gate, authorized binary assurance, baseline comparison, policy enforcement, and offline repo-surface redteam. The caller supplies authorization and owns every decision after the report. The repository gate and the maintainer checks run from an AgentOps checkout root; the suite and redteam commands run from the repository under review, with `<skill-dir>` as defined in [SKILL.md](../SKILL.md), and write their `--out-dir` outside it so no artifact lands in its work tree.
 
 ## Repository gate (AgentOps repository root only)
 
@@ -51,7 +51,7 @@ Capture an owned binary:
 ```bash
 python3 "<skill-dir>/scripts/security_suite.py" run \
   --binary "$(command -v ao)" \
-  --out-dir .tmp/security-suite/ao-current
+  --out-dir "${TMPDIR:-/tmp}/security-suite/ao-current"
 ```
 
 Compare with a known-good baseline:
@@ -59,8 +59,8 @@ Compare with a known-good baseline:
 ```bash
 python3 "<skill-dir>/scripts/security_suite.py" run \
   --binary "$(command -v ao)" \
-  --out-dir .tmp/security-suite/ao-current \
-  --baseline-dir .tmp/security-suite/ao-baseline \
+  --out-dir "${TMPDIR:-/tmp}/security-suite/ao-current" \
+  --baseline-dir "${TMPDIR:-/tmp}/security-suite/ao-baseline" \
   --fail-on-removed
 ```
 
@@ -69,7 +69,7 @@ Enforce policy:
 ```bash
 python3 "<skill-dir>/scripts/security_suite.py" run \
   --binary "$(command -v ao)" \
-  --out-dir .tmp/security-suite/ao-current \
+  --out-dir "${TMPDIR:-/tmp}/security-suite/ao-current" \
   --policy-file "<skill-dir>/references/policy-example.json" \
   --fail-on-policy-fail
 ```
@@ -80,7 +80,7 @@ Run offline redteam:
 python3 "<skill-dir>/scripts/prompt_redteam.py" scan \
   --repo-root . \
   --pack-file "<skill-dir>/references/agentops-redteam-pack.json" \
-  --out-dir .tmp/security-suite-redteam
+  --out-dir "${TMPDIR:-/tmp}/security-suite/redteam"
 ```
 
 ## Artifact inventory
@@ -94,7 +94,7 @@ The binary suite writes beneath `--out-dir`:
 - `policy/policy-verdict.json` when a policy is supplied
 - `suite-summary.json`
 
-`run` exits 4 when `--fail-on-removed` or `--fail-on-policy-fail` fires, and `enforce-policy` alone exits 3 on a FAIL verdict. The redteam scanner writes:
+`run` exits 4 when `--fail-on-removed` or `--fail-on-policy-fail` fires, and `enforce-policy` alone exits 3 on a FAIL verdict. `prompt_redteam.py scan` exits 3 on a FAIL verdict, 2 when the pack or repo root is invalid, and 0 on PASS or WARN, so read `verdict` too. The redteam scanner writes:
 
 - `redteam/redteam-results.json`
 - `redteam/redteam-results.md`
@@ -122,14 +122,16 @@ Start from `agentops-redteam-pack.json`. Cases use `globs`, `require_groups`, `f
 
 ## Triage
 
-- Scanner missing or errored: record the coverage gap; install it or rerun with `--require-tools` when complete coverage is required.
+Each line diagnoses and reports. Installing a scanner, rerunning, suppressing, changing policy or updating a baseline is the caller's call, as in SKILL.md.
+
+- Scanner missing or errored: record the coverage gap.
 - Local and CI results differ: compare scanner versions, config, mode, and both artifact directories.
-- Suspected false positive: reproduce narrowly; document any authorized suppression and its owner.
-- Empty dynamic evidence: confirm the owned binary runs and supply an appropriate safe command; report what was not observed as a gap.
+- Suspected false positive: reproduce narrowly and report the result; an unreproduced hit stays suspected.
+- Empty dynamic evidence: confirm the owned binary runs; report what was not observed as a gap.
 - Zero captured commands: verify the binary exposes the expected help interface.
-- Removed-command failure: inspect `compare/baseline-diff.json`; update the baseline only for an intentional accepted contract change.
-- Policy failure: inspect `policy/policy-verdict.json`; change policy only with accountable approval.
-- Redteam failure: determine whether the control regressed or the attack-pack matcher needs an intentional update.
+- Removed-command failure: inspect `compare/baseline-diff.json` and report each removed command.
+- Policy failure: inspect `policy/policy-verdict.json` and report each failed check.
+- Redteam failure: report whether the control regressed or the attack-pack matcher no longer fits the files.
 
 ## Maintainer checks (AgentOps checkout only)
 

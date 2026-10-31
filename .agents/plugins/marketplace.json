@@ -1490,6 +1490,21 @@
       "icon": "./plugins/LVTD-LLC/skills/assets/app-icon.png"
     },
     {
+      "name": "macbox",
+      "displayName": "macbox",
+      "source": {
+        "source": "local",
+        "path": "./plugins/opslane/macbox-agent"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "A real Mac for Codex: build, test, run and tap through iOS apps on the iOS simulator from any machine, including Linux and cloud sandboxes.",
+      "icon": "./plugins/opslane/macbox-agent/logo.png"
+    },
+    {
       "name": "maestro",
       "displayName": "Maestro",
       "source": {
@@ -1784,6 +1799,21 @@
       "category": "Development & Workflow",
       "description": "Turn an idea into a structured project workflow with planning, execution, verification, and handoff.",
       "icon": "./plugins/AlexMi64/codex-project-autopilot/assets/autonomous-project-agent.svg"
+    },
+    {
+      "name": "proxmox-writing-style",
+      "displayName": "Proxmox Writing Style",
+      "source": {
+        "source": "local",
+        "path": "./plugins/msoltanov/Proxmox-Technical-Writing-Style-Skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Unofficial skill that writes, edits, and reviews Proxmox VE, Proxmox Backup Server, and Proxmox Mail Gateway documentation with the rules of the Proxmox Technical Writing Style Guide.",
+      "icon": "./plugins/msoltanov/Proxmox-Technical-Writing-Style-Skill/assets/icon.svg"
     },
     {
       "name": "quality-engineering-skills",
@@ -4681,6 +4711,21 @@
       "category": "Tools & Integrations",
       "description": "Live Google web, news, Scholar, and Maps results plus page scraping in Codex through the hosted Serply MCP server, with the API key read from an environment variable.",
       "icon": "./plugins/serply-inc/skills/assets/icon.png"
+    },
+    {
+      "name": "sfxmint",
+      "displayName": "SFXMint",
+      "source": {
+        "source": "local",
+        "path": "./plugins/flreey/sfxmint-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Free CC0 sound effects for apps and games: find AI-generated sounds by game or app event, as a matching set, or by description, and download the MP3 or WAV files into the project through the hosted SFXMint MCP server and skill, with no API key.",
+      "icon": "./plugins/flreey/sfxmint-mcp/assets/icon.png"
     },
     {
       "name": "shots",

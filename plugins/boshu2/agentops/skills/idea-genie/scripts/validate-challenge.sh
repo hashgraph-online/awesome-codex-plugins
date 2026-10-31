@@ -36,7 +36,7 @@ jq -e '
       and (.subject as $subject | $ids | index($subject)) != null
       and (.dimensions
         | only(["evidence","reversibility","system_fit","failure_modes","cost"])
-        and length > 0
+        and length == 5
         and all(.[]; text)))
     and (($ids - map(.subject)) | length == 0))
   and (.disagreements | type == "array" and length > 0 and all(.[]; text))

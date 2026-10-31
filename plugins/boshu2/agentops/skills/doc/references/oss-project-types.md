@@ -323,23 +323,10 @@ uv tool install <package>
 
 ## Command Extraction
 
-For CLI tools, extract commands for documentation:
-
-### Go (cobra)
-
-```bash
-# Find cobra commands
-grep -r "func.*Command\(\)" cmd/ --include="*.go" | \
-    sed 's/.*func \(.*\)Command.*/\1/'
-```
-
-### Python (click/typer)
-
-```bash
-# Find click commands
-grep -r "@click.command\|@app.command" --include="*.py" | \
-    sed 's/.*def \([a-z_]*\).*/\1/'
-```
+For a CLI tool, take the command list from the tool itself: run `<tool> --help`,
+then `<tool> <command> --help` for each command it lists. Function and variable
+names in the source are not reliably the names users type. If the tool cannot
+be built or run, mark the command list unverified.
 
 ---
 

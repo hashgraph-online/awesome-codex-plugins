@@ -25,7 +25,7 @@
   "interface": {
     "displayName": "BankBridge",
     "shortDescription": "Ask about your real bank accounts, cards and investments",
-    "longDescription": "BankBridge connects Codex to your own US bank, credit card and brokerage accounts with read-only access. Ask how much you spent on restaurants last month, which subscriptions you are paying for, whether you are making more than you spend, or how your holdings are doing, and get answers from live data. Sign in once with OAuth, no key to paste. It cannot move money, pay bills or place trades. $5 a month per connected bank ($50 a year), cancel any time.",
+    "longDescription": "BankBridge connects Codex to your own US bank, credit card and brokerage accounts with read-only access. Ask how much you spent on restaurants last month, which subscriptions you are paying for, whether you are making more than you spend, or how your holdings are doing, and get answers from live data. Sign in once with OAuth, no key to paste. It cannot move money, pay bills or place trades. $8 a month per connected bank ($80 a year), cancel any time.",
     "developerName": "Great Work LLC",
     "category": "Productivity",
     "capabilities": [

@@ -19,13 +19,13 @@ For an original recurring character without an accepted design, read [character 
 
 Read the existing character sheet or approved image before asking for another. Separate fixed traits (face shape, hair silhouette, build, distinctive marks, rendering style) from scene variables (pose, expression, setting, lighting). Clothing is fixed only when the brief requires continuity. Record visible facts; do not infer hidden details or a real person's identity.
 
-For a named saved character, call `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with `type: character`. Match the name and paginate with `next_cursor` as needed; disambiguate multiple matches. Inspect its primary `IMAGE` asset and any additional views the shot requires. Reuse their durable `file_path` values in compatible image fields, not the item ID or temporary preview URL. Keep an explicitly supplied anchor authoritative. Check the library before deciding no reference exists.
+For a named saved character, call `list_saved_items` (or authenticated `GET /v1/saved-items` through the existing API) with `type: character`. Match the name and paginate with `next_cursor` as needed; disambiguate multiple matches. Inspect its primary `IMAGE` asset and any additional views the shot requires. Reuse their durable `file_path` values in compatible image fields, not the item ID or temporary preview URL. Keep an explicitly supplied anchor authoritative. Check the library before deciding no reference exists.
 
-If there is no reference, create one useful view with `ai_image_generator_create_image`. Prefer a clear face and readable silhouette at the scale the story needs. An elaborate turnaround is unnecessary for two similar shots; a back view or unusual angle may need its own reviewed anchor. Keep only individually accepted views—an inconsistent contact sheet is not a better reference.
+If there is no reference, create one useful view with `generate_image`. Prefer a clear face and readable silhouette at the scale the story needs. An elaborate turnaround is unnecessary for two similar shots; a back view or unusual angle may need its own reviewed anchor. Keep only individually accepted views—an inconsistent contact sheet is not a better reference.
 
 ## Build shots from the original
 
-For each scene, use `ai_image_editor_create_image` with the approved identity image in `assets.image_file_paths`. If using additional pose/style images, describe each reference's role and check the chosen model's input limit. Do not merge a style donor's face or clothing into the character. Never claim reference ordering or weighting controls that the live schema does not expose.
+For each scene, use `edit_image` with the approved identity image in `assets.image_file_paths`. If using additional pose/style images, describe each reference's role and check the chosen model's input limit. Do not merge a style donor's face or clothing into the character. Never claim reference ordering or weighting controls that the live schema does not expose.
 
 Start with the scene change and a request to retain the reference character. State critical identity details when the brief needs them, but do not automatically copy the entire character sheet into every prompt. A detailed prompt does not rule out duplicates or omissions. In the [Nori comparison](https://github.com/magichourhq/skills/tree/main/examples/nori-character), the shorter prompt preserved details better in one scene; added identity instructions helped another. Choose by the output, not prompt length.
 
@@ -33,13 +33,13 @@ Start with the scene change and a request to retain the reference character. Sta
 
 Adapt that example to the actual reference and requested scene; do not add the robot to an unrelated request. Derive each new scene from an approved anchor, not from the last unreviewed scene. Compare the first new scene before spending on the rest.
 
-For requested animation, review each shot's still first, then pass that exact image to `image_to_video_create_video`. Prompt for one coherent action and restrained camera motion. If a required face turns away or becomes small, inspect that interval particularly carefully. Match continuity at cuts: screen direction, eyeline, scale, wardrobe, palette and time of day. Do not promise identical pixels across generations or a seamless transition between independently generated shots.
+For requested animation, review each shot's still first, then pass that exact image to `create_video_from_image`. Prompt for one coherent action and restrained camera motion. If a required face turns away or becomes small, inspect that interval particularly carefully. Match continuity at cuts: screen direction, eyeline, scale, wardrobe, palette and time of day. Do not promise identical pixels across generations or a seamless transition between independently generated shots.
 
 ## Run and recover
 
 Use the connected creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). Otherwise consult the [live API schema](https://docs.magichour.ai/api-reference/openapi.json): `/v1/ai-image-generator`, `/v1/ai-image-editor`, `/v1/image-to-video`. Choose supported parameters and count anchor creation, scene edits and animation against the existing budget. Never buy credits or expand a batch automatically.
 
-Upload local files with `video_assets_generate_presigned_url`, PUT raw bytes to its `upload_url` without the API bearer token, then pass the returned `file_path`. Submit once, retain each ID and use `wait_for_image_project` or `wait_for_video_project`. Resume the same job after a polling timeout; do not repeat an ambiguous creation call. Preserve signed download URLs exactly and save durable outputs.
+Upload local files with `get_upload_urls`, PUT raw bytes to its `upload_url` without the API bearer token, then pass the returned `file_path`. Submit once, retain each ID and use `wait_for_image_project` or `wait_for_video_project`. Resume the same job after a polling timeout; do not repeat an ambiguous creation call. Preserve signed download URLs exactly and save durable outputs.
 
 ## Accept and reuse
 

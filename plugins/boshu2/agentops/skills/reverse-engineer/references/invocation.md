@@ -16,7 +16,7 @@ Everything the run writes lands under `output_dir/`:
 - **Repo mode:** registry groups start `impl: unclassified`; `spec-artifact-surface.md`, `contracts/repo-contract.json` (CLI, env vars with file evidence, config and schema files, and `upstream_commit` for a Git checkout), `spec-cli-surface.md` when a CLI is detected, and `artifact-registry.json` when a Node CLI ships template manifests.
 - **Upstream repo or ref selected:** `clone-metadata.json`, binding the exact analyzed commit, including an already-present checkout.
 - **Binary mode:** `binary-analysis.md`, `binary-symbols.txt` (the first 2,000 strings), `cli-help-tree.txt`, `cli-commands.txt`, `binary-embedded-archives.md`, and `spec-cli-surface.md` from the help tree or strings; `feature-registry.yaml` is rewritten with `impl: client` groups anchored to `binary-symbols.txt`. `--mode=both` adds `comparison-report.md`.
-- **`--security-audit`:** `security/` with `threat-model.md`, `attack-surface.md`, `dataflow.md`, `crypto-review.md`, `authn-authz.md`, `findings.md`, `reproducibility.md`, and copies of `validate-security-audit.sh`, `scan-secrets.sh` and `generate-sbom.sh`; `--sbom` adds `sbom.spdx.json` (or `sbom.NOOP.md`) and `dep-risk-report.md`.
+- **`--security-audit`:** `security/` with `_TBD` scaffolds you fill before the complete validator passes with `--security-audit 1` (each finding needs `Evidence:` and `Fix:` lines): `threat-model.md`, `attack-surface.md`, `dataflow.md`, `crypto-review.md`, `authn-authz.md`, `findings.md`, `reproducibility.md`; plus copies of `validate-security-audit.sh`, `scan-secrets.sh` and `generate-sbom.sh`; `--sbom` adds `sbom.spdx.json` (or `sbom.NOOP.md`) and `dep-risk-report.md`.
 - **Phase 2:** the caller-authored `steal-map.md`.
 
 The registry is YAML, clone metadata is one JSON object, and inventories,
@@ -29,7 +29,8 @@ is in the skill body. It requires the steal-map header
 `| Their capability | Our surface today | Verdict |`; every row of that table
 needs both cells filled, a `(code: <file:line>)`, `(docs)` or `(hosted)` tag in
 the capability cell, and one of `have`, `gap`, `steal`, `park` or `reject`;
-a `steal` row needs the `code` tag. In every phase it runs
+a `steal` row needs the `code` tag; a `none` surface needs the backticked
+search that proved it. In every phase it runs
 `scripts/security/scan_secrets.sh` over the whole output dir.
 
 ## Tests and fixtures
@@ -40,10 +41,13 @@ a `steal` row needs the `code` tag. In every phase it runs
   Bearer, AIza and PEM private-key header cases, a repo-mode teardown of a small tree (unclassified
   registry, scratch inside the output dir), the steal-map row rules, and that
   a wrong-ref checkout and symlinked outputs are refused.
-- `bash "<skill-dir>/scripts/self_test.sh"` needs Go and writes under
-  the repository's `.tmp/`. It builds a demo binary with an embedded archive,
-  runs binary mode and the security audit, pins an upstream ref, and checks the
-  output-path defaults and generated-tree hygiene.
+- Maintainer test, AgentOps source checkout only:
+  [`self_test.sh`](https://github.com/boshu2/agentops/blob/main/skills/reverse-engineer/scripts/self_test.sh)
+  needs Go and a Git checkout (it refuses elsewhere) and writes only to a
+  temporary directory it removes. It builds a demo binary with an embedded
+  archive, runs binary mode and the security audit, pins an upstream ref, and
+  checks the output-path defaults and generated-tree hygiene. It says nothing
+  about any real target.
 - `bash "<skill-dir>/scripts/repo_fixture_test.sh"` needs network. It
   tears down cc-sdd at `v2.1.0` and compares the contracts with
   `fixtures/cc-sdd-v2.1.0/`. When contracts legitimately change, re-run with
@@ -57,7 +61,7 @@ match or the run refuses before analysis.
 
 **OSS CLI in repo mode, then a steal-map.** Run Phase 1 for `cc-sdd` with `--mode=repo --upstream-repo="https://github.com/gotalab/cc-sdd.git" --upstream-ref=v2.1.0`. It clones the pinned source, scans the surface, writes inventory/registry/specs, and validates the teardown. Then read the code the teardown points to, inspect our live surfaces, author each `have`/`gap`/`steal`/`park`/`reject` row in `steal-map.md`, and run the complete-output validator. Supply one-way-door steals to Plan.
 
-**Binary analysis with security audit.** Run the skill for `ao` with `--authorized --mode=binary --binary-path="$(command -v ao)" --security-audit`. It performs authorized static analysis plus the security suite under `output_dir/security/`; the secret scan must pass. Without an authorized binary, `self_test.sh` builds a demo one (needs Go).
+**Binary analysis with security audit.** Run the skill for `ao` with `--authorized --mode=binary --binary-path="$(command -v ao)" --security-audit`. It runs authorized static analysis, writes the `_TBD` audit scaffold under `output_dir/security/`, and passes the secret scan; fill the scaffold, then run the complete validator with `--security-audit 1`. Without written authorization, do not run binary mode; work in docs-only mode.
 
 ## Script troubleshooting
 
@@ -67,4 +71,4 @@ match or the run refuses before analysis.
 | No `clone-metadata.json` | `--upstream-repo` not passed | Pass `--upstream-repo` (and optionally `--upstream-ref`). |
 | Secret scan fails the teardown | A secret-shaped value in an output file (often `binary-symbols.txt` or `scratch/`) | Open each printed `file:line`, redact the value or delete the scratch file, then re-run `validate-output.sh --phase teardown`. |
 | Fixture diff fails | Upstream changed / stale golden | Re-run pinned with `UPDATE_FIXTURES=1`, review, commit. |
-| `spec-cli-surface.md` missing | No Node/Python/Go CLI detected | Surface is documented in `spec-code-map.md` instead. |
+| `spec-cli-surface.md` missing | No Node/Python/Go CLI detected | Read `contracts/repo-contract.json` and `spec-artifact-surface.md` for the surface; `spec-code-map.md` only notes the omission. |

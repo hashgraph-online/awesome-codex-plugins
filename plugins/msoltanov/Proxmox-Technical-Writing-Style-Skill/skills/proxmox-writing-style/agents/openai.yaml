@@ -1,0 +1,4 @@
+interface:
+  display_name: "Proxmox Writing Style"
+  short_description: "Write Proxmox docs in the Proxmox style"
+  default_prompt: "Review this Proxmox documentation and fix each problem against the Proxmox Technical Writing Style Guide."

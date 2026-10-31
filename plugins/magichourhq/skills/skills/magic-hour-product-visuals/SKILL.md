@@ -30,8 +30,8 @@ For a hero, specify which side needs empty space for copy. For an ecommerce list
 
 ## Choose generation or editing
 
-- With no source image, call `ai_image_generator_create_image`.
-- With a usable source that needs a new setting, cleanup, relighting, repositioning, or other controlled change, call `ai_image_editor_create_image`.
+- With no source image, call `generate_image`.
+- With a usable source that needs a new setting, cleanup, relighting, repositioning, or other controlled change, call `edit_image`.
 - AI Image Editor requires an input image. Never route a prompt-only creation request to it.
 
 Use one image at a resolution that reveals the product's critical details and fits its placement. A low-resolution preview is useful for composition, not final label fidelity. Check cost against existing authorization and ask only when it does not cover the intended work. Prefer the live recommended model for a general request and choose a specialist only when the current schema describes the needed behavior.
@@ -67,4 +67,4 @@ Wait for the existing image project with `wait_for_image_project`. After it repo
 
 If the result fails, change the smallest useful variable. Use AI Image Editor for a localized correction when the rest of the image is strong; regenerate when composition or product identity is fundamentally wrong. Another generation spends credits, so stay inside the user's authorized budget.
 
-When the product image will become video, accept the still first and use the image-to-video skill when installed. Otherwise discover `image_to_video_create_video`, pass the accepted image, prompt for motion, retain the ID, wait and inspect the complete clip. Do not require another skill installation to finish a supported request. Return the finished artifact, its saved location and any material limitation; retain project IDs for recovery.
+When the product image will become video, accept the still first and use the image-to-video skill when installed. Otherwise discover `create_video_from_image`, pass the accepted image, prompt for motion, retain the ID, wait and inspect the complete clip. Do not require another skill installation to finish a supported request. Return the finished artifact, its saved location and any material limitation; retain project IDs for recovery.

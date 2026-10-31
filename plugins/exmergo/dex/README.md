@@ -3,6 +3,10 @@
   <img alt="Dex: analytics engineering for your coding agent. Explore, transform, maintain." src="assets/preview-light.png" />
 </picture>
 
+> *Most deadly errors arise from obsolete assumptions.*
+>
+> Frank Herbert, *Children of Dune*
+
 # Dex
 
 **Analytics engineering for your coding agent, with guardrails and lifecycle built into the engine.**
@@ -84,10 +88,6 @@ Your source data is never written to, and builds run on a dev target only. Cost
 quoted before any spend. Every change is a diff you review. Works in Claude Code, Codex, or any agent that loads Agent Skills.
 
 ## Why
-
-> *Most deadly errors arise from obsolete assumptions.*
->
-> Frank Herbert, *Children of Dune*
 
 A general coding agent is a good SQL author and a poor analytics engineer. It:
 
@@ -199,47 +199,14 @@ checks a project as it stands, with no baseline needed.
 
 <img width="484" height="344" alt="Maintain" src="https://github.com/user-attachments/assets/ff714eaf-f0b2-46d6-8a4b-c69791740f18" />
 
-### What to commit in `.dex/`
-
-Dex keeps its working state in `.dex/`. Most of it is safe to commit; the
-exception is any file that can carry data values. Commit the lockfile and the
-config, and keep the exploration cache out of a repo that must not publish
-data values:
-
-| File | Commit? | Can it contain data values? |
-| --- | --- | --- |
-| `.dex/config.yml` | Yes | No: connector targets, `pii_overrides` (column names, not values), budgets and limits. Credentials live in environment variables or dbt profiles, never in this file. |
-| `.dex/snapshot.json` | Yes, like a lockfile | Yes: when snapshotted from a cache it pins the cache's datasets wholesale, including each non-PII column's capped value domain and min/max. A metadata-only baseline (no cache) carries schema and volume only. PII-flagged columns never carry value domains. |
-| `.dex/cache.json` | Only if values may be public | Yes: column profiles with capped value domains (actual values with counts). Never for PII-flagged columns. |
-| `.dex/plans/*.json` | Optional, as an audit trail | No warehouse values: the proposed contents of project files. |
-| `.dex/queries.jsonl` | Optional, as a ledger | SQL text, which may hold literals. |
-| `.dex/drift.json` | No: regenerate with `maintain check` | Aggregates only: counts, names and schema metadata in drift findings. |
-
-For a repo that must not publish data values, ignore the rest:
-
-```gitignore
-# Dex state that can publish data values, or is local-only output.
-.dex/cache.json
-.dex/dex.db
-.dex/dex.db-journal
-.dex/queries.jsonl
-.dex/drift.json
-.dex/spend.jsonl
-.dex/spend.lock
-```
-
-`.dex/dex.db` is the SQLite backend's equivalent of `cache.json`, so it gets
-the same caution. `.dex/spend.jsonl` is the billed-command ledger: byte
-counts, job ids and statement hashes only, never SQL values or credentials,
-but it is local spend history, so there is no reason to commit it.
-
-### What Dex will never do
-
-- **Write to your source data.** Dex's own SQL is SELECT-only. The only writes to your warehouse are the dbt builds you confirm, on a dev target.
-- **Put personal data in your agent's context.** PII is flagged by column, category, and confidence, and never surfaced. Only a human clears a flag. ([PII policy](https://docs.exmergo.com/dex/guardrails/pii-policy))
-- **Spend before quoting.** A metered scan returns an estimate and runs only with your confirmation and a budget. ([cost controls](https://docs.exmergo.com/dex/guardrails/cost-controls))
-- **Change your project behind your back.** Every edit is a diff, and a human edit made since planning is never overwritten. ([source of truth](https://docs.exmergo.com/dex/concepts/source-of-truth))
-- **Build anywhere but dev.** Prod-looking targets are refused outright.
+> [!TIP]
+> **Give every agent in your repository the same procedure.**
+> `dex procedure --block` prints the procedure every Dex skill follows, ready to
+> paste into your `CLAUDE.md` or `AGENTS.md`, so an agent follows it even before
+> it loads a skill. Dex never writes the file;
+> `dex procedure --check CLAUDE.md` tells you when an upgrade has made your copy
+> stale. See
+> [`dex procedure`](https://docs.exmergo.com/dex/cli/procedure).
 
 ## Connectors
 
@@ -331,7 +298,9 @@ We believe that benchmarks are important, but not as important as user/agent exp
 Trust in a diff, cost surfaced before spend, and sensitive data kept out of context. We optimize for that experience
 and treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/dex/reference/evaluation))
 
-## What Dex sends where
+## Managing the Dex lifecycle
+
+### What Dex sends where
 
 - **On install**, `uv` downloads the pinned engine (and a Python 3.11 to 3.14 if you have none) from PyPI or your configured index.
 - **Your warehouse** gets SELECT-only SQL from Dex, plus the dbt builds you confirm on a dev target, with credentials from your existing credential chain.
@@ -343,6 +312,48 @@ and treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/de
 > **Dex sends nothing to Exmergo.** No telemetry, analytics, license check, or
 > update ping. See the [Dex privacy policy](https://www.exmergo.com/privacy/dex)
 > and the [Dex terms of service](https://www.exmergo.com/terms/dex).
+
+### What to commit in `.dex/`
+
+Dex keeps its working state in `.dex/`. Most of it is safe to commit; the
+exception is any file that can carry data values. Commit the lockfile and the
+config, and keep the exploration cache out of a repo that must not publish
+data values:
+
+| File | Commit? | Can it contain data values? |
+| --- | --- | --- |
+| `.dex/config.yml` | Yes | No: connector targets, `pii_overrides` (column names, not values), budgets and limits. Credentials live in environment variables or dbt profiles, never in this file. |
+| `.dex/snapshot.json` | Like a lockfile, where its values may be public; otherwise take a metadata-only baseline or keep it out | Yes: when snapshotted from a cache it pins the cache's datasets wholesale, including each non-PII column's capped value domain and min/max. A metadata-only baseline (no cache) carries schema and volume only. PII-flagged columns never carry value domains. |
+| `.dex/cache.json` | Only if values may be public | Yes: column profiles with capped value domains (actual values with counts). Never for PII-flagged columns. |
+| `.dex/plans/*.json` | Optional, as an audit trail | No warehouse values: the proposed contents of project files. |
+| `.dex/queries.jsonl` | Optional, as a ledger | SQL text, which may hold literals. |
+| `.dex/drift.json` | No: regenerate with `maintain check` | Aggregates only: counts, names and schema metadata in drift findings. |
+
+For a repo that must not publish data values, ignore the rest:
+
+```gitignore
+# Dex state that can publish data values, or is local-only output.
+.dex/cache.json
+.dex/dex.db
+.dex/dex.db-journal
+.dex/queries.jsonl
+.dex/drift.json
+.dex/spend.jsonl
+.dex/spend.lock
+```
+
+`.dex/dex.db` is the SQLite backend's equivalent of `cache.json`, so it gets
+the same caution. `.dex/spend.jsonl` is the billed-command ledger: byte
+counts, job ids and statement hashes only, never SQL values or credentials,
+but it is local spend history, so there is no reason to commit it.
+
+### What Dex will never do
+
+- **Write to your source data.** Dex's own SQL is SELECT-only. The only writes to your warehouse are the dbt builds you confirm, on a dev target.
+- **Put personal data in your agent's context.** PII is flagged by column, category, and confidence, and never surfaced. Only a human clears a flag. ([PII policy](https://docs.exmergo.com/dex/guardrails/pii-policy))
+- **Spend before quoting.** A metered scan returns an estimate and runs only with your confirmation and a budget. ([cost controls](https://docs.exmergo.com/dex/guardrails/cost-controls))
+- **Change your project behind your back.** Every edit is a diff, and a human edit made since planning is never overwritten. ([source of truth](https://docs.exmergo.com/dex/concepts/source-of-truth))
+- **Build anywhere but dev.** Prod-looking targets are refused outright.
 
 ## Further reading
 

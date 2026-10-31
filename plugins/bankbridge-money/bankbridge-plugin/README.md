@@ -1,6 +1,8 @@
 # BankBridge for Claude
 
-BankBridge is a remote MCP server that lets Claude, ChatGPT, Cursor and other AI agents read your bank accounts, credit cards and investments. Ask "how much did I spend on restaurants last month?" or "what subscriptions am I paying for?" and get answers from live data. Read-only, US banks, $5 a month per connected bank.
+BankBridge is a remote MCP server that lets Claude, ChatGPT, Cursor and other AI agents read your bank accounts, credit cards and investments. Ask "how much did I spend on restaurants last month?" or "what subscriptions am I paying for?" and get answers from live data. Read-only, US banks, $8 a month per connected bank.
+
+**Install in Claude Code:** `/plugin install bankbridge --marketplace bankbridge-money/bankbridge-plugin` (Claude Code 2.1.275 or later; on older versions run `/plugin marketplace add bankbridge-money/bankbridge-plugin` first, then `/plugin install bankbridge`).
 
 **Works with:** Claude (claude.ai, Desktop, mobile, Cowork), Claude Code, ChatGPT, Cursor, VS Code Copilot, Codex, Gemini CLI, Windsurf and any MCP client.
 
@@ -54,7 +56,7 @@ Both discover BankBridge&rsquo;s OAuth sign-in automatically (Gemini: run `/mcp 
 Server URL: `https://bankbridge.money/api/mcp` (Streamable HTTP). Auth: OAuth 2.1 with Dynamic Client Registration, or `Authorization: Bearer bbk_...` with a key from your dashboard. Step-by-step guides for each agent: [bankbridge.money/docs](https://bankbridge.money/docs?ref=github).
 
 You&rsquo;ll need:
-- **A BankBridge account**: [sign up](https://bankbridge.money/?ref=github) ($5/mo or $50/yr per connected bank), or try the demo with sample data from the sign-in screen, no signup
+- **A BankBridge account**: [sign up](https://bankbridge.money/?ref=github) ($8/mo or $80/yr per connected bank), or try the demo with sample data from the sign-in screen, no signup
 - **At least one bank connected**: linked on the dashboard in ~30 seconds
 
 ## Install the skill in any agent
@@ -238,9 +240,9 @@ Full privacy policy → [bankbridge.money/privacy](https://bankbridge.money/priv
 
 ## Pricing
 
-**$5/month per connected bank, or $50/year per bank.** First bank unlocks the service. Each additional bank adds $5/mo, prorated when you connect it. Cancel anytime, access ends at the end of your billing period.
+**$8/month per connected bank, or $80/year per bank.** First bank unlocks the service. Each additional bank adds $8/mo, prorated when you connect it. Cancel anytime, access ends at the end of your billing period.
 
-No free tier, no freemium, no trial. Just $5 per bank. It&rsquo;s fair, predictable, and means we&rsquo;re never tempted to monetize your data. We&rsquo;re a real subscription business.
+No free tier, no freemium, no trial. Just $8 per bank. It&rsquo;s fair, predictable, and means we&rsquo;re never tempted to monetize your data. We&rsquo;re a real subscription business.
 
 ---
 
@@ -252,8 +254,8 @@ No free tier, no freemium, no trial. Just $5 per bank. It&rsquo;s fair, predicta
   </a>
 </p>
 
-1. Create an account (magic-link email, no password).
-2. Click **Subscribe** ($5/mo or $50/yr per bank). Any major card works.
+1. Create an account (Google or a 6-digit email code, no password).
+2. Click **Subscribe** ($8/mo or $80/yr per bank). Any major card works.
 3. Connect a bank in ~30 seconds.
 4. `/plugin install bankbridge` in Claude Code.
 5. Run `/mcp` and sign in to BankBridge.

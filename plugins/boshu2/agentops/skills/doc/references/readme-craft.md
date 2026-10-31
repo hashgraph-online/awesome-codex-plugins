@@ -11,7 +11,8 @@ Use this reference when the caller asks to create, update, rewrite or check a RE
 - **Update:** bring one section or fact of an existing README current (for
   example, install steps that no longer match the code). Edit that part in
   place under [Grounded writing step 3](../SKILL.md#grounded-writing): keep the
-  file's shape, skip Steps 2-4 and the template, then run Step 5.
+  file's shape, skip this file's Steps 2-4 and the template, then run
+  [Step 5: Deterministic checks](#step-5-deterministic-checks).
 - **Rewrite:** regenerate an existing README with these patterns, using the
   current file as context.
 - **Check only:** inspect an existing README against these patterns without
