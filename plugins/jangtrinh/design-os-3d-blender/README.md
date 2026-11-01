@@ -345,6 +345,8 @@ More: [design:os by Jang on YouTube](https://www.youtube.com/@designosbyjang).
   <a href="https://aiagentsdirectory.com?utm_source=badge&utm_medium=referral&utm_campaign=free_listing&utm_content=homepage"><img src="https://aiagentsdirectory.com/featured-badge.svg?v=2024" alt="Featured AI Agents on AI Agents Directory" width="160" height="40"></a>
 </p>
 
+Also listed in the [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=design-os-3d-blender) (`io.github.jangtrinh/design-os-3d-blender`), the [awesome-mcp-servers list by TensorBlock](https://github.com/TensorBlock/awesome-mcp-servers/blob/main/docs/art-culture--media.md) and [SkillsMP](https://skillsmp.com/creators/jangtrinh).
+
 ---
 
 If `design-os-3d-blender` saves you time, a star on GitHub helps other engineers and AI agents find it.

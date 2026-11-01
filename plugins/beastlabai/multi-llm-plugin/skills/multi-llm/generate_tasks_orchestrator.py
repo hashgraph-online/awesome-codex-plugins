@@ -70,6 +70,7 @@ from utils.cli_common import (
     EXIT_ERROR,
     EXIT_NEEDS_HUMAN,
     EXIT_OK,
+    add_scope_policy_argument,
     build_parent_parser,
     record_artifact,
     record_next,
@@ -89,6 +90,7 @@ from utils.subagent_tasks import (
     write_task_file,
 )
 from utils.task_decomposer import TaskDecomposer
+from utils import scope_policy_runs
 from utils import unattended as unattended_mod
 
 #: The ``state.json`` phase / phase-dir name.
@@ -150,6 +152,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
              "the TASKS_FILE marker. The single follow-up a native-subagent host "
              "is ever handed.",
     )
+    add_scope_policy_argument(parser, role="generate-tasks")
     return parser.parse_args(list(argv) if argv is not None else None)
 
 
@@ -225,19 +228,30 @@ def _resolve_repo_root(plan_path: Path) -> str:
 
 
 def materialize_task_file(
-    plan_path: Path, phase_dir: str, *, repo_root: Optional[str] = None
+    plan_path: Path,
+    phase_dir: str,
+    *,
+    repo_root: Optional[str] = None,
+    scope_policy: Optional[str] = None,
 ) -> Tuple[str, Dict[str, Any]]:
     """Write the one-task ``task_generation`` file and return ``(path, document)``.
 
     One task, in the same envelope every other kind uses — that is what lets the
     executor, the dry-run preflight, the resume-by-artifact rule and the native
     invoker all treat it as an ordinary batch of size one.
+
+    *scope_policy* ``preserve`` adds the block that keeps the task list to the
+    plan (``scope_policy_runs.generation_guidance``) ahead of the reply
+    section; ``expand`` or ``None`` leaves the prompt byte for byte as it was.
     """
     plan_text = plan_path.read_text(encoding="utf-8")
     root = repo_root or _resolve_repo_root(plan_path)
     inputs = build_inputs(plan_file=str(plan_path))
     prompt = build_task_generation_prompt(
         plan_text=plan_text, repo_root=root, plan_name=plan_path.name
+    )
+    prompt = scope_policy_runs.with_guidance(
+        prompt, scope_policy_runs.generation_guidance(scope_policy), before="## Reply\n",
     )
     task = make_task(
         kind=TASK_KIND,
@@ -622,6 +636,42 @@ def _fail(message: str) -> int:
 
 
 # ---------------------------------------------------------------------------
+# The scope policy (D6 row 16)
+# ---------------------------------------------------------------------------
+
+def _resolve_scope_policy(
+    args: argparse.Namespace, plan_path: Path, phase_dir: str
+) -> str:
+    """The policy this materialization renders, resolved past the detach boundary.
+
+    The typed ``--scope-policy`` (``full`` hands its resolved one over the same
+    way), else the live choice an earlier run of this phase recorded, else
+    ``expand`` (plans/scope-policy-and-report-tags.md §4). A typed one is
+    kept, so the plain re-run that recovers a failed dispatch renders the same
+    prompt; a policy nobody typed is recorded as D6 row 16's resolution under
+    ``--yes``.
+    """
+    from utils.state_manager import StateManager
+
+    state = StateManager(plan_path)
+    # `--force` regenerates from scratch: a new run, which never inherits an
+    # earlier run's recorded choice (as under `full --force`).
+    choice = scope_policy_runs.resolve_run_choice(
+        getattr(args, "scope_policy", None), state.state, MODE_NAME,
+        new_run=bool(getattr(args, "force", False)))
+    policy, source = scope_policy_runs.effective_choice(choice)
+    if not getattr(args, "dry_run_subagents", False):
+        if scope_policy_runs.record_run_start(state.state, MODE_NAME, choice):
+            state.save()
+    if source != scope_policy_runs.sp.SOURCE_EXPLICIT:
+        scope_policy_runs.announce(
+            phase_dir, policy, source, unattended=bool(getattr(args, "yes", False)),
+            mode=MODE_NAME,
+        )
+    return policy
+
+
+# ---------------------------------------------------------------------------
 # The phase
 # ---------------------------------------------------------------------------
 
@@ -754,8 +804,10 @@ def run_generate_tasks(
                 )
             print(f"[force] archived the previous {RESULT_NAME} as {archived}")
 
+    policy = _resolve_scope_policy(args, plan_path, phase_dir)
     try:
-        task_file, document = materialize_task_file(plan_path, phase_dir)
+        task_file, document = materialize_task_file(
+            plan_path, phase_dir, scope_policy=policy)
     except TaskFileError as exc:
         return _fail(f"ERROR: {exc.message}")
     record_artifact(task_file)

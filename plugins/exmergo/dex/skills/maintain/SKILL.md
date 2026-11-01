@@ -52,8 +52,8 @@ data stops after step 1 and reports what it found.
    `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`
    (any count of things), or a plain unit such as `days`; `aggregation` is how
    the column rolls up (a count rolls up with `sum`, a running total with
-   `max`). A declaration is YAML: it never adds, drops or renames an output
-   column.
+   `max`). A declaration is JSON in the payload, rendered into the model's YAML:
+   it never adds, drops or renames an output column.
 3. **Read the draft, supply the intent, plan again.** `data.declarations.<model>`
    holds `drafted` (what Dex measured: keys, running totals, units, value
    domains, and `precedent`, what sibling models do with the same columns),
@@ -89,15 +89,17 @@ in this order, and never present a `default` as the user's business rule:
 
 **Correct rows, not only a green build.**
 
-- Drive a model from the entity it describes, and left-join its children so a
-  parent with none survives, with a count of zero rather than NULL.
+- Drive a model from the entity it describes. When that entity is the parent
+  and the population keeps parents with no children, left-join the children so
+  each such parent survives, with a count of zero rather than NULL.
 - A refactor keeps its results: `data.row_attribution` nets to zero, and
   `count(*)` stays `count(*)`.
 - Keep every valid row. Never filter rows out to make a cast or a join succeed.
 - Change only what the request asks; keep the output columns the request and
   the existing model define.
-- A running or to-date total is `semi_additive`: aggregate it with `max`, never
-  `sum`.
+- A balance or a running total is `semi_additive`: never sum it across time.
+  Take each entity's latest value (`max` for a running total), then sum across
+  entities.
 - Test logic with `dex transform test --scaffold <model>` (dbt unit tests) and
   measure the tests with `dex transform test --mutate <model>`.
 - Never edit installed packages (`dbt_packages/`); override in the project.
@@ -118,7 +120,8 @@ clears a PII flag; and you never edit `.dex/config.yml`, `.dex/cache.json` or
 `.dex/plans/` by hand, nor a dbt project file in place of `transform plan`.
 When Dex refuses a change because it cannot represent it (not a cost, PII or
 dev-target guard), say so, make that one edit directly, and still build with
-`--verify`.
+`--verify`. A direct edit to a semantic-layer file also has to read back through
+`dex explore semantic list`, since the build does not parse the layer.
 <!-- dex:procedure:end -->
 
 ## Running the engine

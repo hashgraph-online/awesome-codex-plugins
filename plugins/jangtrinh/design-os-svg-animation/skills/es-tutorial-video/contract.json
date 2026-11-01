@@ -1,0 +1,264 @@
+{
+  "_sha256": "7a6135adbe09aceedf60613de123762acf20ed99c5af6240548cbecf5cc91326",
+  "generated_by": "scripts/build-tutorial-contract.mjs",
+  "sources": {
+    "promo/_tutorial-kit/capture-review-page.mjs": "a329167a70eed0c4",
+    "promo/_tutorial-kit/join-shards.mjs": "096fbeaf5507cfc6",
+    "promo/_tutorial-kit/render-tutorial.mjs": "bd38f9d4981b8a62",
+    "promo/_tutorial-kit/tutorial-elements.js": "0850da5d816af53e",
+    "promo/_tutorial-kit/tutorial-portrait-layout.js": "d3a6b7c46cfbde9e",
+    "promo/_tutorial-kit/tutorial-project.mjs": "cd1b81a45b5abc77",
+    "promo/_tutorial-kit/tutorial-scene.js": "8a3d9eaa3274d621",
+    "promo/_tutorial-kit/voiceover/mix-voiceover.mjs": "11dadcbd7310ebb1"
+  },
+  "config_file": "tutorial.config.json",
+  "config": [
+    {
+      "key": "slug",
+      "type": "string",
+      "required": true,
+      "doc": "kebab-case id of the build, e.g. dc-01"
+    },
+    {
+      "key": "title",
+      "type": "string",
+      "required": true,
+      "doc": "page title"
+    },
+    {
+      "key": "lang",
+      "type": "string",
+      "required": true,
+      "doc": "html lang of the page, e.g. vi"
+    },
+    {
+      "key": "output",
+      "type": "string",
+      "required": true,
+      "doc": "MP4 base name; the render writes out/<output>-<aspect>.mp4"
+    },
+    {
+      "key": "duration",
+      "type": "number",
+      "required": true,
+      "doc": "T, seconds: length of the music bed the timeline is authored against"
+    },
+    {
+      "key": "grid.bpm",
+      "type": "number",
+      "required": true,
+      "doc": "measured tempo; one bar = 240 / bpm seconds"
+    },
+    {
+      "key": "grid.db0",
+      "type": "number",
+      "required": true,
+      "doc": "measured time of the first downbeat, seconds"
+    },
+    {
+      "key": "grid.measuredBy",
+      "type": "string",
+      "required": true,
+      "doc": "how the grid was measured (never guessed)"
+    },
+    {
+      "key": "music.credit",
+      "type": "string",
+      "required": true,
+      "doc": "credit line drawn on screen"
+    },
+    {
+      "key": "music.file",
+      "type": "string",
+      "required": true,
+      "doc": "source track, relative to the project; must be git-ignored"
+    },
+    {
+      "key": "music.bed",
+      "type": "string",
+      "required": true,
+      "doc": "bed the mix starts from, relative to the project; must be git-ignored"
+    },
+    {
+      "key": "music.gain",
+      "type": "number",
+      "required": true,
+      "doc": "bed gain before ducking"
+    },
+    {
+      "key": "music.bedParams.introBars",
+      "type": "number",
+      "required": false,
+      "doc": "build-music-bed.py: bars kept as intro"
+    },
+    {
+      "key": "music.bedParams.bodyStart",
+      "type": "number",
+      "required": false,
+      "doc": "build-music-bed.py: first body bar (looped)"
+    },
+    {
+      "key": "music.bedParams.bodyEnd",
+      "type": "number",
+      "required": false,
+      "doc": "build-music-bed.py: bar after the last body bar"
+    },
+    {
+      "key": "music.bedParams.outroBar",
+      "type": "number",
+      "required": false,
+      "doc": "build-music-bed.py: first outro bar"
+    },
+    {
+      "key": "music.bedParams.phrases",
+      "type": "number",
+      "required": false,
+      "doc": "build-music-bed.py: number of 8-bar body phrases"
+    },
+    {
+      "key": "evidence",
+      "type": "string",
+      "required": true,
+      "doc": "evidence file written by extract-evidence.py"
+    },
+    {
+      "key": "timeline",
+      "type": "string[]",
+      "required": true,
+      "doc": "timeline script files, loaded in order after the evidence"
+    },
+    {
+      "key": "voiceover.script",
+      "type": "string",
+      "required": true,
+      "doc": "script json: segments[{id,text,window_s}]"
+    },
+    {
+      "key": "voiceover.clips",
+      "type": "string",
+      "required": true,
+      "doc": "folder with one <segment id>.mp3 per segment"
+    },
+    {
+      "key": "approvals.storyboard",
+      "type": "string|null",
+      "required": true,
+      "doc": "owner gate 1a: who/when approved the storyboard (null until approved)"
+    },
+    {
+      "key": "approvals.script",
+      "type": "string|null",
+      "required": true,
+      "doc": "owner gate 1b: who/when approved the voice script (null until approved)"
+    },
+    {
+      "key": "reviewCapture.page",
+      "type": "string",
+      "required": false,
+      "doc": "capture-review-page.mjs: html page to capture (~ allowed)"
+    },
+    {
+      "key": "reviewCapture.out",
+      "type": "string",
+      "required": false,
+      "doc": "capture-review-page.mjs: output jpg, relative to the project"
+    }
+  ],
+  "element_common_fields": [
+    "keys",
+    "rect",
+    "t0",
+    "t1",
+    "type"
+  ],
+  "element_types": {
+    "img": [
+      "ghost",
+      "kb",
+      "src",
+      "t0",
+      "t1",
+      "tag",
+      "tilt"
+    ],
+    "wipe": [
+      "label",
+      "layers"
+    ],
+    "seq": [
+      "fps",
+      "label",
+      "n",
+      "pattern",
+      "t0"
+    ],
+    "grid": [
+      "cols",
+      "srcs",
+      "t0"
+    ],
+    "file": [
+      "from",
+      "hl",
+      "lead",
+      "lines",
+      "more",
+      "path",
+      "t0",
+      "tag"
+    ],
+    "json": [
+      "extra",
+      "path",
+      "value"
+    ],
+    "term": [
+      "lines"
+    ],
+    "callout": [
+      "lines",
+      "t0",
+      "title"
+    ],
+    "scroll": [
+      "scrollKeys",
+      "src",
+      "srcW"
+    ],
+    "hero": [
+      "img",
+      "kicker",
+      "note",
+      "sub",
+      "t0",
+      "title"
+    ],
+    "repo": [
+      "cmd",
+      "t0"
+    ]
+  },
+  "cli": {
+    "render-tutorial.mjs": [
+      "--aspect",
+      "--beats",
+      "--events",
+      "--full",
+      "--out-dir",
+      "--project",
+      "--shard"
+    ],
+    "join-shards.mjs": [
+      "--project"
+    ],
+    "capture-review-page.mjs": [
+      "--out",
+      "--page",
+      "--project"
+    ],
+    "voiceover/mix-voiceover.mjs": [
+      "--check",
+      "--project"
+    ]
+  }
+}

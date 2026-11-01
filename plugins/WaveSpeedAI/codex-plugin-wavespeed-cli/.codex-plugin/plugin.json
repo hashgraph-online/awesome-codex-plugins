@@ -1,7 +1,7 @@
 {
   "name": "wavespeed-cli",
-  "version": "0.1.2",
-  "description": "Generate and edit AI media (image, video, audio, 3D) on the WaveSpeed platform from Codex: live catalog search, per-model schema, local-file upload, price quotes before running.",
+  "version": "0.1.4",
+  "description": "Generate and edit AI media (image, video, audio, 3D) on WaveSpeed through its hosted MCP server and a CLI skill for local files, batches, live catalog search and price quotes.",
   "author": {
     "name": "WaveSpeedAI",
     "email": "support@wavespeed.ai",
@@ -24,7 +24,7 @@
   "interface": {
     "displayName": "WaveSpeed",
     "shortDescription": "AI image, video, audio and 3D generation from Codex — every model on WaveSpeed is one call.",
-    "longDescription": "Adds the WaveSpeed platform to Codex. The bundled MCP server exposes list_models, get_model_schema, get_price, upload_file, run_model, generate_image, edit_image, generate_video, edit_video, extend_video, get_prediction and get_balance, and the bundled skill teaches the agent the find → inspect → run workflow on the open-source wavespeed CLI, including uploading local files with the @path marker and quoting prices before spending credits. One `wavespeed login` (or WAVESPEED_API_KEY) authenticates both.",
+    "longDescription": "Adds WaveSpeed to Codex through the hosted WaveSpeed MCP server, authorized once in the browser, and a skill for the open-source wavespeed CLI. Generate, edit and extend images and videos, run any model, inspect schemas, and check prices and balance. The hosted server accepts public URLs; use the CLI with @path for local files. CLI authentication uses wavespeed login separately.",
     "developerName": "WaveSpeedAI",
     "category": "Creativity",
     "capabilities": [

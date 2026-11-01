@@ -905,7 +905,7 @@ _UTIL_PATH_POSITIONAL: Dict[str, Tuple[str, ...]] = {
     "next-command": ("--after", "--blocked", "--host"),
     "improve-steps": ("--mode", "--host", "--models", "--files", "--files-from",
                       "--base-ref", "--head-ref", "--max-detached",
-                      "--internal-run-id"),
+                      "--internal-run-id", "--scope-policy"),
     "check-tasks": (),
     "backup": (),
 }

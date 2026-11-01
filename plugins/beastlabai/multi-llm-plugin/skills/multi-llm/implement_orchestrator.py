@@ -43,6 +43,7 @@ from utils.stream_bootstrap import bootstrap_streams
 from utils.text_clip import clip, join_clauses
 from utils.cli_common import (
     EXIT_NEEDS_HUMAN,
+    add_scope_policy_argument,
     build_parent_parser,
     dispatcher_command,
     record_artifacts,
@@ -54,6 +55,7 @@ from utils.output_handler import get_phase_dir, get_output_dir
 from utils.state_manager import mark_tasks_reset_in_state
 from utils.git_utils import get_project_root
 from utils.provider_registry import set_run_anchor
+from utils import scope_policy_runs
 from utils import unattended as unattended_mod
 from utils.unattended import (
     HUMAN_TASK_STRATEGIES,
@@ -244,6 +246,7 @@ def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
              'its dependents undone, retry runs a check again even though '
              'nothing in the repository changed since it ran.'
     )
+    add_scope_policy_argument(parser, role="implement")
 
     return parser.parse_args(argv)
 
@@ -713,6 +716,23 @@ def format_task_for_output(
         "complexity": task.estimated_complexity,
         "status": task.status.value,
     }
+
+
+def _apply_scope_guidance(output_data: Dict[str, Any], policy: str) -> None:
+    """Add the preserve block to every code task's prompt in *output_data* (in place).
+
+    ``scope_policy_runs.implementation_guidance`` is empty under ``expand``, so
+    a default run's prompts stay byte for byte what they were. A human task's
+    checklist is no model prompt and is left alone.
+    """
+    block = scope_policy_runs.implementation_guidance(policy)
+    if not block:
+        return
+    for batch in output_data.get("batches") or []:
+        for task in batch.get("tasks") or []:
+            if task.get("is_human") or not isinstance(task.get("prompt"), str):
+                continue
+            task["prompt"] = scope_policy_runs.with_guidance(task["prompt"], block)
 
 
 def format_batches_for_output(
@@ -2362,14 +2382,26 @@ def main(argv: Optional[List[str]] = None) -> int:
     # state.json mutation (the first `state.save()` is below this block, not
     # above it), so an unmet gate leaves no half-generated artifact.
     apply_check = check_apply_suggestions_prerequisite(state, plan_dir)
+    gate_phase = "apply-suggestions"
+    if apply_check["met"]:
+        # A scope blocker recorded by apply-task-suggestions (plan §5) is a
+        # gate here too, never the row-7 advisory below: the task list's
+        # accepted goal is not complete, and implement builds on it.
+        task_gate = check_apply_task_suggestions_prerequisite(state, plan_dir)
+        if task_gate.get("scope_blocked"):
+            apply_check, gate_phase = task_gate, "apply-task-suggestions"
     if not apply_check["met"]:
+        # A scope blocker is the user's scope decision, not unapplied advice:
+        # `--skip-prerequisites` cannot record a skip over it.
+        scope_blocked = bool(apply_check.get("scope_blocked"))
         missing = [{
-            "phase": "apply-suggestions",
+            "phase": gate_phase,
             "reason": apply_check["reason"],
             "valid_count": apply_check.get("valid_count", 0),
             "importance_breakdown": apply_check.get("importance_breakdown", {}),
+            **({"scope_blocked": True} if scope_blocked else {}),
         }]
-        if args.skip_prerequisites:
+        if args.skip_prerequisites and not scope_blocked:
             record_prerequisite_skip(
                 state, "apply-suggestions", reason=SKIP_PREREQUISITES_REASON
             )
@@ -2378,7 +2410,13 @@ def main(argv: Optional[List[str]] = None) -> int:
                 f"{apply_check.get('valid_count', 0)} unapplied apply-suggestions "
                 f"suggestions (reason: {SKIP_PREREQUISITES_REASON})"
             )
-        elif unattended:
+        elif unattended or args.skip_prerequisites:
+            if args.skip_prerequisites:
+                print(
+                    f"ERROR: --skip-prerequisites cannot skip {gate_phase} for "
+                    f"implement: it stopped on a scope blocker, a scope decision "
+                    f"only the user can make."
+                )
             print(build_unmet_message("implement", plan_path, plan_dir, missing))
             unattended_mod.mark_needs_human("implement")
             print(json.dumps({
@@ -2392,7 +2430,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         else:
             prereq_info = {
                 "marker": "PREREQUISITE_CHECK",
-                "phase": "apply-suggestions",
+                "phase": gate_phase,
                 "reason": apply_check["reason"],
                 "valid_count": apply_check.get("valid_count", 0)
             }
@@ -2686,6 +2724,26 @@ def main(argv: Optional[List[str]] = None) -> int:
         for task_id, action in sorted(human_task_decisions.items()):
             print(f"[HUMAN_TASK_ANSWERED] {task_id}={action}")
 
+    # D6 row 16 (plans/scope-policy-and-report-tags.md §4): the typed
+    # --scope-policy, else this implement run's live recorded choice, else
+    # expand. A typed one is kept, so the resume that never repeats the flag
+    # (`--resume --human-task …`) renders the same prompts.
+    # `--fresh` starts the implementation over: a new run, which never
+    # inherits an earlier run's recorded choice (as under `full --force`).
+    scope_choice = scope_policy_runs.resolve_run_choice(
+        getattr(args, "scope_policy", None), state.state, "implement",
+        new_run=bool(getattr(args, "fresh", False)))
+    scope_policy_value, scope_source = scope_policy_runs.effective_choice(scope_choice)
+    if not (args.dry_run or getattr(args, "dry_run_subagents", False)):
+        if scope_policy_runs.record_run_start(state.state, "implement", scope_choice):
+            state.save()
+    if scope_source != scope_policy_runs.sp.SOURCE_EXPLICIT:
+        scope_decision = scope_policy_runs.announce(
+            None, scope_policy_value, scope_source, unattended=unattended,
+            mode="implement")
+        if scope_decision:
+            pending_resolutions.append((scope_policy_runs.SITE_ID, scope_decision))
+
     # Which leg hands the batches out: the Python executor schedules them
     # itself, anything else hands them to the host (the native leg).
     executor_backed = bool(
@@ -2790,6 +2848,10 @@ def main(argv: Optional[List[str]] = None) -> int:
     # The plan as the user typed it, for the closing `util finalize-tracking
     # --plan-file` (fix round 14: the host copied the absolute `plan_file`).
     output_data["plan_arg"] = typed_plan_for(plan_path)
+
+    # Under preserve every code task's prompt says not to go beyond it; both
+    # legs build their batches from these prompts. Nothing changes under expand.
+    _apply_scope_guidance(output_data, scope_policy_value)
 
     # The resolved answers travel with the tasks, so the invoker copies a
     # decision instead of composing one (D5a).

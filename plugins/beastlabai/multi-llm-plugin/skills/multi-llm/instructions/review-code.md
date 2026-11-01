@@ -5,7 +5,7 @@ Reviews code changes made during implementation against the original plan.
 ## Usage
 
 ```bash
-/multi-llm:multi-llm --review-code <plan_path> [--models model1 model2] [--base-ref REF] [--quick]
+/multi-llm:multi-llm --review-code <plan_path> [--models model1 model2] [--base-ref REF] [--quick] [--scope-policy expand|preserve]
 ```
 
 ## Options
@@ -17,6 +17,7 @@ Reviews code changes made during implementation against the original plan.
 - `--validation-model <model>`: Model to use for validation (default: "auto")
 - `--apply-fixes`: Prepare fix tasks for subagents to apply
 - `--quick` / `-q`: Use quick_models from providers.yaml for lightweight reviews (2 models)
+- `--scope-policy expand|preserve`: the review round's scope policy (D6 row 16, never asked). Add it to the launch only when the user typed it. Left out, a new round is `expand`, which adds informational scope tags and changes nothing else; a `--reaggregate` keeps the round's recorded policy. `preserve` asks the reviewers for in-scope corrections only, and validation defers every extension or unclear fix without changing its validity (the review prints one `[SCOPE_POLICY] preserve: …` line counting the deferrals). A policy that differs from the one a round under way was asked under stops at exit 3 with `[SCOPE_POLICY_CONFLICT]`: report it whole, with the new-round command it names.
 
 ## Process
 
@@ -75,6 +76,10 @@ Each issue shows explicit validation status:
 - `**Validation:** ✗ Invalid` - LLM determined this is a false positive
 - `**Validation:** ? Needs Review` - Requires human judgment
 - `**Validation:** ? Unknown` - Validation status not available
+
+### Scope Tags
+
+Between the checkboxes and the `**Validation:**` line, each issue carries a `**Scope:**` line (its reviewer's tag, marked provisional) and its group's `**Group scope:**` line (the validated tag, the same on every issue of the group): `Within scope`, `Scope extension` or `Scope unclear`, with a short reason. Under `--scope-policy preserve` the group lines also show `**Scope outcome:**`, eligible or `Deferred: scope preservation requested`. The report header adds a `**Scope policy:**` line and the tag counts. The tags describe each proposed fix, separately from its validity; editing them changes nothing, since the apply reads scope from the validation records.
 
 ### Marking Issues to Skip
 
@@ -200,7 +205,7 @@ to bare `python`.
    A fan-out review over many models routinely outlives any single shell command a host is willing to wait for, so **run detached**, redirecting stdout+stderr to a log file in the phase dir and setting `PYTHONUNBUFFERED=1`:
    ```bash
    PYTHONUNBUFFERED=1 uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" review-code \
-     --plan-file "$PLAN_PATH" --models <selected> [--base-ref REF] [--apply-fixes] \
+     --plan-file "$PLAN_PATH" --models <selected> [--base-ref REF] [--apply-fixes] [--scope-policy <value>] \
      > "{plan}/code-review/orchestrator-run.log" 2>&1
    ```
 
@@ -388,7 +393,7 @@ to bare `python`.
       configured it; state that number there instead. Announcing an interval you are
       not waiting is worse than announcing none.
 
-   **Resume**: re-invoking with `--force` RESUMES (keeps already-completed per-model result files, runs only the missing models); `--rerun-all` forces a full re-run discarding existing per-model results. Pass the **same `--models` selection as the original run** (`models_requested` in `{plan}/code-review/.status.json`), never only the missing ones: the orchestrator skips the models that already have a result, and the run's report covers only the models passed. A kept result must have reviewed the current scope: when the change moved since it was written, the model re-runs (`[SCOPE_CHANGED]`) and its old file is kept as `{model}.json.stale-<scope id>`.
+   **Resume**: re-invoking with `--force` RESUMES (keeps already-completed per-model result files, runs only the missing models); `--rerun-all` forces a full re-run discarding existing per-model results. Pass the **same `--models` selection as the original run** (`models_requested` in `{plan}/code-review/.status.json`), never only the missing ones: the orchestrator skips the models that already have a result, and the run's report covers only the models passed. A kept result must have reviewed the current scope: when the change moved since it was written, the model re-runs (`[SCOPE_CHANGED]`) and its old file is kept as `{model}.json.stale-<scope id>`. Left out, `--scope-policy` stays the one the kept results were requested under (the run prints one `Scope policy notice:` line naming it); a different one typed stops at exit 3 with `[SCOPE_POLICY_CONFLICT]` rather than mix two policies in one round, and `--force --rerun-all` starts a fresh round under `expand` or the policy typed.
 
    The orchestrator will output (to the log):
    - `Git base reference: {commit}` - showing which base ref is being used

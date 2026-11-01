@@ -252,6 +252,32 @@
         "task_title": {
           "type": "string",
           "description": "WRITE kinds only. Human-readable label for logs, metrics and the implementation summary."
+        },
+        "scope": {
+          "type": "object",
+          "description": "Apply WRITE kinds under --scope-policy preserve only (utils/scope_apply.task_block). Absent means the task was materialized under expand (legacy tasks too). The executor's dispatch and native util write-prompt refuse a task whose policy, baseline or binding does not match the round's effective policy, and render the preserve writer guidance from it.",
+          "required": ["policy", "baseline_id", "binding", "items"],
+          "properties": {
+            "policy": {"enum": ["expand", "preserve"]},
+            "policy_source": {"type": "string"},
+            "baseline_id": {"type": ["string", "null"], "description": "The review round's host-computed scope baseline id."},
+            "binding": {"type": "string", "description": "sha256 over policy, baseline_id and items."},
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "relation"],
+                "properties": {
+                  "id": {"type": "string", "description": "The member id, as in expected_ids."},
+                  "group_id": {"type": "string"},
+                  "relation": {"enum": ["in_scope", "scope_extension", "unclear"]},
+                  "reason": {"type": "string"},
+                  "proposal_digest": {"type": ["string", "null"], "description": "The validated proposal digest the verdict was bound to."},
+                  "selected_remedy": {"type": "string", "description": "The remedy validation selected; the item's instruction."}
+                }
+              }
+            }
+          }
         }
       },
       "allOf": [

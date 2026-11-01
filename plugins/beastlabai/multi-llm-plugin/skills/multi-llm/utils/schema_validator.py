@@ -490,6 +490,13 @@ def drop_non_record_entries(
     Returns:
         The elements of *payload* that are dicts, in order. Empty for ``None``,
         for an empty list, and for any payload that is not a list.
+
+    A record that carries the reviewer's scope fields (``scope_relation``,
+    ``scope_reason``, ``scope_reference``) has them normalized in place
+    (``scope_policy.normalize_scope_fields``) — the one point every
+    aggregation site passes through. Normalization never raises and never
+    drops the record: a malformed tag reads ``unclear``, and a record with no
+    scope field is left exactly as it was.
     """
     if payload is None:
         return []
@@ -505,6 +512,7 @@ def drop_non_record_entries(
 
     records = [entry for entry in payload if isinstance(entry, dict)]
     dropped = [entry for entry in payload if not isinstance(entry, dict)]
+    _normalize_member_scope(records)
     if dropped:
         listed = ", ".join(
             f"{entry!r} ({type(entry).__name__})" for entry in dropped[:3]
@@ -523,6 +531,17 @@ def drop_non_record_entries(
             file=sys.stderr,
         )
     return records
+
+
+def _normalize_member_scope(records: List[Dict[str, Any]]) -> None:
+    """Normalize the reviewer scope fields of ``records`` in place (see above)."""
+    try:
+        from .scope_policy import has_scope_fields, normalize_scope_fields
+    except ImportError:  # pragma: no cover - script-style import
+        from utils.scope_policy import has_scope_fields, normalize_scope_fields
+    for record in records:
+        if has_scope_fields(record):
+            record.update(normalize_scope_fields(record))
 
 
 SUBAGENT_TASKS_SCHEMA = "subagent_tasks.schema.json"

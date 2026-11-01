@@ -75,6 +75,7 @@ from .cli_common import (
     EXIT_OK,
     LEGACY_AGENT_DECIDE_FLAGS,
     _quote,
+    add_scope_policy_argument,
     build_parent_parser,
     dispatcher_prefix,
 )
@@ -205,6 +206,7 @@ def _add_composite_flags(parser: argparse.ArgumentParser, mode: Optional[str]) -
                  "range's head from the commit brief's state.json and puts it "
                  "on step 1's flags line itself.",
         )
+    add_scope_policy_argument(group, role="composite")
     group.add_argument(
         AGENT_DECIDE_FLAG, *LEGACY_AGENT_DECIDE_FLAGS, dest="agent_decide",
         action="store_true", help="Accepted and implied; changes nothing.",
@@ -265,6 +267,7 @@ def build_parser(mode: Optional[str] = None) -> argparse.ArgumentParser:
         f"  {run} util improve-steps {plan} --mode improve-plan --host claude-code --quick",
         f"  {run} util improve-steps {plan} --mode improve-code --host codex --files src/app.py",
         f"  {run} util improve-steps {plan} --mode improve-plan --force --json",
+        f"  {run} util improve-steps {plan} --mode improve-code --scope-policy preserve",
         f"  {run} util improve-steps {brief} --mode improve-commits --host claude-code --quick",
     ]) + "\n"
     parser = argparse.ArgumentParser(

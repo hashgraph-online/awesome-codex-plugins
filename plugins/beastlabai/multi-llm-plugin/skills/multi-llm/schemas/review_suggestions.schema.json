@@ -27,6 +27,15 @@
       "type": {
         "type": "string",
         "enum": ["addition", "modification", "deletion", "clarification"]
+      },
+      "scope_relation": {
+        "description": "Optional: the reviewer's provisional scope classification of the finding's proposed action, \"in_scope\" | \"scope_extension\" | \"unclear\" (plans/scope-policy-and-report-tags.md §3). Deliberately untyped: a missing or malformed value reads \"unclear\" (utils/scope_policy.normalize_scope_fields) and never discards the finding. Validation returns the authoritative group classification; this one is a provisional report label."
+      },
+      "scope_reason": {
+        "description": "Optional: one short line saying why, against the scope baseline. A definite scope_relation without a reason reads \"unclear\"."
+      },
+      "scope_reference": {
+        "description": "Optional: the baseline section or text the classification rests on, or \"\"."
       }
     },
     "additionalProperties": false

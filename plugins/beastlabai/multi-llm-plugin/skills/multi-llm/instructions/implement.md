@@ -5,7 +5,7 @@ Executes implementation tasks from a plan by spawning subagents.
 ## Usage
 
 ```bash
-<dispatcher> implement <plan_path> [--resume] [--fresh] [--task T001] [--dry-run] [--yes] [--no-confirm] [--force-strategy <strategy>] [--human-task ID=done|skip|retry] [--skip-prerequisites]
+<dispatcher> implement <plan_path> [--resume] [--fresh] [--task T001] [--dry-run] [--yes] [--no-confirm] [--force-strategy <strategy>] [--human-task ID=done|skip|retry] [--skip-prerequisites] [--scope-policy expand|preserve]
 ```
 
 ## Options
@@ -18,6 +18,7 @@ Executes implementation tasks from a plan by spawning subagents.
 - `--force-strategy <strategy>`: Skip the human task strategy prompt and use the given strategy directly. Valid values: `pause-and-ask`, `skip-continue`, `skip-dependents`. Useful for scripted/non-interactive runs. `pause-and-ask` together with `--yes` is exit 3 at parse time — it promises a gate that an unattended run can never render.
 - `--human-task ID=done|skip|retry` (repeatable): Answer one human task without a prompt (D6 row 9), e.g. `--human-task T004=done`. Recorded in `state.json` under `human_task_decisions`. An empty or unrecognized value is exit 3 at parse time. With `--resume` it also answers a code task the last run recorded `failed` (a check that failed, say), or a check whose findings hold back the tasks that depend on it: `done` treats it as satisfied and the tasks after it run (a check's findings stay listed for the code review), `skip` leaves it and the tasks that depend on it undone (under every human-task strategy — `skip-continue` treats only a manual task's edges as satisfied), `retry` runs a check again even though nothing in the repository changed since it ran (`retry` is never recorded). A recorded answer answers one stop: once its task runs again (`--task {id}`, a `retry`, a resume that hands it out) the answer is dropped, so a later failure or new findings of that task stop and ask again. Without `--exec-subagents` the answer is applied to the task JSON step 2 prints: a task answered `done` is recorded completed in `state.json`, left out of the batches and named in the top-level `accepted_tasks` map with its reason (do not dispatch or record it); one answered `skip`, and each task that depends on it, is left out of the batches and named in the top-level `skipped_tasks` map.
 - `--skip-prerequisites`: Proceed even though plan-review suggestions were never applied. Loud and recorded; **never implied by `--yes`**.
+- `--scope-policy expand|preserve` (D6 row 16, never asked): under `preserve` each task's prompt tells its model to implement the task as described and add no feature, outcome, refactor or cleanup it does not ask for; a task that cannot be completed without one is reported `failed`, with the blocking scope decision in its notes, and goes through the ordinary failure handling. `expand`, the default for a new run, leaves every prompt as it was. This mode has no review round to inherit from: left out, a re-run or `--resume` of an unfinished implement keeps the value typed when it started, and any other run is `expand`. Pass it only when the user typed it.
 
 ## Process
 
@@ -219,7 +220,7 @@ Prerequisites are met. If `[TASK_SUGGESTIONS_ADVISORY]` was present, handle it a
    If the command fails or `$PROJECT_ROOT` is empty, STOP with the error: "multi-llm requires running inside a git repository." Never fall back to a relative path or `$PWD`.
 
    ```bash
-   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" implement --plan-file "$PLAN_PATH" [--resume]
+   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" implement --plan-file "$PLAN_PATH" [--resume] [--scope-policy <value>]
    ```
    Do NOT pass `--output` — the orchestrator computes the workspace default itself: `$PROJECT_ROOT/.multi-llm/tmp/implementation_tasks_{plan_stem}_{hash8}.json`, where `{plan_stem}` is the plan filename without extension and `{hash8}` is the first 8 hex characters of the SHA-256 of the repo-relative plan path. The hash makes the name deterministic AND unique per plan *path* (same-stem plans such as `plans/api/index.md` and `plans/ui/index.md` get distinct artifacts, so concurrent runs cannot clobber each other), while a re-run for the same plan simply overwrites the previous artifact — there is no cleanup step; the orchestrator writes `.multi-llm/tmp/.gitignore` containing `*` so the directory ignores itself, and the user may delete `.multi-llm/tmp/` at any time — the next run recreates it. The orchestrator prints the exact absolute path on its `Output file:` summary line — note that path for step 4; never reconstruct the filename or compute the hash yourself.
 

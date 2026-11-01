@@ -36,6 +36,8 @@ from . import cli_common
 from . import progress_tracker as _progress
 from . import readonly_audit as _readonly_audit
 from . import result_files as _result_files
+from . import scope_policy as _sp
+from . import scope_round as _scope_round
 from .progress_tracker import DEADLINE_ERROR, FanoutProgress, PhaseProgress
 from .cli_common import (
     dispatcher_command,
@@ -453,6 +455,15 @@ def merge_validation_batches(
     of ``batch_metadata``. ``metadata.runners = {batch_index: model}`` records
     who answered each batch (§7.3b), and ``metadata.model`` is the single value
     when every batch agrees, else the sorted comma-joined list.
+
+    Scope (plans/scope-policy-and-report-tags.md §3, §3.1): each verdict that
+    joined its group by hash is stamped against the host's own copy of that
+    group in ``grouped`` and the baseline the task file's ``scope`` block
+    names, and the groups get their ``scope_verdict`` by hash only. Under a
+    ``preserve`` round the validation-stage decision is derived right here
+    (``scope_policy_decision`` on every group, counts in ``validation.json``'s
+    metadata and ``.status.json``); validity is never changed by it. Under
+    ``expand`` nothing is decided.
     """
     try:
         from .subagent_tasks import batch_manifest, file_bytes_sha256
@@ -471,11 +482,16 @@ def merge_validation_batches(
         )
         if digest:
             batch_hashes[str(index)] = digest
+    host_groups = [g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped]
     validation_results = merge_batched_validation_results(
         output_dir=phase_dir,
         batch_metadata=batch_metadata,
         total_groups=len(grouped),
+        groups=host_groups,
     )
+    scope_meta = _scope_round.task_scope(batch_metadata)
+    validated = apply_validation_to_groups(host_groups, validation_results)
+    decisions = scope_decisions_for(validated, validation_results, scope_meta)
     # `save_validation_results` already announces this write
     # ("[validation] Saved validation results to: ..."); a second line here
     # under a different name announced the same file twice in the run log.
@@ -505,6 +521,8 @@ def merge_validation_batches(
         runners=runners,
         batch_sha256=batch_hashes,
         batch_manifest=batch_manifest(batch_metadata),
+        scope=None if scope_meta.get("legacy") else scope_meta,
+        scope_decisions=decisions,
     )
     # §2.4: every aggregation re-publishes `validation_context` from the bound
     # round's own recorded sources (never the live plan), plus how many
@@ -512,10 +530,246 @@ def merge_validation_batches(
     # merge callers — the first run, both `--reaggregate` legs and the
     # executor continuation.
     publish_from_task_document(phase_dir, batch_metadata, validation_results)
-    return apply_validation_to_groups(
-        [g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
-        validation_results,
+    _scope_round.record_decisions(phase_dir, decisions)
+    return validated
+
+
+# ---------------------------------------------------------------------------
+# Scope policy: the review round (plans/scope-policy-and-report-tags.md §2-§4)
+# ---------------------------------------------------------------------------
+
+
+def resolve_scope_round(
+    state_manager: Any,
+    phase_name: str,
+    args: Any,
+    *,
+    same_round: bool = False,
+    force: bool = False,
+    has_results: bool = False,
+    rerun_all: bool = False,
+    phase_dir: Optional[str] = None,
+) -> "_scope_round.RoundPolicy":
+    """The round's policy (``scope_round.resolve_review_round``), or exit 3.
+
+    Called before the detach boundary, so a refused policy change lands on the
+    caller's terminal and nothing is written or dispatched.
+    """
+    try:
+        return _scope_round.resolve_review_round(
+            getattr(state_manager, "state", None) or {}, phase_name,
+            _scope_round.explicit_policy(args),
+            force=force, has_results=has_results, rerun_all=rerun_all,
+            same_round=same_round,
+        )
+    except _scope_round.PolicyConflict as exc:
+        print(f"ERROR: {exc.message}")
+        if phase_dir:
+            print(f"  Phase directory: {phase_dir}")
+        sys.exit(exc.exit_code)
+
+
+def round_results_exist(phase_dir: str) -> bool:
+    """Whether this phase holds reviewer results, including unselected models.
+
+    Scope policy belongs to the whole round. A different selection must not
+    hide the cached results that bind its policy. Use the shared candidate
+    filter so validation, reports and executor bookkeeping do not count.
+    """
+    return bool(_result_files.snapshot_candidates(phase_dir))
+
+
+def retire_scope_round_results(phase_dir: str, state_manager: Any, phase: str,
+                               round_policy: "_scope_round.RoundPolicy") -> None:
+    """Retire old-policy caches after the phase owns its write boundary.
+
+    An authorized new round can select different reviewers; their older
+    siblings must not become reusable when selected again later. Preserve
+    the old files under the existing stale-result convention. A failed
+    retirement refuses the new round before its policy is recorded or any
+    reviewer is dispatched.
+    """
+    record = _sp.round_record(getattr(state_manager, "state", {}) or {}, phase) or {}
+    previous = _sp.effective(record.get("review_policy"))
+    if not round_policy.new_round or previous == round_policy.policy:
+        return
+    for name in sorted(_result_files.snapshot_candidates(phase_dir)):
+        path = os.path.join(phase_dir, name)
+        retired = _result_files.set_aside_stale_result(
+            path, reason=f"belongs to the previous scope-policy round ({previous})",
+        )
+        if retired is None:
+            print(
+                f"ERROR: [SCOPE_POLICY_CONFLICT] Could not retire {path} from the "
+                f"previous `{previous}` round. Resolve the file error and retry "
+                "the new round; no reviewers were dispatched."
+            )
+            sys.exit(_scope_round.EXIT_NEEDS_HUMAN)
+
+
+def scope_plan_document(plan_path: str) -> Optional[BoundDocument]:
+    """The plan as read now, bound to nothing (a baseline source for a path
+    that has no validation snapshot to name). ``None`` when unreadable."""
+    try:
+        data = Path(plan_path).read_bytes()
+        return BoundDocument(
+            label="plan", text=decode_document(data, plan_path),
+            sha256=_sha256_hex(data), size=len(data),
+            source_path=os.path.abspath(plan_path),
+        )
+    except (OSError, ValidationContextError):
+        return None
+
+
+def _sha256_hex(data: bytes) -> str:
+    import hashlib
+
+    return hashlib.sha256(data).hexdigest()
+
+
+def validation_scope_block(
+    phase_name: str,
+    round_policy: "_scope_round.RoundPolicy",
+    state_manager: Any,
+    recorded_baseline: Optional[Dict[str, Any]],
+    *,
+    plan_document: Any,
+    tasks_document: Any = None,
+    commit_review: bool = False,
+) -> Dict[str, Any]:
+    """The ``scope`` block of a validation round about to be materialized.
+
+    The baseline is the one these validators are shown: the round's recorded
+    one, re-hashed from the documents their prompts embed. A legacy round with
+    no recorded baseline adopts it (first binding wins); a round whose inputs
+    moved since it began keeps its own and says so — the verdicts are then
+    bound to the moved inputs and are not authority for the round.
+    """
+    baseline = _scope_round.validators_baseline(
+        phase_name, recorded_baseline,
+        plan_document=plan_document, tasks_document=tasks_document,
     )
+    round_id = _sp.baseline_id_of(recorded_baseline)
+    if round_id is None:
+        round_id = _scope_round.record_round(
+            state_manager, phase_name,
+            _scope_round.RoundPolicy(round_policy.policy, round_policy.source, False),
+            baseline,
+        ) or _sp.baseline_id_of(baseline)
+    elif round_id != baseline.get("baseline_id"):
+        print(
+            f"[SCOPE_BASELINE_MOVED] {phase_name}: the documents validation reads "
+            f"changed since this review round began (round baseline {round_id}, "
+            f"now {baseline.get('baseline_id')}). Scope verdicts bound to the new "
+            f"text are not authority for this round"
+            + (" and defer under preserve" if round_policy.policy == _sp.POLICY_PRESERVE else "")
+            + "; start a new review round (--force --rerun-all) to rebase it.",
+            file=sys.stderr,
+        )
+    return _scope_round.scope_block(
+        round_policy.policy,
+        _scope_round.guidance_phase(phase_name, commit_review=commit_review),
+        source=round_policy.source, baseline=baseline, round_baseline_id=round_id,
+    )
+
+
+async def internal_validation_with_scope(
+    grouped: Sequence[Any],
+    context: str,
+    args: Any,
+    timeout: int,
+    *,
+    phase_name: str,
+    phase_dir: str,
+    validation_path: str,
+    round_policy: "_scope_round.RoundPolicy",
+    baseline: Optional[Dict[str, Any]],
+    round_baseline_id: Optional[str],
+    commit_review: bool = False,
+) -> List[Dict[str, Any]]:
+    """The legacy in-process validation (``--internal-validation``), scope included.
+
+    Validates, joins the verdicts back (scope authority by echoed hash only),
+    derives a ``preserve`` round's decision and saves ``validation.json``.
+    """
+    block = _scope_round.scope_block(
+        round_policy.policy,
+        _scope_round.guidance_phase(phase_name, commit_review=commit_review),
+        source=round_policy.source, baseline=baseline,
+        round_baseline_id=round_baseline_id,
+    )
+    validation_results = await validate_groups(
+        [g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
+        context=context,
+        model=args.validation_model,
+        timeout=timeout,
+        scope_policy=block["policy"],
+        scope_phase=block["phase"],
+        scope_baseline_id=block.get("baseline_id"),
+    )
+    validated_groups = apply_validation_to_groups(
+        [g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
+        validation_results
+    )
+    decisions = scope_decisions_for(validated_groups, validation_results, block)
+    save_validation_results(
+        validation_results, Path(validation_path),
+        # §7.1a: merged from no batch files, so bound to none — an
+        # empty binding, not the legacy mtime fallback.
+        batch_sha256={},
+        scope=block,
+        scope_decisions=decisions,
+    )
+    _scope_round.record_decisions(phase_dir, decisions)
+    return validated_groups
+
+
+def with_reviewer_guidance(
+    prompt_context_factory: Callable[[str], Dict[str, Any]],
+    guidance: str,
+) -> Callable[[str], Dict[str, Any]]:
+    """The factory, with the round's ``{scope_policy_guidance}`` block added.
+
+    Rendered once per round from the resolved policy (never cached with the
+    template), and only where the orchestrator's own factory left the key
+    out, so a caller that renders its own keeps it.
+    """
+    def factory(model_spec: str) -> Dict[str, Any]:
+        context = dict(prompt_context_factory(model_spec))
+        context.setdefault("scope_policy_guidance", guidance)
+        return context
+
+    return factory
+
+
+def scope_decisions_for(
+    validated: List[Dict[str, Any]],
+    validation_results: List[Dict[str, Any]],
+    scope_meta: Dict[str, Any],
+) -> Optional[Dict[str, int]]:
+    """A ``preserve`` round's validation-stage decision, on groups and records.
+
+    Each validated group gets ``scope_policy_decision`` judged against the
+    round's own baseline (``round_baseline_id``), and the hash-joined
+    validation record of that group carries the same decision, so
+    ``validation.json`` records the policy rejection as soon as validation
+    determines it (plan §5) — a read-only review included. ``None`` (and
+    nothing stored) under ``expand``.
+    """
+    from .state_manager import generate_group_id
+
+    counts = _scope_round.annotate_decisions(
+        validated, scope_meta.get("policy"),
+        scope_meta.get("round_baseline_id") or scope_meta.get("baseline_id"),
+    )
+    if counts is None:
+        return None
+    by_hash = {generate_group_id(g): g for g in validated if isinstance(g, dict)}
+    for record in validation_results:
+        group = by_hash.get(record.get("group_id")) if isinstance(record, dict) else None
+        if group is not None and _sp.DECISION_KEY in group:
+            record[_sp.DECISION_KEY] = group[_sp.DECISION_KEY]
+    return counts
 
 
 # ---------------------------------------------------------------------------
@@ -5906,6 +6160,9 @@ def _write_salvage_request(
         "expected_type": "array",
         "expected_schema": {
             "fields": list(REQUIRED_FIELDS),
+            # The reviewer's provisional scope tags: kept when present, never
+            # a reason to drop an entry.
+            "optional_fields": list(_sp.SCOPE_FIELDS),
             "importance_values": list(VALID_IMPORTANCE),
             "type_values": list(VALID_TYPES),
         },
@@ -6151,6 +6408,7 @@ def aggregate_results(
     served_models: Optional[Dict[str, Dict[str, Any]]] = None,
     usage: Optional[Dict[str, Dict[str, Any]]] = None,
     requested_models: Optional[int] = None,
+    scope_state: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Aggregate all model results into a consolidated markdown report.
 
@@ -6191,6 +6449,11 @@ def aggregate_results(
             entry on the ``**Models:**`` line and its badge in the HTML report;
             a model that reported nothing renders nothing, so a run of
             duration-only adapters is byte-for-byte what it was.
+        scope_state: The ``state.json`` dict holding this review round's
+            ``scope_policy`` record (plans/scope-policy-and-report-tags.md
+            §6); ``None`` reads the saved ``state.json`` beside *phase_dir*.
+            Both reports show the round's effective policy, each group's
+            validated scope tag and each finding's provisional one.
 
     Returns:
         Path to the generated report
@@ -6284,6 +6547,21 @@ def aggregate_results(
             _status_file.read_status(phase_dir).get("validation_context")
         )
     )
+    # Scope tags (plans/scope-policy-and-report-tags.md §6): the round's
+    # effective policy and the distinct-group tag counts, from `state.json`'s
+    # record of this review round (a legacy round reads `expand`).
+    from . import scope_report as _scope_report
+
+    if scope_state is None:
+        scope_state = _scope_report.read_state(phase_dir)
+    scope_round = _scope_report.round_info(scope_state, phase_name, groups_to_display or [])
+    report_lines.extend(_scope_report.md_header_lines(
+        scope_round,
+        _scope_report.count_entries(
+            (str(g.get("group_hash") or ""), _scope_report.group_scope(g, scope_round))
+            for g in groups_to_display or []
+        ),
+    ))
 
     # NOTE: All phases (including review-tasks) use interactive reports with
     # skip/approve checkboxes.  The original code suppressed these controls for
@@ -6294,12 +6572,13 @@ def aggregate_results(
     report_lines.append("> **Note:** An interactive HTML report is also available at `report.html`.")
     report_lines.append("> If you export selections from the HTML report (`user_selections.json`),")
     report_lines.append("> those selections will take precedence over checkboxes in this file.")
+    report_lines.append(_scope_report.md_legend_line())
     report_lines.append("")
 
     if groups_to_display:
         groups_to_display = sort_raw_groups_by_priority(groups_to_display)
         for group_idx, group in enumerate(groups_to_display, 1):
-            report_lines.extend(format_group(group, group_idx))
+            report_lines.extend(format_group(group, group_idx, scope_round=scope_round))
     else:
         report_lines.append("_No suggestions found._")
         report_lines.append("")
@@ -6333,6 +6612,7 @@ def aggregate_results(
             usage=usage,
             requested_models=requested_models,
             salvage_requested=salvage_requested,
+            scope_state=scope_state,
         )
         write_html_report(html_content, Path(phase_dir))
         print(f"HTML report written to: {os.path.join(phase_dir, 'report.html')}")
@@ -6388,13 +6668,23 @@ def aggregate_results(
 # Report formatting helpers
 # ---------------------------------------------------------------------------
 
-def format_group(group: Dict[str, Any], group_idx: int) -> List[str]:
+def format_group(
+    group: Dict[str, Any],
+    group_idx: int,
+    scope_round: Optional[Dict[str, Any]] = None,
+) -> List[str]:
     """Format a suggestion group for the markdown report.
 
     Args:
         group: Group dict with theme, suggestions, validation info, etc.
         group_idx: 1-based group index for display.
+        scope_round: The review round's scope record
+            (``scope_report.round_info``); ``None`` reads ``expand`` with no
+            baseline. The group's validated scope tag and, under ``preserve``,
+            its policy outcome sit between the checkboxes and the
+            ``**Validation:**`` line (plan §6).
     """
+    from . import scope_report as _scope_report
     theme = group.get("theme", "Untitled Group")
     category = group.get("category", "unknown")
     validation_status = group.get("validation_status")
@@ -6434,6 +6724,10 @@ def format_group(group: Dict[str, Any], group_idx: int) -> List[str]:
     # or --revalidate).
     if validation_status == "needs-human-decision":
         lines.append("- [ ] Let the agent decide")
+
+    lines.extend(_scope_report.md_group_lines(
+        _scope_report.group_scope(group, scope_round or _scope_report.round_info({}, ""))
+    ))
 
     lines.extend([
         f"**Validation:** {validation_str} | "
@@ -6508,6 +6802,13 @@ def format_suggestion_in_group(
         # groups use the group-level checkbox (no per-suggestion select here).
         if group_validation_status == "needs-human-decision":
             lines.append("- [ ] Let the agent decide")
+    # The reviewer's own (provisional) scope tag, above the `**Importance:**`
+    # line: `report_parser.parse_suggestion_descriptions` reads everything
+    # after that line as the editable description, so an unchanged report
+    # shows no edit (plan §6).
+    from . import scope_report as _scope_report
+
+    lines.append(_scope_report.md_member_line(suggestion))
     lines.extend([
         f"**Importance:** {importance} | "
         f"**Type:** {stype} | "
@@ -6930,6 +7231,15 @@ async def reaggregate_from_existing_files(
             print(f"Grouped suggestions saved to: {grouped_path}")
 
         plan_content = read_plan(plan_path)
+        # The round on record keeps its policy and baseline (plan §4); an
+        # explicit policy that differs was refused before the detach boundary.
+        scope_state = get_or_create_state(Path(plan_path))
+        scope_round_policy = resolve_scope_round(
+            scope_state, phase_name, args, same_round=True, phase_dir=phase_dir,
+        )
+        scope_recorded_baseline = _scope_round.round_baseline(
+            getattr(scope_state, "state", {}) or {}, phase_name
+        )
 
         validated_groups_for_report: Optional[List[Dict]] = None
         validation_path = os.path.join(phase_dir, "validation.json")
@@ -7014,6 +7324,12 @@ async def reaggregate_from_existing_files(
                     [g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
                     validation_results
                 )
+                # The reused verdicts' validation-stage decision, re-derived
+                # for the report from the round's policy and baseline.
+                _scope_round.record_decisions(phase_dir, _scope_round.annotate_decisions(
+                    validated_groups, scope_round_policy.policy,
+                    _sp.baseline_id_of(scope_recorded_baseline),
+                ))
                 validated_groups_for_report = validated_groups
                 print(f"Loaded {len(validation_results)} validation results")
                 # §2.4: the reused round re-publishes its own recorded context
@@ -7127,24 +7443,16 @@ async def reaggregate_from_existing_files(
             if internal_validation:
                 print("\nRunning internal validation...")
                 validation_timeout = args.timeout if args.timeout else 600
-                validation_results = await validate_groups(
-                    [g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
-                    context=plan_content,
-                    model=args.validation_model,
-                    timeout=validation_timeout
-                )
-
-                validated_groups = apply_validation_to_groups(
-                    [g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
-                    validation_results
-                )
-                validated_groups_for_report = validated_groups
-
-                save_validation_results(
-                    validation_results, Path(validation_path),
-                    # §7.1a: merged from no batch files, so bound to none — an
-                    # empty binding, not the legacy mtime fallback.
-                    batch_sha256={},
+                validated_groups_for_report = await internal_validation_with_scope(
+                    grouped, plan_content, args, validation_timeout,
+                    phase_name=phase_name, phase_dir=phase_dir,
+                    validation_path=validation_path,
+                    round_policy=scope_round_policy,
+                    baseline=_scope_round.validators_baseline(
+                        phase_name, scope_recorded_baseline,
+                        plan_document=scope_plan_document(plan_path),
+                    ),
+                    round_baseline_id=_sp.baseline_id_of(scope_recorded_baseline),
                 )
                 print(f"Validation results saved to: {validation_path}")
             else:
@@ -7161,20 +7469,27 @@ async def reaggregate_from_existing_files(
                 # A re-materialized round is a new round with a new snapshot
                 # (§2.3 step 5), bound from one read of the plan as it is now.
                 plan_document = bind_plan_for_validation(str(plan_path), phase_dir)
+                context_kwargs = validation_context_kwargs(
+                    phase_name, plan_content, extra_validation_metadata,
+                    plan_document=plan_document, phase_dir=phase_dir,
+                )
                 batched_tasks = prepare_batched_validation_tasks(
                     groups=[g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
                     output_dir=phase_dir,
                     plan_file=str(plan_path),
                     model=args.validation_model,
                     orchestrator=orchestrator_script,
-                    **validation_context_kwargs(
-                        phase_name, plan_content, extra_validation_metadata,
-                        plan_document=plan_document, phase_dir=phase_dir,
-                    ),
+                    **context_kwargs,
                     runner_read_refusal=materialization_read_refusal(
                         args, str(plan_path)
                     ),
                     phase=phase_name,
+                    scope=validation_scope_block(
+                        phase_name, scope_round_policy, scope_state,
+                        scope_recorded_baseline,
+                        plan_document=plan_document,
+                        tasks_document=context_kwargs.get("secondary_document"),
+                    ),
                     **extra_kwargs,
                 )
                 batched_tasks["format_version"] = CURRENT_FORMAT_VERSION
@@ -7464,6 +7779,14 @@ async def run_review_orchestration(
             print(f"ERROR: Phase directory does not exist: {phase_dir}")
             sys.exit(1)
 
+        # A reaggregate belongs to the round on record: its policy and
+        # baseline stay. An explicit `--scope-policy` that differs is refused
+        # here, before the boundary (plan §4: never mixed in one round).
+        resolve_scope_round(
+            get_or_create_state(Path(plan_path)), phase_name, args,
+            same_round=True, phase_dir=phase_dir,
+        )
+
         # The same detach boundary the fan-out crosses below, after the one
         # pre-flight this branch has. Without it a `--reaggregate --detach`
         # launch ran the whole re-dispatch in the invoker's foreground and
@@ -7609,6 +7932,19 @@ async def run_review_orchestration(
     if pre_run_hook:
         pre_run_hook()
 
+    # The round's scope policy, resolved before fan-out (plan §4): it decides
+    # the reviewer and validator prompts alike. A same-round resume keeps the
+    # recorded policy; an explicit change that would mix reviewer outputs is
+    # refused here, in the foreground, before anything is written.
+    scope_round_policy = resolve_scope_round(
+        state_guard, phase_name, args,
+        force=bool(getattr(args, "force", False)),
+        has_results=round_results_exist(phase_dir),
+        rerun_all=bool(getattr(args, "rerun_all", False)),
+        phase_dir=phase_dir,
+    )
+    _scope_round.print_round_line(phase_name, scope_round_policy)
+
     # Read plan content — once, as bytes (§2.3 step 5): the excerpt a
     # validator is shown, the snapshot it is pointed at and `inputs.plan_sha256`
     # all derive from this one read, never from a later re-read of a file other
@@ -7691,6 +8027,38 @@ async def run_review_orchestration(
     plan_document = bind_plan_for_validation(plan_path, phase_dir, data=plan_bytes)
     plan_content = plan_document.text
 
+    # The round's scope baseline, bound from the same reads the round already
+    # makes: the plan's `validation-snapshot.md` bytes and, for review-tasks,
+    # the `tasks-backup.md` copy of the task list (plan §2). Recorded once per
+    # round; a resume keeps the first binding.
+    scope_tasks_source = None
+    if tasks_path:
+        try:
+            scope_tasks_source = _scope_round.file_source(
+                "tasks", str(tasks_path), snapshot=os.path.basename(backup_path),
+                data=Path(backup_path).read_bytes(),
+            )
+        except OSError:
+            scope_tasks_source = _scope_round.file_source("tasks", str(tasks_path))
+    scope_state = get_or_create_state(Path(plan_path))
+    retire_scope_round_results(phase_dir, scope_state, phase_name, scope_round_policy)
+    _scope_round.record_round(
+        scope_state, phase_name, scope_round_policy,
+        _scope_round.build_round_baseline(
+            phase_name, plan_document=plan_document,
+            extra_sources=[scope_tasks_source],
+        ),
+    )
+    scope_recorded_baseline = _scope_round.round_baseline(
+        getattr(scope_state, "state", {}) or {}, phase_name
+    )
+    reviewer_context_factory = with_reviewer_guidance(
+        prompt_context_factory,
+        _sp.reviewer_guidance(
+            scope_round_policy.policy, _scope_round.guidance_phase(phase_name)
+        ),
+    )
+
     # Stage U: what an earlier attempt of this phase recorded, read *before*
     # the write below — `write_status` replaces every key but the two reserved
     # objects, so the `usage` the last attempt wrote is gone the instant it
@@ -7736,6 +8104,15 @@ async def run_review_orchestration(
             _unattended.row(2).site_id,
             "defaults.models: " + ", ".join(model_specs),
         )
+    # D6 row 16: a scope policy nobody typed, recorded the same way (only
+    # under `--yes`; a typed value is the flag's answer, not a resolution).
+    if unattended:
+        from . import scope_policy_runs as _scope_policy_runs
+
+        _scope_policy_runs.announce(
+            phase_dir, scope_round_policy.policy, scope_round_policy.source,
+            unattended=True,
+        )
     _detach.report_progress(
         phase_dir, step="fanout", models_total=len(model_specs),
         models_done=0, models_succeeded=0,
@@ -7760,7 +8137,7 @@ async def run_review_orchestration(
         model_specs,
         plan_path,
         prompt_template,
-        prompt_context_factory,
+        reviewer_context_factory,
         phase_name,
         invoke_phase,
         args.timeout,
@@ -8044,25 +8421,17 @@ async def run_review_orchestration(
                 if internal_validation:
                     print("\nRunning internal validation...")
                     validation_timeout = args.timeout if args.timeout else 600
-                    validation_results = await validate_groups(
-                        [g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
-                        context=plan_content,
-                        model=args.validation_model,
-                        timeout=validation_timeout
-                    )
-
-                    validated_groups = apply_validation_to_groups(
-                        [g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
-                        validation_results
-                    )
-                    validated_groups_for_report = validated_groups
-
                     validation_path = os.path.join(phase_dir, "validation.json")
-                    save_validation_results(
-                        validation_results, Path(validation_path),
-                        # §7.1a: merged from no batch files, so bound to none — an
-                        # empty binding, not the legacy mtime fallback.
-                        batch_sha256={},
+                    validated_groups_for_report = await internal_validation_with_scope(
+                        grouped, plan_content, args, validation_timeout,
+                        phase_name=phase_name, phase_dir=phase_dir,
+                        validation_path=validation_path,
+                        round_policy=scope_round_policy,
+                        baseline=_scope_round.validators_baseline(
+                            phase_name, scope_recorded_baseline,
+                            plan_document=plan_document,
+                        ),
+                        round_baseline_id=_sp.baseline_id_of(scope_recorded_baseline),
                     )
                 else:
                     # Host-neutral: this print runs on every host that dispatches
@@ -8076,6 +8445,10 @@ async def run_review_orchestration(
                     if extra_validation_metadata:
                         extra_kwargs = {k: v for k, v in extra_validation_metadata.items()
                                         if k in ("tasks_file",)}
+                    context_kwargs = validation_context_kwargs(
+                        phase_name, plan_content, extra_validation_metadata,
+                        plan_document=plan_document, phase_dir=phase_dir,
+                    )
                     batched_tasks = prepare_batched_validation_tasks(
                         groups=[g.to_dict() if hasattr(g, 'to_dict') else g for g in grouped],
                         output_dir=phase_dir,
@@ -8089,14 +8462,19 @@ async def run_review_orchestration(
                         # block told the session model to re-invoke `review-plan
                         # --reaggregate` for a review-tasks run.
                         orchestrator=orchestrator_script,
-                        **validation_context_kwargs(
-                            phase_name, plan_content, extra_validation_metadata,
-                            plan_document=plan_document, phase_dir=phase_dir,
-                        ),
+                        **context_kwargs,
                         runner_read_refusal=materialization_read_refusal(
                             args, str(plan_path)
                         ),
                         phase=phase_name,
+                        # The same policy and baseline the reviewers were given
+                        # (plan §3.1), in the one task file both invokers run.
+                        scope=validation_scope_block(
+                            phase_name, scope_round_policy, scope_state,
+                            scope_recorded_baseline,
+                            plan_document=plan_document,
+                            tasks_document=context_kwargs.get("secondary_document"),
+                        ),
                         **extra_kwargs,
                     )
                     batched_tasks["format_version"] = CURRENT_FORMAT_VERSION

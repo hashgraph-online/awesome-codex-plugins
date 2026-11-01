@@ -7,8 +7,17 @@ document; the orchestrator validates it and writes it into the plan.
 ## Usage
 
 ```bash
-/multi-llm:multi-llm --generate-tasks <plan_path>
+/multi-llm:multi-llm --generate-tasks <plan_path> [--scope-policy expand|preserve]
 ```
+
+`--scope-policy preserve` adds one block to the generation prompt: tasks only for what
+the plan asks for (its goals, requirements and stated limits), none for a feature,
+refactor or cleanup it does not ask for, and a requirement that cannot be delivered
+within those limits named in `plan_preamble` with the scope decision it needs.
+`expand`, the default for a new run, leaves the prompt as it was. This mode has no
+review round to inherit from: left out, a re-run of an unfinished generation keeps
+the value typed when it started, and any other run is `expand` (D6 row 16, never
+asked). Pass the flag only when the user typed it.
 
 ## Process (the `generate-tasks` mode drives these steps)
 

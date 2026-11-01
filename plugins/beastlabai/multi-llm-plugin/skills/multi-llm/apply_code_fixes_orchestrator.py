@@ -292,8 +292,18 @@ def merge_edited_issue_descriptions(
     return updated_issues, edit_log
 
 
-def format_fix_for_output(group: Dict[str, Any], index: int) -> Dict[str, Any]:
-    """Format a grouped issue for output to Claude Code."""
+def format_fix_for_output(
+    group: Dict[str, Any], index: int, *, selected_remedy: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Format a grouped issue for output to Claude Code.
+
+    *selected_remedy* (``--scope-policy preserve`` only, plans/
+    scope-policy-and-report-tags.md §3): the one remedy validation bound to
+    this group. It is then the fix's whole description — the members'
+    descriptions are not concatenated in, so a remedy validation discarded
+    (an extension) cannot come back as an instruction. ``None`` keeps the
+    formatting exactly as before.
+    """
     suggestions = group.get("suggestions", [])
 
     if suggestions:
@@ -321,6 +331,8 @@ def format_fix_for_output(group: Dict[str, Any], index: int) -> Dict[str, Any]:
         all_descs = [s.get("desc", s.get("description", "")) for s in suggestions if s.get("desc") or s.get("description")]
         if all_descs:
             desc = "\n\n".join(all_descs)
+    if selected_remedy:
+        desc = selected_remedy
 
     formatted = {
         "index": index,
@@ -1059,12 +1071,21 @@ Finalization (run by the host AFTER every batch has been applied and verified):
         pre-dispatch re-check and the protected-set check read (§2.7); a
         plan's run keeps its shape byte for byte.
         """
-        formatted = format_fix_for_output(group, index)
+        from utils.scope_apply import selected_remedy
+
+        remedy = selected_remedy(group, self.scope)
+        formatted = format_fix_for_output(group, index, selected_remedy=remedy)
         if getattr(self, "_pinned", None) is not None:
             from utils.commit_apply import group_files
 
             formatted["files"] = group_files(group, repo_root=self._repo_root)
-        return formatted
+        # Under `--scope-policy preserve`: the fix's validated scope, its
+        # original descriptions kept as evidence in the output JSON only.
+        return self.scope_annotate(
+            formatted, group,
+            original_description=(
+                format_fix_for_output(group, index)["description"] if remedy else None),
+        )
 
     def create_batches(self, items: List[Dict[str, Any]]) -> List[CodeFixBatch]:
         """Create batches from formatted fixes."""

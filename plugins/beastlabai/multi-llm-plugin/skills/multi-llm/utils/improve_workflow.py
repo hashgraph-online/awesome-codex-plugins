@@ -22,7 +22,8 @@ Every rule both legs follow lives here, once, as a function of the mode word,
 the parsed flags and :class:`Records`, the state read once before step 1:
 
 * :func:`skip_reason` decides whether a step runs (§2.3 of the plan);
-* :func:`step_flags` decides the flags it gets (§2.2);
+* :func:`step_flags` decides the flags it gets (§2.2), the one
+  ``--scope-policy`` :func:`scope_policy_choice` resolved included;
 * :func:`continuation_flags` is the command a stop names (row 14);
 * :func:`plan_steps` is the per-step plan with its reasons, for the planner.
 
@@ -52,7 +53,8 @@ import check_workflow_prerequisites as prereq
 import full_workflow_orchestrator as fwo
 import modes as mode_table
 
-from . import detach, process_control, status_file
+from . import detach, process_control, scope_policy, scope_policy_runs, status_file
+from . import scope_apply as _scope_apply
 from . import unattended as unattended_mod
 from .cli_common import (
     AGENT_DECIDE_FLAG,
@@ -61,6 +63,7 @@ from .cli_common import (
     EXIT_NOTHING_TO_DO,
     LEGACY_AGENT_DECIDE_FLAGS,
     add_notice,
+    add_scope_policy_argument,
     build_parent_parser,
     dispatcher_prefix,
 )
@@ -368,6 +371,17 @@ class Records:
             review starts a new round, as under ``--force``. ``False`` when no
             round has started yet (no ``reviewed_header_sha256``), and on every
             other composite.
+        scope_policy_run: The ``--scope-policy`` an earlier run of this
+            composite recorded and that is still live
+            (``scope_policy_runs.live_run_choice``: no completion or skip of
+            the apply after it), else ``None``.
+        scope_deferrals: How many scope deferrals the review round's
+            ``scope_policy`` record holds (``scope_policy.round_policies``);
+            a typed policy that differs from the one they were made under runs
+            the apply again to offer them (:func:`releases_deferrals`).
+        round_apply_policy: The policy the round's apply last ran under: its
+            recorded ``apply_policy``, else its ``review_policy``; ``None``
+            with no round record.
     """
 
     mode: str
@@ -389,6 +403,10 @@ class Records:
     recorded_base_ref: Optional[str] = None
     consolidation_skip: Optional[str] = None
     header_changed: bool = False
+    scope_policy_run: Optional[str] = None
+    scope_deferrals: int = 0
+    round_apply_policy: Optional[str] = None
+    scope_blockers: int = 0
 
 
 def _header_changed(mode: str, document: Dict[str, Any]) -> bool:
@@ -565,6 +583,27 @@ def read_records(
         apply_in_progress=prereq.apply_phase_in_progress(state, apply_phase),
         recorded_scope=recorded_scope,
         header_changed=_header_changed(row.name, document),
+        **_scope_policy_records(row.name, document, review_phase, apply_phase),
+    )
+
+
+def _scope_policy_records(
+    mode: str, document: Dict[str, Any], review_phase: str, apply_phase: str,
+) -> Dict[str, Any]:
+    """The three scope-policy fields of :class:`Records`, from the raw document."""
+    record = scope_policy.round_record(document, review_phase)
+    round_policy = None
+    deferrals = 0
+    if record is not None:
+        policies = scope_policy.round_policies(document, review_phase)
+        round_policy = policies["apply_policy"] or policies["review_policy"]
+        deferrals = len(policies["deferrals"])
+    return dict(
+        scope_policy_run=scope_policy_runs.live_run_choice(
+            document, mode, ends_with=(apply_phase,)),
+        scope_deferrals=deferrals,
+        round_apply_policy=round_policy,
+        scope_blockers=len(_scope_apply.recorded_blockers(document, apply_phase)),
     )
 
 
@@ -622,8 +661,9 @@ def skip_reason(
     An apply runs when, in this order: its review runs (that review will be
     newer than any apply record, so neither leg reads ``state.json`` again
     after step 1); it is started and not finished; it has neither record; or
-    every record of it predates the review. Otherwise it is passed over with
-    the word of its newer record.
+    every record of it predates the review; or a typed ``--scope-policy``
+    releases the round's scope deferrals (:func:`releases_deferrals`).
+    Otherwise it is passed over with the word of its newer record.
     """
     review, apply = _row(mode).sequence
     if step == review:
@@ -638,6 +678,8 @@ def skip_reason(
         if records.apply_started or records.apply_word is None:
             return None
         if records.apply_predates_review:
+            return None
+        if releases_deferrals(args, records):
             return None
         return records.apply_word
     raise ValueError(f"{step!r} is not a step of {mode}'s sequence")
@@ -659,6 +701,44 @@ def review_runs(mode: str, args: argparse.Namespace, records: Records) -> bool:
     return skip_reason(mode, _row(mode).sequence[0], args, records) is None
 
 
+def scope_policy_choice(
+    args: argparse.Namespace, records: Records
+) -> Optional[Tuple[str, str]]:
+    """``(policy, source)`` of the user's ``--scope-policy`` for this run, or ``None``.
+
+    The typed flag, else the live choice an earlier run of this composite
+    recorded (:attr:`Records.scope_policy_run`), but never on a new round
+    (:func:`new_round`), which is a new run. Resolved once, from the records
+    read before step 1, so both steps get the same value. ``None`` means the
+    user made no choice: no step is handed the flag, and each resolves from
+    its own review round's record (a new round's default ``expand``, the
+    apply's inherited review policy).
+    """
+    typed = scope_policy.normalize_policy(getattr(args, "scope_policy", None))
+    if typed is not None:
+        return typed, scope_policy.SOURCE_EXPLICIT
+    if records.scope_policy_run and not new_round(args, records):
+        return records.scope_policy_run, scope_policy.SOURCE_CONTINUATION
+    return None
+
+
+def releases_deferrals(args: argparse.Namespace, records: Records) -> bool:
+    """The user's ``expand`` over a completed apply with remaining scope work.
+
+    Plan §4: a completed bounded apply that still holds scope deferrals, or
+    stopped on a scope blocker, is offered them again, never "already
+    complete". The choice is :func:`scope_policy_choice`'s — the typed flag
+    or this composite's live recorded one — so the override survives a later
+    run that omits it. Deferrals and blockers only come from a ``preserve``
+    apply, so ``expand`` is the one policy that releases them
+    (``scope_apply.releases_deferrals`` is the same rule for ``full``).
+    """
+    if not (records.scope_deferrals or records.scope_blockers):
+        return False
+    choice = scope_policy_choice(args, records)
+    return bool(choice) and choice[0] == scope_policy.POLICY_EXPAND
+
+
 def step_flags(
     mode: str, step: str, args: argparse.Namespace, records: Records
 ) -> List[str]:
@@ -667,6 +747,10 @@ def step_flags(
     *step* is a word of ``sequence``, or :data:`CONSOLIDATE`. Never a flag of
     the cross-cutting tail (:func:`cross_cutting_flags`), never ``--detach``
     or an ``--internal-*`` token, and never ``--interactive``.
+
+    Every step gets ``--scope-policy <value>`` right after its ``--yes``
+    when :func:`scope_policy_choice` resolves one, the consolidation pass only
+    when this run's review writes its round; with no choice, no step gets it.
 
     review: ``--yes``; ``--models …``, else ``--quick``; ``--force
     --rerun-all`` on a new round (:func:`new_round`). review-code also gets
@@ -696,10 +780,14 @@ def step_flags(
     row = _row(mode)
     review, apply = row.sequence
     fresh_round = new_round(args, records)
+    policy = scope_policy_runs.forwarded_flags(scope_policy_choice(args, records))
     if step == CONSOLIDATE and review in _CONSOLIDATING_REVIEWS:
-        return ["--consolidate", "--yes"]
+        # The pass belongs to the review round: it gets the policy only when
+        # this run's review writes that round, never over one it passed over.
+        return ["--consolidate", "--yes"] + (
+            policy if review_runs(mode, args, records) else [])
     if step == review:
-        flags = ["--yes"]
+        flags = ["--yes"] + policy
         if getattr(args, "models", None):
             flags += ["--models", *args.models]
         elif getattr(args, "quick", False):
@@ -733,7 +821,7 @@ def step_flags(
             flags += ["--head-ref", args.head_ref]
         return flags
     if step == apply:
-        flags = ["--yes", AGENT_DECIDE_FLAG, "--no-confirm"]
+        flags = ["--yes", AGENT_DECIDE_FLAG, "--no-confirm"] + policy
         passed_over = not review_runs(mode, args, records)
         if passed_over and (getattr(args, "resume", False) or records.apply_in_progress):
             flags += ["--resume"]
@@ -770,8 +858,9 @@ def cross_cutting_flags(args: argparse.Namespace, *, include_host: bool = True) 
 def continuation_flags(mode: str, args: argparse.Namespace) -> List[str]:
     """The flags after the plan in the command a stop names (D6 row 14).
 
-    The selectors the user typed (``--models``, ``--quick``, and for
-    improve-code ``--files``, ``--files-from``, ``--base-ref``), never
+    The selectors the user typed (``--models``, ``--quick``,
+    ``--scope-policy``, and for improve-code ``--files``, ``--files-from``,
+    ``--base-ref``), never
     ``--force``, which would start another round, then ``--resume`` once. No
     ``--yes`` (implied) and no cross-cutting flag (a route re-adds its own).
     The recorded ``review_scope_files`` is never carried: the resumed run reads
@@ -796,6 +885,9 @@ def continuation_flags(mode: str, args: argparse.Namespace) -> List[str]:
         flags += ["--models", *args.models]
     if getattr(args, "quick", False):
         flags += ["--quick"]
+    typed_policy = scope_policy.normalize_policy(getattr(args, "scope_policy", None))
+    if typed_policy is not None:
+        flags += [scope_policy.FLAG, typed_policy]
     if _reviews_code(mode):
         for path in getattr(args, "files", None) or []:
             flags += ["--files", path]
@@ -962,6 +1054,14 @@ def _apply_reason(mode: str, args: argparse.Namespace, records: Records) -> str:
         return "apply in progress for this review"
     if records.apply_word is None:
         return "review not applied yet"
+    if releases_deferrals(args, records):
+        parts = []
+        if records.scope_deferrals:
+            parts.append(f"{records.scope_deferrals} scope deferral(s)")
+        if records.scope_blockers:
+            parts.append(f"{records.scope_blockers} scope blocker(s)")
+        return (f"{' and '.join(parts)} to reconsider under "
+                f"{scope_policy.FLAG} {scope_policy.POLICY_EXPAND}")
     return "review newer than the last apply"
 
 
@@ -1422,6 +1522,7 @@ def build_parser(mode: str, *, raising: bool = False) -> argparse.ArgumentParser
             "    scope flags --files and --files-from; the range's --base-ref and",
             "    --head-ref come from the front door",
             f"  {shown_apply}: --yes --agent-decide --no-confirm, plus the range's base",
+            "  both: --scope-policy when one is typed (or kept from a stopped run)",
             "",
             "Re-running continues where the last run stopped; a finished run exits 2",
             "with [ALREADY_COMPLETE]. --force, or another --focus or --context-plan,",
@@ -1448,6 +1549,7 @@ def build_parser(mode: str, *, raising: bool = False) -> argparse.ArgumentParser
             f"  {apply}: --yes --agent-decide --no-confirm"
             + (", plus --base-ref" if scoped else "")
         )
+        lines.append("  both: --scope-policy when one is typed (or kept from a stopped run)")
         lines += [
             "",
             "Re-running continues where the last run stopped; a finished run exits 2",
@@ -1532,6 +1634,7 @@ def build_parser(mode: str, *, raising: bool = False) -> argparse.ArgumentParser
             help="The range's head, which the front door passes on every call: "
                  "the commit the review reads (review-code --head-ref).",
         )
+    add_scope_policy_argument(parser, role="composite")
     parser.add_argument(
         AGENT_DECIDE_FLAG,
         *LEGACY_AGENT_DECIDE_FLAGS,
@@ -1656,6 +1759,10 @@ class ImproveWorkflow(fwo.FullWorkflow):
 
     def review_runs(self) -> bool:
         return review_runs(self.row.name, self.args, self.records)
+
+    def _resolve_scope_policy(self) -> Optional[Tuple[str, str]]:
+        """:func:`scope_policy_choice` on the records both legs plan from."""
+        return scope_policy_choice(self.args, self.records)
 
     # -- the hooks -----------------------------------------------------------
     def steps(self) -> List[fwo.Step]:

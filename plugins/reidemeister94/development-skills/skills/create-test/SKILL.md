@@ -11,6 +11,15 @@ allowed-tools: Glob, Grep, Read, Bash, Edit, Write, AskUserQuestion
 Start with the user need or business rule that must always hold, not files, coverage, or internal calls.
 Inspect for facts; ask only for business decisions that cannot be discovered.
 
+## Definition of done
+
+Agree on the observable result, the oracle that decides correctness, and exact checks before implementation.
+Record the environment, data, expected result, unchanged behavior, and limits of the checks.
+Use existing checks where they provide evidence. Ask for business rules and acceptance criteria that the evidence cannot settle.
+For a bug, reproduce the failure. For new behavior, use agreed examples and show the acceptance check fails before the change.
+For a refactor, keep the characterization baseline green before and after the change.
+Record each intended behavior difference with its reason and a concrete before and after.
+
 ## Define the regression contract
 
 Establish:
@@ -49,6 +58,28 @@ Ask which states the proof covers and whether it includes the most fragile state
 A refactor keeps behavior. Capture a characterization baseline and observe it green on the unchanged code and after the refactor.
 Never break working behavior to watch a refactor test fail.
 If the baseline cannot run, name what is missing instead of lowering the proof standard.
+
+## Regression gate
+
+A regression gate compares a candidate with a trusted reference through complete agreed flows.
+Use one before merging a large refactor or significant behavior change when the agreed verification requires it.
+Run both versions with the same inputs and starting state, including representative data and edge cases.
+Keep writes away from production. List entry points, integrations, configurations, and flows the gate cannot reach.
+Compare externally visible results, side effects, failures, functional logs, and duration where relevant.
+Normalize only fields shown to vary when the reference runs against itself.
+Declare each intended difference with its reason and a real before and after.
+Fail on undeclared differences, missing declared differences, and flows that fail their intended outcome on either side.
+
+The gate runs as one command and saves its comparison report.
+Prove it by comparing the reference with itself and by planting a known fault in a disposable candidate or captured output.
+Use coverage to find changed lines the gate misses, and explain the gaps. Coverage alone does not prove correctness.
+Never weaken a check or change an expected value merely to make it pass. Record and review legitimate changes.
+
+## Autonomous work
+
+Agree on the definition of done and a proven regression gate before an unattended run starts.
+Record the gate command, its evidence, and any declared differences in the plan.
+The [unattended-run rules](../../shared/unattended-runs.md) define the authorization and completion report.
 
 ## Prove a performance claim
 

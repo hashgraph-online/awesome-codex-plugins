@@ -1,0 +1,45 @@
+{
+  "name": "kin",
+  "version": "0.9.0",
+  "description": "Use your accounts from Codex through Kin, even two of one service, each with its own rule per action: Allow, Ask me or Block.",
+  "author": {
+    "name": "Kin Computing, Inc.",
+    "email": "support@kinlab.ai",
+    "url": "https://kinlab.ai"
+  },
+  "homepage": "https://kinlab.ai",
+  "repository": "https://github.com/kinlab-ai/kin-plugin",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "accounts",
+    "permissions",
+    "approvals",
+    "github",
+    "notion",
+    "linear"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "Kin",
+    "shortDescription": "Your accounts, each with its own rules",
+    "longDescription": "Connect your accounts once in Kin, even two of one service, such as a work and a personal GitHub. Set what AI may do with each account and action: Allow, Ask me or Block. Kin checks the rule on its server when the action runs.",
+    "developerName": "Kin Computing, Inc.",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://kinlab.ai",
+    "supportURL": "https://kinlab.ai/docs/help",
+    "privacyPolicyURL": "https://kinlab.ai/privacy",
+    "termsOfServiceURL": "https://app.kinlab.ai/terms",
+    "defaultPrompt": [
+      "List open issues on my work GitHub and my personal GitHub.",
+      "What's open in my work Linear?"
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

@@ -38,6 +38,7 @@ Usage::
 
     uv run --project <skill-dir> -- python <skill-dir>/multi_llm.py \\
         full <plan> [--yes] [--models …|--quick] [--review-tasks] [--resume]
+        [--scope-policy expand|preserve]
 """
 
 from __future__ import annotations
@@ -69,6 +70,7 @@ from utils.cli_common import (
     EXIT_NOTHING_TO_DO,
     EXIT_OK,
     active_result,
+    add_scope_policy_argument,
     build_parent_parser,
     dispatcher_command,
     record_artifact,
@@ -79,6 +81,7 @@ from utils.output_handler import get_output_dir, get_phase_dir
 from utils.state_manager import StateManager
 from utils.stream_bootstrap import bootstrap_streams
 from utils.text_clip import clip, drop_said_clauses, join_clauses
+from utils import scope_policy, scope_policy_runs
 from utils import unattended as unattended_mod
 from utils.unattended import NeedsHuman
 
@@ -203,6 +206,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
              "skipped. Not forwarded to the phases (there --force means "
              "'re-invoke the models'); it only clears this loop's skipping.",
     )
+    add_scope_policy_argument(parser, role="full")
     return parser.parse_args(list(argv) if argv is not None else None)
 
 
@@ -250,6 +254,9 @@ class FullWorkflow:
         #: per phase per run — a second unmet re-check is exit 3, not a retry).
         self.auto_ran: List[str] = []
         self._state: Optional[StateManager] = None
+        #: ``--scope-policy`` resolved once per run (:meth:`scope_policy_choice`).
+        self._scope_choice: Optional[Tuple[str, str]] = None
+        self._scope_resolved = False
 
     # -- state ----------------------------------------------------------
     @property
@@ -427,7 +434,61 @@ class FullWorkflow:
             flags += ["--dry-run-subagents"]
         if getattr(self.args, "skip_prerequisites", False):
             flags += ["--skip-prerequisites"]
+        # One resolved value for every phase, the prerequisite auto-run's
+        # apply included; none at all when the user made no choice, so each
+        # phase resolves from its own review round's record.
+        flags += scope_policy_runs.forwarded_flags(self.scope_policy_choice())
         return flags
+
+    # -- the scope policy (plans/scope-policy-and-report-tags.md §4) ---------
+    def scope_policy_choice(self) -> Optional[Tuple[str, str]]:
+        """``(policy, source)`` of the user's ``--scope-policy`` for this run, or ``None``.
+
+        Resolved once per run: the typed flag, else the live choice an earlier
+        run of this workflow recorded (``scope_policy_runs``, keyed by
+        :attr:`MODE_NAME`; never under ``--force``, which starts the workflow
+        over). ``None`` means no choice: no phase is handed the flag, and each
+        resolves from its own round's record (a new round's default
+        ``expand``).
+        """
+        if not self._scope_resolved:
+            self._scope_choice = self._resolve_scope_policy()
+            self._scope_resolved = True
+        return self._scope_choice
+
+    def _resolve_scope_policy(self) -> Optional[Tuple[str, str]]:
+        try:
+            state = StateManager(self.plan_path, read_only=True).state
+        except Exception:  # noqa: BLE001 - an unreadable record is no choice
+            state = {}
+        return scope_policy_runs.resolve_run_choice(
+            getattr(self.args, "scope_policy", None), state, self.MODE_NAME,
+            new_run=bool(getattr(self.args, "force", False)),
+        )
+
+    def _record_scope_policy(self) -> None:
+        """Keep a typed choice for this workflow's own resume, and announce an
+        inherited one under ``--yes`` (D6 row 16)."""
+        choice = self.scope_policy_choice()
+        if not getattr(self.args, "dry_run_subagents", False):
+            state = self.state
+            if scope_policy_runs.record_run_start(state.state, self.MODE_NAME, choice):
+                state.save()
+        if choice is None:
+            return
+        policy, source = choice
+        if source == scope_policy.SOURCE_EXPLICIT:
+            return
+        scope_policy_runs.announce(
+            str(self.run_dir), policy, source, unattended=self.unattended,
+            mode=self.MODE_NAME,
+        )
+
+    def _close_scope_policy(self) -> None:
+        """The workflow finished: its recorded choice answers no later run."""
+        state = self.state
+        if scope_policy_runs.close_run_choice(state.state, self.MODE_NAME):
+            state.save()
 
     def model_flags(self) -> List[str]:
         """Row 2, resolved once and reused: the same models in both fan-out phases."""
@@ -615,6 +676,10 @@ class FullWorkflow:
         )
         child.detach = False
         child.internal_worker = False
+        # The resolved value, never the raw flag: a recorded choice reaches the
+        # phase as an explicit one, exactly as `common_flags` spells it.
+        choice = self.scope_policy_choice()
+        child.scope_policy = choice[0] if choice is not None else None
         extra = list(self.common_flags())
         if child.force:
             extra += ["--force"]
@@ -863,8 +928,24 @@ class FullWorkflow:
         passes over any phase already recorded completed or skipped
         (:meth:`_recorded`), which is what makes every phase boundary a resume
         point.
+
+        A completed ``preserve`` apply that left scope deferrals is not done
+        for an explicit ``expand`` (plans/scope-policy-and-report-tags.md §4):
+        it runs again to offer them. Asked here, where a step is chosen, never
+        in :meth:`_recorded`, which also judges whether a step that ran
+        recorded itself.
         """
-        return self._recorded(step.phase)
+        recorded = self._recorded(step.phase)
+        if recorded == "completed":
+            from utils import scope_apply
+
+            # The run's choice (typed, or this workflow's live record), so the
+            # override survives a resume that omits the flag.
+            choice = self.scope_policy_choice()
+            if scope_apply.releases_deferrals(
+                    self.state.state, step.phase, choice[0] if choice else None):
+                return None
+        return recorded
 
     def nothing_to_do(self) -> bool:
         """Whether every step of this workflow would be passed over.
@@ -976,6 +1057,7 @@ class FullWorkflow:
         return EXIT_NEEDS_HUMAN
 
     def run(self) -> int:
+        self._record_scope_policy()
         for step in self.steps():
             if step.skippable and not self.args.force:
                 reason = self.skip_reason(step)
@@ -1002,6 +1084,7 @@ class FullWorkflow:
             if outcome == SKIPPED and detail:
                 print(f"[SKIPPED] {step.label}: {detail}")
         self._record_progress(current="complete")
+        self._close_scope_policy()
         self.print_report()
         record_next(None)
         return EXIT_OK

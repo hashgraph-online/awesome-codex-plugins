@@ -1,6 +1,6 @@
 {
   "name": "oh-my-openspec",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "description": "OpenSpec multi-agent flow for Codex CLI: $omos-init / $omos-plan / $omos-apply / $omos-retro with seven role subagents and a mechanical openspec_validate MCP gate",
   "author": {
     "name": "Alexeyco",
@@ -22,6 +22,15 @@
   "interface": {
     "displayName": "oh-my-openspec",
     "shortDescription": "Plan, implement, and verify OpenSpec changes with role-based agents",
+    "longDescription": "Plan, implement, verify, and archive OpenSpec changes with seven role-based agents, parallel implementation waves, and mechanical OpenSpec validation.",
+    "developerName": "Alexeyco",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Plan OpenSpec changes",
+      "Implement OpenSpec tasks",
+      "Validate OpenSpec artifacts"
+    ],
+    "logo": "./assets/icon.svg",
     "composerIcon": "./assets/icon.svg"
   }
 }

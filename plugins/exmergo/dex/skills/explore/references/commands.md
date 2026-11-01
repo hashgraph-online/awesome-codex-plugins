@@ -62,8 +62,9 @@ extra. `data.text` is the procedure and `data.digest` fingerprints it.
 what a person or a harness pastes into a repository's `CLAUDE.md` or
 `AGENTS.md`; Dex never writes either file, so offer the block rather than
 editing one. `--check <file>` reports each file's copy as `current`, `stale`,
-`missing` or `malformed` under `data.copies`, and the envelope is an error when
-any copy is not current.
+`missing` or `malformed` under `data.copies`, or the file itself as `absent` (no
+such file) or `unreadable` (it exists but could not be read), and the envelope is
+an error when any copy is not current.
 
 ## `explore profile <objects>`
 

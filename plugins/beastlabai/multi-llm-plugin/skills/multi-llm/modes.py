@@ -1164,6 +1164,7 @@ ARGUMENT_HINT_TRAILER = (
     f' <plan_path>|{POS_REVS} (<range>: --*-commits only) '
     '["<question>" (required for --ask)] '
     "[--models provider:model ...] [--interactive] [--quick] [--yes] [--force] "
+    "[--scope-policy expand|preserve] "
     '[--focus "<text>"|--context-plan PATH (--*-commits only)] '
     "[--dir PATH|--gitignore|--template-only (--init only)]"
 )

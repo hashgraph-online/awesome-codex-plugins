@@ -1,0 +1,72 @@
+{
+  "name": "design-os-code2flow",
+  "version": "0.4.1",
+  "description": "Local CLI that turns a Next.js codebase into a living user-flow canvas: real screenshots per screen, code-evidenced transitions, PRD stories, lint and diff.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "recall": "tsx scripts/recall.ts",
+    "graph": "tsx scripts/export-graph.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "cli": "tsx src/cli/index.ts",
+    "build:viewer": "tsx scripts/build-viewer.ts",
+    "build": "tsc -p tsconfig.build.json && tsx scripts/build-viewer.ts && tsx scripts/build-stage-bridge.ts",
+    "prepack": "npm run build",
+    "audit:design": "npm run -s build:viewer && npm run -s cli -- scan fixtures/synthetic/static-site >/dev/null && npm run -s cli -- export fixtures/synthetic/static-site --out .code2flow-audit >/dev/null && ui gate .code2flow-audit/static-site-flows.html && design-os audit .code2flow-audit/static-site-flows.html --dir .",
+    "build:bridge": "tsx scripts/build-stage-bridge.ts"
+  },
+  "dependencies": {
+    "@babel/parser": "^8.0.4",
+    "@babel/traverse": "^8.0.4",
+    "@babel/types": "^8.0.4",
+    "playwright": "^1.62.1"
+  },
+  "devDependencies": {
+    "@dagrejs/dagre": "^3.1.1",
+    "@phosphor-icons/core": "^2.1.1",
+    "@types/node": "^26.4.1",
+    "esbuild": "^0.28.2",
+    "tsx": "^4.23.13",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
+  },
+  "bin": {
+    "code2flow": "dist/cli/index.js"
+  },
+  "exports": {
+    "./stage-bridge": {
+      "types": "./dist/stage-bridge/index.d.ts",
+      "default": "./dist/stage-bridge/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "out/viewer",
+    ".claude/skills",
+    "README.md",
+    "docs",
+    "LICENSE"
+  ],
+  "keywords": [
+    "user-flow",
+    "nextjs",
+    "app-router",
+    "screenshots",
+    "product-management",
+    "static-analysis"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jangtrinh/design-os-code2flow.git"
+  },
+  "homepage": "https://github.com/jangtrinh/design-os-code2flow#readme",
+  "bugs": {
+    "url": "https://github.com/jangtrinh/design-os-code2flow/issues"
+  }
+}

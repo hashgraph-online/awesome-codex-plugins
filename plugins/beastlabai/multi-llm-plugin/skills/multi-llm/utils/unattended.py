@@ -5,7 +5,7 @@ Every interactive decision point in this skill resolves **without** a structured
 ask tool. This module is the single owner of what that means, so no message, no
 instruction file and no test has to re-derive it:
 
-* :data:`ROWS` — the fifteen decision *sites* (not the 51 occurrences: a site
+* :data:`ROWS` — the sixteen decision *sites* (not the 51 occurrences: a site
   restated in four mode files is still one decision), each keyed by a stable
   ``site_id``, the modes that reach it, the disposition it lands on and the D5a
   decision flag that answers it. Exactly three dispositions exist —
@@ -53,6 +53,7 @@ try:  # normal import (utils is a package)
         active_result,
         skill_dir,
     )
+    from .scope_policy import FLAG as SCOPE_POLICY_FLAG, POLICIES as SCOPE_POLICIES
 except ImportError:  # pragma: no cover - direct script runs with utils/ on path
     from cli_common import (  # type: ignore
         AGENT_DECIDE_FLAG,
@@ -62,6 +63,9 @@ except ImportError:  # pragma: no cover - direct script runs with utils/ on path
         STATE_PARTIAL,
         active_result,
         skill_dir,
+    )
+    from scope_policy import (  # type: ignore
+        FLAG as SCOPE_POLICY_FLAG, POLICIES as SCOPE_POLICIES,
     )
 
 
@@ -95,7 +99,7 @@ class NeedsHuman(Exception):
 
 
 # ---------------------------------------------------------------------------
-# The fifteen rows
+# The sixteen rows
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -296,6 +300,25 @@ ROWS: Tuple[Row, ...] = (
         flags=(),
         enforced_in=("utils/unattended.py", "multi_llm.py"),
     ),
+    # plans/scope-policy-and-report-tags.md §4: never a question. A new run
+    # without the flag is `expand`; a continuation keeps what its review round
+    # (or its composite/full/generate-tasks/implement run) recorded. Either way
+    # the resolution is recorded under `--yes` (`scope_policy_runs.announce`).
+    Row(
+        number=16,
+        site_id="scope-policy",
+        site="whether the run may carry scope extensions (expand) or keeps to "
+             "the agreed scope (preserve)",
+        modes=("review-plan", "apply-suggestions", "improve-plan",
+               "generate-tasks", "review-tasks", "apply-task-suggestions",
+               "implement", "review-code", "apply-code-fixes", "improve-code",
+               "review-commits", "apply-commit-fixes", "improve-commits",
+               "full"),
+        dispositions=(AUTO_SELECT, EXPLICIT_FLAG),
+        flags=(SCOPE_POLICY_FLAG,),
+        enforced_in=("utils/scope_policy.py", "utils/scope_policy_runs.py",
+                     "utils/cli_common.py"),
+    ),
 )
 
 _ROWS_BY_NUMBER: Dict[int, Row] = {r.number: r for r in ROWS}
@@ -409,6 +432,16 @@ DECISION_FLAGS: Tuple[FlagSpec, ...] = (
               "apply_task_suggestions_orchestrator.py",
               "apply_code_fixes_orchestrator.py",
               "improve_plan_orchestrator.py", "improve_code_orchestrator.py")),
+    # The commit front doors forward it to the parser they front (their own
+    # `--help` is the door's), so the fronted scripts are its owners there.
+    FlagSpec(SCOPE_POLICY_FLAG, (16,), SCOPE_POLICIES, "one",
+             ("review_plan_orchestrator.py", "apply_suggestions_orchestrator.py",
+              "review_tasks_orchestrator.py",
+              "apply_task_suggestions_orchestrator.py",
+              "code_review_orchestrator.py", "apply_code_fixes_orchestrator.py",
+              "generate_tasks_orchestrator.py", "implement_orchestrator.py",
+              "improve_plan_orchestrator.py", "improve_code_orchestrator.py",
+              "full_workflow_orchestrator.py")),
 )
 
 _FLAGS_BY_NAME: Dict[str, FlagSpec] = {
@@ -427,7 +460,9 @@ def flag_spec(name: str) -> Optional[FlagSpec]:
 
 # The valued flags the argv-level pre-check validates. Boolean flags cannot
 # arrive "empty", so they need no check beyond argparse's own.
-_VALIDATED: Tuple[str, ...] = ("--models", "--force-strategy", "--human-task")
+_VALIDATED: Tuple[str, ...] = (
+    "--models", "--force-strategy", "--human-task", SCOPE_POLICY_FLAG,
+)
 
 
 def _values_after(argv: Sequence[str], index: int, *, greedy: bool) -> List[str]:
@@ -590,7 +625,9 @@ class InventoryRow:
             **only** under `--interactive`.
         unattended: What an `ask: none` host (and every headless run) does instead.
         renderable: False for the fail-closed rows, which no class may render — a
-            host that turns one into a question has reintroduced the hang.
+            host that turns one into a question has reintroduced the hang —
+            and for row 16, the scope policy, which is answered by its flag or
+            resolved automatically and is never a question either.
     """
 
     rows: Tuple[int, ...]
@@ -687,6 +724,15 @@ INVENTORY: Tuple[InventoryRow, ...] = (
         structured="never rendered", free_text="never rendered",
         unattended="exit 3 at parse time", renderable=False,
     ),
+    # Not fail-closed, and still never a question on any host
+    # (plans/scope-policy-and-report-tags.md §4: no new interactive question).
+    InventoryRow(
+        rows=(16,), site_id="scope-policy", options=None,
+        structured="never rendered", free_text="never rendered",
+        unattended="`expand` for a new run; a continuation keeps the policy its "
+                   "review round or its run recorded; `--scope-policy` answers it",
+        renderable=False,
+    ),
 )
 
 _INVENTORY_BY_SITE: Dict[str, InventoryRow] = {r.site_id: r for r in INVENTORY}
@@ -758,6 +804,13 @@ def render_option_block(
     """
     entry = inventory_row(site_id)
     if not entry.renderable:
+        if FAIL_CLOSED not in row(entry.rows[0]).dispositions:
+            raise NeedsHuman(
+                f"ERROR: decision site '{site_id}' (D6 row {entry.rows[0]}) is "
+                "never rendered as a question on any host: its flag answers it, "
+                "and without the flag it resolves automatically.",
+                site=site_id,
+            )
         raise NeedsHuman(
             f"ERROR: decision site '{site_id}' is fail-closed (D6 row "
             f"{entry.rows[0]}) and is never rendered as a question on any host. "

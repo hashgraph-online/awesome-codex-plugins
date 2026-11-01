@@ -142,6 +142,10 @@ class SchemaConfigError(Exception):
 #: verbatim from the two shipped prompt contracts (which are byte-identical in
 #: field set, enum values and the "exactly these fields" rule). One file, not
 #: two, because it is one document; two copies would be free to drift.
+#: Both reviewer schemas carry the optional scope fields untyped
+#: (plans/scope-policy-and-report-tags.md §3), so a recovered document is never
+#: refused for a missing or malformed scope tag; normalization reads it
+#: ``unclear``. They stay array-rooted, so no native transport carries them.
 PHASE_SCHEMA_FILE: Dict[str, Optional[str]] = {
     # ---- the five JSON-document phases §4.2.1 names ------------------------
     "review-plan": "review_suggestions.schema.json",

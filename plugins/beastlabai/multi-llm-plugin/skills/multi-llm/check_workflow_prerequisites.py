@@ -249,9 +249,43 @@ def apply_phase_in_progress(state: StateManager, phase: str) -> bool:
     return has_progress and not _apply_batches_predate_review(state, phase)
 
 
+def scope_blocker_reason(state: StateManager, phase: str) -> Optional[str]:
+    """Why a completed apply phase does not satisfy its dependents, else None.
+
+    The scope policy's one concrete blocker (plans/scope-policy-and-report-
+    tags.md §5, ``utils/scope_apply``): a ``preserve`` batch declined an item
+    because its agreed requirement cannot be met within the agreed scope.
+    The phase finished its batches, but the accepted goal is not complete,
+    so a phase that builds on it must not run. Deferred optional extensions
+    are not a blocker: they leave the phase's eligible work completed.
+
+    Apply phases only (:data:`APPLY_BATCH_ID_PATTERNS`, as
+    :func:`get_workflow_status` reads it). The record is keyed by the review
+    round, so asking it of the review phase itself would report
+    ``review-plan`` blocked — the prerequisite of the very apply that must
+    run again to clear the blocker.
+    """
+    from utils import scope_apply
+
+    if phase not in APPLY_BATCH_ID_PATTERNS:
+        return None
+    blockers = scope_apply.recorded_blockers(state.state, phase)
+    if not blockers:
+        return None
+    first = blockers[0]
+    more = f" (+{len(blockers) - 1} more)" if len(blockers) > 1 else ""
+    return (
+        f"{phase} stopped on a scope blocker: {first.get('group_id')} cannot be "
+        f"completed within the agreed scope ({first.get('reason')}){more}"
+    )
+
+
 def check_phase_prerequisite(state: StateManager, required_phase: str) -> dict:
     """Check if a required phase has been completed or skipped."""
     if state.is_phase_completed(required_phase):
+        blocked = scope_blocker_reason(state, required_phase)
+        if blocked:
+            return {"met": False, "reason": blocked, "scope_blocked": True}
         return {"met": True, "reason": f"{required_phase} completed"}
     if state.is_phase_skipped(required_phase):
         return {"met": True, "reason": f"{required_phase} skipped"}
@@ -272,8 +306,13 @@ def check_apply_suggestions_prerequisite(state: StateManager, plan_dir: Path) ->
     if not validation_path.exists():
         return {"met": True, "reason": "No review-plan results to apply"}
 
-    # Check if apply-suggestions completed or skipped
+    # Check if apply-suggestions completed or skipped. A completion that
+    # deferred optional scope extensions is complete ("eligible work
+    # completed"); one that recorded a scope blocker is not (plan §5).
     if state.is_phase_completed("apply-suggestions"):
+        blocked = scope_blocker_reason(state, "apply-suggestions")
+        if blocked:
+            return {"met": False, "reason": blocked, "scope_blocked": True}
         return {"met": True, "reason": "Apply-suggestions phase completed"}
     if state.is_phase_skipped("apply-suggestions"):
         reason = state.get_phase_skip_reason("apply-suggestions") or "Explicitly skipped"
@@ -362,8 +401,13 @@ def check_apply_task_suggestions_prerequisite(state: StateManager, plan_dir: Pat
     if not grouped_path.exists():
         return {"met": True, "reason": "No review-tasks results to apply"}
 
-    # Check if apply-task-suggestions already completed or skipped
+    # Check if apply-task-suggestions already completed or skipped. As for
+    # apply-suggestions, a completion that recorded a scope blocker is not
+    # one its dependents may build on (plan §5).
     if state.is_phase_completed("apply-task-suggestions"):
+        blocked = scope_blocker_reason(state, "apply-task-suggestions")
+        if blocked:
+            return {"met": False, "reason": blocked, "scope_blocked": True}
         return {"met": True, "reason": "Apply-task-suggestions phase completed"}
     if state.is_phase_skipped("apply-task-suggestions"):
         reason = state.get_phase_skip_reason("apply-task-suggestions") or "Explicitly skipped"
@@ -559,6 +603,7 @@ def collect_missing(state: StateManager, plan_dir: Path, mode: str) -> List[dict
                     "reason": apply_check["reason"],
                     "valid_count": apply_check.get("valid_count", 0),
                     "importance_breakdown": apply_check.get("importance_breakdown", {}),
+                    **({"scope_blocked": True} if apply_check.get("scope_blocked") else {}),
                 })
         else:
             # Use generic state-based check for other phases
@@ -567,7 +612,21 @@ def collect_missing(state: StateManager, plan_dir: Path, mode: str) -> List[dict
                 missing.append({
                     "phase": required_phase,
                     "reason": phase_check["reason"],
+                    **({"scope_blocked": True} if phase_check.get("scope_blocked") else {}),
                 })
+    if mode == "implement" and state.is_phase_completed("apply-task-suggestions"):
+        # apply-task-suggestions is no hard prerequisite of implement (its
+        # unapplied output is row 7's advisory), but a completion of it that
+        # recorded a scope blocker is: the task list's accepted goal is not
+        # complete, and implement builds on it (plan §5). Nothing is added
+        # without a blocker, so a default run's gate is as it was.
+        task_check = check_apply_task_suggestions_prerequisite(state, plan_dir)
+        if task_check.get("scope_blocked"):
+            missing.append({
+                "phase": "apply-task-suggestions",
+                "reason": task_check["reason"],
+                "scope_blocked": True,
+            })
     return missing
 
 
@@ -608,6 +667,26 @@ def build_unmet_message(
     lines: List[str] = []
     for entry in missing:
         phase = entry.get("phase", "")
+        if entry.get("scope_blocked"):
+            # The scope policy's blocker (plan §5): no unapplied suggestions
+            # to count and nothing --skip-prerequisites should paper over;
+            # the scope decision is the user's. The entry is always an apply
+            # phase (`scope_blocker_reason`), so both ways out name it: its
+            # review run again over an amended plan, or the apply itself
+            # under `expand`. A fresh review is `--force --rerun-all`: a
+            # plain `--force` reuses the reviewers' existing results.
+            review = PHASE_PREREQUISITES.get(phase, [phase])[0]
+            lines += [
+                f"{UNMET_MARKER} {mode}: {entry.get('reason')}.",
+                "  1) Amend the plan to settle the scope question and start a "
+                "fresh review — " + dispatcher_command(
+                    _mode_word(review), plan_abs, "--yes", "--force", "--rerun-all"),
+                "  2) Or apply it allowing the expansion — "
+                + dispatcher_command(_mode_word(phase), plan_abs, "--yes",
+                                     "--scope-policy", "expand"),
+                "     then re-run — " + dispatcher_command(_mode_word(mode), plan_abs, "--yes"),
+            ]
+            continue
         if phase == "generate-tasks":
             # Row 13 (and implement's tasks prerequisite): the answer is
             # out-of-band — generate the tasks, then re-run. There is no
@@ -765,16 +844,33 @@ def ensure_prerequisites(
         unskippable = [
             m["phase"] for m in missing
             if m.get("phase") not in SKIPPABLE_PREREQUISITES
+            and not m.get("scope_blocked")
         ]
-        if unskippable:
+        # A scope blocker (plan §5) is not unapplied advice either: the
+        # phase ran, and its accepted goal cannot be met within the agreed
+        # scope. Settling that is the user's scope decision, which a skip
+        # recorded over the completed phase would paper over.
+        blocked = [m["phase"] for m in missing if m.get("scope_blocked")]
+        if unskippable or blocked:
+            refusals = []
+            if unskippable:
+                refusals.append(
+                    f"ERROR: --skip-prerequisites cannot skip "
+                    f"{', '.join(unskippable)} for {mode}: that phase's output is "
+                    "the input, not advice about it.\n"
+                )
+            if blocked:
+                refusals.append(
+                    f"ERROR: --skip-prerequisites cannot skip "
+                    f"{', '.join(blocked)} for {mode}: it stopped on a scope "
+                    "blocker, a scope decision only the user can make.\n"
+                )
             return PrereqOutcome(
                 met=False,
                 exit_code=EXIT_NEEDS_HUMAN,
                 missing=missing,
                 message=(
-                    f"ERROR: --skip-prerequisites cannot skip "
-                    f"{', '.join(unskippable)} for {mode}: that phase's output is "
-                    "the input, not advice about it.\n"
+                    "".join(refusals)
                     + build_unmet_message(mode, plan_path, plan_dir, missing)
                 ),
                 notices=notices,
@@ -1279,6 +1375,31 @@ def get_workflow_status(
             # parsing prose. `notices` itself is unchanged, so `status`
             # output stays the same.
             phases["apply-task-suggestions"]["notice"] = notice
+
+    # The scope policy's record of each finished apply phase (plans/
+    # scope-policy-and-report-tags.md §5): deferred optional extensions are
+    # done for the workflow ("eligible work completed") and named, never
+    # counted as unapplied work; a recorded blocker is named too, and the
+    # phases that build on it refuse (`scope_blocker_reason`). Nothing is
+    # added for a round with no scope record, so a default status is as it was.
+    from utils import scope_apply
+
+    for phase in APPLY_BATCH_ID_PATTERNS:
+        if phases[phase]["status"] != "completed":
+            continue
+        blocked = scope_blocker_reason(state, phase)
+        if blocked:
+            phases[phase]["scope_blocker"] = blocked
+            notices.append(blocked)
+            continue
+        deferred = scope_apply.recorded_deferrals(state.state, phase)
+        if deferred:
+            phases[phase]["scope_deferred"] = len(deferred)
+            notices.append(
+                f"{phase}: eligible work completed; {len(deferred)} item(s) stay "
+                f"deferred by --scope-policy preserve (apply with --scope-policy "
+                f"expand to offer them again)"
+            )
 
     suggested_next = _suggested_next(phases, ALL_PHASES)
 

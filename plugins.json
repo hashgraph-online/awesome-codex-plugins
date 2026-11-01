@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-10-31",
-  "total": 352,
+  "last_updated": "2026-11-01",
+  "total": 356,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2362,6 +2362,26 @@
       "install_url": "https://raw.githubusercontent.com/jangtrinh/design-os-3d-blender/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "DESIGN:OS Code2Flow",
+      "url": "https://github.com/jangtrinh/design-os-code2flow",
+      "owner": "jangtrinh",
+      "repo": "design-os-code2flow",
+      "description": "Free, source-available (PolyForm Shield) local-first mapper that turns a Next.js, React Router, SwiftUI, Flutter or Compose codebase into a Mermaid user-flow graph and audits it for UX gaps like dead-end screens.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jangtrinh/design-os-code2flow/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "DESIGN:OS SVG Animation Engine",
+      "url": "https://github.com/jangtrinh/design-os-svg-animation",
+      "owner": "jangtrinh",
+      "repo": "design-os-svg-animation",
+      "description": "Free, source-available (PolyForm Shield) deterministic vector motion engine with a virtual-clock player and a 1080p 60fps MP4/WebM compiler for frame-exact product walkthroughs.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/jangtrinh/design-os-svg-animation/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "dex",
       "url": "https://github.com/exmergo/dex",
       "owner": "exmergo",
@@ -2460,6 +2480,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/sergebulaev/exotic-car-rental-skills/HEAD/.codex-marketplace/exotic-car-rental-skills/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Fair Value Calculator",
+      "url": "https://github.com/petz00711/fair-value-calculator-mcp",
+      "owner": "petz00711",
+      "repo": "fair-value-calculator-mcp",
+      "description": "Fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, plus your watchlist and alerts, through the hosted Fair Value Calculator MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/petz00711/fair-value-calculator-mcp/HEAD/plugins/fair-value-calculator/.codex-plugin/plugin.json"
     },
     {
       "name": "Fantasy Football Manager",
@@ -2610,6 +2640,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/aklofas/kicad-happy/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Kin",
+      "url": "https://github.com/kinlab-ai/kin-plugin",
+      "owner": "kinlab-ai",
+      "repo": "kin-plugin",
+      "description": "Connects Codex to your accounts through Kin's hosted MCP server, even two of one service such as a work and a personal GitHub, each with its own rule per action: Allow, Ask me or Block.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kinlab-ai/kin-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Kreuzberg",

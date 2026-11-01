@@ -123,7 +123,8 @@ Print ONE JSON object and nothing else — no prose, no markdown fences, no
 explanation. Do not write any file; whoever invoked you persists your reply.
 Your reply is parsed as-is, and a reply that does not parse is thrown away:
 the first character is `{` and the last is the `}` that closes it. Keep every
-`reason` to one short line with no raw double quotes or line breaks inside it.
+`reason` and `scope_reason` to one short line with no raw double quotes or line
+breaks inside it.
 `metadata` comes first and `groups` last, so the reply ends with the last
 result's `}`, the `]` that closes `groups` and the `}` that closes the object:
 `}]}`. Re-read the object once for balanced brackets before you finish.
@@ -134,7 +135,7 @@ adds a correction, a note or a second object after the first does not parse.
 {
   "metadata": {"model": "<the model you are>", "timestamp": "<ISO 8601>", "schema_version": "2.1"},
   "groups": [
-    {"group_index": <the group's group_index value>, "group_hash": "<copy the group_hash of the group verbatim>", "status": "valid|invalid|needs-human-decision", "reason": "<one brief sentence>", "confidence": 0.0}
+    {"group_index": <the group's group_index value>, "group_hash": "<copy the group_hash of the group verbatim>", "status": "valid|invalid|needs-human-decision", "reason": "<one brief sentence>", "confidence": 0.0, "scope_relation": "in_scope|scope_extension|unclear", "scope_reason": "<one brief sentence>", "scope_reference": "<baseline section, or empty>"}
   ]
 }
 
@@ -148,6 +149,9 @@ Rules:
 3. Confidence is a number between 0.0 and 1.0.
 4. Be conservative: when you cannot decide from the context given, answer
    "needs-human-decision" rather than guessing.
+5. `scope_relation`, `scope_reason` and `scope_reference` classify the group's
+   proposed remedy against the scope baseline. They never change `status`;
+   when the context cannot settle the scope, answer "unclear".
 '''
 
 
@@ -437,6 +441,7 @@ def build_validation_prompt(
     secondary_label: str = "",
     extra_instructions: str = "",
     context_sources: Optional[List[ContextSource]] = None,
+    scope_guidance: str = "",
 ) -> str:
     """Render the prompt for one validation or revalidation batch.
 
@@ -474,6 +479,13 @@ def build_validation_prompt(
             unreadable file is an explicit ``insufficient-context:``
             answer). With no ``path`` source the
             prompt is byte-identical to what it was.
+        scope_guidance: The round's validator scope block
+            (``scope_policy.validator_guidance``), rendered per call by the
+            caller for the round's own policy and phase. Its own argument, so
+            it never displaces :data:`PLAN_VALIDATION_SCOPE_GUIDANCE` (which
+            fills in only when ``extra_instructions`` is empty) or a phase's
+            own guidance; placed after them and before the reply contract.
+            Empty adds nothing, as before.
 
     Returns:
         The complete prompt text.
@@ -503,6 +515,8 @@ def build_validation_prompt(
     if context_label == "Plan content" and not extra_instructions.strip():
         extra_instructions = PLAN_VALIDATION_SCOPE_GUIDANCE
     guidance = f"\n{extra_instructions.strip()}\n" if extra_instructions.strip() else ""
+    if scope_guidance.strip():
+        guidance += f"\n{scope_guidance.strip()}\n"
     by_path = [
         dict(source) for source in (context_sources or [])
         if isinstance(source, dict) and source.get("mode") == "path"

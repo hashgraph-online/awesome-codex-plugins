@@ -262,7 +262,7 @@ Drive the same loop from Python instead of parsing CLI output:
 from exmergo_dex_core import DexEngine
 
 with DexEngine(connector="duckdb", path="shop.duckdb") as eng:
-    mapped = eng.map()                  # a DexCache, not a JSON blob
+    mapped = eng.map()  # a DexCache, not a JSON blob
     rows = eng.query("select status, count(*) from orders group by status")
 
 print(mapped.relationship_count, rows.cells)

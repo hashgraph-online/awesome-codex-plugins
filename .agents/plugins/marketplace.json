@@ -3487,6 +3487,36 @@
       "icon": "./plugins/jangtrinh/design-os-3d-blender/docs/images/composer-icon.svg"
     },
     {
+      "name": "design-os-code2flow",
+      "displayName": "DESIGN:OS Code2Flow",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jangtrinh/design-os-code2flow"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Free, source-available (PolyForm Shield) local-first mapper that turns a Next.js, React Router, SwiftUI, Flutter or Compose codebase into a Mermaid user-flow graph and audits it for UX gaps like dead-end screens.",
+      "icon": "./plugins/jangtrinh/design-os-code2flow/docs/images/composer-icon.svg"
+    },
+    {
+      "name": "design-os-svg-animation",
+      "displayName": "DESIGN:OS SVG Animation Engine",
+      "source": {
+        "source": "local",
+        "path": "./plugins/jangtrinh/design-os-svg-animation"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Free, source-available (PolyForm Shield) deterministic vector motion engine with a virtual-clock player and a 1080p 60fps MP4/WebM compiler for frame-exact product walkthroughs.",
+      "icon": "./plugins/jangtrinh/design-os-svg-animation/docs/images/composer-icon.svg"
+    },
+    {
       "name": "dex",
       "displayName": "dex",
       "source": {
@@ -3635,6 +3665,21 @@
       "category": "Tools & Integrations",
       "description": "Codex-ready bundle for people renting exotic and luxury cars in the US with a native .codex-plugin manifest and 6 skills that find who rents a given Lamborghini, Ferrari, Rolls-Royce or G-Wagon in a city at published daily rates from a free read-only market data MCP server, work out the real rental cost, compare cars, pick event cars, plan a weekend and check a rental company; also works in Claude Code.",
       "icon": "./plugins/sergebulaev/exotic-car-rental-skills/assets/icon.svg"
+    },
+    {
+      "name": "fair-value-calculator",
+      "displayName": "Fair Value Calculator",
+      "source": {
+        "source": "local",
+        "path": "./plugins/petz00711/fair-value-calculator-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, plus your watchlist and alerts, through the hosted Fair Value Calculator MCP server.",
+      "icon": "./plugins/petz00711/fair-value-calculator-mcp/assets/logo.png"
     },
     {
       "name": "fantasy-football-manager",
@@ -3855,6 +3900,21 @@
       },
       "category": "Tools & Integrations",
       "description": "KiCad EDA skills for schematic analysis, PCB layout review, component sourcing, BOM management, and manufacturing preparation."
+    },
+    {
+      "name": "kin",
+      "displayName": "Kin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kinlab-ai/kin-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Connects Codex to your accounts through Kin's hosted MCP server, even two of one service such as a work and a personal GitHub, each with its own rule per action: Allow, Ask me or Block.",
+      "icon": "./plugins/kinlab-ai/kin-plugin/assets/icon.png"
     },
     {
       "name": "crawlberg",

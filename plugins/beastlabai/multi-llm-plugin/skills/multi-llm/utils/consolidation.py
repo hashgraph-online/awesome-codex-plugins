@@ -64,6 +64,11 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+try:
+    from . import scope_report as _scope_report
+except ImportError:  # pragma: no cover - direct script import
+    from utils import scope_report as _scope_report
+
 
 # ---------------------------------------------------------------------------
 # Named constants
@@ -1461,6 +1466,53 @@ def generate_consolidated_json(
     return str(output_path)
 
 
+def _scope_context(
+    groups: List[Dict[str, Any]],
+    validation: Optional[List[Dict[str, Any]]],
+    phase_dir: Any,
+    phase_name: str,
+    scope_state: Optional[Dict[str, Any]] = None,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]]:
+    """The underlying groups with their verdicts, the round, and one scope entry per group.
+
+    A group's verdict is the one ``grouped.json`` carries, else the stamped
+    validation record joined by its stable hash (never by index). The round
+    is ``state.json``'s record beside the phase dir (*scope_state* overrides).
+    """
+    scoped = _scope_report.with_verdicts(groups, validation)
+    state = scope_state if scope_state is not None else _scope_report.read_state(phase_dir)
+    info = _scope_report.round_info(state, phase_name, scoped)
+    entries = [_scope_report.group_scope(g, info) for g in scoped]
+    return scoped, info, entries
+
+
+def _distinct_underlying(
+    consolidated_groups: List[Dict[str, Any]],
+    groups: List[Dict[str, Any]],
+    entries: List[Dict[str, Any]],
+) -> List[Tuple[str, Dict[str, Any]]]:
+    """``(group id, entry)`` for every underlying group an umbrella covers."""
+    out: List[Tuple[str, Dict[str, Any]]] = []
+    for cg in consolidated_groups:
+        for idx in cg.get("underlying_group_indices", []):
+            if 0 <= idx < len(groups):
+                out.append((str(groups[idx].get("group_hash") or f"index:{idx}"), entries[idx]))
+    return out
+
+
+def _umbrella_entry(
+    underlying_indices: List[int],
+    groups: List[Dict[str, Any]],
+    entries: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """An umbrella's derived scope (``scope_report.umbrella_scope``)."""
+    members = [
+        (str(groups[idx].get("display_label") or f"G{idx + 1}"), entries[idx])
+        for idx in underlying_indices if 0 <= idx < len(groups)
+    ]
+    return _scope_report.umbrella_scope(members)
+
+
 def generate_consolidated_report(
     consolidated_groups: List[Dict[str, Any]],
     groups: List[Dict[str, Any]],
@@ -1468,6 +1520,7 @@ def generate_consolidated_report(
     prefix: str,
     validation: Optional[List[Dict[str, Any]]] = None,
     phase_name: str = "review-plan",
+    scope_state: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
     Write ``consolidated-report.md`` to *phase_dir*.
@@ -1489,6 +1542,11 @@ def generate_consolidated_report(
         phase_dir: Path to the review-plan phase directory.
         prefix: The plan name / prefix used in the report header
             (e.g. ``my-feature``).
+        scope_state: The ``state.json`` dict with the round's
+            ``scope_policy`` record; ``None`` reads the one beside
+            *phase_dir*. Each umbrella shows a tag derived from its
+            underlying groups, each underlying group its validated tag and
+            each suggestion its provisional one (plan scope-policy §6).
 
     Returns:
         The path (as a string) of the written ``consolidated-report.md``.
@@ -1536,6 +1594,18 @@ def generate_consolidated_report(
     lines.append(
         f"**Breakdown:** {merged_count} merged + {singleton_count} singletons"
     )
+    # Scope tags (plans/scope-policy-and-report-tags.md §6): consolidation is
+    # presentation over the underlying groups, so every tag here is theirs —
+    # an umbrella's is derived from its members and counts are per distinct
+    # underlying group.
+    scope_groups, scope_round, scope_entries = _scope_context(
+        groups, validation, phase_dir, phase_name, scope_state)
+    lines.extend(_scope_report.md_header_lines(
+        scope_round,
+        _scope_report.count_entries(_distinct_underlying(consolidated_groups, scope_groups,
+                                                         scope_entries)),
+        noun="underlying groups",
+    ))
     lines.append("")
     lines.append(
         "> This report consolidates related suggestion groups for faster review."
@@ -1544,6 +1614,7 @@ def generate_consolidated_report(
     lines.append(
         "> Skip decisions from both reports are combined when applying suggestions."
     )
+    lines.append(_scope_report.md_legend_line())
     lines.append("")
 
     # --- Build validation lookups for per-group aggregate status ---
@@ -1610,6 +1681,11 @@ def generate_consolidated_report(
         if agg_status == "needs-human-decision":
             lines.append("- [ ] Let the agent decide")
 
+        # The umbrella's derived scope tag (any extension member makes it an
+        # extension, "contains extension"); no authority of its own.
+        lines.extend(_scope_report.md_umbrella_lines(_umbrella_entry(
+            underlying_indices, groups, scope_entries)))
+
         # Metadata line
         lines.append(
             f"**Importance:** {importance} | **Section:** {reference} "
@@ -1641,11 +1717,15 @@ def generate_consolidated_report(
 
             g_label = orig_group.get("display_label", f"G{u_idx + 1}")
             lines.append(f"**{g_label}: {theme}** ({models_str})")
+            # Each member keeps its own validated tag in a mixed umbrella.
+            lines.extend(_scope_report.md_group_lines(scope_entries[u_idx]))
+            lines.append("")
 
             for sugg in orig_group.get("suggestions", []):
                 sugg_desc = sugg.get(
                     "description", sugg.get("desc", "")
                 )
+                lines.append(_scope_report.md_member_line(sugg))
                 lines.append(f"> {sugg_desc}")
                 lines.append("")
 
@@ -1715,9 +1795,11 @@ def generate_consolidated_html(
     validation: Optional[List[Dict[str, Any]]] = None,
     phase_name: str = "review-plan",
     usage: Optional[Dict[str, Dict[str, Any]]] = None,
+    scope_state: Optional[Dict[str, Any]] = None,
 ) -> str:
     """
-    Write ``consolidated-report.html`` to *phase_dir*.
+    Write ``consolidated-report.html`` to *phase_dir*, and its payload to
+    ``consolidated_report_data.json`` beside it.
 
     Loads the template from ``templates/consolidated_report_template.html``,
     injects a JSON data payload via the ``REPORT_DATA_PLACEHOLDER`` pattern
@@ -1746,6 +1828,10 @@ def generate_consolidated_html(
             column-wise total in the header.  Omitted, or empty (the case for a
             fan-out of duration-only adapters), leaves both out of the payload
             entirely, which is what keeps the header from claiming a free run.
+        scope_state: As for :func:`generate_consolidated_report`. The payload
+            gains ``scopePolicy`` and a ``scope`` entry per umbrella,
+            underlying group and suggestion, and is persisted as
+            ``consolidated_report_data.json`` for decision regeneration.
 
     Returns:
         The path (as a string) of the written ``consolidated-report.html``.
@@ -1759,17 +1845,21 @@ def generate_consolidated_html(
     # Reuse helpers from html_report_generator
     try:
         from .html_report_generator import (
+            CONSOLIDATED_REPORT_DATA,
             get_model_metadata,
             derive_aggregate_validation_status,
             build_sort_config,
+            embed_consolidated_report_data,
             sum_usage,
         )
         from .metrics import describe_usage
     except ImportError:
         from utils.html_report_generator import (
+            CONSOLIDATED_REPORT_DATA,
             get_model_metadata,
             derive_aggregate_validation_status,
             build_sort_config,
+            embed_consolidated_report_data,
             sum_usage,
         )
         from utils.metrics import describe_usage
@@ -1842,6 +1932,11 @@ def generate_consolidated_html(
             if g_idx is not None:
                 validation_by_index[g_idx] = v_info
 
+    # --- Scope tags (plan §6): each underlying group's validated entry, each
+    # member's provisional one, each umbrella's derived one ---
+    _scope_groups, scope_round, scope_entries = _scope_context(
+        groups, validation, phase_dir, phase_name, scope_state)
+
     # --- Build consolidatedGroups payload ---
     cg_data: List[Dict[str, Any]] = []
     for cg in consolidated_groups:
@@ -1878,6 +1973,7 @@ def generate_consolidated_html(
                         "importance", "MEDIUM"
                     ).upper(),
                     "model": sugg.get("source_model", "unknown"),
+                    "scope": _scope_report.member_scope(sugg),
                 })
 
             # Attach validation info — hash-based lookup primary, index fallback
@@ -1892,7 +1988,10 @@ def generate_consolidated_html(
                 "theme": orig_group.get("theme", "Unknown"),
                 "models": orig_group.get("models", []),
                 "suggestions": suggs,
+                "scope": scope_entries[u_idx],
             }
+            if orig_group.get("display_label"):
+                ug_entry["displayLabel"] = orig_group["display_label"]
             if v_info:
                 ug_entry["validationStatus"] = v_info["status"]
                 ug_entry["validationReason"] = v_info["reason"]
@@ -1917,6 +2016,7 @@ def generate_consolidated_html(
             "coversList": covers_list,
             "reasoning": cg.get("reasoning", ""),
             "underlyingGroups": underlying_groups_data,
+            "scope": _umbrella_entry(underlying_indices, groups, scope_entries),
         }
         if agg_status:
             cg_entry["validationStatus"] = agg_status
@@ -1969,32 +2069,29 @@ def generate_consolidated_html(
     # report.html — the same failure map, denominator and warning notice.
     report_data.update(_failure_report_fields(phase_dir))
 
-    # --- Inject data into template ---
-    json_payload = json.dumps(report_data, indent=2)
+    # The round's policy line, legend and tag counts over distinct groups.
+    report_data[_scope_report.REPORT_KEY] = _scope_report.report_block(
+        scope_round,
+        _scope_report.count_entries(
+            _distinct_underlying(consolidated_groups, groups, scope_entries)),
+    )
 
-    # Escape </script> sequences to prevent premature script tag closure
-    json_payload = json_payload.replace("</", "<\\/")
-
-    if "/* REPORT_DATA_PLACEHOLDER */null" in template:
-        html = template.replace(
-            "/* REPORT_DATA_PLACEHOLDER */null", json_payload
-        )
-    elif "/* REPORT_DATA_PLACEHOLDER */" in template:
-        html = template.replace(
-            "/* REPORT_DATA_PLACEHOLDER */", json_payload
-        )
-    elif "REPORT_DATA_PLACEHOLDER" in template:
-        html = template.replace("REPORT_DATA_PLACEHOLDER", json_payload)
-    else:
-        raise ValueError(
-            "Template does not contain REPORT_DATA_PLACEHOLDER \u2014 "
-            "cannot inject report data."
-        )
+    # --- Inject data into template (the flat/PR report's escaping) ---
+    html = embed_consolidated_report_data(report_data, template)
 
     # --- Write ---
     phase_path.mkdir(parents=True, exist_ok=True)
     output_path = phase_path / "consolidated-report.html"
     output_path.write_text(html, encoding="utf-8")
+    # The persisted payload decision regeneration overlays onto
+    # (`html_report_generator.regenerate_consolidated_with_human_decisions`),
+    # as `report_data.json` is for report.html. Its name holds `consolidated`
+    # and `report_data`, which every reaggregation scan excludes.
+    try:
+        (phase_path / CONSOLIDATED_REPORT_DATA).write_text(
+            json.dumps(report_data, indent=2), encoding="utf-8")
+    except OSError:
+        pass
 
     return str(output_path)
 

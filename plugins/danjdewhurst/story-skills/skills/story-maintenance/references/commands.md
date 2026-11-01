@@ -45,6 +45,7 @@ story series .
 story init 'The Last Ember' --form novel
 story init 'Embers of the Vale' --follows ../the-last-ember
 story import draft.md --title 'Title'
+story import draft.docx --title 'Title'
 story report .
 story report . --actionable
 story next .

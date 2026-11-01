@@ -10,7 +10,6 @@
       "Define a revenue metric on top of fct_orders.",
       "Add a customer_region dimension to the customer entity.",
       "Build dbt semantic models (MetricFlow) for the orders mart.",
-      "Preview this semantic model in Viz.",
       "Fix the rpt_customer_metrics.sql model. It produces inf and NaN values in calculated columns and is missing the ltv_tier column.",
       "This model returns wrong numbers for Q4, the revenue is double counted. Fix it.",
       "Add three new columns to models/marts/customer_metrics.sql: engagement score, churn risk score, and an LTV tier.",

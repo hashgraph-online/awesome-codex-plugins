@@ -5,7 +5,7 @@ Reviews an implementation plan using multiple LLMs and aggregates their suggesti
 ## Usage
 
 ```bash
-/multi-llm:multi-llm --review-plan <plan_path> [--models provider:model ...] [--quick] [--interactive]
+/multi-llm:multi-llm --review-plan <plan_path> [--models provider:model ...] [--quick] [--interactive] [--scope-policy expand|preserve]
 ```
 
 ## Process
@@ -71,6 +71,10 @@ Each suggestion shows explicit validation status:
 - `**Validation:** ? Needs Review` - Requires human judgment
 - `**Validation:** ? Unknown` - Validation status not available
 
+### Scope Tags
+
+Between the checkboxes and the `**Validation:**` line, each group carries a `**Group scope:**` line (its validated tag) and each finding a `**Scope:**` line (its reviewer's, marked provisional): `Within scope`, `Scope extension` or `Scope unclear`, with a short reason. Under `--scope-policy preserve` a group also shows `**Scope outcome:**`, eligible or `Deferred: scope preservation requested`. The report header adds a `**Scope policy:**` line and the tag counts. The tags describe each proposed fix, separately from its validity; editing them changes nothing, since the apply reads scope from the validation records.
+
 ### Marking Suggestions to Skip
 
 To skip a suggestion when applying changes later:
@@ -99,6 +103,7 @@ These logs are useful for debugging why an agent failed or what thinking/tools i
 - `--skip-validation`: Skip the LLM validation step (faster but no false-positive filtering)
 - `--validation-model <model>`: Model to use for validation (default: "auto")
 - `--quick` / `-q`: Use quick_models from providers.yaml for lightweight reviews (2 models)
+- `--scope-policy expand|preserve`: the review round's scope policy (D6 row 16, never asked). Add it to the launch only when the user typed it. Left out, a new round is `expand`, which adds informational scope tags and changes nothing else; a `--reaggregate` keeps the round's recorded policy. `preserve` asks the reviewers for in-scope corrections only, and validation defers every extension or unclear fix without changing its validity (the review prints one `[SCOPE_POLICY] preserve: …` line counting the deferrals). A policy that differs from the one a round under way was asked under stops at exit 3 with `[SCOPE_POLICY_CONFLICT]`: report it whole, with the new-round command it names.
 
 ## Validation Statuses
 
@@ -146,7 +151,7 @@ to bare `python`.
    A fan-out review over many models routinely outlives any single shell command a host is willing to wait for, so **run detached**, redirecting stdout+stderr to a log file in the phase dir and setting `PYTHONUNBUFFERED=1`:
    ```bash
    PYTHONUNBUFFERED=1 uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" review-plan \
-     --plan-file "$PLAN_PATH" --models <selected> \
+     --plan-file "$PLAN_PATH" --models <selected> [--scope-policy <value>] \
      > "{plan}/review-plan/orchestrator-run.log" 2>&1
    ```
 
@@ -334,7 +339,7 @@ to bare `python`.
       configured it; state that number there instead. Announcing an interval you are
       not waiting is worse than announcing none.
 
-   **Resume**: re-invoking with `--force` RESUMES (keeps already-completed per-model result files, runs only the missing models); `--rerun-all` forces a full re-run discarding existing per-model results. Pass the **same `--models` selection as the original run** (`models_requested` in `{plan}/review-plan/.status.json`), never only the missing ones: the orchestrator skips the models that already have a result, and the run's report covers only the models passed.
+   **Resume**: re-invoking with `--force` RESUMES (keeps already-completed per-model result files, runs only the missing models); `--rerun-all` forces a full re-run discarding existing per-model results. Pass the **same `--models` selection as the original run** (`models_requested` in `{plan}/review-plan/.status.json`), never only the missing ones: the orchestrator skips the models that already have a result, and the run's report covers only the models passed. Left out, `--scope-policy` stays the one the kept results were requested under (the run prints one `Scope policy notice:` line naming it); a different one typed stops at exit 3 with `[SCOPE_POLICY_CONFLICT]` rather than mix two policies in one round, and `--force --rerun-all` starts a fresh round under `expand` or the policy typed.
 
 5. **Interrupted-run Recovery** (conditional — only if the background run was interrupted or the log shows no completion markers)
 

@@ -54,19 +54,21 @@ Approved work continues through implementation, verification, independent review
 
 ## Included capabilities
 
-The plugin ships 22 skills:
+The plugin ships 24 skills:
 
 | Area | Skills |
 |---|---|
 | Core workflow | `using-development-skills`, `brainstorming`, `create-test`, `explain-diff` |
-| Review and improvement | `staff-review`, `roast-my-code`, `refactor`, `simplify-stuff`, `rethink` |
+| Review and improvement | `staff-review`, `roast-my-code`, `refactor`, `refactor-loop`, `evolve-loop`, `simplify-stuff`, `rethink` |
 | Documentation and Git | `align-docs`, `changelog`, `commit`, `handoff`, `resolve-merge`, `wrap-up-branch` |
 | Research and evaluation | `best-practices`, `ai-agent-bench`, `eval-regression`, `phone-a-friend`, `plugin-feedback` |
 | Communication and maintenance | `bro`, `update-deps` |
 
-`refactor`, `simplify-stuff`, `phone-a-friend`, and `wrap-up-branch` require explicit invocation.
+`refactor`, `refactor-loop`, `evolve-loop`, `simplify-stuff`, `phone-a-friend`, and `wrap-up-branch` require explicit invocation.
+The autonomous loops agree on their result and regression gate before starting, then work on their own branch.
 `bro` switches explanations to plain language without dropping necessary facts.
 `phone-a-friend` asks the other CLI family for an independent, read-only opinion.
+The native Claude routing cases live in `evals/`; `eval-regression` also supports Codex with the caller's settings.
 
 One named subagent ships: [`staff-reviewer`](agents/staff-reviewer.md).
 Implementation and verification stay in the main context.
@@ -79,6 +81,7 @@ Implementation and verification stay in the main context.
 - [`writing.md`](shared/writing.md) owns plain natural-language text.
 - [`documentation.md`](shared/documentation.md) owns repository document metadata and lifecycle.
 - [`review-categories.md`](shared/review-categories.md) owns severity definitions.
+- [`unattended-runs.md`](shared/unattended-runs.md) owns autonomous run limits and reporting.
 
 The plugin does not ship language, framework, organization, or product conventions.
 It reads those rules from the target repository.
@@ -87,7 +90,7 @@ It reads those rules from the target repository.
 
 | Hook | Purpose |
 |---|---|
-| `session-start` | Inject the router and writing contract before the first decision. |
+| `session-start` | Inject the router, writing contract, development loop, and engineering contract before the first decision. |
 | `auto-format` | Apply a best-effort formatter after an edit. |
 | `plan-approved` | Continue approved work without asking for the same approval again. |
 

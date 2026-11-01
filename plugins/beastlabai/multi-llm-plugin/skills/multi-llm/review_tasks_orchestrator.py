@@ -187,6 +187,11 @@ Examples:
         help='HTML report template style: "pr" for PR-style contextual view, "flat" for classic card layout (default: pr)'
     )
 
+    # plans/scope-policy-and-report-tags.md §4: declared once, in cli_common.
+    from utils.cli_common import add_scope_policy_argument
+
+    add_scope_policy_argument(parser, role="review")
+
     return parser.parse_args(argv)
 
 

@@ -112,7 +112,7 @@ Then ask your agent to **"Start a new story"**.
 
 - [Install the skills](docs/getting-started.md#install-the-skills) covers the other agents, including GitHub Copilot, Cursor, Windsurf, Gemini CLI, and OpenCode.
 - [Let your agent install it](docs/getting-started.md#let-your-agent-install-it) has a prompt that installs the skills for you.
-- New to Story Skills? [Getting started](docs/getting-started.md) walks through a first session. The [documentation index](docs/README.md) links every guide.
+- New to Story Skills? [Getting started](docs/getting-started.md) walks through a first session. The [documentation index](docs/README.md) links every guide, and the [documentation website](https://danjdewhurst.github.io/story-skills/) has the same pages with search.
 
 ## The continuity engine
 
@@ -227,7 +227,7 @@ story import draft.md --title "The Lost Coast" --genre mystery
 story import brouillon.md --title "La Côte perdue" --language fr
 ```
 
-It splits the manuscript on chapter headings, or imports a folder of chapter files, and builds the full project with word counts and registries. [Import, export, and builds](docs/manuscripts.md#import-an-existing-manuscript) covers the options, including `--force`.
+It reads markdown, plain text, or a Word `.docx`. It splits the manuscript on chapter headings, or imports a folder of chapter files, and builds the full project with word counts and registries. [Import, export, and builds](docs/manuscripts.md#import-an-existing-manuscript) covers the options, including `--force`.
 
 ## How it works
 

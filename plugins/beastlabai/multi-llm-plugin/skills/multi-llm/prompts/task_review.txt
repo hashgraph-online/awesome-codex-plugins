@@ -66,6 +66,8 @@ After completing coverage analysis, also review the tasks for:
 
 {working_limits}
 
+{scope_policy_guidance}
+
 ## Output Format
 Return ONLY a valid JSON array with no additional text. Each element must have exactly these fields:
 - "title": string (5-10 word summary of the issue)
@@ -80,6 +82,9 @@ Return ONLY a valid JSON array with no additional text. Each element must have e
   - modification = an existing task needs changes (description, criteria, dependencies, etc.)
   - deletion = a task or dependency is unnecessary and should be removed
   - clarification = a task description or criterion is ambiguous and needs better explanation
+- "scope_relation": "in_scope" | "scope_extension" | "unclear" (how the finding's proposed action relates to the scope baseline, as the scope section above defines them)
+- "scope_reason": string (one short line saying why, against the scope baseline)
+- "scope_reference": string (the baseline section or text the classification rests on, or "")
 
 Example output:
 [
@@ -88,42 +93,60 @@ Example output:
     "desc": "The plan specifies rate limiting for all API endpoints (see '## API Design' section), but no task implements this. Add a task to configure rate limiting middleware with the thresholds defined in the plan (100 req/min per user, 1000 req/min global).",
     "importance": "high",
     "reference": "Plan Coverage",
-    "type": "addition"
+    "type": "addition",
+    "scope_relation": "in_scope",
+    "scope_reason": "A task for a requirement the plan already states.",
+    "scope_reference": "## API Design"
   }},
   {{
     "title": "Plan's rollback strategy not covered by any task",
     "desc": "The plan's '## Deployment' section requires a database rollback strategy for failed migrations, but no task addresses reversible migrations or rollback procedures. Add a task or extend the migration task to include rollback scripts.",
     "importance": "high",
     "reference": "## Deployment",
-    "type": "addition"
+    "type": "addition",
+    "scope_relation": "in_scope",
+    "scope_reason": "Covers the rollback strategy the plan's Deployment section requires.",
+    "scope_reference": "## Deployment"
   }},
   {{
     "title": "T003 missing dependency on T001 database schema",
     "desc": "T003 creates API routes that query the user_features table, but does not list T001 (which creates that table) in its depends_on array. Without this dependency, T003 could be executed before the table exists. Add 'T001' to T003's depends_on.",
     "importance": "high",
     "reference": "T003",
-    "type": "modification"
+    "type": "modification",
+    "scope_relation": "in_scope",
+    "scope_reason": "Fixes a dependency between two planned tasks; it adds no work.",
+    "scope_reference": ""
   }},
   {{
     "title": "T005 description lacks interface contract details",
     "desc": "T005 says 'integrate with the notification service' but doesn't specify which functions to call, what payload format to use, or what T004 exports. Add specifics: call sendNotification() from lib/notifications.ts with {{ type, userId, message }} payload.",
     "importance": "medium",
     "reference": "T005",
-    "type": "clarification"
+    "type": "clarification",
+    "scope_relation": "in_scope",
+    "scope_reason": "Clarifies the interface of an integration the plan already asks for.",
+    "scope_reference": ""
   }},
   {{
     "title": "T002 acceptance criteria too vague",
     "desc": "T002's criterion 'service layer works correctly' is not verifiable. Replace with specific criteria like 'createFeature() returns the created record with a generated UUID' and 'listFeatures(userId) returns only records matching the given user_id'.",
     "importance": "medium",
     "reference": "T002",
-    "type": "modification"
+    "type": "modification",
+    "scope_relation": "in_scope",
+    "scope_reason": "Makes an existing task's acceptance criterion checkable.",
+    "scope_reference": ""
   }},
   {{
     "title": "T007 complexity underestimated as low",
     "desc": "T007 involves creating 3 new files, integrating with 2 existing services, and adding authentication middleware. This is closer to medium complexity. Underestimating may cause scheduling issues.",
     "importance": "low",
     "reference": "T007",
-    "type": "modification"
+    "type": "modification",
+    "scope_relation": "in_scope",
+    "scope_reason": "Corrects an estimate of planned work; it adds nothing.",
+    "scope_reference": ""
   }}
 ]
 

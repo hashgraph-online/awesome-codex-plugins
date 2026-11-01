@@ -6,6 +6,7 @@ description: Route development work by scope, risk, and the need for a lasting w
 # Using development-skills
 
 For development work, read the [development loop](../../shared/development-loop.md).
+Read the [engineering contract](../../shared/engineering.md) before design or code changes, and apply `rethink` to each design.
 Skip this router for a bounded subagent task.
 Resume an active plan at its recorded step. Otherwise select the path that fits the task.
 Read [full-path.md](../../shared/full-path.md) only for work that needs a lasting decision record or designed proof.

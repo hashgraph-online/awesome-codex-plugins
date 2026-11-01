@@ -2041,6 +2041,33 @@
     ::-webkit-scrollbar-thumb:hover {
       background: var(--text-muted);
     }
+    /* Scope tags (plans/scope-policy-and-report-tags.md §6): text badges whose
+       label is the exact report label, at a contrast of 7:1 or more in both
+       colour schemes. */
+    .badge.scope-badge {
+      text-transform: none;
+      letter-spacing: 0;
+      border: 1px solid currentColor;
+    }
+    .scope-tags { display: inline-flex; gap: 0.25rem; flex-wrap: wrap; align-items: center; }
+    .scope-in { background: #dcfce7; color: #14532d; }
+    .scope-extension { background: #ffedd5; color: #7c2d12; }
+    .scope-unclear { background: #e5e7eb; color: #1f2937; }
+    .scope-deferred { background: #fef3c7; color: #78350f; }
+    .scope-summary { margin: 0.5rem 0; font-size: 0.8125rem; line-height: 1.6; }
+    .scope-counts { display: flex; flex-wrap: wrap; gap: 0.375rem; align-items: center; }
+    .scope-legend, .scope-count-note { color: var(--text-muted); font-size: 0.75rem; }
+    .scope-section { margin: 0.375rem 0; font-size: 0.8125rem; }
+    .scope-section summary { cursor: pointer; color: var(--text-secondary); }
+    .scope-detail { padding: 0.25rem 0.5rem; }
+    .scope-line { margin: 0.125rem 0; }
+    .umbrella-scope-line { margin: 0.5rem 0 0.25rem; font-size: 0.8125rem; color: var(--text-secondary); }
+    @media (prefers-color-scheme: dark) {
+      .scope-in { background: #14532d; color: #dcfce7; }
+      .scope-extension { background: #7c2d12; color: #ffedd5; }
+      .scope-unclear { background: #374151; color: #f3f4f6; }
+      .scope-deferred { background: #78350f; color: #fef3c7; }
+    }
   </style>
 </head>
 <body>
@@ -2243,7 +2270,7 @@
       var stored = localStorage.getItem(getStorageKey());
       if (stored) {
         try {
-          var parsed = JSON.parse(stored);
+          var parsed = stripScopeSelectionFields(JSON.parse(stored));
           if (Array.isArray(parsed.skipped_groups)) {
             var migrated = {};
             parsed.skipped_groups.forEach(function(g) { migrated[String(g)] = true; });
@@ -2308,6 +2335,219 @@
       html += '</span>';
       return html;
     }
+
+    // ================================================================
+    // Scope tags (plans/scope-policy-and-report-tags.md §6). BEGIN SCOPE TAGS
+    // The same block in all three report templates. Tags describe proposals:
+    // they never change validity or selection, and no selection — restored
+    // from localStorage or imported — ever changes a tag. Every word comes
+    // from reportData (written by the generator); a payload without scope
+    // data (a legacy report) reads `Scope unclear` throughout.
+    // ================================================================
+    var SCOPE_LABELS = { in_scope: 'Within scope', scope_extension: 'Scope extension', unclear: 'Scope unclear' };
+    var SCOPE_CLASSES = { in_scope: 'scope-in', scope_extension: 'scope-extension', unclear: 'scope-unclear' };
+    var SCOPE_DEFERRED = 'Deferred: scope preservation requested';
+    var SCOPE_LEGACY_LINE = 'Scope policy: expand. This report predates scope classification, so every tag reads Scope unclear.';
+
+    function scopeAttr(text) {
+      if (text === null || text === undefined) return '';
+      return escapeHtml(String(text)).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function scopeSelectorValue(text) {
+      return String(text === null || text === undefined ? '' : text).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    }
+
+    function scopeRelation(relation) {
+      return Object.prototype.hasOwnProperty.call(SCOPE_LABELS, relation) ? relation : 'unclear';
+    }
+
+    function scopeBadgeHtml(relation, qualifier, title) {
+      var rel = scopeRelation(relation);
+      var text = SCOPE_LABELS[rel] + (qualifier ? ' (' + qualifier + ')' : '');
+      return '<span class="badge scope-badge ' + SCOPE_CLASSES[rel] + '" title="' +
+        scopeAttr(title || text) + '">' + escapeHtml(text) + '</span>';
+    }
+
+    function scopeDeferredHtml(text, title) {
+      return '<span class="badge scope-badge scope-deferred" title="' + scopeAttr(title || text) + '">' +
+        escapeHtml(text) + '</span>';
+    }
+
+    // An edited description changes the proposal its classification was made for.
+    function scopeSuggestionEdited(s) {
+      if (!s || !selections || !selections.edited_descriptions) return false;
+      var edited = selections.edited_descriptions[s.id];
+      return edited !== undefined && edited !== (s.description || s.content || '');
+    }
+
+    function scopeGroupEdited(group) {
+      return ((group && group.suggestions) || []).some(scopeSuggestionEdited);
+    }
+
+    // The reviewer's own tag: provisional, never authority.
+    function scopeMemberBadges(s) {
+      var e = (s && s.scope) || {};
+      var classified = !!e.classified;
+      var qualifier = 'provisional' + (scopeSuggestionEdited(s) ? '; may be stale: description edited' : '');
+      var reason = classified ? (e.reason || '') : 'not classified';
+      return scopeBadgeHtml(classified ? e.relation : 'unclear', qualifier,
+        'Reviewer classification (provisional)' + (reason ? ': ' + reason : ''));
+    }
+
+    function scopeMemberHtml(s) {
+      return '<span class="scope-tags" data-scope-suggestion="' + scopeAttr((s && s.id) || '') + '">' +
+        scopeMemberBadges(s) + '</span>';
+    }
+
+    // The group's validated tag as this page can vouch for it now.
+    function scopeGroupView(group) {
+      var e = (group && group.scope) || null;
+      var edited = scopeGroupEdited(group);
+      if (!e) {
+        return { relation: 'unclear', qualifier: 'not classified', decision: null,
+                 title: 'No validated scope classification', reason: 'no validated scope classification' };
+      }
+      var state = e.authority || 'missing';
+      var classifiedLabel = SCOPE_LABELS[scopeRelation(e.classifiedRelation || e.relation)];
+      var view = { relation: 'unclear', decision: e.decision || null, reason: e.reason || '' };
+      if (state === 'bound' && edited) {
+        view.qualifier = 'may be stale: description edited';
+        view.reason = 'validated as ' + classifiedLabel + ' before this description was edited' +
+          (e.reason ? ': ' + e.reason : '');
+        if (view.decision && view.decision.policy === 'preserve') {
+          view.decision = { policy: 'preserve', outcome: 'deferred',
+                            reason: SCOPE_DEFERRED + ': the proposal changed after its scope was validated' };
+        }
+      } else if (state === 'bound') {
+        view.relation = e.relation;
+        view.qualifier = 'validated';
+      } else if (state === 'stale') {
+        view.qualifier = 'may be stale';
+        view.reason = 'validated as ' + classifiedLabel + ' before the proposal changed' +
+          (e.classifiedReason ? ': ' + e.classifiedReason : '');
+      } else {
+        view.qualifier = state === 'missing' ? 'not classified' : 'not bound';
+      }
+      view.title = 'Group scope (' + view.qualifier + ')' + (view.reason ? ': ' + view.reason : '');
+      return view;
+    }
+
+    function scopeGroupBadges(group) {
+      var view = scopeGroupView(group);
+      var html = scopeBadgeHtml(view.relation, view.qualifier, view.title);
+      var d = view.decision;
+      // Under preserve a deferral shows whatever the validity is; the
+      // selection controls stay usable for a later policy override.
+      if (d && d.policy === 'preserve' && d.outcome === 'deferred') {
+        html += scopeDeferredHtml(SCOPE_DEFERRED, d.reason || SCOPE_DEFERRED);
+      }
+      return html;
+    }
+
+    // Keyed by the stable group hash only: a hash-less legacy group is never
+    // re-rendered in place (no key could tell two of them apart).
+    function scopeGroupHtml(group) {
+      var key = (group && group.groupHash) || '';
+      return '<span class="scope-tags"' + (key ? ' data-scope-group="' + scopeAttr(key) + '"' : '') + '>' +
+        scopeGroupBadges(group) + '</span>';
+    }
+
+    function scopeDetailBody(group) {
+      var view = scopeGroupView(group);
+      var e = (group && group.scope) || {};
+      var html = '<div class="scope-line"><strong>Scope (' + escapeHtml(view.qualifier) + '):</strong> ' +
+        escapeHtml(SCOPE_LABELS[scopeRelation(view.relation)]) +
+        (view.reason ? ' &mdash; ' + escapeHtml(view.reason) : '') + '</div>';
+      if (e.reference) html += '<div class="scope-line"><strong>Baseline reference:</strong> ' + escapeHtml(e.reference) + '</div>';
+      if (e.selectedRemedy && e.authority === 'bound') {
+        html += '<div class="scope-line"><strong>Selected remedy:</strong> ' + escapeHtml(e.selectedRemedy) + '</div>';
+      }
+      var d = view.decision;
+      if (d && d.policy === 'preserve') {
+        html += '<div class="scope-line"><strong>Scope outcome:</strong> ' +
+          escapeHtml(d.outcome === 'deferred' ? (d.reason || SCOPE_DEFERRED) : 'Eligible under scope preservation') + '</div>';
+      }
+      return html;
+    }
+
+    function scopeDetailHtml(group) {
+      var view = scopeGroupView(group);
+      return '<details class="scope-section"><summary>Scope: ' +
+        escapeHtml(SCOPE_LABELS[scopeRelation(view.relation)] + ' (' + view.qualifier + ')') + '</summary>' +
+        '<div class="scope-detail"' + (group && group.groupHash ? ' data-scope-detail="' + scopeAttr(group.groupHash) + '"' : '') + '>' +
+        scopeDetailBody(group) + '</div></details>';
+    }
+
+    // An umbrella's tag is derived from its underlying groups; each keeps its own.
+    function scopeUmbrellaBadges(entry) {
+      var e = entry || null;
+      if (!e) return scopeBadgeHtml('unclear', 'derived', 'No scope data for this consolidated group');
+      var qualifier = 'derived' + (e.mixed ? '; mixed members' : '');
+      var html = scopeBadgeHtml(e.relation, qualifier, (e.label || SCOPE_LABELS[scopeRelation(e.relation)]) +
+        ': ' + (e.reason || '') + ' (each underlying group keeps its own tag and decision)');
+      var deferred = e.deferred || [];
+      if (deferred.length) {
+        html += scopeDeferredHtml(SCOPE_DEFERRED + ' (' + deferred.length + ' of ' + (e.members || deferred.length) + ')',
+          SCOPE_DEFERRED + ': ' + deferred.join(', '));
+      }
+      return html;
+    }
+
+    function scopeSummaryHtml() {
+      var block = (reportData && reportData.scopePolicy) || null;
+      var line = block ? (block.policyLine || '') : SCOPE_LEGACY_LINE;
+      var html = '<div class="scope-summary"><div class="scope-policy-line">' + escapeHtml(line) + '</div>';
+      if (block) {
+        var c = block.counts || {};
+        html += '<div class="scope-counts">' +
+          scopeBadgeHtml('in_scope', '', SCOPE_LABELS.in_scope) + ' ' + (c.in_scope || 0) + ' ' +
+          scopeBadgeHtml('scope_extension', '', SCOPE_LABELS.scope_extension) + ' ' + (c.scope_extension || 0) + ' ' +
+          scopeBadgeHtml('unclear', '', SCOPE_LABELS.unclear) + ' ' + (c.unclear || 0) +
+          ' <span class="scope-count-note">(validated, distinct groups)</span>';
+        if (block.effectivePolicy === 'preserve') {
+          html += ' ' + scopeDeferredHtml(SCOPE_DEFERRED, SCOPE_DEFERRED) + ' ' + (c.deferred || 0);
+        }
+        html += '</div><div class="scope-legend">' + escapeHtml(String(block.legend || '').replace(/`/g, '')) + '</div>';
+      }
+      return html + '</div>';
+    }
+
+    // An edit changes the classification's proposal: re-render its tags in place.
+    function refreshScopeTags(suggestionId) {
+      if (!reportData || !document.querySelectorAll) return;
+      var seen = {};
+      (reportData.groups || []).forEach(function(group) {
+        var member = (group.suggestions || []).filter(function(s) { return s.id === suggestionId; })[0];
+        if (!member) return;
+        document.querySelectorAll('.scope-tags[data-scope-suggestion="' + scopeSelectorValue(suggestionId) + '"]').forEach(function(el) {
+          el.innerHTML = scopeMemberBadges(member);
+        });
+        var key = group.groupHash || '';
+        if (!key || seen[key]) return;
+        seen[key] = true;
+        document.querySelectorAll('.scope-tags[data-scope-group="' + scopeSelectorValue(key) + '"]').forEach(function(el) {
+          el.innerHTML = scopeGroupBadges(group);
+        });
+        document.querySelectorAll('.scope-detail[data-scope-detail="' + scopeSelectorValue(key) + '"]').forEach(function(el) {
+          el.innerHTML = scopeDetailBody(group);
+        });
+      });
+    }
+
+    // Selection files carry ids and choices only; a scope- or policy-like key
+    // in a stored or imported selection is dropped, never rendered or exported.
+    function stripScopeSelectionFields(parsed) {
+      if (!parsed || typeof parsed !== 'object') return parsed;
+      Object.keys(parsed).forEach(function(k) {
+        var key = String(k).replace(/-/g, '_').toLowerCase();
+        if (key.indexOf('scope') === 0 || key.indexOf('selected_remedy') === 0 || key.indexOf('selectedremedy') === 0) {
+          delete parsed[k];
+        }
+      });
+      return parsed;
+    }
+    // END SCOPE TAGS
 
     // ================================================================
     // Summary Panel
@@ -2393,6 +2633,10 @@
         });
         leftHtml += '</span></div>';
       }
+
+      // The round's scope policy line, tag counts (distinct groups) and legend.
+      leftHtml += '<div class="summary-row"><span class="summary-label">Scope</span><span class="summary-value">' +
+        scopeSummaryHtml() + '</span></div>';
 
       document.getElementById('summary-left').innerHTML = leftHtml;
 
@@ -3075,6 +3319,7 @@
         if (rendered) rendered.classList.remove('modified');
       }
       saveSelections();
+      refreshScopeTags(suggestionId);
       autoResizeTextareaPr(textarea);
     }
 
@@ -4486,6 +4731,8 @@
       html += '<span class="umbrella-banner-label">' + escapeHtml(label) + '</span>';
       html += '<span class="umbrella-banner-title">' + escapeHtml(meta.consolidatedTitle || '') + '</span>';
       html += impBadge;
+      // The umbrella's derived scope tag (any extension member: "contains extension")
+      html += '<span class="scope-tags">' + scopeUmbrellaBadges(meta.scope) + '</span>';
       html += '</div>'; // header
 
       var bodyContent = meta.consolidatedDescription || '';
@@ -4636,6 +4883,9 @@
       else if (effectiveValidation === 'needs-human-decision') html += '<span class="badge badge-validation-needs-human">needs human</span>';
       else if (effectiveValidation === 'validation_failed') html += '<span class="badge badge-validation-failed">failed</span>';
 
+      // Scope: the group's validated tag (and a preserve deferral)
+      html += scopeGroupHtml(group);
+
       // Human/agent decision badge (post-apply)
       html += renderHumanDecisionBadge(group);
 
@@ -4661,6 +4911,9 @@
 
       // Human/agent decision detail (post-apply)
       html += renderHumanDecisionDetail(group);
+
+      // Scope reason, reference, selected remedy and policy outcome
+      html += scopeDetailHtml(group);
 
       // Individual suggestions
       suggestions.forEach(function(s, idx) {
@@ -4697,6 +4950,9 @@
         else html += '<span class="badge badge-importance-low">LOW</span>';
 
         if (s.type) html += '<span class="badge badge-category">' + escapeHtml(s.type) + '</span>';
+
+        // The reviewer's own scope tag (provisional)
+        html += scopeMemberHtml(s);
 
         // Skip control for suggestion
         html += '<label class="skip-control suggestion-skip" onclick="event.stopPropagation()">' +
@@ -4937,6 +5193,8 @@
         else if (validationStatus === 'needs-human-decision') html += '<span class="badge badge-validation-needs-human">needs human</span>';
         else if (validationStatus === 'validation_failed') html += '<span class="badge badge-validation-failed">failed</span>';
 
+        html += scopeGroupHtml(group);
+
         html += renderHumanDecisionBadge(group);
 
         if (isConsensus) html += '<span class="badge badge-consensus">Consensus (' + models.length + ')</span>';
@@ -4965,6 +5223,9 @@
         // Human/agent decision detail (post-apply)
         html += renderHumanDecisionDetail(group);
 
+        // Scope reason, reference, selected remedy and policy outcome
+        html += scopeDetailHtml(group);
+
         // Group content (suggestions)
         html += '<div class="flat-group-content">';
 
@@ -4989,6 +5250,7 @@
           }
           if (s.type) html += '<span class="badge badge-category">' + escapeHtml(s.type) + '</span>';
           if (s.model) html += getModelBadgeHtml(s.model);
+          html += scopeMemberHtml(s);
 
           // File/section reference
           var fileRef = s.fileRef || '';

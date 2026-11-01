@@ -1,0 +1,44 @@
+{
+  "name": "design-os-code2flow",
+  "description": "Local-first AST codebase-to-user-flow mapper and 11-heuristic UX gap auditor across 7 frontend and mobile frameworks.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Jang Trinh",
+    "url": "https://github.com/jangtrinh"
+  },
+  "homepage": "https://jangtrinh.github.io/design-os-code2flow/",
+  "repository": "https://github.com/jangtrinh/design-os-code2flow",
+  "license": "LicenseRef-PolyForm-Shield-1.0.0",
+  "keywords": [
+    "code2flow",
+    "user-flow",
+    "ux-audit",
+    "static-analysis",
+    "nextjs",
+    "swiftui",
+    "mermaid",
+    "design-os"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "DESIGN:OS Code2Flow",
+    "shortDescription": "Local-first AST codebase-to-user-flow mapper and 11-heuristic UX gap auditor across 7 frontend and mobile frameworks.",
+    "longDescription": "Statically analyze Next.js, React Router, TanStack Router, Expo Router, SwiftUI, Flutter, and Jetpack Compose repositories to generate Mermaid user-flow graphs and catch dead-end screens, missing error boundaries, and unguarded auth routes.",
+    "developerName": "DESIGN:OS",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://jangtrinh.github.io/design-os-code2flow/",
+    "privacyPolicyURL": "https://github.com/jangtrinh/design-os-code2flow/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Scan this Next.js App Router repository with code2flow, generate the Mermaid user-flow diagram, and list all high-severity UX gaps.",
+      "Audit our SwiftUI navigation stack for dead-end screens, missing loading/error states, and unguarded destructive actions.",
+      "Export a JSON + Markdown user-flow topology report for our PR review gate."
+    ],
+    "brandColor": "#202020",
+    "composerIcon": "./docs/images/composer-icon.svg",
+    "logo": "./docs/images/cover.png"
+  }
+}

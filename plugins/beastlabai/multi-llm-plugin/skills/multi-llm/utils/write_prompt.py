@@ -83,7 +83,7 @@ try:
     from .stream_bootstrap import bootstrap_streams
     from .subagent_executor import ExecutorError, ResultRejected
     from .subagent_tasks import (
-        PHASE_BY_WRITE_KIND, TASKS_SCHEMA_VERSION, declared_file_set,
+        APPLY_WRITE_KINDS, PHASE_BY_WRITE_KIND, TASKS_SCHEMA_VERSION, declared_file_set,
     )
     from .write_batch_scheduler import (
         COMMIT_GUARD_KIND,
@@ -132,7 +132,7 @@ except ImportError:  # pragma: no cover - direct script invocation
     from utils.stream_bootstrap import bootstrap_streams  # type: ignore
     from utils.subagent_executor import ExecutorError, ResultRejected  # type: ignore
     from utils.subagent_tasks import (  # type: ignore
-        PHASE_BY_WRITE_KIND, TASKS_SCHEMA_VERSION, declared_file_set,
+        APPLY_WRITE_KINDS, PHASE_BY_WRITE_KIND, TASKS_SCHEMA_VERSION, declared_file_set,
     )
     from utils.write_batch_scheduler import (  # type: ignore
         COMMIT_GUARD_KIND,
@@ -287,6 +287,15 @@ def render_write_prompt(
     # The log lives in the plan dir — the phase dir's parent, where the
     # executor leg's `WriteBatchScheduler` (output_dir=<plan dir>) appends.
     output_dir = str(phase_dir.parent)
+    # The scope policy's stale-task check (plans/scope-policy-and-report-
+    # tags.md §5), the executor dispatch's twin: a task materialized under
+    # another policy, baseline or binding than the round's effective one is
+    # refused before any prompt exists. A task without scope metadata never
+    # blocks an `expand` round.
+    if kind in APPLY_WRITE_KINDS:
+        refusal = _scope_refusal(task, output_dir, phase)
+        if refusal:
+            raise WritePromptError(refusal)
     try:
         bound = bind_prior_changes(
             task, output_dir=output_dir, phase=phase,
@@ -320,6 +329,18 @@ def render_write_prompt(
         "context_entries": len(entries),
     }
     return text, task, info
+
+
+def _scope_refusal(task: Dict[str, Any], output_dir: str, phase: Optional[str]) -> Optional[str]:
+    """``scope_apply.stale_task_refusal`` against the plan dir's ``state.json``."""
+    try:
+        from . import scope_apply as _scope
+    except ImportError:  # pragma: no cover - direct script invocation
+        from utils import scope_apply as _scope  # type: ignore
+    state = _known_checks.read_state(output_dir)
+    policy, baseline = _scope.effective_from_state(
+        state if isinstance(state, dict) else {}, str(phase or ""))
+    return _scope.stale_task_refusal(task, policy, baseline)
 
 
 def _accepted_checks(

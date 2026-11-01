@@ -37,6 +37,8 @@ try:
         current_replay_flags, durable_reaggregate_fields, retry_command,
     )
     from .subagent_prompts import build_validation_prompt, code_review_validation_guidance
+    from . import scope_policy as _sp
+    from . import scope_round as _scope_round
     from .subagent_tasks import (
         PromptBudget,
         TaskFileError,
@@ -72,6 +74,8 @@ except ImportError:
         current_replay_flags, durable_reaggregate_fields, retry_command,
     )
     from utils.subagent_prompts import build_validation_prompt, code_review_validation_guidance
+    from utils import scope_policy as _sp
+    from utils import scope_round as _scope_round
     from utils.subagent_tasks import (
         PromptBudget,
         TaskFileError,
@@ -1183,14 +1187,21 @@ For each suggestion, determine if it is:
 - "invalid": False positive, the suggestion is incorrect or not applicable
 - "needs-human-decision": Cannot be determined automatically, requires human judgment
 
+{scope_guidance}
+
 ## Output Format
-Return ONLY a valid JSON array with one entry per suggestion group:
+Return ONLY a valid JSON array with one entry per suggestion group. Copy each
+group's "index" into "group_index" and its "group_id" verbatim into "group_id":
 [
   {{
     "group_index": 0,
+    "group_id": "<the group's group_id value, copied verbatim>",
     "status": "valid" | "invalid" | "needs-human-decision",
     "reason": "Brief explanation for the classification",
-    "confidence": 0.0-1.0
+    "confidence": 0.0-1.0,
+    "scope_relation": "in_scope" | "scope_extension" | "unclear",
+    "scope_reason": "One brief sentence saying why, against the scope baseline",
+    "scope_reference": "The baseline section it rests on, or empty"
   }}
 ]
 '''
@@ -1200,7 +1211,12 @@ async def validate_groups(
     groups: List[Dict[str, Any]],
     context: str,
     model: str = "auto",
-    timeout: int = 120
+    timeout: int = 120,
+    *,
+    scope_policy: Optional[str] = None,
+    scope_phase: str = "review-plan",
+    scope_baseline_id: Optional[str] = None,
+    revalidation_baseline_differs: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Validate grouped suggestions/issues using an LLM.
@@ -1211,6 +1227,18 @@ async def validate_groups(
         context: Context for validation (plan content or diff)
         model: Model to use for validation (default: "auto")
         timeout: Timeout in seconds
+        scope_policy: The round's effective scope policy; omitted is
+            ``expand``. Renders ``scope_policy.validator_guidance`` into the
+            prompt per call (the template caches no policy text).
+        scope_phase: The ``scope_policy`` prompt phase (``review-plan``,
+            ``review-tasks``, ``code-review``, ``commits``).
+        scope_baseline_id: The baseline the context above binds, stamped on
+            every verdict that joins its group by the stable hash it echoed
+            (the reply contract asks for each input group's ``group_id``).
+            A verdict joined by position only is never stamped (no scope
+            authority, plan §3).
+        revalidation_baseline_differs: Adds the validator note that scope is
+            judged against the original round's baseline.
 
     Returns:
         List of validation results:
@@ -1228,12 +1256,14 @@ async def validate_groups(
 
     # Pre-compute group_ids for stable matching after reaggregation
     group_ids = []
+    group_by_id: Dict[str, Dict[str, Any]] = {}
     for group in groups:
         if hasattr(group, 'to_dict'):
             group_dict = group.to_dict()
         else:
             group_dict = group
         group_ids.append(generate_group_id(group_dict))
+        group_by_id.setdefault(group_ids[-1], group_dict)
 
     # Prepare suggestions JSON for the prompt
     # Extract key info from each group for validation
@@ -1271,7 +1301,11 @@ async def validate_groups(
 
     prompt = VALIDATION_PROMPT_TEMPLATE.format(
         context=context,
-        suggestions_json=suggestions_json
+        suggestions_json=suggestions_json,
+        scope_guidance=_sp.validator_guidance(
+            scope_policy, scope_phase,
+            revalidation_baseline_differs=revalidation_baseline_differs,
+        ),
     )
 
     print(f"[validation] Starting validation of {len(groups)} groups with model '{model}'...")
@@ -1368,11 +1402,33 @@ async def validate_groups(
             "reason": reason,
             "confidence": confidence
         }
-        # Add group_id - prefer from LLM response, else compute from index
-        if item.get("group_id"):
-            result_entry["group_id"] = item["group_id"]
-        elif 0 <= group_index < len(group_ids):
-            result_entry["group_id"] = group_ids[group_index]
+        # The scope fields ride along (normalized; malformed ones read
+        # `unclear` and never cost the verdict). Only a verdict whose echoed
+        # stable hash names one of these groups is stamped with the host's
+        # baseline and proposal digest: an index-derived id below is a
+        # position, and a position never carries scope authority.
+        for key in (_sp.RELATION_FIELD, _sp.REASON_FIELD, _sp.REFERENCE_FIELD,
+                    _sp.SELECTED_REMEDY_FIELD):
+            if key in item:
+                result_entry[key] = item[key]
+        # The reply contract asks for the group's `group_id` verbatim. An echo
+        # naming one of these groups is authoritative (its index follows it);
+        # anything else — no echo, a copied placeholder, a garbled id — joins
+        # by the reported index exactly as before the echo was asked for, so
+        # a bad echo never costs the verdict its validity.
+        echoed = next((value for value in (item.get("group_id"), item.get("group_hash"))
+                       if isinstance(value, str) and value in group_by_id), None)
+        if echoed is not None:
+            result_entry["group_id"] = echoed
+            result_entry["group_index"] = group_ids.index(echoed)
+            result_entry = _scope_round.stamp(
+                result_entry, group_by_id[echoed],
+                {"policy": scope_policy, "baseline_id": scope_baseline_id},
+            )
+        else:
+            if 0 <= group_index < len(group_ids):
+                result_entry["group_id"] = group_ids[group_index]
+            _scope_round.unbound_record(result_entry)
         validation_results.append(result_entry)
 
     # Fill in any missing groups
@@ -1422,6 +1478,12 @@ def apply_validation_to_groups(
     reason and confidence to it, so such a group is left at the default
     "No validation result" and the count of those groups is printed.
 
+    Scope authority follows the same rule, only stricter (plan §3): a group's
+    ``scope_verdict`` is attached (``scope_policy.attach_verdict``) only from a
+    record its stable hash joined, and only when the host stamped that record
+    at merge time. The ``group_index`` fallback carries validity alone and
+    removes any verdict, so a hash-less legacy record reads ``Scope unclear``.
+
     Args:
         groups: Original groups (list of dicts or SuggestionGroup objects)
         validation_results: Results from validate_groups()
@@ -1460,13 +1522,13 @@ def apply_validation_to_groups(
         gid = generate_group_id(group_dict)
 
         # group_id first; the index only reaches records that carry no hash
-        validation = (
-            validation_by_id.get(gid) or
-            validation_by_index.get(i)
-        )
+        by_hash = validation_by_id.get(gid)
+        validation = by_hash or validation_by_index.get(i)
         if validation is None:
             validation = default_validation
             unmatched += 1
+        # Scope authority by stable hash only — never by index (plan §3).
+        _sp.attach_verdict(group_dict, by_hash, hash_matched=by_hash is not None)
 
         group_dict["validation_status"] = validation.get("status", "needs-human-decision")
         group_dict["validation_reason"] = validation.get("reason", "")
@@ -1795,6 +1857,8 @@ def save_validation_results(
     runners: Optional[Dict[Any, str]] = None,
     batch_sha256: Optional[Dict[Any, str]] = None,
     batch_manifest: Optional[Dict[str, Any]] = None,
+    scope: Optional[Dict[str, Any]] = None,
+    scope_decisions: Optional[Dict[str, Any]] = None,
 ) -> None:
     """
     Save validation results to a JSON file with metadata.
@@ -1842,6 +1906,19 @@ def save_validation_results(
         batch_manifest: ``{kind, round}`` of the task file those batches
             answered (§7.1a), so a hash recorded under one round is never
             matched against another round's file of the same name.
+        scope: The round's task-file scope block (``scope_round.scope_block``):
+            recorded as ``metadata.scope_policy`` / ``scope_baseline_id`` /
+            ``scope_round_baseline_id``. ``None`` adds no key.
+        scope_decisions: A ``preserve`` round's validation-stage decision
+            counts (``scope_round.annotate_decisions``), recorded as
+            ``metadata.scope_policy_decisions``.
+
+    Each record keeps the scope keys it carries — the normalized
+    ``scope_relation``/``scope_reason``/``scope_reference``, a ``preserve``
+    round's ``selected_remedy``, the host stamps (``scope_baseline_id``,
+    ``scope_proposal_digest``, ``scope_source``, ``scope_missing``) and a
+    ``scope_policy_decision`` — and a record that carries none is written
+    exactly as before.
     """
     if not model:
         model = _derive_model_from_results(validation_results) or "unknown"
@@ -1882,6 +1959,9 @@ def save_validation_results(
             group_entry["group_id"] = group_id_by_index[group_index]
         elif v.get("group_id"):
             group_entry["group_id"] = v["group_id"]
+        for key in _scope_round.RECORD_SCOPE_KEYS:
+            if key in v:
+                group_entry[key] = v[key]
         saved_groups.append(group_entry)
 
     validation_data = {
@@ -1903,6 +1983,8 @@ def save_validation_results(
             # under. A file without it, from a round whose context exceeded
             # the limit, judged a cut document and is never reused.
             "context_contract": CONTEXT_CONTRACT,
+            **(_scope_round.validation_metadata(scope, scope_decisions)
+               if scope is not None else {}),
         }
     }
 
@@ -2179,7 +2261,11 @@ async def revalidate_failed_items(
     context: str,
     model: str = "auto",
     include_all_human: bool = False,
-    timeout: int = 180
+    timeout: int = 180,
+    *,
+    scope_policy: Optional[str] = None,
+    scope_phase: str = "review-plan",
+    scope_baseline_id: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """
     Re-run validation only on items that previously failed.
@@ -2225,7 +2311,10 @@ async def revalidate_failed_items(
             groups=items_to_revalidate,
             context=context,
             model=model,
-            timeout=timeout
+            timeout=timeout,
+            scope_policy=scope_policy,
+            scope_phase=scope_phase,
+            scope_baseline_id=scope_baseline_id,
         )
     except Exception as e:
         # Revalidation itself failed - apply fallback strategy
@@ -2345,11 +2434,26 @@ def build_validation_batch_records(
                         {"line_range": s["line_range"]}
                         if s.get("line_range") else {}
                     ),
+                    **_reviewer_scope_fields(s),
                 }
                 for s in group_dict.get("suggestions", [])
             ],
         })
     return records
+
+
+def _reviewer_scope_fields(suggestion: Dict[str, Any]) -> Dict[str, Any]:
+    """A member's provisional scope tag, for the validator to see (and to judge
+    independently of), keyed on presence like ``file``: a finding a reviewer
+    gave no tag renders exactly as before."""
+    if not _sp.has_scope_fields(suggestion):
+        return {}
+    fields = _sp.normalize_scope_fields(suggestion)
+    return {
+        _sp.RELATION_FIELD: fields[_sp.RELATION_FIELD],
+        **({_sp.REASON_FIELD: fields[_sp.REASON_FIELD]}
+           if fields[_sp.REASON_FIELD] else {}),
+    }
 
 
 def resolved_reaggregate_command(
@@ -2420,6 +2524,7 @@ def prepare_batched_validation_tasks(
     head_ref: Optional[str] = None,
     context_plan_sha256: Optional[str] = None,
     context_plan_file: Optional[str] = None,
+    scope: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Prepare batched validation tasks for sequential subagent processing.
@@ -2503,6 +2608,14 @@ def prepare_batched_validation_tasks(
             snapshot no longer hashes to it is refused. ``None`` adds no key.
         context_plan_file: The frozen snapshot's path, recorded relative to the
             phase directory so executor resumes can verify that raw-byte hash.
+        scope: The round's scope block (``scope_round.scope_block``): the
+            effective policy, its prompt phase and the baseline these
+            validators are shown. Rendered into every batch prompt per call
+            (``scope_policy.validator_guidance``) and recorded on the document
+            under ``scope``, which both invokers read — the native host and the
+            executor run the same prompts — and which the merge stamps each
+            hash-joined verdict with. ``None`` is a default ``expand`` round
+            with no baseline (its verdicts carry no scope authority).
 
     Returns:
         Dict with:
@@ -2549,6 +2662,17 @@ def prepare_batched_validation_tasks(
     if bound_tasks is not None and tasks_file:
         inputs["tasks_sha256"] = content_hash(bound_tasks.text)
 
+    # The round's scope block, rendered per call: the template text is never
+    # cached with a policy in it, so an `expand` rendering cannot be served to
+    # a `preserve` round (plan §3.1).
+    scope_meta = dict(scope) if scope else _scope_round.scope_block(
+        None, _sp.review_phase_of(phase or os.path.basename(os.path.normpath(output_dir))),
+    )
+    scope_text = _sp.validator_guidance(
+        scope_meta.get("policy"), str(scope_meta.get("phase") or "review-plan"),
+        revalidation_baseline_differs=bool(scope_meta.get("revalidation_baseline_differs")),
+    )
+
     if not groups:
         if publish:
             publish_validation_context(output_dir, [], phase=phase)
@@ -2562,6 +2686,7 @@ def prepare_batched_validation_tasks(
             "phase_dir": output_dir,
             "model_hint": model,
             "base_ref": base_ref,
+            _scope_round.TASK_SCOPE_KEY: scope_meta,
         })
         return empty
 
@@ -2674,6 +2799,7 @@ def prepare_batched_validation_tasks(
             secondary_label=secondary_context_label,
             extra_instructions=extra_instructions,
             context_sources=prompt_sources,
+            scope_guidance=scope_text,
         )
         if not budget.fits(prompt):
             first, second = split_indices(indices)
@@ -2767,6 +2893,7 @@ def prepare_batched_validation_tasks(
         **durable_reaggregate_fields(orchestrator, plan_file),
         "model_hint": model,
         "base_ref": base_ref,
+        _scope_round.TASK_SCOPE_KEY: scope_meta,
     }
     if tasks_file:
         extra["tasks_file"] = tasks_file
@@ -2785,15 +2912,28 @@ def prepare_batched_validation_tasks(
 def merge_batched_validation_results(
     output_dir: str,
     batch_metadata: Dict[str, Any],
-    total_groups: int
+    total_groups: int,
+    groups: Optional[List[Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Merge results from multiple validation batch files.
+
+    Scope (plan §3): every verdict that joined its group **by hash** is stamped
+    (``scope_round.stamp``) against the host's own copy of that group from
+    ``groups`` — the proposal digest and the baseline id recorded in the task
+    file's ``scope`` block, never a model's echo of either — and under
+    ``preserve`` only it may keep a ``selected_remedy``. A verdict placed by
+    any index strategy, a placeholder, and every verdict of a merge without
+    ``groups`` has its scope stamps removed (no authority) while its
+    normalized scope fields and its validity are kept.
 
     Args:
         output_dir: Directory containing validation_batch_N.json files
         batch_metadata: The batch metadata from prepare_batched_validation_tasks()
         total_groups: Total number of original groups
+        groups: The host's groups the batches were materialized from
+            (``grouped.json``), looked up by stable hash; ``None`` stamps
+            nothing.
 
     Returns:
         Merged validation results list with proper group indices
@@ -2829,6 +2969,8 @@ def merge_batched_validation_results(
     # one `[merge] Warning:` line printed per mismatched verdict.
     hash_join_total = 0
     hash_join_mismatched = 0
+    #: original index -> the hash its verdict joined on (Strategy 0 only).
+    hash_joined: Dict[int, str] = {}
 
     for batch_info in batches:
         batch_index = batch_info["batch_index"]
@@ -2903,6 +3045,7 @@ def merge_batched_validation_results(
                     result["group_id"] = result_hash
                     merged_results[original_index] = result
                     filled_indices.add(original_index)
+                    hash_joined[original_index] = result_hash
                 else:
                     print(f"[merge] Warning: Batch {batch_index}: discarding result with "
                           f"foreign group_hash {result_hash} (not assigned to this batch — "
@@ -2994,6 +3137,25 @@ def merge_batched_validation_results(
         print(f"[merge] {hash_join_mismatched} of {hash_join_total} verdicts "
               f"echoed a different group_index; all joined by hash")
 
+    # Scope authority by hash only (plan §3). A record left in a slot by an
+    # index strategy may be the very object a hash join also placed elsewhere,
+    # so stamping replaces the slot's record rather than editing it in place.
+    scope_meta = _scope_round.task_scope(batch_metadata)
+    host_groups = _scope_round.groups_by_hash(groups)
+    stamp_source = "revalidation" if batch_metadata.get("kind") == "revalidation" else "validation"
+    for position, record in enumerate(merged_results):
+        if not isinstance(record, dict):
+            continue
+        index = record.get("group_index", position)
+        joined = hash_joined.get(index) if isinstance(index, int) else None
+        group = host_groups.get(joined) if joined and record.get("group_id") == joined else None
+        if group is not None:
+            merged_results[position] = _scope_round.stamp(
+                record, group, scope_meta, source=stamp_source,
+            )
+        else:
+            merged_results[position] = _scope_round.unbound_record(dict(record))
+
     # Sort by group index
     merged_results.sort(key=lambda x: x.get("group_index", 0))
 
@@ -3043,6 +3205,109 @@ def pinned_validation_guidance(plan_file: Optional[str]) -> str:
     )
 
 
+#: The second context block of a revalidation whose current document is not
+#: the review round's scope baseline (plan §2: both labelled contexts).
+REVALIDATION_BASELINE_LABEL = (
+    "Original scope baseline \u2014 the plan as this review round read it; "
+    "judge scope against this, correctness against the context above"
+)
+
+
+def revalidation_scope_binding(
+    output_dir: str,
+    plan_file: str,
+    context_document: Optional[BoundDocument],
+    *,
+    explicit_policy: Optional[str] = None,
+    phase: Optional[str] = None,
+) -> Tuple[Dict[str, Any], Optional[BoundDocument]]:
+    """``(scope block, original baseline document or None)`` for a revalidation.
+
+    Reads only: the plan's ``state.json`` round record of the review phase
+    ``output_dir`` is, and that phase dir's own plan snapshot. The policy is
+    resolved as the apply phase resolves it (explicit → recorded apply
+    override → recorded review policy → ``expand``). The original document is
+    returned only when it hash-matches the round's recorded baseline and the
+    current ``context_document`` is not those same bytes.
+    """
+    review_phase = _sp.review_phase_of(
+        phase or os.path.basename(os.path.normpath(output_dir))
+    )
+    state: Dict[str, Any] = {}
+    if plan_file:
+        try:
+            from .output_handler import output_dir_path
+        except ImportError:  # pragma: no cover - flat import layout
+            from utils.output_handler import output_dir_path
+        try:
+            loaded = json.loads(
+                (output_dir_path(Path(plan_file)) / "state.json").read_text(encoding="utf-8")
+            )
+            state = loaded if isinstance(loaded, dict) else {}
+        except (OSError, ValueError):
+            state = {}
+    record = _sp.round_record(state, review_phase) or {}
+    policy, source = _sp.resolve_policy(
+        explicit=explicit_policy,
+        continuation=record.get("apply_policy"),
+        recorded=record.get("review_policy"),
+    )
+    commit_review = isinstance(state.get("commit_range"), dict)
+    prompt_phase = _scope_round.guidance_phase(review_phase, commit_review=commit_review)
+    recorded = record.get("baseline") if isinstance(record.get("baseline"), dict) else None
+    round_id = _sp.baseline_id_of(recorded)
+
+    primary = None
+    for source_record in (recorded or {}).get("sources") or []:
+        if isinstance(source_record, dict) and source_record.get("role") in _scope_round.PRIMARY_ROLES:
+            primary = source_record
+            break
+
+    if context_document is not None and primary is not None and (
+        context_document.sha256 == primary.get("sha256")
+    ):
+        # The current document IS the baseline's: one context serves both.
+        return _scope_round.scope_block(
+            policy, prompt_phase, source=source, baseline=recorded,
+            round_baseline_id=round_id,
+        ), None
+
+    original: Optional[BoundDocument] = None
+    snapshot = primary.get("snapshot") if primary else None
+    if snapshot and primary.get("sha256"):
+        path = os.path.join(output_dir, os.path.basename(str(snapshot)))
+        try:
+            data = Path(path).read_bytes()
+        except OSError:
+            data = None
+        if data is not None and _bytes_sha256(data) == primary.get("sha256"):
+            try:
+                text = decode_document(data, path)
+            except ValidationContextError:
+                text = None
+            if text is not None:
+                original = BoundDocument(
+                    label="scope-baseline", text=text, sha256=primary["sha256"],
+                    size=len(data), path=os.path.abspath(path), in_phase_dir=True,
+                    source_path=primary.get("path") or path,
+                )
+    if original is not None:
+        return _scope_round.scope_block(
+            policy, prompt_phase, source=source, baseline=recorded,
+            round_baseline_id=round_id, revalidation_baseline_differs=True,
+        ), original
+
+    # No readable original baseline: the verdicts are bound to the current
+    # document alone, which is a different baseline from the round's (unclear).
+    current = _scope_round.build_round_baseline(
+        review_phase, plan_document=context_document,
+    ) if context_document is not None else None
+    return _scope_round.scope_block(
+        policy, prompt_phase, source=source, baseline=current,
+        round_baseline_id=round_id,
+    ), None
+
+
 def prepare_batched_revalidation_tasks(
     groups: List[Dict[str, Any]],
     validation_results: List[Dict[str, Any]],
@@ -3059,6 +3324,7 @@ def prepare_batched_revalidation_tasks(
     runner_read_refusal: Optional[Any] = None,
     phase: Optional[str] = None,
     extra_instructions: Optional[str] = None,
+    scope_policy: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Prepare batched revalidation tasks for items that failed validation.
@@ -3099,6 +3365,18 @@ def prepare_batched_revalidation_tasks(
             gets none, as before. apply-code-fixes passes it explicitly
             (``get_revalidation_instructions``), because its batches carry
             the plan fallback as their context, not a ``diff``.
+        scope_policy: This invocation's explicit ``--scope-policy``, if any.
+            The effective policy is resolved from it, then the review round's
+            recorded apply override, then its review policy, then ``expand``
+            (``state.json``'s ``scope_policy`` record of the review phase this
+            revalidation writes into). Correctness is judged against the
+            current document; scope against the round's **original** baseline
+            (plan §2): when the current document is not that baseline's
+            primary document, the round's own ``validation-snapshot.md`` (hash
+            verified) is embedded as a second, labelled context and the
+            validators are told so. Without it the verdicts are bound to the
+            current document's baseline, which reads ``Scope unclear`` against
+            the round's.
 
     Returns:
         Dict with batches and metadata, or empty batches if nothing to revalidate
@@ -3177,6 +3455,11 @@ def prepare_batched_revalidation_tasks(
         context_plan_path(commit_record, repo_root=get_project_root(plan_file))
         if commit_record else None
     )
+    revalidation_scope, original_document = revalidation_scope_binding(
+        output_dir, plan_file, context_document,
+        explicit_policy=scope_policy,
+        phase=phase,
+    )
     batched_tasks = prepare_batched_validation_tasks(
         groups=items_to_revalidate,
         context=context,
@@ -3187,6 +3470,15 @@ def prepare_batched_revalidation_tasks(
         orchestrator=orchestrator,
         base_ref=base_ref,
         kind="revalidation",
+        scope=revalidation_scope,
+        **(
+            {
+                "secondary_context": original_document.text,
+                "secondary_context_label": REVALIDATION_BASELINE_LABEL,
+                "secondary_document": original_document,
+            }
+            if original_document is not None else {}
+        ),
         context_plan_file=context_plan_file,
         context_plan_sha256=(commit_record or {}).get("plan_sha256"),
         extra_instructions=extra_instructions,
@@ -3220,7 +3512,8 @@ def prepare_batched_revalidation_tasks(
 
 def merge_batched_revalidation_results(
     output_dir: str,
-    revalidation_metadata: Dict[str, Any]
+    revalidation_metadata: Dict[str, Any],
+    groups: Optional[List[Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Merge batched revalidation results back into original validation results.
@@ -3228,6 +3521,9 @@ def merge_batched_revalidation_results(
     Args:
         output_dir: Directory containing revalidation batch files
         revalidation_metadata: Metadata from prepare_batched_revalidation_tasks()
+        groups: The host's current groups, so each revalidated verdict that
+            joined by hash is stamped against the proposal it judged (see
+            :func:`merge_batched_validation_results`); ``None`` stamps none.
 
     Returns:
         Updated validation results with revalidated items merged in
@@ -3243,7 +3539,8 @@ def merge_batched_revalidation_results(
     batch_results = merge_batched_validation_results(
         output_dir=output_dir,
         batch_metadata=revalidation_metadata,
-        total_groups=revalidated_count
+        total_groups=revalidated_count,
+        groups=groups,
     )
 
     # Map back to original indices
