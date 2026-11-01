@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-01",
-  "total": 356,
+  "total": 357,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1089,6 +1089,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jananthan30/ml-pipeline/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Model Salt",
+      "url": "https://github.com/modelsalt/model-salt",
+      "owner": "modelsalt",
+      "repo": "model-salt",
+      "description": "Gives the model randomness from outside it before a creative task, so one prompt gives different answers that still do what was asked.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/modelsalt/model-salt/HEAD/plugin/.codex-plugin/plugin.json"
     },
     {
       "name": "Multi-LLM",

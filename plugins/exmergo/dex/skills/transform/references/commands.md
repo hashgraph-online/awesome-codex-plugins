@@ -271,10 +271,11 @@ test over the smaller result.
   of it, usually a faster read than the dbt log.
 - It also checks what each built model declares: `unit_out_of_range`,
   `additivity_contradicted`, `population_contradicted`, the declared parent
-  (`parent_population_missing`, `parent_population_unexpected`), and a
-  declared grain no `unique` test in the build covers (`grain_broken`,
-  `source: declaration`). See declarations.md, "Checked against the built
-  relation".
+  (`parent_population_missing`, `parent_population_unexpected`), a declared
+  `history` temporal contract (`temporal_*`, with one record per contract under
+  `data.verification.temporal_contracts`), and a declared grain no `unique` test
+  in the build covers (`grain_broken`, `source: declaration`). See
+  declarations.md, "Checked against the built relation".
 - It measures the coverage of every equality join the built models write, as
   `maintain verify` does: `data.verification.join_coverage` holds one record
   per join, and `join_no_match`, `join_orphans`, `join_zero_overlap`,

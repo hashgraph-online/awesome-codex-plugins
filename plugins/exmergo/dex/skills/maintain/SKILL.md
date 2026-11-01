@@ -55,8 +55,12 @@ data stops after step 1 and reports what it found.
    `max`). A model that holds one row per entity of another model declares
    that parent too, `"population": {"parent": {"model": "stg_subscriptions",
    "key": {"subscription_id": "subscription_id"}}}`, so verification counts
-   the parents missing from it. A declaration is JSON in the payload, rendered
-   into the model's YAML: it never adds, drops or renames an output column.
+   the parents missing from it. A model derived from a dbt snapshot's status
+   history declares a `history` block (`skills/transform/references/declarations.md`):
+   whether the first observation is a baseline or a transition, the NULL-status
+   policy, the entities it holds, and whether its timestamp is business or capture
+   time. A declaration is JSON in the payload, rendered into the model's YAML: it
+   never adds, drops or renames an output column.
 3. **Read the draft, supply the intent, plan again.** `data.declarations.<model>`
    holds `drafted` (what Dex measured: keys, running totals, units, value
    domains, and `precedent`, what sibling models do with the same columns),
@@ -72,9 +76,10 @@ data stops after step 1 and reports what it found.
    `suppressed`. A green build says dbt ran, not that the rows are right: a
    column that came back all NULL, a parent that vanished, or rows that
    multiplied is a defect to fix, not a data issue to report. Each record in
-   `join_coverage` and `parent_population` is `satisfied`, `contradicted` (a
-   finding to fix), `not_applicable` (an empty input, which is not full
-   coverage) or `unchecked` (its `reason_code` says why, and it is not clean).
+   `join_coverage`, `parent_population` and `temporal_contracts` is `satisfied`,
+   `contradicted` (a finding to fix), `not_applicable` (nothing to judge, such as
+   an empty input, which is not full coverage) or `unchecked` (its `reason_code`
+   says why, and it is not clean).
    Output keys the parent lacks are never the population: drive the model from
    the parent instead.
 6. **Maintain.** `dex maintain verify` checks the project as it stands;
@@ -83,17 +88,29 @@ data stops after step 1 and reports what it found.
 
 **Decide, record, continue.** When a decision is ambiguous, do not stop to ask.
 Decide on the best evidence, record it as an `assumptions` entry with its
-evidence tier, continue, and relay `data.decisions` at the end. Weigh evidence
-in this order, and never present a `default` as the user's business rule:
+evidence tier, continue, and relay `data.decisions` at the end. Record the
+choices that change which rows exist or what a value means, not every
+implementation detail. Weigh evidence in this order, and never present a
+`default` as the user's business rule:
 
-1. `request`: what the request means. A filter literal that matches no value in
+1. `request`: what the request settles. A filter literal that matches no value in
    the column is a spelling to correct against the column's values, not a rule
    to follow.
-2. `contract`: the project's declared columns, tests and metric filters.
+2. `contract`: what the project's declared columns, tests and metric filters
+   settle.
 3. `precedent`: how sibling models decide the same thing
    (`dex transform references <model.column> --usage`).
-4. `data`: what profiling showed.
+4. `data`: what profiling showed about the data. Observed counts describe the
+   data; they do not establish the intended population or NULL policy.
 5. `default`: the conventional analytics-engineering choice.
+
+Name `request` or `contract` only when that source actually settles the choice;
+citing wording that leaves it open does not. "Event rate per account" alone does
+not decide whether accounts with no events belong in the output: pick a
+reasonable population, record it as `default`, say why in one line of `detail`,
+and continue without asking for approval. "Include every account" and "only
+accounts with events" are each `request`, and a population the project already
+declares is `contract`.
 
 **Correct rows, not only a green build.**
 

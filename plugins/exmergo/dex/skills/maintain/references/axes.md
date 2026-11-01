@@ -259,10 +259,20 @@ Needs no baseline. The classes of finding:
     named in `filters_unapplied` and drops the missing finding to medium.
     Unexpected keys are never the population. Each declared parent has a
     record under `data.parent_population` with the same statuses as a join.
+  - `temporal_transition_count_mismatch`, `temporal_latest_transition_mismatch`
+    and `temporal_first_attainment_mismatch` (high), `temporal_population_missing`
+    and `temporal_population_unexpected` (high), and
+    `temporal_provenance_contradicted` (medium), for a model declaring `history`
+    (#1027): its columns against what the snapshot's versions and the declared
+    policy give, as entity counts. Each contract has a record under
+    `data.temporal_contracts`, keeping the snapshot's execution, the assertions
+    checked, and what stayed unchecked apart. `no_history_observed` and every
+    `unchecked` reason are not clean: see the transform skill's `declarations.md`,
+    "Temporal contracts".
 
   `null_rule: never` is not checked here: it renders as a `not_null` test.
-  `data.suppressed` names `unit`, `additivity`, `population` and
-  `parent_population` whenever one
+  `data.suppressed` names `unit`, `additivity`, `population`,
+  `parent_population` and `temporal` whenever one
   did not run: nothing declares it, the relation is empty, the column is all
   NULL or aggregated away, too few observations to call, or the scan is
   offered.

@@ -47,7 +47,7 @@ exist.
 | `null_rule` | `never`, or a sentence saying what NULL means in this column |
 | `references` | `<model>.<column>`, a model, seed or snapshot the project has |
 | `population.parent` | `{"model": <model, seed or snapshot>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it |
-| `evidence` | `request` (what the user asked for), `contract` (the project's declared columns, tests or metric filters), `precedent` (how sibling models decide the same thing), `data` (what profiling showed), `default` (the conventional analytics-engineering choice) |
+| `evidence` | `request` (what the request settles), `contract` (what the project's declared columns, tests or metric filters settle), `precedent` (how sibling models decide the same thing), `data` (what profiling showed about the data, never the intended population or NULL policy), `default` (the conventional analytics-engineering choice, including a reasonable choice where wording leaves the question open). Name `request` or `contract` only when that source settles the choice: "per account" alone does not say whether accounts without events belong, so that choice is a `default` |
 
 A field Dex does not know is refused by name, so a typo cannot silently drop
 part of a declaration.
@@ -324,6 +324,9 @@ warehouse):
 | `population.filters` value still present | `population_contradicted`, with the count of contradicting rows, never the rows | high |
 | `population.parent`, eligible parent keys absent from the model | `parent_population_missing`, distinct-key counts, `excluded_by_filters` for parents a declared filter rules out | high (medium when a declared filter's column is not on the parent) |
 | `population.parent`, model keys the parent does not have | `parent_population_unexpected`; these keys are never the population | high |
+| `history`, a measure disagreeing with the declared policy | `temporal_transition_count_mismatch`, `temporal_latest_transition_mismatch`, `temporal_first_attainment_mismatch`; entity counts, never values | high |
+| `history`, entities differing from its `population` | `temporal_population_missing`, `temporal_population_unexpected` | high |
+| `history.time.provenance` its column and the snapshot's strategy cannot satisfy | `temporal_provenance_contradicted` | medium |
 
 `null_rule: never` needs no check of its own: it renders as a `not_null` test,
 which the build runs. A single-column `grain` renders as a `unique` test, so the
@@ -342,14 +345,109 @@ with a `reason_code`). A column a join supplies is judged by its `null_rule`
 too (`join_field_all_null`), with the join's coverage beside it; see the
 maintain skill's `axes.md`, "Join contract".
 
+A model derived from a dbt snapshot's status history declares its temporal
+contract in `history`; see "Temporal contracts: `history`" below.
+
 A check that could not run is named in `data.suppressed` (`unit`, `additivity`,
-`population`, `parent_population`, and `grain` on the build path) with the reason: nothing in scope
+`population`, `parent_population`, `temporal`, and `grain` on the build path) with the reason: nothing in scope
 declares it, the relation is empty, the column is all NULL, the column was
 aggregated away (a rollup cannot carry its population rule's column, so the rule
 is checked upstream or not at all), too few observations, or the scan is offered.
 A population filter's values are compared as text when the declared values and
 the column's type disagree. A unit's range is withheld for a column that looks
 like personal data.
+
+### Temporal contracts: `history`
+
+A snapshot can build and hold the right rows while a model over it disagrees
+about what the history means. Its own tests adopt its own conventions, so they
+cannot settle that. A `history` block states the conventions, and verification
+derives each entity's expected values from the snapshot's versions and that policy
+alone, without reading the model's SQL:
+
+```json
+"history": {
+  "snapshot": "hosts_snapshot",
+  "entity": {"host_id": "host_id"},
+  "status": {"column": "is_superhost", "target": true},
+  "initial_observation": "baseline",
+  "null_status": "ignore",
+  "population": "ever_target",
+  "time": {"column": "dbt_valid_from", "provenance": "capture"},
+  "measures": {"transition_count": "status_change_count",
+               "latest_target_transition_at": "last_status_change_at",
+               "first_target_at": "first_superhost_at"}
+}
+```
+
+| Field | Values | Meaning |
+|---|---|---|
+| `snapshot` | a snapshot of this project | where the versions come from; a SQL block or a YAML-defined snapshot |
+| `entity` | `{<output column>: <snapshot column>}` | the key the model holds one row per |
+| `status` | `{column, target}` | the status column of the snapshot, and the value of interest. The target is committed to git, so a column that looks like personal data is refused |
+| `initial_observation` | `baseline` | the first observation establishes a starting point and is not a transition |
+| | `transition` | a first observation at the target counts as one. This assumes a prior non-target state, so select it only when that is the intent |
+| `null_status` | `ignore` | a NULL version is not an observation: true, NULL, true is no change |
+| | `state` | NULL is a state: true, NULL, true is two changes |
+| `population` | `ever_target`, `all_observed` | the entities the model holds |
+| `time` | `{column, provenance}` | the snapshot column the time fields read. `provenance` is `business` (the source recorded it) or `capture` (the snapshot observed it) |
+| `measures` | `transition_count`, `latest_target_transition_at`, `first_target_at` | the output columns each expected value is compared with |
+
+`snapshot`, `entity` and `status` are required. A status change is the status
+value differing between consecutive versions, ordered by the snapshot's own
+validity column, so an edit to another attribute is never a transition. A policy
+left out is a plan warning, and whatever rests on it is reported as
+`policy_missing`: Dex assumes none. `first_target_at` rests only on `time`.
+A `transition_count` needs `initial_observation` and `null_status`, and
+`latest_target_transition_at` needs those and `time`.
+
+Under the `timestamp` strategy dbt copies the source's `updated_at` into its
+validity column, so that column is source time. Under `check` it is the time the
+snapshot ran. `temporal_provenance_contradicted` reports a declaration that says
+otherwise, and a column dbt does not write declared as `capture`.
+
+`transform plan` also warns when a model refs a snapshot and walks its versions
+(`lag`, `lead`, `row_number`, `dbt_valid_from`, `dbt_updated_at`) with no `history`
+declared. It is a text heuristic, and only ever a warning.
+
+Each contract gets one record under `data.temporal_contracts`
+(`data.verification.temporal_contracts` on a build), keeping three things apart:
+
+- `snapshot_execution`: dbt's status for the snapshot and its strategy. A snapshot
+  that built establishes nothing about what a model made of its versions.
+- `assertions`: per measure, `population` and `time_provenance`, each with its own
+  status and, for a measure, `compared` and `mismatched_entities`.
+- `unchecked`: what was not established, with a count of the entities it covers.
+
+| `status` | Means |
+|---|---|
+| `satisfied` | every assertion held, and at least one entity made a transition |
+| `contradicted` | a finding to fix |
+| `not_applicable` | `no_history_observed` (the columns agree, and no entity made a transition, so transitions were not exercised), or `empty_input` |
+| `unchecked` | not clean; `reason_code` says why |
+
+| `reason_code` | Why it is unchecked |
+|---|---|
+| `policy_missing` | the declaration leaves out a policy this assertion rests on |
+| `business_order_conflict` | a declared business timestamp runs backwards across a status change, so business and capture order give different sequences. Those entities are excluded from every comparison and counted, never guessed |
+| `business_timestamp_unreliable` | a declared business timestamp is NULL or stands still at a status change. Those entities' time fields are not compared; their counts are, since capture order is intact |
+| `ambiguous_version_order` | an entity's versions share one validity timestamp |
+| `hard_delete_records` | the snapshot uses `hard_deletes: new_record`, whose records are versions that do not observe the status |
+| `snapshot_not_built` | the snapshot failed or was skipped in the last run |
+| `malformed_declaration` | a hand-written block does not parse |
+| `column_missing`, `relation_not_found`, `probe_refused`, `scan_offered`, `no_entity_comparable`, `nothing_to_compare` | the check could not reach or compare what it needs |
+
+**Limits.** One snapshot, one status column, one output row per entity. Not a
+general SCD verifier: history built on anything but a dbt snapshot, a model holding
+one row per period, and any policy not listed here are out of scope, and no policy
+is inferred. Nothing here repairs a snapshot or a model. A source timestamp that
+merely equals a creation timestamp is not evidence either way, so it is not flagged;
+only a failure observed at a status change is. `explore --use-project` does not
+carry `history` yet, `semantic ossie|slayer|cube` refuse it, and a derived semantic
+definition lists it under `not_carried`.
+
+The statements are aggregate-only, priced with `(declared facts)`, and go through
+the same handshake and session ceiling. They return counts, never a row or a value.
 
 ## Read back by `explore --use-project`
 

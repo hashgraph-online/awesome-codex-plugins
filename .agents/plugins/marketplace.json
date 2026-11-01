@@ -1608,6 +1608,21 @@
       "description": "Enforces a strict 16-step data-first ML workflow — data inspection, EDA, and problem definition before any model training — with explicit user-permission gates, marimo notebooks, and matplotlib figures at every step; also works in Claude Code and Kimi."
     },
     {
+      "name": "model-salt",
+      "displayName": "Model Salt",
+      "source": {
+        "source": "local",
+        "path": "./plugins/modelsalt/model-salt"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Gives the model randomness from outside it before a creative task, so one prompt gives different answers that still do what was asked.",
+      "icon": "./plugins/modelsalt/model-salt/assets/icon.png"
+    },
+    {
       "name": "multi-llm",
       "displayName": "Multi-LLM",
       "source": {
