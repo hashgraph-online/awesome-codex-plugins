@@ -65,10 +65,14 @@ class CentralizedPublisherTests(unittest.TestCase):
             )
             self.assertNotIn("\n", comment)
             self.assertNotIn("\\n", comment)
+            self.assertTrue(comment.endswith(" " + PUBLISHER.PUBLISHER.COMMENT_MARKER))
+            self.assertFalse(comment.startswith("<!--"))
             if conclusion == "failure":
                 self.assertIn("recommended, not required", comment)
                 self.assertIn("score is below 75", comment)
                 self.assertIn("source repository does not already run the scanner", comment)
+                self.assertIn(f"[scanner guide]({PUBLISHER.PUBLISHER.SCANNER_GUIDE_URL})", comment)
+                self.assertIn("project's documented toolchain", comment)
 
     def test_no_new_entry_success_comment_does_not_claim_a_score(self) -> None:
         result = {**self.scan_result, "state": "success"}
@@ -80,6 +84,8 @@ class CentralizedPublisherTests(unittest.TestCase):
             "https://example.test/run",
         )
         self.assertNotIn("\n", comment)
+        self.assertTrue(comment.endswith(" " + PUBLISHER.PUBLISHER.COMMENT_MARKER))
+        self.assertFalse(comment.startswith("<!--"))
         self.assertIn("No new Community Plugins entries", comment)
         self.assertNotIn("score threshold", comment)
 
@@ -98,6 +104,8 @@ class CentralizedPublisherTests(unittest.TestCase):
         )
         self.assertNotIn("\n", comment)
         self.assertNotIn("\\n", comment)
+        self.assertTrue(comment.endswith(" " + PUBLISHER.PUBLISHER.COMMENT_MARKER))
+        self.assertFalse(comment.startswith("<!--"))
         self.assertIn("README entry is not alphabetical", comment)
 
     def test_base_publisher_keeps_scanner_failure_separate_from_catalog_failure(self) -> None:
