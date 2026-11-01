@@ -505,7 +505,7 @@ hosts:
       registry: npm
       name: opencode-multi-llm
       version: "0.1.4"
-      public_version: "0.1.3"
+      public_version: "0.1.4"
       config_key: plugin
       provides: [command, tool]
       min_host_version: "1.19.5"   # the one supported opencode release (the
@@ -685,6 +685,10 @@ hosts:
       # A fresh npm install passed all nine later-release criteria, including
       # offline use, same-pin restart, and an upgrade from 0.1.1 executing
       # the new payload (records/20261030T214755Z-opencode-release-network-check.json).
+      # RECHECKED 2026-11-01 for opencode-v0.1.4 on OpenCode 1.19.5.
+      # All nine registry criteria passed, including offline operation and
+      # a 0.1.3 -> 0.1.4 upgrade executing the newly installed payload
+      # (records/20261101T061412Z-opencode-release-network-check.json).
       package: verified
       invocation: verified
       # PROMOTED BY T10 (plans/next-phase-command.md), opencode 1.18.33,

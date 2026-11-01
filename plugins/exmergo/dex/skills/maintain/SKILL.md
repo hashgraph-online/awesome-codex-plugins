@@ -52,8 +52,11 @@ data stops after step 1 and reports what it found.
    `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`
    (any count of things), or a plain unit such as `days`; `aggregation` is how
    the column rolls up (a count rolls up with `sum`, a running total with
-   `max`). A declaration is JSON in the payload, rendered into the model's YAML:
-   it never adds, drops or renames an output column.
+   `max`). A model that holds one row per entity of another model declares
+   that parent too, `"population": {"parent": {"model": "stg_subscriptions",
+   "key": {"subscription_id": "subscription_id"}}}`, so verification counts
+   the parents missing from it. A declaration is JSON in the payload, rendered
+   into the model's YAML: it never adds, drops or renames an output column.
 3. **Read the draft, supply the intent, plan again.** `data.declarations.<model>`
    holds `drafted` (what Dex measured: keys, running totals, units, value
    domains, and `precedent`, what sibling models do with the same columns),
@@ -68,7 +71,12 @@ data stops after step 1 and reports what it found.
    Read `data.verification.ran`, then every finding and everything under
    `suppressed`. A green build says dbt ran, not that the rows are right: a
    column that came back all NULL, a parent that vanished, or rows that
-   multiplied is a defect to fix, not a data issue to report.
+   multiplied is a defect to fix, not a data issue to report. Each record in
+   `join_coverage` and `parent_population` is `satisfied`, `contradicted` (a
+   finding to fix), `not_applicable` (an empty input, which is not full
+   coverage) or `unchecked` (its `reason_code` says why, and it is not clean).
+   Output keys the parent lacks are never the population: drive the model from
+   the parent instead.
 6. **Maintain.** `dex maintain verify` checks the project as it stands;
    `dex maintain check` compares it with the last `dex maintain snapshot`;
    `dex maintain reconcile` proposes the fix as a plan for `transform apply`.

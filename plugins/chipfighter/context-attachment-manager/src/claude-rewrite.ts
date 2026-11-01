@@ -17,7 +17,8 @@
 import type { ClaudeIndex, ClaudeImage } from "./claude-index.ts";
 import { imageDigest, type ImageDigest, type ImageKind } from "./images.ts";
 import type { Lang } from "./language.ts";
-import { autoPlaceholder, claudeNote, compactedNote, copyNote, duplicatePlaceholder, featureNote, hereNote, includedLabel, newImageWord, plainPlaceholder, type Described, type RewriteReport } from "./rewrite.ts";
+import { notesBy } from "./notes.ts";
+import { autoPlaceholder, claudeNote, compactedNote, compactList, copyNote, duplicatePlaceholder, featureNote, hereNote, includedLabel, newImageWord, plainPlaceholder, type Described, type RewriteReport } from "./rewrite.ts";
 
 type Json = Record<string, any>;
 // msg: the message; part: the block in its content; sub: for an image in a tool result, its position in that result.
@@ -94,6 +95,8 @@ export type ClaudeRewriteOptions = {
   noted?: boolean;
   // v0.8: the feature line note and ids on this turn's new images too (rewrite.ts).
   features?: boolean;
+  // v0.10: keys of the images sent once more for their feature line; their labels say so.
+  awaiting?: Set<string>;
 };
 
 export function rewriteMessages(
@@ -103,12 +106,14 @@ export function rewriteMessages(
   pixelHash: (image: RequestImage) => string | null,
   options: ClaudeRewriteOptions = {},
 ): { messages: Json[]; report: RewriteReport } {
-  const { lang = "zh", copies = new Map<string, string>(), auto, noted = false, features = false } = options;
+  const { lang = "zh", copies = new Map<string, string>(), auto, noted = false, features = false, awaiting = new Set<string>() } = options;
   const refs = findRequestImages(messages, index);
   const describe = (ref: RequestImage): ClaudeImage | undefined => {
     const image = ref.key ? index.byKey.get(ref.key) : undefined;
-    const notes = image ? index.notes?.get(image.id) : undefined;
-    return image && notes ? { ...image, notes } : image;
+    // v0.10: as noted by the image's own turn, so a placeholder stays as it first went out (notes.ts).
+    const notes = image ? notesBy(index.notes?.get(image.id), image.turn) : undefined;
+    if (!image) return undefined;
+    return notes || awaiting.has(image.key) ? { ...image, ...(notes ? { notes } : {}), ...(awaiting.has(image.key) ? { awaiting: true } : {}) } : image;
   };
   const report: RewriteReport = { images: refs.length, replaced: [], locked: [], sentContentIds: [], copies: [] };
   const copied = refs.filter((ref) => ref.key !== null && copies.has(ref.key));
@@ -116,8 +121,13 @@ export function rewriteMessages(
   const sent = refs.filter((ref) => !drop.includes(ref) && !copied.includes(ref));
   report.sentContentIds = sent.map((ref) => ref.contentId);
   // A copy the model fetched this turn is known as one, not as an image.
-  const unknown = refs.filter((ref) => !copied.includes(ref) && !(ref.key && index.copies?.has(ref.key)) && !describe(ref)).length;
-  if (unknown) report.unknown = unknown;
+  const unknown = refs.filter((ref) => !copied.includes(ref) && !(ref.key && index.copies?.has(ref.key)) && !describe(ref));
+  if (unknown.length) report.unknown = unknown.length;
+  // v0.10: unknown images after the model's latest reply: Claude Code can send a request a moment before those records
+  // reach its transcript, and they would go out without ids (the engine reads the transcript again, proxy.ts).
+  const lastReply = messages.map((message) => message?.role).lastIndexOf("assistant");
+  const late = unknown.filter((ref) => ref.msg > lastReply).length;
+  if (late) report.late = late;
   // v0.8: the first image the index knows; the feature line note follows its message.
   const first = features ? refs.find((ref) => describe(ref)) : undefined;
   if (!drop.length && !copied.length && !first) return { messages, report };
@@ -249,11 +259,14 @@ export function addCompacted(messages: Json[], summary: string, listed: Describe
   const message = messages[at];
   const content: Json[] = typeof message.content === "string" ? [{ type: "text", text: message.content }] : [...message.content];
   const sent = new Map(resend.map(({ image, block }) => [image.id, block]));
-  const added = listed.flatMap((image): Json[] => {
+  // v0.10: the ones still sent with their labels, then the others one line each (compactList), not a placeholder
+  // apiece.
+  const resent = listed.flatMap((image): Json[] => {
     const block = sent.get(image.id);
-    if (block) return [{ type: "text", text: includedLabel(image, lang) }, block];
-    return [{ type: "text", text: auto ? autoPlaceholder(image, lang) : plainPlaceholder(image, lang) }];
+    return block ? [{ type: "text", text: includedLabel(image, lang) }, block] : [];
   });
+  const missing = listed.filter((image) => !sent.has(image.id));
+  const added: Json[] = [...resent, ...(missing.length ? [{ type: "text", text: compactList(missing, lang) }] : [])];
   content.splice(content.findIndex(holdsSummary(summary)) + 1, 0, ...added);
   const next = [...messages];
   next[at] = { ...message, content };

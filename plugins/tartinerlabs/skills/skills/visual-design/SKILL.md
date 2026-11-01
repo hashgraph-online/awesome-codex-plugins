@@ -90,7 +90,7 @@ Each rule file has a **When building** constraint and a **When auditing** check.
 ## 6. Audit
 
 1. **Scope**: the files, screens, or images named; otherwise every user-facing screen. Screenshots and mockups are valid input: open them with Read.
-2. **Identify the direction**: name the one the product is aiming for, or the ones it is mixing. Judge every screen against that direction, not against personal taste.
+2. **Identify the direction**: name the one the product is aiming for, or the ones it is mixing. Judge every screen against that direction, not against personal taste. Content that depicts other directions on purpose (style guides, theme pickers, mockups or screenshots of other products) is illustration, not mixing: judge the page's own chrome against its direction, and leave the depicted content alone.
 3. **Check**: compare each screen with the rules whose "Applies to" matches it, plus the platform guide.
 4. **Report** grouped by impact, HIGH first. Cite a file and line, or the image and the area of the screen:
 

@@ -24,7 +24,8 @@ Apple's system colours, text styles, and materials already adapt to light and da
 - **System containers first**: `List` with `.insetGrouped`, `Form`, `GroupBox`. They are the platform's card system.
 - **Materials** (`.regularMaterial`, `.thinMaterial`) for custom floating elements over scrolling content
 - **Liquid Glass** (OS 26) belongs on the navigation layer: system bars, tab bars, toolbars, and sheets get it automatically. For custom floating controls use `.glassEffect()`. Never put glass on scrolling content or on cards in a list.
-- **Corner radii**: `.clipShape(.rect(cornerRadius: 20, style: .continuous))` for Apple's continuous corners. Use `ConcentricRectangle` or `.containerRelative` shapes where available, so nested corners match the device and container.
+- **`TabView` as Apple ships it.** Keep the default tab bar: no custom background, selection colour, icon sizing, or hand-drawn replacement. The selected tab already takes the app's `AccentColor`, and SF Symbols switch to their filled variant on their own. The ink-for-selection advice in `rules/actions.md` is for the app's own controls, not the system tab bar.
+- **Corner radii**: `.clipShape(.rect(cornerRadius: 20, style: .continuous))` for Apple's continuous corners. For nested corners, use `ConcentricRectangle` or `ContainerRelativeShape` inside a container that sets `.containerShape(_:)`, so inner corners follow the container's radius.
 - **Shadows**: one soft `.shadow(color: .black.opacity(0.08), radius: 16, y: 8)` style at most. Use none in dark mode.
 
 ## Actions

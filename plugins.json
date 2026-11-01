@@ -2482,16 +2482,6 @@
       "install_url": "https://raw.githubusercontent.com/sergebulaev/exotic-car-rental-skills/HEAD/.codex-marketplace/exotic-car-rental-skills/.codex-plugin/plugin.json"
     },
     {
-      "name": "Fair Value Calculator",
-      "url": "https://github.com/petz00711/fair-value-calculator-mcp",
-      "owner": "petz00711",
-      "repo": "fair-value-calculator-mcp",
-      "description": "Fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, plus your watchlist and alerts, through the hosted Fair Value Calculator MCP server.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/petz00711/fair-value-calculator-mcp/HEAD/plugins/fair-value-calculator/.codex-plugin/plugin.json"
-    },
-    {
       "name": "Fantasy Football Manager",
       "url": "https://github.com/krmisystems/fantasy-football-manager",
       "owner": "krmisystems",
@@ -2800,6 +2790,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/loomaly/loomaly/HEAD/loomaly/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "looot",
+      "url": "https://github.com/loootai/looot-plugin",
+      "owner": "loootai",
+      "repo": "looot-plugin",
+      "description": "Search, price and run paid data APIs for SEO, enrichment, email verification and social from one prepaid balance through the hosted looot MCP server and one skill, with browser sign-in and no provider keys.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/loootai/looot-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Maestro: Costguard",

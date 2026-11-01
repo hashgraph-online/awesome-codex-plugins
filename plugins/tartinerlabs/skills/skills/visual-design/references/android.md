@@ -21,7 +21,7 @@ Material 3 is a token system: colour roles, a type scale, and a shape scale pass
 
 ## Shape
 
-- **`Shapes`** scale: `extraSmall` (4dp), `small` (8dp), `medium` (12dp), `large` (16dp), `extraLarge` (28dp) by default. Adjust it once to the direction's radius scale, and components follow.
+- **`Shapes`** scale: `extraSmall`, `small`, `medium`, `large`, and `extraLarge`, with defaults from `ShapeDefaults` (newer Material 3 versions add `largeIncreased`, `extraLargeIncreased`, and `extraExtraLarge`). Set it once to the direction's radius scale, and components follow.
 - Use pill buttons through `CircleShape` or `RoundedCornerShape(50)`, consistently
 
 ## Surfaces
@@ -35,7 +35,7 @@ Material 3 is a token system: colour roles, a type scale, and a shape scale pass
 
 - `Button` (filled) for the primary, `FilledTonalButton` or `OutlinedButton` for secondary, and `TextButton` for tertiary
 - `ExtendedFloatingActionButton` only when the screen's primary action is creation, as Material intends
-- Selection in `FilterChip`, `SegmentedButton`, and `NavigationBar` uses `secondaryContainer` by default. Set it to ink or the accent when the default collides with a category colour.
+- Selection in `FilterChip`, `SegmentedButton`, and `NavigationBar` takes its colour from the theme. When that collides with a category colour, set it to ink or the accent through the component's colours (for example `FilterChipDefaults.filterChipColors(selectedContainerColor = …)`).
 
 ## Icons and Imagery
 

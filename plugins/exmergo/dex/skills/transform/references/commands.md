@@ -50,7 +50,12 @@ See the cost-controls reference for the shared budget mechanism.
   complete and does not hold it, naming any case- or whitespace-insensitive
   match. Silent on a capped domain or a PII-flagged column; never a refusal.
 - Shape warnings: the authored SELECT list against the columns `schema.yml`
-  declares, in both directions, silent where the model declares none.
+  declares, in both directions, silent where the model declares none. A `*` is
+  followed through CTEs, subqueries and joins, then to a `ref()`'d model's SQL as
+  the plan leaves it, then to a cached profile, which the warning names because a
+  profile can be stale. A skipped comparison says which case stopped it, such as a
+  `*` over a relation with no profile (and the `explore profile` that supplies
+  one), a macro standing in for a column, or a set operation.
 - The resolved-key convention: a model exposing a raw foreign key where at least
   three siblings sharing its folder and layer prefix all resolve theirs, none
   passes one through, and the project holds a parent to resolve against. It names
@@ -265,11 +270,35 @@ test over the smaller result.
 - A failed build still reports which node failed and which were skipped because
   of it, usually a faster read than the dbt log.
 - It also checks what each built model declares: `unit_out_of_range`,
-  `additivity_contradicted`, `population_contradicted`, and a declared grain no
-  `unique` test in the build covers (`grain_broken`, `source: declaration`).
-  See declarations.md, "Checked against the built relation".
+  `additivity_contradicted`, `population_contradicted`, the declared parent
+  (`parent_population_missing`, `parent_population_unexpected`), and a
+  declared grain no `unique` test in the build covers (`grain_broken`,
+  `source: declaration`). See declarations.md, "Checked against the built
+  relation".
+- It measures the coverage of every equality join the built models write, as
+  `maintain verify` does: `data.verification.join_coverage` holds one record
+  per join, and `join_no_match`, `join_orphans`, `join_zero_overlap`,
+  `join_field_all_null` and `join_field_newly_null` are its findings.
+- It compares each built model's columns with its `schema.yml`, using the
+  detector `maintain verify` runs: `column_missing`, `column_undeclared` and
+  `column_type_mismatch`. This reads metadata only, so it adds no statement and no
+  estimate line. `data.verification.column_contract` says what it reached, because
+  no findings over no comparison is not a clean contract:
+
+  ```json
+  {"checked": ["fct_orders"],
+   "no_declared_columns": ["stg_events"],
+   "unchecked": [{"model": "fct_returns", "reason_code": "not_built"}]}
+  ```
+
+  `reason_code` is `not_built` (it failed or was skipped, so any relation there is
+  an earlier run's), `no_relation` (the manifest names none), `relation_not_found` (none or
+  several in Dex's read scope, as with a custom schema) or `metadata_unreadable`.
+  When nothing could be compared, `suppressed` names it:
+  `"column_contract": "no model this build ran declares columns in schema.yml"`.
 - On a billed connector the sweep's row counts are a `(row counts)` line in the
-  build's estimate, and the declared-fact statements a `(declared facts)` line.
+  build's estimate, the declared-fact statements a `(declared facts)` line, and
+  the join coverage statements a `(join overlap probes)` line.
   A cold dev target that cannot be priced upfront is priced again after the
   build, against the reservation it already holds.
 

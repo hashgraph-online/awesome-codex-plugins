@@ -46,6 +46,7 @@ exist.
 | `unit` | `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`, or a plain unit such as `days` |
 | `null_rule` | `never`, or a sentence saying what NULL means in this column |
 | `references` | `<model>.<column>`, a model, seed or snapshot the project has |
+| `population.parent` | `{"model": <model, seed or snapshot>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it |
 | `evidence` | `request` (what the user asked for), `contract` (the project's declared columns, tests or metric filters), `precedent` (how sibling models decide the same thing), `data` (what profiling showed), `default` (the conventional analytics-engineering choice) |
 
 A field Dex does not know is refused by name, so a typo cannot silently drop
@@ -69,7 +70,8 @@ model, which dbt refuses.
 
 A test the column already lists is kept as written, under the key it already
 uses. Declaring again merges: a key the new declaration states replaces the old
-one, and a key it leaves out is kept. Every byte outside the keys above, comments
+one, and a key it leaves out is kept. `population` merges one level further, so
+adding a `parent` keeps the `rule` and `filters` declared earlier. Every byte outside the keys above, comments
 included, stays where it was.
 
 ## What is checked
@@ -82,9 +84,13 @@ Refused, with the fix named:
 - a `references` target that is not `<model>.<column>`, names nothing, or names
   a column the target does not produce;
 - an unknown `role`, `additivity` or `evidence`, or an unknown field;
-- a population filter listing values on a column that looks like personal data.
+- a population filter listing values on a column that looks like personal data;
+- a `population.parent` naming no model, seed or snapshot, naming the model
+  itself, mapping an output column the model does not produce, or a parent
+  column the parent does not produce.
 
-Warned, never refused: a missing description, grain, population, assumptions or
+Warned, never refused: a `population.parent` key that is not the declared
+grain, a missing description, grain, population, assumptions or
 column role (one warning per missing field), a measure without its aggregation,
 additivity or unit, an assumption missing its decision, chosen value or evidence,
 and a model the plan writes SQL for with no declaration at all. Where the SQL
@@ -316,6 +322,8 @@ warehouse):
 | `unit: percent` with every value within 0 to 1 | `unit_out_of_range`; a question rather than proof, since small percentages land here too | medium |
 | `additivity: additive` on a running total | `additivity_contradicted`, with the entity, the ordering column and the decrease fraction | medium |
 | `population.filters` value still present | `population_contradicted`, with the count of contradicting rows, never the rows | high |
+| `population.parent`, eligible parent keys absent from the model | `parent_population_missing`, distinct-key counts, `excluded_by_filters` for parents a declared filter rules out | high (medium when a declared filter's column is not on the parent) |
+| `population.parent`, model keys the parent does not have | `parent_population_unexpected`; these keys are never the population | high |
 
 `null_rule: never` needs no check of its own: it renders as a `not_null` test,
 which the build runs. A single-column `grain` renders as a `unique` test, so the
@@ -327,8 +335,15 @@ columns: a composite grain naming both, else the `foreign_key` (or `key`) and
 `time` roles, else the relation's first id-shaped and temporal columns. Declare
 the roles where that guess would be wrong.
 
+Each declared parent also gets a record under `data.parent_population`: the
+declaration, the counts and a `status` (`satisfied`, `contradicted`,
+`not_applicable` when the parent and the model are both empty, or `unchecked`
+with a `reason_code`). A column a join supplies is judged by its `null_rule`
+too (`join_field_all_null`), with the join's coverage beside it; see the
+maintain skill's `axes.md`, "Join contract".
+
 A check that could not run is named in `data.suppressed` (`unit`, `additivity`,
-`population`, and `grain` on the build path) with the reason: nothing in scope
+`population`, `parent_population`, and `grain` on the build path) with the reason: nothing in scope
 declares it, the relation is empty, the column is all NULL, the column was
 aggregated away (a rollup cannot carry its population rule's column, so the rule
 is checked upstream or not at all), too few observations, or the scan is offered.
@@ -340,10 +355,10 @@ like personal data.
 
 `explore profile` and `explore map` with `--use-project` return each declared
 model's declaration as `declaration` on the relation it builds: grain (with
-`grain_status` comparing it with the measured keys), population, and each
-column's role, unit, additivity and `references`. A `references` is also a
-declared join, `declared_by: declaration <model>.<column>`. It is read from the
-YAML on every run and never cached, so a later session reads the rule the
+`grain_status` comparing it with the measured keys), population (a declared
+`parent` as `model`, `columns` and `parent_columns`), and each column's role,
+unit, additivity and `references`. A `references` is also a declared join,
+`declared_by: declaration <model>.<column>`. It is read from the YAML on every run and never cached, so a later session reads the rule the
 project records rather than one remembered from the conversation that wrote it.
 
 A native layer is read back the same way, so `semantic ossie|slayer|cube plan`

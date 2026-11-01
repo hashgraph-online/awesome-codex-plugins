@@ -1,6 +1,6 @@
 [project]
 name = "codex-context-guard"
-version = "0.15.1"
+version = "0.16.0"
 description = "A local correctness sidecar for long-running Codex tasks."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -15,11 +15,11 @@ classifiers = [
 dependencies = []
 
 [dependency-groups]
-test = ["pytest==8.4.2"]
+test = ["jsonschema==4.26.0", "pytest==8.4.2"]
 validation = [
   {include-group = "test"},
   "ruff==0.16.1",
-  "plugin-scanner==3.0.157",
+  "plugin-scanner==3.51.0",
 ]
 
 [project.urls]

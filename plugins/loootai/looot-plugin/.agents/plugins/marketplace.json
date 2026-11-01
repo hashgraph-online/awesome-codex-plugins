@@ -1,0 +1,20 @@
+{
+  "name": "looot",
+  "interface": {
+    "displayName": "looot"
+  },
+  "plugins": [
+    {
+      "name": "looot",
+      "source": {
+        "source": "local",
+        "path": "./plugins/codex/looot"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

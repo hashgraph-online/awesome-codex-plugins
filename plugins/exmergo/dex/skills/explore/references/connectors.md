@@ -64,9 +64,14 @@ charged only the gap since it, not a second tail. When `connect test` warns that
 `AUTO_SUSPEND` is long, relay its recommendation to the user (a dedicated
 warehouse with `AUTO_SUSPEND = 60`, or `snowflake.suspend_after_command: true`
 with `OPERATE` granted); do not change the warehouse or the setting yourself.
-The warning and the estimate's note both carry the exact commands to copy:
-`dex config set snowflake.suspend_after_command true`, and the `GRANT OPERATE ON
-WAREHOUSE ... TO ROLE ...` with the session's own role filled in.
+The warning and the estimate's note carry the exact commands to copy, with the
+session's own role filled in. With the setting off, the warning carries both
+`dex config set snowflake.suspend_after_command true` and the `GRANT OPERATE ON
+WAREHOUSE ... TO ROLE ...`; the estimate's note carries the `dex config set`,
+and the grant only once a suspend has been refused for lacking it. With the
+setting on, a project's first command that resumes the warehouse is still quoted
+the tail, because dex counts on a suspend only once one has worked; its note
+says so, and later commands are quoted the resume minimum.
 
 ### The calibration line
 

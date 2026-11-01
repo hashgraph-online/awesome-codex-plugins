@@ -102,9 +102,84 @@ function partDigest(part: Json): ImageDigest | null {
   return inline ? digest(part, part.image_url.slice(inline[0].length), inline[1]) : null;
 }
 
+// v0.10.1 — reading the path of a view_image call in code-mode source, without running it.
+const IMAGE_FILE = /^[^\\/]+\.(?:png|jpe?g|gif|webp|bmp|tiff?|avif|heic)$/i;
+const CLOSE: Record<string, string> = { "{": "}", "(": ")", "[": "]" };
+const skipSpace = (source: string, i: number) => { while (i < source.length && /\s/.test(source[i])) i++; return i; };
+
+// A string literal at source[i] (a quote or a backtick): where it ends, and its text; a template's text is what follows
+// its last substitution ("" when it ends with one).
+function readString(source: string, i: number): { end: number; text: string } {
+  const quote = source[i];
+  let text = "";
+  for (let j = i + 1; j < source.length; j++) {
+    const ch = source[j];
+    if (ch === "\\") { text += source[j + 1] ?? ""; j++; }
+    else if (ch === quote) return { end: j + 1, text };
+    else if (quote === "`" && ch === "$" && source[j + 1] === "{") { j = skipBracket(source, j + 1) - 1; text = ""; }
+    else text += ch;
+  }
+  return { end: source.length, text };
+}
+
+// Past the bracket that closes the one at source[i], strings included.
+function skipBracket(source: string, i: number): number {
+  const open = [CLOSE[source[i]]];
+  for (let j = i + 1; j < source.length; j++) {
+    const ch = source[j];
+    if (ch === '"' || ch === "'" || ch === "`") j = readString(source, j).end - 1;
+    else if (CLOSE[ch]) open.push(CLOSE[ch]);
+    else if (ch === open.at(-1)) { open.pop(); if (!open.length) return j + 1; }
+  }
+  return source.length;
+}
+
+// The next comma at this level, or `end`.
+function nextComma(source: string, i: number, end: number): number {
+  for (let j = i; j < end; j++) {
+    const ch = source[j];
+    if (ch === '"' || ch === "'" || ch === "`") j = readString(source, j).end - 1;
+    else if (CLOSE[ch]) j = skipBracket(source, j) - 1;
+    else if (ch === ",") return j;
+  }
+  return end;
+}
+
+// The file name a path expression writes: its last string (p + "a.png", `${dir}/a.png`, join(dir, "a.png")). Null when
+// the name is not written (p + name, dir + "/" + f + ".png") or the path is one of several (a ? "x.png" : "y.png", ||).
+function writtenName(expression: string): string | null {
+  let last = "";
+  for (let i = 0; i < expression.length; i++) {
+    const ch = expression[i];
+    if (ch === '"' || ch === "'" || ch === "`") { const string = readString(expression, i); last = string.text; i = string.end - 1; }
+    else if (ch === "?" || ch === "|" || ch === "&") return null;
+  }
+  const name = baseName(last);
+  return IMAGE_FILE.test(name) ? name : null;
+}
+
+// The name of the image a view_image call at source[at] (just after its "(") views, from the `path` of its argument.
+function viewName(source: string, at: number): string | null {
+  let i = skipSpace(source, at);
+  if (source[i] !== "{") return null;
+  const end = skipBracket(source, i) - 1;
+  for (i++; i < end; i++) {
+    i = skipSpace(source, i);
+    let key = "";
+    if (source[i] === '"' || source[i] === "'") { const string = readString(source, i); key = string.text; i = string.end; }
+    else { const word = /^[\w$]+/.exec(source.slice(i, end))?.[0]; if (!word) return null; key = word; i += word.length; }
+    i = skipSpace(source, i);
+    const value = source[i] === ":" ? i + 1 : null;
+    const stop = nextComma(source, value ?? i, end);
+    if (key === "path") return value === null ? null : writtenName(source.slice(value, stop));
+    i = stop;
+  }
+  return null;
+}
+
 // A tool output's images get names from the call that produced them: view_image paths, or the saved-image hint
 // that Codex's image generation adds next to its result.
-function toolContext(call: Json | undefined, output: Json[]): { kind: ImageKind; names: string[] } {
+function toolContext(call: Json | undefined, output: Json[]): { kind: ImageKind; names: (string | null)[] } {
   const hints = output.flatMap((part) => (typeof part?.text === "string" ? [...part.text.matchAll(/Generated images are saved to .*? as (.+?\.png) by default/g)].map((m) => baseName(m[1])) : []));
   if (hints.length) return { kind: "generated", names: hints };
   if (!call) return { kind: "tool", names: [] };
@@ -115,9 +190,16 @@ function toolContext(call: Json | undefined, output: Json[]): { kind: ImageKind;
     return { kind: /imagegen|image_gen/.test(call.name ?? "") ? "generated" : "tool", names: [] };
   }
   const source = String(call.input ?? "");
-  // Paths written inline are read; paths passed through variables leave the names unknown.
-  const views = [...source.matchAll(/view_image\(\s*\{\s*path\s*:\s*(["'])((?:(?!\1)[^\\]|\\.)*)\1/g)].map((m) => baseName(m[2].replace(/\\(.)/g, "$1")));
-  if (views.length || source.includes("view_image")) return { kind: "view", names: views };
+  // One name per view_image call (not our cam_view_image), null where the code does not write it. Images our
+  // cam_view_image returned in the same code are copies, known by the line before them; the others follow the calls in
+  // order only when each call brought one image, otherwise which image is which is unknown.
+  const views = [...source.matchAll(/(?<![\w$])view_image\s*\(/g)].map((m) => viewName(source, m.index + m[0].length));
+  if (views.length || source.includes("view_image")) {
+    const viewed = output.flatMap((part, i) => (part?.type === "input_image" || part?.type === "output_image" ? [!FETCHED_LINE.test(output[i - 1]?.type === "input_text" ? String(output[i - 1].text) : "")] : []));
+    if (views.length !== viewed.filter(Boolean).length) return { kind: "view", names: [] };
+    let next = 0;
+    return { kind: "view", names: viewed.map((own) => (own ? views[next++] : null)) };
+  }
   return { kind: /image_gen|imagegen|generatedImage\(/.test(source) ? "generated" : "tool", names: [] };
 }
 
