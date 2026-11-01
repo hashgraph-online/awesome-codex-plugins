@@ -509,6 +509,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Token Harbor](https://github.com/NickHOI/Token-Harbor) - Turn Codex token usage into Sail Power for a local-first fishing, fleet, and harbor-building companion game.
 - [TokenChronicle](https://github.com/HuaHuiJian/tokenchronicle-marketplace) - Local-first Codex work journal that automatically archives sessions for private search, audit, usage analytics, and long-term memory continuity without recurring model-token cost.
 - [TokRepo Search](https://github.com/henu-wang/tokrepo-codex-plugin) - Search and install AI assets from TokRepo with a bundled skill and MCP server for Codex.
+- [TweetAPI](https://github.com/tweetapi/agent-skill) - Read-only lookups of public Twitter/X profiles, tweets, search results, lists, communities and Spaces through TweetAPI's hosted MCP server, with guidance for server-side API reads.
 - [Unified AI System](https://github.com/happy520ai/unified-ai-system) - Self-hosted AI gateway for Codex with provider-free prompt enhancement, fifteen governed MCP tools, and a credential-free Docker path.
 - [unslop](https://github.com/MohamedAbdallah-14/unslop) - Strip AI writing patterns from text output — removes filler phrases, hedging language, and generic constructs to produce cleaner written content. Install: `npm install -g unslop`.
 - [Upwork Autopilot](https://github.com/klajdikkolaj/upwork-autopilot) - Controlled Upwork job search, qualification, and proposal submission sessions through a dedicated Chrome profile.
