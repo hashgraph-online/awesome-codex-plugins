@@ -1431,6 +1431,21 @@
       "icon": "./plugins/shitianfang/jev-use/assets/icon.svg"
     },
     {
+      "name": "joxo",
+      "displayName": "Joxo",
+      "source": {
+        "source": "local",
+        "path": "./plugins/JoxoAI/joxo"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Setup skill that joins Codex to a team's shared Joxo project, where teammates' coding agents share one task board, decisions and handoffs.",
+      "icon": "./plugins/JoxoAI/joxo/assets/icon.png"
+    },
+    {
       "name": "keep-mac-awake",
       "displayName": "Keep Mac Awake",
       "source": {
@@ -4230,6 +4245,21 @@
       "category": "Tools & Integrations",
       "description": "Connects Codex to MATLAB and Simulink through a local MCP server for model inspection, script execution, and engineering workflow automation.",
       "icon": "./plugins/summer521521/MATLAB_Simulink_plugin/assets/icon.svg"
+    },
+    {
+      "name": "metamask-agent-wallet",
+      "displayName": "MetaMask Agent Wallet",
+      "source": {
+        "source": "local",
+        "path": "./plugins/MetaMask/agent-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Official MetaMask plugin that gives Codex a self-custodial wallet to swap, bridge, trade Hyperliquid perps and Polymarket markets, earn yield, and pay x402 APIs within user-set limits.",
+      "icon": "./plugins/MetaMask/agent-skills/assets/logo.svg"
     },
     {
       "name": "mnemoverse",

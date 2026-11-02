@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-02",
-  "total": 358,
+  "total": 360,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -969,6 +969,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/shitianfang/jev-use/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Joxo",
+      "url": "https://github.com/JoxoAI/joxo",
+      "owner": "JoxoAI",
+      "repo": "joxo",
+      "description": "Setup skill that joins Codex to a team's shared Joxo project, where teammates' coding agents share one task board, decisions and handoffs.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/JoxoAI/joxo/HEAD/plugins/joxo/.codex-plugin/plugin.json"
     },
     {
       "name": "Keep Mac Awake",
@@ -2860,6 +2870,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/summer521521/MATLAB_Simulink_plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "MetaMask Agent Wallet",
+      "url": "https://github.com/MetaMask/agent-skills",
+      "owner": "MetaMask",
+      "repo": "agent-skills",
+      "description": "Official MetaMask plugin that gives Codex a self-custodial wallet to swap, bridge, trade Hyperliquid perps and Polymarket markets, earn yield, and pay x402 APIs within user-set limits.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/MetaMask/agent-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Mnemoverse Memory",
