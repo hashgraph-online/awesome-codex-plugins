@@ -1802,6 +1802,21 @@
       "icon": "./plugins/DuncanMain/project-memory-core/assets/icon.svg"
     },
     {
+      "name": "ponder",
+      "displayName": "Ponder",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Quinnod345/ponder"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Coverage-gated, multi-pass deliberative review CLI and skill for Codex and Claude Code where four perspectives argue across passes, retract unverified findings, and block stopping until every unit in scope is graded.",
+      "icon": "./plugins/Quinnod345/ponder/assets/icon.svg"
+    },
+    {
       "name": "praxis",
       "displayName": "Praxis",
       "source": {

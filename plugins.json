@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-02",
-  "total": 360,
+  "total": 361,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1219,6 +1219,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/DuncanMain/project-memory-core/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Ponder",
+      "url": "https://github.com/Quinnod345/ponder",
+      "owner": "Quinnod345",
+      "repo": "ponder",
+      "description": "Coverage-gated, multi-pass deliberative review CLI and skill for Codex and Claude Code where four perspectives argue across passes, retract unverified findings, and block stopping until every unit in scope is graded.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Quinnod345/ponder/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Praxis",
