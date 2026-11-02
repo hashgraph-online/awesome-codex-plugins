@@ -448,6 +448,21 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         else:
             destination_path.write_bytes(archive.read(archive_name))
 
+    # Nested bundles may inherit their license from an enclosing directory.
+    # Keep a bundle-specific license when present; otherwise retain the nearest
+    # ancestor's license verbatim alongside the mirrored files.
+    license_names = ("LICENSE", "LICENSE.md", "LICENSE.txt")
+    if not any((destination_root / name).is_file() for name in license_names):
+        for ancestor in plugin_root.parents:
+            if ancestor == PurePosixPath("."):
+                break
+            inherited = [ancestor / name for name in license_names
+                         if (ancestor / name).as_posix() in names]
+            if inherited:
+                for source_path in inherited:
+                    (destination_root / source_path.name).write_bytes(archive.read(source_path.as_posix()))
+                break
+
     marketplace_path = f"./plugins/{plugin['owner']}/{plugin['repo']}"
     if use_subpath and plugin_root_relative:
         marketplace_path = f"{marketplace_path}/{plugin_root_relative}"
