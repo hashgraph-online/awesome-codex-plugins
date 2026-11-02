@@ -68,7 +68,10 @@ weather, load, and rests; these are day averages, not sprints.
 
 Convert with `hours = distance in km / km/h` and add time for stops. Record
 the result on the location's `routes` so `story continuity` checks journeys
-between dated scenes (see `maps-and-routes.md`).
+between dated scenes (see `maps-and-routes.md`). Or copy the km/h and per-day
+figures into `story.md` `travel-modes` as `speed` and `per-day` (in the
+story's `distance-unit`), and record distances on locations, so `story
+continuity` checks each scene's `travel-hours` against the distance.
 
 After editing economic or magic systems, run `story reindex .`,
 `story wordcount . --write`, and `story check .`.

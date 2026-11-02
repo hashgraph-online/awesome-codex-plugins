@@ -4,7 +4,7 @@ What each `story build` format writes, and the flags and `story.md` fields it re
 
 ## build
 
-`build` when the user asks to build the book artifact; supports markdown, EPUB, DOCX, Shunn, HTML, print, narration, metadata, Fountain, Twee, and ink outputs in `dist/`, and a codex site in `dist/codex/`, with front and back matter. For EPUB, set `cover: path/to/cover.jpg` (inside the project, and holding the kind of image its extension names) and `author` in `story.md` to embed a cover image and creator; never pass the cover or the `build-style` `css` file as `--out`, which is refused. For an anthology, set `editor` in `story.md` and `author` on each chapter: builds credit the editor on the title pages and print each story's writer under its heading, outside the word count (docs/manuscripts.md#story-authors-in-collections-and-anthologies).
+`build` when the user asks to build the book artifact; supports markdown, EPUB, DOCX, Shunn, HTML, print, narration, metadata, Fountain, Twee, ink, and iCalendar outputs in `dist/`, and a codex site in `dist/codex/`, with front and back matter. For EPUB, set `cover: path/to/cover.jpg` (inside the project, and holding the kind of image its extension names) and `author` in `story.md` to embed a cover image and creator; never pass the cover or the `build-style` `css` file as `--out`, which is refused. For an anthology, set `editor` in `story.md` and `author` on each chapter: builds credit the editor on the title pages and print each story's writer under its heading, outside the word count (docs/manuscripts.md#story-authors-in-collections-and-anthologies).
 
 A matter page with `permission: pending`, a misspelt `permission` key, or any value but `not-needed`, `granted`, or `public-domain` is left out of `export` and of every build that prints matter (markdown, EPUB, DOCX, HTML, print, narration), with a `permission-pending-left-out` warning for each. Report the warning rather than work around it. Add `--include-pending` only for a proof the author reads alone, never for a file anyone else sees; `cli-defaults` cannot set it, and other builds refuse it.
 
@@ -31,6 +31,15 @@ See the `publishing` skill.
 ## metadata
 
 `build --format metadata` for a retailer metadata sheet from `story.md`: title, series, authors, ISBN, publisher, date, language, description with its character count against common limits (KDP 4,000), keywords, BISAC subjects, word count, estimated page count, AI disclosure, and a readiness checklist of missing fields. See the `publishing` skill.
+
+## ics
+
+`build --format ics` when the user wants the writing schedule in Google Calendar, Apple Calendar, or Outlook. It writes `dist/<story-id>.ics`, an iCalendar file of all-day events from `story.md` and the chapters: the `deadline` (with `target-words`), each serial episode's release date (a chapter's `release-date`, or its place on `release-every` from `release-start`), the next episode on the cadence after the last chapter unless `status` is `complete`, and the daily target (`daily-target-words`) as a recurring event on `writing-days` until the deadline.
+
+- The words a day that the deadline needs, which `progress` reports, are not in the file: that number changes after each session. Say so if the user asks for it.
+- The daily target starts from the first session in `progress.md`, `release-start`, or the first release date, whichever is earliest. With none of them, or when that first writing day is after the deadline, the build leaves it out with an `ics-daily-target-left-out` warning: suggest `story progress . --log` after the next session, or ask the user whether the deadline has moved.
+- A book with no deadline, release schedule, or daily target has nothing to put in the file, so the build stops with exit 3. Set the field the user wants in `story.md` first; do not invent a deadline.
+- Each event's UID comes from the story id and the event, so the user can import the rebuilt file again and the events update rather than repeat. For a calendar that updates itself, the user publishes the file at a URL and subscribes to it, such as on the GitHub Pages site of the review-copy workflow (docs/manuscripts.md#writing-schedule-calendar-icalendar). A Pages site is public, so ask before you publish the calendar there: it shows the deadline, the release dates, the chapter titles, and the daily target with its first day, which can be the first session date in `progress.md`.
 
 ## twee
 

@@ -54,28 +54,53 @@ export function writeSelection(selection: Selection, dir = selectionDir): void {
 
 // v0.6: written by the engine and the plugin service when they start; the first one wins.
 const AUTO_DEFAULT = "auto-default.json";
+// v0.10: when this version first ran here. Before it, a Claude session resumed after a compaction was numbered from
+// its transcript's own start; claude-index.ts translates what was written then (docs/v0.10/plan.md).
+const STABLE_IDS = "stable-ids.json";
 const sinceOf = new Map<string, string>();
-export function ensureAutoDefault(dir = selectionDir, now = new Date()): void {
+function ensureSince(name: string, dir: string, now: Date): void {
   mkdirSync(dir, { recursive: true });
   try {
-    writeFileSync(join(dir, AUTO_DEFAULT), JSON.stringify({ since: now.toISOString() }, null, 2), { flag: "wx" });
+    writeFileSync(join(dir, name), JSON.stringify({ since: now.toISOString() }, null, 2), { flag: "wx" });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
   }
 }
-
-// null until this version has run here: then nothing is on by default.
-export function autoDefaultSince(dir = selectionDir): string | null {
-  const known = sinceOf.get(dir);
+function sinceIn(name: string, dir: string): string | null {
+  const key = join(dir, name);
+  const known = sinceOf.get(key);
   if (known) return known;
   try {
-    const since = JSON.parse(readFileSync(join(dir, AUTO_DEFAULT), "utf8")).since;
-    if (typeof since === "string") sinceOf.set(dir, since);
+    const since = JSON.parse(readFileSync(key, "utf8")).since;
+    if (typeof since === "string") sinceOf.set(key, since);
     return typeof since === "string" ? since : null;
   } catch {
     return null;
   }
 }
+export const ensureAutoDefault = (dir = selectionDir, now = new Date()): void => ensureSince(AUTO_DEFAULT, dir, now);
+// null until this version has run here: then nothing is on by default.
+export const autoDefaultSince = (dir = selectionDir): string | null => sinceIn(AUTO_DEFAULT, dir);
+// The numbering rules the ids follow. 2: the calls of a reply found off the chain, when their results came back out of
+// order, get ids too (claude-index.ts). Under newer rules the start time starts again, so what was written under the
+// earlier ones is translated.
+const ID_RULES = 2;
+export function ensureStableIds(dir = selectionDir, now = new Date()): void {
+  const file = join(dir, STABLE_IDS);
+  let rules: unknown;
+  try {
+    rules = JSON.parse(readFileSync(file, "utf8")).rules;
+  } catch {
+    mkdirSync(dir, { recursive: true });
+    try { writeFileSync(file, JSON.stringify({ since: now.toISOString(), rules: ID_RULES }, null, 2), { flag: "wx" }); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
+    return;
+  }
+  if (rules === ID_RULES) return;
+  writeFileSync(file, JSON.stringify({ since: now.toISOString(), rules: ID_RULES }, null, 2));
+  sinceOf.delete(file);
+}
+// null until this version has run here: then nothing is translated.
+export const stableIdsSince = (dir = selectionDir): string | null => sinceIn(STABLE_IDS, dir);
 
 // A thread with no switch of its own that started at or after `since` has automatic selection on, from its start;
 // one with no history yet (startedAt null) is just starting.
@@ -87,8 +112,29 @@ export function withAutoDefault(selection: Selection, startedAt: string | null, 
 }
 
 // v0.6: a Claude Code session's selection with the default applied, given when it started (claudeStartedAt).
-export function claudeSelection(sessionId: string, dir: string, startedAt: string | null): Selection {
-  return withAutoDefault(readSelection(sessionId, dir), startedAt, autoDefaultSince(dir));
+// v0.10: `previous`, the sessions it continues (ClaudeIndex.previous), for one without a selection of its own.
+export function claudeSelection(sessionId: string, dir: string, startedAt: string | null, previous: Array<{ sessionId: string; at: string | null }> = []): Selection {
+  return withAutoDefault(claudeOwnSelection(sessionId, dir, previous), startedAt, autoDefaultSince(dir));
+}
+
+// v0.10: Claude Desktop resumes a session as a new one, and a fork is one too: without a selection of its own, it
+// starts with that of the latest session it continues that has one — the marks made by the time it took over, and
+// the switch if it was last switched by then — kept as its own file from then on, as a Codex fork (ownSelection).
+function claudeOwnSelection(sessionId: string, dir: string, previous: Array<{ sessionId: string; at: string | null }>): Selection {
+  if (!previous.length || existsSync(fileFor(sessionId, dir))) return readSelection(sessionId, dir);
+  for (const { sessionId: other, at } of previous) {
+    if (!THREAD_ID.test(other) || other === sessionId || !existsSync(fileFor(other, dir))) continue;
+    const from = readSelection(other, dir);
+    const before = (entries: Record<string, Mark> = {}) => Object.fromEntries(Object.entries(entries).filter(([, entry]) => !at || entry.at <= at));
+    const unchecked = before(from.unchecked);
+    const pinned = before(from.pinned);
+    const switched = typeof from.auto === "boolean" && (!at || !from.autoAt || from.autoAt <= at);
+    const switches = switched ? { auto: from.auto, ...(from.autoAt ? { autoAt: from.autoAt } : {}), ...(from.autoSince ? { autoSince: from.autoSince } : {}) } : {};
+    const inherited: Selection = { threadId: sessionId, unchecked, ...switches, ...(Object.keys(pinned).length ? { pinned } : {}), inheritedFrom: other };
+    writeSelection(inherited, dir);
+    return inherited;
+  }
+  return readSelection(sessionId, dir);
 }
 
 // The thread's own selection; a fork without one takes the images its parent had unchecked by the time of the fork

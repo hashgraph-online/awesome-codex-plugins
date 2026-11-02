@@ -4,7 +4,7 @@ The web has no system design to fall back on, so the token layer is the design s
 
 ## Tokens
 
-- **CSS custom properties** on `:root`, named by role (`--surface`, `--surface-raised`, `--ink`, `--muted`, `--accent`, `--divider`, `--category-1…n`, `--success`, `--warning`, `--danger`)
+- **CSS custom properties** on `:root`, named by role (`--surface`, `--surface-raised`, `--ink`, `--muted`, `--accent`, `--accent-hover`, `--accent-subtle`, `--divider`, `--category-1…n`, `--success`, `--warning`, `--danger`)
 - **`oklch()`** for the palette. Equal lightness steps look even, and tinting a neutral is a small chroma value at the accent's hue (`oklch(97% 0.008 <accent hue>)`).
 - **`color-mix(in oklch, var(--category-2) 14%, var(--surface))`** for tinted chips and icon tiles, with no extra tokens
 - **Tailwind v4**: declare the tokens in `@theme` (`--color-ink`, `--font-display`, `--radius-lg`) so utilities like `bg-ink` and `font-display` come from them. **Tailwind v3**: `theme.extend` in `tailwind.config`.
@@ -13,7 +13,8 @@ The web has no system design to fall back on, so the token layer is the design s
 ## Dark Mode
 
 - Redefine the same role tokens under `@media (prefers-color-scheme: dark)`, and under a `[data-theme="dark"]` attribute if the app has a toggle. Components never branch on the theme.
-- Build elevation from lightness steps (for example 14% → 18% → 22% oklch lightness), not shadows
+- Build elevation from lightness steps (for example 14% → 18% → 22% oklch lightness), not shadows. Keep the steps about twice the light-mode gap between surfaces.
+- Point `--accent` and `--accent-hover` at lighter steps of the accent ramp than in light mode
 - Set `color-scheme: light dark` so form controls and scrollbars follow
 
 ## Type

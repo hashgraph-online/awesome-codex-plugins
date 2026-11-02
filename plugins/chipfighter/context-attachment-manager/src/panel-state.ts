@@ -19,7 +19,7 @@ import type { ImageSource } from "./images.ts";
 import { sceneOf, withoutRecords } from "./notes.ts";
 import { childrenDirOf, claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, requestStatsDirOf, selectionDirOf } from "./paths.ts";
 import { readRequestStats, type RequestStats } from "./request-stats.ts";
-import { claudeSelection, effectiveSelection, writeSelection, type Mark, type Selection } from "./selection.ts";
+import { claudeSelection, effectiveSelection, stableIdsSince, writeSelection, type Mark, type Selection } from "./selection.ts";
 import { buildIndex, imageData, readThreadHistory, sessionMetaOf, type IndexedImage, type ThreadIndex } from "./thread-index.ts";
 import { threadTitle } from "./thread-names.ts";
 import { pngThumbnail } from "./thumbnail.ts";
@@ -357,8 +357,8 @@ export type ClaudePanelOptions = { dataRoot?: string; home?: string };
 
 function loadClaude(sessionId: string, options: ClaudePanelOptions) {
   const root = options.dataRoot ?? dataDir();
-  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome());
-  const selection = claudeSelection(sessionId, claudeSelectionDirOf(root), claudeStartedAt(index));
+  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome(), stableIdsSince(claudeSelectionDirOf(root)));
+  const selection = claudeSelection(sessionId, claudeSelectionDirOf(root), claudeStartedAt(index), index.previous);
   const stats = readRequestStats(sessionId, claudeRequestStatsDirOf(root));
   return { root, index, selection, stats };
 }
@@ -379,7 +379,7 @@ export function applyClaudeSelection(sessionId: string, change: SelectionChange,
 }
 
 export function claudeImageFor(sessionId: string, id: string, maxSide: number, options: ClaudePanelOptions = {}): { id: string; dataUrl: string | null } {
-  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome());
+  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome(), stableIdsSince(claudeSelectionDirOf(options.dataRoot ?? dataDir())));
   const image = index.images.find((candidate) => candidate.id === id);
   if (!image) throw new Error(`${id} is not an image of this session`);
   const data = claudeImageData(index, image);

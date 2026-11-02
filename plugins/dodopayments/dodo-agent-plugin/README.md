@@ -42,7 +42,7 @@ claude plugins marketplace add dodopayments/dodo-agent-plugin
 claude plugins install dodopayments@dodopayments
 ```
 
-The API MCP server uses browser OAuth by default, so no keys are required at install time. The first time your agent calls a Dodo tool, you'll be prompted to sign in.
+The API MCP server signs in with OAuth, so there is no API key to paste. The first time your agent calls a Dodo tool, a Dodo Payments consent page opens in your browser: pick the business, mode and permissions. See [Sign-in and access](#sign-in-and-access).
 
 ### Codex CLI
 
@@ -122,7 +122,7 @@ OpenCode distributes via npm. Add the plugin to your `opencode.json`:
 }
 ```
 
-Restart OpenCode. Both MCP servers (`dodopayments-api`, `dodo-knowledge`) are registered automatically via the plugin's `config` hook as native remote servers. No manual `mcp` block required. Run `opencode mcp auth dodopayments-api` to sign in to the API server.
+Restart OpenCode. Both MCP servers (`dodopayments-api`, `dodo-knowledge`) are registered automatically via the plugin's `config` hook as native remote servers. No manual `mcp` block required. Run `opencode mcp auth dodopayments-api` to open the Dodo Payments consent page for the API server.
 
 **Skills need the package installed locally plus one extra line.** OpenCode does not scan installed packages for skills, so point it at the package's `skills/` directory yourself. `skills.paths` entries resolve against the project directory, so the package must be present in the project's `node_modules` - OpenCode's own plugin cache is not the same location:
 
@@ -145,26 +145,6 @@ An absolute path works too, and avoids the local-install requirement.
 Verify with `opencode run "List every skill available to you by name."` - you should see every skill listed under [Included Skills](#included-skills). A skills path that does not exist is ignored silently, so check rather than assume.
 
 > Versions before 0.5.0 documented these skills as auto-discovered. They were not: nothing in OpenCode scans an installed package, so OpenCode users had MCP servers but no skills. Setting `config.skills` from the plugin's `config` hook does not fix this either - the skill index is built before `config` hooks run, so it never registers anything.
-
-If you prefer the local stdio API server with your own API key instead of the default remote OAuth server, declare `dodopayments-api` yourself in `opencode.json` - your entry wins over the plugin default:
-
-```jsonc
-{
-    "plugin": ["@dodopayments/opencode-plugin"],
-    "mcp": {
-        "dodopayments-api": {
-            "type": "local",
-            "command": ["npx", "-y", "dodopayments-mcp@latest"],
-            "environment": {
-                "DODO_PAYMENTS_API_KEY": "dodo_test_...",
-                "DODO_PAYMENTS_WEBHOOK_KEY": "whsec_...",
-                "DODO_PAYMENTS_ENVIRONMENT": "test_mode"
-            },
-            "enabled": true
-        }
-    }
-}
-```
 
 ## Included Skills
 
@@ -227,34 +207,29 @@ Skills source: [`dodopayments/skills`](https://github.com/dodopayments/skills), 
 
 Both servers speak Streamable HTTP over HTTPS, and every manifest dials them natively - no `npx mcp-remote` bridge and no Node dependency. The canonical `mcp.json` uses the spec's `type: "streamable-http"`; the generated `.mcp.json` (Claude Code, Cursor, VS Code, Grok Build, Devin, Goose, Droid) uses the same endpoints spelled `type: "http"`, the name that dialect uses; Muse, Antigravity, Junie and Gemini get their own spellings from the generator.
 
-## Configure (optional, Claude Code)
+## Sign-in and access
 
-If you prefer to run the API MCP locally with an API key instead of the remote server, open `/plugins` in Claude Code, select **Dodo Payments**, and choose **Configure options**. Fill in:
+The API MCP server signs in with OAuth. No config in this plugin holds an API key, and no step asks you to paste one.
 
-- `dodo_api_key` - your `dodo_test_...` or `dodo_live_...` key
-- `dodo_webhook_key` - your webhook signing secret
-- `dodo_environment` - `test_mode` or `live_mode`
+1. The first tool call on `dodopayments-api` opens a Dodo Payments consent page in your browser. Some clients start the sign-in from a command instead: `codex mcp login dodopayments-api`, `opencode mcp auth dodopayments-api`, `muse mcp login dodopayments-api`, or `/mcp` in Claude Code.
+2. Sign in, then pick the business, the mode (test or live) and the permissions to grant.
+3. The client stores the token. To switch to another business or mode, sign out of the server in your client and sign in again.
 
-Then edit `.mcp.json` to point `dodopayments-api` at the local stdio server:
+To review or revoke access, open the Dodo Payments dashboard at **Settings > Connected Apps**.
 
-```json
-{
-    "mcpServers": {
-        "dodopayments-api": {
-            "type": "stdio",
-            "command": "npx",
-            "args": ["-y", "dodopayments-mcp@latest"],
-            "env": {
-                "DODO_PAYMENTS_API_KEY": "${user_config.dodo_api_key}",
-                "DODO_PAYMENTS_WEBHOOK_KEY": "${user_config.dodo_webhook_key}",
-                "DODO_PAYMENTS_ENVIRONMENT": "${user_config.dodo_environment}"
-            }
-        }
-    }
-}
+Every client config in this repo dials `https://mcp.dodopayments.com/mcp` directly, sets no headers, and lets the client run OAuth discovery itself. A host that cannot run MCP OAuth gets `dodo-knowledge` only - today that is the xAI API (see [Grok](./docs/clients/grok.md)).
+
+### Dodo CLI
+
+The skills use the Dodo CLI for local webhook testing. It uses the same OAuth sign-in:
+
+```bash
+npm i -g dodopayments-cli   # browser sign-in needs v3.7.0 or later
+dodo login                  # sign in with the browser
+dodo whoami                 # show the stored sign-in
 ```
 
-Run `/reload-plugins` to apply changes to your current session.
+Over SSH or with no browser, run `dodo login --device` in place of `dodo login`, and enter the code on another device. To sign out when you finish, run `dodo logout all`.
 
 ## Enable / disable individual MCP servers
 

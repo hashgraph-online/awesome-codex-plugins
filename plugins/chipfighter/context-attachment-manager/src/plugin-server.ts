@@ -38,7 +38,7 @@ import { migrateDataOnce } from "./migrate-data.ts";
 import { applySelection, claudeImageFor, imageFor, loadPanelState, type ClaudePanelOptions, type PanelState } from "./panel-state.ts";
 import { claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "./paths.ts";
 import { fetchedLabel, fetchWords } from "./rewrite.ts";
-import { claudeSelection, effectiveSelection, ensureAutoDefault } from "./selection.ts";
+import { claudeSelection, effectiveSelection, ensureAutoDefault, ensureStableIds, stableIdsSince } from "./selection.ts";
 import { connectDirectly, useEngine, usesEngine } from "./setup.ts";
 import { hasRollout, loadThreadIndex, readThreadHistory, sessionMetaOf, setPixelCache, sideChatOrigin } from "./thread-index.ts";
 import { threadTitle } from "./thread-names.ts";
@@ -257,8 +257,9 @@ export function callClaudeTool(name: string, args: Json, options: ClaudePanelOpt
   if (name === "cam_view_image") {
     const words = fetchWords(lang);
     const ids: string[] = Array.isArray(args.ids) ? args.ids.map(String) : typeof args.id === "string" ? [args.id] : [];
-    const index = loadClaudeIndex(sessionId, options.home);
-    if (!claudeSelection(sessionId, claudeSelectionDirOf(options.dataRoot ?? dataDir()), claudeStartedAt(index)).auto) {
+    const selectionDir = claudeSelectionDirOf(options.dataRoot ?? dataDir());
+    const index = loadClaudeIndex(sessionId, options.home, stableIdsSince(selectionDir));
+    if (!claudeSelection(sessionId, selectionDir, claudeStartedAt(index), index.previous).auto) {
       log({ event: "fetch", host: "claude", sessionId, ids, refused: "automatic selection is off" });
       return { content: [{ type: "text", text: words.off }], isError: true };
     }
@@ -285,6 +286,8 @@ function main(): void {
   // v0.6: the panel may read a selection before the engine has started: the same start for both (selection.ts).
   ensureAutoDefault(selectionDirOf());
   ensureAutoDefault(claudeSelectionDirOf());
+  // v0.10: ids of Claude sessions resumed after a compaction stay as they were from now on (claude-index.ts).
+  ensureStableIds(claudeSelectionDirOf());
   const send = (message: Json) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...message })}\n`);
   let engineState = "";
   const supervise = async () => {

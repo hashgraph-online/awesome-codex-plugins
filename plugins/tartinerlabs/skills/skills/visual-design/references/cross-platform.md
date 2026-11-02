@@ -24,14 +24,14 @@ Apple's system fonts (SF Pro, SF Mono, New York) are licensed for Apple platform
 
 - Ship the font's licence file (usually SIL OFL 1.1) next to the font files
 - **Expo**: embed fonts at build time with the `expo-font` config plugin in `app.json`, or load at runtime with `useFonts`, keeping the splash screen up until they load
-- **Android weights**: refer to each weight by its own family name (for example `Geist-Bold`) unless your font setup maps `fontWeight` to files. Android does not reliably pick a weight from one custom family.
+- **Android weights**: declare each weight in the `expo-font` plugin's `android.fonts` entry (`fontFamily` with `fontDefinitions` of `path` and `weight`) so `fontFamily` plus `fontWeight` resolves on Android. Without that, refer to each weight by its file's family name (for example `Geist-Bold`).
 - **Tabular numbers**: `fontVariant: ['tabular-nums']`
 - **Scaling**: keep `allowFontScaling` on. Cap extreme sizes with `maxFontSizeMultiplier` on dense layouts only.
 - **Native-feeling exception**: an app that wants each platform's own look can use the system font (`System` on iOS, Roboto on Android) and accept that the platforms differ
 
 ## Surfaces and Depth
 
-- **Shadows differ per OS**: iOS uses `shadowColor`, `shadowOpacity`, and `shadowRadius`, and Android uses `elevation`. Newer React Native versions support `boxShadow` on both. Keep one shadow token and map it per platform.
+- **Shadows differ per OS**: iOS uses `shadowColor`, `shadowOpacity`, and `shadowRadius`, and Android uses `elevation`. `boxShadow` works on both under the New Architecture (outset shadows need Android 9+, inset Android 10+). Keep one shadow token and map it per platform.
 - **Blur**: `expo-blur` (`BlurView`) for floating bars over scrolling content. `expo-glass-effect` (`GlassView`) gives Liquid Glass on iOS 26+ and falls back to a plain view elsewhere, so the design must work without it.
 - **Corner radius**: the same radius scale on both platforms. Set `borderCurve: 'continuous'` on iOS for Apple-style corners.
 

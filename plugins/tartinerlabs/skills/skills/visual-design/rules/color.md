@@ -13,10 +13,11 @@ tags: palette, accent, neutrals, tokens, dark-mode, category-colours
 - **Neutrals carry the screen.** Backgrounds, surfaces, text, and dividers make up most of the pixels. Tint them slightly: toward the accent, or toward system content the app shows but cannot restyle (maps, photos, video). Pure `#FFFFFF` on pure grey looks unchosen.
 - **Ink, not black.** Use a near-black slightly tinted toward the neutrals for text and dark buttons. Use off-white for text in dark mode.
 - **One accent, under about 10% of the screen**: the primary action, the selected state, or the one thing that needs attention now. When everything is accented, nothing is.
+- **Give the accent a few steps, not one value.** Generate a light-to-dark ramp of the accent hue and take a base step for the primary action, a darker step for hover and pressed, and a lighter one for links and tinted backgrounds. States that come from the same ramp stay recognisably the same colour, unlike opacity hacks or a second hue.
 - **Category colours are content colours.** Colours that tell items apart (calendar categories, card faces, chart series, tags) appear only on the content: lines, chips, icon tiles at about 12–16% tint, or the item itself. They are never used for chrome, navigation, or selection.
 - **Check token collisions.** When the accent is close to a category or status colour, a selected item reads as a category or an error. Use ink for selection and primary actions instead (`rules/actions.md`).
 - **Status colours** (success, warning, error) have their own tokens and are used only for status, never as decoration.
-- **Design dark mode as its own palette, not an inversion.** Build elevation from lightness steps (base → raised → raised further). Desaturate and lighten the accent slightly so it does not glow, and use off-white text, not pure white.
+- **Design dark mode as its own palette, not an inversion.** Build elevation from lightness steps (base → raised → raised further), and space them roughly twice as far apart as the light-mode surfaces: dark shades look closer together, so a mirrored light palette loses its separation. Raised surfaces are always lighter in dark mode. Move the accent to a lighter, slightly desaturated step of its ramp so it does not glow, and use off-white text, not pure white.
 - **Colour comes from the content.** Artwork, photos, charts, and the user's data bring the colour. The interface around them stays neutral.
 - **Name tokens by role** (`surface`, `ink`, `accent`, `category-3`), not by hue (`blue-500`), so the palette can change without renaming every use.
 
@@ -26,7 +27,8 @@ tags: palette, accent, neutrals, tokens, dark-mode, category-colours
 - The accent used on decoration, headers, and icons as well as actions
 - A category colour also used for selection or the primary button
 - Untinted `#FFF`, `#000`, and default greys throughout
-- Dark mode made by inverting light mode (pure black surfaces, pure white text, unadjusted accent)
+- Dark mode made by inverting light mode (pure black surfaces, pure white text, unadjusted accent), or dark surfaces too close in lightness to tell apart
+- One accent value for every state, with hover and pressed faked by opacity or a different hue
 - Hex values hard-coded in components instead of tokens
 - Contrast below WCAG AA (hand off to the `accessibility` skill)
 
@@ -58,4 +60,4 @@ Colour is the loudest tool in visual design and the easiest to overspend. A pale
 
 ### Alternatives
 
-A brand with an established multi-colour identity keeps it, and applies the same budget to each colour. Character-led products can carry two to four soft tints when each tint means something (mood, category, day). Data visualisation needs more hues than this. Use a tested categorical palette for charts, kept inside the chart.
+A brand with an established multi-colour identity keeps it, and applies the same budget to each colour. Character-led products can carry two to four soft tints when each tint means something (mood, category, day). Data visualisation needs more hues than this. Use a tested categorical palette for charts, kept inside the chart. To build one, fix OKLCH lightness and chroma and step the hue about 25–30° per series, so no series looks brighter than the rest. Equal lightness means the series cannot be told apart by lightness alone, so pair colour with labels, markers, or patterns for colour-blind readers (WCAG 1.4.1).

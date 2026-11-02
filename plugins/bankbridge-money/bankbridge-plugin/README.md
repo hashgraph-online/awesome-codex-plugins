@@ -7,7 +7,7 @@ BankBridge is a remote MCP server that lets Claude, ChatGPT, Cursor and other AI
 **Works with:** Claude (claude.ai, Desktop, mobile, Cowork), Claude Code, ChatGPT, Cursor, VS Code Copilot, Codex, Gemini CLI, Windsurf and any MCP client.
 
 [![Add to Claude](https://img.shields.io/badge/Claude-Add_connector-D97757?style=flat-square&logo=claude&logoColor=white)](https://claude.ai/directory/connectors/bankbridge)
-[![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/install-mcp?name=bankbridge&config=eyJ1cmwiOiJodHRwczovL2JhbmticmlkZ2UubW9uZXkvYXBpL21jcCJ9)
+[![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://bankbridge.money/api/add/cursor)
 [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=bankbridge&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fbankbridge.money%2Fapi%2Fmcp%22%7D)
 [![Install in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Install_server-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=bankbridge&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fbankbridge.money%2Fapi%2Fmcp%22%7D)
 

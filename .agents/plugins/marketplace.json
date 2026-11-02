@@ -1431,6 +1431,21 @@
       "icon": "./plugins/shitianfang/jev-use/assets/icon.svg"
     },
     {
+      "name": "keep-mac-awake",
+      "displayName": "Keep Mac Awake",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bartdudzic/keepmacawake"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Lets Codex keep a MacBook awake with the lid closed while long tasks run, by starting and stopping timed sessions of the Keep Mac Awake macOS app (a paid app with a free trial).",
+      "icon": "./plugins/bartdudzic/keepmacawake/assets/icon.png"
+    },
+    {
       "name": "kernel",
       "displayName": "Kernel",
       "source": {
@@ -1606,6 +1621,21 @@
       },
       "category": "Development & Workflow",
       "description": "Enforces a strict 16-step data-first ML workflow — data inspection, EDA, and problem definition before any model training — with explicit user-permission gates, marimo notebooks, and matplotlib figures at every step; also works in Claude Code and Kimi."
+    },
+    {
+      "name": "model-salt",
+      "displayName": "Model Salt",
+      "source": {
+        "source": "local",
+        "path": "./plugins/modelsalt/model-salt"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Gives the model randomness from outside it before a creative task, so one prompt gives different answers that still do what was asked.",
+      "icon": "./plugins/modelsalt/model-salt/assets/icon.png"
     },
     {
       "name": "multi-llm",
@@ -3667,21 +3697,6 @@
       "icon": "./plugins/sergebulaev/exotic-car-rental-skills/assets/icon.svg"
     },
     {
-      "name": "fair-value-calculator",
-      "displayName": "Fair Value Calculator",
-      "source": {
-        "source": "local",
-        "path": "./plugins/petz00711/fair-value-calculator-mcp"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, plus your watchlist and alerts, through the hosted Fair Value Calculator MCP server.",
-      "icon": "./plugins/petz00711/fair-value-calculator-mcp/assets/logo.png"
-    },
-    {
       "name": "fantasy-football-manager",
       "displayName": "Fantasy Football Manager",
       "source": {
@@ -4140,6 +4155,21 @@
       "category": "Tools & Integrations",
       "description": "Ranks your site's SEO problems by what to fix first, gives Codex a fix prompt for your framework to apply in your repo, and re-checks the live page once the fix is deployed, via a hosted MCP server and four skills.",
       "icon": "./plugins/loomaly/loomaly/assets/logo-plate.svg"
+    },
+    {
+      "name": "looot",
+      "displayName": "looot",
+      "source": {
+        "source": "local",
+        "path": "./plugins/loootai/looot-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search, price and run paid data APIs for SEO, enrichment, email verification and social from one prepaid balance through the hosted looot MCP server and one skill, with browser sign-in and no provider keys.",
+      "icon": "./plugins/loootai/looot-plugin/plugins/claude-code/looot/.claude-plugin/icon.png"
     },
     {
       "name": "costguard",
