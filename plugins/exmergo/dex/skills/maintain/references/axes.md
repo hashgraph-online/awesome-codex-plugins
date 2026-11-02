@@ -218,10 +218,18 @@ Needs no baseline. The classes of finding:
   - `measured` and `coverage`: eligible, matched and unmatched rows and
     distinct keys, NULL-key rows apart. Coverage is `null` when nothing is
     eligible.
+  - `key_conversion` (#861), on a join that compares a key through a cast or a
+    `lower`, `upper` or `trim` (`try_cast(a.k as int) = b.k`): each side's keys
+    as the probe applied them, a hard cast measured as its safe form. Keys the
+    conversion fails on stay eligible and unmatched, and are counted apart as
+    `measured.conversion_failed_rows` and `conversion_failed_keys`, so a failed
+    cast reads differently from a missing parent.
   - `status`: `satisfied`, `contradicted` (with the finding), `not_applicable`
     (an empty input or all-NULL keys: no coverage, which is not full coverage)
     or `unchecked`, with a `reason_code`: `non_equality_join`,
-    `key_and_filter_condition`, `ambiguous_using`, `unresolved_column`,
+    `unsupported_key_expression` (a key rewritten by a function other than a
+    cast, `lower`, `upper` or `trim`), `no_safe_cast_on_connector` (a cast key
+    on Postgres, which has no cast that returns NULL), `key_and_filter_condition`, `ambiguous_using`, `unresolved_column`,
     `set_operation_cte` (a column read through a UNION CTE, which is not a
     warehouse table), `filtered_cte`, `unparseable_sql`, `relation_not_found`,
     `probe_refused` or `scan_offered`.

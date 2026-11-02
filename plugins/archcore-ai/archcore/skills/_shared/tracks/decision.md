@@ -40,8 +40,10 @@ mechanics follow `skills/_shared/elicitation-contract.md`.
 - Global matches: when the duplicate check in `decision.classify` matches a
   global document (`source_kind: "global"`), the executing skill loads
   `skills/_shared/globals.md`, records the decision as a local document that
-  refines or overrides the global, and never modifies the global or targets it
-  with `add_relation`. This constraint binds every relation in this track.
+  refines or overrides the global. WHEN the user asks to record the decision in
+  the source itself, the track writes it there per that file's write
+  convention. A relation never joins a local and a global document; this
+  constraint binds every relation in this track.
   Absent any global match, the track proceeds as usual.
 - Cascade question: the source offered the cpat opt-in as a separate question;
   this track merges that offer into the `decision.cascade` gate's single

@@ -4,6 +4,14 @@ All notable changes to this skill are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions are semver and
 must match `metadata.version` in SKILL.md.
 
+## [1.2.3] - 2026-11-02
+
+### Added
+
+- A source for the merchant ID with no SKU: a seller profile's
+  `accountInfo.id` from the Kuudo Amazon Ads MCP, which worked as `sellerId`
+  in `listings_searchListingsItems` on 2026-11-02.
+
 ## [1.2.2] - 2026-10-28
 
 ### Added

@@ -4,6 +4,18 @@ All notable changes to this skill are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions are semver and
 must match `metadata.version` in SKILL.md.
 
+## [0.5.2] - 2026-11-02
+
+### Fixed
+
+- The profile list inside `list_identities` is not complete, so use
+  `ac_listProfiles`. With one identity, use it and say which. With several,
+  ask unless the user named one.
+- `ac_ListAdsAccounts` returns only accounts with marketplace entries, so
+  check `allv1_QueryAdvertiserAccount` before saying an account doesn't exist.
+- Several identities on one login are no longer called rare, and the
+  across-identities flow asks first because it changes the selection.
+
 ## [0.5.1] - 2026-10-28
 
 ### Added

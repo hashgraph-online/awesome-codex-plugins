@@ -15,10 +15,14 @@
 ```sh
 # Install in 1 line (Claude Code, Codex, OpenClaw + CLI on PATH)
 curl -fsSL https://raw.githubusercontent.com/Quinnod345/ponder/main/install.sh | sh
-# Or via Homebrew / Claude Code Marketplace / Agent Skills CLI / Gemini CLI:
+# Or via npm / Homebrew / Claude Code / Agent Skills / ClawHub / Tessl / LobeHub / Gemini CLI:
+#   npm install -g @quinnod345/ponder   # or: npx @quinnod345/ponder / npx ponder-cli
 #   brew install quinnod345/tap/ponder
 #   /plugin install ponder --marketplace Quinnod345/ponder
 #   npx skills add Quinnod345/ponder
+#   clawhub install ponder
+#   tessl install quinnod345/ponder
+#   npx @lobehub/market-cli skill install quinnod345-ponder
 #   gemini extensions install https://github.com/Quinnod345/ponder
 ```
 
@@ -26,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/Quinnod345/ponder/main/install.sh |
 <img src="docs/assets/terminal-demo.svg" alt="Ponder CLI terminal demo: coverage gate blocking an incomplete stop (exit 2), then converging with 0 deltas on Pass 4" width="100%" />
 </div>
 
-> **Verified in the wild on 1M+★ of production open-source repos ([`studies/ecosystem-audits/`](studies/ecosystem-audits/)):** [**MERGED** in `garrytan/gstack#3758`](https://github.com/garrytan/gstack/pull/3758) (`138.2k`★) · [**MERGED** in `addyosmani/agent-skills#766`](https://github.com/addyosmani/agent-skills/pull/766) (`111.7k`★) · [**MERGED** in `github/awesome-copilot#5999`](https://github.com/github/awesome-copilot/pull/5999) (`40.7k`★) · [**MERGED** in `EveryInc/compound-engineering-plugin#1919`](https://github.com/EveryInc/compound-engineering-plugin/pull/1919) (`25.8k`★) · [**MERGED** (`5/6 🦞 diamond lobster`) in `steipete/CodexBar#4830`](https://github.com/steipete/CodexBar/pull/4830) (`22.9k`★) · [**ADOPTED** in `JuliusBrussee/caveman#1395`](https://github.com/JuliusBrussee/caveman/pull/1431) (`116.1k`★) · [**`5/5` Greptile confidence** on `affaan-m/ECC#3822`](https://github.com/affaan-m/ECC/pull/3822) (`292.6k`★).
+> **Verified in the wild on 1M+★ of production open-source repos ([`studies/ecosystem-audits/`](studies/ecosystem-audits/)):** [**MERGED** in `garrytan/gstack#3758`](https://github.com/garrytan/gstack/pull/3758) (`138.2k`★) · [**MERGED** in `addyosmani/agent-skills#766`](https://github.com/addyosmani/agent-skills/pull/766) (`111.7k`★) · [**MERGED** in `sickn33/agentic-awesome-skills#2236`](https://github.com/sickn33/agentic-awesome-skills/pull/2236) (`49.0k`★) · [**MERGED** in `github/awesome-copilot#5999`](https://github.com/github/awesome-copilot/pull/5999) (`40.7k`★) · [**MERGED** in `VoltAgent/awesome-claude-code-subagents#336`](https://github.com/VoltAgent/awesome-claude-code-subagents/pull/336) (`26.3k`★) · [**MERGED** in `EveryInc/compound-engineering-plugin#1919`](https://github.com/EveryInc/compound-engineering-plugin/pull/1919) (`25.8k`★) · [**MERGED** (`5/6 🦞 diamond lobster`) in `steipete/CodexBar#4830`](https://github.com/steipete/CodexBar/pull/4830) (`22.9k`★) · [**ADOPTED** in `JuliusBrussee/caveman#1395`](https://github.com/JuliusBrussee/caveman/pull/1431) (`116.1k`★) · [**`5/5` Greptile confidence** on `affaan-m/ECC#3822`](https://github.com/affaan-m/ECC/pull/3822) (`292.6k`★).
 
 ---
 
@@ -67,14 +71,30 @@ One-line install (clones to `~/code/ponder` or `$PONDER_HOME` and symlinks into 
 curl -fsSL https://raw.githubusercontent.com/Quinnod345/ponder/main/install.sh | sh
 ```
 
-Or install directly as a Claude Code plugin or agent skill:
+Or install directly from any supported skill registry or package manager:
 
 ```sh
+# npm / npx (Node >= 18, zero runtime dependencies)
+npm install -g @quinnod345/ponder
+npx @quinnod345/ponder version      # or: npx ponder-cli version
+
+# Homebrew (macOS / Linux)
+brew install quinnod345/tap/ponder
+
 # Claude Code plugin marketplace (Claude Code 2.1.275+)
 /plugin install ponder --marketplace Quinnod345/ponder
 
-# Agent Skills CLI (Claude Code, Codex, Cursor, OpenClaw)
+# Vercel Agent Skills CLI (Claude Code, Codex, Cursor, OpenClaw)
 npx skills add Quinnod345/ponder
+
+# ClawHub (OpenClaw official registry)
+clawhub install ponder
+
+# Tessl Registry (100% Quality Score, Security: Passed)
+tessl install quinnod345/ponder
+
+# LobeHub Skills Marketplace
+npx @lobehub/market-cli skill install quinnod345-ponder
 ```
 
 Or drop it into GitHub Actions (`.github/workflows/ponder.yml`) to verify ledgers, seed PR diff inventories, and export SARIF 2.1.0 + PR review comments:

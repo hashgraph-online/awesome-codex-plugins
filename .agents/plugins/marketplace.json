@@ -2865,6 +2865,21 @@
       "icon": "./plugins/mustafaakmese/agentmart-plugins/assets/icon.svg"
     },
     {
+      "name": "ahel",
+      "displayName": "Ahel",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ahel-technologies/ahel"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remote MCP server for data tasks: company and people enrichment, SEO and SERP data, social media data and official EU business registers, each call priced before it runs and paid from a prepaid balance. Website: https://ahel.ai",
+      "icon": "./plugins/ahel-technologies/ahel/assets/ahel-icon.png"
+    },
+    {
       "name": "aident-loadout",
       "displayName": "Aident Loadout",
       "source": {
@@ -4306,6 +4321,21 @@
       "description": "Decentralized e-commerce skills — deploy self-hosted stores, import products from Shopify/Amazon, configure custom domains and Telegram bots, set up Tor privacy, and manage your store via MCP."
     },
     {
+      "name": "mobbin",
+      "displayName": "Mobbin",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mobbin/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search 600,000+ real iOS and web app screens, flows and website sections from Codex through the hosted Mobbin MCP server (OAuth; paid plans), with skills that redesign a screen from patterns real apps ship.",
+      "icon": "./plugins/mobbin/skills/assets/logo.svg"
+    },
+    {
       "name": "moltnode",
       "displayName": "MoltNode by Chord",
       "source": {
@@ -4831,6 +4861,21 @@
       "category": "Tools & Integrations",
       "description": "Send cold email from Codex: connect and warm up mailboxes, build and launch outbound sequences, and answer replies through the Sendsets MCP server.",
       "icon": "./plugins/AddisonHoff/sendsets/assets/logo.png"
+    },
+    {
+      "name": "seonix",
+      "displayName": "Seonix",
+      "source": {
+        "source": "local",
+        "path": "./plugins/seonix-ai/mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Connects Codex to your Seonix SEO project through the hosted Seonix MCP server with OAuth sign-in (Site Health and fix plan, Google Search Console, keyword clusters, draft scoring, eleven SEO playbooks) plus three skills that fix the site in code and ship content; writes run only after you confirm, and the server requires a paid Seonix plan.",
+      "icon": "./plugins/seonix-ai/mcp/assets/icon-128.png"
     },
     {
       "name": "serply",

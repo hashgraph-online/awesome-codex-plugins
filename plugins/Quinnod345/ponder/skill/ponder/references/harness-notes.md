@@ -128,6 +128,13 @@ codex-cli 0.147.0:
 `codex exec` starts a **fresh session**. It inherits none of your context, and it loads its own
 `AGENTS.md` chain from `-C`. Everything the batch needs goes in the prompt or in a file it can read.
 
+### Concatenating batch outputs safely
+
+Two failure modes bite when collecting JSONL from parallel batch agents:
+
+1. **Always call `process.stdin.setEncoding("utf8")` when wrapping JSONL into `findings.json`.** Without it, stdin chunks arrive as raw buffers and each buffer is stringified independently, so a multi-byte UTF-8 character straddling a 64 KB read boundary is corrupted into `U+FFFD` replacement characters with a clean exit code.
+2. **Stage batch files in `.ponder/tmp/batch/` and write the concatenated file to `.ponder/tmp/`.** Never run `cat .ponder/tmp/deltas-*.jsonl > .ponder/tmp/deltas-2.jsonl` in the same directory: on a retry, the glob matches its own output file `deltas-2.jsonl`, which either fills the disk in a self-reading loop (if batch 1 sorts before the target) or truncates the file before reading it. Always keep batch shards in `.ponder/tmp/batch/deltas-2-*.jsonl` and redirect to `.ponder/tmp/deltas-2.jsonl`.
+
 ## The session lock
 
 **The engine locks. Do not architect around a lost-update race - there isn't one.** Earlier revisions

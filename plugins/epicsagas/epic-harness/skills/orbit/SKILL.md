@@ -91,7 +91,7 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 **Use when**: Request is specific and actionable.
 
 1. Read the user's request + any existing docs (PRD, README, AGENTS.md)
-2. Generate spec directly at `$HARNESS_DIR/specs/SPEC-{timestamp}.md` with `status: approved`
+2. Generate spec directly at `$HARNESS_DIR/specs/SPEC-{timestamp}.md`, run the **Readiness gate** from `skills/spec/SKILL.md` (step 3) on it, settle every `GAP:` from the request and codebase yourself, record each as `GAP: … → settled: … (assumption)` under the spec's `## Readiness Gate`, then write `status: approved`. If a gap cannot be settled without the user, downgrade to `council` mode instead of guessing.
 3. Record via `epic mem add --title "Orbit: {mode} mode decision" --type decision --importance 0.9 --body "CONTEXT"`
 4. **Proceed immediately to Step 3** — no approval gate
 
@@ -102,7 +102,7 @@ Initialize pipeline state at `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json`:
 1. Gather the user's request from conversation context
 2. Launch 4 parallel sub-agents (Architect, Skeptic, Pragmatist, Critic) — each receives ONLY the request + codebase context, NOT the full conversation (anti-anchoring)
 3. Synthesize: list agreement/disagreement, produce recommended approach
-4. Generate spec at `$HARNESS_DIR/specs/SPEC-{timestamp}.md` with `status: approved`
+4. Generate spec at `$HARNESS_DIR/specs/SPEC-{timestamp}.md`, run the **Readiness gate** (spec skill step 3), settle every `GAP:` from the council output and record each under `## Readiness Gate`, then write `status: approved`
 5. Record via `epic mem add --title "Orbit: council decision" --type decision --importance 0.9 --body "CONTEXT"`
 6. **Proceed immediately to Step 3** — no approval gate, no "orbit go"
 

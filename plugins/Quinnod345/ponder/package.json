@@ -1,6 +1,6 @@
 {
   "name": "@quinnod345/ponder",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Convergent deliberation loop for coding agents - multi-pass, coverage-gated, append-only ledger review and planning.",
   "type": "module",
   "license": "MIT",
@@ -8,7 +8,7 @@
   "homepage": "https://github.com/Quinnod345/ponder#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Quinnod345/ponder.git"
+    "url": "git+https://github.com/Quinnod345/ponder.git"
   },
   "bugs": {
     "url": "https://github.com/Quinnod345/ponder/issues"
@@ -23,11 +23,15 @@
     "skill",
     "skills",
     "rules",
+    "hooks",
     "oca",
     ".claude-plugin",
     ".codex-plugin",
     ".cursor-plugin",
+    "claude-mod.json",
     "gemini-extension.json",
+    "action.yml",
+    "install.sh",
     "SPEC.md",
     "README.md",
     "LICENSE"

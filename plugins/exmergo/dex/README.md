@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/preview-dark.png" />
-  <img alt="Dex: analytics engineering for your coding agent. Explore, transform, maintain." src="assets/preview-light.png" />
+  <img alt="Dex: let your agent build your analytics. Explore, transform, maintain." src="assets/preview-light.png" />
 </picture>
 
 > *Most deadly errors arise from obsolete assumptions.*

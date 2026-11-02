@@ -16,48 +16,41 @@
 // the outbound proxy is taken from HTTPS_PROXY/HTTP_PROXY or the system proxy settings (Windows, macOS).
 // Output: responses streamed back to Codex; <data dir>/proxy/<date>.jsonl; <data dir>/state/requests/<thread>.json.
 
-import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+// v0.11: this file is the engine's entry (docs/v0.11/plan.md): the server, routing and the order of a request's steps.
+// The way to the services is core/engine/transport.ts; what is particular to Codex and to Claude Code is in
+// adapters/codex/engine.ts, adapters/claude/engine.ts and adapters/claude/panel-web.ts.
+
 import http, { type IncomingHttpHeaders } from "node:http";
-import net from "node:net";
-import { dirname, join } from "node:path";
+import type net from "node:net";
+import { mkdirSync, watch, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import type { Duplex } from "node:stream";
 import { setTimeout as sleep } from "node:timers/promises";
-import tls from "node:tls";
-import { fileURLToPath } from "node:url";
-import zlib from "node:zlib";
-import { childOf, recordChild } from "./children.ts";
-import { claudeHome, claudeImageData, claudeStartedAt, loadClaudeIndex, type ClaudeIndex } from "./claude-index.ts";
-import { addCompacted, findRequestImages, rewriteMessages, summaryAt, type RequestImage, type Resend } from "./claude-rewrite.ts";
-import { keepCacheRead, marksOutside, REMEMBERED, sentPrefixOf, type SentPrefix } from "./claude-cache.ts";
-import { chainOf, fitThinking, readThinkingRecord, recordSent, writeThinkingRecord, type ThinkingRecord } from "./claude-thinking.ts";
-import { codexHome } from "./codexconfig.ts";
-import { buildOf, DEFAULT_PORT, ENGINE_SERVICE, engineHealth, versionOf, watchForCodex } from "./engine.ts";
-import { findImages, type ImageRef } from "./images.ts";
-import { isEntryPoint } from "./entry.ts";
-import { currentLang } from "./language.ts";
-import { migrateDataOnce } from "./migrate-data.ts";
-import { say } from "./messages.ts";
-import { claudePanelLanguage } from "./panel-language.ts";
-import { applyClaudeSelection, claudeImageFor, loadClaudePanelState, type ClaudePanelOptions } from "./panel-state.ts";
-import { claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, pixelCacheDirOf, proxyLogDirOf, selectionDirOf } from "./paths.ts";
-import { recordRequest } from "./request-stats.ts";
-import { readRoute, registerRoute, routeBaseUrl, routingPort, validateBaseUrl, type Platform } from "./routes.ts";
-import { addCodexCompacted, rewriteItems, type Described } from "./rewrite.ts";
-import { connectDirectly, pluginGone, usesEngine } from "./setup.ts";
-import { claudeSelection, effectiveSelection, ensureAutoDefault, ensureStableIds, selectionDir, sideChatSelection, stableIdsSince } from "./selection.ts";
-import { awaitingLine, imageData, loadThreadIndex, pixelHashOf, pixelHashOfData, setPixelCache, sideChatOrigin, writesNotes, type ThreadIndex } from "./thread-index.ts";
+import { childOf, recordChild } from "./adapters/codex/children.ts";
+import { claudeHome, loadClaudeIndex } from "./adapters/claude/claude-index.ts";
+import { CLAUDE_HOST, claudeConversationRequest, claudeIdentity, claudeImageSizes, claudeNeedsRewrite, LATE_STEP_MS, LATE_WAIT_MS, rewriteClaudeBody, thinkingRejected, type ClaudeAttempt } from "./adapters/claude/engine.ts";
+import { claudePanelApi, claudePanelPage, PANEL_PAGE_CSP } from "./adapters/claude/panel-web.ts";
+import { codexHome } from "./adapters/codex/codexconfig.ts";
+import { CODEX_BASE, imageSizesOf, needsRewrite, OPENAI_API_HOST, requestIdentity, rewriteBody, UPSTREAM_HOST, type RequestIdentity } from "./adapters/codex/engine.ts";
+import { connectDirectly, keepRouted, pluginGone, usesEngine } from "./adapters/codex/setup.ts";
+import { setPixelCache } from "./core/pixels.ts";
+import { REMEMBERED, type SentPrefix } from "./adapters/protocols/anthropic-messages/cache.ts";
+import { readThinkingRecord, recordSent, writeThinkingRecord, type ThinkingRecord } from "./adapters/protocols/anthropic-messages/thinking.ts";
+import { connectUpstream, decodeBody, HOP_BY_HOP, log, outboundProxy, ownRequest, readSystemProxy, redactImages } from "./core/engine/transport.ts";
+import { isEntryPoint } from "./core/entry.ts";
+import { migrateDataOnce } from "./core/migrate-data.ts";
+import { claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "./core/paths.ts";
+import { recordRequest } from "./core/request-stats.ts";
+import { readRoute, registerRoute, routeBaseUrl, routingPort, validateBaseUrl, type Platform } from "./core/routes.ts";
+import { buildOf, DEFAULT_PORT, ENGINE_SERVICE, engineHealth, versionOf, watchForClients } from "./engine.ts";
+import { currentLang } from "./adapters/codex/language.ts";
+import { say } from "./core/messages.ts";
+import { headerOf } from "./core/platform.ts";
+import { formatOf, rewritePlatformRequest } from "./adapters/protocols/any.ts";
+import { corePlatformOf, isPlatform } from "./platforms.ts";
+import { ensureAutoDefault, ensureStableIds, selectionDir, stableIdsSince } from "./core/selection.ts";
 
 type Json = Record<string, any>;
-const here = dirname(fileURLToPath(import.meta.url));
-const UPSTREAM_HOST = "chatgpt.com";
-// v0.4: Claude Code's API host.
-export const CLAUDE_HOST = "api.anthropic.com";
-// Where Codex logged in with an API key sends its requests without the plugin (its base URL https://api.openai.com/v1).
-const OPENAI_API_HOST = "api.openai.com";
-const CODEX_BASE = "/backend-api/codex/";
-const HOP_BY_HOP = new Set(["connection", "keep-alive", "proxy-connection", "transfer-encoding", "te", "trailer", "upgrade", "host"]);
 
 // Codex logged in with an API key keeps the base URL the plugin set and sends its key (Bearer sk-…, no
 // chatgpt-account-id), which chatgpt.com does not take: those requests go to api.openai.com, /backend-api/codex/
@@ -92,117 +85,14 @@ export function routeOf(url: string, headers: IncomingHttpHeaders, root = dataDi
   return { host: UPSTREAM_HOST, url };
 }
 
-// Outbound proxy: environment first, then the system setting (Windows per-user, macOS); NO_PROXY is honoured for the
-// upstream host.
-export function outboundProxy(env = process.env, systemSetting = readSystemProxy, upstream = UPSTREAM_HOST): { host: string; port: number } | null {
-  const noProxy = (env.NO_PROXY ?? env.no_proxy ?? "").split(",").map((s) => s.trim().replace(/^\./, "")).filter(Boolean);
-  if (noProxy.some((entry) => entry === "*" || upstream === entry || upstream.endsWith(`.${entry}`))) return null;
-  const fromEnv = env.HTTPS_PROXY ?? env.https_proxy ?? env.HTTP_PROXY ?? env.http_proxy;
-  let value = fromEnv || systemSetting();
-  if (!value) return null;
-  // Windows may store per-protocol entries: "http=host:port;https=host:port".
-  if (value.includes("=")) value = /https=([^;]+)/.exec(value)?.[1] ?? /http=([^;]+)/.exec(value)?.[1] ?? "";
-  if (!value) return null;
-  const url = new URL(/^[a-z]+:\/\//i.test(value) ? value : `http://${value}`);
-  return { host: url.hostname, port: Number(url.port || 80) };
-}
-
-function readSystemProxy(): string | null {
-  try {
-    if (process.platform === "win32") {
-      const out = execFileSync("reg", ["query", "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings"], { encoding: "utf8" });
-      if (!/ProxyEnable\s+REG_DWORD\s+0x1/.test(out)) return null;
-      return /ProxyServer\s+REG_SZ\s+(\S+)/.exec(out)?.[1] ?? null;
-    }
-    if (process.platform === "darwin") return macProxy(execFileSync("scutil", ["--proxy"], { encoding: "utf8" }));
-  } catch { /* no setting readable: connect directly */ }
-  return null;
-}
-
-// v0.1: `scutil --proxy` lists the macOS system proxies as "Key : value" lines. Only HTTP(S) proxies are usable here
-// (the engine tunnels with CONNECT); PAC files and SOCKS are not read. Linux has no system setting beyond the
-// environment.
-export function macProxy(scutil: string): string | null {
-  const field = (key: string) => scutil.match(new RegExp(`^\\s*${key}\\s*:\\s*(\\S+)\\s*$`, "m"))?.[1] ?? null;
-  for (const scheme of ["HTTPS", "HTTP"]) {
-    const host = field(`${scheme}Proxy`);
-    if (field(`${scheme}Enable`) === "1" && host) return `${host}:${field(`${scheme}Port`) ?? "80"}`;
-  }
-  return null;
-}
-
-function connectUpstream(via: { host: string; port: number } | null, upstream = UPSTREAM_HOST, signal?: AbortSignal, port = 443, secure = true): Promise<net.Socket> {
-  const startTls = (socket?: net.Socket) => new Promise<net.Socket>((ok, fail) => {
-    if (!secure) {
-      if (socket) { ok(socket); return; }
-      const plain = net.connect({ host: upstream, port, signal }, () => ok(plain));
-      plain.once("error", fail);
-      return;
-    }
-    const cleanup = () => signal?.removeEventListener("abort", abort);
-    const connection = tls.connect({ socket, host: socket ? undefined : upstream, port, servername: net.isIP(upstream) ? undefined : upstream, ALPNProtocols: ["http/1.1"] }, () => { cleanup(); ok(connection); });
-    const abort = () => { cleanup(); connection.destroy(); socket?.destroy(); fail(new Error("upstream connection cancelled")); };
-    connection.once("error", (error) => { cleanup(); fail(error); });
-    signal?.addEventListener("abort", abort, { once: true });
-    if (signal?.aborted) abort();
-  });
-  if (!via) return startTls();
-  return new Promise((ok, fail) => {
-    const authority = `${upstream.includes(":") ? `[${upstream}]` : upstream}:${port}`;
-    const socket = net.connect({ port: via.port, host: via.host, signal }, () => socket.write(`CONNECT ${authority} HTTP/1.1\r\nHost: ${authority}\r\n\r\n`));
-    let buffered = Buffer.alloc(0);
-    const onData = (chunk: Buffer) => {
-      buffered = Buffer.concat([buffered, chunk]);
-      const end = buffered.indexOf("\r\n\r\n");
-      if (end < 0) return;
-      socket.off("data", onData);
-      const status = buffered.toString("latin1", 0, end).split(" ")[1];
-      if (status !== "200") { socket.destroy(); fail(new Error(`outbound proxy refused CONNECT (${status})`)); return; }
-      startTls(socket).then(ok, fail);
-    };
-    socket.on("data", onData);
-    socket.once("error", fail);
-  });
-}
-
+// v0.11: a platform other than Codex and Claude Code keeps every header but the engine's own (x-cam-).
 export function forwardHeaders(headers: IncomingHttpHeaders, upstream = UPSTREAM_HOST, platform?: Platform): Record<string, string | string[]> {
   const out: Record<string, string | string[]> = {};
   const client = platform ?? (upstream === CLAUDE_HOST ? "claude" : "codex");
-  const removed = new Set(client === "claude" ? ["chatgpt-account-id"] : ["anthropic-beta", "anthropic-version", "x-claude-code-session-id", "x-claude-code-agent-id", ...(!platform ? ["x-api-key"] : [])]);
+  const removed = new Set(client === "claude" ? ["chatgpt-account-id"] : client === "codex" ? ["anthropic-beta", "anthropic-version", "x-claude-code-session-id", "x-claude-code-agent-id", ...(!platform ? ["x-api-key"] : [])] : []);
   for (const [name, value] of Object.entries(headers)) if (value !== undefined && !HOP_BY_HOP.has(name) && !removed.has(name) && !name.startsWith("x-cam-")) out[name] = value;
   out.host = upstream;
   return out;
-}
-
-// Which task a request belongs to, from Codex's own turn metadata header.
-// v0.7: and where that task came from: a side chat (a fork Codex keeps in memory only) names the task it was forked
-// from, a subagent its parent (also in Codex's own header).
-export type RequestIdentity = { threadId: string | null; turnId: string | null; windowId: string | null; forkedFrom: string | null; parentThreadId: string | null; subagentKind: string | null; turnTrigger: string | null };
-export function requestIdentity(headers: IncomingHttpHeaders): RequestIdentity {
-  let meta: Json = {};
-  try { meta = JSON.parse(String(headers["x-codex-turn-metadata"] ?? "{}")); } catch { /* not JSON */ }
-  const header = (name: string) => { const value = headers[name]; return (Array.isArray(value) ? value[0] : value) || null; };
-  return {
-    threadId: meta.thread_id ?? meta.session_id ?? null, turnId: meta.turn_id ?? null, windowId: header("x-codex-window-id"),
-    forkedFrom: meta.forked_from_thread_id ?? null, parentThreadId: meta.parent_thread_id ?? header("x-codex-parent-thread-id"), subagentKind: meta.subagent_kind ?? null,
-    turnTrigger: meta.turn_trigger ?? null,
-  };
-}
-
-// v0.4: which Claude Code session a request belongs to, and whether a subagent's loop sent it (its own conversation).
-export function claudeIdentity(headers: IncomingHttpHeaders): { sessionId: string | null; agentId: string | null } {
-  const one = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) || null;
-  return { sessionId: one(headers["x-claude-code-session-id"]), agentId: one(headers["x-claude-code-agent-id"]) };
-}
-
-function decodeBody(body: Buffer, encoding: string | undefined): Buffer | null {
-  try {
-    if (!encoding || encoding === "identity") return body;
-    if (encoding === "zstd") return zlib.zstdDecompressSync(body);
-    if (encoding === "gzip") return zlib.gunzipSync(body);
-    if (encoding === "br") return zlib.brotliDecompressSync(body);
-  } catch { /* fall through */ }
-  return null;
 }
 
 // Metadata only: counts and sizes, never text or image content.
@@ -245,364 +135,6 @@ export function describeBody(path: string, json: Json): Json {
   return { kind: "other" };
 }
 
-// v0.4: the requests the panel's "last request" line is about: the session's conversation as the model works on it,
-// Claude Code's main loop, which always carries its tools. Claude Desktop also sends side requests in the session (a
-// status summary while the user is away, auto mode's safety check): no tools and none of the conversation's images.
-// They are rewritten like the rest; only the line leaves them out (2026-10-10: it said "nothing replaced" after a turn
-// whose four images had all been left out).
-export const claudeConversationRequest = (details: Json): boolean => details.kind === "messages" && details.tools > 0;
-
-function log(entry: Json): void {
-  const dir = proxyLogDirOf();
-  mkdirSync(dir, { recursive: true });
-  appendFileSync(join(dir, `${new Date().toISOString().slice(0, 10)}.jsonl`), `${JSON.stringify(entry)}\n`);
-}
-
-// The images a request carried and the base64 characters each took, under the same keys as the thread index.
-export function imageSizesOf(input: Json[]): Record<string, number> {
-  return Object.fromEntries(findImages(input).map((ref) => [ref.key, ref.base64Chars]));
-}
-
-// P2-1 debugging aid for synthetic test threads only: the request with every inline image reduced to its hash and size.
-export function redactImages(value: unknown, key = ""): unknown {
-  if (typeof value === "string") {
-    const inline = /^data:([^;,]+);base64,/.exec(value);
-    // v0.4: an Anthropic image block keeps its base64 in source.data; a thinking block's signature is opaque too.
-    const raw = inline ? value.slice(inline[0].length) : (key === "result" || key === "data" || key === "signature") && value.length > 256 ? value : null;
-    if (raw === null) return value;
-    const digest = createHash("sha256").update(raw).digest("hex").slice(0, 16);
-    return `${inline ? `data:${inline[1]};base64,` : ""}<sha256:${digest} chars:${raw.length}>`;
-  }
-  if (Array.isArray(value)) return value.map((item) => redactImages(item));
-  if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([name, child]) => [name, redactImages(child, name)]));
-  return value;
-}
-
-function encodeBody(body: Buffer, encoding: string | undefined): Buffer {
-  if (encoding === "zstd") return zlib.zstdCompressSync(body);
-  if (encoding === "gzip") return zlib.gzipSync(body);
-  if (encoding === "br") return zlib.brotliCompressSync(body);
-  return body;
-}
-
-// Number tokens outside strings that JavaScript cannot represent exactly.
-export function hasUnsafeInteger(json: string): boolean {
-  for (const match of json.matchAll(/"(?:[^"\\]|\\.)*"|(?<![\d.eE+-])(-?\d+)(?![.\deE])/g)) {
-    if (match[1] && !Number.isSafeInteger(Number(match[1]))) return true;
-  }
-  return false;
-}
-
-export function hasUnchecked(threadId: string | null, dir = selectionDir, sessionsDir = join(codexHome(), "sessions")): boolean {
-  if (!threadId) return false;
-  try { return Object.keys(effectiveSelection(threadId, sessionsDir, dir).unchecked).length > 0; } catch { return false; }
-}
-
-// Whether a thread's requests go through the rewrite (and so over HTTP): something unchecked, or automatic selection
-// used at some point (v0.3), since from then on the history may hold copies the model fetched, left out of later turns.
-// v0.7: a side chat's, always (v0.8: the switch for subagents and side chats is gone).
-export function needsRewrite(threadId: string | null, dir = selectionDir, sessionsDir = join(codexHome(), "sessions"), forkedFrom: string | null = null): boolean {
-  if (!threadId) return false;
-  try {
-    if (sideChatOrigin(threadId, forkedFrom, sessionsDir)) return true;
-    const selection = effectiveSelection(threadId, sessionsDir, dir);
-    return Object.keys(selection.unchecked).length > 0 || !!selection.autoSince;
-  } catch { return false; }
-}
-
-// The turn a request belongs to, as numbered in the index; a turn not written to the rollout yet comes after the last.
-// Without a turn id the last one counts as current, so its images are sent rather than left out.
-export function currentTurnOf(index: ThreadIndex, turnId: string | null): number {
-  if (!turnId) return index.turns;
-  return index.turnNumbers.get(turnId) ?? index.turns + 1;
-}
-
-// P2: replace the thread's unchecked images with placeholders. Whenever the body cannot be handled safely it is
-// forwarded unchanged and the reason is logged; the report never contains conversation content.
-// v0.3: with automatic selection on, the images of earlier turns that are not pinned instead; in either mode, copies
-// the model fetched in an earlier turn.
-// v0.7: a side chat's request carries the history of the task it came from: that task's index, with every one of its
-// turns counting as earlier (sideChatSelection).
-export function rewriteBody(original: Buffer, encoding: string | undefined, threadId: string, sessionsDir: string, dir = selectionDir, turnId: string | null = null, forkedFrom: string | null = null): { body: Buffer; report: Json } {
-  const origin = sideChatOrigin(threadId, forkedFrom, sessionsDir);
-  const side = origin ? sideChatSelection(origin, sessionsDir, dir) : null;
-  const decoded = decodeBody(original, encoding);
-  if (!decoded) return { body: original, report: { skipped: "undecodable body" } };
-  const text = decoded.toString("utf8");
-  let json: Json;
-  try { json = JSON.parse(text); } catch { return { body: original, report: { skipped: "unparsable body" } }; }
-  if (!Array.isArray(json.input)) return { body: original, report: { skipped: "no input array" } };
-  if (hasUnsafeInteger(text)) return { body: original, report: { skipped: "integer beyond 2^53 would change when re-serialized" } };
-  let index: ThreadIndex;
-  try { index = loadThreadIndex(sessionsDir, origin ?? threadId); } catch (error) { return { body: original, report: { skipped: `thread index: ${String(error)}` } }; }
-  const selection = side ?? effectiveSelection(threadId, sessionsDir, dir);
-  // v0.10: images sent once more for their feature line (awaitingLine), marked in their labels.
-  const awaiting = new Set<string>();
-  const describe = (ref: ImageRef): Described | undefined => {
-    const known = index.byKey.get(ref.key);
-    // v0.8: with what the model noted about it, for its placeholder.
-    const notes = known ? index.notes.get(known.id) : undefined;
-    if (known) return { ...known, ...(notes ? { notes } : {}), ...(awaiting.has(known.key) ? { awaiting: true } : {}) };
-    const stored = selection.unchecked[ref.key];
-    return stored ? { id: stored.id, name: ref.name, label: ref.label, kind: ref.kind, turn: null, width: ref.width, height: ref.height } : undefined;
-  };
-  const pixels = (ref: ImageRef) => index.byKey.get(ref.key)?.pixelSha256 ?? pixelHashOf(json.input, ref);
-  const current = side ? index.turns + 1 : currentTurnOf(index, turnId);
-  const copies = new Map([...index.copies.values()].filter((copy) => copy.turn === null || copy.turn < current).map((copy) => [copy.key, copy.of]));
-  let leaveOut = new Set(Object.keys(selection.unchecked));
-  // v0.8: feature lines in a task's own requests, not a side chat's or a subagent's.
-  const features = !origin && writesNotes(sessionsDir, threadId);
-  if (selection.auto) {
-    const pinned = selection.pinned ?? {};
-    for (const image of index.images) if (features && awaitingLine(index, image, current)) awaiting.add(image.key);
-    leaveOut = new Set(index.images.filter((image) => image.replaceable && image.turn !== null && image.turn < current && !pinned[image.key] && !awaiting.has(image.key)).map((image) => image.key));
-  }
-  const rewritten = rewriteItems(json.input, describe, leaveOut, pixels, { lang: currentLang(), copies, features, ...(selection.auto ? { auto: { currentTurn: current } } : {}) });
-  const { report } = rewritten;
-  let items = rewritten.items;
-  // v0.10: after Codex compacted the task, the images its compaction did not keep (thread-index.ts), right after its
-  // compaction item: pinned ones (in manual mode, checked ones) as originals, the others one line each.
-  let compacted: Json | null = null;
-  const dropped = features ? index.images.filter((image) => image.compacted) : [];
-  if (dropped.length) {
-    const inRequest = new Set(findImages(json.input).map((ref) => ref.key));
-    const listed = dropped.filter((image) => !inRequest.has(image.key) && !copies.has(image.key)).map((image) => describe(image)!).filter(Boolean);
-    const resend = dropped.filter((image) => !inRequest.has(image.key) && !leaveOut.has(image.key) && !copies.has(image.key)).flatMap((image) => {
-      const data = index.items ? imageData(index.items, image) : null;
-      return data ? [{ image: describe(image)!, url: `data:${image.mime ?? "image/png"};base64,${data}` }] : [];
-    });
-    const added = addCodexCompacted(items, listed, resend, { lang: currentLang(), auto: !!selection.auto });
-    if (added.at !== null) {
-      items = added.items;
-      compacted = { at: added.at, listed: listed.length, resent: resend.map(({ image }) => image.id) };
-    }
-  }
-  const summary: Json = {
-    images: report.images,
-    replaced: report.replaced.map(({ key: _key, ...rest }) => rest),
-    locked: report.locked,
-    sentImageHashes: report.sentContentIds.map((id) => id.slice(0, 16)),
-    ...(selection.auto ? { auto: true } : {}),
-    ...(report.copies.length ? { copies: report.copies } : {}),
-    ...(origin ? { sideChatOf: origin } : {}),
-    ...(report.featureAt !== undefined ? { featureAt: report.featureAt, labeled: report.labeled ?? 0 } : {}),
-    ...(report.unknown ? { unknown: report.unknown } : {}),
-    ...(compacted ? { compacted } : {}),
-  };
-  if (!report.replaced.length && !report.copies.length && report.featureAt === undefined && !compacted) return { body: original, report: summary };
-  json.input = items;
-  const next = Buffer.from(JSON.stringify(json), "utf8");
-  const body = encodeBody(next, encoding);
-  return { body, report: { ...summary, decodedBefore: decoded.length, decodedAfter: next.length, encodedBefore: original.length, encodedAfter: body.length } };
-}
-
-// v0.4: a Claude Code session's requests are rewritten once something is unchecked there, or automatic selection was
-// used (copies the model fetched may be in its history from then on). v0.5: or once it was compacted with images
-// before the compaction, which the user may keep sending. v0.8: or once it has any image, for the feature line note
-// and the ids (Claude Code sends the whole history every time, so this costs no upload; docs/v0.8/plan.md).
-export function claudeNeedsRewrite(sessionId: string | null, dir = claudeSelectionDirOf(), home = claudeHome()): boolean {
-  if (!sessionId) return false;
-  let index: ClaudeIndex | null = null;
-  try { index = loadClaudeIndex(sessionId, home, stableIdsSince(dir)); } catch { /* the selection still decides */ }
-  try {
-    const selection = claudeSelection(sessionId, dir, index ? claudeStartedAt(index) : null, index?.previous ?? []);
-    if (Object.keys(selection.unchecked).length > 0 || selection.autoSince) return true;
-  } catch { /* the transcript still decides */ }
-  return !!index?.images.length;
-}
-
-// The images a Claude Code request carried, by index key, with the base64 characters each took (the panel's
-// baseline); images not in the transcript yet are left out.
-export function claudeImageSizes(messages: Json[], index: ClaudeIndex): Record<string, number> {
-  return Object.fromEntries(findRequestImages(messages, index).filter((ref) => ref.key).map((ref) => [ref.key!, ref.base64Chars]));
-}
-
-// Anthropic refuses a request whose earlier content changed under the thinking that followed it (accounts created from
-// 2026-08-31, or a request that asks for it): docs/v0.4/plan.md §2.2. The engine then sends the original instead.
-export function thinkingRejected(status: number, body: string): boolean {
-  return status === 400 && /thinking/i.test(body) && /signature|bound to a different conversation|prefix/i.test(body);
-}
-
-// v0.4: what to send for a Claude Code request, each next one when Anthropic refuses the thinking after the changed
-// history (thinkingRejected): the rewrite with all its thinking (an account that lets it through); the rewrite without
-// the thinking that no longer fits (claude-thinking.ts), first once the account is known to refuse it; the rewrite
-// without any thinking, always accepted; the original as Claude Code built it. history/sent: the chains to remember
-// once the attempt goes through (null: not the session's conversation); made: the histories its thinking was made
-// after; sure: the record says all its thinking fits, so a refusal means the record misses what went out.
-// prefix: where its cache marks are, to remember once it is sent (claude-cache.ts).
-export type ClaudeAttempt = { body: Buffer; report: Json; history: string | null; sent: string | null; made: string[]; sure: boolean; prefix?: SentPrefix };
-// v0.10: how long a request waits for its newest images to reach the transcript (a long-task eval caught 3 of a turn's
-// images going out without ids, the transcript written a moment after the request; the user's logs had 119 such of
-// 8904 requests). A request whose images never reach it waits the whole time once.
-const LATE_WAIT_MS = 1500;
-const LATE_STEP_MS = 100;
-
-// v0.4: the same rules as rewriteBody, for a Claude Code request (Anthropic Messages, claude-rewrite.ts). The current
-// turn is the transcript's latest prompt: Claude Code writes it before it sends the request.
-// CAM_EXPERIMENT_BLOCK_BINDING (experiments only, docs/v0.4/tasks.md T04-01): asks Anthropic to check thinking with
-// that prefix_mismatch_behavior, as for an account created from 2026-08-31; the report names the beta header to add.
-export function rewriteClaudeBody(original: Buffer, encoding: string | undefined, sessionId: string, dir = claudeSelectionDirOf(), home = claudeHome(), env = process.env, thinking: ThinkingRecord | null = null, previous: SentPrefix[] = []): { body: Buffer; report: Json; attempts: ClaudeAttempt[]; prefix?: SentPrefix } {
-  const asIs = (report: Json) => ({ body: original, report, attempts: [] });
-  const decoded = decodeBody(original, encoding);
-  if (!decoded) return asIs({ skipped: "undecodable body" });
-  const text = decoded.toString("utf8");
-  let json: Json;
-  try { json = JSON.parse(text); } catch { return asIs({ skipped: "unparsable body" }); }
-  if (!Array.isArray(json.messages)) return asIs({ skipped: "no messages array" });
-  if (hasUnsafeInteger(text)) return asIs({ skipped: "integer beyond 2^53 would change when re-serialized" });
-  let index: ClaudeIndex;
-  try { index = loadClaudeIndex(sessionId, home, stableIdsSince(dir)); } catch (error) { return asIs({ skipped: `thread index: ${String(error)}` }); }
-  const selection = claudeSelection(sessionId, dir, claudeStartedAt(index), index.previous);
-  const current = index.turns;
-  const copies = new Map([...index.copies.values()].filter((copy) => copy.turn === null || copy.turn < current).map((copy) => [copy.key, copy.of]));
-  let leaveOut = new Set(Object.keys(selection.unchecked));
-  // v0.10: images of an interrupted turn without a feature line yet are sent once more (awaitingLine).
-  const awaiting = new Set(selection.auto ? index.images.filter((image) => awaitingLine(index, image, current)).map((image) => image.key) : []);
-  if (selection.auto) {
-    const pinned = selection.pinned ?? {};
-    leaveOut = new Set(index.images.filter((image) => image.replaceable && image.turn !== null && image.turn < current && !pinned[image.key] && !awaiting.has(image.key)).map((image) => image.key));
-  }
-  const pixels = (ref: RequestImage) => (ref.key ? index.byKey.get(ref.key)?.pixelSha256 : undefined) ?? pixelHashOfData(ref, ref.block.source.data);
-  const lang = currentLang();
-  // v0.5: after a compaction, the images from before it go back right after the summary (claude-rewrite.ts): the ones
-  // the user keeps sending (checked, or pinned with automatic selection) read from the transcript, the others as
-  // placeholders. With any of those, the full note follows the summary, and later messages get only their short notes.
-  // v0.8: each with what the model noted about it, for its placeholder.
-  const compactedImages = index.images.filter((image) => image.compacted).map((image) => {
-    // v0.10: as they stood at the compaction, so the list stays the same until the next one (claude-index.ts).
-    const notes = index.compactedNotes.get(image.id);
-    return notes ? { ...image, notes } : image;
-  });
-  const summaryIn = index.summary && compactedImages.length ? summaryAt(json.messages, index.summary) : null;
-  const resend: Resend[] = summaryIn === null ? [] : compactedImages.filter((image) => !leaveOut.has(image.key)).flatMap((image) => {
-    const data = claudeImageData(index, image);
-    return data && image.mime ? [{ image, block: { type: "image", source: { type: "base64", media_type: image.mime, data } } }] : [];
-  });
-  const compactedOut = summaryIn !== null && resend.length < compactedImages.length;
-  // v0.8: feature lines in every main conversation (a subagent's requests do not come here).
-  const rewrote = rewriteMessages(json.messages, index, leaveOut, pixels, { lang, copies, noted: compactedOut, features: true, awaiting, ...(selection.auto ? { auto: { currentTurn: current } } : {}) });
-  const report = rewrote.report;
-  let messages = rewrote.messages;
-  let compacted: Json | null = null;
-  if (summaryIn !== null) {
-    const added = addCompacted(messages, index.summary!, compactedImages, resend, { lang, auto: !!selection.auto });
-    if (added.at !== null) {
-      messages = added.messages;
-      // The note's place: after the summary when it holds placeholders; a later one moves down with a message added.
-      if (compactedOut) report.noteAt = added.at + 1;
-      else if (added.inserted && report.noteAt !== undefined && report.noteAt > added.at) report.noteAt += 1;
-      if (added.inserted && report.featureAt !== undefined && report.featureAt > added.at) report.featureAt += 1;
-      compacted = { at: added.at, listed: compactedImages.length, resent: resend.map(({ image }) => image.id) };
-    }
-  }
-  const summary: Json = {
-    images: report.images,
-    replaced: report.replaced.map(({ key: _key, ...rest }) => rest),
-    locked: report.locked,
-    sentImageHashes: report.sentContentIds.map((id) => id.slice(0, 16)),
-    thinkingBlocks: json.messages.reduce((sum: number, message: Json) => sum + (Array.isArray(message?.content) ? message.content.filter((block: Json) => block?.type === "thinking" || block?.type === "redacted_thinking").length : 0), 0),
-    ...(report.noteAt !== undefined ? { noteAt: report.noteAt } : {}),
-    ...(selection.auto ? { auto: true } : {}),
-    ...(report.copies.length ? { copies: report.copies } : {}),
-    ...(compacted ? { compacted } : {}),
-    ...(report.featureAt !== undefined ? { featureAt: report.featureAt, labeled: report.labeled ?? 0 } : {}),
-    ...(report.unknown ? { unknown: report.unknown } : {}),
-    ...(report.late ? { late: report.late } : {}),
-  };
-  const changed = report.replaced.length > 0 || report.copies.length > 0 || compacted !== null || report.featureAt !== undefined;
-  // Once the engine has sent the session a changed history, thinking made after it may be in every later request, even
-  // with nothing left out now (an image checked again).
-  // Side requests (no tools: the desktop's status summary, auto mode's check) are not the conversation.
-  const conversation = Array.isArray(json.tools) && json.tools.length > 0;
-  if (!changed && !thinking?.edited) return { body: original, report: summary, attempts: [], ...(conversation ? { prefix: sentPrefixOf(json.messages) } : {}) };
-  const rewritten = changed ? messages : json.messages;
-  const fit = thinking ? fitThinking(json.messages, rewritten, thinking) : null;
-  const history = fit && conversation ? fit.history : null;
-  const experiment = env.CAM_EXPERIMENT_BLOCK_BINDING?.trim();
-  // v0.10: the cache marks placed so this request reads what the ones before wrote, and the next one can read this
-  // one after the images still sent as originals are left out (claude-cache.ts): with automatic selection, the first
-  // such image that is not pinned.
-  const pinnedNow = selection.pinned ?? {};
-  const volatileIn = (list: Json[]) => {
-    const ref = selection.auto ? findRequestImages(list, index).find((found) => !(found.key && pinnedNow[found.key])) : undefined;
-    return ref ? { message: ref.msg, block: ref.part } : null;
-  };
-  const encode = (list: Json[], extra: Json) => {
-    const placed = conversation ? keepCacheRead(list, previous, marksOutside(json), volatileIn(list)) : { messages: list, marks: null };
-    const out: Json = { ...json, messages: placed.messages };
-    const asked = experiment && json.thinking && typeof json.thinking === "object";
-    if (asked) out.thinking = { ...json.thinking, block_binding: { prefix_mismatch_behavior: experiment } };
-    const next = Buffer.from(JSON.stringify(out), "utf8");
-    const body = encodeBody(next, encoding);
-    return { body, report: { ...summary, ...extra, ...(placed.marks ? { cacheMarks: placed.marks } : {}), ...(asked ? { experiment: { blockBinding: experiment, beta: "thinking-binding-controls-2026-08-01" } } : {}), decodedBefore: decoded.length, decodedAfter: next.length, encodedBefore: original.length, encodedAfter: body.length }, ...(conversation ? { prefix: sentPrefixOf(placed.messages) } : {}) };
-  };
-  const attempts: ClaudeAttempt[] = [];
-  const made = fit?.made ?? [];
-  const add = (list: Json[], extra: Json, sent: string, sure: boolean) => attempts.push({ ...encode(list, extra), history, sent: history ? sent : null, made, sure });
-  const asBuilt = (extra: Json, sure: boolean) => attempts.push({ body: original, report: { ...summary, ...extra }, history, sent: history, made, sure, ...(conversation ? { prefix: sentPrefixOf(json.messages) } : {}) });
-  if (!thinking?.strict) {
-    if (changed) add(rewritten, {}, chainOf(rewritten), fit?.left === 0);
-    else asBuilt({}, fit!.left === 0);
-  }
-  if (fit && (thinking!.strict || fit.left)) add(fit.messages, { thinking: { kept: fit.kept, left: fit.left }, ...(thinking!.strict ? {} : { retry: "thinking-signature" }) }, fit.sent, true);
-  if (fit?.kept) {
-    const bare = fitThinking(json.messages, rewritten, thinking!, false);
-    add(bare.messages, { thinking: { kept: 0, left: bare.left }, retry: "thinking-signature" }, bare.sent, false);
-  }
-  if (changed || thinking?.strict) asBuilt(changed ? { fallback: "thinking-signature" } : {}, false);
-  return { body: attempts[0].body, report: attempts[0].report, attempts };
-}
-
-// v0.4: a Claude Code session's panel reads and changes its images here: the panel page the engine serves
-// (/__cam/panel, panel.html with panel-web.js) and the Claude plugin's mod. The Codex panel goes through the plugin's
-// MCP server; under Claude Code that is not open to a panel (a mod reaches it only through Claude Code's tool
-// permissions, a prompt for every call, and Claude Code registers no app-only tool), so the engine, the one local HTTP
-// service, serves the panel. Loopback only, like everything the engine serves; only a request naming the engine by a
-// loopback name (no other site rebinding its name to 127.0.0.1), carrying our header, and coming from no other site's
-// page (a browser's Origin, when sent, is the engine's own).
-const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const LOOPBACK_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
-export function ownRequest(headers: IncomingHttpHeaders): boolean {
-  const host = String(headers.host ?? "");
-  if (!LOOPBACK_HOST.test(host)) return false;
-  return headers.origin === undefined || headers.origin === `http://${host}`;
-}
-
-// The panel page for a Claude Code session: the same panel.html as in Codex, with panel-web.js before its own script.
-export function claudePanelPage(dir = here): string {
-  const page = readFileSync(join(dir, "panel.html"), "utf8");
-  const bridge = readFileSync(join(dir, "panel-web.js"), "utf8");
-  const at = page.indexOf("<script>");
-  if (at < 0) throw new Error("panel.html has no script");
-  return `${page.slice(0, at)}<script>\n${bridge}\n</script>\n${page.slice(at)}`;
-}
-export const PANEL_PAGE_CSP = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-
-export function claudePanelApi(method: string, url: string, headers: IncomingHttpHeaders, body: string | null, options: ClaudePanelOptions & { panelLocaleFiles?: readonly string[] } = {}): { status: number; body: Json } {
-  if (!ownRequest(headers) || headers["x-cam-panel"] !== "1") return { status: 403, body: { error: "forbidden" } };
-  const parsed = new URL(url, "http://localhost");
-  const session = parsed.searchParams.get("session") ?? "";
-  if (!SESSION_ID.test(session)) return { status: 400, body: { error: "no session" } };
-  const lang = claudePanelLanguage({ settingsFiles: options.panelLocaleFiles });
-  try {
-    if (method === "GET" && parsed.pathname === "/__cam/claude/panel") return { status: 200, body: { ...loadClaudePanelState(session, options), lang } };
-    if (method === "GET" && parsed.pathname === "/__cam/claude/image") {
-      const max = Number(parsed.searchParams.get("max") ?? 160);
-      return { status: 200, body: claudeImageFor(session, String(parsed.searchParams.get("id") ?? ""), Number.isFinite(max) && max > 0 ? max : 160, options) };
-    }
-    if (method === "POST" && parsed.pathname === "/__cam/claude/select") {
-      if (body === null) return { status: 413, body: { error: "too large" } };
-      const change = JSON.parse(body || "{}");
-      const list = (value: unknown) => (Array.isArray(value) ? value.map(String) : undefined);
-      const state = applyClaudeSelection(session, { uncheck: list(change.uncheck), check: list(change.check), checkAll: change.checkAll === true, auto: typeof change.auto === "boolean" ? change.auto : undefined, mode: change.mode === "auto" ? "auto" : "manual" }, options);
-      return { status: 200, body: { ...state, lang } };
-    }
-    return { status: 404, body: { error: "not found" } };
-  } catch (error) {
-    return { status: 400, body: { error: error instanceof Error ? error.message : String(error) } };
-  }
-}
-
 async function main(): Promise<void> {
   migrateDataOnce(); // v0.1-15: Windows moved the data folder
   // v0.6: tasks and sessions started from now on have automatic selection on by default (selection.ts).
@@ -624,7 +156,7 @@ async function main(): Promise<void> {
   const dumpDir = process.argv.includes("--dump-requests") ? join(dataDir(), "p2", "requests") : null;
   const sessionsDir = join(codexHome(), "sessions");
   setPixelCache(pixelCacheDirOf());
-  const via = outboundProxy();
+  const via = outboundProxy(process.env, readSystemProxy, UPSTREAM_HOST);
   // v0.4: NO_PROXY may name one upstream host and not the other.
   const vias = new Map([CLAUDE_HOST, OPENAI_API_HOST].map((host) => [host, outboundProxy(process.env, readSystemProxy, host)]));
   const viaOf = (upstream: string) => {
@@ -632,6 +164,9 @@ async function main(): Promise<void> {
     return vias.get(upstream)!;
   };
   const startedAt = new Date().toISOString();
+  // v0.11: when a plugin service last checked in (engine.ts, watchForClients); a platform other than Codex and Claude
+  // Code keeps the engine this way.
+  let lastClient = 0;
   // v0.1-3: which code this engine runs, so the plugin can tell when an update needs a new engine.
   const build = buildOf();
   const version = versionOf();
@@ -644,7 +179,7 @@ async function main(): Promise<void> {
     } catch { /* only the panel's list misses it */ }
   };
   // v0.4: per Claude Code session, whether its account refuses thinking after a changed history and what was sent
-  // (claude-thinking.ts); the latest sessions stay in memory.
+  // (anthropic-messages/thinking.ts); the latest sessions stay in memory.
   const thinkingRecords = new Map<string, ThinkingRecord>();
   const thinkingOf = (sessionId: string): ThinkingRecord => {
     const record = thinkingRecords.get(sessionId) ?? readThinkingRecord(sessionId);
@@ -654,7 +189,7 @@ async function main(): Promise<void> {
     return record;
   };
   // v0.10: per session, where the conversation requests sent last had their cache marks, newest first
-  // (claude-cache.ts); memory only.
+  // (anthropic-messages/cache.ts); memory only.
   const sentPrefixes = new Map<string, SentPrefix[]>();
   const rememberPrefix = (sessionId: string, prefix: SentPrefix) => {
     const kept = [prefix, ...(sentPrefixes.get(sessionId) ?? [])].slice(0, REMEMBERED);
@@ -680,12 +215,32 @@ async function main(): Promise<void> {
         log({ at: new Date().toISOString(), event: "plugin-check-failed", pid: process.pid, error: String(error) });
       }
     };
-    setInterval(() => checkPlugin(false), 15_000).unref();
-    watchForCodex(() => {
+    // v0.11: a provider switcher (cc-switch) wrote its provider over the engine's address: Codex is pointed at the engine
+    // again, with a route to the provider the user picked (adapters/codex/setup.ts, keepRouted). Checked as soon as
+    // config.toml changes, at start, and with the plugin check.
+    const rerouted: number[] = [];
+    let lastRerouteError = "";
+    const reroute = (why: string) => {
+      const result = keepRouted(port, rerouted);
+      if (result.rerouted) log({ at: new Date().toISOString(), event: "codex-reroute", pid: process.pid, why });
+      if (result.error && result.error !== lastRerouteError) log({ at: new Date().toISOString(), event: "codex-reroute-failed", pid: process.pid, why, error: result.error });
+      lastRerouteError = result.error ?? "";
+    };
+    reroute("start");
+    let settling: NodeJS.Timeout | null = null;
+    try {
+      watch(codexHome(), (_event, name) => {
+        if (name !== "config.toml") return;
+        if (settling) clearTimeout(settling);
+        settling = setTimeout(() => { settling = null; reroute("config changed"); }, 1000);
+      }).unref();
+    } catch { /* no folder to watch yet: the periodic check still runs */ }
+    setInterval(() => { checkPlugin(false); reroute("check"); }, 15_000).unref();
+    watchForClients(() => {
       checkPlugin(true);
-      log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: "no Codex or Claude Code process left" });
+      log({ at: new Date().toISOString(), event: "engine-exit", pid: process.pid, reason: "no Codex or Claude Code process left, and no plugin service checked in" });
       process.exit(0);
-    });
+    }, { lastClient: () => lastClient });
   }
   // Open WebSocket connections per thread. Over WebSocket Codex only sends new items and the server keeps the rest,
   // so a thread with unchecked images must move to HTTP: its idle connections are closed, and its next upgrade gets 426.
@@ -737,6 +292,7 @@ async function main(): Promise<void> {
 
   const onRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     if (req.url === "/__cam/health") {
+      if (req.headers["x-cam-client"]) lastClient = Date.now();
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ ok: true, service: ENGINE_SERVICE, pid: process.pid, startedAt, port, build, version, routingVersion: 1, routingPort: providerPort, upstream: UPSTREAM_HOST, upstreams: [UPSTREAM_HOST, CLAUDE_HOST, OPENAI_API_HOST], via: via ? `${via.host}:${via.port}` : "direct" }));
       return;
@@ -752,6 +308,7 @@ async function main(): Promise<void> {
         try {
           if (size > 8192) { res.writeHead(413); res.end(); return; }
           const input = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+          if (!isPlatform(input.platform)) throw new Error("unknown platform");
           validateBaseUrl(input.baseUrl, port);
           const route = registerRoute(input);
           res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
@@ -818,6 +375,12 @@ async function main(): Promise<void> {
     const thinking = claudeSession ? thinkingOf(claudeSession) : null;
     const claudeRewrite = claudeNeedsRewrite(claudeSession) || !!thinking?.edited;
     const claudeFields = claude ? { claudeSessionId: claude.sessionId, claudeAgentId: claude.agentId } : {};
+    // v0.11: a platform using the core alone (platforms.ts): every model request but its side requests, automatic
+    // selection always on (adapters/protocols/any.ts).
+    const core = corePlatformOf(route.platform);
+    const coreRewrite = !!core && req.method === "POST" && formatOf(path) !== null && !core.sideRequest?.(req.headers);
+    const coreSession = core ? core.sessionOf?.(req.headers) ?? headerOf(req.headers, "x-cam-session") : null;
+    const coreFields = core ? { platform: core.name } : {};
     const chunks: Buffer[] = [];
     let requestBytes = 0;
     let responseBytes = 0;
@@ -850,7 +413,7 @@ async function main(): Promise<void> {
           }
         } catch { details = { kind: "unparsed" }; }
       }
-      const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, ...(upstream === OPENAI_API_HOST ? { upstream } : {}), status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...details, ...extra, error: error ?? null };
+      const entry = { at: new Date(started).toISOString(), id, transport: "http", method: req.method, path, ...(upstream === OPENAI_API_HOST ? { upstream } : {}), status, requestBytes, decodedBytes: decoded?.length ?? null, contentEncoding: req.headers["content-encoding"] ?? null, responseBytes, ms: Date.now() - started, ...identity, ...claudeFields, ...coreFields, ...details, ...extra, error: error ?? null };
       log(entry);
       // Image keys go to the per-thread statistics only, not to the log.
       if (/\/responses$/.test(path)) {
@@ -950,17 +513,17 @@ async function main(): Promise<void> {
       }
       finish(String(error));
     }); };
-    if (!rewrite && !claudeRewrite) { send([{ body: null, report: null, edited: false }]); return; }
+    if (!rewrite && !claudeRewrite && !coreRewrite) { send([{ body: null, report: null, edited: false }]); return; }
     collect();
     req.on("end", async () => {
       const original = Buffer.concat(chunks);
       const encoding = req.headers["content-encoding"] as string | undefined;
       const rewriteNow = (): { body: Buffer; report: Json; attempts?: ClaudeAttempt[]; prefix?: SentPrefix } => {
-        try { return claudeRewrite ? rewriteClaudeBody(original, encoding, claudeSession!, undefined, undefined, undefined, thinking, sentPrefixes.get(claudeSession!) ?? []) : rewriteBody(original, encoding, identity.threadId!, sessionsDir, selectionDir, identity.turnId, identity.forkedFrom); }
+        try { return coreRewrite ? rewritePlatformRequest(core!.name, path, original, encoding, coreSession, dataDir(), currentLang()) : claudeRewrite ?rewriteClaudeBody(original, encoding, claudeSession!, undefined, undefined, undefined, thinking, sentPrefixes.get(claudeSession!) ?? [], currentLang()) : rewriteBody(original, encoding, identity.threadId!, sessionsDir, selectionDir, identity.turnId, identity.forkedFrom); }
         catch (error) { return { body: original, report: { skipped: `rewrite failed: ${String(error)}` } }; }
       };
       let out = rewriteNow();
-      // v0.10: the newest images not in the transcript yet (claude-rewrite.ts, late): read it again for a moment, so
+      // v0.10: the newest images not in the transcript yet (core/plan.ts, late): read it again for a moment, so
       // they go out with their ids now and the model can note them in this reply.
       let waited = 0;
       for (; claudeRewrite && out.report?.late && waited < LATE_WAIT_MS; waited += LATE_STEP_MS) { await sleep(LATE_STEP_MS); out = rewriteNow(); }

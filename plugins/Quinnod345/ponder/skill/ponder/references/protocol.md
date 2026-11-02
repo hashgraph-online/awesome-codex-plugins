@@ -146,10 +146,15 @@ the honest guess anyway - `--claim` is the part that carries, and the pair is re
 `surprise` is the distance from it. `--claim` is required and must be non-empty - an unstated
 expectation cannot be scored.
 
-### `ponder units --file <units.json>` / `--stdin`
+### `ponder units --file <units.json>` / `--stdin` / `--scan <dir>` / `--diff [<ref>]` / `--files <p1,p2>`
 
 Pass 1 only. Later passes amend the inventory with `unit-add`, `unit-edit` and `unit-delete` deltas -
 add what the survey missed, correct what it got wrong, remove what is out of scope.
+
+When `--scan <dir>`, `--diff [<ref>]`, or `--files <p1,p2>` is passed without `--file`, the CLI
+enumerates matching files on disk or in git directly and seeds `units.json` automatically. When
+`--strict-scope` is combined with `--file` and `--scan` / `--diff`, the CLI cross-checks every
+`unit.path` against the actual files on disk or in the diff and exits `2` if any file was omitted.
 
 The inventory is written to the ledger too, as a single `unit-seed` record carrying every unit id in
 order and every unit body as stored. That is what makes the coverage denominator auditable: an
@@ -177,7 +182,7 @@ ponder deliberate --skip --why "Pass 4 was a two-unit re-check; nothing to argue
 `--skip` is legal and is recorded as a `deliberation_skipped` metacognitive observation against the
 session. It shows up in `report.md`.
 
-### `ponder delta --file <deltas.jsonl>` / `--stdin`
+### `ponder delta --file <deltas.jsonl>` / `--stdin` / `--none [--why "<reason>"]`
 
 Applies the pass's revisions in file order, **all-or-nothing**: one bad line on line 40 means nothing
 in the batch is applied, and every problem is listed at once with its line number. Every delta needs a
@@ -185,7 +190,10 @@ non-empty `why` and a `perspective`. A `unit-add` must sit above any `add` that 
 creates, and above any `unit-edit` or `unit-delete` that targets it - the inventory is built as the
 file is read, so the reverse order fails with `unknown unit "…"`.
 
-`--file` also accepts a JSON array of delta objects, not only JSONL. Blank lines are ignored.
+`--file` also accepts a JSON array of delta objects, `{"deltas": [...]}`, or quiet-pass payloads
+(`{"op": "none"}` or `{"added": [], "retracted": [], "modified": []}`). For a converged pass where all
+voices verified the evidence and emitted zero deltas, pass `ponder delta --none --why "All 4 voices
+verified findings; zero changes needed"` without creating an empty file. Blank lines are ignored.
 
 ### `ponder judge`
 

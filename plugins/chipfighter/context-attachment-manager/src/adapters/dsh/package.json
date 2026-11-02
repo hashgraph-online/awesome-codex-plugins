@@ -1,0 +1,19 @@
+{
+  "name": "dsh-context-attachment-manager",
+  "version": "0.11.0",
+  "description": "Context Attachment Manager for DeepSeek Harness: earlier turns' images leave the request at each new turn; the model reads one back when it needs it.",
+  "type": "module",
+  "main": "index.js",
+  "files": ["index.js", "offload.js", "cordis.patch.yml"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chipfighter/context-attachment-manager.git",
+    "directory": "plugin/src/adapters/dsh"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-llm": "*",
+    "@deepseek-ai/dsh-compaction-image-offload": "*"
+  },
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+}

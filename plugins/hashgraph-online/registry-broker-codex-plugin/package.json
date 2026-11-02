@@ -53,7 +53,7 @@
   "dependencies": {
     "@hol-org/rb-client": "^0.1.184",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "fastmcp": "^4.0.0",
+    "fastmcp": "^4.23.8",
     "zod": "^4.4.3"
   },
   "pnpm": {
@@ -66,7 +66,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^3.2.4",
-    "eslint": "^10.2.1",
+    "eslint": "^10.13.0",
     "globals": "^17.7.0",
     "tsup": "^8.5.0",
     "tsx": "^4.23.1",

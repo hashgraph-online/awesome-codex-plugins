@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-02",
-  "total": 361,
+  "total": 364,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1942,6 +1942,16 @@
       "install_url": "https://raw.githubusercontent.com/mustafaakmese/agentmart-plugins/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Ahel",
+      "url": "https://github.com/ahel-technologies/ahel",
+      "owner": "ahel-technologies",
+      "repo": "ahel",
+      "description": "Remote MCP server for data tasks: company and people enrichment, SEO and SERP data, social media data and official EU business registers, each call priced before it runs and paid from a prepaid balance. Website: https://ahel.ai",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ahel-technologies/ahel/HEAD/plugins/ahel/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Aident Loadout",
       "url": "https://github.com/Aident-AI/aident-skill",
       "owner": "Aident-AI",
@@ -2912,6 +2922,16 @@
       "install_url": "https://raw.githubusercontent.com/mobazha/mobazha-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Mobbin",
+      "url": "https://github.com/mobbin/skills",
+      "owner": "mobbin",
+      "repo": "skills",
+      "description": "Search 600,000+ real iOS and web app screens, flows and website sections from Codex through the hosted Mobbin MCP server (OAuth; paid plans), with skills that redesign a screen from patterns real apps ship.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/mobbin/skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "MoltNode by Chord",
       "url": "https://github.com/tuantqse90/moltnode-mcp",
       "owner": "tuantqse90",
@@ -3270,6 +3290,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/AddisonHoff/sendsets/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Seonix",
+      "url": "https://github.com/seonix-ai/mcp",
+      "owner": "seonix-ai",
+      "repo": "mcp",
+      "description": "Connects Codex to your Seonix SEO project through the hosted Seonix MCP server with OAuth sign-in (Site Health and fix plan, Google Search Console, keyword clusters, draft scoring, eleven SEO playbooks) plus three skills that fix the site in code and ship content; writes run only after you confirm, and the server requires a paid Seonix plan.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/seonix-ai/mcp/HEAD/plugins/seonix/.codex-plugin/plugin.json"
     },
     {
       "name": "Serply",

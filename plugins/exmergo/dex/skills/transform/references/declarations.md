@@ -46,8 +46,10 @@ exist.
 | `unit` | `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`, or a plain unit such as `days` |
 | `null_rule` | `never`, or a sentence saying what NULL means in this column |
 | `references` | `<model>.<column>`, a model, seed or snapshot the project has |
-| `population.parent` | `{"model": <model, seed or snapshot>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it |
+| `population.parent` | `{"model": <model, seed or snapshot>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it, and the plan warns when the SQL is driven from a relation unrelated to it (`check: population_parent`). A population that only has a `rule` is `prose` under `population_contract`: nothing can run it |
 | `evidence` | `request` (what the request settles), `contract` (what the project's declared columns, tests or metric filters settle), `precedent` (how sibling models decide the same thing), `data` (what profiling showed about the data, never the intended population or NULL policy), `default` (the conventional analytics-engineering choice, including a reasonable choice where wording leaves the question open). Name `request` or `contract` only when that source settles the choice: "per account" alone does not say whether accounts without events belong, so that choice is a `default` |
+
+| `assumptions[].column` | optional: the output or source column the decision governs. `data.identifier_conversions` reads it: a conversion that drops, merges or respells identifiers of a column an assumption names is `declared` rather than `undeclared` (#861). Use it when a repair excludes identifiers of a second scheme or merges `7` and `007` on purpose, with the evidence that settles it |
 
 A field Dex does not know is refused by name, so a typo cannot silently drop
 part of a declaration.
@@ -202,8 +204,9 @@ filter on a value that does not exist yet is sometimes the intent.
 
 On a model that already exists, `data.declarations.<model>.contradictions` lists
 each declared rule this plan's SQL and the post-change declaration disagree on.
-Each entry is also a warning. A new model carries no key; an empty list means
-nothing was contradicted.
+Each entry is also a warning. A new model has no prior to compare, so only
+`population_parent` applies to it and it carries the key only when that rule
+reports something; an empty list means nothing was contradicted.
 
 ```json
 {"check": "population", "status": "contradicted",
@@ -215,6 +218,7 @@ nothing was contradicted.
 | `check` | Fires when |
 |---|---|
 | `population` | the predicate implementing a declared `population.filters` entry is removed or changes the values it keeps. `excludes` is met by `<>`/`NOT IN` on exactly those values, or by an `IN` list that leaves them out; `includes` by `=`/`IN` on exactly those values |
+| `population_parent` | the model declares `population.parent` and the relation driving it has no `ref()` lineage to that parent, in either direction. Fires on a new model too. A RIGHT, FULL or CROSS join that keeps the parent's rows is silent. `authored` names the driver and `parent` the parent. A driver or lineage dex cannot read (a macro, `{% if %}`, a set operation, a literal name, a package model) is `unchecked` |
 | `grain` | the drafted grain (the `GROUP BY` keys, or a carried key) differs from the declared grain, or a declared grain column leaves the SELECT list |
 | `columns` | a column whose declaration states a role, unit, additivity or another `config.meta.dex` field leaves the SELECT list. It names what the column was declared as, beside the plain `schema.yml` divergence warning |
 | `additivity` | the model takes `SUM` of an upstream column its own model declares `semi_additive` or `non_additive`, or `AVG` of one declared `non_additive` with a `fraction` or `percent` unit. `declared_on` names that upstream model. A running total the cumulative check found and nothing declares fires too, without `declared_on`; a column declared `additive` never does |

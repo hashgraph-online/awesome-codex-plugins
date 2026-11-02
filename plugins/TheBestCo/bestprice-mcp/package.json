@@ -1,6 +1,6 @@
 {
   "name": "bestprice-mcp",
-  "version": "2.8.1",
+  "version": "2.9.0",
   "private": true,
   "description": "Official BestPrice MCP distribution: client manifests, a stdio bridge to the public Streamable HTTP endpoint, and the browser-native WebMCP contracts.",
   "license": "Apache-2.0",

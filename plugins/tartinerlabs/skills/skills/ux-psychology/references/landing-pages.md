@@ -9,6 +9,8 @@ A landing page has seconds to earn a scroll. In NN/g's 2018 eyetracking study ("
 People do scroll — but only when what they see first promises it is worth it. Both studies are desktop; treat them as direction, not mobile figures.
 
 - **Answer "why would they care?" first** — the problem the product solves or the outcome it gives, for this audience. Settle it before writing the page; every section after it is evidence for that answer, and a section that supports nothing is cut (`rules/cognitive-load.md`)
+- **Know where they came from** — an ad, a search, a launch post, or a shared link each sets an expectation, and the top section picks up the promise that brought them ("message match", Gardner, Unbounce 2009). Meet their awareness too: a visitor who does not yet feel the problem needs it named before the product; one already comparing products needs the difference (Schwartz, *Breakthrough Advertising*, 1966)
+- **Name the real alternative** — what this audience would do if the product did not exist, often a spreadsheet, a manual process, or nothing at all. Make the case against that, not against every competitor (Dunford, "Positioning and Competition"); NN/g's homepage principles (Wang 2024) likewise ask the page to say how it differs
 - **The top section states it** — what it is, who it is for, why they would care, and the one next step — in the user's words, not a slogan (`rules/microcopy.md`, `rules/aesthetic-usability.md`)
 - **One primary call to action**, visible in the first screenful and repeated down the page; a secondary action ("See a demo") styled quieter (`rules/von-restorff.md`)
 
@@ -26,6 +28,7 @@ A first-time visitor arrives with doubts, roughly in this order: what is it, is 
 
 The stock sequence — hero, logo strip, three feature cards, testimonials, pricing, FAQ, final CTA — is a reasonable default, not a rule. Every generated landing page tends to use it, so pages end up interchangeable. Reorder, merge, or drop sections to match what this audience doubts most: a developer tool may need a code sample before any testimonial; an unknown brand may need proof straight after the hero; a page with one obvious objection (price, migration effort, security) answers it early rather than in the FAQ.
 
+- **Find the doubts rather than guess them** — customer interviews, support tickets, sales calls, and reviews of this product and its alternatives surface both the doubts and the words customers use for them (Copyhackers, "How to Do Rapid-Fire Review Mining"). Weigh what holds people back as much as what attracts them: in the Jobs-to-be-Done forces of progress (Moesta and Spiek), people switch only when the push of their situation and the pull of the product outweigh anxiety about the new and the habit of the present
 - **Show the real product** — screenshots or short recordings of the actual UI, not abstract illustrations, so visitors see what they are signing up for
 - **Real proof next to the call to action and after a claim** — customer logos, attributed testimonials, real usage numbers (`rules/social-proof.md`); invented ones are `rules/deceptive-patterns.md`
 - **Answer objections where they arise**, not only in a closing FAQ — a risk-reversal line (free plan, no card, cancel anytime) belongs beside the CTA it unblocks (`rules/reciprocity.md`)

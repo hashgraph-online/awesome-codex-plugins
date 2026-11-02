@@ -6,7 +6,7 @@ description: "The pre-merge review of a branch in a project that records its spe
 
 # /archcore:review
 
-Review the changes on the current branch against the `.archcore/` knowledge base, in both directions: whether the changed code still matches the documents that claim it, and whether the changed documents still match the code they describe. A plain branch review also checks a matching `plan` for completion and continues into closeout when one exists. On the default branch, the scope is the work the upstream does not hold yet plus the uncommitted changes; with an empty diff, the skill asks for a scope. A branch review also selects durable context — the claims of the change a later reader needs from `.archcore/` — and writes the units the user authorizes through their owning instruments, per `skills/_shared/durable-context-selection.md`. This is also the only skill that removes a document: `closeout.discharge` removes a completed `plan`, and `actualize.fix` may remove a long-stale draft of any type — both via `mcp__archcore__remove_document`, each under its own confirmation.
+Review the changes on the current branch against the `.archcore/` knowledge base, in both directions: whether the changed code still matches the documents that claim it, and whether the changed documents still match the code they describe. A plain branch review also checks a matching `plan` for completion and continues into closeout when one exists. On the default branch, the scope is the work the upstream does not hold yet plus the uncommitted changes; with an empty diff, the skill asks for a scope. A branch review also selects durable context — the claims of the change a later reader needs from `.archcore/` — and writes the units the user authorizes through their owning instruments, per `skills/_shared/durable-context-selection.md`. This is also the only skill that removes a document: `closeout.discharge` removes a completed `plan`, `actualize.fix` removes shipped and abandoned plans the branch did not match in one confirmed batch, and it may remove a long-stale draft of any other type under a per-document confirmation — all via `mcp__archcore__remove_document`.
 
 Command tense: `/archcore:plan` declares a future canon delta, `/archcore:document`
 records the present state — including work that shipped without a plan — and
@@ -50,11 +50,11 @@ Load `skills/_shared/gate-contract.md` and `skills/_shared/elicitation-contract.
 Before relation review, load `skills/_shared/relation-authoring.md`. Read the
 affected claims before reporting missing, unsupported, or redundant edges.
 
-IF `.archcore/` does not exist, THEN announce initialization in one line and call `mcp__archcore__init_project` without asking a question. IF `.archcore/` contains zero documents, THEN proceed on git and codebase grounding and report that zero documents were found.
+IF the session root holds no `.archcore/`, THEN follow `skills/_shared/target-project.md`, section Projects without `.archcore/`: name the roots the session recap listed, ask which project to use or whether to initialize the session root, and do not call `mcp__archcore__init_project` before the answer. IF `.archcore/` contains zero documents, THEN proceed on git and codebase grounding and report that zero documents were found.
 
 **Grounding.** Search all three categories — vision, knowledge, experience — with `mcp__archcore__search_documents` / `mcp__archcore__list_documents`; never exclude a category from reads. Pass a type filter matched to the review moment — `spec`, `rule`, `adr`, `doc`, `guide` for claims on changed code; `cpat`, `task-type` for precedent; `plan` on every branch review; `prd`, `idea`, `rnd`, and `research` (when `skills/_shared/research-compatibility.md` returned `yes`), plus `scenario` and `journey` (when `skills/_shared/actor-subject-compatibility.md` returned `yes`), for the closeout track's plan-and-implements-chain scope — instead of relying on the global type ranking. When a found document has `implements`, `depends_on`, or `related` relations, pull the linked documents one hop across categories.
 
-**Global sources (only when present).** If any `list_documents` / `search_documents` result carries `global: true` / `read_only: true` / `source_kind: "global"`, load `skills/_shared/globals.md`. Also load it when a `search_documents` response's `coverage` names a source other than `"local"` — even when `results` is empty: the empty page is exactly where that file's retry ladder applies. Never modify a global document and never add a relation to one. Exclude global documents from every local-health metric — counts, the unlinked-document inventory, drift; you MAY add one separate line naming the mounted source and its document count.
+**Global sources (only when present).** If any `list_documents` / `search_documents` result carries `source_kind: "global"`, load `skills/_shared/globals.md`. Also load it when a `search_documents` response's `coverage` names a source other than `"local"` — even when `results` is empty: the empty page is exactly where that file's retry ladder applies. A review writes no global document and never joins a local and a global document with a relation. Exclude global documents from every local-health metric — counts, the unlinked-document inventory, drift; you MAY add one separate line naming the mounted source and its document count.
 
 ### Step 1: Branch scope
 
@@ -116,6 +116,7 @@ On a plain branch review, after step 2 and any actualize fixes:
 3. Run `closeout.verify` even when the request contains no completion wording.
 4. Never infer completion from branch readiness alone. The track's plain-review entry rule decides which gates run after `closeout.verify`.
 5. IF matched plans exist but none reached `closeout.capture`, THEN run the durable-context selection over the branch scope, including the delivered units of each unfinished plan; the unfinished plan stays, and no removal is offered for it.
+6. Run the hung-plan check (actualize check 7) over every `plan` step 2 did not match and offer its batch per the actualize fix forms — on every branch review, with or without a drift signal, so a finished plan leaves the corpus without the user asking for staleness. No hung plan → one line: "No hung plans."
 
 The durable-context selection follows `skills/_shared/durable-context-selection.md`. It treats an ambiguously matched plan as no match, and it never selects a `journey`.
 
@@ -123,7 +124,7 @@ The durable-context selection follows `skills/_shared/durable-context-selection.
 
 - The `archcore-auditor` agent collects findings read-only: document inventory, relation graph, drift and coverage signals. The agent never questions the user (a subagent MUST NOT conduct an interview, per `skills/_shared/elicitation-contract.md`) and never writes.
 - Before delegating to the `archcore-auditor` agent, pass the absolute plugin root — the directory two levels above this `SKILL.md` — and the output of `bin/check-references`, which the agent cannot run without a shell. The agent reads `skills/_shared/relation-authoring.md` under that root, and `skills/_shared/tracks/actualize.md` under the same root.
-- The main thread confirms every fix with the user and applies it via `mcp__archcore__update_document`, one document at a time, per the `actualize.fix` gate. The review skill MUST NOT edit code on this path — it reports a `code-wrong` finding without fixing it.
+- The main thread confirms every fix with the user and applies it via `mcp__archcore__update_document`, one document at a time, per the `actualize.fix` gate; the hung-plan batch is that gate's one list-level confirmation. The review skill MUST NOT edit code on this path — it reports a `code-wrong` finding without fixing it.
 
 ## Result
 
@@ -132,6 +133,7 @@ The durable-context selection follows `skills/_shared/durable-context-selection.
 - Open tracks: each draft from step 2's open-track list, with its gate, its unresolved choices, and its resume command.
 - Durable context: units grouped created, updated, omitted, deferred, and declined — each with its claim, evidence, and owner, and a reason for every omitted or declined unit.
 - Closeout: per-task verdicts, applied and declined document updates, status transitions grouped applied / declined / skipped, units written at capture with the instrument that took each, removed plans, and retained plans with the remaining work or blocking reason.
+- Hung plans: each plan the batch removed with its `shipped` or `abandoned` label and the commit that still carries it, each struck plan, or "No hung plans."
 - Produced documents grouped by category — experience: a `cpat` or `task-type` draft from the durable-context selection; knowledge: a `spec`, `doc`, `guide`, `scenario`, or an `adr` plus its standard cascade (`rule`, `guide`), from the durable-context selection; knowledge / vision: documents updated by a drift fix or a closeout merge.
 - Captured: one `captured:` line per invocation, merged across every selection run.
 - Removed documents: each completed `plan` closeout removed, and each long-stale draft a drift fix removed on the user's confirmation — each named with a verified recovery commit when available. For closeout, state explicitly when git history does not preserve the removed plan's current content.

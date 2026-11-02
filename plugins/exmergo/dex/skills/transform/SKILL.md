@@ -66,12 +66,29 @@ data stops after step 1 and reports what it found.
    `missing` (the intent still owed) and `contradictions`. Read them with the
    `warnings` and, on an existing model, `data.row_attribution`. Correct the SQL
    or the declaration until both say what the request asks, then plan again.
+   When the change should keep an existing model's results (a refactor, an
+   extraction, a cleanup), run each `data.refactor_comparison_offer.per_model`
+   command before applying, above all where `static_attribution` is not
+   `attributed`. `equivalent` holds for its `input_scope` at `compared_at`:
+   relay both. `different` is a defect to fix in the SQL, unless the request
+   asked for that difference: state an intended rename with `--map` or type change
+   with `--accept-type`, and never loosen the comparison to get a match.
+   `not_checked` is not equivalence: relay its `reason_code`, and where it names
+   an input to rebuild or repair, do that and compare again. Equivalence is about
+   the results the request keeps, not an intermediate's layout. A change meant
+   to alter results needs no comparison.
 4. **Apply.** `dex transform apply <plan-id>` writes the plan as a reviewable
    diff. A `needs_confirmation` here means a file changed since planning:
    plan again against it. A commit carrying files Dex wrote ends with the
    `data.commit_trailer` line, after a blank line.
-5. **Build and verify on dev.** `dex transform build --target dev --verify`.
-   Read `data.verification.ran`, then every finding and everything under
+5. **Build and verify on dev.**
+   `dex transform build --target dev --verify --for-plan <plan-id>`. Read
+   `data.completion` first: it leads the payload and is bounded, so it survives
+   a cut-off read, and `details` names where the rest is. A required deliverable
+   that `failed`, was `skipped` or is `missing` is not done, whatever relation is
+   left in dev from an earlier run; fix what `blockers` names and build again.
+   `build_only` means nothing checked those rows. Then read
+   `data.verification.ran`, every finding and everything under
    `suppressed`. A green build says dbt ran, not that the rows are right: a
    column that came back all NULL, a parent that vanished, or rows that
    multiplied is a defect to fix, not a data issue to report. Each record in
@@ -116,9 +133,14 @@ declares is `contract`.
 - Drive a model from the entity it describes. When that entity is the parent
   and the population keeps parents with no children, left-join the children so
   each such parent survives, with a count of zero rather than NULL.
-- A refactor keeps its results: `data.row_attribution` nets to zero, and
-  `count(*)` stays `count(*)`.
+- A refactor keeps its results: `data.row_attribution` nets to zero,
+  `count(*)` stays `count(*)`, and `transform compare` says `equivalent`.
 - Keep every valid row. Never filter rows out to make a cast or a join succeed.
+  An identifier that does not cast may be a second legitimate scheme, and
+  casting can merge keys (`7` and `007`). When `data.identifier_conversions`
+  reports a conversion `undeclared`, keep the other scheme (compare as text,
+  normalize, bridge or namespace) or record the exclusion as an assumption
+  naming its `column`; `unchecked` is not clean.
 - Change only what the request asks; keep the output columns the request and
   the existing model define.
 - A balance or a running total is `semi_additive`: never sum it across time.
@@ -126,7 +148,13 @@ declares is `contract`.
   entities.
 - Test logic with `dex transform test --scaffold <model>` (dbt unit tests) and
   measure the tests with `dex transform test --mutate <model>`.
-- Never edit installed packages (`dbt_packages/`); override in the project.
+- Never edit installed packages (`dbt_packages/`) and never repair only in the
+  warehouse: a reinstall or a reload undoes both. When a prerequisite blocks a
+  deliverable, read `data.prerequisites` for its owner, its `plan_relation` and
+  the repairs dbt supports, make a supported one through a plan (an explicit
+  cast, never dropped rows), and prove it with `--cold-deps` on the build. With no
+  repair in scope the deliverable is incomplete: report the prerequisite and the
+  remedy tried. Recipe: `skills/transform/references/prerequisite-repairs.md`.
 
 **Spending authority.** It comes from the person running this session, or from
 limits committed before it started: `budget.ceiling` (per command) and
@@ -460,6 +488,9 @@ a field, flag, or macro you need is not described here.
 - `${CLAUDE_SKILL_DIR}/references/declarations.md`: the `declarations` payload,
   every field and its allowed values, what each renders into, and
   `transform declare` for models that already exist.
+- `${CLAUDE_SKILL_DIR}/references/prerequisite-repairs.md`: a failed prerequisite's
+  owner and repair routes, keeping a type repair's meaning, proving it with
+  `--cold-deps`, and reporting a deliverable incomplete.
 - `${CLAUDE_SKILL_DIR}/references/commands.md`: `references`, `rename`, `remove`,
   `place`, `declare`, `build`, `build --verify`, `test --mutate`, and `deps` in detail.
 - `${CLAUDE_SKILL_DIR}/references/init-and-dev-target.md`: per-connector init and
