@@ -66,6 +66,16 @@ It checks clock/time plausibility when scenes or chapters carry `date: YYYY-MM-D
 - The route check reads scene `date`, `time`, and `location` only, not chapter dates; a named time is a span such as `morning` 05:00-11:59, an untimed scene spans its whole day, and only journeys impossible on every reading are reported.
 - Without dates, only malformed dates or times and `travel-hours` on an undated scene are reported.
 
+### Distance travel
+
+When `story.md` lists `travel-modes` (each a `mode` with a `speed` in its `distance-unit` an hour, and an optional `per-day`), it checks scene `travel-hours` against location geography: `coordinates` on the story's map (times `map-scale`) or `distances` between locations.
+
+- Each scene with `travel-hours` above 0 is compared with the previous scene in reading order within a chapter `strand`; the characters in both scenes, by `characters` or `pov`, made the journey between their locations. Dates are not needed.
+- A scene with `travel-hours` above 0 at a different place warns (`travel-too-far`) when the hours cannot cover the distance at the speed of its `travel-mode`, or of the fastest mode when it names none or an unlisted one (`story validate` warns `unknown-travel-mode` when travel modes are listed).
+- A listed distance wins, then the straight line between coordinates, then the shortest chain of listed distances.
+- Flashback scenes are skipped; after a scene with no `location`, or a chapter with no scene records, the next scene has no place to start from.
+- Without `travel-modes`, nothing is checked.
+
 ### Exemptions
 
 Intentional exceptions go in `continuity/exemptions.md` (frontmatter `type: exemption-log`, entries with a `reason` and the finding's `code` plus its `file` or `chapter`, as `--json` diagnostics give them; `pattern` matches message text and still works); exempted findings are reported as dismissed, not errors.
@@ -89,7 +99,7 @@ Once any chapter has `choices`, `story continuity` (and `story check`, which rep
 These read the chapters in number order, so sibling branches can produce findings no reader meets:
 
 - the promise, clue, and question ledgers: payoff before plant, and the chapter counts behind the Chekhov and `question-unanswered` warnings. A setup planted on one branch and paid off on a sibling passes, though no reader sees both, so check each one against the paths by hand.
-- the clock and route checks (`clock-backward`, `travel-too-fast`, `route-too-fast`, `route-same-time`), which compare every dated scene in a `strand`, whichever branch it is on
+- the clock and route checks (`clock-backward`, `travel-too-fast`, `route-too-fast`, `route-same-time`), which compare every dated scene in a `strand`, whichever branch it is on, and the distance check (`travel-too-far`), which follows every scene in a `strand` in chapter number order
 - `story timeline`, which marks a sibling ending dated before the one numbered ahead of it as told "after later events"
 - `story grid`, whose columns are every chapter side by side in number order, whichever path reaches each
 - `story pacing` runs, `story next`, and the `progression-out-of-order` list order

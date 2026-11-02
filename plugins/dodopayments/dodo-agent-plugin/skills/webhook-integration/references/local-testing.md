@@ -16,7 +16,7 @@ Forward real test-mode events to localhost:
 dodo wh listen http://localhost:3000/webhook
 ```
 
-This creates a test webhook, opens a WebSocket relay, and forwards events with the original `webhook-id`/`webhook-signature`/`webhook-timestamp` headers to your local URL. Requires a test-mode API key. The relay and CLI parse and **re-serialize** the JSON body, so if it differs byte-for-byte from the original (for example number formatting), signature verification fails even though the headers are intact - that is a relay artifact, not a bug in your verifier. The URL argument is required in direct mode — bare `dodo wh listen` only works as `/wh listen` inside the TUI.
+This creates a test webhook, opens a WebSocket relay, and forwards events with the original `webhook-id`/`webhook-signature`/`webhook-timestamp` headers to your local URL. Requires a test-mode sign-in with `dodo login` (`dodo login --device` over SSH). The relay and CLI parse and **re-serialize** the JSON body, so if it differs byte-for-byte from the original (for example number formatting), signature verification fails even though the headers are intact - that is a relay artifact, not a bug in your verifier. The URL argument is required in direct mode — bare `dodo wh listen` only works as `/wh listen` inside the TUI.
 
 ### CLI: Unsigned mock events
 

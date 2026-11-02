@@ -192,7 +192,9 @@ Needs no baseline. The classes of finding:
   themselves in `data.severity_cap_applied`, and the finding stays listed. A
   model with a `WHERE`, `GROUP BY`,
   `DISTINCT`, `QUALIFY`, `LIMIT`, a semi or anti join, or a set operation is never
-  reported for loss, and an incremental model is skipped outright. A model that
+  reported for loss, and an incremental model is skipped outright (on
+  `transform build --full-refresh --verify`, only one the build did not rebuild,
+  or a microbatch model). A model that
   generates its rows in SQL, such as `range(...)` or a `VALUES` clause, has no
   parent relation. That is named in `notes`. A real parent relation that is
   absent from the warehouse is still a warning.

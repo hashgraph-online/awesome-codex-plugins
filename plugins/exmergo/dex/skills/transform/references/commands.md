@@ -214,10 +214,15 @@ It is not a routine build. A full rebuild scans the model's whole history.
   `not_refreshed` names models whose own `full_refresh: false` config makes dbt
   ignore the flag, so their old rows stay.
 - `data.evidence.invocation.full_refresh` is `true`.
-- Dev target only, like every build. `--verify` works the same way afterwards.
-  Its row-population check still skips incremental models, so a green
-  verification does not show the rebuilt rows are right: check them yourself,
-  for example with `explore profile <relation> --target dev --refresh`.
+- Dev target only, like every build. `--verify` also compares the rows of each
+  incremental model in `data.full_refresh.models` with its driving parent, so
+  `row_loss` and `row_fanout` apply to it as to a table, and the parent's count
+  is in the upfront estimate. Three kinds of model keep the skip, named in
+  `warnings`: an incremental model this build did not rebuild, one in
+  `not_refreshed`, and a microbatch model, which rebuilds only from its `begin`.
+  These are row counts, and a model with a filter or an aggregate is never
+  reported for loss, so a green verification does not show the rebuilt rows are
+  right: check values with `explore profile <relation> --target dev --refresh`.
 - The DuckDB stale-seed rebuild above is skipped, because the build already
   rebuilds every seed it selects.
 

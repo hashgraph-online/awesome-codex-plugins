@@ -19,7 +19,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Proxmox Writing Style",
-    "shortDescription": "Write Proxmox docs in the Proxmox style",
+    "shortDescription": "Write docs in Proxmox style",
     "longDescription": "Unofficial skill. Write, edit, and review Proxmox VE, Proxmox Backup Server, and Proxmox Mail Gateway documentation with the rules of the Proxmox Technical Writing Style Guide.",
     "developerName": "Mekan Soltanov",
     "category": "Productivity",

@@ -326,9 +326,9 @@ need is not described here.
   before the first billed command, with the commands it names: lower
   `AUTO_SUSPEND` to 60 on a dedicated warehouse, or let dex suspend it, which
   needs both `snowflake.suspend_after_command` on and `OPERATE` granted to the
-  role; relay the `dex config set` and the `GRANT OPERATE` exactly as it prints
-  them. Either cuts a short command from about 600 warehouse-seconds to about
-  60. Never run the grant or change the warehouse yourself, and never turn the
+  role; relay whichever of the `dex config set` and the `GRANT OPERATE` it prints,
+  exactly as printed. Either cuts a short command from about 600 warehouse-seconds
+  to about 60. Never run the grant or change the warehouse yourself, and never turn the
   setting on without the person's yes, since it acts on a warehouse others may
   share.
 - `--api` (a hosted dbt Cloud layer) runs where no cost guard can reach. Relay

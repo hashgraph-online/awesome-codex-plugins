@@ -433,6 +433,8 @@ Each contract gets one record under `data.temporal_contracts`
 | `business_timestamp_unreliable` | a declared business timestamp is NULL or stands still at a status change. Those entities' time fields are not compared; their counts are, since capture order is intact |
 | `ambiguous_version_order` | an entity's versions share one validity timestamp |
 | `hard_delete_records` | the snapshot uses `hard_deletes: new_record`, whose records are versions that do not observe the status |
+| `snapshot_not_ancestor` | the manifest does not show the model descending from the declared snapshot, directly or through other models, so nothing was compared. `reason` names the snapshot and any other snapshot the model descends from. Correct `history.snapshot`, or read the snapshot through `ref()`: the manifest cannot see a hard-coded relation. This is reachability, not column lineage: a snapshot reached only through an unrelated join passes it |
+| `lineage_unavailable` | the manifest cannot say whether the model descends from the snapshot (no recorded dependencies, or a parent it does not hold), so nothing was compared |
 | `snapshot_not_built` | the snapshot failed or was skipped in the last run |
 | `malformed_declaration` | a hand-written block does not parse |
 | `column_missing`, `relation_not_found`, `probe_refused`, `scan_offered`, `no_entity_comparable`, `nothing_to_compare` | the check could not reach or compare what it needs |
