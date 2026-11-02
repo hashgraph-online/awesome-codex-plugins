@@ -21,6 +21,9 @@ class GeneratedBundleCleanupTests(unittest.TestCase):
              {"LICENSE.txt": b"plugin collection license\n"}),
             ({"LICENSE": b"repository license\n", "plugins/example/LICENSE.md": b"bundle license\n"},
              {"LICENSE.md": b"bundle license\n"}),
+            ({"LICENSE": b"repository license\n", "plugins/example/COPYING": b"bundle copying terms\n"},
+             {"COPYING": b"bundle copying terms\n"}),
+            ({"license.md": b"lowercase repository license\n"}, {"license.md": b"lowercase repository license\n"}),
             ({}, {}),
         )
         for files, expected in cases:
@@ -36,7 +39,7 @@ class GeneratedBundleCleanupTests(unittest.TestCase):
                 ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
                     MODULE.mirror_plugin_bundle({"owner": "example", "repo": "example"})
                 output = Path(scratch) / "example/example"
-                self.assertEqual({path.name: path.read_bytes() for path in output.glob("LICENSE*")}, expected)
+                self.assertEqual({path.name: path.read_bytes() for path in output.iterdir() if path.is_file()}, expected)
 
     def test_root_skill_collection_keeps_skills_and_helpers_only(self):
         root = MODULE.PurePosixPath("archive")
