@@ -28,6 +28,15 @@ Gemini CLI:
 gemini extensions install https://github.com/kinlab-ai/kin-plugin
 ```
 
+Antigravity:
+
+```sh
+git clone https://github.com/kinlab-ai/kin-plugin
+agy plugin install kin-plugin/antigravity
+```
+
+Then select Authenticate next to `kin_kin` in Agent settings, Customizations.
+
 Cursor, VS Code, LM Studio and Kiro: open the link for your app, then sign in.
 
 [Add to Cursor](https://cursor.com/en/install-mcp?name=kin&config=eyJ1cmwiOiJodHRwczovL2FwcC5raW5sYWIuYWkvbWNwIn0%3D) · [Add to VS Code](https://insiders.vscode.dev/redirect/mcp/install?name=kin&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fapp.kinlab.ai%2Fmcp%22%7D) · [Add to LM Studio](https://lmstudio.ai/install-mcp?name=kin&config=eyJ1cmwiOiJodHRwczovL2FwcC5raW5sYWIuYWkvbWNwIn0%3D) · [Add to Kiro](https://kiro.dev/launch/mcp/add?name=kin&config=%7B%22url%22%3A%22https%3A%2F%2Fapp.kinlab.ai%2Fmcp%22%7D)
@@ -42,6 +51,7 @@ Claude, ChatGPT, Zed, Raycast, Warp and other AI apps: add `https://app.kinlab.a
 | `.mcp.json` | Kin's address for Claude Code: `https://app.kinlab.ai/mcp`, signed in with OAuth |
 | `plugin.json`, `mcp.json`, `.agents/plugins/marketplace.json` | The same plugin and address for Codex |
 | `gemini-extension.json`, `GEMINI.md` | The same address and a short note for Gemini CLI |
+| `antigravity/` | The same plugin for Antigravity, with its own manifest and copies of the skills |
 | `server.json` | Kin's entry for the MCP Registry |
 | `skills/kin` | How to call Kin's tools (search, describe, read, execute, feedback) and read their answers |
 | `skills/kin-accounts` | How to work with several accounts of one service |

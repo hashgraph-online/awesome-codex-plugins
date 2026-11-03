@@ -1,0 +1,6 @@
+interface:
+  display_name: "memtomem Brief"
+  short_description: "Read-only task briefing from project memories"
+  default_prompt: "Use $memtomem-brief to brief past decisions and active context for this task."
+policy:
+  allow_implicit_invocation: false

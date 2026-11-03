@@ -1,6 +1,6 @@
 {
   "name": "long-form-distribution",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "Turn a published newsletter issue or essay into social posts built from your own sentences, and track which ones went live on a local dashboard.",
   "author": {
     "name": "Matthew Rowean",

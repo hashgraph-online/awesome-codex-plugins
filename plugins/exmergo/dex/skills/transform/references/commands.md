@@ -207,6 +207,10 @@ passed with `--edits-file` are validated and stored in the same plan, so the
 removal stays atomic. A YAML entry is removed with the comment lines written
 directly above it at its own indent; a comment set apart by a blank line stays.
 
+On `var`, a `retirement` key in the payload states which behavior survives the
+flag, and the plan, `transform compare` and `build --verify --for-plan` hold the
+change to it: [feature-retirement.md](feature-retirement.md).
+
 ## `transform place <column> --targets <a,b> --expr "<sql>" [--explain]`
 
 Finds the lowest model in the `ref()` graph that every target descends from and

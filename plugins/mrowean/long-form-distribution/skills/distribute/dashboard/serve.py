@@ -170,7 +170,7 @@ def make_handler(store):
             path = urlparse(self.path).path
             if path in ("/", "/index.html"):
                 return self.send(200, (HERE / "index.html").read_bytes(), "text/html")
-            if path in ("/app.js", "/sample-data.js"):
+            if path == "/app.js":
                 return self.send(200, (HERE / path[1:]).read_bytes(), "text/javascript")
             if path == "/api/state":
                 return self.js(200, {"ok": True, "demo": store.demo, "home": str(store.root),

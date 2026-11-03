@@ -1,0 +1,6 @@
+interface:
+  display_name: "memtomem Remember"
+  short_description: "Save an explicit memory entry safely"
+  default_prompt: "Use $memtomem-remember to save this decision for later."
+policy:
+  allow_implicit_invocation: false

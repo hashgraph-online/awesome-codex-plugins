@@ -1624,6 +1624,21 @@
       "description": "Interface understanding and design-system memory for Codex, Claude Code, Cursor, and MCP agents with UI audits, Tailwind token extraction, shadcn registry workflows, and a bundled Codex plugin."
     },
     {
+      "name": "memtomem",
+      "displayName": "memtomem",
+      "source": {
+        "source": "local",
+        "path": "./plugins/memtomem/memtomem"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Markdown-first long-term memory for Codex that searches, recalls, saves and indexes project notes, and resumes work from a handoff another session or agent wrote.",
+      "icon": "./plugins/memtomem/memtomem/assets/icon.png"
+    },
+    {
       "name": "ml-pipeline",
       "displayName": "ML Pipeline",
       "source": {
@@ -3396,6 +3411,21 @@
       "category": "Tools & Integrations",
       "description": "Add real-time chat, voice and video calling to React, Angular, React Native, iOS, Android and Flutter apps, with the CometChat Docs MCP for current docs.",
       "icon": "./plugins/cometchat/cometchat-skills/assets/composer-icon.png"
+    },
+    {
+      "name": "computefirst",
+      "displayName": "ComputeFirst",
+      "source": {
+        "source": "local",
+        "path": "./plugins/321zz321/computefirst-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Free hosted MCP server and skill for versioned, deterministic checks, conversions and data transforms, with no API key.",
+      "icon": "./plugins/321zz321/computefirst-skill/assets/icon.svg"
     },
     {
       "name": "computer-usage-summary-skill",
@@ -5173,6 +5203,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Search and install AI assets from TokRepo with a bundled skill and MCP server for Codex."
+    },
+    {
+      "name": "treza",
+      "displayName": "Treza",
+      "source": {
+        "source": "local",
+        "path": "./plugins/treza-labs/treza-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Make AI videos from Codex through Treza's hosted MCP server: one clip from a description, edits to media you have, and pipelines that render and post to YouTube and TikTok on a schedule.",
+      "icon": "./plugins/treza-labs/treza-plugin/assets/treza-logo-400.png"
     },
     {
       "name": "unified-ai-system",

@@ -1,6 +1,7 @@
 ---
 name: context-guard
 description: Preserve requirements and verified evidence across Codex compaction, resume, and delegation. Use $context-guard, context-guard on, or for long, complex, or resumed tasks requiring an immutable private completion ledger.
+license: Apache-2.0
 ---
 
 # Context Guard

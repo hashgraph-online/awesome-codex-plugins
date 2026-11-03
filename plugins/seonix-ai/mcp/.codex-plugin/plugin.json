@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Seonix",
     "shortDescription": "SEO and AI-search visibility",
-    "longDescription": "Seonix grows organic and AI-search visibility for a website on autopilot. This plugin connects the agent to your Seonix project over MCP: Site Health and the prioritised fix plan, Google Search Console, keyword clusters and the content calendar, articles and draft scoring, and eleven SEO playbooks. Write actions (start a scan, apply or roll back a Seonix fix on WordPress, mark an issue as intentional) run only after you confirm. Requires a Seonix account on a paid plan.",
+    "longDescription": "Seonix grows organic and AI-search visibility for a website on autopilot. This plugin connects the agent to your Seonix project over MCP: Site Health and the prioritised fix plan, Google Search Console, keyword clusters and the content calendar, articles and draft scoring, and eleven SEO playbooks. Write actions (start a scan, apply or roll back a Seonix fix on WordPress, mark an issue as intentional) run only after you confirm. Requires a Seonix account with at least one project added at app.seonix.ai.",
     "developerName": "Seonix",
     "category": "Productivity",
     "capabilities": [

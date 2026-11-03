@@ -2,11 +2,19 @@
   <strong>English</strong> | <a href="README.ko.md">한국어</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh-CN.md">中文</a>
 </p>
 
+# Dude, Toldya? (working title)
+
+> A new name and mascot are being explored. The released plugin and install commands are still called **Off the Wall**.
+
+**Your past corrections, back in context.**
+
 Plain-language overview of what it does and does not do, with the test details at the end: [English](https://toranalytics.github.io/en/otw-what-it-does/) · [한국어](https://toranalytics.github.io/otw-what-it-does/) · [中文](https://toranalytics.github.io/zh/otw-what-it-does/). Release notes: [CHANGELOG](CHANGELOG.md).
 
 <p align="center">
-  <img src="assets/hero.png" alt="Off the Wall: a pixel-art parrot on a terminal, quoting your past corrections" width="100%" />
+  <img src="assets/hero.png" alt="Original pixel-art AI assistant mascot being gently bonked" width="100%" />
 </p>
+
+<p align="center"><sub>The illustration is AI-generated and inspired by the comic timing of the <a href="https://namu.wiki/w/조용히%20하세요!">linked meme</a>; it is not the Gajae Code character.</sub></p>
 
 <p align="center">
   <img src="assets/before-after-en.png" alt="Same request, same model (Claude Sonnet), run once each, real outputs: without Off the Wall the commit message, summary and PR description ignore the saved habit; with it they follow it. Three tasks, first run shown, one correction made up for the demo." width="100%" />

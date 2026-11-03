@@ -141,6 +141,11 @@ declares is `contract`.
   reports a conversion `undeclared`, keep the other scheme (compare as text,
   normalize, bridge or namespace) or record the exclusion as an assumption
   naming its `column`; `unchecked` is not clean.
+- Removing a feature flag: "retire it" drops the feature's CTEs, joins, outputs,
+  tests and semantic references, while "make it permanent" keeps them and drops
+  only the conditionals. A flag's default decides neither. State the behavior
+  that survives with a `retirement` contract on `dex transform remove var`.
+  Recipe: `skills/transform/references/feature-retirement.md`.
 - Change only what the request asks; keep the output columns the request and
   the existing model define.
 - A balance or a running total is `semi_additive`: never sum it across time.
@@ -491,6 +496,9 @@ a field, flag, or macro you need is not described here.
 - `${CLAUDE_SKILL_DIR}/references/prerequisite-repairs.md`: a failed prerequisite's
   owner and repair routes, keeping a type repair's meaning, proving it with
   `--cold-deps`, and reporting a deliverable incomplete.
+- `${CLAUDE_SKILL_DIR}/references/feature-retirement.md`: retiring a feature flag
+  versus making it permanent, the `retirement` contract on `remove var`, and how
+  each check holds the change to the behavior it keeps.
 - `${CLAUDE_SKILL_DIR}/references/commands.md`: `references`, `rename`, `remove`,
   `place`, `declare`, `build`, `build --verify`, `test --mutate`, and `deps` in detail.
 - `${CLAUDE_SKILL_DIR}/references/init-and-dev-target.md`: per-connector init and

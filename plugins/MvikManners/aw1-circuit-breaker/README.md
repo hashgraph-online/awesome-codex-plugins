@@ -31,6 +31,7 @@ Get HOL Guard with `pipx install hol-guard` or `uv tool install hol-guard`.
 [![PyPI version](https://img.shields.io/pypi/v/aw1-circuit-breaker.svg?color=blue)](https://pypi.org/project/aw1-circuit-breaker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Latency](https://img.shields.io/badge/AST%20Evaluation-%3C0.2ms-brightgreen.svg)]()
+[![AW-1 Sovereign Circuit Breaker MCP server](https://mcprush.com/badge/aw-1-sovereign-circuit-breaker-mcp/card.svg)](https://mcprush.com/to/aw-1-sovereign-circuit-breaker-mcp?ref=badge)
 
 > Deterministic sub-0.2ms AST security circuit breaker for autonomous AI agents, tool dispatch pipelines, and MCP servers.
 

@@ -1,0 +1,44 @@
+{
+  "name": "computefirst",
+  "version": "1.0.0",
+  "description": "Agent skill and remote MCP connection for contract-checked deterministic computation with ComputeFirst.",
+  "author": {
+    "name": "ComputeFirst",
+    "url": "https://computefirst.net"
+  },
+  "homepage": "https://computefirst.net",
+  "repository": "https://github.com/321zz321/computefirst-skill",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "deterministic",
+    "validation",
+    "dates",
+    "csv",
+    "json",
+    "units",
+    "statistics"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "ComputeFirst",
+    "shortDescription": "Free, versioned, deterministic tools for checks, conversions and data transforms.",
+    "longDescription": "Lets Codex search a catalog of bounded, deterministic tools, read a tool's versioned contract, and execute it through a hosted MCP server, for work such as identifier validation, date math, CSV and JSON transforms, unit conversion and statistics. No API key or sign-up. Inputs are sent to computefirst.net, so do not send secrets or data that must stay local.",
+    "developerName": "ComputeFirst",
+    "category": "Coding",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://computefirst.net",
+    "privacyPolicyURL": "https://computefirst.net/privacy",
+    "termsOfServiceURL": "https://computefirst.net/terms",
+    "defaultPrompt": [
+      "Use ComputeFirst to validate this IBAN.",
+      "Use ComputeFirst to add 30 business days to this date.",
+      "Use ComputeFirst to convert this CSV to JSON."
+    ],
+    "composerIcon": "./assets/icon.svg"
+  }
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "memtomem Index"
+  short_description: "Index an explicitly selected path"
+  default_prompt: "Use $memtomem-index to index the notes directory."
+policy:
+  allow_implicit_invocation: false

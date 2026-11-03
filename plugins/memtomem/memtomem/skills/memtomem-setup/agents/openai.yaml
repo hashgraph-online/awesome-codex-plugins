@@ -1,0 +1,6 @@
+interface:
+  display_name: "memtomem Setup"
+  short_description: "Set up and verify memory search"
+  default_prompt: "Use $memtomem-setup to configure a first searchable directory."
+policy:
+  allow_implicit_invocation: false

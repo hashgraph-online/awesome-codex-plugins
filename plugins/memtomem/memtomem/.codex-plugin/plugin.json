@@ -1,0 +1,39 @@
+{
+  "name": "memtomem",
+  "version": "0.3.27",
+  "description": "Search, recall, save, and index Markdown-first agent memory with memtomem",
+  "author": {
+    "name": "memtomem",
+    "url": "https://github.com/memtomem"
+  },
+  "homepage": "https://github.com/memtomem/memtomem",
+  "repository": "https://github.com/memtomem/memtomem",
+  "license": "Apache-2.0",
+  "keywords": [
+    "memory",
+    "semantic-search",
+    "rag",
+    "mcp",
+    "markdown"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "memtomem",
+    "shortDescription": "Markdown-first memory for Codex",
+    "longDescription": "Search past decisions, recall recent memories, and explicitly save or index Markdown through the exact-pinned memtomem MCP server.",
+    "developerName": "memtomem",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/memtomem/memtomem",
+    "composerIcon": "./assets/icon.png",
+    "defaultPrompt": [
+      "Search my memories for the authentication decision.",
+      "Show memories created last week.",
+      "Check the health of my memory index."
+    ]
+  },
+  "mcpServers": "./.mcp.json"
+}
