@@ -5,7 +5,7 @@ Runs all modes in sequence for complete automation.
 ## Usage
 
 ```bash
-/multi-llm:multi-llm --full <plan_path> [model1 model2 ...] [--quick] [--yes]
+/multi-llm:multi-llm --full <plan_path> [model1 model2 ...] [--quick] [--yes] [--scope-policy expand|preserve]
 ```
 
 ## Process
@@ -59,6 +59,7 @@ By default, full mode still stops to ask you a few questions (model selection, `
 | Phase 4 human tasks | Asks which strategy, then pauses per task | Strategy resolves to `skip-dependents`; the per-task pause is unreachable (rows 8/9) |
 | Phase 6 Apply Code Fixes | Prompts on `needs-human-decision` + no-selection confirmation | Runs with `--agent-decide --no-confirm` |
 | A phase **fails** | Asks retry / run-manually / cancel | **exit 3** naming the failed phase and its `--resume` re-invocation (row 14) |
+| Scope policy (every phase) | Never asked | Never asked: the typed `--scope-policy` (or the one a stopped run of this workflow recorded), resolved once and passed to every phase; with none, each phase resolves its own — a new review round `expand`, an apply its review's — and one nobody typed is recorded as `[AUTO_RESOLVED] scope-policy: …` (row 16) |
 
 `--yes` is the umbrella switch; the narrower flags (`--quick`, `--agent-decide`, `--no-confirm`) keep their individual meanings and can still be passed on their own. Throughout the steps below, **"if `--yes` was specified"** means apply the row above for that phase. If `--yes` is NOT set, follow the interactive behavior as written.
 
@@ -98,6 +99,14 @@ uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.p
 `apply-code-fixes`). Reading `instructions/<mode>.md` out of the skill directory
 is the documented fallback, not the primary path: the served text is
 pre-substituted and the file on disk is not.
+
+**A typed `--scope-policy` goes to every phase.** When the user typed
+`--scope-policy <value>`, add it, as typed, to every phase command you run below
+(each review launch its core builds, each apply command, generate-tasks and
+implement), as `full` forwards it to the phases it runs itself (row 16). Never add
+it when the user typed none: each phase then resolves its own. A phase that starts
+a run of its own (generate-tasks, review-tasks, implement, review-code) would
+otherwise run under `expand`.
 
 ---
 

@@ -37,6 +37,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence
 try:  # pragma: no cover - import shim mirrors the rest of utils/
     from .code_fix_batcher import fix_member_ids
     from .prior_changes import entry_id, stable_key
+    from .scope_apply import TASK_KEY, task_block
     from .suggestion_batcher import suggestion_member_ids
     from .subagent_tasks import (
         PHASE_BY_WRITE_KIND,
@@ -48,6 +49,7 @@ try:  # pragma: no cover - import shim mirrors the rest of utils/
 except ImportError:  # pragma: no cover - direct-script import shim
     from utils.code_fix_batcher import fix_member_ids
     from utils.prior_changes import entry_id, stable_key
+    from utils.scope_apply import TASK_KEY, task_block
     from utils.suggestion_batcher import suggestion_member_ids
     from utils.subagent_tasks import (
         PHASE_BY_WRITE_KIND,
@@ -215,6 +217,8 @@ def materialize_write_tasks(
     plan_file: str,
     tasks_file: Optional[str] = None,
     grouped_file: Optional[str] = None,
+    scope: Any = None,
+    start_index: int = 0,
 ) -> List[Dict[str, Any]]:
     """Convert a phase's batch payload into materialized write tasks (D2g shape).
 
@@ -222,6 +226,14 @@ def materialize_write_tasks(
         batches: For the three apply kinds, the orchestrator's ``batches`` list
             (each carrying ``prompt``). For ``implement``, the ``batches`` list of
             ``{batch_index, can_parallelize, tasks: [...]}``.
+        scope: The apply phase's effective ``scope_apply.ApplyPolicy``. Under
+            ``preserve`` each apply task carries its ``scope`` block (policy,
+            baseline, binding, per-item relation/reason/selected remedy), which
+            the dispatch check and the writer prompt read; ``None`` or
+            ``expand`` adds nothing (plans/scope-policy-and-report-tags.md §5).
+        start_index: The first apply batch index. Non-zero only after a scope
+            policy change kept an earlier run's batches, so new work never
+            takes a completed batch's id or result name.
 
     Returns:
         The task list, validated against ``schemas/subagent_tasks.schema.json``.
@@ -262,8 +274,11 @@ def materialize_write_tasks(
                 ))
         return tasks
 
-    for index, batch in enumerate(batches):
+    for index, batch in enumerate(batches, start=int(start_index or 0)):
         fields = builder(batch, index, context)
+        block = task_block(batch, fields.get("expected_ids") or [], scope)
+        if block is not None:
+            fields["extra"] = {**(fields.get("extra") or {}), TASK_KEY: block}
         tasks.append(make_write_task(
             kind=kind, inputs=inputs, phase_dir=phase_dir, **fields
         ))

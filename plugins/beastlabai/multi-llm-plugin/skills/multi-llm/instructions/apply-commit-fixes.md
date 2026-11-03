@@ -16,7 +16,7 @@ the phase's completion. Nothing is committed. The core ends with section 4.
 ```
 
 The options are apply-code-fixes' own (`--agent-decide`, `--no-confirm`, `--resume`,
-`--dry-run`, `--min-priority`, …); `--plan-file`, `--base-ref` and `--head-ref` are
+`--dry-run`, `--min-priority`, `--scope-policy`, …); `--plan-file`, `--base-ref` and `--head-ref` are
 the front door's and are refused with `[COMMIT_FLAG_CONFLICT]`.
 
 ## Which review it applies
@@ -66,6 +66,7 @@ section 4's report.
 | D6 row 1, uv missing | before section 1 | the prerequisite below: print `hosts/uv-missing.txt`, stop with exit 3 |
 | D6 row 10, `needs-human-decision` items | section 3 | apply-code-fixes' own rule: `--agent-decide` (which `--yes` sets) lets the judge agent decide; otherwise ask the user |
 | D6 row 11, no-selection confirmation | section 3 | apply-code-fixes' step 2a: `--no-confirm` or `--yes` applies every valid fix without asking |
+| D6 row 16, scope policy | section 1 | never asked: a typed `--scope-policy` goes to the front door among the user's tokens and overrides the review's for this apply; left out, the apply keeps the review's (or an earlier typed override) |
 
 ---
 

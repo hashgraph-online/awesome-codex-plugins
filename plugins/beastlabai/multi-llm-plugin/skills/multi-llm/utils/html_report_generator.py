@@ -26,6 +26,7 @@ try:
         canonical_value,
         upgrade_legacy,
     )
+    from . import scope_report as _scope_report
 except ImportError:
     # Direct script invocation (`python utils/html_report_generator.py`):
     # sys.path[0] is the utils/ directory, so import the sibling module directly.
@@ -39,6 +40,7 @@ except ImportError:
         canonical_value,
         upgrade_legacy,
     )
+    import scope_report as _scope_report
 
 logger = logging.getLogger(__name__)
 
@@ -1080,6 +1082,10 @@ def _build_suggestion_data(
     if display_hash is not None:
         result["displayHash"] = display_hash
 
+    # The reviewer's own (provisional) scope tag; ``Scope unclear`` when the
+    # finding predates classification (plans/scope-policy-and-report-tags.md §6).
+    result[_scope_report.ENTRY_KEY] = _scope_report.member_scope(suggestion)
+
     return result
 
 
@@ -1483,6 +1489,167 @@ def _parse_tasks_markdown(content: str) -> Dict[str, Any]:
     return result
 
 
+# ---------------------------------------------------------------------------
+# Scope tags (plans/scope-policy-and-report-tags.md §6)
+# ---------------------------------------------------------------------------
+
+#: The consolidated page's persisted payload, decision regeneration's input
+#: (as ``report_data.json`` is report.html's). Its name holds ``consolidated``
+#: and ``report_data``, which every reaggregation scan's exclusions match.
+CONSOLIDATED_REPORT_DATA = "consolidated_report_data.json"
+#: The consolidated page itself.
+CONSOLIDATED_REPORT_HTML = "consolidated-report.html"
+
+#: The flat/PR payload's group views; each bucket's ``suggestions`` is a list
+#: of group copies, so an overlay must reach them as well as ``groups``.
+_GROUP_VIEWS = ("fileView", "sectionView", "taskView")
+
+
+def _payload_groups(report_data: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Every group dict of a flat/PR payload: ``groups`` and each view's copies."""
+    found: List[Dict[str, Any]] = [g for g in report_data.get("groups") or [] if isinstance(g, dict)]
+    for view in _GROUP_VIEWS:
+        for bucket in (report_data.get(view) or {}).values():
+            if isinstance(bucket, dict):
+                found.extend(g for g in bucket.get("suggestions") or [] if isinstance(g, dict))
+    return found
+
+
+def _scope_counts(groups_data: Sequence[Mapping[str, Any]]) -> Dict[str, int]:
+    """Tag counts over distinct groups (never per suggestion or per view copy)."""
+    return _scope_report.count_entries(
+        (str(g.get("groupHash") or ""), g.get(_scope_report.ENTRY_KEY) or {})
+        for g in groups_data
+    )
+
+
+def _scope_umbrellas(groups: Sequence[Dict[str, Any]],
+                     copies: Sequence[Dict[str, Any]] = (),
+                     umbrella_map: Optional[Dict[str, Any]] = None) -> None:
+    """Give each umbrella's metadata its derived scope (in place).
+
+    The umbrella's tag comes from its underlying groups' validated entries
+    (``scope_report.umbrella_scope``); it is written onto every copy of that
+    umbrella's ``_consolidatedMeta`` in *groups* and *copies* and onto its
+    ``umbrellaMap`` entries, so each view shows the same tag.
+    """
+    members: Dict[str, List[Tuple[str, Mapping[str, Any]]]] = {}
+    for group in groups:
+        meta = group.get("_consolidatedMeta")
+        if not isinstance(meta, dict):
+            continue
+        key = str(meta.get("consolidatedId") or "")
+        label = str(group.get("displayLabel") or f"G{group.get('originalIndex', '')}")
+        members.setdefault(key, []).append((label, group.get(_scope_report.ENTRY_KEY) or {}))
+    umbrellas = {key: _scope_report.umbrella_scope(found) for key, found in members.items()}
+    for group in list(groups) + list(copies):
+        meta = group.get("_consolidatedMeta")
+        if isinstance(meta, dict) and str(meta.get("consolidatedId") or "") in umbrellas:
+            meta[_scope_report.ENTRY_KEY] = umbrellas[str(meta.get("consolidatedId") or "")]
+    for meta in (umbrella_map or {}).values():
+        if isinstance(meta, dict) and str(meta.get("consolidatedId") or "") in umbrellas:
+            meta[_scope_report.ENTRY_KEY] = umbrellas[str(meta.get("consolidatedId") or "")]
+
+
+def _persisted_round(report_data: Mapping[str, Any],
+                     scope_state: Optional[Mapping[str, Any]]) -> Optional[Dict[str, Any]]:
+    """The round to overlay: ``state.json``'s record, else the payload's own.
+
+    ``None`` when neither exists (a legacy payload with no recorded round):
+    there is nothing to recompute and the page keeps rendering unknown tags.
+    """
+    info = _scope_report.round_info(scope_state or {}, str(report_data.get("phase") or ""))
+    block = report_data.get(_scope_report.REPORT_KEY)
+    if info["recorded"]:
+        if not info.get("baseline") and isinstance(block, Mapping):
+            info["baseline"] = block.get("baseline")
+        return info
+    if not isinstance(block, Mapping):
+        return None
+    return {
+        "recorded": bool(block.get("recorded")),
+        "reviewPolicy": block.get("reviewPolicy"),
+        "reviewPolicySource": block.get("reviewPolicySource"),
+        "applyPolicy": block.get("applyPolicy"),
+        "applyPolicySource": block.get("applyPolicySource"),
+        "effectivePolicy": block.get("effectivePolicy"),
+        "baselineId": block.get("baselineId"),
+        "baseline": block.get("baseline"),
+        "deferrals": [],
+    }
+
+
+def _missing_entry() -> Dict[str, Any]:
+    """A legacy group's scope entry: never classified."""
+    return {
+        "relation": "unclear", "label": _scope_report.sp.LABELS["unclear"],
+        "reason": "no validated scope classification", "reference": "",
+        "authority": "missing", "validated": False, "stale": False, "provisional": False,
+    }
+
+
+def _rescope(group: Dict[str, Any], info: Mapping[str, Any],
+             deferrals: Mapping[str, Mapping[str, Any]]) -> None:
+    """Recompute *group*'s scope eligibility for the round's policy (in place).
+
+    The classification (relation, reason, authority, binding) is the one
+    persisted at review time and is never changed; only the decision is
+    asked again of the one gate (``scope_report.replay_decision``).
+    """
+    entry = group.get(_scope_report.ENTRY_KEY)
+    entry = dict(entry) if isinstance(entry, Mapping) else _missing_entry()
+    entry["decision"] = _scope_report.replay_decision(
+        entry, info.get("effectivePolicy"), deferrals.get(str(group.get("groupHash") or "")))
+    group[_scope_report.ENTRY_KEY] = entry
+
+
+def _overlay_scope(report_data: Dict[str, Any], scope_state: Optional[Mapping[str, Any]]) -> bool:
+    """Recompute a flat/PR payload's scope eligibility from the recorded round.
+
+    Uses the persisted payload and ``state.json``'s ``scope_policy`` record
+    only — never the live plan or a model. Returns whether anything shown
+    changed (the effective policy, or any group's outcome).
+    """
+    info = _persisted_round(report_data, scope_state)
+    if info is None:
+        return False
+    before = json.dumps([_scope_view(g) for g in report_data.get("groups") or []]
+                        + [report_data.get(_scope_report.REPORT_KEY)], sort_keys=True, default=str)
+    deferrals = _scope_report.deferral_index(info)
+    groups = [g for g in report_data.get("groups") or [] if isinstance(g, dict)]
+    own = {id(g) for g in groups}
+    copies = [g for g in _payload_groups(report_data) if id(g) not in own]
+    for group in groups + copies:
+        _rescope(group, info, deferrals)
+    _scope_umbrellas(groups, copies, report_data.get("umbrellaMap"))
+    report_data[_scope_report.REPORT_KEY] = _scope_report.report_block(info, _scope_counts(groups))
+    after = json.dumps([_scope_view(g) for g in groups]
+                       + [report_data.get(_scope_report.REPORT_KEY)], sort_keys=True, default=str)
+    return before != after
+
+
+def _scope_view(group: Any) -> Any:
+    return (group or {}).get(_scope_report.ENTRY_KEY) if isinstance(group, Mapping) else None
+
+
+def embed_consolidated_report_data(report_data: Mapping[str, Any], template: str) -> str:
+    """The consolidated page: *report_data* embedded at its placeholder.
+
+    The same script-safe JSON as the flat/PR pages (:func:`script_json`); a
+    template without the placeholder is an error rather than a page with no
+    data.
+    """
+    payload = script_json(report_data)
+    for placeholder in ("/* REPORT_DATA_PLACEHOLDER */null", "/* REPORT_DATA_PLACEHOLDER */",
+                        "REPORT_DATA_PLACEHOLDER"):
+        if placeholder in template:
+            return template.replace(placeholder, payload)
+    raise ValueError(
+        "Template does not contain REPORT_DATA_PLACEHOLDER \u2014 "
+        "cannot inject report data."
+    )
+
+
 def generate_html_report(
     groups: List[Dict[str, Any]],
     plan_path: Path,
@@ -1505,6 +1672,7 @@ def generate_html_report(
     head_ref: Optional[str] = None,
     repo_root: Optional[str] = None,
     file_labels: Optional[Dict[str, str]] = None,
+    scope_state: Optional[Mapping[str, Any]] = None,
 ) -> str:
     """Generate complete HTML report and return the HTML string.
 
@@ -1589,6 +1757,13 @@ def generate_html_report(
             (``deleted in <range>``, ``renamed to <new> in <range>``, ``absent
             at <head7>``), carried on the file's ``fileContexts`` entry as
             ``label``, the same words the validation excerpt's header uses.
+        scope_state: The ``state.json`` dict whose ``scope_policy`` record
+            holds this review round's policy, baseline and deferrals; ``None``
+            reads ``state.json`` beside *phase_dir*. Every group gains
+            ``scope`` (its validated tag and the effective policy's outcome),
+            every suggestion its provisional ``scope``, every umbrella a
+            derived one, and the payload ``scopePolicy`` (plan §6). A legacy
+            round reads ``expand`` and ``Scope unclear``.
 
     Returns:
         Complete HTML string for the report
@@ -1661,10 +1836,16 @@ def generate_html_report(
     # Get log snippets
     log_snippets = embed_log_snippets(phase_dir, models)
 
+    # The review round's scope record (policy, baseline, deferrals).
+    scope_round = _scope_report.round_info(
+        scope_state if scope_state is not None else _scope_report.read_state(phase_dir),
+        phase_type, effective_groups)
+
     # Build groups data
     groups_data = []
     for i, group in enumerate(effective_groups):
         built = _build_group_data(group, i, validation_results)
+        built[_scope_report.ENTRY_KEY] = _scope_report.group_scope(group, scope_round)
         # Carry through consolidated metadata if present
         cons_meta = group.get("_consolidated_meta")
         if cons_meta is not None:
@@ -1674,6 +1855,9 @@ def generate_html_report(
         if group.get("_is_consolidated_flat"):
             built["_isConsolidatedFlat"] = True
         groups_data.append(built)
+
+    # An umbrella's derived scope tag, on the metadata dict its groups share.
+    _scope_umbrellas(groups_data)
 
     # Sort groups by priority (validation status, then importance, then original index)
     groups_data = sort_groups_by_priority(groups_data)
@@ -2136,6 +2320,10 @@ def generate_html_report(
     # (regenerate_report_with_human_decisions) re-renders with the same template.
     report_data["templateStyle"] = template_style
 
+    # The round's policy line, legend and tag counts (distinct groups).
+    report_data[_scope_report.REPORT_KEY] = _scope_report.report_block(
+        scope_round, _scope_counts(groups_data))
+
     html = _embed_report_data(report_data, template)
 
     # Persist the assembled report_data so the apply phase can overlay human
@@ -2240,6 +2428,21 @@ def _fill_template_slots(template: str, report_data: Mapping[str, Any]) -> str:
     )
 
 
+def script_json(report_data: Any) -> str:
+    """*report_data* as JSON safe inside an inline ``<script>``.
+
+    Escapes the sequences that would break out of the surrounding tag:
+    ``</script>`` (``</`` in general) and ``<!--`` (an HTML comment opener
+    inside JS). ``\\/`` is valid JSON (RFC 8259 §7). Every report page —
+    flat, PR and consolidated — embeds its payload through this.
+    """
+    return (
+        json.dumps(report_data, indent=2)
+        .replace("</", "<\\/")
+        .replace("<!--", "<\\!--")
+    )
+
+
 def _embed_report_data(report_data: Dict[str, Any], template: str) -> str:
     """Embed ``report_data`` as JSON into ``template`` at the data placeholder.
 
@@ -2249,14 +2452,7 @@ def _embed_report_data(report_data: Dict[str, Any], template: str) -> str:
     it, so text inside the data can never be taken for a slot.
     """
     template = _fill_template_slots(template, report_data)
-    # Escape sequences that would break out of the surrounding <script> tag:
-    #   </script>, </ in general, and <!-- (HTML comment opener inside JS).
-    # \/ is valid JSON (RFC 8259 §7), so this stays parseable.
-    json_data = (
-        json.dumps(report_data, indent=2)
-        .replace("</", "<\\/")
-        .replace("<!--", "<\\!--")
-    )
+    json_data = script_json(report_data)
 
     # Replace the placeholder in the template
     # The template has: const reportData = /* REPORT_DATA_PLACEHOLDER */null;
@@ -2744,6 +2940,8 @@ def regenerate_report_with_human_decisions(
     template_style: Optional[str] = None,
     *,
     guard: Optional[Dict[str, Any]] = None,
+    scope_state: Optional[Mapping[str, Any]] = None,
+    include_consolidated: bool = True,
 ) -> Tuple[Optional[Path], int]:
     """Re-render ``{phase_dir}/report.html`` with human decisions overlaid.
 
@@ -2760,16 +2958,27 @@ def regenerate_report_with_human_decisions(
     report" from "wrote a report that matched what it was handed": a code-review
     report whose groups carry no ``groupHash`` (F2) re-renders byte-identical
     with ``matched == 0`` and no error, which only the count exposes.
+
+    Scope (plans/scope-policy-and-report-tags.md §6): each group's scope
+    eligibility is recomputed for the round's current effective policy and
+    recorded deferrals (*scope_state*: the ``state.json`` dict; ``None`` reads
+    the one beside *phase_dir*), keeping the persisted classification intact.
+    With *include_consolidated* the consolidated page is regenerated from its
+    own sidecar too (:func:`regenerate_consolidated_with_human_decisions`,
+    best-effort).
     """
     phase_dir = Path(phase_dir)
     sidecar = phase_dir / "report_data.json"
     if not sidecar.exists():
         return None, 0
+    if scope_state is None:
+        scope_state = _scope_report.read_state(phase_dir)
     report_data = upgrade_legacy(json.loads(sidecar.read_text(encoding="utf-8")))
     matched = _overlay_human_decisions(report_data, human_decisions or {})
     # The commit guard's skips, read from the saved guard beside the
     # decisions (*guard*: the pinned record's ``guard``, None on a plan's run).
     _overlay_guard_skips(report_data, guard)
+    _overlay_scope(report_data, scope_state)
     style = template_style or report_data.get("templateStyle", "pr")
     template = _load_report_template(style)
     html = _embed_report_data(report_data, template)
@@ -2780,7 +2989,122 @@ def regenerate_report_with_human_decisions(
         sidecar.write_text(json.dumps(report_data, indent=2), encoding="utf-8")
     except OSError:
         pass
+    if include_consolidated:
+        try:
+            regenerate_consolidated_with_human_decisions(
+                phase_dir, human_decisions, scope_state=scope_state)
+        except Exception as exc:  # noqa: BLE001 - the main report was written
+            logger.warning("consolidated report not regenerated: %s", exc)
     return report_path, matched
+
+
+def _overlay_consolidated(report_data: Dict[str, Any],
+                          human_decisions: Mapping[str, Mapping[str, Any]],
+                          scope_state: Optional[Mapping[str, Any]]) -> int:
+    """Overlay decisions and scope eligibility onto a consolidated payload (in place).
+
+    Decisions act on groups, so they join each umbrella's **underlying**
+    groups by ``groupHash`` (a replacement, as for the main report). Each
+    underlying group's scope decision is recomputed for the round's policy
+    and each umbrella's derived tag rebuilt from its members. Returns the
+    number of underlying groups a decision joined.
+    """
+    summary = {"approved": 0, "salvaged": 0, "skipped": 0, JUDGE_DECIDED: 0, "total": 0}
+    matched = 0
+    info = _persisted_round(report_data, scope_state)
+    deferrals = _scope_report.deferral_index(info) if info else {}
+    distinct: List[Tuple[str, Mapping[str, Any]]] = []
+    for cg in report_data.get("consolidatedGroups") or []:
+        if not isinstance(cg, dict):
+            continue
+        members: List[Tuple[str, Mapping[str, Any]]] = []
+        for ug in cg.get("underlyingGroups") or []:
+            if not isinstance(ug, dict):
+                continue
+            ug.pop("humanDecision", None)
+            group_hash = str(ug.get("groupHash") or "")
+            if group_hash and group_hash in human_decisions:
+                decision = _normalize_human_decision(dict(human_decisions[group_hash]))
+                ug["humanDecision"] = decision
+                matched += 1
+                summary["total"] += 1
+                if decision["outcome"] in summary:
+                    summary[decision["outcome"]] += 1
+                if decision[JUDGE_DECIDED]:
+                    summary[JUDGE_DECIDED] += 1
+            if info is not None:
+                _rescope(ug, info, deferrals)
+            entry = ug.get(_scope_report.ENTRY_KEY) or {}
+            label = str(ug.get("displayLabel") or f"G{ug.get('groupIndex', '')}")
+            members.append((label, entry))
+            distinct.append((group_hash or f"index:{ug.get('groupIndex')}", entry))
+        if info is not None:
+            cg[_scope_report.ENTRY_KEY] = _scope_report.umbrella_scope(members)
+    if info is not None:
+        report_data[_scope_report.REPORT_KEY] = _scope_report.report_block(
+            info, _scope_report.count_entries(distinct))
+    report_data["humanDecisionsSummary"] = summary
+    return matched
+
+
+def _load_consolidated_template() -> str:
+    path = Path(__file__).parent.parent / "templates" / "consolidated_report_template.html"
+    if not path.exists():
+        raise FileNotFoundError(f"Consolidated report template not found at: {path}")
+    return path.read_text(encoding="utf-8")
+
+
+def regenerate_consolidated_with_human_decisions(
+    phase_dir: Path,
+    human_decisions: Mapping[str, Mapping[str, Any]],
+    *,
+    scope_state: Optional[Mapping[str, Any]] = None,
+) -> Tuple[Optional[Path], int, str]:
+    """Re-render ``consolidated-report.html`` from ``consolidated_report_data.json``.
+
+    The consolidated twin of :func:`regenerate_report_with_human_decisions`:
+    the persisted payload plus the recorded decisions (overlaid onto the
+    underlying groups by id) and the round's scope record — never the plan,
+    ``consolidated.json`` or a model. Returns ``(path, matched, status)``:
+    ``regenerated``; ``legacy`` when the page exists but predates the
+    sidecar (left untouched: it cannot be rebuilt from saved data, and
+    reconstructing it would be a guess); ``absent`` when there is no
+    consolidated page at all.
+    """
+    phase_dir = Path(phase_dir)
+    sidecar = phase_dir / CONSOLIDATED_REPORT_DATA
+    page = phase_dir / CONSOLIDATED_REPORT_HTML
+    if not sidecar.exists():
+        return None, 0, ("legacy" if page.exists() else "absent")
+    if scope_state is None:
+        scope_state = _scope_report.read_state(phase_dir)
+    report_data = upgrade_legacy(json.loads(sidecar.read_text(encoding="utf-8")))
+    matched = _overlay_consolidated(report_data, human_decisions or {}, scope_state)
+    page.write_text(embed_consolidated_report_data(report_data, _load_consolidated_template()),
+                    encoding="utf-8")
+    try:
+        sidecar.write_text(json.dumps(report_data, indent=2), encoding="utf-8")
+    except OSError:
+        pass
+    return page, matched, "regenerated"
+
+
+def scope_regeneration_needed(phase_dir: Path, scope_state: Optional[Mapping[str, Any]]) -> bool:
+    """Whether the round's scope record changes what a saved report shows.
+
+    True when recomputing eligibility for the recorded effective policy and
+    deferrals (an apply override, a deferral the apply phase recorded) would
+    change ``report_data.json``'s page — so a phase that decided nothing by
+    hand still refreshes its report when the policy moved.
+    """
+    sidecar = Path(phase_dir) / "report_data.json"
+    try:
+        report_data = json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    if not isinstance(report_data, dict):
+        return False
+    return _overlay_scope(report_data, scope_state)
 
 
 #: ``apply-code-fixes`` is the one apply phase whose mode word is not its
@@ -2830,6 +3154,33 @@ def _read_guard_from_state(state_file: Path) -> Optional[Dict[str, Any]]:
     return None
 
 
+def _read_state_dict(state_file: Path) -> Dict[str, Any]:
+    """A state.json file as a dict (``{}`` when unreadable)."""
+    try:
+        state = json.loads(Path(state_file).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return state if isinstance(state, dict) else {}
+
+
+def _report_consolidated_regeneration(phase_dir: Path, decisions: Mapping[str, Any],
+                                      scope_state: Mapping[str, Any]) -> None:
+    """Regenerate the consolidated page beside a report and say what happened."""
+    try:
+        path, matched, status = regenerate_consolidated_with_human_decisions(
+            phase_dir, decisions, scope_state=scope_state)
+    except Exception as exc:  # noqa: BLE001 - best-effort, like the main overlay
+        print(f"WARNING: consolidated report not regenerated: {exc}", file=sys.stderr)
+        return
+    if status == "regenerated":
+        print(f"Consolidated HTML report regenerated with {matched} of {len(decisions)} "
+              f"decision(s) matched by underlying group: {path}")
+    elif status == "legacy":
+        print(f"{Path(phase_dir) / CONSOLIDATED_REPORT_HTML} predates "
+              f"{CONSOLIDATED_REPORT_DATA}, so it cannot be regenerated from saved "
+              "data and is left as it was (run --consolidate again to refresh it).")
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     """CLI: overlay recorded human decisions onto an existing review report."""
     bootstrap_streams()
@@ -2876,7 +3227,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             Path(args.state_file), args.apply_phase
         )
         guard = _read_guard_from_state(Path(args.state_file))
+        scope_state = _read_state_dict(Path(args.state_file))
         if (not decisions and not (guard or {}).get("skipped")
+                and not scope_regeneration_needed(phase_dir, scope_state)
                 and (phase_dir / "report_data.json").exists()):
             # Live run 8 (Claude Code racing 05/08): a phase that decided
             # nothing by hand or by judge re-rendered the report anyway and
@@ -2891,14 +3244,22 @@ def main(argv: Optional[List[str]] = None) -> int:
             )
             return 0
         result, matched = regenerate_report_with_human_decisions(
-            phase_dir, decisions, args.template_style, guard=guard
+            phase_dir, decisions, args.template_style, guard=guard,
+            scope_state=scope_state, include_consolidated=False,
         )
+        _report_consolidated_regeneration(phase_dir, decisions, scope_state)
         if result is None:
             print(
                 f"No report_data.json in {phase_dir}; cannot overlay decisions "
                 "(report predates the decision-overlay feature). Skipping HTML "
                 "update."
             )
+            return 0
+        if not decisions and not (guard or {}).get("skipped"):
+            # Only the round's scope record moved (an apply override or its
+            # deferrals): say that, not "0 of 0 decisions matched".
+            print(f"HTML report regenerated for this round's recorded scope policy "
+                  f"(no human or judge decision is recorded): {result}")
             return 0
         print(
             f"HTML report regenerated with {matched} of {len(decisions)} human "

@@ -140,7 +140,7 @@ def find_misnamed_result(
     return Path(phase_dir) / fresh[0]
 
 
-def set_aside_stale_result(path: os.PathLike | str) -> Optional[Path]:
+def set_aside_stale_result(path: os.PathLike | str, *, reason: Optional[str] = None) -> Optional[Path]:
     """Rename an earlier run's ``<stem>.json`` to ``<stem>.json.stale-earlier-run``.
 
     Called by ``llm_client.invoke_with_file_output`` when the file a slot asks
@@ -159,6 +159,9 @@ def set_aside_stale_result(path: os.PathLike | str) -> Optional[Path]:
     appended). One line names the new file. Non-fatal and loud: a failed rename
     warns on stderr naming the file that survived. Returns the new path, or
     ``None`` when nothing was renamed.
+
+    A new scope-policy round uses the same retirement with an explicit
+    ``reason`` so its notice describes the policy change, not a slot retry.
     """
     source = Path(path)
     target = source.with_name(f"{source.name}.{STALE_RESULT_SUFFIX}")
@@ -176,9 +179,9 @@ def set_aside_stale_result(path: os.PathLike | str) -> Optional[Path]:
             file=sys.stderr,
         )
         return None
+    detail = reason or "was there before this slot started and is unchanged, an earlier run's answer"
     print(
-        f"[RESULT_STALE] {source.name} was there before this slot started and "
-        f"is unchanged, an earlier run's answer: set aside as {target.name} so "
+        f"[RESULT_STALE] {source.name} {detail}: set aside as {target.name} so "
         f"nothing reads it as this run's (nothing was deleted)"
     )
     return target

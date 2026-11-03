@@ -8,7 +8,17 @@ Read every first-party documentation file and enough reliable evidence to verify
 
 Use the authority rules in `align-docs`. Code is not the source for every promise or past decision.
 
-Keep uncertain content active and report the uncertainty. List duplicate `NNNN` prefixes without renumbering them. `resolve-merge` renumbers legacy files only during an active conflict. Date-and-slug files need no counter.
+Keep uncertain content active and report the uncertainty. Date-and-slug files need no counter.
+
+## Rename numbered records
+
+Run `uv run <plugin-root>/scripts/rename_numbered_docs.py <repository-root>` to preview legacy plan, chronicle, and research renames.
+Review each proposed name, reference, conflict, and bare-number citation before applying the proposal.
+Resolve conflicts and untracked records by hand. Do not move numbered documents outside these collections without checking their role.
+After approval, add `--apply` to move tracked records with `git mv` and update full-name references.
+Review every changed reference, including those outside `docs/`, and repair relevant bare-number citations by hand.
+An apply run exits 1 when a renamed record still has a bare-number citation or another unresolved problem.
+Keep the documented `--legacy-before` cutoff so old archived plans retain their warning status.
 
 ## Put each fact in the right place
 

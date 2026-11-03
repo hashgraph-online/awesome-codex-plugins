@@ -83,8 +83,14 @@ from utils.output_handler import (
 from utils.detach import record_output_files, report_progress
 from utils.progress_tracker import DEADLINE_ERROR, FanoutProgress, PhaseProgress
 from utils.readonly_audit import combine_audits
+from utils import scope_policy as _sp
+from utils import scope_round as _scope_round
 from utils.review_orchestrator_base import (
     RETIRE_SUPERSEDED,
+    round_results_exist,
+    retire_scope_round_results,
+    resolve_scope_round,
+    validation_scope_block,
     backfill_deadline_losses,
     dispatch_salvage_tasks,
     dispatch_subagent_tasks,
@@ -577,6 +583,11 @@ Examples:
              'issues, instead of the default 0. For standalone CI gating; the '
              '[HIGH_PRIORITY_ISSUES] <n> marker is printed either way.'
     )
+
+    # plans/scope-policy-and-report-tags.md §4: declared once, in cli_common.
+    from utils.cli_common import add_scope_policy_argument
+
+    add_scope_policy_argument(parser, role="review")
 
     return parser.parse_args(argv)
 
@@ -3096,6 +3107,44 @@ def salvage_issue_fields(commit_record: Optional[Mapping[str, Any]]) -> List[str
     return fields
 
 
+def code_review_scope_baseline(
+    state: Any,
+    plan_path: Path,
+    plan_document: Optional[BoundDocument],
+    *,
+    base_ref: Optional[str],
+    head_ref: Optional[str] = None,
+) -> Dict[str, Any]:
+    """The scope baseline of a code (or commit) review round (plan §2).
+
+    Intent is the accepted plan — for a commit review, the pinned brief and
+    its frozen context plan; the task list and the reviewed range are
+    evidence. The primary document is hashed from the bytes the round binds
+    to ``validation-snapshot.md`` (``plan_document``), else from the plan as
+    read now (a ``--skip-validation`` round binds no snapshot).
+    """
+    record = getattr(state, "state", None) or {}
+    commit_review = isinstance(record.get("commit_range"), dict)
+    tasks_path: Optional[str] = None
+    if not commit_review:
+        from utils.tasks_file import find_tasks_file
+
+        try:
+            tasks_path = find_tasks_file(str(plan_path))
+        except (FileNotFoundError, ValueError, OSError):
+            tasks_path = None
+    return _scope_round.build_round_baseline(
+        "code-review",
+        plan_document=plan_document,
+        plan_path=None if plan_document is not None else str(plan_path),
+        primary_role="commit_brief" if commit_review else "plan",
+        tasks_path=tasks_path,
+        extra_sources=_scope_round.code_review_extra_sources(
+            record, base_ref=base_ref, head_ref=head_ref,
+        ),
+    )
+
+
 async def run_single_review(
     model_spec: str,
     plan_path: Path,
@@ -3115,6 +3164,7 @@ async def run_single_review(
     diff_coverage: Optional[str] = None,
     run_model_specs: Optional[List[str]] = None,
     pinned: Optional[PinnedRange] = None,
+    scope_policy: Optional[str] = None,
 ) -> Tuple[bool, Optional[List[Dict]], Optional[str]]:
     """
     Run a single model code review using agent exploration with file-based output.
@@ -3421,6 +3471,13 @@ async def run_single_review(
         "scope_file": scope_file_text,
         "diff_dir": diff_dir_text,
         "diff_access": diff_access_text,
+        # The round's scope block, rendered per slot from the resolved policy
+        # (plans/scope-policy-and-report-tags.md §3.1): a commit review judges
+        # scope against its brief, a code review against the accepted plan.
+        "scope_policy_guidance": _sp.reviewer_guidance(
+            scope_policy,
+            _scope_round.guidance_phase("code-review", commit_review=commit_record is not None),
+        ),
     }
     if commit_record is not None:
         # The commit template's own slots (§2.6). The block's pointer names
@@ -3709,6 +3766,7 @@ async def run_single_review(
                 "expected_type": "array",
                 "expected_schema": {
                     "fields": salvage_issue_fields(commit_record),
+                    "optional_fields": list(_sp.SCOPE_FIELDS),
                     "importance_values": ["high", "medium", "low"],
                     "type_values": ["bug", "missing", "improvement", "style", "scope"]
                 },
@@ -3804,6 +3862,7 @@ async def run_single_review(
             "expected_type": "array",
             "expected_schema": {
                 "fields": salvage_issue_fields(commit_record),
+                "optional_fields": list(_sp.SCOPE_FIELDS),
                 "importance_values": ["high", "medium", "low"],
                 "type_values": ["bug", "missing", "improvement", "style", "scope"]
             },
@@ -3858,6 +3917,7 @@ async def run_all_reviews(
     scope_id: Optional[str] = None,
     diff_coverage: Optional[str] = None,
     pinned: Optional[PinnedRange] = None,
+    scope_policy: Optional[str] = None,
 ) -> Dict[str, Tuple[bool, Optional[List[Dict]], Optional[str]]]:
     """
     Run code review across all models using agent exploration.
@@ -3951,6 +4011,12 @@ async def run_all_reviews(
     if tracker_out is not None:
         tracker_out.append(tracker)
     pinned_kwargs: Dict[str, Any] = {"pinned": pinned} if pinned is not None else {}
+    # Only a non-default policy is handed down by keyword: the slot's own
+    # default renders `expand`, so a default run calls it exactly as before.
+    scope_kwargs: Dict[str, Any] = (
+        {"scope_policy": scope_policy}
+        if _sp.effective(scope_policy) != _sp.DEFAULT_POLICY else {}
+    )
 
     async def run_with_semaphore(model_spec: str, index: int) -> Tuple[str, Tuple[bool, Optional[List[Dict]], Optional[str]]]:
         provider_name, model_name = parse_model_spec(model_spec, anchor=str(plan_path))
@@ -4064,6 +4130,7 @@ async def run_all_reviews(
                             diff_coverage=diff_coverage,
                             run_model_specs=list(model_specs),
                             **pinned_kwargs,
+                            **scope_kwargs,
                         )
             else:
                 async with semaphore:
@@ -4076,6 +4143,7 @@ async def run_all_reviews(
                         diff_coverage=diff_coverage,
                         run_model_specs=list(model_specs),
                         **pinned_kwargs,
+                        **scope_kwargs,
                     )
         except Exception as exc:
             # F5, 2026-09-20: two lanes, one event, two different answers. A
@@ -4236,8 +4304,15 @@ def generate_review_report(
     review_scope: Optional[Dict[str, Any]] = None,
     pinned: Optional[PinnedRange] = None,
     repo_root: Optional[str] = None,
+    scope_state: Optional[Dict[str, Any]] = None,
 ) -> str:
     """Generate a markdown review report.
+
+    ``scope_state`` is the ``state.json`` dict holding the review round's
+    ``scope_policy`` record (plans/scope-policy-and-report-tags.md §6);
+    ``None`` reads the saved one beside *phase_dir*. Each issue shows its own
+    provisional scope tag and its group's validated one, and the header the
+    effective policy and the tag counts over distinct groups.
 
     ``pinned`` (a review pinned to two commits) hands the HTML report the
     head commit and *repo_root*: its hunks are ``base..head``, its context is
@@ -4397,6 +4472,20 @@ def generate_review_report(
     # Review-scope plan D2.2: the manifest and per-file diffs the reviewers
     # were pointed at, their coverage, and any result that reviewed another set.
     lines.extend(review_scope_report_lines(review_scope))
+    # Scope tags (plans/scope-policy-and-report-tags.md §6): the round's
+    # effective policy and the tag counts over distinct groups, never over the
+    # issue rows below (a consensus finding is one row per model).
+    from utils import scope_report as _scope_report
+
+    if scope_state is None:
+        scope_state = _scope_report.read_state(phase_dir)
+    scope_round = _scope_report.round_info(scope_state, "code-review", validated_groups or [])
+    group_scopes = [
+        (str(g.get("group_hash") or ""), _scope_report.group_scope(g, scope_round))
+        for g in validated_groups or []
+    ]
+    lines.extend(_scope_report.md_header_lines(
+        scope_round, _scope_report.count_entries(group_scopes)))
     lines.append("")
 
     lines.append("> **Note:** An interactive HTML report is also available at `report.html`.")
@@ -4405,6 +4494,7 @@ def generate_review_report(
     if validated_groups:
         lines.append("> Checkboxes act on the whole group: marking one issue marks every")
         lines.append("> issue listed as the same finding, because there is one fix between them.")
+    lines.append(_scope_report.md_legend_line())
     lines.append("")
 
     # Build validation info lookup from validated_groups
@@ -4494,6 +4584,16 @@ def generate_review_report(
             if introduced:
                 issue_introduced[id(issue)] = introduced
 
+    # Each numbered issue's group scope entry: every member of a group shows
+    # the group's one validated tag, as it shows the group's one verdict.
+    issue_scope: Dict[int, Dict[str, Any]] = {}
+    if validated_groups:
+        scope_placement = match_issues_to_suggestions(all_issues, validated_groups)
+        for idx, issue in enumerate(all_issues, 1):
+            location = scope_placement.get(idx)
+            if location and 0 < location[0] <= len(group_scopes):
+                issue_scope[id(issue)] = group_scopes[location[0] - 1][1]
+
     # Group by importance
     high = [i for i in all_issues if i.get("importance") == "high"]
     medium = [i for i in all_issues if i.get("importance") == "medium"]
@@ -4523,6 +4623,7 @@ def generate_review_report(
                 siblings=issue_siblings.get(id(issue)),
                 group_model_count=issue_group_models.get(id(issue), 0),
                 introduced_by=issue_introduced.get(id(issue)),
+                group_scope=issue_scope.get(id(issue)),
             ))
     else:
         lines.append("_No high priority issues._")
@@ -4541,6 +4642,7 @@ def generate_review_report(
                 siblings=issue_siblings.get(id(issue)),
                 group_model_count=issue_group_models.get(id(issue), 0),
                 introduced_by=issue_introduced.get(id(issue)),
+                group_scope=issue_scope.get(id(issue)),
             ))
     else:
         lines.append("_No medium priority issues._")
@@ -4559,6 +4661,7 @@ def generate_review_report(
                 siblings=issue_siblings.get(id(issue)),
                 group_model_count=issue_group_models.get(id(issue), 0),
                 introduced_by=issue_introduced.get(id(issue)),
+                group_scope=issue_scope.get(id(issue)),
             ))
     else:
         lines.append("_No low priority issues._")
@@ -4619,6 +4722,7 @@ def generate_review_report(
                 usage=usage,
                 requested_models=requested_models,
                 salvage_requested=salvage_requested,
+                scope_state=scope_state,
                 **pinned_report_kwargs(validated_groups or [], pinned, repo_root),
             )
             write_html_report(html_content, phase_dir)
@@ -4675,6 +4779,7 @@ def _format_issue(
     siblings: Optional[List[int]] = None,
     group_model_count: int = 0,
     introduced_by: Optional[str] = None,
+    group_scope: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     """Format a single issue for the report.
 
@@ -4699,6 +4804,12 @@ def _format_issue(
             sits above the metadata line, so the description the parser reads
             after that line is unchanged, and its subject is escaped so it
             cannot pass for a checkbox.
+        group_scope: The issue's group scope entry
+            (``scope_report.group_scope``): its validated tag and, under
+            ``preserve``, its policy outcome. The issue's own provisional tag
+            is always shown. Both sit above the metadata line, so
+            ``report_parser.parse_issue_descriptions`` reads the same
+            description as before (plan §6).
     """
     file_ref = issue.get("file", "unknown")
     line_range = issue.get("line_range")
@@ -4751,6 +4862,12 @@ def _format_issue(
 
     if introduced_by:
         lines.append(introduced_by)
+
+    from utils import scope_report as _scope_report
+
+    lines.append(_scope_report.md_member_line(issue))
+    if group_scope is not None:
+        lines.extend(_scope_report.md_group_lines(group_scope))
 
     lines.extend([
         f"**Validation:** {validation_str} | **File:** `{file_ref}` | **Type:** {issue.get('type', 'unknown')} | **Model:** {served_model_label(issue.get('model', 'unknown'), served_models)}",
@@ -5014,6 +5131,12 @@ async def reaggregate_from_existing_files(
         base_ref = validate_git_ref(base_ref)
     pinned_kw: Dict[str, Any] = {"pinned": pinned} if pinned is not None else {}
     plan_snapshot, plan_sha256 = _context_plan(getattr(state, "state", None))
+    # A reaggregate belongs to the round on record (plan §4): its policy and
+    # baseline stay; a differing explicit policy was refused before the
+    # boundary and is refused here too for a direct caller.
+    scope_round_policy = resolve_scope_round(
+        state, "code-review", args, same_round=True, phase_dir=str(phase_dir),
+    )
 
     # The same resolution as `resolve_changed_files` (the same printed lines),
     # kept whole because a regenerated scope manifest names its source (D2.2).
@@ -5294,6 +5417,16 @@ async def reaggregate_from_existing_files(
                 secondary_document=reviewed_code_document(secondary, cut_report),
                 runner_read_refusal=materialization_read_refusal(args, str(plan_path)),
                 phase="code-review",
+                scope=validation_scope_block(
+                    "code-review", scope_round_policy, state,
+                    _scope_round.round_baseline(
+                        getattr(state, "state", {}) or {}, "code-review"
+                    ),
+                    plan_document=plan_document,
+                    commit_review=isinstance(
+                        (getattr(state, "state", {}) or {}).get("commit_range"), dict
+                    ),
+                ),
             )
 
             # Save validation task instructions
@@ -5570,6 +5703,13 @@ async def main(argv: Optional[List[str]] = None) -> int:
                       flags=cli_common.current_replay_flags(mode="review-code"),
                   ))
             sys.exit(EXIT_NEEDS_HUMAN)
+
+        # The round on record keeps its scope policy: a differing explicit
+        # `--scope-policy` is refused here, before the boundary (plan §4).
+        resolve_scope_round(
+            get_or_create_state(plan_path), "code-review", args, same_round=True,
+            phase_dir=str(get_phase_dir(plan_path, 'code-review')),
+        )
 
         # The detach boundary, crossed here as well as on the fan-out path
         # below: a `--reaggregate --detach` launch must print its run banner
@@ -5925,6 +6065,19 @@ async def main(argv: Optional[List[str]] = None) -> int:
     print("Running code review in agent exploration mode...")
     print("")
 
+    # The round's scope policy, resolved before the boundary (plan §4): it
+    # decides the reviewer and validator prompts alike, and a same-round
+    # resume keeps the recorded one. A change that would mix reviewer outputs
+    # in one round is refused here, on the caller's terminal (exit 3).
+    scope_round_policy = resolve_scope_round(
+        state, "code-review", args,
+        force=bool(getattr(args, "force", False)),
+        has_results=round_results_exist(str(get_phase_dir(plan_path, 'code-review'))),
+        rerun_all=bool(getattr(args, "rerun_all", False)),
+        phase_dir=str(get_phase_dir(plan_path, 'code-review')),
+    )
+    _scope_round.print_round_line("code-review", scope_round_policy)
+
     # The plan the reviewers are pointed at, read once here and bound to this
     # phase's `validation-snapshot.md` past the detach boundary (the same split
     # review-plan and review-tasks make): binding at materialization, after the
@@ -6019,6 +6172,19 @@ async def main(argv: Optional[List[str]] = None) -> int:
         plan_document_at_load = bind_plan_for_validation(
             str(plan_path), str(detach_phase_dir), data=plan_bytes
         )
+
+    # The round's scope baseline (plan §2): the accepted plan (a commit
+    # review's brief) from the same bytes the validation snapshot holds, the
+    # task list and the pinned range as evidence, a frozen context plan by its
+    # recorded hash. Recorded through `state`, the instance this phase saves.
+    retire_scope_round_results(str(detach_phase_dir), state, "code-review", scope_round_policy)
+    _scope_round.record_round(
+        state, "code-review", scope_round_policy,
+        code_review_scope_baseline(
+            state, plan_path, plan_document_at_load,
+            base_ref=base_ref, head_ref=pinned.head if pinned is not None else None,
+        ),
+    )
 
     # Stage U: what an earlier attempt of this phase recorded, read *before* the
     # write below — `write_status` replaces every key but the two reserved
@@ -6115,6 +6281,14 @@ async def main(argv: Optional[List[str]] = None) -> int:
             unattended_mod.row(2).site_id,
             "defaults.models: " + ", ".join(model_specs),
         )
+    if unattended:
+        # D6 row 16: a scope policy nobody typed, recorded like row 2.
+        from utils import scope_policy_runs as _scope_policy_runs
+
+        _scope_policy_runs.announce(
+            str(detach_phase_dir), scope_round_policy.policy,
+            scope_round_policy.source, unattended=True,
+        )
     report_progress(
         str(detach_phase_dir), step="fanout",
         models_total=len(model_specs), models_done=0, models_succeeded=0,
@@ -6199,6 +6373,10 @@ async def main(argv: Optional[List[str]] = None) -> int:
             scope_id=diff_set.scope_id,
             diff_coverage=diff_set.coverage,
             **pinned_kw,
+            **(
+                {"scope_policy": scope_round_policy.policy}
+                if scope_round_policy.policy != _sp.DEFAULT_POLICY else {}
+            ),
         )
 
         # Get the phase directory for code review outputs
@@ -6557,6 +6735,18 @@ async def main(argv: Optional[List[str]] = None) -> int:
                         ),
                         runner_read_refusal=materialization_read_refusal(
                             args, str(plan_path)
+                        ),
+                        # The reviewers' policy and baseline (plan §3.1), in the
+                        # one task file both invokers run.
+                        scope=validation_scope_block(
+                            "code-review", scope_round_policy, state,
+                            _scope_round.round_baseline(
+                                getattr(state, "state", {}) or {}, "code-review"
+                            ),
+                            plan_document=plan_document,
+                            commit_review=isinstance(
+                                (getattr(state, "state", {}) or {}).get("commit_range"), dict
+                            ),
                         ),
                         phase="code-review",
                     )

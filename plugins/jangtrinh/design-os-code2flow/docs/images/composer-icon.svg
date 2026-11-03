@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="DESIGN:OS Code2Flow">
+  <rect width="256" height="256" rx="48" fill="#202020"/>
+  <path d="M128 84 V128 M76 172 V128 H180 V172" fill="none" stroke="#f5f5f5" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="92" y="44" width="72" height="44" rx="10" fill="#f5f5f5"/>
+  <rect x="40" y="168" width="72" height="44" rx="10" fill="#f5f5f5"/>
+  <rect x="144" y="168" width="72" height="44" rx="10" fill="#f5f5f5"/>
+</svg>

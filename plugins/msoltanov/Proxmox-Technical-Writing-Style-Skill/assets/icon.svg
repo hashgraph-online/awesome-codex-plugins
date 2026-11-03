@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Proxmox Writing Style</title>
+  <rect width="512" height="512" rx="112" fill="#1E3A5F"/>
+  <!-- page -->
+  <path d="M136 96h176l64 64v256a16 16 0 0 1-16 16H136a16 16 0 0 1-16-16V112a16 16 0 0 1 16-16z" fill="#F8FAFC"/>
+  <path d="M312 96v48a16 16 0 0 0 16 16h48z" fill="#CBD5E1"/>
+  <!-- heading line -->
+  <rect x="160" y="176" width="120" height="20" rx="10" fill="#1E3A5F"/>
+  <!-- numbered steps -->
+  <circle cx="170" cy="240" r="10" fill="#0EA5A4"/>
+  <rect x="194" y="232" width="136" height="16" rx="8" fill="#94A3B8"/>
+  <circle cx="170" cy="288" r="10" fill="#0EA5A4"/>
+  <rect x="194" y="280" width="112" height="16" rx="8" fill="#94A3B8"/>
+  <circle cx="170" cy="336" r="10" fill="#0EA5A4"/>
+  <rect x="194" y="328" width="80" height="16" rx="8" fill="#94A3B8"/>
+  <!-- pen -->
+  <g transform="rotate(45 352 344)">
+    <rect x="332" y="208" width="40" height="176" rx="8" fill="#0EA5A4"/>
+    <rect x="332" y="208" width="40" height="28" rx="8" fill="#0F766E"/>
+    <path d="M332 384h40l-20 44z" fill="#E2C08D"/>
+    <path d="M345 413h14l-7 15z" fill="#1E3A5F"/>
+  </g>
+</svg>

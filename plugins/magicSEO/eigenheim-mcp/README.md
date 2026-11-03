@@ -1,6 +1,6 @@
 # Eigenheim Invest – Berlin Real Estate Market MCP
 
-> **TL;DR** – A free, public, read-only MCP server with live Berlin property prices (€/m² for apartments and houses), rental yields, 2026 standard land values (Bodenrichtwerte), population forecast 2040, official notary transaction data and current listings from Eigenheim Invest.
+> **TL;DR** – A free, public, read-only MCP server with live Berlin property prices (€/m² for apartments and houses across all 97 Berlin localities), rental yields, 2026 standard land values (Bodenrichtwerte), population forecast 2040, official notary transaction data and current listings from Eigenheim Invest.
 >
 > - **Endpoint:** `https://eigenheim-invest.de/mcp/` (Streamable HTTP)
 > - **Auth:** none – no API key, no login
@@ -167,7 +167,7 @@ Ask in **English or German** – the assistant picks the right tool.
 | Tool | What it returns | Inputs |
 |---|---|---|
 | `get_area_prices` | Current €/m² for apartments & houses, trend, Berlin comparison | `area` |
-| `get_market_overview` | Berlin-wide KPIs: prices, rents, notary transactions + price ranking of all 32 localities | – |
+| `get_market_overview` | Berlin-wide KPIs: prices, rents, notary transactions + price ranking of all 97 Berlin localities and the surrounding towns | – |
 | `calculate_rental_yield` | Gross yield & price multiplier | `area` or own `price_per_sqm` / `rent_per_sqm` |
 | `get_bodenrichtwerte` | 2026 land values for 96 Berlin localities | `query` (optional) |
 | `get_population_forecast` | Population forecast 2024–2040 per district | – |

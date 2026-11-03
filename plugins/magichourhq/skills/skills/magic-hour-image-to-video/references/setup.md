@@ -6,7 +6,7 @@ If creation tools are unavailable, use the official [Python SDK](https://github.
 
 For local inputs:
 
-1. Call `video_assets_generate_presigned_url` for the real file type and extension.
+1. Call `get_upload_urls` for the real file type and extension.
 2. Upload raw bytes to its `upload_url` with an HTTPS `PUT`. Do not attach the Magic Hour bearer token to this storage request.
 3. Verify the upload, then pass the returned `file_path` into the creation tool.
 

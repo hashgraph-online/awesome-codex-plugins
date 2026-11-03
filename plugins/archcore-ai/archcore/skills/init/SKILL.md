@@ -101,7 +101,7 @@ Host wiring is planned **first** in every preview: when the probe finds the host
 
 ### 3. Check state
 
-Call `mcp__archcore__list_documents()` once. **Derive every flag below from local documents only** — skip any result carrying `global: true` / `read_only: true` / `source_kind: "global"`. A mounted global source must not satisfy the already-seeded early-exit: init seeds THIS repo's documents. If any global results appear, load `skills/_shared/globals.md`; never modify a global document and never target one with `add_relation`. Derive:
+Call `mcp__archcore__list_documents()` once. **Derive every flag below from local documents only** — skip any result carrying `source_kind: "global"`. A mounted global source must not satisfy the already-seeded early-exit: init seeds THIS repo's documents. If any global results appear, load `skills/_shared/globals.md`; init writes no global document and never joins a local and a global document with `add_relation`. Derive:
 
 - `has_stack_rule` — a `rule` whose title contains "stack" in `conventions/`; `has_run_guide` — a `guide` whose title contains "run"/"running" in `onboarding/`.
 - `has_data_model`, `has_integrations`, `has_config`, `has_entry_points`, `has_surface`, `has_top_level_map`, `has_overview` — any `doc` tagged `data-model`, `integrations`, `config`, `entry-points`, `surface`, `top-level-map`, `architecture-overview`.

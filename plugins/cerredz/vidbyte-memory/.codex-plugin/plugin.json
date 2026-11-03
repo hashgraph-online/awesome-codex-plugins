@@ -1,6 +1,6 @@
 {
   "name": "vidbyte-memory",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Correction-driven memory for coding agents: every correction becomes a fact, a test and a footprint commit in your repo. No API key, no database, no service.",
   "author": {
     "name": "cerredz",

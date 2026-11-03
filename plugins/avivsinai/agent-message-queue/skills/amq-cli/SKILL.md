@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.120.0 # x-release-please-version
+version: 0.125.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -86,8 +86,8 @@ escalation is due. Avoid file-by-file completion notices and unchanged check-ins
 Automated callers own duplicate suppression by item, revision, and event;
 AMQ threads correlate messages, but do not deduplicate repeated sends.
 
-Use an explicit reply kind for task updates. A reply to a `todo` otherwise
-inherits `todo` and can open another request. Progress uses `--kind status`;
+A reply to a `todo` defaults to `--kind status`; an explicit `--kind todo`
+opens another request. Progress uses `--kind status`;
 completion uses `--kind status --labels done`; cancellation uses
 `--kind decision --labels withdrawn`. State the result or cancellation
 honestly: withdrawing a request does not mean its feature shipped.

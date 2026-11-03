@@ -61,17 +61,17 @@ or rejected for conflict. Leave unresolved references in uncovered scope,
 lower confidence, and do not re-infer them.
 Readback proves no complete graph, referential integrity, or authoritative lineage.
 
-Check omissions and unsupported additions within authorized transformations;
-reuse sufficient evidence without exhaustive traces or a separate report.
+Check authorized transformations for omissions/unsupported additions;
+reuse sufficient evidence without exhaustive traces or another report.
 
-Match conclusions to checked properties, objects and conditions. Resolve
-counterexamples or qualify results. Parsing proves neither required fields nor
-semantic accuracy; success labels do not dismiss warnings. Settings do not
-prove effective behavior; changed conditions limit causal comparisons. Check
-measurable requirements deterministically. Attribute observations; claim only
-executed checks. Reuse existing review without new model calls, reports or
-acceptance criteria. Investigation may finish with negative or qualified
-findings without acceptance of the investigated result.
+Match claims to checked properties, objects and conditions. Resolve counterexamples
+or qualify results. At first material claim, attribute code, executed tests,
+runtime, documentation or inference and limits. Search misses prove no absence;
+code cannot override approved requirements. Parsing proves neither
+required fields nor semantics; success cannot dismiss warnings. Settings
+do not prove behavior; changed conditions limit causal comparisons. Check measurable
+requirements deterministically; claim only executed checks. Reuse review without
+extra calls/reports/criteria. Negative/qualified findings are not acceptance.
 
 ## Inherited-Claim Closeout
 

@@ -236,7 +236,9 @@ Bulk Approval Examples:
         # decide" in the report. Routed to the per-item judge without prompting.
         if group.get(JUDGE_DECIDE):
             formatted["decision_mode"] = JUDGE_AUTO_DECIDE
-        return formatted
+        # Under `--scope-policy preserve`: the item's validated scope, and a
+        # selected remedy as its instruction. Untouched under `expand`.
+        return self.scope_annotate(formatted, group)
 
     def generate_batch_prompts(self, batches: List[SuggestionBatch]) -> List[Dict[str, Any]]:
         """Attach plan-specific prompts to each batch.

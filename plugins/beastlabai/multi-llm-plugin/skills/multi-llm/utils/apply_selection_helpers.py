@@ -10,8 +10,10 @@ import sys
 from typing import Any, Dict, List, Set, Tuple
 
 try:
+    from .scope_policy import attach_verdict
     from .state_manager import generate_group_id
 except ImportError:
+    from utils.scope_policy import attach_verdict
     from utils.state_manager import generate_group_id
 
 
@@ -44,6 +46,13 @@ def merge_validation_with_groups(
     wrong group, dropping genuinely-valid fixes into needs-human and
     force-routing needs-human items into to-apply. Mirrors the logic in
     ``validation.apply_validation_to_groups`` used by the review path.
+
+    Scope authority (plans/scope-policy-and-report-tags.md §3) transfers only
+    through the stable-hash join: the matched record's host-stamped verdict
+    becomes the group's ``scope_verdict`` (``scope_policy.attach_verdict``).
+    The positional fallback keeps its validity behaviour but never carries
+    scope authority, and any verdict the group arrived with is dropped, so
+    the group reads ``unclear``. Validity fields are unaffected either way.
     """
     # Primary lookup: stable content hash -> validation record
     validation_by_id = {
@@ -61,8 +70,9 @@ def merge_validation_with_groups(
         # Prefer the stamped group_hash; compute it if absent so groups that
         # were never stamped still match by content.
         ghash = group.get("group_hash") or generate_group_id(group)
+        hashed = validation_by_id.get(ghash)
         val = (
-            validation_by_id.get(ghash)
+            hashed
             or validation_by_index.get(i)
             or {}
         )
@@ -74,6 +84,7 @@ def merge_validation_with_groups(
             group_copy["validation_error_type"] = val.get("error_type")
         if "recoverable" in val:
             group_copy["validation_recoverable"] = val.get("recoverable")
+        attach_verdict(group_copy, hashed, hash_matched=hashed is not None)
         merged.append(group_copy)
 
     return merged

@@ -63,6 +63,7 @@ On Windows PowerShell: `irm https://raw.githubusercontent.com/cerredz/vidbyte-me
 | Codex | `codex plugin marketplace add cerredz/vidbyte-memory`, then `codex plugin add vidbyte-memory@vidbyte` |
 | Gemini CLI | `gemini extensions install https://github.com/cerredz/vidbyte-memory` |
 | Antigravity | `agy plugin install https://github.com/cerredz/vidbyte-memory` |
+| Pi | `pi install git:github.com/cerredz/vidbyte-memory@v0.3.0` |
 | Factory Droid, Grok Build, Qwen Code, Junie, Auggie | add `cerredz/vidbyte-memory` as a plugin marketplace |
 | Any of 78 agents (skills only) | `npx skills add cerredz/vidbyte-memory` |
 
@@ -78,7 +79,7 @@ Every agent and what it enforces: [docs/hosts](docs/hosts/README.md).
 
    ```bash
    git rm -r -q CHANGELOG.md CITATION.cff SECURITY.md llms.txt context7.json .devin docs .github/assets \
-     .claude-plugin plugin.json hooks gemini-extension.json gemini-extension.md .agents/plugins \
+     .claude-plugin plugin.json hooks gemini-extension.json gemini-extension.md .agents/plugins package.json package-lock.json bin \
      .github/CONTRIBUTING.md .github/CODE_OF_CONDUCT.md .github/ISSUE_TEMPLATE \
      .github/PULL_REQUEST_TEMPLATE.md .github/release.yml .github/dependabot.yml .github/workflows/template-ci.yml
    git commit -m "Remove the template's own project files"
@@ -126,7 +127,7 @@ The memory itself is files, so any agent that reads `AGENTS.md` can use it. What
 | Stop hook, wired by hand (see each page) | Factory Droid, Qwen Code, Goose, OpenHands, Qoder, Junie (in an extension), Mistral Vibe |
 | Advisory: skills and `AGENTS.md` only | Cline, Amp, Zed, Devin Desktop (Windsurf), Kiro, Warp, Crush, Augment, Jules, JetBrains AI, Amazon Q |
 
-Tested on 2026-10-29: the plugin installs and is enabled in Claude Code 2.1.312 and Codex 0.163, and passes `gemini extensions validate` (0.42) and `agy plugin validate` (1.0.8). The OpenCode, Kilo, Pi and Hermes plugins are tested in template CI against fake hosts built from each agent's plugin API, driving the real guard. The other rows follow each vendor's documentation and are not yet tested end to end. [docs/hosts](docs/hosts/README.md) has one page per agent.
+Tested on 2026-10-29: the plugin installs and is enabled in Claude Code 2.1.312 and Codex 0.163, and passes `gemini extensions validate` (0.42) and `agy plugin validate` (1.0.8). The OpenCode, Kilo, Pi and Hermes plugins are tested in template CI against fake hosts built from each agent's plugin API, driving the real guard, and on 2026-10-30 they kept a live session working in OpenCode 1.19.5 and 2.2.4, Kilo 7.8.18, Pi 1.4.0 and Hermes against a local mock model (headless `run` in OpenCode 1.x and Kilo is the exception). The other rows follow each vendor's documentation and are not yet tested end to end. [docs/hosts](docs/hosts/README.md) has one page per agent.
 
 Ran it in another harness? Please [tell us how it went](https://github.com/cerredz/vidbyte-memory/discussions), so its page can move from "per the docs" to "tested".
 
@@ -171,7 +172,7 @@ Those are memory services. They extract memories from conversations, then store 
 
 ### Does it work with Codex, Cursor or other agents?
 
-Yes, by design, for any agent that reads `AGENTS.md`: the protocol, skills, prompts and scripts are plain files. Claude Code has been verified end to end; the plugin also installs in Codex, Gemini CLI and Antigravity, and the OpenCode, Kilo, Pi and Hermes plugins are tested against fake hosts. See [Works with](#works-with).
+Yes, by design, for any agent that reads `AGENTS.md`: the protocol, skills, prompts and scripts are plain files. Claude Code has been verified end to end; the plugin also installs in Codex, Gemini CLI and Antigravity, and the OpenCode, Kilo, Pi and Hermes plugins have been run live in each agent. See [Works with](#works-with).
 
 ### Will the Stop hook trap my Claude Code session?
 

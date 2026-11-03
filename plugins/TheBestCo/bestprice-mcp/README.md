@@ -50,6 +50,14 @@ data. Results link to a BestPrice product page, never directly to a merchant. Un
 shipping is reported as unknown, not as free. Search covers safe physical products;
 digital goods, services, and age-restricted categories are excluded.
 
+### One optional clarification
+
+A broad request can return `outcome: "clarification"` with `clarifications[].choices`. Each choice contains a display `label` and a self-contained `message`. Ask the shopper to choose, then call `get_shopping_decision` with that message. When they choose **Skip**, also send `skip_clarification: true` as returned by that choice. Never choose on the shopper’s behalf. Exact models and requests that already state the missing type bypass this step. Mandatory budget, age-group, product-type and accessory checks still apply after Skip.
+
+For example, “ANC headphones up to €150 for commuting” can ask whether the shopper wants over-ear or in-ear headphones. The recommendation excludes children’s models and replacement accessories unless the shopper asks for them. This is the same Shopping Brain used by [BestPrice Ask](https://www.bestprice.gr/ask).
+
+Ask’s product cards can open BestPrice’s existing alert and saved-list flows. Only the shopper can confirm those account actions; the connector remains read-only and cannot create alerts, save lists, upload photos, or read account conversations.
+
 ## Protocol details
 
 Measured against the live endpoint on 24 September 2026.
@@ -147,6 +155,7 @@ Agent-compatible hosts that discover repository-local skills under `.agents/skil
 same canonical workflow at [`.agents/skills/bestprice-shopping/SKILL.md`](.agents/skills/bestprice-shopping/SKILL.md). [`.codex-plugin/`](.codex-plugin/) remains the
 Codex compatibility manifest. [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) plus the
 same root Skill and [`.mcp.json`](.mcp.json) also make this repository a Claude plugin package.
+[`claude-plugin/`](claude-plugin/) is a slim copy of that Claude plugin, with no build files, for the Claude plugin directory.
 
 
 ### Self-hosted plugin marketplaces

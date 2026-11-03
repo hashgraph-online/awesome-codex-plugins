@@ -57,6 +57,16 @@ mcp_servers:
 
 and run `hermes mcp login mnemoverse` (Hermes opens the browser and waits on a loopback callback). Check with `hermes mcp test mnemoverse`. Keep the name `mnemoverse`: the native entry shadows the plugin's copy, which cannot sign in. Full walkthrough: [Install by host, Hermes Agent](https://mnemoverse.com/docs/api/install-by-host#hermes-agent).
 
+## Google Antigravity
+
+The [`antigravity/`](antigravity/) folder is a self-contained Antigravity plugin with the hosted server and the bundled skills:
+
+```sh
+agy plugin install https://github.com/mnemoverse/claude-plugin/tree/main/antigravity
+```
+
+The plugin installs enabled, and Antigravity opens the browser for the sign-in when the server first connects; there the server is named `mnemoverse_mnemoverse`. Details in [antigravity/README.md](antigravity/README.md). Installing the whole repository with `agy plugin install https://github.com/mnemoverse/claude-plugin` also works: Antigravity reads the server from the root `mcp_config.json` and converts the Claude Code commands into skills.
+
 ## First run: sign in once, no API key
 
 The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Installing the plugin does not open anything by itself: run `/mcp`, select the Mnemoverse server (from this plugin it is listed as `plugin:mnemoverse:mnemoverse`) and choose Authenticate, then sign in to your Mnemoverse account in the browser (free tier at [console.mnemoverse.com](https://console.mnemoverse.com?utm_source=github&utm_medium=readme&utm_campaign=claude-plugin), no credit card) and grant the requested scopes, which include `memory:read` and `memory:write`. There is no API key to paste. To disconnect, remove the server from your client; resetting your password in the console can also disconnect all connected apps at once. The bundled `setup` skill walks Claude through this if anything goes wrong.
@@ -105,7 +115,7 @@ More: [docs](https://mnemoverse.com/docs/api/remote-mcp-server).
 
 ## Why `.mcp.json` says `http` and `mcp.json` says `streamable-http`
 
-Both files point at the same server, but each is read by a different host with its own vocabulary for the transport. `.mcp.json` is Claude Code's own project MCP config, where `type: "http"` is the canonical value ([code.claude.com/docs/en/mcp.md](https://code.claude.com/docs/en/mcp.md)); `streamable-http` is accepted there only as an alias. Root `mcp.json` follows the Agent Plugins 1.0.0 schema instead, whose `type` enum is `stdio | streamable-http | sse` and rejects `"http"` outright ([agent-plugins.org/schemas/1.0.0/mcp.schema.json](https://agent-plugins.org/schemas/1.0.0/mcp.schema.json)). `kimi.plugin.json` and the Cursor/Gemini manifests add two more dialects again (see `scripts/fixtures/`). `scripts/check-manifest-drift.mjs` guards all eight declarations of the server URL against drift while keeping each file's dialect intact; see its CI job, `manifest-drift-guard.yml`, for what it checks.
+Both files point at the same server, but each is read by a different host with its own vocabulary for the transport. `.mcp.json` is Claude Code's own project MCP config, where `type: "http"` is the canonical value ([code.claude.com/docs/en/mcp.md](https://code.claude.com/docs/en/mcp.md)); `streamable-http` is accepted there only as an alias. Root `mcp.json` follows the Agent Plugins 1.0.0 schema instead, whose `type` enum is `stdio | streamable-http | sse` and rejects `"http"` outright ([agent-plugins.org/schemas/1.0.0/mcp.schema.json](https://agent-plugins.org/schemas/1.0.0/mcp.schema.json)). `kimi.plugin.json`, the Cursor and Gemini manifests and the Antigravity `mcp_config.json` files add more dialects again (see `scripts/fixtures/`). `scripts/check-manifest-drift.mjs` guards every declaration of the server URL against drift while keeping each file's dialect intact; see its CI job, `manifest-drift-guard.yml`, for what it checks.
 
 ## Support
 

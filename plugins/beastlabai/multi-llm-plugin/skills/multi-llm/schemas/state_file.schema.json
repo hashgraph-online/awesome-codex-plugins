@@ -227,6 +227,74 @@
         "guard": { "type": "object" }
       },
       "required": ["head"]
+    },
+    "scope_policy": {
+      "type": "object",
+      "description": "--scope-policy records keyed by REVIEW round (review-plan, review-tasks, code-review; an apply phase reads its review's record, utils/scope_policy.review_phase_of; plans/scope-policy-and-report-tags.md §4-§5). Absent for a legacy round, which reads as expand. review_policy is what the reviewers were asked under; apply_policy an explicit apply override that later omission keeps; baseline the round's scope baseline record; deferrals the items the last preserve apply deferred (never invalid, user-skipped, applied, failed or processed); completion that apply's outcome (eligible work completed with the deferrals kept, or blocked); blockers the preserve writer declines that named a scope blocker, which dependent phases refuse to build past",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "review_policy": { "enum": ["expand", "preserve"] },
+          "review_policy_source": { "type": "string" },
+          "recorded_at": { "type": "string" },
+          "baseline": {
+            "type": "object",
+            "properties": {
+              "version": { "type": "integer" },
+              "baseline_id": { "type": "string" },
+              "sources": { "type": "array", "items": { "type": "object" } },
+              "phase": { "type": "string" }
+            }
+          },
+          "apply_policy": { "enum": ["expand", "preserve"] },
+          "apply_policy_source": { "type": "string" },
+          "apply_recorded_at": { "type": "string" },
+          "deferrals": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "group_id": { "type": "string" },
+                "relation": { "enum": ["in_scope", "scope_extension", "unclear"] },
+                "label": { "type": "string" },
+                "reason": { "type": "string" },
+                "policy": { "type": "string" },
+                "baseline_id": { "type": ["string", "null"] },
+                "authority": { "type": "string" },
+                "title": { "type": "string" },
+                "theme": { "type": "string" },
+                "importance": { "type": "string" },
+                "validation_status": { "type": "string" },
+                "outcome": { "type": "string" }
+              },
+              "required": ["group_id"]
+            }
+          },
+          "completion": {
+            "type": "object",
+            "properties": {
+              "outcome": { "enum": ["eligible work completed", "blocked"] },
+              "policy": { "type": "string" },
+              "deferred": { "type": "integer" },
+              "blockers": { "type": "integer" },
+              "at": { "type": "string" }
+            },
+            "required": ["outcome"]
+          },
+          "blockers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "group_id": { "type": "string" },
+                "task_id": { "type": "string" },
+                "reason": { "type": "string" }
+              },
+              "required": ["group_id"]
+            }
+          }
+        }
+      }
     }
   },
   "patternProperties": {

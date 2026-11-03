@@ -1,4 +1,0 @@
-interface:
-  display_name: "Image similarity search"
-  short_description: "Semantic image search with CLIP: similar images and text-to-image queries"
-  default_prompt: "Use $image-similarity-search for this task, then load $pixeltable for the full Pixeltable app.py backend."

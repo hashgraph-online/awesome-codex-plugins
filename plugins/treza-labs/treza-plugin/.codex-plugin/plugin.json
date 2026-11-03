@@ -1,0 +1,45 @@
+{
+  "name": "treza",
+  "version": "1.4.0",
+  "description": "Make AI videos from your agent: one clip from a description, edits to media you have, and video pipelines that render and post to YouTube and TikTok.",
+  "author": {
+    "name": "Treza Labs",
+    "email": "hello@trezalabs.com",
+    "url": "https://www.trezalabs.com"
+  },
+  "homepage": "https://www.trezalabs.com/connect",
+  "repository": "https://github.com/treza-labs/treza-plugin",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "video",
+    "ai-video",
+    "youtube",
+    "tiktok",
+    "pipelines",
+    "veo",
+    "seedance",
+    "x402"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "Treza",
+    "shortDescription": "Make AI videos from your agent",
+    "longDescription": "One clip from a description, edits to media you have, and video pipelines that render and post to YouTube and TikTok on a schedule, through Treza's hosted MCP server. Prepaid credits from $5; every run shows its price first.",
+    "developerName": "Treza Labs",
+    "category": "Design",
+    "capabilities": [
+      "Write"
+    ],
+    "websiteURL": "https://www.trezalabs.com",
+    "privacyPolicyURL": "https://docs.trezalabs.com/terms-and-privacy/privacy",
+    "defaultPrompt": [
+      "Make a 10 second clip of a lighthouse at dawn.",
+      "Turn this brief into a daily YouTube Short pipeline."
+    ],
+    "termsOfServiceURL": "https://docs.trezalabs.com/terms-and-privacy/terms-of-service",
+    "composerIcon": "./assets/treza-logo-400.png",
+    "logo": "./assets/treza-logo-400.png"
+  }
+}

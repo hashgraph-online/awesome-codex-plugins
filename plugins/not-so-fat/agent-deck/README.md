@@ -65,13 +65,15 @@ If you use per-repo `use` stubs and playbook triggers changed, refresh with `age
 
 ## Delegate to another agent
 
-To delegate a task to a local agent session on a deck, `agent-deck run` launches a signed-in client bound to that deck:
+Agents delegate through Agent Deck MCP: from a bound session, `start_run` launches a signed-in client on the Agent Deck host in the session's launch workspace and deck, `get_run` pages its events to a terminal state, and `start_run` with `resumeSessionId` or `cancel_run` continues or stops it. The [`agent-deck-run` skill](skills/agent-deck-run/SKILL.md) is the protocol; [MCP_RUN_TOOLS.md](docs/MCP_RUN_TOOLS.md) is the tool contract.
+
+On the host itself, an operator can also start a run from a terminal for installation checks, diagnostics, or recovery:
 
 ```bash
 agent-deck run mydeck --client claude --cwd /path/to/repo --prompt-file ./brief.md --tools readonly
 ```
 
-Per-client flags, resume, and trust behavior: [DELEGATION.md](docs/DELEGATION.md).
+Per-client flags, resume, and trust behavior, and which path to use: [DELEGATION.md](docs/DELEGATION.md).
 
 ## Install as an agent plugin
 
@@ -91,7 +93,7 @@ Skills are never copied by hand: the muse copies come from root `skills/` via `s
 1. Install agent-deck and start it (Quick Start above): `npx @agent-deck/cli@latest install`, `agent-deck start --daemon`, then `agent-deck doctor`.
 2. Install the **agent-deck** plugin from the Cursor Marketplace (or, for local testing, copy this repo to `~/.cursor/plugins/local/agent-deck` and run **Developer: Reload Window**). The plugin adds the four skills and the `agent-deck` MCP server (`agent-deck mcp-launch`, from `.mcp.json`); it needs the `agent-deck` CLI on `PATH` and stores no secrets.
 3. Create a deck in the dashboard (`agent-deck open`), then bind a project folder: `agent-deck use <deck> --client cursor`, and reload Cursor.
-4. **Test task:** open that folder and ask the agent: *"Use the agent-deck-setup skill to check my Agent Deck setup and tell me what is missing."* Expected: it runs read-only checks (`agent-deck --version`, `agent-deck status`, `agent-deck deck list`) and reports the result. Then try delegation: *"Use agent-deck-run to have a read-only claude session on deck <deck> list the files in this folder, and report its answer."* Expected: it launches `agent-deck run <deck> --client claude --tools readonly --detach`, polls `agent-deck run status`, and reports the session's answer with the `runId` and `sessionId`.
+4. **Test task:** open that folder and ask the agent: *"Use the agent-deck-setup skill to check my Agent Deck setup and tell me what is missing."* Expected: it runs read-only checks (`agent-deck --version`, `agent-deck status`, `agent-deck deck list`) and reports the result. Then try delegation: *"Use agent-deck-run to have a read-only claude session on deck <deck> list the files in this folder, and report its answer."* Expected: it calls `start_run` with `client: "claude"` and `tools: "readonly"`, polls `get_run` until the run is terminal, and reports the session's answer with the `runId`, `sessionId`, tool profile, and terminal state.
 
 ## Everyday commands
 

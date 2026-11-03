@@ -1,4 +1,0 @@
-interface:
-  display_name: "Video search"
-  short_description: "Index and semantically search a video library by frames and embeddings"
-  default_prompt: "Use $video-search for this task, then load $pixeltable for the full Pixeltable app.py backend."

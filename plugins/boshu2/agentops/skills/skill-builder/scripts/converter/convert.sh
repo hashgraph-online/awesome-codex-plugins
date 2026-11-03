@@ -36,6 +36,7 @@ require_source_checkout() {
   exit 2
 }
 
+# Exit 0 for an explicit help request, 1 for misuse.
 usage() {
   cat <<'EOF'
 Usage:
@@ -53,7 +54,7 @@ Examples (from an AgentOps source checkout root):
 Without [output-dir] the export goes under the source checkout's
 .agents/projections/converter/; outside a checkout, name an output dir.
 EOF
-  exit 1
+  exit "${1:-1}"
 }
 
 parse_args() {
@@ -75,7 +76,7 @@ parse_args() {
         shift
         ;;
       -h|--help)
-        usage
+        usage 0
         ;;
       --)
         shift

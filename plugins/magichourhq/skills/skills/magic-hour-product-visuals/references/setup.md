@@ -6,7 +6,7 @@ If creation tools are unavailable, use the official [Python SDK](https://github.
 
 For a local reference image:
 
-1. Call `video_assets_generate_presigned_url` with its real image extension.
+1. Call `get_upload_urls` with its real image extension.
 2. Upload the raw bytes to its `upload_url` with an HTTPS `PUT`. Do not attach the Magic Hour bearer token to this storage request.
 3. Verify the upload, then pass its returned `file_path` to the editor.
 

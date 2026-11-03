@@ -99,6 +99,8 @@ from .human_decisions import (
     record_verdicts,
     write_judge_tasks,
 )
+from . import scope_apply as _scope
+from . import scope_policy as _sp
 from . import unattended as _unattended
 from .unattended import AGENT_DECIDE_FLAG, LEGACY_AGENT_DECIDE_FLAGS
 
@@ -415,6 +417,11 @@ def build_common_arg_parser(
         help="Enable verbose/debug output",
     )
 
+    # plans/scope-policy-and-report-tags.md §4: declared once, in cli_common.
+    from .cli_common import add_scope_policy_argument
+
+    add_scope_policy_argument(parser, role="apply")
+
     # =================================================================
     # Conditional flags (per-orchestrator toggles)
     # =================================================================
@@ -561,6 +568,14 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
     # §2.7). Only apply-code-fixes does: the other two phases edit the plan or
     # its task list, never code a commit review judged at `head`.
     guards_commit_fixes: bool = False
+    # Class-level defaults of the scope-policy state `__init__` sets, so an
+    # instance built without it (a test's `object.__new__`) reads `expand`.
+    scope: Optional["_scope.ApplyPolicy"] = None
+    scope_deferred: Sequence[Dict[str, Any]] = ()
+    _scope_released: Sequence[str] = ()
+    _scope_start_index: int = 0
+    _scope_change: Optional["_scope.PolicyChange"] = None
+    _scope_landed_reported: bool = False
 
     # ------------------------------------------------------------------
     # Subclass validation
@@ -685,6 +700,19 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         # ran and matched anything (F7) — read by `_record_write_artifacts`.
         self._decisions_overlay_path: Optional[str] = None
 
+        # The scope policy (plans/scope-policy-and-report-tags.md §5): the
+        # effective apply policy resolved in `_setup`, this run's deferrals
+        # (their own outcome — never invalid, skipped, applied or processed),
+        # the earlier deferrals an `expand` override released, the first
+        # batch index new work takes after a policy change kept earlier
+        # batches, and that change (step 10c) with the work it keeps.
+        self.scope: Optional[_scope.ApplyPolicy] = None
+        self.scope_deferred: List[Dict[str, Any]] = []
+        self._scope_released: List[str] = []
+        self._scope_start_index: int = 0
+        self._scope_change: Optional[_scope.PolicyChange] = None
+        self._scope_landed_reported: bool = False
+
     # ------------------------------------------------------------------
     # D6 auto-resolutions (rows 10 and 11)
     # ------------------------------------------------------------------
@@ -733,12 +761,19 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         split.
         """
         counts: Dict[str, int] = {}
+        deferred = 0
         for group in merge_validation_with_groups(
             self.groups, self.validation or []
         ):
             status = str(group.get("validation_status") or "needs-human-decision")
+            if status == "valid" and self._scope_counts_as_deferred(group):
+                # Valid, but not applied: the scope policy defers it (plan §5).
+                deferred += 1
+                continue
             counts[status] = counts.get(status, 0) + 1
         parts = [f"{counts.pop('valid', 0)} valid (applied)"]
+        if deferred:
+            parts.append(f"{deferred} valid but deferred by {_sp.FLAG} preserve")
         invalid = counts.pop("invalid", 0)
         if invalid:
             parts.append(f"{invalid} invalid (left out)")
@@ -833,6 +868,13 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             # published downstream has to be re-derived from what it left behind
             # — not from the pre-judging snapshot `_apply_user_feedback` built.
             self._rebuild_formatted_skipped()
+            # The scope gate again, after every change to the selected
+            # proposals (judge approval and salvage included) and immediately
+            # before batching; then this review's earlier materialization
+            # under another policy, if any (plan §5, "Resume").
+            self._scope_gate_work_set()
+            self._scope_policy_change()
+            self._scope_persist()
             self._prepare_batches()
             return self._write_outputs()
         except OrchestratorError as e:
@@ -1023,6 +1065,10 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             # never open the plan the same drift is a human's edit.
             if self.edits_the_plan:
                 state.refresh_plan_hash()
+            # The scope policy's completion record (plan §5): "eligible work
+            # completed" with the deferrals kept, or the concrete blockers a
+            # `preserve` batch declined with, which stop this call at exit 3.
+            scope_blockers = self._scope_close(state)
             state.save()
             self.print_native_tests_not_run()
             # Fix round 26 (live run 11, OpenCode 05: "applied to
@@ -1039,6 +1085,9 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                     }
                 )
             )
+            if scope_blockers:
+                self._scope_report_blockers(scope_blockers)
+                sys.exit(3)
             sys.exit(0)
 
         # Step 3: Validate plan file exists
@@ -1163,6 +1212,10 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         # `[RANGE_UNRESOLVED]`, never a `HEAD~1` fallback (§2.4).
         self._resolve_pinned_endpoints()
 
+        # Step 10b: the effective scope policy of this apply (plans/
+        # scope-policy-and-report-tags.md §4), before any filtering.
+        self._resolve_scope_policy()
+
         if getattr(self.args, "fresh", False) and not getattr(
             self.args, "resume", False
         ):
@@ -1200,6 +1253,13 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                     "[orchestrator] Cleared prior changes history.",
                     file=sys.stderr,
                 )
+
+        # Step 10c: this review's earlier materialization under another
+        # policy (after `--fresh`, which clears the records it reads). Its
+        # refusal comes before the explicit policy is recorded, so a refused
+        # run leaves the round's record as it found it.
+        self._scope_detect_change()
+        self._record_explicit_scope_policy()
 
         self.logger.info(
             "Setup complete: plan=%s, out_dir=%s", self.plan_path, self.out_dir
@@ -1467,7 +1527,7 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             ):
                 output = build_confirmation_needed_output(
                     phase=self.confirmation_phase_name or self.phase_name,
-                    message=(
+                    message=self._scope_confirmation_message(
                         "No user selections found in user_selections.json, "
                         "consolidated_user_selections.json, or report.md. "
                         "ALL valid items will be applied if you proceed. "
@@ -1700,10 +1760,24 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         # and a run whose fixes it skips entirely still prints its block.
         self._apply_commit_guard()
 
+        # Step 25b: the scope-policy gate over what selection left (plan §5),
+        # before the counts, the dry-run report, the no-items exit and the
+        # judge, so each describes the same eligible set. A pass-through
+        # under `expand`; re-applied in `run()` after judging. What an earlier
+        # run of this review landed under another policy leaves first: it is
+        # applied, never this run's deferral.
+        self._scope_exclude_landed()
+        self._scope_gate_work_set()
+
         print(f"\nFiltered {self.item_noun_plural}:", file=sys.stderr)
         print(f"  Valid (to apply): {len(self.valid)}", file=sys.stderr)
         print(f"  Needs human review: {len(self.needs_human)}", file=sys.stderr)
         print(f"  Skipped: {len(self.skipped)}", file=sys.stderr)
+        if self.scope is not None and self.scope.preserve:
+            print(
+                f"  Deferred (scope policy preserve): {len(self.scope_deferred)}",
+                file=sys.stderr,
+            )
 
         # Show dry-run bulk approval report
         if getattr(self.args, "dry_run", False) and dry_run_report.get(
@@ -1728,6 +1802,13 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
 
         # Step 27: handle_no_items_early_exit
         if not self.valid and not self.needs_human:
+            if self.scope_deferred or self._scope_open_blockers():
+                # Everything eligible is done and the rest is deferred by
+                # scope: the phase's eligible work is complete (plan §5) —
+                # or, when a batch of this review declined a blocker, the
+                # phase stays blocked (exit 3), whatever the subclass's own
+                # nothing-left exit would have recorded.
+                self._scope_all_deferred_exit()
             self.handle_no_items_early_exit()
 
         self.logger.info(
@@ -2062,6 +2143,467 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             for key, record in self.state.get_processed_items(self.phase_name).items()
             if processed_record_counts(record, review_stamp=review_stamp)
         }
+
+    # ==================================================================
+    # The scope policy (plans/scope-policy-and-report-tags.md §4, §5)
+    # ==================================================================
+
+    def _scope_phase_word(self) -> str:
+        """The phase word the round record and completion are keyed by."""
+        return self.confirmation_phase_name or self.phase_name
+
+    def _scope_dry(self) -> bool:
+        """Both dry runs stay read-only (``write_target_backup``'s rule)."""
+        return bool(getattr(self.args, "dry_run", False)
+                    or getattr(self.args, "dry_run_subagents", False))
+
+    def _resolve_scope_policy(self) -> None:
+        """Step 10b: the effective apply policy.
+
+        Explicit ``--scope-policy`` → the round's recorded apply override →
+        the round's review policy → ``expand`` (``scope_apply.
+        resolve_apply_policy``). An invalid value is exit 3. An explicit
+        choice is recorded at step 10c (:meth:`_record_explicit_scope_policy`),
+        once the policy-change refusal has had its say.
+        """
+        explicit = getattr(self.args, _sp.DEST, None)
+        problem = _scope.invalid_policy_message(explicit)
+        if problem:
+            from .cli_common import record_error
+
+            print(f"ERROR: {problem}", file=sys.stderr)
+            record_error(problem)
+            raise OrchestratorError(f"Phase _setup, step 10b: {problem}", exit_code=3)
+        word = self._scope_phase_word()
+        state = self.state.state if self.state is not None else {}
+        self.scope = _scope.resolve_apply_policy(explicit, state, word)
+        if self.scope.source != _sp.SOURCE_EXPLICIT:
+            # D6 row 16: a policy nobody typed is recorded under `--yes` only
+            # (`_record_resolution` returns early otherwise).
+            from . import scope_policy_runs as _scope_policy_runs
+
+            self._record_resolution(
+                _scope_policy_runs.SITE_ID,
+                _scope_policy_runs.resolution_text(self.scope.policy, self.scope.source),
+            )
+        if self.scope.preserve or self.scope.source in (
+                _sp.SOURCE_EXPLICIT, _sp.SOURCE_CONTINUATION):
+            baseline = f", baseline {self.scope.baseline_id}" if self.scope.baseline_id else ""
+            print(
+                f"[scope-policy] {word}: {self.scope.policy} "
+                f"(source: {self.scope.source}; review requested "
+                f"{self.scope.review_policy}{baseline})",
+                file=sys.stderr,
+            )
+
+    def _record_explicit_scope_policy(self) -> None:
+        """Step 10c: record an explicit choice on the round.
+
+        ``scope_policy.record_apply_policy``, so the choice survives a later
+        run that omits it. Dry runs record nothing, and neither does a run
+        :meth:`_scope_detect_change` refused (it raised before this).
+        """
+        if (self.scope is None or self.scope.source != _sp.SOURCE_EXPLICIT
+                or self.state is None or self._scope_dry()):
+            return
+        _sp.record_apply_policy(self.state.state, self._scope_phase_word(),
+                                self.scope.policy, _sp.SOURCE_EXPLICIT)
+        self.state.save()
+
+    def _scope_detect_change(self) -> None:
+        """Step 10c: this review's earlier materialization under another policy.
+
+        Read-only. A batch of that run that did not finish is exit 3 here,
+        before anything is recorded or built (rebuilding the batches could
+        apply its half-applied items again). Otherwise the change is kept
+        for :meth:`_scope_exclude_landed` (before the gate) and
+        :meth:`_scope_policy_change` (before batching).
+        """
+        self._scope_change = None
+        if self.scope is None or not self.write_kind or self.state is None:
+            return
+        from .subagent_tasks import file_content_hash
+
+        phase_dir = os.path.join(self.out_dir, self.phase_name)
+        change = _scope.detect_policy_change(
+            phase_dir, current_policy=self.scope.policy,
+            review_stamp=file_content_hash(
+                os.path.join(self.out_dir, self.review_subdir, "grouped.json")),
+            processed=self.state.get_processed_items(self.phase_name),
+        )
+        if change is None:
+            return
+        if change.unsettled:
+            from .cli_common import record_error
+
+            lines = _scope.unsettled_refusal(change, mode_word=self._scope_phase_word())
+            for line in lines:
+                print(line, file=sys.stderr)
+            record_error(lines[0])
+            raise OrchestratorError(
+                "Phase _setup, step 10c: a scope-policy change over an unfinished batch",
+                exit_code=3,
+            )
+        self._scope_change = change
+
+    def _scope_landed_ids(self) -> Set[str]:
+        """Member ids an earlier run of this review landed under another policy."""
+        change = self._scope_change
+        return set(change.landed) if change is not None else set()
+
+    def _scope_exclude_landed(self) -> None:
+        """Keep what an earlier run of this review landed out of this run.
+
+        After a policy change those items stay applied (or no-op, or skipped
+        at the user's request) and are never dispatched again. They leave
+        the work sets *before* the gate, so a ``preserve`` run never records
+        or reports an applied item as deferred, and this run's batches start
+        past every earlier batch index. Idempotent; reported once.
+        """
+        landed = self._scope_landed_ids()
+        if not landed:
+            return
+        before = len(self.valid) + len(self.needs_human)
+        self.valid[:] = [g for g in self.valid if group_id_of(g) not in landed]
+        self.needs_human[:] = [g for g in self.needs_human if group_id_of(g) not in landed]
+        self._scope_start_index = self._scope_change.next_index
+        if self._scope_landed_reported:
+            return
+        self._scope_landed_reported = True
+        print(
+            f"{_scope.RETIRED_MARKER} {self._scope_phase_word()}: this review's tasks "
+            f"were materialized under {_sp.FLAG} {self._scope_change.previous}; the "
+            f"{len(landed)} item(s) an earlier run landed stay applied and are "
+            f"not dispatched again ({before - len(self.valid) - len(self.needs_human)} "
+            f"left out of this run), and this run's batches start at index "
+            f"{self._scope_change.next_index}.",
+            file=sys.stderr,
+        )
+
+    def _scope_counts_as_deferred(self, group: Dict[str, Any]) -> bool:
+        """Whether a loaded ``valid`` group is one this ``preserve`` run defers.
+
+        For the counts printed before the gate runs (the confirmation, row
+        11's tally); an item an earlier run landed is not deferred.
+        """
+        if self.scope is None or not self.scope.preserve:
+            return False
+        if group_id_of(group) in self._scope_landed_ids():
+            return False
+        return not _sp.scope_decision(
+            group, self.scope.policy, self.scope.baseline_id).eligible
+
+    def _scope_confirmation_message(self, message: str) -> str:
+        """Step 19's text, naming the deferred set under ``preserve`` only."""
+        if self.scope is None or not self.scope.preserve:
+            return message
+        deferred = sum(
+            1 for group in merge_validation_with_groups(self.groups, self.validation or [])
+            if group.get("validation_status") == "valid"
+            and self._scope_counts_as_deferred(group)
+        )
+        return message.replace(
+            "ALL valid items will be applied if you proceed.",
+            "ALL valid items validated as within scope will be applied if you "
+            f"proceed; {deferred} valid item(s) are deferred by {_sp.FLAG} preserve.",
+        )
+
+    def _scope_gate_work_set(self) -> None:
+        """The pre-write gate over ``valid`` and ``needs_human`` (plan §5).
+
+        A pass-through under ``expand``. Under ``preserve`` a group without a
+        bound ``in_scope`` verdict leaves both sets for :attr:`scope_deferred`
+        — its own outcome, never ``skipped`` — and never reaches the judge,
+        whose approval cannot make it eligible (approval keeps the relation;
+        salvage makes the binding stale). No flag bypasses it.
+        """
+        if self.scope is None or not self.scope.preserve:
+            return
+        if not isinstance(self.scope_deferred, list):
+            self.scope_deferred = list(self.scope_deferred)
+        known = {str(entry.get("group_id")) for entry in self.scope_deferred}
+        for work in (self.valid, self.needs_human):
+            eligible, deferred = _scope.gate(work, self.scope)
+            work[:] = eligible
+            for group in deferred:
+                entry = _scope.deferral_entry(
+                    group, self.scope, importance=get_highest_importance(group))
+                if entry["group_id"] in known:
+                    continue
+                known.add(entry["group_id"])
+                self.scope_deferred.append(entry)
+                print(
+                    f"{_scope.DEFERRED_MARKER} {entry['group_id'][:8]} "
+                    f"[{entry['label']}] {entry['title']}: {entry['reason']}",
+                    file=sys.stderr,
+                )
+
+    def _scope_policy_change(self) -> None:
+        """This review's earlier materialization under another policy (plan §5).
+
+        Detected at step 10c (:meth:`_scope_detect_change`, which also
+        refuses a change over a batch that did not finish). With no started
+        work the obsolete task file is kept aside and the batches are
+        rematerialized. With landed work its items stay done (never
+        dispatched again; :meth:`_scope_exclude_landed` already took them out
+        before the gate) and new batches take ids past every earlier one, so
+        pending work is never renumbered onto a completed batch id.
+        """
+        change = self._scope_change
+        if change is None:
+            return
+        if change.landed:
+            self._scope_exclude_landed()
+            return
+        if self._scope_dry():
+            return
+        retired = _scope.retire_task_file(change)
+        if retired:
+            print(
+                f"{_scope.RETIRED_MARKER} {self._scope_phase_word()}: no batch of the "
+                f"tasks materialized under {_sp.FLAG} {change.previous} had started; "
+                f"kept them at {retired} and rematerializing under {change.current}.",
+                file=sys.stderr,
+            )
+
+    def _scope_persist(self) -> None:
+        """Record this run's deferrals on the round (never under a dry run).
+
+        Under ``expand`` the round's earlier deferrals are released: they are
+        in this run's work set again under the ordinary rules, and the record
+        no longer holds them.
+        """
+        if self.scope is None or self.state is None or self._scope_dry():
+            return
+        word = self._scope_phase_word()
+        if self.scope.preserve:
+            _scope.persist_deferrals(self.state.state, word, self.scope_deferred)
+            self.state.save()
+            return
+        if self.scope.recorded_deferrals:
+            self._scope_released = [
+                str(entry.get("group_id")) for entry in self.scope.recorded_deferrals
+                if entry.get("group_id")
+            ]
+            _scope.persist_deferrals(self.state.state, word, [])
+            self.state.save()
+            print(
+                f"[scope-policy] {word}: {len(self._scope_released)} item(s) an "
+                f"earlier {_sp.FLAG} preserve run deferred are offered again "
+                f"under expand",
+                file=sys.stderr,
+            )
+
+    def scope_annotate(self, formatted: Dict[str, Any], group: Dict[str, Any], *,
+                       original_description: Optional[str] = None) -> Dict[str, Any]:
+        """A formatter's last step: the ``preserve`` scope context (plan §3).
+
+        Under ``preserve`` a bound selected remedy becomes the item's
+        instruction (``scope_apply.annotate_item``); under ``expand`` the
+        formatted item is returned untouched.
+        """
+        return _scope.annotate_item(formatted, group, self.scope,
+                                    original_description=original_description)
+
+    def scope_output_fields(self) -> Dict[str, Any]:
+        """``orchestrator_output.json``'s scope block, or ``{}`` (expand, nothing released)."""
+        return _scope.output_block(self.scope, self.scope_deferred, self._scope_released)
+
+    def _scope_materialize_kwargs(self) -> Dict[str, Any]:
+        """``materialize_write_tasks``' scope arguments; ``{}`` under ``expand``."""
+        kwargs: Dict[str, Any] = {}
+        if self.scope is not None and self.scope.preserve:
+            kwargs["scope"] = self.scope
+        if self._scope_start_index:
+            kwargs["start_index"] = self._scope_start_index
+        return kwargs
+
+    def _scope_scheduler_kwargs(self) -> Dict[str, Any]:
+        """The scheduler's scope arguments: the policy its dispatch check enforces."""
+        if self.scope is None:
+            return {}
+        return {"scope_policy": self.scope.policy,
+                "scope_baseline_id": self.scope.baseline_id}
+
+    def _scope_effective(self, state: StateManager) -> "_scope.ApplyPolicy":
+        """This run's policy, or (``--mark-completed``, which resolves none)
+        the one the round's record gives."""
+        if self.scope is not None:
+            return self.scope
+        explicit = getattr(self.args, _sp.DEST, None)
+        return _scope.resolve_apply_policy(
+            explicit if _sp.is_valid_policy(explicit) else None, state.state,
+            self._scope_phase_word())
+
+    def _scope_blockers(self, state: Optional[StateManager]) -> List[Dict[str, Any]]:
+        """The blockers this review's batches declined, from the phase's records.
+
+        Under ``preserve`` a declined item whose reason starts with
+        ``scope_apply.BLOCKER_PREFIX`` is the concrete blocker plan §5 names.
+        Read from ``processed_<phase>`` (both legs record declines there), so
+        every completion writer derives the same answer — a ``--resume`` that
+        drops the declined item still finds it. ``[]`` under ``expand``.
+        """
+        if state is None or not self._scope_effective(state).preserve:
+            return []
+        from .subagent_tasks import file_content_hash
+
+        out_dir = self.out_dir or find_output_dir(
+            self.plan_path, guard_double_nesting=self.guard_double_nesting)
+        stamp = file_content_hash(
+            os.path.join(out_dir, self.review_subdir, "grouped.json"))
+        return _scope.blockers_from_processed(
+            state.get_processed_items(self.phase_name), stamp)
+
+    def _scope_open_blockers(self) -> List[Dict[str, Any]]:
+        """Step 27's question: does this review's record hold a blocker?
+
+        Read-only, and ``[]`` under a dry run (which records nothing and
+        keeps its own exit) and under ``expand``.
+        """
+        if self._scope_dry():
+            return []
+        return self._scope_blockers(self.state)
+
+    def _scope_close(self, state: Optional[StateManager]) -> List[Dict[str, Any]]:
+        """The round's completion outcome; the blockers it found.
+
+        Every completion writer calls this — ``--mark-completed``, the
+        executor leg's finished loop, the emit-time empty loop and the
+        all-deferred exit — so each derives the blockers the same way
+        (:meth:`_scope_blockers`): recorded with the completion
+        (``blocked``), which dependent phases read, and returned so the
+        caller stops at exit 3. Only a completion that finds none clears
+        them (an ``expand`` apply, a re-run whose batch applies the item) —
+        or a fresh review round, which replaces the record.
+        """
+        if state is None:
+            return []
+        blockers = self._scope_blockers(state)
+        _scope.record_completion(
+            state.state, self._scope_phase_word(), self._scope_effective(state), blockers)
+        return blockers
+
+    def _scope_report_blockers(self, blockers: Sequence[Dict[str, Any]]) -> None:
+        from .cli_common import record_error
+
+        word = self._scope_phase_word()
+        for line in _scope.blocker_lines(blockers, mode_word=word):
+            print(line, file=sys.stderr)
+        record_error(_scope.blocker_error(blockers, mode_word=word))
+
+    def _scope_summary_lines(self, *, markdown: bool = False, would: bool = False) -> List[str]:
+        """The deferral (and release) lines a summary prints; ``[]`` under a default run."""
+        lines: List[str] = []
+        entries = list(self.scope_deferred)
+        if entries:
+            verb = "Would defer" if would else "Deferred"
+            if markdown:
+                lines += [f"## Deferred by scope policy ({len(entries)}, not applied)", ""]
+            else:
+                lines += ["", f"{verb} by {_sp.FLAG} preserve ({len(entries)}, not applied):"]
+            for entry in entries:
+                gid = str(entry.get("group_id") or "")
+                if markdown:
+                    lines.append(
+                        f"- **{entry.get('title')}** (`{gid}`) `{entry.get('label')}` — "
+                        f"{entry.get('reason')}"
+                    )
+                else:
+                    lines.append(f"  - [{entry.get('label')}] {entry.get('title')} [{gid[:8]}]")
+                    lines.append(f"      reason: {entry.get('reason')}")
+            if markdown:
+                lines.append("")
+        if self._scope_released and not markdown:
+            lines += ["", f"Offered again under {_sp.FLAG} expand: "
+                          f"{len(self._scope_released)} earlier scope deferral(s)"]
+        return lines
+
+    def _print_scope_summary(self) -> None:
+        """The native leg's deferral lines, beside its plan of work."""
+        lines = self._scope_summary_lines()
+        if not lines:
+            return
+        stream = sys.stderr if getattr(self.args, "output_format", "text") == "json" else sys.stdout
+        for line in lines:
+            print(line, file=stream)
+
+    def _publish_scope_notice(self) -> None:
+        note = _scope.deferral_note(self.scope_deferred, self.item_noun_plural)
+        if note:
+            from .cli_common import add_notice
+
+            add_notice(note)
+
+    def _scope_all_deferred_exit(self) -> None:
+        """Every remaining item is deferred: eligible work completed (plan §5).
+
+        Replaces the subclass's no-items exit for this case, and for the one
+        where nothing remains but a batch of this review declined a blocker,
+        so the phase is recorded *completed* with its deferrals kept (never
+        "no actionable findings", never a skip), on both legs, before the
+        detach boundary like that exit. A recorded blocker keeps the phase
+        blocked and stops at exit 3 (a ``--resume`` over a blocked phase
+        must not clear it). Dry runs record nothing.
+        """
+        word = self._scope_phase_word()
+        blockers: List[Dict[str, Any]] = []
+        if not self._scope_dry() and self.state is not None:
+            _scope.persist_deferrals(self.state.state, word, self.scope_deferred)
+            self.state.mark_phase_completed(word)
+            blockers = self._scope_close(self.state)
+            if self.edits_the_plan and getattr(self.args, "resume", False):
+                self.state.refresh_plan_hash()
+            self.state.save()
+            if self.resume_dropped_groups:
+                self.print_native_tests_not_run()
+        phase_dir = os.path.join(self.out_dir, self.phase_name)
+        os.makedirs(phase_dir, exist_ok=True)
+        count = len(self.scope_deferred)
+        output: Dict[str, Any] = {
+            "format_version": CURRENT_FORMAT_VERSION,
+            "status": "completed",
+            "message": (
+                _scope.blocker_error(blockers, mode_word=word) if blockers else
+                f"Eligible work completed: no {self.item_noun} is eligible under "
+                f"{_sp.FLAG} preserve and {count} "
+                f"{self.item_noun if count == 1 else self.item_noun_plural} "
+                f"stay deferred"
+            ),
+            "phase": word,
+            "plan_file": self.plan_path,
+            "prefix": self.prefix,
+            "output_dir": self.out_dir,
+            "timestamp": datetime.now().isoformat(),
+            "batches": [],
+            "to_apply": [],
+            "needs_human_review": [],
+            "skipped_items": self.formatted_skipped,
+            "user_skipped_items": self.user_skipped_items,
+            "skipped_count": len(self.skipped),
+            "summary": {
+                "total_groups": len(self.groups),
+                "valid_count": 0,
+                "needs_human_count": 0,
+                "skipped_count": len(self.skipped),
+                "user_skipped_count": len(self.user_skipped_items),
+                "batch_count": 0,
+                "scope_deferred_count": count,
+            },
+        }
+        output.update(self.scope_output_fields())
+        if not blockers:
+            print(f"\nNo {self.item_noun_plural} eligible under {_sp.FLAG} preserve.",
+                  file=sys.stderr)
+        for line in self._scope_summary_lines():
+            print(line, file=sys.stderr)
+        self._publish_scope_notice()
+        write_and_emit_output(output, phase_dir)
+        emit_json_output(output)
+        if blockers:
+            self._scope_report_blockers(blockers)
+            sys.exit(3)
+        sys.exit(0)
 
     # ==================================================================
     # Phase 4 — _prepare_batches
@@ -2409,6 +2951,10 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                 f"Phase _write_outputs, step 32: build_output_json failed: {e}",
                 exit_code=1,
             ) from e
+        # The scope policy's block (plan §5): present only under `preserve`
+        # or when an `expand` override released earlier deferrals, so a
+        # default run's payload keeps exactly its keys.
+        output.update(self.scope_output_fields())
 
         # Step 33: Write output + mark phase completed
         try:
@@ -2521,14 +3067,19 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         # completed right here, before a single edit existed, so `status`
         # and the next-step builder read a phase as done while the host was
         # still applying its batches — or after it had died halfway.
+        scope_blockers: List[Dict[str, Any]] = []
         if self.state is not None:
             word = self.confirmation_phase_name or self.phase_name
             if not self.batches and not self.needs_human:
                 # Nothing handed out and nothing left to decide (every item
                 # invalid or skipped): the phase's work is done at emit, so
                 # the record says so — a started record here would wait for
-                # a closing step over an empty loop.
+                # a closing step over an empty loop. The scope record is the
+                # same completion `--mark-completed` writes: a blocker a
+                # batch of this review declined (and `--resume` dropped)
+                # keeps the phase blocked, exit 3 below.
                 self.state.mark_phase_completed(word)
+                scope_blockers = self._scope_close(self.state)
                 # Under `--resume` the empty loop is what step 23 left after
                 # dropping every group an earlier native run applied: that
                 # host edited the plan and died before its `--mark-completed`,
@@ -2552,8 +3103,14 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             self.logger.warning(
                 "print_text_summary failed: %s", e, exc_info=True
             )
+        self._print_scope_summary()
+        self._publish_scope_notice()
 
         self.logger.info("Output written to %s", output_path)
+
+        if scope_blockers:
+            self._scope_report_blockers(scope_blockers)
+            return 3
 
         # Step 35: Return exit code 0
         return 0
@@ -3327,6 +3884,9 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             for item in self.formatted_human:
                 print(f"  - {item.get('title', 'Unknown')}")
 
+        for line in self._scope_summary_lines():
+            print(line)
+
     # ------------------------------------------------------------------
     # The executor leg's own summary report and decisions overlay (F3)
     # ------------------------------------------------------------------
@@ -3372,6 +3932,9 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                 f"applied{f' to {target}' if target else ''} — {shown} "
                 "(reasons in summary.md)"
             )
+        scope_note = _scope.deferral_note(self.scope_deferred, self.item_noun_plural)
+        if scope_note:
+            notes.append(scope_note)
         return notes
 
     def _completed_target_label(self) -> Optional[str]:
@@ -3862,6 +4425,10 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                     )
                 lines.append("")
 
+        # The scope policy's deferrals (plan §5): their own section, never
+        # under a skipped or applied heading.
+        lines += self._scope_summary_lines(markdown=True)
+
         path = os.path.join(phase_dir, "summary.md")
         try:
             os.makedirs(phase_dir, exist_ok=True)
@@ -3937,19 +4504,25 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             from .commit_apply import guard_record
 
             guard = guard_record(self.state.state)
-        if not decisions and not (guard and guard.get("skipped")):
-            return None
         try:
             from .html_report_generator import (
                 regenerate_report_with_human_decisions,
+                scope_regeneration_needed,
             )
         except ImportError:  # pragma: no cover - direct script runs
             from utils.html_report_generator import (  # type: ignore
                 regenerate_report_with_human_decisions,
+                scope_regeneration_needed,
             )
+        # A recorded scope-policy change (an apply override, its deferrals)
+        # refreshes the report's eligibility even with no decision to badge.
+        if (not decisions and not (guard and guard.get("skipped"))
+                and not scope_regeneration_needed(review_dir, self.state.state)):
+            return None
         try:
             report_path, matched = regenerate_report_with_human_decisions(
-                review_dir, decisions, **({"guard": guard} if guard else {})
+                review_dir, decisions, **({"guard": guard} if guard else {}),
+                scope_state=self.state.state,
             )
         except Exception as exc:  # noqa: BLE001 - an overlay must not fail a run
             self.logger.warning("decision overlay not regenerated: %s", exc)
@@ -4008,6 +4581,7 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             plan_file=self.plan_path,
             tasks_file=tasks_file,
             grouped_file=grouped_file if os.path.exists(grouped_file) else None,
+            **self._scope_materialize_kwargs(),
         )
         task_file = write_task_file_for_phase(
             kind=self.write_kind, tasks=tasks, phase_dir=phase_dir,
@@ -4061,6 +4635,7 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                 # answer the stop offers, in this host's spelling.
                 partial_skips=getattr(self, "partial_skips", None) or None,
                 user_commands=self._stop_user_commands(),
+                **self._scope_scheduler_kwargs(),
             )
         except (ExecutorError, WriteSafetyError) as exc:
             # A target that cannot be granted (gone, a symlink, not a regular
@@ -4094,6 +4669,16 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         notice = write_result_notice(result)
         if notice:
             record_notice(notice)
+        if result.exit_code == 0 and not getattr(self.args, "dry_run_subagents", False):
+            # The scope policy's completion record (plan §5); a `preserve`
+            # batch's blocker decline is the one stop it adds (exit 3).
+            blockers = self._scope_close(self.state)
+            if self.state is not None and _sp.round_record(
+                    self.state.state, self._scope_phase_word()) is not None:
+                self.state.save()
+            if blockers:
+                self._scope_report_blockers(blockers)
+                return 3
         return result.exit_code
 
     def _materialize_native_write_tasks(self) -> Optional[str]:
@@ -4130,6 +4715,7 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             plan_file=self.plan_path,
             tasks_file=tasks_file,
             grouped_file=grouped,
+            **self._scope_materialize_kwargs(),
         )
         self._native_write_tasks = list(tasks)
         # Fix round 26: stamped native, so `status` shows this run rather
@@ -4836,6 +5422,13 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             ),
             phase=os.path.basename(os.path.normpath(review_dir)),
             extra_instructions=self.get_revalidation_instructions(),
+            # The apply's effective policy (step 10b: explicit flag, the
+            # round's recorded apply override, its review policy, expand);
+            # the raw flag only when step 10b never ran.
+            scope_policy=(
+                self.scope.policy if getattr(self, "scope", None) is not None
+                else getattr(self.args, "scope_policy", None)
+            ),
         )
 
         if revalidation_tasks["items_to_revalidate"] == 0:
@@ -4882,8 +5475,12 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
             self.validation = merge_batched_revalidation_results(
                 output_dir=review_dir,
                 revalidation_metadata=revalidation_tasks,
+                groups=self.groups,
             )
-            save_validation_results(self.validation, validation_path, model=model)
+            save_validation_results(
+                self.validation, validation_path, model=model,
+                scope=revalidation_tasks.get("scope"),
+            )
             print(f"Updated validation saved to: {validation_path}", file=sys.stderr)
             return
 
@@ -5200,3 +5797,6 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                 theme = group.get("theme", group.get("title", "Unknown"))
                 reason = group.get("validation_reason", "No reason")
                 print(f"  - {theme}: {reason}", file=sys.stderr)
+
+        for line in self._scope_summary_lines(would=True):
+            print(line, file=sys.stderr)

@@ -36,4 +36,5 @@ Sync the selected change's specification deltas into the main specs before archi
 When sync creates a new openspec/specs/<capability>/spec.md, give it a readable top-level title derived from the capability's purpose or meaning. Preserve existing authored titles and machine-named capability paths.
 If required specification sync is blocked, stop without archiving and report the blocker.
 After archiving, validate the resulting specifications. Repair issues that are safely fixable within OpenSpec artifacts, then validate again.
-If a post-archive issue requires code changes or cannot be safely repaired within OpenSpec artifacts, stop and report it without claiming validation passed.
+If validation remains INVALID or an issue cannot be safely repaired within OpenSpec artifacts, show the exact findings and proactively offer the user help resolving them. Stop without claiming validation passed.
+If safe repairs make validation return VALID, report successful validation and do not offer unresolved-finding recovery.

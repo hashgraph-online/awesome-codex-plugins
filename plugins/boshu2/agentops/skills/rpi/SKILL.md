@@ -131,11 +131,13 @@ When a validator is used, bind accepted intent, complete changed paths, the
 exact subject and its check results using
 [Validate's Subject rules](../validate/SKILL.md#subject), including its status
 listing and file hashes for uncommitted work.
-Where the repository records AgentOps evidence bindings, run
-`ao provenance evidence-orphans --root <repo> --changed <path>...` and disclose
-the acceptance evidence it reports orphaned. Requested proof goes to protected
-storage outside Git that the caller selects; preserve legacy `.agents/`
-evidence. [Validate](../validate/SKILL.md#rules-that-decide-the-verdict)'s
+Where the repository records AgentOps evidence bindings (under
+`docs/evals/scorecards/` or `evals/skill-probes/`), run
+`ao provenance evidence-orphans --root <repo>` with one `--changed <path>` per
+changed path and disclose the acceptance evidence it reports orphaned, as
+[Implement](../implement/SKILL.md#workflow) step 6 details; without `ao`, list
+the scan under Not checked. Requested proof goes to protected storage outside
+Git that the caller selects; preserve legacy `.agents/` evidence. [Validate](../validate/SKILL.md#rules-that-decide-the-verdict)'s
 decision order sets a requested binding verdict, which the author cannot issue.
 
 [Memory](../memory/SKILL.md), specialists and runtime adapters are on demand;

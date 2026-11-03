@@ -41,6 +41,8 @@ from utils import cli_common
 from utils.cli_common import build_parent_parser, dispatcher_prefix
 from utils.output_handler import sanitize_prefix, get_phase_dir
 from utils.prompt_loader import load_prompt
+from utils.scope_policy import reviewer_guidance
+from utils import scope_round as _scope_round
 from utils.state_manager import load_groups_payload
 from utils.provider_registry import (
     get_all_model_specs,
@@ -132,17 +134,21 @@ async def run_single_model(
     retry_count=0,
     out_dir=None,
     prefix=None,
+    scope_policy=None,
 ):
     """Backward-compatible wrapper around base run_single_model for review-plan.
 
     Tests may mock 'review_plan_orchestrator.run_single_model' so this must
     exist as a real function (not just a re-export with a different signature).
+    ``scope_policy`` renders the template's ``{scope_policy_guidance}`` block
+    for this call (omitted is ``expand``).
     """
     prompt_template = load_review_prompt_template()
     effective_prefix = prefix or sanitize_prefix(os.path.basename(plan_path))
     prompt_context = {
         "plan_path": plan_path,
         "prefix": effective_prefix,
+        "scope_policy_guidance": reviewer_guidance(scope_policy, "review-plan"),
     }
     return await _base_run_single_model(
         model_spec=model_spec,
@@ -484,6 +490,11 @@ Examples:
         help='HTML report template style: "pr" for PR-style contextual view, "flat" for classic card layout (default: pr)'
     )
 
+    # plans/scope-policy-and-report-tags.md §4: declared once, in cli_common.
+    from utils.cli_common import add_scope_policy_argument
+
+    add_scope_policy_argument(parser, role="review")
+
     return parser.parse_args(argv)
 
 
@@ -723,6 +734,17 @@ def reaggregate_consolidation_mode(
             validation_for_html = validation_raw["groups"]
         else:
             validation_for_html = validation_raw
+        # The underlying groups carry their validated scope verdicts (by stable
+        # hash only) into the consolidated reports; consolidation itself is no
+        # new scope authority (plan §3).
+        _scope_round.attach_verdicts(groups, validation_for_html)
+        scope_meta = (
+            validation_raw.get("metadata") if isinstance(validation_raw, dict) else None
+        ) or {}
+        _scope_round.annotate_decisions(
+            groups, scope_meta.get("scope_policy"),
+            scope_meta.get("scope_round_baseline_id") or scope_meta.get("scope_baseline_id"),
+        )
 
     # Derive aggregate validation status for each consolidated group
     if validation_for_html:

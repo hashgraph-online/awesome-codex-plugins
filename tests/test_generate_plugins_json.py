@@ -1,4 +1,6 @@
 import importlib.util
+import io
+import json
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -12,6 +14,33 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GeneratedBundleCleanupTests(unittest.TestCase):
+    def test_nested_mirror_retains_nearest_license_without_overwriting_bundle_license(self):
+        cases = (
+            ({"LICENSE": b"repository license\n"}, {"LICENSE": b"repository license\n"}),
+            ({"LICENSE": b"repository license\n", "plugins/LICENSE.txt": b"plugin collection license\n"},
+             {"LICENSE.txt": b"plugin collection license\n"}),
+            ({"LICENSE": b"repository license\n", "plugins/example/LICENSE.md": b"bundle license\n"},
+             {"LICENSE.md": b"bundle license\n"}),
+            ({"LICENSE": b"repository license\n", "plugins/example/COPYING": b"bundle copying terms\n"},
+             {"COPYING": b"bundle copying terms\n"}),
+            ({"license.md": b"lowercase repository license\n"}, {"license.md": b"lowercase repository license\n"}),
+            ({}, {}),
+        )
+        for files, expected in cases:
+            with self.subTest(files=files), tempfile.TemporaryDirectory() as scratch:
+                buffer = io.BytesIO()
+                with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                    archive.writestr("archive/plugins/example/.codex-plugin/plugin.json",
+                                     json.dumps({"name": "example", "version": "1.0.0"}))
+                    for path, content in files.items():
+                        archive.writestr("archive/" + path, content)
+                with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                    MODULE, "fetch_repo_archive", return_value=archive
+                ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                    MODULE.mirror_plugin_bundle({"owner": "example", "repo": "example"})
+                output = Path(scratch) / "example/example"
+                self.assertEqual({path.name: path.read_bytes() for path in output.iterdir() if path.is_file()}, expected)
+
     def test_root_skill_collection_keeps_skills_and_helpers_only(self):
         root = MODULE.PurePosixPath("archive")
         for value in (".", "./"):

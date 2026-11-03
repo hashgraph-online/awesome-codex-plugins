@@ -1,6 +1,6 @@
 {
   "name": "context-guard",
-  "version": "0.15.1",
+  "version": "0.16.1",
   "description": "Preserve task requirements and verify evidence, scope, surfaces, and multimodal assets across compaction.",
   "author": {
     "name": "Gerui Lv",
@@ -20,6 +20,7 @@
     "displayName": "Context Guard",
     "shortDescription": "Preserve long-task context across Codex compaction.",
     "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
     "longDescription": "Journals authoritative task requirements locally, records hash-only multimodal assets, enforces deterministic verification contracts when available, falls back audibly when unavailable, restores bounded context after compaction, and exports explicit successor packs.",
     "developerName": "Gerui Lv",
     "category": "Productivity",

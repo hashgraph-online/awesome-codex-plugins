@@ -38,16 +38,17 @@ if [[ $fail -ne 0 ]]; then
 fi
 
 # Findings gate: each finding must have Evidence + Fix sections (simple heuristic).
-if ! rg -n -S '^## ' "$SEC/findings.md" >/dev/null 2>&1; then
+# POSIX grep only, so the gate does not depend on ripgrep being installed.
+if ! grep -Eq -- '^## ' "$SEC/findings.md"; then
   echo "FAIL: findings.md has no findings headers (expected '## ...')" >&2
   exit 1
 fi
 
-if ! rg -n -S '(?i)^Evidence:' "$SEC/findings.md" >/dev/null 2>&1; then
+if ! grep -Eiq -- '^Evidence:' "$SEC/findings.md"; then
   echo "FAIL: findings.md missing Evidence: lines" >&2
   exit 1
 fi
-if ! rg -n -S '(?i)^(Fix|Remediation):' "$SEC/findings.md" >/dev/null 2>&1; then
+if ! grep -Eiq -- '^(Fix|Remediation):' "$SEC/findings.md"; then
   echo "FAIL: findings.md missing Fix:/Remediation: lines" >&2
   exit 1
 fi

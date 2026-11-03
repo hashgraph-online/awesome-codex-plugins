@@ -11,7 +11,7 @@ report them. The core ends with section 4.
 ## Usage
 
 ```bash
-/multi-llm:multi-llm --improve-commits [<range>] [--quick | --models provider:model ...] [--focus "<text>"] [--context-plan <path>] [--files <path> (repeatable) | --files-from <file>] [--force] [--resume]
+/multi-llm:multi-llm --improve-commits [<range>] [--quick | --models provider:model ...] [--focus "<text>"] [--context-plan <path>] [--files <path> (repeatable) | --files-from <file>] [--scope-policy expand|preserve] [--force] [--resume]
 ```
 
 The range is read as `--review-commits` reads it: optional (no range means `HEAD`,
@@ -29,6 +29,13 @@ never the range: `--context-plan <path>` adds one as read-only context, and
 | --- | --- | --- |
 | 1 | `review-code` | `--yes`, plus `--models …` or `--quick` and the scope flags (`--files`, `--files-from`) when the user typed them, and `--base-ref <base> --head-ref <head>`, the range's two commits as the brief records them; `--force --rerun-all` on a new round (`--force`, or a commit brief whose header changed since the review on record) |
 | 2 | `apply-code-fixes` | `--yes --agent-decide --no-confirm --base-ref <base>`, plus `--resume` when an interrupted apply continues |
+
+Both steps also get `--scope-policy <value>` right after `--yes` when the user
+typed one, or when a stopped run of this mode recorded one; with none, no step
+gets it. `expand` (typed, or this mode's recorded choice) over a completed
+apply that deferred items or stopped on a scope blocker runs step 2 again, to
+offer them (`run (N scope deferral(s) to reconsider under --scope-policy
+expand)`), instead of `[ALREADY_COMPLETE]`.
 
 Python decides every flag. Never compose one, add one or drop one: pass the tokens
 after each step's `[IMPROVE_STEP_FLAGS] <index>` exactly as printed, never the marker
@@ -66,6 +73,7 @@ and no question is ever rendered.
 | D6 row 11, no-selection confirmation | step 2 | `--no-confirm`: every valid fix is applied without asking |
 | D6 row 14, a step fails | section 3 | stop, report the stop, give `[IMPROVE_RERUN]` as the way to continue; never ask whether to go on |
 | D6 row 15, an empty or unrecognized decision flag (`--models ""`) | sections 0 and 1 | `util commit-brief` or `util improve-steps` exits 3 before any step runs |
+| D6 row 16, scope policy | steps 1 and 2 | never asked: the flags lines carry the typed `--scope-policy` (or the one a stopped run of this mode recorded); with none, each step resolves its own (a new review `expand`, the apply its review's), and one nobody typed is recorded as `[AUTO_RESOLVED] scope-policy: …` |
 
 `--interactive` (or `-i`) is no row: `util commit-brief` refuses it with exit 3 and
 names the two commit modes to run instead. Code review has no consolidation pass, so

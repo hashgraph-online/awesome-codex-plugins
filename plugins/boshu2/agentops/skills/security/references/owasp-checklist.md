@@ -27,7 +27,7 @@ grep -rn 'password\s*=\s*"[^"]\+"\|api_key\s*=\s*"[^"]\+"\|secret\s*=\s*"[^"]\+"
 - [ ] Input length limits enforced
 - [ ] Content-type validation on file uploads
 - [ ] No `eval()`, `exec()`, or dynamic code execution with user input
-- [ ] Path traversal prevention (no `../` in user-supplied paths)
+- [ ] Path traversal prevention: resolve a user-supplied path (following symlinks, or open it through a root-bound API such as Go's `os.Root`), then confirm by path components that it stays inside the allowed directory. A string-prefix compare or a ban on a `..` substring is not that check: `/srv/base-evil` starts with `/srv/base`, and `foo/../bar` and `a..b` stay inside
 - [ ] Secret files and scratch in a shared temp directory are owner-only from the moment they exist (restrictive umask before creation, not chmod after the write); scratch takes a fresh `mktemp` path, and code that reuses a fixed, guessable name refuses it when it is a symlink or another user's entry at the open itself (exclusive no-follow create: `O_EXCL|O_NOFOLLOW`, or `set -C` in shell), not by a test before the write, since any local user can create or redirect that name first
 
 ### 3. SQL Injection

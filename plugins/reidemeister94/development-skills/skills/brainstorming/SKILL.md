@@ -38,6 +38,8 @@ The [development loop](../../shared/development-loop.md) Design authority sectio
 Judge data shape against the [engineering contract](../../shared/engineering.md).
 Use concrete cases to expose conflicting meanings and missing boundaries.
 Cover errors, edge cases, and assumptions that would invalidate the solution.
+Settle the [definition of done](../create-test/SKILL.md#definition-of-done), including the oracle and verification limits.
+When important behavior needs a regression gate, design it before dependent work starts.
 
 Offer genuinely different alternatives and recommend the simplest one that meets the constraints.
 Use `best-practices` when current evidence can change the choice.

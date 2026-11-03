@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "ahel": { "type": "http", "url": "https://mcp.ahel.ai" }
+  }
+}

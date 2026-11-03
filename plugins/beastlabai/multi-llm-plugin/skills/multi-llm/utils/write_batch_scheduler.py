@@ -4335,6 +4335,15 @@ def dispatched_prompt_path(
     )
 
 
+def _scope_apply():
+    """:mod:`utils.scope_apply`, imported on first use (a light module)."""
+    try:
+        from . import scope_apply
+    except ImportError:  # pragma: no cover - direct-script import shim
+        from utils import scope_apply  # type: ignore
+    return scope_apply
+
+
 def with_result_contract(
     kind: str, task: Dict[str, Any], prompt: str, *, checks_section: str = "",
 ) -> str:
@@ -4367,8 +4376,16 @@ def with_result_contract(
     an apply-code-fixes batch's list of the repository's known check
     commands, bound at dispatch on both legs, after the code batch's
     ``## Checks you ran``, whose ``check`` object it extends with ``listed``.
+
+    A task materialized under ``--scope-policy preserve`` carries a ``scope``
+    block, and its writer guidance (``scope_apply.writer_block``) follows the
+    batch prompt on both legs; a task without one (``expand``) gets nothing,
+    so its text is what it always was (plans/scope-policy-and-report-tags.md §5).
     """
     expected = [str(i) for i in (task.get("expected_ids") or [])]
+    scope_block = _scope_apply().writer_block(task)
+    if scope_block:
+        prompt = f"{prompt.rstrip()}\n\n{scope_block.rstrip()}"
     declining = kind in APPLY_WRITE_KINDS
     if kind == "implement":
         id_lines = (
@@ -4719,6 +4736,8 @@ class WriteBatchScheduler:
         write_target: Optional[str] = None,
         user_commands: Optional[Dict[str, str]] = None,
         partial_skips: Optional[Sequence[str]] = None,
+        scope_policy: Optional[str] = None,
+        scope_baseline_id: Optional[str] = None,
     ) -> None:
         if kind not in WRITE_KINDS:
             raise ExecutorError(
@@ -4772,6 +4791,11 @@ class WriteBatchScheduler:
         #: left items out, kept as it stands, those items recorded as skipped
         #: at the user's request (:meth:`_check_partial_skips`).
         self.partial_skips: List[str] = [str(t) for t in (partial_skips or [])]
+        #: The scope policy an apply dispatch enforces (plans/
+        #: scope-policy-and-report-tags.md §5): the orchestrator's effective
+        #: one, else the round's record in ``state.json`` at dispatch.
+        self.scope_policy = scope_policy
+        self.scope_baseline_id = scope_baseline_id
         self._kept_at_request: Dict[str, Dict[str, Any]] = {}
         #: The answers :meth:`_check_partial_skips` refused, with why (fix
         #: round 19: recorded as a stop, :meth:`_record_answer_refusal`).
@@ -5404,6 +5428,22 @@ class WriteBatchScheduler:
             task, output_dir=self.output_dir, phase=self.phase,
             accepted_checks=accepted, state=state,
         )
+
+    def _scope_refusal(self, task: Dict[str, Any]) -> Optional[str]:
+        """Why an apply task must not dispatch under the effective scope
+        policy (``scope_apply.stale_task_refusal``), else ``None``."""
+        if self.kind not in APPLY_WRITE_KINDS:
+            return None
+        scope = _scope_apply()
+        if self.scope_policy is not None:
+            policy, baseline = self.scope_policy, self.scope_baseline_id
+        else:
+            state = getattr(getattr(self, "state", None), "state", None)
+            if not isinstance(state, dict):
+                state = _state_on_disk(self.output_dir)
+            policy, baseline = scope.effective_from_state(
+                state if isinstance(state, dict) else {}, self.phase)
+        return scope.stale_task_refusal(task, policy, baseline)
 
     def _with_result_contract(self, task: Dict[str, Any], prompt: str) -> str:
         """Append the write-batch result contract (:func:`with_result_contract`),
@@ -6778,6 +6818,16 @@ class WriteBatchScheduler:
                 self._record_batch_effects(task, refused, batch_index, result)
                 return refused
 
+        # The scope policy's stale-task check (plan §5): a task materialized
+        # under another policy, baseline or binding is never sent with the
+        # wrong policy's prompt. Never blocks an `expand` task without scope
+        # metadata.
+        scope_refusal = self._scope_refusal(task)
+        if scope_refusal is not None:
+            return self._refuse_before_dispatch(task, TaskOutcome(
+                task_id=task_id, kind=self.kind, runner=self.invoker,
+                status=STATUS_REJECTED, profile=profile, reason=scope_refusal,
+            ), batch_index, result)
         try:
             prompt = self._with_result_contract(task, self.dispatched_prompt(task))
         except ResultRejected as exc:

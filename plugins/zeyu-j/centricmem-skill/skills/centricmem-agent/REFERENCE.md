@@ -67,6 +67,16 @@ MCP tools must be present: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_
 
 If they are missing: **Already added** a Bearer or finished OAuth login in this agent → new chat, do not strip Bearer (Typical Workflows). URL-only MCP → first connect this turn. Never paste the key in chat. Never copy JSON into chat. Do not curl card/search APIs. Do not CLI-write. Do not bootstrap. Do not send a loopback `/connect` or a bare `/connect` with no `device=`.
 
+### Kiro surfaces
+
+- **Kiro CLI** is MCP-only. Add `https://mem.centricmem.com/mcp` with `kiro-cli mcp add --name centricmem --url https://mem.centricmem.com/mcp --scope default`. The scope names the owning agent. This CLI has no Skill or hook surface.
+- **Kiro IDE** reads `.kiro/plugins/marketplace.json` through Powers. That manifest does not install anything into Kiro CLI or Kiro Crew.
+- **Kiro Crew** installs the Skill and MCP separately. Import `zeyu-j/centricmem-skill:skills/centricmem-agent` from Settings → Skills → Discover. Add the remote MCP under Customize → Connections, and attach it to the **current agent** that will run the chat. Complete the device claim first. Use the OAuth banner only when minting the device URL fails and this agent will receive the browser callback. Then drain the warm pool or restart before opening a **cold session**; a merely new chat may reuse an old process whose tool list was frozen before the MCP was added. Kiro Crew has no plugin hook surface for this package, so the Skill drives `cm_ambient` and the sweep itself.
+
+A connection shown under another Kiro Crew member is not a connection for the current agent. Do not hand-edit agent JSON as the normal install path. A URL-only entry is still waiting for OAuth or a device claim.
+
+**Health binding state.** `cm_health` with valid `auth` / `grants` and `library:null` is healthy: the agent is connected but no shelf is bound to this session. It does **not** mean the account has no shelves. Call `cm_ambient` with `cwd=` or a named `shelf=`; use `suggested_shelf` only when its charter matches the task, otherwise choose from `libraries=`.
+
 **First connect, this same reply** sends https://centricmem.com/login?signup=1 **and** tries to send a `/connect?device=` URL **and** tells them to save a backup of the key — Keys shows it only once; never paste it here. Plugin `mcp.json` is URL-only: it is **not** a completed connect. **This agent** (and each client you install into) mints that connect URL this turn when it can.
 
 **If minting that URL fails:** prefer the no-CLI path first. **Detail on demand.** Host-specific install, refresh, sandbox and failure detail is not shipped in this copy: read `cm_ops` with the MCP tools, or ask zeyu@poppyg.com. The rules and shapes below are what you need to connect and to stay safe.

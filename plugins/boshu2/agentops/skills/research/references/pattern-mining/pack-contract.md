@@ -14,10 +14,28 @@ needs supporting alignment. Otherwise preserve the result as
 Save `pattern-mining.json` by Research's
 [save rule](../../SKILL.md#output-and-boundaries) and run
 `bash "<skill-dir>/scripts/pattern-mining/validate-output.sh" <pattern.json>`.
-Preserve the schema's `outcome`, `exemplars`, `invariants`, `variations`,
-`incidental`, `holdout`, `back_application` and `route` fields. Record the
-recommended `shape` (`no-action`, `reference-line`, `template`, `helper` or
-`gate`) and the demonstrated `cost` of violation; both are optional, and a
+A hypothesis record has this shape (`<...>` is a value to fill):
+
+```json
+{
+  "schema_version": "pattern-mining.v1",
+  "outcome": "hypothesis",
+  "exemplars": ["<first file:line>", "<second file:line>"],
+  "invariants": ["<what every exemplar shares>"],
+  "variations": ["<legitimate difference>"],
+  "incidental": ["<syntax or naming>"],
+  "holdout": {"source": "<file:line not among exemplars, or empty>", "result": "not-run"},
+  "back_application": "not-run",
+  "route": "no-action",
+  "shape": "no-action"
+}
+```
+
+`holdout.result` is `pass`, `fail`, `inconclusive` or `not-run`;
+`back_application` is `pass`, `fail` or `not-run`. A promotion sets
+`outcome: "promote"`, `route: "operationalize"` and both results to `pass`.
+The recommended `shape` (`no-action`, `reference-line`, `template`, `helper`
+or `gate`) and the demonstrated `cost` of violation are optional, and a
 `gate` needs `outcome: promote` and a `cost`. The validator checks that
 exemplar strings differ, not that their lineages are independent: list copies
 under their source, not as exemplars.

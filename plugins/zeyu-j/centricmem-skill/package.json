@@ -2,6 +2,10 @@
   "name": "centricmem-skill",
   "version": "1.0.36",
   "private": true,
+  "scripts": {
+    "check:kiro": "node tools/check-kiro-docs.mjs",
+    "check:versions": "node tools/check-versions.mjs"
+  },
   "description": "CentricMem Agent Skill package for the hosted librarian. GitHub package name centricmem-skill; skill folder centricmem-agent. Install: npx skills add zeyu-j/centricmem-skill --skill centricmem-agent -y",
   "license": "MIT",
   "author": "Dr. Z <zeyu@poppyg.com>",

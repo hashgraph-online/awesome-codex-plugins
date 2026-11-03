@@ -29,22 +29,22 @@ Use live tool schemas, or the [API documentation index](https://docs.magichour.a
 
 | User goal                                           | Creation tool                                              | Completion tool                |
 | --------------------------------------------------- | ---------------------------------------------------------- | ------------------------------ |
-| Original artwork, portrait, cover or product image  | `ai_image_generator_create_image`                          | `wait_for_image_project`       |
-| Edit an existing image while preserving its content | `ai_image_editor_create_image`                             | `wait_for_image_project`       |
-| Animate an approved supplied image directly         | `image_to_video_create_video`                              | `wait_for_video_project`       |
-| Put a supplied face into existing footage           | `face_swap_create_video`                                   | `wait_for_video_project`       |
-| Replace a whole character or transfer a performance | `character_replace_create_video`                           | `wait_for_video_project`       |
-| Generate video from a text description              | `text_to_video_create_video`                               | `wait_for_video_project`       |
-| Match existing video to supplied replacement audio  | `lip_sync_create_video`                                    | `wait_for_video_project`       |
-| Animate a still portrait using supplied audio       | `ai_talking_photo_create_talking_photo`                    | `wait_for_video_project`       |
+| Original artwork, portrait, cover or product image  | `generate_image`                          | `wait_for_image_project`       |
+| Edit an existing image while preserving its content | `edit_image`                             | `wait_for_image_project`       |
+| Animate an approved supplied image directly         | `create_video_from_image`                              | `wait_for_video_project`       |
+| Put a supplied face into existing footage           | `swap_face_in_video`                                   | `wait_for_video_project`       |
+| Replace a whole character or transfer a performance | `replace_character_in_video`                           | `wait_for_video_project`       |
+| Generate video from a text description              | `create_video_from_text`                               | `wait_for_video_project`       |
+| Match existing video to supplied replacement audio  | `create_lip_sync_video`                                    | `wait_for_video_project`       |
+| Animate a still portrait using supplied audio       | `create_talking_photo`                    | `wait_for_video_project`       |
 | Generate speech from text                           | Voice Generator MCP tool when exposed, otherwise API       | `wait_for_audio_project`       |
 | Read new text in an authorized sample voice         | Voice Cloner API or matching exposed MCP tool              | `wait_for_audio_project`       |
-| Create visuals from a supplied soundtrack           | `audio_to_video_create_video`                              | `wait_for_video_project`       |
-| Evolving visuals with audio-sync camera effects     | `animation_create_video`                                   | `wait_for_video_project`       |
-| Replace a face or body in a still photo             | `face_swap_photo_create_image` or `body_swap_create_image` | `wait_for_image_project`       |
-| Restyle existing footage                            | `ai_video_editor_create_video`                             | `wait_for_video_project`       |
-| Reinterpret footage in an animation/art style       | `video_to_video_create_video`                              | `wait_for_video_project`       |
-| Caption the final picture and speech                | `auto_subtitle_generator_create_video`                     | `wait_for_video_project`       |
+| Create visuals from a supplied soundtrack           | `create_video_from_audio`                              | `wait_for_video_project`       |
+| Evolving visuals with audio-sync camera effects     | `create_animation`                                   | `wait_for_video_project`       |
+| Replace a face or body in a still photo             | `swap_face_in_photo` or `place_person_in_scene` | `wait_for_image_project`       |
+| Restyle existing footage                            | `edit_video`                             | `wait_for_video_project`       |
+| Reinterpret footage in an animation/art style       | `restyle_video`                              | `wait_for_video_project`       |
+| Caption the final picture and speech                | `add_subtitles_to_video`                     | `wait_for_video_project`       |
 | Exact headline, crop, trim or assembled layout      | Available local editor/compositor                          | Inspect the exported file      |
 | Retrieve a known project                            | No new creation call                                       | Matching wait or retrieve tool |
 
@@ -54,13 +54,13 @@ Tool names can have a client-specific prefix. Discover which tools are actually 
 
 Speech routes are `POST /v1/ai-voice-generator` for a supported preset and `POST /v1/ai-voice-cloner` for new text from an authorized audio sample. Read the live schema; cloning uses `assets.audio_file_path` and `style.prompt`, not a saved-item ID as `voice_name`. Review the generated speech before animation.
 
-For full-person photo placement, distinguish Body Swap's `person_file_path` and `scene_file_path` from face-only replacement. For Video-to-Video, a custom prompt is ignored under the default prompt mode. Video Upscaler is exposed as `ai_video_upscaler_create_video` in the hosted MCP and `POST /v1/ai-video-upscaler` in its synced OpenAPI as checked October 25, 2026 UTC. Read the connected schema and [finishing guide](https://github.com/magichourhq/skills/blob/main/skills/magic-hour-video-editing/references/extend-upscale.md) for required inputs, paid-plan eligibility and completion handling. Music Video Generator's web scene-assembly workflow and Video Extender still need a separate support check; when no compatible endpoint is available, prepare the inputs and web handoff instead of inventing tools. The [complete use-case map](https://github.com/magichourhq/skills/blob/main/docs/use-cases.md) links those workflows.
+For full-person photo placement, distinguish Body Swap's `person_file_path` and `scene_file_path` from face-only replacement. For Video-to-Video, a custom prompt is ignored under the default prompt mode. Video Upscaler uses `upscale_video` in the renamed MCP catalog. Its underlying `POST /v1/ai-video-upscaler` API contract was checked October 25, 2026 UTC. Read the connected schema and [finishing guide](https://github.com/magichourhq/skills/blob/main/skills/magic-hour-video-editing/references/extend-upscale.md) for required inputs, paid-plan eligibility and completion handling. Music Video Generator's web scene-assembly workflow and Video Extender still need a separate support check; when no compatible endpoint is available, prepare the inputs and web handoff instead of inventing tools. The [complete use-case map](https://github.com/magichourhq/skills/blob/main/docs/use-cases.md) links those workflows.
 
 When installed, use `ai-video-generation` for a broad video request, `creator-video-remix` for a supplied reference format and `ai-media-quality-review` before final delivery. Use the other focused skill for image-to-video, face/body swap, text-to-video, image editing, talking video, character replace, music video, existing-video editing, product visuals, campaign kits, character consistency or thumbnails. Distinguish face-only identity changes from whole-character replacement, and a portrait's new speech from an existing video's performance. Do not require the user to memorize a skill name or install a companion just to finish a supported task. Reuse the current connection, project brief and accepted media; only ask for missing information that changes the output or authorization.
 
 ## Reuse saved media
 
-When the user names a saved character, reference, voice, moodboard or brand kit, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with the matching `type` before requesting another upload or recreating it. Match the returned name; follow `next_cursor` only while the requested item remains missing or ambiguous. Ask which item when several match. Preserve an explicitly supplied reference over an inferred library choice.
+When the user names a saved character, reference, voice, moodboard or brand kit, use `list_saved_items` (or authenticated `GET /v1/saved-items` through the existing API) with the matching `type` before requesting another upload or recreating it. Match the returned name; follow `next_cursor` only while the requested item remains missing or ambiguous. Ask which item when several match. Preserve an explicitly supplied reference over an inferred library choice.
 
 Select assets by `media_kind` and `is_primary`, inspect their temporary preview URLs, and pass the durable `file_path` directly to compatible asset fields. An item ID is not an image path or voice preset. A saved voice recording is an input sample for the supported Voice Cloner route when new speech is requested, not a preset or an already completed take. A brand kit's images do not establish exact colors, fonts or editable logo sources.
 
@@ -83,7 +83,7 @@ Write a concrete prompt in natural language. Describe the subject and action fir
 
 ## Create within the authorized scope
 
-Generation spends credits. Use `account_retrieve` when balance or tier affects feasibility; its result contains private account data, so report only the relevant balance or eligibility. Check eligibility for both selected settings and endpoint defaults; credits do not unlock paid-only models. Omit optional fields only when their defaults suit this account. For example, current Image Editor guidance distinguishes its paid-only default from explicitly selected Free-compatible settings; read that guidance rather than assuming omission chooses an eligible model. Preserve requested quality and model choices. After a tier restriction, do not repeat the unchanged request or remove fields blindly: choose an explicitly supported combination when already delegated, otherwise explain the restriction and ask before changing a requirement.
+Generation spends credits. Use `get_account_info` when balance or tier affects feasibility; its result contains private account data, so report only the relevant balance or eligibility. Check eligibility for both selected settings and endpoint defaults; credits do not unlock paid-only models. Omit optional fields only when their defaults suit this account. For example, current Image Editor guidance distinguishes its paid-only default from explicitly selected Free-compatible settings; read that guidance rather than assuming omission chooses an eligible model. Preserve requested quality and model choices. After a tier restriction, do not repeat the unchanged request or remove fields blindly: choose an explicitly supported combination when already delegated, otherwise explain the restriction and ask before changing a requirement.
 
 Select supported parameters from the current schema. Prefer one output for an initial asset unless the user requests a batch. An authorized generation does not authorize buying credits, upgrading a plan, or running an unrequested batch.
 
@@ -91,7 +91,7 @@ For face and voice inputs, use material the user is entitled to use and follow t
 
 When local input files are needed:
 
-1. Call `video_assets_generate_presigned_url` for their actual media types and extensions.
+1. Call `get_upload_urls` for their actual media types and extensions.
 2. Upload each file's raw bytes to its returned `upload_url` with an HTTPS `PUT` from a runtime that can read the user's file. A successful URL allocation does not upload anything.
 3. Verify the upload succeeded, then pass the matching returned `file_path` to the creation tool. Never pass a local filesystem path as a hosted storage path.
 

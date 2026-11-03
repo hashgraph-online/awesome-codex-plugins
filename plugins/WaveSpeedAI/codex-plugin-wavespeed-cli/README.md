@@ -1,8 +1,8 @@
 # WaveSpeed plugin for Codex
 
-Generate and edit AI media — image, video, audio, 3D — on the [WaveSpeed](https://wavespeed.ai) platform from inside Codex.
+Generate and edit AI media — image, video, audio, 3D — on [WaveSpeed](https://wavespeed.ai) from Codex.
 
-- **MCP server** `@wavespeed/mcp`, started on demand with `npx`. Tools: `list_models`, `get_model_schema`, `get_price`, `upload_file`, `run_model`, `generate_image`, `edit_image`, `generate_video`, `edit_video`, `extend_video`, `get_prediction`, `get_balance`.
-- **Skill** `wavespeed-cli`: the find → inspect → run workflow on the open-source `wavespeed` CLI, with `@path` local-file upload and price quotes before spending credits.
+- **Hosted MCP server** at `https://api.wavespeed.ai/mcp`: generate, edit and extend images and videos, run any model, inspect schemas, and check prices and balance. Approve the connection once in the browser. Use public URLs; the hosted server cannot read local files.
+- **Skill** `wavespeed-cli`: the find → inspect → run workflow on the open-source CLI, including `@path` local-file upload, batches and price quotes before spending credits.
 
-Auth: `wavespeed login` once, or set `WAVESPEED_API_KEY`. One login covers the MCP server and the CLI. See the repository root README for installation.
+For CLI use, install `@wavespeed/cli` and run `wavespeed login`. CLI authentication is separate from the hosted MCP connection. See the repository root README for installation.

@@ -68,7 +68,10 @@ outline-first drafting workflow.
    - Set `date:` (`YYYY-MM-DD`) and `time:` (`"HH:MM"` or `dawn`,
      `morning`, `midday`, `afternoon`, `evening`, `night`) once the
      scene's moment is settled, and `travel-hours:` (a number) when the
-     POV character had to travel since the previous scene. Undated scenes
+     POV character had to travel since the previous scene, with
+     `travel-mode:` (one of the `story.md` `travel-modes`, such as `horse`)
+     when the book records geography; `story continuity` then warns when
+     the hours cannot cover the distance. Undated scenes
      switch off the clock and route checks in `story continuity` without
      a warning, except a scene with `travel-hours` above 0, which warns;
      `story timeline` shows what is still undated

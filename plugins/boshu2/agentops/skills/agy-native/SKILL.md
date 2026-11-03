@@ -35,8 +35,10 @@ return runtime evidence, and stop.
    or cross-family run needs a `gemini-*` id.
 2. **Absent means stop.** If `agy` is missing or its help cannot be read,
    report the absence and stop. Never fall back silently to Codex, Claude or
-   any other runtime; a substitute needs a new caller selection. Nothing routes
-   work to AGY on its own either.
+   any other runtime. A fallback the caller named, in advance or after that
+   report, runs only after it, through [claude-exec](../claude-exec/SKILL.md)
+   or [codex-exec](../codex-exec/SKILL.md) with its own bound, labelled
+   "not an AGY result". Nothing routes work to AGY on its own either.
 3. **Set an explicit bound.** Print mode (`agy -p` / `--print`) is the headless
    path, and it has no built-in limit: `--print-timeout` defaults to `0`, which
    waits until the turn completes. Pass `--print-timeout` from the caller's
@@ -63,27 +65,37 @@ not inspected). No flag makes file access read-only.
   approving modes need declared effects and caller authorization covering
   that blast radius.
 
-Take `git status --porcelain` in `$WORKSPACE` before and after; a validator's
-write is out of authority.
+Before and after the run, take `git status --porcelain` and
+`git diff HEAD | shasum` in `$WORKSPACE`, and list the packet directory
+`$PKT` after; a validator's write is out of authority. These miss edits
+inside untracked or ignored files and under other `--add-dir` paths: report
+those unchecked.
 
 ## Command
 
 In an AgentOps source checkout, review runs use `REVIEWER=agy` (the id in
 `REVIEWER_MODEL`) with `codex_exec_guarded` from `scripts/lib/codex-exec.sh`
 (call shape in [codex-exec](../codex-exec/SKILL.md#run-it)). It adds echo,
-stall and output-cap handling and runs
-`--sandbox --dangerously-skip-permissions`, a posture to disclose. An
-installed skill lacks that library; use this block.
-The packet goes by path, not inline: a short `-p` pointer plus `--add-dir` on
-the packet's own directory only, because a large inline prompt can be dropped
-while the run still looks scoped. That drop is an earlier-run observation, not
-in the 1.4.7 help or changelog. Would verify: a run with an inline `-p` prompt
-over ~100 KB that asks for a marker from its end.
+stall and output-cap handling. Its posture, to disclose, is
+`--sandbox --dangerously-skip-permissions` with `--add-dir` on its own
+private `mktemp -d` packet directory: every tool call is approved over the
+workspace and that directory, so it is not read-only. An installed skill
+lacks that library; use this block.
+The caller supplies `$MODEL`, `$POSTURE`, `DEADLINE_EPOCH` and absolute
+`$WORKSPACE`, `$PROMPT_FILE`, `$OUT` and `$ERR` paths, the last three outside
+`$WORKSPACE`.
+This block passes the packet by path, not inline: a short `-p` pointer plus
+`--add-dir` on the packet's own directory only, because a large inline prompt
+can be dropped while the run still looks scoped. That drop is an earlier-run
+observation, not in the 1.4.7 help or changelog. Would verify: a run with an
+inline `-p` prompt over ~100 KB that asks for a marker from its end.
 
 ```bash
 TO=$(command -v timeout || command -v gtimeout) || { echo "no timeout: not launching" >&2; exit 2; }
 [ -n "$MODEL" ] || { echo "MODEL unset: pick an id from agy models" >&2; exit 2; }
 # DEADLINE_EPOCH: absolute Unix time fixed once by the caller; a later run gets what is left.
+case "$DEADLINE_EPOCH" in ''|*[!0-9]*) echo "no deadline: not launching" >&2; exit 2;; esac
+for p in "$WORKSPACE" "$PROMPT_FILE" "$OUT" "$ERR"; do case "$p" in /*) ;; *) echo "not absolute: '$p'" >&2; exit 2;; esac; done
 remaining=$(( DEADLINE_EPOCH - $(date +%s) ))
 pt=$(( remaining - 15 ))  # AGY's bound fires first; 0 would mean no limit
 [ "$pt" -gt 0 ] || { echo "deadline too close; not launched" >&2; exit 124; }
@@ -91,28 +103,31 @@ PKT=$(mktemp -d) && cp "$PROMPT_FILE" "$PKT/packet.md" || exit 2  # not $TMPDIR 
 cd "$WORKSPACE" || exit 2
 # POSTURE: Bash array of the flags chosen above; empty is the default posture.
 set -o pipefail  # bash and zsh: $? is the failing stage, not head's
+start=$(date +%s)
 "$TO" -k 10 "$remaining" \
   agy --print-timeout "${pt}s" --model "$MODEL" --output-format json \
   "${POSTURE[@]}" --add-dir "$PKT" \
   -p "Read the task packet at $PKT/packet.md and do what it describes." \
   </dev/null 2>"$ERR" | head -c 10485760 >"$OUT"
-rc=$?
+rc=$?; elapsed=$(( $(date +%s) - start )); echo "exit=$rc elapsed=${elapsed}s pt=${pt}s"
 ```
 
-Put every flag before `-p`. The help does not say whether `-p` takes a value,
-and this is untested on 1.4.7. Would verify: `agy -p hi --print-timeout 300`
-exiting 2 (flags after `-p` are parsed) or starting a billed run (they are
-not). `--print-timeout` needs a unit such as `300s`; a bare number or an
+Flags after `-p <prompt>` are parsed (1.4.7: a bad value there exits 2).
+`--print-timeout` needs a unit such as `300s`; a bare number or an
 unknown flag exits 2. If the host shell tool's cap is under
 `remaining` plus 10 s, handle it as [claude-exec](../claude-exec/SKILL.md#run) does.
 
 **Did it finish?** Exit 0 is not proof: an expired `--print-timeout` returns
-partial output, exits 0 and warns on stderr, so that run timed out. Exit 3
-with an `AGY_ERROR:` line is a model or agent error; other non-zero is a
-failed run; 124, or 137 after the grace, is the outer bound. Output repeating
-the packet or pointer is an echo. No JSON field is documented for a finished
-turn: judge by the expected artifact and the `git status` diff, else say
-unknown. An `$OUT` of exactly 10 MiB was cut; its status is the closed pipe.
+partial output, exits 0 and warns on stderr. The 1.4.11 changelog adds a JSON
+`finished_reason` (`print_timeout`, `interrupted` or `error`; omitted for a
+finished turn); 1.4.7 lacks it. There, exit 0 with `elapsed` under `pt` was
+not cut by that bound; at `pt` or later it is that timeout or a finished turn
+whose background tasks held the run to the bound, so read `$ERR`. Judge a
+finished turn by the expected artifact and the workspace snapshots, else say
+unknown. Exit 3 with an `AGY_ERROR:` line is a model or agent error; other
+non-zero is a failed run; 124, or 137 after the grace, is the outer bound.
+Output repeating the packet or pointer is an echo. An `$OUT` of exactly
+10 MiB was cut; its status is the closed pipe.
 
 ## Return
 
@@ -121,7 +136,7 @@ command:        exact argv (prompt by reference)
 posture:        flags used; settings permissions, or "settings not inspected"
 model:          requested id; observed model if AGY reported one, else unknown
 conversation:   id AGY reported, else unknown
-bound:          --print-timeout value and the outer deadline
+bound:          --print-timeout value, the outer deadline and elapsed seconds
 outcome:        exit status; finished | timed out (which bound) | echo | unknown | not run
 denied_actions: list from the JSON output, else none reported
 artifacts:      output path, bytes, truncated yes|no; changed-file paths

@@ -325,12 +325,12 @@ design-os-3d-blender/
 A FREE, source-available (PolyForm Shield) agent pipeline for Blender 5.2. Videos from the [design:os by Jang](https://www.youtube.com/@designosbyjang) channel (Vietnamese, with English terms):
 
 <p align="left">
-  <a href="https://www.youtube.com/watch?v=P1pbpKsjhBg"><img src="docs/images/video/P1pbpKsjhBg.jpg" alt="How to use design os 3d blender repo - ep 1 (YouTube, 2:57)" width="320"></a>
+  <a href="https://www.youtube.com/watch?v=J2Malrlb_PM"><img src="docs/images/video/J2Malrlb_PM.jpg" alt="How to use design os 3d blender repo - ep 1 (YouTube, 2:57)" width="320"></a>
   <a href="https://www.youtube.com/watch?v=LKL7ZHMz5KI"><img src="docs/images/video/LKL7ZHMz5KI.jpg" alt="How to use design os 3d blender repo - ep 2 (YouTube, 5:34)" width="320"></a>
   <a href="https://www.youtube.com/watch?v=XSKZYudfMt8"><img src="docs/images/video/XSKZYudfMt8.jpg" alt="Fanmade 3D model for Nowa planet - by design os 3d blender (YouTube, 0:27)" width="320"></a>
 </p>
 
-- [How to use design os 3d blender repo - ep 1](https://www.youtube.com/watch?v=P1pbpKsjhBg) (2:57): Episode 1: building a keyboard (CK-001) end to end with design-os-3d-blender: photo, spec, gates, STL and GLB export. Vietnamese.
+- [How to use design os 3d blender repo - ep 1](https://www.youtube.com/watch?v=J2Malrlb_PM) (2:57): Episode 1: building a keyboard (CK-001) end to end with design-os-3d-blender: photo, spec, gates, STL and GLB export. Vietnamese.
 - [How to use design os 3d blender repo - ep 2](https://www.youtube.com/watch?v=LKL7ZHMz5KI) (5:34): Episode 2: the DC-01 desk robot with 29 mechanical revisions, four gated runs and a printable kit. Vietnamese.
 - [Fanmade 3D model for Nowa planet - by design os 3d blender](https://www.youtube.com/watch?v=XSKZYudfMt8) (0:27): 27-second fan-made 3D model of the Nowa desktop product, built with design-os-3d-blender.
 
@@ -344,6 +344,8 @@ More: [design:os by Jang on YouTube](https://www.youtube.com/@designosbyjang).
   <a href="https://mcpservers.org/servers/jangtrinh/design-os-3d-blender"><img src="https://mcpservers.org/badge.svg" alt="Listed on mcpservers.org" width="163" height="20"></a>
   <a href="https://aiagentsdirectory.com?utm_source=badge&utm_medium=referral&utm_campaign=free_listing&utm_content=homepage"><img src="https://aiagentsdirectory.com/featured-badge.svg?v=2024" alt="Featured AI Agents on AI Agents Directory" width="160" height="40"></a>
 </p>
+
+Also listed in the [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=design-os-3d-blender) (`io.github.jangtrinh/design-os-3d-blender`), the [awesome-mcp-servers list by TensorBlock](https://github.com/TensorBlock/awesome-mcp-servers/blob/main/docs/art-culture--media.md) and [SkillsMP](https://skillsmp.com/creators/jangtrinh).
 
 ---
 

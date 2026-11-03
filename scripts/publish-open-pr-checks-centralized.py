@@ -72,14 +72,13 @@ def remediation_comment(
     summary: str,
     run_url: str,
 ) -> str:
-    marker = PUBLISHER.COMMENT_MARKER
     if conclusion == "success":
         if result.get("state") == "scan":
             message = "Contribution gate passed. The centralized score threshold of 75/100 was met; finding severities are advisory."
         else:
             message = "Contribution gate passed. No new Community Plugins entries require validation in this pull request."
-        return PUBLISHER.one_paragraph(
-            f"{marker} {message} No action is required. [Latest sweep]({run_url})."
+        return PUBLISHER.with_marker(
+            f"{message} No action is required. [Latest sweep]({run_url})."
         )
 
     reasons = result.get("failure_reasons")
@@ -87,12 +86,12 @@ def remediation_comment(
     details = " ".join(failure_lines) if failure_lines else summary
     if result.get("state") == "scan":
         guidance = "Resolve the scan failure and rerun the centralized scan; listing requires a completed score of at least 75/100."
-        guidance += " If the completed score is below 75/100 and your source repository does not already run the scanner, source-repository scanner CI is recommended, not required: use the SHA-pinned workflow in the scanner guide, reproduce locally, run the same pinned scanner in CI, fix or document rule-level findings, link the source run, rerun the catalog scan, and request review."
-        return PUBLISHER.one_paragraph(
-            f"{marker} {details} {guidance} Source-repository scanner CI is optional. [Latest sweep]({run_url})."
+        guidance += f" If the completed score is below 75/100 and your source repository does not already run the scanner, source-repository scanner CI is recommended, not required: use the SHA-pinned workflow in the [scanner guide]({PUBLISHER.SCANNER_GUIDE_URL}), reproduce locally using your project's documented toolchain, run the same pinned scanner in CI, fix or document rule-level findings, link the source run, rerun the catalog scan, and request review."
+        return PUBLISHER.with_marker(
+            f"{details} {guidance} Source-repository scanner CI is optional. [Latest sweep]({run_url})."
         )
-    return PUBLISHER.one_paragraph(
-        f"{marker} The catalog change could not be validated: {details} Fix the catalog format/source discovery problem and push the correction. [Latest sweep]({run_url})."
+    return PUBLISHER.with_marker(
+        f"The catalog change could not be validated: {details} Fix the catalog format/source discovery problem and push the correction. [Latest sweep]({run_url})."
     )
 
 

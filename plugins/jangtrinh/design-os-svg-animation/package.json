@@ -1,0 +1,63 @@
+{
+  "name": "design-os-svg-animation",
+  "version": "0.1.0",
+  "description": "Production-grade AI-powered SVG Animation Engine, Motion IR, and Knowledge Base",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev-server.mjs",
+    "compile:deliverable": "node scripts/export-player-deliverable.mjs",
+    "build": "tsc",
+    "test": "node --test tests/*.test.mjs",
+    "demo": "tsx scripts/motion-ir-compiler-demo.ts",
+    "guard": "python3 scripts/motion-preflight-guard.py",
+    "guard:fix": "python3 scripts/motion-preflight-guard.py --fix",
+    "audit:all": "npm run guard && npm run audit:hotspots && npm run audit:anti-flop",
+    "audit:anti-flop": "python3 scripts/anti-flop-gate.py",
+    "audit:hotspots": "node scripts/audit-cursor-click-hotspots.mjs",
+    "audit:knowledge": "python3 scripts/jev-svg-curator.py audit-catalog",
+    "audit:svg": "python3 scripts/jev-svg-auditor.py audit-dir ./examples",
+    "detect:cuts": "node scripts/detect-scene-cuts.mjs",
+    "extract:waveform": "node scripts/extract-audio-waveform.mjs",
+    "sync:astra-pages": "node scripts/sync-astra-law-pages.mjs --write",
+    "verify:astra-pages": "node scripts/sync-astra-law-pages.mjs --check",
+    "analyze:ref": "node scripts/detect-scene-cuts.mjs && node scripts/extract-audio-waveform.mjs",
+    "export:video:60fps": "node scripts/export-60fps-video.mjs",
+    "audit:line-ends": "node scripts/check-hairline-line-ends.mjs"
+  },
+  "dependencies": {
+    "@phosphor-icons/core": "^2.1.1",
+    "@phosphor-icons/react": "^2.1.10",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.8.1",
+    "ajv": "^8.17.1",
+    "flubber": "^0.4.2",
+    "framer-motion": "^13.4.0",
+    "gsap": "^3.12.5",
+    "paper": "^0.12.18",
+    "react": "^19.3.0",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.186.0",
+    "puppeteer-core": "^25.11.0",
+    "svgo": "4.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.4"
+  },
+  "keywords": [
+    "svg",
+    "animation",
+    "motion-ir",
+    "ai",
+    "design-os",
+    "gsap",
+    "morphing",
+    "waapi"
+  ],
+  "author": "Design OS Team",
+  "license": "SEE LICENSE IN LICENSE"
+}

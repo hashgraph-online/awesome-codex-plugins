@@ -2,7 +2,7 @@
 
 ## Existing MCP connection
 
-The creation server is `https://mcp.magichour.ai/`. Discover tools, call `ping`, then use `account_retrieve` before the first paid job to check actual API authorization. Discovery can work without credentials. A missing bearer token produces `Authentication required`; an invalid token can still receive `pong` from `ping` while the account read returns `401`. Do not reinstall skills to fix a credential error or treat `pong` alone as authenticated readiness.
+The creation server is `https://mcp.magichour.ai/`. Discover tools, call `ping`, then use `get_account_info` before the first paid job to check actual API authorization. Discovery can work without credentials. A missing bearer token produces `Authentication required`; an invalid token can still receive `pong` from `ping` while the account read returns `401`. Do not reinstall skills to fix a credential error or treat `pong` alone as authenticated readiness.
 
 For client-specific authentication, follow the maintained [MCP user guide](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). For Claude's custom connector, add the creation endpoint, select **Connect**, sign in to Magic Hour and select **Allow**; the connector's API key is created automatically. Do not ask the user to create or paste a key for that authorization flow. API-key bearer authentication remains available in compatible clients, including the Codex CLI setup below.
 

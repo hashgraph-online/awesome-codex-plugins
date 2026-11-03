@@ -11,7 +11,7 @@ salvage, validation, `--reaggregate` and the report. The core ends with section 
 ## Usage
 
 ```bash
-/multi-llm:multi-llm --review-commits [<range>] [--quick | --models provider:model ...] [--focus "<text>"] [--context-plan <path>] [--files <path> (repeatable) | --files-from <file>] [--force]
+/multi-llm:multi-llm --review-commits [<range>] [--quick | --models provider:model ...] [--focus "<text>"] [--context-plan <path>] [--files <path> (repeatable) | --files-from <file>] [--scope-policy expand|preserve] [--force]
 ```
 
 ## The range
@@ -71,6 +71,7 @@ Then, outside the block, `[COMMIT_BRIEF] <path>`: the brief this review runs on.
 | D6 row 1, uv missing | before section 1 | the prerequisite below: print `hosts/uv-missing.txt`, stop with exit 3 |
 | D6 row 2, model selection | section 1 | `--yes`, `--models` or `--quick` as typed; otherwise ask the user before the launch |
 | D6 row 3, partial fan-out results | section 3 | review-code's own rule under `--yes`: resume the missing models once, then `[PARTIAL_RESULTS: …]` and exit 0 |
+| D6 row 16, scope policy | section 1 | never asked: a typed `--scope-policy` goes to the front door among the user's tokens and on to review-code; left out, a new review round is `expand` and a `--reaggregate` keeps the round's; under `--yes` one nobody typed is recorded as `[AUTO_RESOLVED] scope-policy: …` |
 
 Code review has no consolidation pass, and `needs-human-decision` items are decided
 later, by `--apply-commit-fixes`: never ask about them here.

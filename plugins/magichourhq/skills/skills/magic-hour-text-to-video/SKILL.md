@@ -13,7 +13,7 @@ Translate the idea into one clear visual event. Accept “make an elevator open 
 
 ## Decide whether a reference is necessary
 
-Use `text_to_video_create_video` for an original scene whose exact cast and appearance can vary. If the user provides their face, a recurring character or a required starting composition, use that reference through AI Image Editor when needed, then Image-to-Video. An optional imagined character is not a reason to force a paid image step. Honor an explicit Text-to-Video request while explaining any identity limit that matters.
+Use `create_video_from_text` for an original scene whose exact cast and appearance can vary. If the user provides their face, a recurring character or a required starting composition, use that reference through AI Image Editor when needed, then Image-to-Video. An optional imagined character is not a reason to force a paid image step. Honor an explicit Text-to-Video request while explaining any identity limit that matters.
 
 ## Direct a visible event
 

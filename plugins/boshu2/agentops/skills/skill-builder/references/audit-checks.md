@@ -41,10 +41,14 @@ accepted but cannot turn suspicions into blockers. JSON defaults to stdout;
 Consumers that need the old `verdict`, `pass1`, `pass2`, `density`, `rubric`,
 `craft` and `authoring` fields must opt in explicitly; do not use legacy scores
 to rank or optimize packages. The shared conformance-profile/trigger CI consumer
-is unchanged. The option's only callers are
+is unchanged. In the AgentOps source checkout the option's callers are
 `tests/integration/test_skill_audit.bats`,
-`tests/scripts/skill-audit-rubric-pass.bats` and
-`docs/reference/skill-quality-rubric.md`; retire it together with them.
+`tests/scripts/skill-audit-rubric-pass.bats`,
+`docs/reference/skill-quality-rubric.md`, `README.md` and
+`docs/install-day2-ops.md`, and in this skill the calibration loop below,
+`skill-template.md`, `authoring-doctrine.md`, `skill-auditor.feature` and
+`schemas/audit-report.json`; `git grep -l -e --legacy` lists them (`plugin/`
+copies regenerate; `CHANGELOG.md` is history). Retire it together with them.
 
 ### Legacy deep skill audit checks
 

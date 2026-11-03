@@ -1,0 +1,6 @@
+interface:
+  display_name: "memtomem Recall"
+  short_description: "Recall memories from a date range"
+  default_prompt: "Use $memtomem-recall to show memories created last week."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,46 @@
+{
+  "name": "fair-value-calculator",
+  "version": "1.0.1",
+  "description": "Look up fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, compare and screen them, and manage a watchlist.",
+  "author": {
+    "name": "Fair Value Calculator",
+    "email": "office@fairvalue-calculator.com",
+    "url": "https://www.fairvalue-calculator.com"
+  },
+  "homepage": "https://www.fairvalue-calculator.com/mcp",
+  "repository": "https://github.com/petz00711/fair-value-calculator-mcp",
+  "license": "CC-BY-4.0",
+  "keywords": [
+    "finance",
+    "stocks",
+    "valuation",
+    "fair-value",
+    "screener",
+    "watchlist",
+    "mcp"
+  ],
+  "mcpServers": "./mcp.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Fair Value Calculator",
+    "shortDescription": "Fair value, quality score and uptrend for 40,000+ stocks, plus your watchlist",
+    "longDescription": "Connects Codex to the hosted Fair Value Calculator MCP server over OAuth: fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, stock comparisons and screens, and the watchlist and alerts of your own account. Sign in with a free account.",
+    "developerName": "Fair Value Calculator",
+    "category": "Research",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://www.fairvalue-calculator.com",
+    "privacyPolicyURL": "https://www.fairvalue-calculator.com/privacy/",
+    "termsOfServiceURL": "https://www.fairvalue-calculator.com/terms/",
+    "brandColor": "#0F7658",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png",
+    "defaultPrompt": [
+      "What is the fair value of Microsoft, and how far is the price from it?",
+      "Compare Apple and Alphabet on fair value and quality score.",
+      "Show the stocks on my watchlist that trade below their fair value."
+    ]
+  }
+}

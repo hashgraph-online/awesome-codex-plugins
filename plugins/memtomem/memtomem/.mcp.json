@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "memtomem": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "memtomem[onnx]==0.7.3",
+        "memtomem-server"
+      ],
+      "env": {
+        "MEMTOMEM_TOOL_MODE": "core",
+        "MEMTOMEM_EXTRA_TOOLS": "mem_update_coverage",
+        "ORT_DISABLE_TELEMETRY": "1"
+      }
+    }
+  }
+}

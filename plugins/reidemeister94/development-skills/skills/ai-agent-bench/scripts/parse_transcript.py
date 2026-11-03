@@ -768,10 +768,9 @@ def estimate_cost_usd(model: str | None, tokens: dict, pricing: dict) -> float |
         return None
     p = pricing.get(model)
     if p is None:
-        for k, v in pricing.items():
-            if model.startswith(k):
-                p = v
-                break
+        prefixes = [key for key in pricing if model.startswith(key)]
+        if prefixes:
+            p = pricing[max(prefixes, key=len)]
     if p is None:
         return None
 

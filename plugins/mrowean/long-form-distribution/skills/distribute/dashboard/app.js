@@ -2,8 +2,7 @@
 'use strict';
 var PLAT = { linkedin: 'LinkedIn', x: 'X', substack: 'Substack', threads: 'Threads', bluesky: 'Bluesky' };
 var MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-var LS = 'lfdState';
-var MODE = 'local';          /* 'serve' | 'demo' (server --demo) | 'local' (no server) */
+var MODE = 'offline';        /* 'serve' | 'demo' (server --demo) | 'offline' (no server) */
 var ISSUES = [], LOG = [], OPEN = null, OPENROW = {};
 
 function $(id) { return document.getElementById(id); }
@@ -16,12 +15,10 @@ function plural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one +
 function coverSrc(c) {
   c = c || '';
   if (/^https?:\/\//.test(c)) return c;
-  if (/^covers\/[\w.-]+\.(jpe?g|png|webp|gif)$/i.test(c)) return MODE === 'local' ? '../sample/' + c : c;
+  if (/^covers\/[\w.-]+\.(jpe?g|png|webp|gif)$/i.test(c)) return c;
   return '';
 }
 function key(slug, id) { return slug + '::' + id; }
-function lsGet() { try { return JSON.parse(localStorage.getItem(LS) || '[]'); } catch (e) { return []; } }
-function lsSet(v) { try { localStorage.setItem(LS, JSON.stringify(v)); } catch (e) { /* private window */ } }
 
 /* The log is append-only; state is its last word per post. */
 function state() {
@@ -45,11 +42,6 @@ function counts(d, S) {
 }
 
 function send(path, body) {
-  if (MODE === 'local') {
-    var row = Object.assign({}, body, { kind: path.split('/').pop(), at: new Date().toISOString() });
-    if (row.kind === 'log' && !/^https?:\/\/\S+$/.test(row.url || '')) return Promise.resolve({ ok: false, error: "That isn't a link. Paste the post's full URL." });
-    LOG.push(row); lsSet(LOG); return Promise.resolve({ ok: true, row: row });
-  }
   return fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     .then(function (r) { return r.json(); })
     .then(function (j) { if (j.ok) LOG.push(j.row); return j; })
@@ -59,7 +51,7 @@ function send(path, body) {
 /* ── 01 · issues ─────────────────────────────────────────── */
 function renderIssues() {
   var host = $('issues'), S = state(); clear(host);
-  if (!ISSUES.length) { host.appendChild(el('div', 'empty', 'No issues yet. Give your agent a published URL and ask it to distribute the piece; the issue appears here.')); return; }
+  if (!ISSUES.length) { host.appendChild(el('div', 'empty', MODE === 'offline' ? 'Nothing to show until the server is running.' : 'No issues yet. Give your agent a published URL and ask it to distribute the piece; the issue appears here.')); return; }
   ISSUES.forEach(function (d) {
     var c = counts(d, S), live = c.done + c.logged, finished = c.total && (live + c.skip) === c.total;
     var b = el('button', 'iss' + (finished ? ' done' : '')); b.type = 'button';
@@ -240,39 +232,29 @@ function renderPosted() {
   t.appendChild(tb);
 }
 
-function csvLocal() {
-  var S = state(), lines = [['issue', 'section', 'platform', 'format', 'date posted', 'link']];
-  ISSUES.forEach(function (d) { (d.items || []).forEach(function (it) {
-    var s = S[key(d.slug, it.id)] || {}; if (!s.url) return;
-    var sec = (d.sections || []).filter(function (x) { return x.id === it.section; })[0] || {};
-    lines.push([d.title, sec.title || '', it.platform, it.format || '', String(s.at).slice(0, 10), s.url]);
-  }); });
-  var csv = lines.map(function (r) { return r.map(function (v) { v = String(v == null ? '' : v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(','); }).join('\n');
-  return URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-}
-
 function renderAll() { renderIssues(); renderQueue(); renderCoverage(); renderPosted(); }
 
 function setMode(mode, home) {
   MODE = mode;
   var sv = $('serve'), bn = $('banner');
   sv.className = 'serve' + (mode === 'serve' ? ' on' : ' demo');
-  sv.firstChild.nodeValue = mode === 'serve' ? 'saving to disk ' : mode === 'demo' ? 'demo · not saved ' : 'sample · this browser only ';
-  $('home').textContent = mode === 'local' ? 'this browser only (no server running)' : home;
-  if (mode !== 'serve') {
+  sv.firstChild.nodeValue = mode === 'serve' ? 'saving to disk ' : mode === 'demo' ? 'demo · not saved ' : 'not running ';
+  $('home').textContent = mode === 'offline' ? 'no server running' : home;
+  if (mode === 'offline') {
+    bn.hidden = false; clear(bn);
+    bn.appendChild(el('b', null, "The dashboard server isn't running. "));
+    bn.appendChild(document.createTextNode('In this folder, run python3 serve.py --demo to see the sample issues, or python3 serve.py for your own, then open http://127.0.0.1:8799.'));
+  } else if (mode === 'demo') {
     bn.hidden = false; clear(bn);
     bn.appendChild(el('b', null, ISSUES.length === 1 ? 'This is a sample issue. ' : 'These are sample issues. '));
-    bn.appendChild(document.createTextNode(mode === 'demo'
-      ? 'Tick, skip and paste links to see how it works; nothing is saved. '
-      : 'Ticks stay in this browser. '));
+    bn.appendChild(document.createTextNode('Tick, skip and paste links to see how it works; nothing is saved. '));
     bn.appendChild(document.createTextNode('To track your own writing, install the plugin, give your agent a published URL and ask it to distribute the piece.'));
   }
-  if (mode === 'local') $('csv').addEventListener('click', function (e) { e.preventDefault(); var a = el('a'); a.href = csvLocal(); a.download = 'posted.csv'; a.click(); });
   $('railR').textContent = fdate(new Date().toISOString().slice(0, 10));
 }
 
 fetch('/api/state', { cache: 'no-store' }).then(function (r) { if (!r.ok) throw 0; return r.json(); }).then(function (j) {
   ISSUES = j.issues || []; LOG = j.log || []; OPEN = ISSUES.length ? ISSUES[0].slug : null; setMode(j.demo ? 'demo' : 'serve', j.home); renderAll();
 }).catch(function () {
-  ISSUES = (window.LFD_SAMPLE || []).slice(); LOG = lsGet(); OPEN = ISSUES[0].slug; setMode('local'); renderAll();
+  ISSUES = []; LOG = []; OPEN = null; setMode('offline'); renderAll();
 });

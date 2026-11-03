@@ -27,7 +27,7 @@ Map each beat to a presenter shot, existing product footage, an approved still o
 
 ## Choose the supported route
 
-Use the existing creation MCP at `https://mcp.magichour.ai/` or the project's authorized API integration. Read the [live schema](https://docs.magichour.ai/api-reference/openapi.json) for models, required inputs, voice presets, duration, aspect ratio, audio, plan eligibility and costs. Do not invent a one-call UGC endpoint or assume a Varg model, reference syntax or native-audio control exists in Magic Hour.
+Use the existing creation MCP at `https://mcp.magichour.ai/` or the project's authorized API integration. Read the [live schema](https://docs.magichour.ai/api-reference/openapi.json) for models, required inputs, voice presets, duration, aspect ratio, audio, plan eligibility and costs. If the live catalog exposes `create_spoken_ad_video`, inspect its schema before selecting that spoken-ad operation; otherwise use the component routes below. Do not invent an unavailable tool or assume a Varg model, reference syntax or native-audio control exists in Magic Hour.
 
 | Needed asset | Supported production decision |
 | --- | --- |

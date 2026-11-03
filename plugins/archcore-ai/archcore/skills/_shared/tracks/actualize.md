@@ -91,6 +91,19 @@ unavailable, skip the code-drift check and run cascade and temporal only.
    the `review` skill names `/archcore:review close out <feature>` when no `plan`
    matched. Age alone never flags it. A draft that carries an
    `archcore:track` state block is unfinished work, never a shipped draft.
+7. **Hung plans.** A `plan` is a work order, not canon, and the closeout
+   track removes only a plan the branch matched. For every other `plan` in
+   scope, read it, take its last change from `git log -1 --format=%aI`, and
+   compare its tasks and `## Declared Delta` paths against the default branch
+   resolved per `skills/_shared/branch-state.md`. Flag it:
+   - `shipped` — every task is present on the default branch and nothing
+     remains open; cite the commits or paths that fulfil it.
+   - `abandoned` — last changed more than 60 days ago [assumption] and no path
+     it names changed on the default branch since; cite the date and the
+     paths checked.
+   A plan with open tasks and recent activity on its paths, or one carrying
+   an `archcore:track` state block, is `ok`. `git log` on the plan file only
+   — never read every document to find plans.
 
 **Deep checks.** WHEN the request asks for a full documentation audit ("audit
 all docs", "full audit", "deep review"), also run these, within one budget:
@@ -160,6 +173,17 @@ Offer fixes one document at a time, in the source's forms:
   replaced it, or removing it.
 - Shipped draft, `spec-wrong`: propose `accepted`; apply it only after the
   user accepts that document by name.
+- Hung plans, `spec-wrong`: one batch, not one question per plan — a list
+  with one line per plan (filename, `shipped` or `abandoned`, the evidence)
+  and one confirmation for the list, recommended answer "remove all"; the
+  user strikes the lines to keep. Call `remove_document` per remaining plan
+  and report each with the commit that still carries the file; name an
+  uncommitted plan as unrecoverable before asking. The batch is the one
+  exception to the per-document confirmation: a plan holds no canon, git
+  keeps the file, and dozens of hung plans at one question each exhaust the
+  budget before the first removal. Residue a `shipped` plan still carries —
+  an open decision, a repeated procedure — goes in its line as a note; the
+  batch creates no document.
 - Cross-document conflict and failed claim, `spec-wrong`: propose the edit
   that matches the code.
 - Observations: list them after the verdicts. Offer a fix only when the user
@@ -213,10 +237,11 @@ Offer fixes one document at a time, in the source's forms:
 - Elicitation knobs:
   - trigger: a `spec-wrong` finding awaits its fix confirmation.
   - taxonomy: Terminology & Consistency, Misc / Placeholders from `skills/_shared/coverage-taxonomy.md`. [assumption]
-  - budget: 1 question per document carrying a `spec-wrong` finding [assumption] — the source rule is "always confirm each fix with the user before applying, one document at a time"; the per-gate maximum equals the count of such documents.
+  - budget: 1 question per document carrying a `spec-wrong` finding, plus 1 for the hung-plan batch [assumption] — the source rule is "always confirm each fix with the user before applying, one document at a time"; the per-gate maximum equals the count of such documents; the hung-plan batch is the exception and costs one question for the whole list.
 - Produces: none — the gate updates existing documents via `update_document`; it creates no document.
 - Exit checks:
   - blocking: every `update_document` call was preceded by the user's confirmation of that document's fix.
+  - blocking: every `remove_document` call on a `plan` followed the one batch confirmation and targeted a plan the user did not strike.
   - blocking: the executing skill modified no code file.
   - advisory: every `code-wrong` finding appears in the final report with its evidence.
 - Next: exit — report applied fixes, declined fixes, and `code-wrong` findings.

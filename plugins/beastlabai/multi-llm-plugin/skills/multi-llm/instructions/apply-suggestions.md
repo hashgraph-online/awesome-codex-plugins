@@ -92,6 +92,11 @@ plans/todo/my-feature/
 - `--no-batch`: Disable smart batching (process each suggestion separately)
 - `--max-batch-size N`: Maximum suggestions per batch (default: 4)
 
+### Scope Policy
+- `--scope-policy expand|preserve`: which validated suggestions may be applied (D6 row 16, never asked). Pass it only when the user typed it. Left out, the apply keeps the policy on record for its review round: an earlier apply's typed override, else the review's, else `expand`. A typed value overrides the review's and is kept for this apply's later runs, `--resume` and `--mark-completed` included. Under `expand` nothing changes.
+- Under `preserve` only suggestions validated `Within scope` for this review round, and unchanged since, are handed out. The rest are **deferred**: named on `[SCOPE_DEFERRED]` lines, in the result line's `notice` and in `summary.md`, never batched, and neither skipped, failed nor applied. Report them as deferred and never apply one yourself: no approval flag (`--yes`, `--approve-all`, `--agent-decide`, `--force`, …) releases them, and a later run with `--scope-policy expand` does. A phase whose eligible items are all done completes with its deferrals kept.
+- A `preserve` writer declines an item it cannot complete inside the scope. A decline whose reason starts with `SCOPE BLOCKER:` (the agreed requirement itself cannot be met) stops the apply at exit 3 with `[SCOPE_BLOCKER]`, naming the ways forward.
+
 ### Confirmation Behavior
 - `--no-confirm`: Skip confirmation when no user selections are found (for unattended/silent operation)
 - Also bypassed by: `--yes`, `--force`, `--approve-all`, `--skip-all-human`, `--approve-all-low`, `--approve-importance`, `--approve-validation-failed`, `--dry-run`

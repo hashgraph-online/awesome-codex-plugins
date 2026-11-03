@@ -21,12 +21,8 @@ The binary is not in the bundle — plugins carry files, not native binaries:
 
 ```sh
 brew install deja-vu
-```
-
-or
-
-```sh
-curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | sh
+# or: npm i -g @vshulcz/deja-vu
+# or: curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | sh
 ```
 
 `deja install codex-auto` writes the same MCP server and hooks into `~/.codex`

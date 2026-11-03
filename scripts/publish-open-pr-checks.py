@@ -15,6 +15,7 @@ from urllib.request import Request, urlopen
 API_ROOT = "https://api.github.com"
 CHECK_NAME = "Open Codex Plugin Contribution Gate"
 COMMENT_MARKER = "<!-- awesome-codex-plugins-contribution-gate -->"
+SCANNER_GUIDE_URL = "https://github.com/hashgraph-online/awesome-codex-plugins/blob/main/SCANNER_GUIDE.md"
 USER_AGENT = "awesome-codex-plugins-open-pr-sweep"
 REQUEST_TIMEOUT_SECONDS = 30
 SCAN_JOB_RE = re.compile(r"Scan PR (?:#(\d+) source|\((\d+),)")
@@ -147,6 +148,12 @@ def one_paragraph(text: str) -> str:
     return " ".join(text.split())
 
 
+def with_marker(paragraph: str) -> str:
+    """Keep Markdown prose ahead of the hidden comment-tracking marker."""
+
+    return f"{one_paragraph(paragraph)} {COMMENT_MARKER}"
+
+
 def remediation_comment(
     result: dict[str, object],
     conclusion: str,
@@ -159,8 +166,8 @@ def remediation_comment(
     author_login = result.get("author_login")
     mention = f"@{author_login}" if isinstance(author_login, str) and GITHUB_LOGIN_RE.fullmatch(author_login) else "the contributor"
     if conclusion == "success":
-        return one_paragraph(
-            f"{COMMENT_MARKER} Contribution gate passed. {mention}, all required catalog checks are clear; no action is needed. "
+        return with_marker(
+            f"Contribution gate passed. {mention}, all required catalog checks are clear; no action is needed. "
             f"[Latest sweep]({run_url})."
         )
 
@@ -173,12 +180,12 @@ def remediation_comment(
         guidance = "Use one root-level repository link, a one-sentence description, the correct section, and alphabetical order, then rerun the check."
     elif result.get("state") == "scan":
         guidance = "Review the scanner report and rerun the centralized scan."
-        guidance += " If the completed score is below 75/100 and your source repository does not already run the scanner, source-side CI is recommended, not required: use the SHA-pinned workflow in the scanner guide, reproduce locally, run the same pinned scanner in CI, fix or document rule-level findings, link the source run, rerun the catalog scan, and request review."
+        guidance += f" If the completed score is below 75/100 and your source repository does not already run the scanner, source-side CI is recommended, not required: use the SHA-pinned workflow in the [scanner guide]({SCANNER_GUIDE_URL}), reproduce locally using your project's documented toolchain, run the same pinned scanner in CI, fix or document rule-level findings, link the source run, rerun the catalog scan, and request review."
     else:
         guidance = "Fix the catalog validation findings and rerun the contribution check."
 
-    return one_paragraph(
-        f"{COMMENT_MARKER} {mention}, {summary} {guidance} "
+    return with_marker(
+        f"{mention}, {summary} {guidance} "
         "Source-repository scanner CI is optional; listing requires a completed centralized score of at least 75/100. "
         f"[Contribution requirements](https://github.com/hashgraph-online/awesome-codex-plugins/blob/main/CONTRIBUTING.md) "
         f"[Latest sweep]({run_url})."

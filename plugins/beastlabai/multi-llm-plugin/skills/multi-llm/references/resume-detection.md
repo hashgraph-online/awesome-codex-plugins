@@ -25,6 +25,9 @@ d. If per-model `*.json` files exist in `{plan}/{phase}/` but no `grouped.json`:
    file (`[SKIP]`) and runs only the missing ones; a `--reaggregate` would report
    without them. On review-code add `--force`, which a dir holding results needs
    (exit 3 otherwise); a composite's flags line already carries it. Never `--rerun-all`.
+   Left out, `--scope-policy` stays the one the kept files were requested under (one
+   `Scope policy notice:` line says so); a different one typed stops at exit 3 with
+   `[SCOPE_POLICY_CONFLICT]`.
 
 e. If none of the above: proceed to run the orchestrator.
 

@@ -1,0 +1,47 @@
+{
+  "name": "metamask-agent-wallet",
+  "version": "1.0.0",
+  "description": "MetaMask Agent Wallet skills and session-start readiness for the mm CLI — auth, wallets, swaps, bridges, perps, prediction markets, and earn.",
+  "author": {
+    "name": "MetaMask",
+    "url": "https://metamask.io"
+  },
+  "homepage": "https://github.com/MetaMask/agent-skills",
+  "repository": "https://github.com/MetaMask/agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "metamask",
+    "wallet",
+    "crypto",
+    "ethereum",
+    "swap",
+    "bridge",
+    "perps",
+    "prediction-markets",
+    "agent-wallet"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/codex-hooks.json",
+  "interface": {
+    "displayName": "MetaMask Agent Wallet",
+    "shortDescription": "mm CLI skills for wallets, swaps, bridges, perps, and earn",
+    "longDescription": "MetaMask Agent Wallet skills and session-start readiness for the mm CLI — auth, wallets, swaps, bridges, perps, prediction markets, and earn.",
+    "developerName": "MetaMask",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://metamask.io",
+    "privacyPolicyURL": "https://consensys.io/privacy-notice",
+    "termsOfServiceURL": "https://consensys.io/terms-of-use",
+    "defaultPrompt": [
+      "Log in and initialize my MetaMask agent wallet.",
+      "Swap tokens with the MetaMask mm CLI.",
+      "Check MetaMask CLI readiness with mm doctor."
+    ],
+    "brandColor": "#F6851B",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
+  }
+}

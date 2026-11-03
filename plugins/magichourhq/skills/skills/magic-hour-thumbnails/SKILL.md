@@ -21,7 +21,7 @@ Build a composition around one dominant subject and one supporting cue. Put opti
 
 ## Generate only the needed visual
 
-Use `ai_image_editor_create_image` for reference-based changes; use `ai_image_generator_create_image` when no source must be preserved. State the subject's position, scale, expression if relevant, contrast and copy region. Request the change first and protected identity second. Do not depend on generated lettering for an exact headline.
+Use `edit_image` for reference-based changes; use `generate_image` when no source must be preserved. State the subject's position, scale, expression if relevant, contrast and copy region. Request the change first and protected identity second. Do not depend on generated lettering for an exact headline.
 
 > Use my supplied workshop photo. Make the repaired blue chair the dominant subject on the right, with the damaged chair from my second photo smaller on the left. Preserve both chairs' actual construction and damage; do not exaggerate the result. Simple workshop background, clear separation, no added words. Leave the upper-left area clear for my exact headline.
 
@@ -37,6 +37,6 @@ If the subject disappears at small size, enlarge it or simplify the background b
 
 Use the creation MCP at `https://mcp.magichour.ai/`; [connection guide](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). Read live models, input limits, resolution and prices. For API use, inspect the [OpenAPI](https://docs.magichour.ai/api-reference/openapi.json), then `/v1/ai-image-editor` or `/v1/ai-image-generator`. Stay inside existing spending authorization.
 
-Upload local inputs through `video_assets_generate_presigned_url`, PUT raw bytes without the API bearer token to storage, and use `file_path`. Create once, retain the ID, then `wait_for_image_project`; a wait timeout means retrieve the same job. Do not repeat an ambiguous creation request. Preserve signed URLs and save the final file locally.
+Upload local inputs through `get_upload_urls`, PUT raw bytes without the API bearer token to storage, and use `file_path`. Create once, retain the ID, then `wait_for_image_project`; a wait timeout means retrieve the same job. Do not repeat an ambiguous creation request. Preserve signed URLs and save the final file locally.
 
 Deliver the cover, editable copy, dimensions and any rejected requirement. Reuse the accepted series palette, type hierarchy and crop rules for the next episode, while changing the visual hook to match that episode. The [Nori case](https://github.com/magichourhq/skills/tree/main/examples/nori-thumbnail) publishes two authenticated image edits and a finished layout; broader thumbnail quality and audience response remain unmeasured.

@@ -1,0 +1,20 @@
+{
+  "name": "kin",
+  "interface": {
+    "displayName": "Kin"
+  },
+  "plugins": [
+    {
+      "name": "kin",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

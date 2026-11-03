@@ -57,6 +57,8 @@ Report what an implementer needs to be told. Skip anything an implementer would 
 
 {working_limits}
 
+{scope_policy_guidance}
+
 ## Output Format
 Return ONLY a valid JSON array with no additional text. Each element must have exactly these fields:
 - "title": string (5-10 word summary of the issue)
@@ -71,6 +73,9 @@ Return ONLY a valid JSON array with no additional text. Each element must have e
   - modification = something exists but needs to be changed
   - deletion = something should be removed (unnecessary, harmful)
   - clarification = something is unclear and needs better explanation
+- "scope_relation": "in_scope" | "scope_extension" | "unclear" (how the finding's proposed action relates to the scope baseline, as the scope section above defines them)
+- "scope_reason": string (one short line saying why, against the scope baseline)
+- "scope_reference": string (the baseline section or text the classification rests on, or "")
 
 Example output:
 [
@@ -79,21 +84,30 @@ Example output:
     "desc": "Section 2 caps uploads at 'at most 50 files per request', but the sizing table in Section 4 assumes 100 per request, so its memory estimate is twice what Section 2 allows. Section 2 states the cap as a rule and the table only assumes a figure, so the table's 100 is the wrong one. No step depends on that estimate, so the impact is small.",
     "importance": "low",
     "reference": "## 4. Sizing",
-    "type": "modification"
+    "type": "modification",
+    "scope_relation": "in_scope",
+    "scope_reason": "Corrects a figure that contradicts the plan's own stated cap; it adds nothing to the plan.",
+    "scope_reference": "## 2. Uploads"
   }},
   {{
     "title": "Retry steps rely on a hook the plan never defines",
     "desc": "Section 3 attaches every retry to an 'on_upload_failed hook', but no section of the plan defines that hook or says which component calls it. Every retry step in Section 3 rests on it.",
     "importance": "high",
     "reference": "## 3. Retry Design",
-    "type": "clarification"
+    "type": "clarification",
+    "scope_relation": "in_scope",
+    "scope_reason": "Defining the hook completes the retry design the plan already requires.",
+    "scope_reference": "## 3. Retry Design"
   }},
   {{
     "title": "Acceptance check passes without the feature",
     "desc": "The only acceptance criterion for retries is 'the upload command exits 0', which it already does today. It would pass with retries missing, so nothing checks that a dropped upload is sent again.",
     "importance": "medium",
     "reference": "## 5. Testing",
-    "type": "addition"
+    "type": "addition",
+    "scope_relation": "in_scope",
+    "scope_reason": "A check for the retries the plan already specifies.",
+    "scope_reference": "## 5. Testing"
   }}
 ]
 

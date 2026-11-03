@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Validate a council-report.v1 artifact. Pass a file path, or - to read an
-# inline report from stdin. Exit 0 valid, 1 invalid, 2 usage.
+# inline report from stdin. Exit 0 valid, 1 invalid, 2 usage or jq missing
+# (the report was not checked).
 set -euo pipefail
 
 usage() {
@@ -19,6 +20,11 @@ else
   usage
 fi
 
+command -v jq >/dev/null 2>&1 || {
+  echo "jq not found: $label was not validated; check it by hand against schemas/council-report.v1.schema.json" >&2
+  exit 2
+}
+
 jq -e '
   def text: type == "string" and length > 0;
   def non_verdict: text and (ascii_downcase | test("^\\s*(pass|fail|not_proven)\\s*$") | not);
@@ -26,6 +32,8 @@ jq -e '
   def text_set: text_list and length > 0 and (unique | length) == length;
   (.judges | map(.methodology)) as $methods
   | (.judges | map(.model_identity // empty)) as $models
+  # When every judge records model_identity, every consensus point names its models.
+  | (.judges | all(has("model_identity"))) as $all_recorded
   | ((keys - ["schema_version","question","subject_digest","recommendation","judges","synthesis","diversity_unsatisfied"]) | length == 0)
   and .schema_version == "council-report.v1"
   and (.question | text)
@@ -52,7 +60,7 @@ jq -e '
       ((keys - ["claim","methodologies","models","weighs_as_one"]) | length == 0)
       and (.claim | text)
       and (.methodologies | text_set and all(.[]; . as $m | $methods | any(. == $m)))
-      and (if has("models") then (.models | text_set and all(.[]; . as $m | $models | any(. == $m))) else true end)
+      and (if has("models") then (.models | text_set and all(.[]; . as $m | $models | any(. == $m))) else ($all_recorded | not) end)
       and (if has("weighs_as_one") then (.weighs_as_one | type == "boolean") else true end)
       and (if (.methodologies | length) < 2 or (has("models") and (.models | length) < 2)
            then .weighs_as_one == true else true end)))

@@ -1,0 +1,499 @@
+<!doctype html>
+<!--
+  Variations board for the redesign-screen skill's explore mode. The rules for
+  what goes on it are in references/variations.md.
+
+  Fill in the JSON in #board-data and change nothing else. The layout and the
+  type are already set here, so a run writes data, not CSS.
+
+  Deliver it either way:
+  - as a PNG: open this file in a browser and capture the .board element at twice
+    the pixel scale, after the panes have loaded. A capture tool that cannot set
+    a device pixel ratio gets the same detail from --board-zoom: 2 below.
+  - as itself: run scripts/embed-images.py on it first, which puts the pane
+    images inside the file, so it opens on its own and goes without them. The
+    app names link to their Mobbin screens only here, not in the PNG.
+
+  "before" is one image path, or a list of { "image", "label" } when the input is
+  several screenshots of one scrolling screen: each is its own card, in scroll
+  order, never joined into one image.
+
+  Panes sit in one row: BEFORE, then each variation. "columns" is left out for a
+  phone screen, which keeps four columns however few variations there are, so a
+  screen is the same size on every board; set it to 2 for a wide web target, so
+  the panes stay readable.
+
+  "collections" lists the user's collections the run read, each { "name", "url" }
+  with the collection's mobbin_url, as chips on the title line. Leave it out when
+  the run read no collection, such as a run built from a search alone.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Variations</title>
+    <style>
+      /* Mobbin design system tokens, verbatim from ux-audit-tool's shared/design-system.css. */
+      :root {
+        --gray-0: #ffffff;
+        --gray-50: #fafafa;
+        --gray-100: #f5f5f5;
+        --gray-150: #ededed;
+        --gray-200: #e5e5e5;
+        --gray-300: #d4d4d4;
+        --gray-400: #a3a3a3;
+        --gray-500: #737373;
+        --gray-600: #525252;
+        --gray-700: #404040;
+        --gray-800: #262626;
+        --gray-900: #171717;
+        --gray-950: #0a0a0a;
+        --bg: var(--gray-0);
+        --bg-subtle: var(--gray-50);
+        --bg-muted: var(--gray-100);
+        --fg1: var(--gray-950);
+        --fg2: var(--gray-600);
+        --fg3: var(--gray-500);
+        --fg-muted: var(--gray-400);
+        --border: var(--gray-200);
+        --border-strong: var(--gray-300);
+        --border-subtle: var(--gray-150);
+        --success: #1a7f46;
+        --warning: #b45309;
+        --danger: #b42318;
+        --info: #1c5fd4;
+        --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        --fs-11: 11px;
+        --fs-12: 12px;
+        --fs-13: 13px;
+        --fs-14: 14px;
+        --fs-15: 15px;
+        --fs-24: 24px;
+        --ls-normal: -0.005em;
+        --ls-tight: -0.02em;
+        --ls-widest: 0.12em;
+        --sp-2: 8px;
+        --sp-3: 12px;
+        --sp-4: 16px;
+        --sp-5: 20px;
+        --sp-6: 24px;
+        --sp-8: 32px;
+        --sp-10: 40px;
+        --r-sm: 5px;
+        --r-md: 8px;
+        --r-lg: 12px;
+        --r-xl: 16px;
+
+        --board-width: 1400px;
+        --board-zoom: 1; /* 2 doubles every pixel, for a capture tool with no scale factor of its own. */
+      }
+      :root[data-theme="dark"] {
+        --bg: var(--gray-950);
+        --bg-subtle: var(--gray-900);
+        --bg-muted: var(--gray-800);
+        --fg1: var(--gray-50);
+        --fg2: var(--gray-400);
+        --fg3: var(--gray-500);
+        --fg-muted: var(--gray-600);
+        --border: var(--gray-800);
+        --border-strong: var(--gray-700);
+        --border-subtle: var(--gray-800);
+        --success: #46c485;
+        --warning: #e0a34a;
+        --danger: #f2a099;
+        --info: #7aa7f0;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        background: var(--bg-subtle);
+      }
+      /* Centred when the file is opened; the capture shoots .board alone, so it is unaffected. */
+      body {
+        display: flex;
+        justify-content: safe center;
+        padding: var(--sp-10) var(--sp-4);
+      }
+      .board {
+        flex: none;
+      }
+      .board {
+        zoom: var(--board-zoom);
+        width: var(--board-width);
+        padding: var(--sp-10);
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--r-xl);
+        color: var(--fg1);
+        font-family: var(--font-sans);
+        font-size: var(--fs-15);
+        line-height: 1.5;
+        letter-spacing: var(--ls-normal);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      .docmeta {
+        display: flex;
+        justify-content: space-between;
+        gap: var(--sp-4);
+        margin-bottom: var(--sp-6);
+        padding-bottom: var(--sp-5);
+        border-bottom: 1px solid var(--border);
+        color: var(--fg-muted);
+        font-family: var(--font-mono);
+        font-size: var(--fs-11);
+      }
+      .docmeta .stamp {
+        letter-spacing: var(--ls-widest);
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: var(--fs-24);
+        font-weight: 600;
+        letter-spacing: var(--ls-tight);
+        line-height: 1.25;
+      }
+      .axis {
+        margin: var(--sp-2) 0 0;
+        color: var(--fg2);
+        font-size: var(--fs-14);
+      }
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: var(--sp-8);
+      }
+      .heading {
+        flex: 1;
+        min-width: 0;
+      }
+      /* Collections the run read, on the title line. The width caps how many chips share a
+         line; later lines wrap under the chips, right-aligned. */
+      .collections {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: center;
+        gap: var(--sp-2);
+        max-width: 580px;
+        margin-top: 1px; /* Centres the first line on the title's 30px line. */
+        color: var(--fg3);
+        font-size: var(--fs-13);
+      }
+      .collections[hidden] {
+        display: none;
+      }
+      .collections-label {
+        white-space: nowrap;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        max-width: 240px;
+        height: 28px;
+        padding: 0 10px 0 12px;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        background: var(--bg);
+        color: var(--fg1);
+        font-weight: 500;
+        text-decoration: none;
+      }
+      .chip-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .chip svg {
+        flex: none;
+        width: 10px;
+        height: 10px;
+        color: var(--fg2);
+      }
+
+      .panes {
+        display: grid;
+        grid-template-columns: repeat(var(--columns, 4), 1fr);
+        gap: var(--sp-8) var(--sp-5);
+        margin-top: var(--sp-8);
+        align-items: start;
+      }
+      /* Each pane spans three shared rows (eyebrow, caption, shot), so the shots line up
+         however long a caption runs, and BEFORE keeps an empty caption slot. */
+      .pane {
+        display: grid;
+        grid-row: span 3;
+        grid-template-rows: subgrid;
+        row-gap: 0;
+      }
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: var(--sp-2);
+        min-height: 22px; /* The letter's height, so BEFORE lines up with the lettered panes. */
+        margin-bottom: var(--sp-3);
+        color: var(--fg2);
+        font-size: var(--fs-12);
+        font-weight: 500;
+        letter-spacing: var(--ls-widest);
+        text-transform: uppercase;
+      }
+      .letter {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--fg1);
+        color: var(--bg);
+        font-family: var(--font-mono);
+        font-size: var(--fs-12);
+        font-weight: 700;
+        letter-spacing: 0;
+        line-height: 1;
+      }
+      /* Screens fit their content, so panes differ in height; each card hugs its own. */
+      .shot {
+        align-self: start;
+        padding: 6px;
+        background: var(--bg-muted);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      .shot img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-radius: var(--r-md);
+      }
+      /* Several screenshots of one scrolling screen: one card each, in scroll order. */
+      .stack {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sp-3);
+        align-self: start;
+      }
+      .stack-label {
+        margin: 0 2px 6px;
+        color: var(--fg3);
+        font-size: var(--fs-12);
+      }
+      .caption {
+        padding: 0 2px var(--sp-4);
+      }
+      .lead {
+        margin: 0;
+        font-size: var(--fs-15);
+        font-weight: 600;
+        line-height: 1.35;
+      }
+      .line {
+        margin: 4px 0 0;
+        color: var(--fg2);
+        font-size: var(--fs-13);
+      }
+      .refs {
+        margin: 6px 0 0;
+        color: var(--fg3);
+        font-size: var(--fs-13);
+      }
+      .refs a {
+        color: var(--info);
+        font-weight: 500;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="application/json" id="board-data">
+      {
+        "theme": "light",
+        "meta": "iOS paywall, 3 variations, 6 references",
+        "title": "Three directions for the paywall",
+        "axis": "Pick how the plan is chosen.",
+        "before": "before.png",
+        "variations": [
+          {
+            "lead": "One card, two prices",
+            "line": "A puts both prices on one card with a yearly and monthly toggle.",
+            "refs": [
+              { "app": "Headspace", "url": "https://mobbin.com/screens/example-1" },
+              { "app": "Calm", "url": "https://mobbin.com/screens/example-2" }
+            ],
+            "image": "variation-a.png"
+          },
+          {
+            "lead": "Comparison table",
+            "line": "B sets free against Pro in a table under the hero, row by row.",
+            "refs": [
+              { "app": "Strava", "url": "https://mobbin.com/screens/example-3" },
+              { "app": "Duolingo", "url": "https://mobbin.com/screens/example-4" }
+            ],
+            "image": "variation-b.png"
+          },
+          {
+            "lead": "Trial first",
+            "line": "C leads with a trial timeline, and the plan is picked on the next step.",
+            "refs": [
+              { "app": "Blinkist", "url": "https://mobbin.com/screens/example-5" },
+              { "app": "Noom", "url": "https://mobbin.com/screens/example-6" }
+            ],
+            "image": "variation-c.png"
+          }
+        ]
+      }
+    </script>
+
+    <div class="board">
+      <div class="docmeta">
+        <span class="stamp">Mobbin · redesign-screen</span><span id="meta"></span>
+      </div>
+      <div class="head">
+        <div class="heading">
+          <h1 id="title"></h1>
+          <p class="axis" id="axis"></p>
+        </div>
+        <div class="collections" id="collections" hidden></div>
+      </div>
+      <div class="panes" id="panes"></div>
+    </div>
+
+    <template id="pane-template">
+      <figure class="pane" style="margin: 0">
+        <div class="eyebrow"></div>
+        <figcaption class="caption">
+          <p class="lead"></p>
+          <p class="line"></p>
+          <p class="refs"></p>
+        </figcaption>
+        <div class="shot"><img alt="" /></div>
+      </figure>
+    </template>
+
+    <script>
+      const data = JSON.parse(document.getElementById("board-data").textContent);
+      document.documentElement.dataset.theme = data.theme ?? "light";
+      document.getElementById("meta").textContent = data.meta ?? "";
+      document.getElementById("title").textContent = data.title;
+      document.getElementById("axis").textContent = data.axis ?? "";
+      fillCollections(document.getElementById("collections"), data.collections ?? []);
+
+      const panes = document.getElementById("panes");
+      panes.style.setProperty("--columns", data.columns ?? 4);
+      const before = Array.isArray(data.before) ? data.before : [{ image: data.before }];
+      panes.append(buildPane({ image: before[0].image, images: before }, "Before"));
+      data.variations.forEach((variation, i) => {
+        panes.append(
+          buildPane(
+            variation,
+            `Variation ${String.fromCharCode(65 + i)}`,
+            String.fromCharCode(65 + i)
+          )
+        );
+      });
+
+      function buildPane(pane, label, letter) {
+        const node = document.getElementById("pane-template").content.cloneNode(true);
+        const eyebrow = node.querySelector(".eyebrow");
+        if (letter) {
+          const disc = document.createElement("span");
+          disc.className = "letter";
+          disc.textContent = letter;
+          eyebrow.append(disc);
+        }
+        // The letter disc names a variation on its own; only BEFORE keeps a word.
+        if (!letter) eyebrow.append(label);
+        const img = node.querySelector("img");
+        img.src = pane.image;
+        img.alt = label;
+        if (!letter) {
+          node.querySelector(".caption").replaceChildren();
+          if (pane.images.length > 1) stackShots(node, pane.images);
+          return node;
+        }
+        node.querySelector(".lead").textContent = pane.lead;
+        node.querySelector(".line").textContent = pane.line;
+        fillRefs(node.querySelector(".refs"), pane.refs ?? []);
+        return node;
+      }
+
+      /**
+       * One card per screenshot. The first carries no label, so its top lines up
+       * with the variations; each later one is labelled ("Scrolled").
+       */
+      function stackShots(node, images) {
+        const first = node.querySelector(".shot");
+        const stack = document.createElement("div");
+        stack.className = "stack";
+        images.forEach((shot, i) => {
+          const wrap = document.createElement("div");
+          if (i > 0) {
+            const label = document.createElement("p");
+            label.className = "stack-label";
+            label.textContent = shot.label ?? `Screenshot ${i + 1}`;
+            wrap.append(label);
+          }
+          const card = first.cloneNode(true);
+          const img = card.querySelector("img");
+          img.src = shot.image;
+          img.alt = `Before, ${shot.label ?? `screenshot ${i + 1}`}`;
+          wrap.append(card);
+          stack.append(wrap);
+        });
+        first.replaceWith(stack);
+      }
+
+      /** One chip per collection, each a link to it on Mobbin; a long name is cut with an ellipsis. */
+      function fillCollections(el, collections) {
+        if (collections.length === 0) return;
+        el.hidden = false;
+        const label = document.createElement("span");
+        label.className = "collections-label";
+        label.textContent = "Collections referenced:";
+        el.append(label);
+        for (const collection of collections) {
+          const chip = document.createElement("a");
+          chip.className = "chip";
+          chip.href = collection.url;
+          chip.target = "_blank";
+          chip.rel = "noopener";
+          chip.title = collection.name;
+          const name = document.createElement("span");
+          name.className = "chip-name";
+          name.textContent = collection.name;
+          chip.append(name);
+          chip.insertAdjacentHTML(
+            "beforeend",
+            '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5 7.5 2.5M3.5 2.5h4v4" /></svg>'
+          );
+          el.append(chip);
+        }
+      }
+
+      /** "References: App · App", each app a link to its Mobbin screen, as in the report. */
+      function fillRefs(el, refs) {
+        if (refs.length === 0) return el.remove();
+        el.append("References: ");
+        refs.forEach((ref, i) => {
+          if (i > 0) el.append(" \u00b7 ");
+          const a = document.createElement("a");
+          a.href = ref.url;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.textContent = ref.app;
+          el.append(a);
+        });
+      }
+    </script>
+  </body>
+</html>

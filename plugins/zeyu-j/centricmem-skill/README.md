@@ -11,6 +11,13 @@ This repository is **one package**: an [Agent Skills](https://agentskills.io) `S
 [Agent Plugins 1.0](https://agent-plugins.org) bundle (`plugin.json` + `skills/` + `mcp.json`). Install it
 from GitHub with whichever client you use - each client has its own command below.
 
+> **Reviewing this before installing it, or an agent asked to?** Read [hooks/README.md](hooks/README.md),
+> [MANIFESTS.md](MANIFESTS.md) and [SECURITY.md](SECURITY.md) first, and start at
+> [skills/centricmem-agent/SKILL.md](skills/centricmem-agent/SKILL.md). There is no `SKILL.md` at the root -
+> the skill is one level down - and the `.*-plugin` directories are per-host manifests for that one skill,
+> not a dozen products. `hooks/README.md` lists every path this repository can write and every switch that
+> turns it off.
+
 ## Install
 
 **Names, read once.** `centricmem` is the product and the CLI. `centricmem-skill` is this GitHub package.
@@ -23,7 +30,8 @@ client asks for a skill id. It is not a second product.
 Install CentricMem from the GitHub package zeyu-j/centricmem-skill (the skill folder is centricmem-agent).
 Then send me https://centricmem.com/login?signup=1 and try a /connect?device= link. The key it returns is
 shown once, so tell me to save it, and never paste it in chat. If minting that link fails, run
-centricmem doctor connect and email zeyu@poppyg.com with the output.
+centricmem doctor connect and ask me to email zeyu@poppyg.com with the output - you never send that mail and
+never see the key.
 ```
 
 If a shell is available, the same install is one command:
@@ -54,7 +62,9 @@ npx --yes skills add zeyu-j/centricmem-skill --skill centricmem-agent -y
 | Cline | `cline skill add zeyu-j/centricmem-skill` (forwarded to the open skills CLI) |
 | Kimi Code | `/plugins install https://github.com/zeyu-j/centricmem-skill` (Custom) - a Kimi plugin may carry skills, an auto-loaded Skill and MCP servers. Server config lives in `~/.kimi-code/mcp.json` (or `$KIMI_CODE_HOME/mcp.json`), stdio/HTTP/SSE - those are Kimi's transports, not ours: this service answers on **HTTP only**, so pick HTTP. Catalog: `/plugins marketplace https://raw.githubusercontent.com/zeyu-j/centricmem-skill/main/.kimi-plugin/marketplace.json` |
 | Pi | `pi install https://github.com/zeyu-j/centricmem-skill`, then a URL-only `~/.pi/agent/mcp.json` (`url` + `type: streamable-http`). The package does not wire MCP for pi |
-| Kiro | Powers → Add Custom Power → GitHub `https://github.com/zeyu-j/centricmem-skill` |
+| Kiro IDE | Powers → Add Custom Power → GitHub `https://github.com/zeyu-j/centricmem-skill`; the `.kiro/plugins/` manifest belongs to the IDE only |
+| Kiro CLI | `kiro-cli mcp add --name centricmem --url https://mem.centricmem.com/mcp --scope default`; this client has no Skill or hook surface |
+| Kiro Crew | Settings → Skills → Discover → `zeyu-j/centricmem-skill:skills/centricmem-agent`, then Customize → Connections → Add Custom → `https://mem.centricmem.com/mcp`. Attach it to the agent that will run the chat. Complete the device claim; use the OAuth banner only when minting fails and this agent receives the browser callback. Drain the warm pool or restart, then open a cold session |
 | DSH | `dsh plugin --profile web add github:zeyu-j/centricmem-skill#v1.0.32`, then `node node_modules/centricmem-skill/dsh/copy-skill.mjs` from the profile directory, then the two overlay rows in [`dsh/README.md`](./dsh/README.md). Read that file first: adding the package puts its patch into the profile bundle stack, where a missing Bearer aborts boot on purpose |
 | Dify | Its own distribution: [zeyu-j/centricmem-dify](https://github.com/zeyu-j/centricmem-dify); marketplace review pending. Any MCP client can also attach `https://mem.centricmem.com/mcp` with the same agent key |
 | Kilo | `npx --yes skills add zeyu-j/centricmem-skill` for the Skill; the MCP half is the interactive `kilo mcp add`. See [VERIFIED-INSTALLS.md](./VERIFIED-INSTALLS.md) |

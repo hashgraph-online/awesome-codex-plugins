@@ -1,6 +1,7 @@
 # X (Twitter) scraper API & Twitter MCP server by Xquik
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13731/badge)](https://www.bestpractices.dev/projects/13731)
+[![Convex Component](https://www.convex.dev/components/badge/convex-xquik)](https://www.convex.dev/components/convex-xquik)
 
 <p align="center">
   <strong>English</strong> ·

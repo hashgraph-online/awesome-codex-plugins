@@ -665,9 +665,10 @@ def _help_parser(mode: str, *, util: bool = False) -> argparse.ArgumentParser:
     epilog_lines = [
         "",
         f"Every other flag is forwarded to {forwarded} unchanged (--models, --quick, "
-        "--resume, --force, --detach, ...):" if not util else
-        "Every other flag is the composite's (--models, --quick, --files, --resume, "
-        "--force, ...), handed back on [COMMIT_REMAINING_FLAGS]:",
+        "--scope-policy, --resume, --force, --detach, ...):" if not util else
+        "Every other flag is the composite's (--models, --quick, --files, "
+        "--scope-policy, --resume, --force, ...), handed back on "
+        "[COMMIT_REMAINING_FLAGS]:",
         f"  {run} {fronted} --help",
         "--plan-file, --base-ref and --head-ref are refused: the front door "
         "synthesises them from the range.",

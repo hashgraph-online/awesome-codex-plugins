@@ -19,7 +19,7 @@ RULES EVERY LINE HERE KEEPS (plan D3):
      ``uv`` is absent so it can *report* that absence (rule 7); a dependency, or a
      second module, is one more thing whose absence empties the tool list.
   2. **No word of its own.** Every mode word, alias, flag, exit code, state word
-     and message template is read from ``dist/cli-surface.json`` (schema v6). The
+     and message template is read from ``dist/cli-surface.json`` (schema v7). The
      only words held here are the JSON-RPC/MCP vocabulary, the envelope's key
      names, the anchor_source spellings (``roots``, ``turn-metadata``,
      ``env:<NAME>``), codex's turn-metadata keys and posture words, the
@@ -68,8 +68,8 @@ PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
 
 #: Bumped in lockstep with ``packaging/common/surface.py``'s
 #: ``SURFACE_SCHEMA_VERSION``; ``test_surface_schema_version_matches`` compares
-#: the two constants, never a literal. 6: the commit modes' optional ``revs``.
-SUPPORTED_SURFACE_VERSION = 6
+#: the two constants, never a literal. 7: explicit foreground-preview flags.
+SUPPORTED_SURFACE_VERSION = 7
 
 #: The longest a cancellation may sit unobserved (D3c). It is met by the
 #: worker's cancel-event watch in ``run_child`` (a 20 ms wait on the event, then
@@ -317,6 +317,7 @@ _REQUIRED_SURFACE_PATHS = (
     ("dispatcher", "states"), ("dispatcher", "poll"), ("dispatcher", "abort"),
     ("dispatcher", "instructions"), ("dispatcher", "host_option"),
     ("dispatcher", "run_id_option"), ("dispatcher", "banner"),
+    ("dispatcher", "foreground_preview_flags"),
     ("dispatcher", "session_model_env"), ("dispatcher", "route_env"),
     ("dispatcher", "route_env", "name"), ("dispatcher", "route_env", "value"),
     # Schema v6: the commit modes' range.
@@ -372,6 +373,10 @@ def load_surface():
     if not all(isinstance(route_env.get(key), str) and route_env.get(key)
                for key in ("name", "value")):
         return None, "{}: dispatcher.route_env is not a non-empty name and value".format(
+            SURFACE_PATH)
+    previews = data["dispatcher"]["foreground_preview_flags"]
+    if not isinstance(previews, list) or not all(isinstance(flag, str) and flag for flag in previews):
+        return None, "{}: dispatcher.foreground_preview_flags is not a list of flags".format(
             SURFACE_PATH)
     return data, None
 
@@ -2496,6 +2501,18 @@ class Server:
                                 launch.code))
                     return "return", self.terminal_result(call, launch, cycle_values)
                 if not launched:
+                    # Explicit previews may exit before the detach boundary.
+                    # They still owe a structured result; ordinary launches
+                    # still owe a banner, and any banner above is supervised.
+                    previews = dispatcher["foreground_preview_flags"]
+                    exacts = surface["reserved_flags"].get("exact_options", [])
+                    foreground = launch.result is None or (
+                        launch.result.get("next") is None
+                        and launch.result.get("state") != dispatcher["states"]["running"]
+                    )
+                    if foreground and any(flag_matches(token.split("=", 1)[0], flag, exacts)
+                                          for token in cycle_values.get("extra") or [] for flag in previews):
+                        return "return", self.terminal_result(call, launch, cycle_values)
                     return "return", self.error_result(
                         call, launch, "the launch reported no run id on its banner, "
                         "so the run cannot be polled or aborted safely. Refusing to "

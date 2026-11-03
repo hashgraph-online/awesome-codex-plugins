@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "joxo": {
+      "command": "${user_config.nodePath}",
+      "args": [
+        "${user_config.joxoPath}",
+        "mcp",
+        "--if-paired",
+        "--channel-only"
+      ],
+      "env": {
+        "JOXO_NO_TELEMETRY": "1"
+      }
+    }
+  }
+}

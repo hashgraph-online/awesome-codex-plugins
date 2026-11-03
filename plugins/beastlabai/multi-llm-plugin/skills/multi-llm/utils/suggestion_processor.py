@@ -20,6 +20,12 @@ class SuggestionGroup:
         self.priority_score: float = 0.0
         self.validation_status: Optional[str] = None
         self.validation_reason: Optional[str] = None
+        #: The host-bound group verdict (``scope_policy.VERDICT_KEY``) and the
+        #: derived policy decision (``scope_policy.DECISION_KEY``), when set.
+        #: Neither is part of the stable group id; both are omitted from
+        #: :meth:`to_dict` while unset, so a legacy group serializes as before.
+        self.scope_verdict: Optional[Dict[str, Any]] = None
+        self.scope_policy_decision: Optional[Dict[str, Any]] = None
 
     def add_suggestion(self, suggestion: Dict[str, Any], model: str) -> None:
         """Add a suggestion to this group."""
@@ -41,7 +47,7 @@ class SuggestionGroup:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization."""
-        return {
+        data = {
             "category": self.category,
             "theme": self.theme,
             "suggestions": self.suggestions,
@@ -50,6 +56,11 @@ class SuggestionGroup:
             "validation_status": self.validation_status,
             "validation_reason": self.validation_reason,
         }
+        if self.scope_verdict is not None:
+            data["scope_verdict"] = self.scope_verdict
+        if self.scope_policy_decision is not None:
+            data["scope_policy_decision"] = self.scope_policy_decision
+        return data
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SuggestionGroup":
@@ -60,6 +71,10 @@ class SuggestionGroup:
         group.priority_score = data.get("priority_score", 0.0)
         group.validation_status = data.get("validation_status")
         group.validation_reason = data.get("validation_reason")
+        verdict = data.get("scope_verdict")
+        group.scope_verdict = dict(verdict) if isinstance(verdict, dict) else None
+        decision = data.get("scope_policy_decision")
+        group.scope_policy_decision = dict(decision) if isinstance(decision, dict) else None
         return group
 
 

@@ -8,7 +8,7 @@ says only which steps to run, with which flags, and how to report them.
 ## Usage
 
 ```bash
-/multi-llm:multi-llm --improve-code <plan_path> [--quick | --models provider:model ...] [--files <path> (repeatable) | --files-from <file>] [--base-ref REF] [--force] [--resume]
+/multi-llm:multi-llm --improve-code <plan_path> [--quick | --models provider:model ...] [--files <path> (repeatable) | --files-from <file>] [--base-ref REF] [--scope-policy expand|preserve] [--force] [--resume]
 ```
 
 `--files` takes one path per flag, as review-code's does: repeat it for each file
@@ -20,6 +20,13 @@ says only which steps to run, with which flags, and how to report them.
 | --- | --- | --- |
 | 1 | `review-code` | `--yes`, plus `--models …` or `--quick` and the scope flags (`--files`, `--files-from`, `--base-ref`) when the user typed them; `--force --rerun-all` on a new round (`--force`), `--force` alone when the typed scope differs from the one the review on record used |
 | 2 | `apply-code-fixes` | `--yes --agent-decide --no-confirm`, plus `--base-ref` (the one typed, else the one the review on record diffed against) and `--resume` when an interrupted apply continues |
+
+Both steps also get `--scope-policy <value>` right after `--yes` when the user
+typed one, or when a stopped run of this mode recorded one; with none, no step
+gets it. `expand` (typed, or this mode's recorded choice) over a completed
+apply that deferred items or stopped on a scope blocker runs step 2 again, to
+offer them (`run (N scope deferral(s) to reconsider under --scope-policy
+expand)`), instead of `[ALREADY_COMPLETE]`.
 
 Python decides every flag. Never compose one, add one or drop one: pass the tokens
 after each step's `[IMPROVE_STEP_FLAGS] <index>` exactly as printed, never the marker
@@ -58,6 +65,7 @@ and no question is ever rendered.
 | D6 row 11, no-selection confirmation | step 2 | `--no-confirm`: every valid fix is applied without asking |
 | D6 row 14, a step fails | section 3 | stop, report the stop, give `[IMPROVE_RERUN]` as the way to continue; never ask whether to go on |
 | D6 row 15, an empty or unrecognized decision flag (`--models ""`) | step 1 | `util improve-steps` exits 3 before any step runs |
+| D6 row 16, scope policy | steps 1 and 2 | never asked: the flags lines carry the typed `--scope-policy` (or the one a stopped run of this mode recorded); with none, each step resolves its own (a new review `expand`, the apply its review's), and one nobody typed is recorded as `[AUTO_RESOLVED] scope-policy: …` |
 
 `--interactive` (or `-i`) is no row: `util improve-steps` refuses it with exit 3 and
 names the two phases to run instead. Code review has no consolidation pass, so this

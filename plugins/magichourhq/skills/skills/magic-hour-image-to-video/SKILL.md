@@ -33,13 +33,13 @@ Keep a short clip to one coherent beat. If the user wants several shots, treat e
 
 ## Choose the start frame
 
-When the user names a saved character or reference, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with that type. Match the name, follow `next_cursor` as needed, and ask which item if ambiguous. Inspect its primary `IMAGE` asset and use the durable `file_path` without another upload; an item ID is not an image path. Preserve an explicitly supplied image.
+When the user names a saved character or reference, use `list_saved_items` (or authenticated `GET /v1/saved-items` through the existing API) with that type. Match the name, follow `next_cursor` as needed, and ask which item if ambiguous. Inspect its primary `IMAGE` asset and use the durable `file_path` without another upload; an item ID is not an image path. Preserve an explicitly supplied image.
 
 Choose one route:
 
-1. **The supplied image already satisfies the shot:** pass it directly to `image_to_video_create_video`. Preserve its product geometry, packaging, label, identity and composition; prompt for the requested motion.
-2. **The source needs a visual change:** call `ai_image_editor_create_image` only when composition, wardrobe, background, lighting, product placement, or cleanup must change for the brief. State the edit and everything that must remain unchanged.
-3. **No source image exists:** call `ai_image_generator_create_image` when a starting image is needed. AI Image Editor requires an input image; do not send it a prompt-only creation request.
+1. **The supplied image already satisfies the shot:** pass it directly to `create_video_from_image`. Preserve its product geometry, packaging, label, identity and composition; prompt for the requested motion.
+2. **The source needs a visual change:** call `edit_image` only when composition, wardrobe, background, lighting, product placement, or cleanup must change for the brief. State the edit and everything that must remain unchanged.
+3. **No source image exists:** call `generate_image` when a starting image is needed. AI Image Editor requires an input image; do not send it a prompt-only creation request.
 
 If an image must be generated or edited, create one still at the intended video aspect ratio. Use an authorized reference when exact identity, product geometry, packaging, or branding matters. Do not expect image-to-video to repair a poor source frame.
 
@@ -47,7 +47,7 @@ For a generated or edited image, wait with `wait_for_image_project`. Inspect the
 
 ## Animate the approved frame
 
-Pass the exact approved source image to `image_to_video_create_video`. If it is a local file, upload its raw bytes first using the flow in `references/setup.md`; a local path is not a hosted `file_path`.
+Pass the exact approved source image to `create_video_from_image`. If it is a local file, upload its raw bytes first using the flow in `references/setup.md`; a local path is not a hosted `file_path`.
 
 Write the motion prompt around change over time:
 

@@ -21,6 +21,15 @@ _HASH_RE = re.compile(r'\[([0-9a-f]{8,16})\]')
 _ISSUE_HEADER_RE = re.compile(r'^###[ \t]+(\d+)\.[^\n]*$', re.MULTILINE)
 
 
+def _strip_scope_fields(data, source: str):
+    """*data* without scope/policy-like keys (``scope_report.strip_selection_scope_fields``)."""
+    try:
+        from .scope_report import strip_selection_scope_fields
+    except ImportError:  # pragma: no cover - imported with utils/ on sys.path
+        from scope_report import strip_selection_scope_fields
+    return strip_selection_scope_fields(data, source)
+
+
 def _issue_headers(content: str) -> List[re.Match]:
     """The `### N.` lines that really open an issue block.
 
@@ -536,12 +545,21 @@ def find_edited_descriptions(
             positional_id = f"G{group_idx}S{sugg_idx}"
             original_desc = suggestion.get('desc', '')
 
-            # Check both hash-based and positional keys in report descriptions
+            # Check both hash-based and positional keys in report descriptions.
+            # A v2 header carries the suggestion's *display* hash (its first 8+
+            # characters, ``state_manager._assign_display_hashes``), which the
+            # full ``suggestion_hash`` lookup alone never matched: an edit made
+            # in report.md was silently dropped.
+            display_hash = suggestion.get('display_hash', '')
             report_desc = None
             key_used = None
             if sugg_hash and sugg_hash in report_descriptions:
                 report_desc = report_descriptions[sugg_hash]
                 key_used = sugg_hash
+            elif (display_hash and display_hash in report_descriptions
+                  and (not sugg_hash or sugg_hash.startswith(display_hash))):
+                report_desc = report_descriptions[display_hash]
+                key_used = sugg_hash or display_hash
             elif positional_id in report_descriptions:
                 report_desc = report_descriptions[positional_id]
                 key_used = sugg_hash if sugg_hash else positional_id
@@ -550,10 +568,29 @@ def find_edited_descriptions(
                 # Compare normalized descriptions
                 if normalize_description(original_desc) != normalize_description(
                     report_desc
-                ):
+                ) and not _is_block_cut(original_desc, report_desc):
                     edited[key_used] = (original_desc, report_desc)
 
     return edited
+
+
+#: Where ``parse_suggestion_descriptions`` ends a block: a line that starts a
+#: rule or a ``###`` header.
+_BLOCK_END_RE = re.compile(r'\n---|\n###')
+
+
+def _is_block_cut(original_desc: str, report_desc: str) -> bool:
+    """True when *report_desc* is *original_desc* cut where the parser stops.
+
+    A description holding its own ``---`` rule or ``###`` line is rendered
+    whole but read back only up to that line, so an untouched report would
+    otherwise read as an edit that drops the rest of the description.
+    """
+    text = (original_desc or '').replace('\r\n', '\n')
+    match = _BLOCK_END_RE.search(text)
+    if not match:
+        return False
+    return normalize_description(text[:match.start()]) == normalize_description(report_desc)
 
 
 def load_html_selections(
@@ -598,6 +635,9 @@ def load_html_selections(
         return None
     except json.JSONDecodeError:
         return None
+    # An export carries ids and choices only: scope tags and policy come from
+    # the review's records and the command line (plan scope-policy §6).
+    data = _strip_scope_fields(data, "user_selections.json")
 
     # Validate plan_path matches if provided
     if plan_path is not None:
@@ -1142,6 +1182,7 @@ def load_consolidated_html_selections(
         return None
     except json.JSONDecodeError:
         return None
+    data = _strip_scope_fields(data, "consolidated_user_selections.json")
 
     # Validate plan_path matches if provided
     if plan_path is not None:

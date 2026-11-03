@@ -35,6 +35,12 @@ For every task it prints one ``[REPLY_OK]``, ``[REPLY_INVALID]`` or
   stricter than the merge re-asks a subagent for a reply the merge would have
   used, then calls the batch failed (adversarial review, 2026-10-02).
 
+An entry's ``scope_relation``/``scope_reason``/``scope_reference`` (and a
+``preserve`` round's ``selected_remedy``) are never checked here: they are
+optional, a missing or malformed classification reads ``unclear`` at the merge
+(``scope_policy.normalize_scope_fields``), and a re-ask over one would be a
+model call the default policy never makes (plans/scope-policy-and-report-tags.md).
+
 Other kinds are only checked for being JSON: their shape is checked by their own
 reaggregation. Advisory about nothing else: it never edits or deletes a file.
 

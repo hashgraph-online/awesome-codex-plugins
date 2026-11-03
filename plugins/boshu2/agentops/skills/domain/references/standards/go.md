@@ -2,7 +2,7 @@
 
 ## Target Version
 
-Detect from `go.mod`. Use all features up to and including that version. Never use features from newer versions. Current project target: **Go 1.26**.
+Detect from `go.mod`. Use all features up to and including that version. Never use features from newer versions.
 
 ## Required
 
@@ -380,7 +380,7 @@ Apply these patterns to every Go HTTP handler, whatever its exposure. A listener
 | `innerHTML = userInput` in embedded HTML | XSS | Use DOM construction (`createElement` + `textContent`) |
 | `r.URL.Query().Get("param")` used in file paths | Path traversal | Reject unless `filepath.IsLocal`, or open it through `os.Root` (1.24+); never ban a `..` substring |
 | `fmt.Fprintf(w, userInput)` in HTML handler | XSS | Use `html/template` or `text/template` with escaping |
-| `filepath.Join(root, userInput)` | Path traversal | Validate input against allowlist pattern (e.g., `regexp`) |
+| `filepath.Join(root, userInput)` | Path traversal | Reject unless `filepath.IsLocal` (a lexical check), or open it through `os.Root` (1.24+), which also refuses a symlink escape |
 | `Access-Control-Allow-Origin: *` | CORS bypass | Allow only the origins the deployment serves, including on localhost, since any page in the user's browser can reach a localhost listener; keep `*` only for responses that are public anyway |
 
 **Query parameter validation pattern** (a single file name under `root`, from `os.OpenRoot(baseDir)`):

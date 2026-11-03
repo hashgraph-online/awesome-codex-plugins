@@ -136,7 +136,8 @@ bead with acceptance, then hands the Mayor its id; the Mayor decomposes,
 authors the workflow beads, and dispatches.
 
 ```sh
-gc bd create "Add a --json flag to the export command"
+gc bd create "Add a --json flag to the export command" \
+  --acceptance "export --json prints valid JSON; default output is unchanged"
 gc mail send mayor -s "Build ago-XXXX" \
   -m "Decompose and launch build-basic for bead ago-XXXX with push=false open_pr=false." --notify
 ```
@@ -160,7 +161,7 @@ one owner; crossing owners is the recurring failure this section stops.
 
 | Verb | Owner | Surface |
 |---|---|---|
-| Monitor | orchestrator | `$API/runs/census` and `$API/runs/<run-id>` on a fixed cadence, with `$API` built from the `API:` line of `gc status` (Visibility, layer 1), plus `gc mail inbox` for Mayor replies. `failed > 0` in the census, a run in `failed`/`canceled`, or unread Mayor mail is the act signal; everything else is a tick. |
+| Monitor | orchestrator | `$API/runs/census` and `$API/runs/<run-id>` on a fixed cadence, with `$API` built from the `API:` line of `gc status` (Visibility, layer 1), plus `gc mail inbox` for Mayor replies. A rise in the census's `.status_counts.failed` since the last tick (it counts every projected run, so a past failure keeps it above 0), a `failed`/`canceled` run not yet handed back to the Mayor, or unread Mayor mail is the act signal; everything else is a tick. |
 | Observe | orchestrator | On an act signal, walk the visibility layers below in order and stop at the first that explains. Do not start at pane truth. |
 | Nudge | orchestrator, once | The stall protocol below. |
 | Redirect | Mayor | Priority, scope, cancellation, or model/provider changes travel by mail with bead/run ids. The orchestrator never re-slings, edits workflow beads, or patches a live run. |
@@ -179,14 +180,16 @@ First classify the bead.
   `gc sling <target> <bead-id>`, once, the debugging fallback, where `<target>`
   is the bead's `gc.routed_to` (`gc.run_target` on older beads); the operator
   then inherits that run's tending.
-- Already routed/in progress: re-slinging is a **NO-OP**. Wake the session that
-  holds the bead (its assignee) once:
+- Already routed/in progress: re-slinging is a **NO-OP**. Before any nudge,
+  read the holding session (its assignee) in `gc session list --json`, capture
+  the exact tmux pane that state names, and run `gc doctor`. A pane parked on
+  a Codex trust dialog takes the Visibility layer 3 repair, not a wake.
+  Otherwise wake that session once:
 
   ```sh
   gc session wake <session-id-or-alias>
   ```
 
-Then capture the exact tmux pane named by session state and run `gc doctor`.
 Never repair a city from inside that city. Never answer a stall with
 `gc session new`; the operator lane above explains why.
 
@@ -224,7 +227,7 @@ does not sling, retry, close, restart, or select work.
    ```sh
    API="http://127.0.0.1:<port>/v0/city/<city-name>"
    curl -s "$API/runs/<run-id>"   # .status: failed or canceled is terminal
-   curl -s "$API/runs/census"     # .status_counts.failed > 0 is the first failure signal
+   curl -s "$API/runs/census"     # .status_counts covers every run; act on a rise in .failed
    ```
 
    The dashboard's run page (`/city/<city-name>/runs/<run-id>`) is the human

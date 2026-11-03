@@ -265,6 +265,14 @@ CONTINUATION_VERBS: FrozenSet[str] = frozenset({
     "--reaggregate", "--reaggregate-consolidation",
 })
 
+#: Explicit previews can finish before a mode's detach boundary. Package
+#: supervisors read this vocabulary from the generated CLI surface; a valid
+#: foreground result then needs no run id. A preview that does detach still
+#: follows the ordinary banner/poll contract.
+FOREGROUND_PREVIEW_FLAGS = (
+    "--dry-run", "--dry-run-subagents", "--consolidate-dry-run",
+)
+
 
 def retry_command(
     mode: str,
@@ -588,6 +596,84 @@ def build_parent_parser(
         help=argparse.SUPPRESS,
     )
     return parent
+
+
+# ---------------------------------------------------------------------------
+# --scope-policy: declared once, for every mode that takes it
+# ---------------------------------------------------------------------------
+
+#: The modes whose parser takes ``--scope-policy``
+#: (plans/scope-policy-and-report-tags.md §4): the review and apply phases,
+#: the commit front doors (which forward it to the phase they front),
+#: generate-tasks and implement, the three improve composites and ``full``.
+#: ``ask``, ``status``, ``init``, ``doctor`` and the utilities take none.
+SCOPE_POLICY_MODES: Tuple[str, ...] = (
+    "review-plan", "apply-suggestions", "improve-plan", "generate-tasks",
+    "review-tasks", "apply-task-suggestions", "implement", "review-code",
+    "apply-code-fixes", "improve-code", "review-commits", "apply-commit-fixes",
+    "improve-commits", "full",
+)
+
+#: What the policy decides in each kind of parser, appended to the shared help.
+_SCOPE_POLICY_ROLES: Dict[str, str] = {
+    "review": "Here it sets what the reviewers are asked for and what "
+              "validation accepts; changing it for a review round already "
+              "under way needs a new round (--force).",
+    "apply": "Here it sets which validated findings may be applied; a value "
+             "typed here overrides the review's and is kept for later runs of "
+             "this apply.",
+    "generate-tasks": "Here preserve tells the model to add no task beyond "
+                      "what the plan asks for.",
+    "implement": "Here preserve tells each task's model to add no outcome "
+                 "beyond its task.",
+    "composite": "Here it is resolved once and passed to both steps.",
+    "full": "Here it is resolved once and passed to every phase.",
+}
+
+
+def scope_policy_help(role: str = "review") -> str:
+    """The ``--scope-policy`` help text: the shared contract plus *role*'s sentence."""
+    try:
+        extra = _SCOPE_POLICY_ROLES[role]
+    except KeyError:  # pragma: no cover - guarded by the callers' literals
+        raise ValueError(f"unknown --scope-policy role {role!r}") from None
+    return (
+        "expand (the default for a new run) keeps today's behaviour: warranted "
+        "scope extensions stay eligible and scope tags are informational. "
+        "preserve keeps the run to the agreed scope: reviewers propose "
+        "in-scope corrections only, validation rejects extensions and the "
+        "apply defers them. Omitted, a continuation keeps the policy on "
+        "record (a --resume or --reaggregate, the apply after its review, a "
+        f"re-run of a stopped composite or full workflow). {extra} Taken by "
+        "the review, apply and commit modes, generate-tasks, implement, the "
+        "improve-* composites and full; ask and status take none."
+    )
+
+
+def add_scope_policy_argument(parser: Any, *, role: str = "review") -> argparse.Action:
+    """Add ``--scope-policy {expand,preserve}`` to *parser* (or an argument group).
+
+    The one declaration every applicable parser uses (never a local copy):
+    ``dest`` is ``scope_policy`` and the default is ``None``, which means
+    *omitted*, not ``expand``: resolution (``utils/scope_policy.resolve_policy``)
+    tells a new run, which gets ``expand``, from a continuation, which keeps
+    the policy its review round or its run recorded. ``choices`` is argparse's
+    second layer; an empty or unknown value is exit 3 at parse time through
+    ``unattended.validate_decision_flags`` (D6 rows 15 and 16), never
+    argparse's exit 2.
+    """
+    from .scope_policy import DEST, FLAG, POLICIES
+
+    action = parser.add_argument(
+        "--scope-policy",
+        dest="scope_policy",
+        choices=POLICIES,
+        default=None,
+        help=scope_policy_help(role),
+    )
+    if action.option_strings[0] != FLAG or action.dest != DEST:  # pragma: no cover
+        raise RuntimeError("--scope-policy drifted from utils/scope_policy.FLAG/DEST")
+    return action
 
 
 # ---------------------------------------------------------------------------

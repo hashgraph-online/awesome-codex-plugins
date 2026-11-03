@@ -7,9 +7,11 @@ caller pins one. Other execution roles retain their caller-selected runtime.
 Factories are optional adapters; the current session passes requests and
 returns runtime facts without adding a mailbox, AO queue or scheduler.
 
-`--cross-model [model]` on Validate or RPI, or an explicit "cross-model review"
-request, adds a fresh judge from a different family. The optional model pins
-that leg; absent a pin, select an authorized capable other-family model.
+`--cross-model [model]` on [Validate](../../validate/SKILL.md#reviewers), or an
+explicit "cross-model review" request, adds a fresh judge from a different
+family; [RPI](../../rpi/SKILL.md) adds a leg only when the caller selects it.
+The optional model pins that leg; absent a pin, select an authorized capable
+other-family model.
 Council and other judgment strategies use fresh same-family contexts unless
 the caller selects mixed models. These are skill prompt selections, not new
 native CLI flags. Selection never grants source-disclosure or provider access.
@@ -24,8 +26,9 @@ cannot issue their own binding PASS.
 ## Request and independent inputs
 
 One request selects one worker and one result destination. Before dispatch,
-resolve role, exact subject/acceptance references, authorized input bytes,
-workspace, read/write scope, output/evidence destination, requested model,
+resolve the packet fields of
+[Agent Native's batch check](../SKILL.md#before-launch-and-while-running) plus
+exact subject/acceptance references, authorized input bytes, requested model,
 requirement for a fresh context distinct from the author and every peer, finite
 input/output limits and time bounds from the caller and native runtime. Actual
 context identity remains unknown until the native runtime reports it; verify

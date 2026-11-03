@@ -32,7 +32,7 @@ Check the existing spending limit before a paid call. If none exists, ask for on
 
 Read the matching focused skill when installed. Otherwise discover the live tool schema and follow the same boundaries. Do not ask a nontechnical user to select endpoint fields or models.
 
-If the user names a saved character or reference, call `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with the matching type before asking for an upload or generating another anchor. Match the name, paginate with `next_cursor` as needed, and disambiguate multiple matches. Inspect the relevant `IMAGE`, `VIDEO` or `AUDIO` asset; pass its durable `file_path` to a compatible field, not the item ID or expiring preview URL. Supplied references remain authoritative.
+If the user names a saved character or reference, call `list_saved_items` (or authenticated `GET /v1/saved-items` through the existing API) with the matching type before asking for an upload or generating another anchor. Match the name, paginate with `next_cursor` as needed, and disambiguate multiple matches. Inspect the relevant `IMAGE`, `VIDEO` or `AUDIO` asset; pass its durable `file_path` to a compatible field, not the item ID or expiring preview URL. Supplied references remain authoritative.
 
 ## Build from a strong first frame
 

@@ -1,0 +1,64 @@
+{
+  "name": "mobbin",
+  "version": "1.5.0",
+  "description": "Give your AI agent 600,000+ real app screens, and the skills to use them. Includes the Mobbin MCP and a skill that redesigns your screen from patterns real apps ship, in your own design system, with the references behind every change.",
+  "author": {
+    "name": "Mobbin",
+    "email": "support@mobbin.com",
+    "url": "https://mobbin.com"
+  },
+  "homepage": "https://mobbin.com/mcp",
+  "repository": "https://github.com/mobbin/skills",
+  "license": "MIT",
+  "keywords": [
+    "mobbin",
+    "design",
+    "ui",
+    "ux",
+    "inspiration",
+    "design-inspiration",
+    "ui-design",
+    "ux-design",
+    "product-design",
+    "design-reference",
+    "app-screens",
+    "screenshots",
+    "user-flows",
+    "ui-patterns",
+    "mobile",
+    "ios",
+    "web-design",
+    "websites",
+    "redesign",
+    "design-system",
+    "frontend",
+    "ux-research",
+    "competitive-analysis",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "Mobbin",
+    "shortDescription": "Real-world UI references",
+    "longDescription": "Give your AI agent 600,000+ real app screens, and the skills to use them. Includes the Mobbin MCP and a skill that redesigns your screen from patterns real apps ship, in your own design system, with the references behind every change.",
+    "developerName": "Mobbin",
+    "category": "Creativity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://mobbin.com",
+    "supportURL": "https://help.mobbin.com",
+    "privacyPolicyURL": "https://mobbin.com/privacy",
+    "termsOfServiceURL": "https://mobbin.com/terms",
+    "defaultPrompt": [
+      "Find home screen examples from banking apps and save them to a collection",
+      "Compare how AI tools design their pricing sections",
+      "Review my paywall screen against the ones I saved in collections"
+    ],
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
+  }
+}
