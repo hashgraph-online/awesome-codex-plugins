@@ -312,6 +312,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [SteinWall](https://github.com/maxxstm/steinwall) - Cost brake, action guard, loop rescue and extension scanner that run locally as Codex hooks.
 - [stickypane](https://github.com/LeeSwallow/stickypane) - A terminal board Codex writes to and you read, with kanban, checklists, charts, forms and live logs kept as plain Markdown files.
 - [Stop That Shit](https://github.com/lennney/stop-that-shit) - Local-first scope guard for Codex with explicit task modes, before-action checks, and bounded dependency, hash, and subagent decisions.
+- [Suede AI Skills](https://github.com/JasonColapietro/suede-creator-skills) - Open-source Codex plugin with SEO and GEO audits, code review with an A-F ship grade, CI gates, AI evals and app shipping skills.
 - [Supercov](https://github.com/supercorp-ai/supercov) - Coverage, security and code quality for coding agents.
 - [Superloopy](https://github.com/beefiker/superloopy) - Evidence-gated Codex loop harness with specialist skills, including near-pixel authorized website cloning backed by screenshots, assets, build output, and visual QA.
 - [Superpipelines](https://github.com/gustavo-meilus/superpipelines) - Design and run write/review-isolated multi-agent AI pipelines across Codex, Claude Code, OpenCode, Cursor, Windsurf, and Cline.
