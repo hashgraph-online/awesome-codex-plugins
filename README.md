@@ -412,6 +412,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Dodo Payments](https://github.com/dodopayments/dodo-agent-plugin) - Payments integration for checkouts, subscriptions, and billing with live API and documentation MCP servers with browser OAuth.
 - [Droplinked](https://github.com/droplinked/droplinked-codex-plugin) - Verified-inventory agentic commerce over a hosted MCP server, with merchant and product discovery, agent-initiated checkout, and onchain brand, credit-risk, and repayment attestations.
 - [DropTheHassle](https://github.com/bosmdavid-gif/dropthehassle-skill) - Your AI publishes a site to a free HTTPS link or your own .com, and it never pays.
+- [easybrandkit](https://github.com/EminBudak/easybrandkit) - Saves a website's real logo files, colors, fonts and first screen as a brand kit your agent can read.
 - [Education Agent Skills](https://github.com/GarethManning/education-agent-skills) - 131 evidence-based education skills for curriculum design, lesson planning, and assessment, with transparent evidence ratings and MCP server.
 - [Eigenheim Berlin Market Data](https://github.com/magicSEO/eigenheim-mcp) - Read-only remote MCP server and skill for daily Berlin real estate data: price per m² by locality, rental yields, land values and active listings.
 - [Equibles](https://github.com/daniel3303/stock-market-mcp-server) - SEC filings, financial statements, earnings call transcripts, insider trades and 13F holdings for US stocks through the hosted Equibles MCP server.
