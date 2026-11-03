@@ -157,7 +157,7 @@ target:
   cwd: /path/to/project         # working folder of the probe and of the dedicated thread
 notify:
   when: receipt                 # receipt: when Codex says it matters | always | never
-  channels: [desktop, email]    # leave out to use the user's default; email works once the user ran `self-starter channel email`
+  channels: [desktop, feishu]   # leave out to use the user's default; see service_status for configured channels
 ```
 
 Choosing settings:
@@ -167,7 +167,7 @@ Choosing settings:
 - **for** filters out blips (a service that is down for one check); **cooldown** and **max_fires** limit repeats; `max_fires: 1` with `expires_at` suits "tell me once, within the next week".
 - **action**: use `notify` when the user only wants to know. Use `agent` when there is work to do, and write `prompt` as a self-contained task: a dedicated thread does not see this conversation.
 - **action.sandbox**: how Codex runs a fire when nobody is watching: in a dedicated thread, or in the origin thread when the Self-Starter service wakes it because no Codex app has it open. `workspace-write` (the default) lets it change files and run commands in its folder (`target.cwd` for a dedicated thread; an origin thread keeps this conversation's folder), without network access. Nobody is there to approve anything, so requests for more access are declined. Use `read-only` when it should only look, and `danger-full-access` (no sandbox) only when the task needs the network or files outside the project, and say so when you describe the trigger.
-- **notify.channels**: leave it out unless the user asks for email; `service_status` shows whether email is set up. If it is not, ask the user to run `self-starter channel email <their address>` in a terminal (it knows the servers of Gmail, iCloud, Yahoo, Fastmail, QQ, 163, 126 and Aliyun, asks for an app password and sends a test email; Outlook and Hotmail addresses cannot send this way). Never handle the app password in the chat.
+- **notify.channels**: leave it out unless the user asks for specific channels; `service_status` lists `channels.available` (`desktop`, any named push/webhook channels such as `feishu`, `wecom`, `dingtalk`, `slack`, `discord`, `telegram`, `bark`, `ntfy`, and `email`). If a requested channel is not set up yet, ask the user to open `self-starter ui` or run `self-starter channel add [<name>] <url>` / `self-starter channel telegram` / `self-starter channel email <address>` in a terminal. Never handle webhook URLs, bot tokens or app passwords in the chat.
 - **target**: `origin` suits one-off triggers tied to the current work ("tell me when this CI run finishes"); the task arrives in this thread: right away when it is open in a Codex app, otherwise Self-Starter opens the thread in the background about 20 seconds later and Codex handles it there. `dedicated` suits long-running watches: each fire goes to the trigger's own thread the same way (set `target.cwd` to the project folder). `origin` is the default when `max_fires` is 1, `dedicated` otherwise.
 
 ## When a message starts with [self-starter]
@@ -191,4 +191,4 @@ A fire message says how often the trigger fired in the last 24 hours and the las
 - Change the probe code or the mode: `trigger_draft` with the same id and `replace: true`, then `trigger_activate`.
 - `trigger_pause`, `trigger_resume`, `trigger_delete` do what they say.
 - If a tool reports that the background service is unavailable, suggest running `self-starter doctor` in a terminal.
-- Commands for the user's terminal (`self-starter secret set`, `self-starter channel email`, `self-starter doctor`) need the `self-starter` command. If the user installed only the Codex plugin, it is not on their PATH: check with `command -v self-starter`, and if it is missing, give them the command as `~/.self-starter/bin/self-starter ...`, which the plugin sets up.
+- Commands for the user's terminal (`self-starter ui`, `self-starter secret set`, `self-starter channel add`, `self-starter doctor`) need the `self-starter` command. If the user installed only the Codex plugin, it is not on their PATH: check with `command -v self-starter`, and if it is missing, give them the command as `~/.self-starter/bin/self-starter ...`, which the plugin sets up.

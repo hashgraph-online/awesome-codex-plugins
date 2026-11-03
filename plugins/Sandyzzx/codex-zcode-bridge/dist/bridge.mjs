@@ -14,18 +14,187 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
+// src/runtime/paths.ts
+import { existsSync, readFileSync } from "node:fs";
+import path from "node:path";
+function resolveUserHome(env, options = {}) {
+  const platform = options.platform ?? process.platform;
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
+  const homeRaw = env["HOME"]?.trim() || null;
+  const userProfileRaw = env["USERPROFILE"]?.trim() || null;
+  if (platform !== "win32") {
+    if (homeRaw) {
+      return { userHome: pathImpl.resolve(homeRaw), source: "HOME", homeRaw, homeConflict: null };
+    }
+    const fallback2 = userProfileRaw ?? options.fallbackHomeDir ?? "";
+    if (!fallback2) {
+      throw new Error("no user home directory available (HOME is empty and no fallback provided)");
+    }
+    return { userHome: pathImpl.resolve(fallback2), source: userProfileRaw ? "USERPROFILE" : "FALLBACK", homeRaw: null, homeConflict: null };
+  }
+  if (homeRaw) {
+    const rooted = isWindowsAbsolutePath(homeRaw);
+    const matchesUserProfile = userProfileRaw !== null && sameCleanPath(homeRaw, userProfileRaw, pathImpl, true);
+    if (rooted && matchesUserProfile) {
+      return { userHome: pathImpl.resolve(homeRaw), source: "HOME", homeRaw, homeConflict: null };
+    }
+    const conflict = !rooted ? "HOME is set but is not an absolute path" : userProfileRaw === null ? "HOME is set but USERPROFILE is not, so HOME cannot be verified as the current Windows user directory" : "HOME is set but does not match USERPROFILE (test or WSL directories must not override the Windows user directory)";
+    if (userProfileRaw) {
+      return { userHome: pathImpl.resolve(userProfileRaw), source: "USERPROFILE", homeRaw, homeConflict: conflict };
+    }
+    const fallback2 = options.fallbackHomeDir;
+    if (!fallback2) {
+      throw new Error("no Windows user directory available (HOME is invalid and no USERPROFILE or fallback provided)");
+    }
+    return { userHome: pathImpl.resolve(fallback2), source: "FALLBACK", homeRaw, homeConflict: conflict };
+  }
+  if (userProfileRaw) {
+    return { userHome: pathImpl.resolve(userProfileRaw), source: "USERPROFILE", homeRaw: null, homeConflict: null };
+  }
+  const fallback = options.fallbackHomeDir;
+  if (!fallback) {
+    throw new Error("no Windows user directory available (HOME and USERPROFILE are unset and no fallback provided)");
+  }
+  return { userHome: pathImpl.resolve(fallback), source: "FALLBACK", homeRaw: null, homeConflict: null };
+}
+function discoverZCodeData(env, options = {}) {
+  const platform = options.platform ?? process.platform;
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
+  const readFile3 = options.readFile ?? ((filePath) => readFileSync(filePath, "utf8"));
+  const fileExists = options.fileExists ?? existsSync;
+  const home = resolveUserHome(env, options);
+  const settingFile = pathImpl.join(home.userHome, ".zcode", "v2", "setting.json");
+  let settingStatus = "ok";
+  let settingError = null;
+  let configuredDataBaseDir = null;
+  if (!fileExists(settingFile)) {
+    settingStatus = "absent";
+  } else {
+    let text2;
+    try {
+      text2 = readFile3(settingFile);
+    } catch (error2) {
+      settingStatus = isPermissionDeniedCode(error2) ? "permission_denied" : "unreadable";
+      settingError = error2 instanceof Error ? error2.message : String(error2);
+      text2 = "";
+    }
+    if (settingStatus === "ok") {
+      let parsed;
+      try {
+        parsed = JSON.parse(text2);
+      } catch (error2) {
+        settingStatus = "invalid_json";
+        settingError = error2 instanceof Error ? error2.message : String(error2);
+      }
+      if (settingStatus === "ok") {
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          settingStatus = "invalid_shape";
+          settingError = "setting.json must contain a JSON object";
+        } else {
+          const raw = parsed["dataBaseDir"];
+          if (raw === void 0 || raw === null) {
+          } else if (typeof raw !== "string") {
+            settingStatus = "invalid_shape";
+            settingError = "dataBaseDir must be a string when present";
+          } else {
+            const trimmed = raw.trim();
+            if (trimmed && isAbsolutePathForPlatform(trimmed, platform)) {
+              configuredDataBaseDir = pathImpl.resolve(trimmed);
+            } else if (trimmed) {
+              settingError = "dataBaseDir is a relative path and was ignored";
+            }
+          }
+        }
+      }
+    }
+  }
+  const dataBaseDir = configuredDataBaseDir ?? home.userHome;
+  return {
+    userHome: home.userHome,
+    settingFile,
+    settingStatus,
+    settingError,
+    configuredDataBaseDir,
+    dataBaseDir,
+    dataBaseDirSource: configuredDataBaseDir ? "setting.json" : "default",
+    zcodeDataDir: pathImpl.join(dataBaseDir, ".zcode"),
+    zcodeV2Dir: pathImpl.join(dataBaseDir, ".zcode", "v2"),
+    migrated: configuredDataBaseDir !== null
+  };
+}
+function isWindowsAbsolutePath(value) {
+  return /^[A-Za-z]:[\\/]/u.test(value) || /^\/\/[^\\/]+[\\/][^\\/]+(?:[\\/].*)?$/u.test(value) || /^\\\\[^\\/]+[\\/][^\\/]+(?:[\\/].*)?$/u.test(value);
+}
+function isAbsolutePathForPlatform(value, platform = process.platform) {
+  return platform === "win32" ? isWindowsAbsolutePath(value) : path.isAbsolute(value);
+}
+function isPermissionDeniedCode(error2) {
+  const code = error2?.code;
+  return code === "EACCES" || code === "EPERM";
+}
+function discoverZCodeInstall(env, options = {}) {
+  const platform = options.platform ?? process.platform;
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
+  const fileExists = options.fileExists ?? existsSync;
+  const requireBuiltin = options.requireBuiltin ?? true;
+  const roots = [];
+  const explicit = env["ZCODE_WINDOWS_APP_INSTALL_DIR"]?.trim();
+  if (explicit) roots.push({ root: explicit, source: "ZCODE_WINDOWS_APP_INSTALL_DIR" });
+  const localAppData = env["LOCALAPPDATA"]?.trim();
+  if (localAppData) roots.push({ root: pathImpl.join(localAppData, "Programs", "ZCode"), source: "LOCALAPPDATA" });
+  const programFiles = env["ProgramFiles"]?.trim() ?? env["PROGRAMFILES"]?.trim();
+  if (programFiles) roots.push({ root: pathImpl.join(programFiles, "ZCode"), source: "ProgramFiles" });
+  const candidates = roots.map(({ root, source }) => ({
+    root,
+    source,
+    runtimeExists: fileExists(pathImpl.join(root, "resources", "glm", "zcode.cjs")),
+    builtinExists: fileExists(pathImpl.join(root, "resources", "config", "provider", "zcode-builtin.json"))
+  }));
+  for (const candidate of candidates) {
+    if (!candidate.runtimeExists) continue;
+    if (requireBuiltin && !candidate.builtinExists) continue;
+    return {
+      installDir: candidate.root,
+      source: candidate.source,
+      zcodeEntrypoint: pathImpl.join(candidate.root, "resources", "glm", "zcode.cjs"),
+      builtinConfigFile: requireBuiltin || candidate.builtinExists ? pathImpl.join(candidate.root, "resources", "config", "provider", "zcode-builtin.json") : null,
+      candidates
+    };
+  }
+  return { installDir: null, source: null, zcodeEntrypoint: null, builtinConfigFile: null, candidates };
+}
+function builtinConfigForRuntime(zcodeEntrypoint, platform = process.platform) {
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
+  const resourcesDir = pathImpl.dirname(pathImpl.dirname(zcodeEntrypoint));
+  return pathImpl.join(resourcesDir, "config", "provider", "zcode-builtin.json");
+}
+function sameFileSystemPath(left, right, platform = process.platform) {
+  const pathImpl = platform === "win32" ? path.win32 : path.posix;
+  return sameCleanPath(left, right, pathImpl, platform === "win32");
+}
+function sameCleanPath(left, right, pathImpl, caseInsensitive) {
+  const cleanLeft = pathImpl.normalize(left);
+  const cleanRight = pathImpl.normalize(right);
+  return caseInsensitive ? cleanLeft.toLowerCase() === cleanRight.toLowerCase() : cleanLeft === cleanRight;
+}
+var init_paths = __esm({
+  "src/runtime/paths.ts"() {
+    "use strict";
+  }
+});
+
 // src/host/profile.ts
 import { homedir } from "node:os";
-import path from "node:path";
+import path2 from "node:path";
 function codexHostProfile(homeDirectory = homedir()) {
-  return { name: "codex-zcode-bridge", settingsDirectory: path.join(homeDirectory, ".codex", "codex-zcode-bridge") };
+  return { name: "codex-zcode-bridge", settingsDirectory: path2.join(homeDirectory, ".codex", "codex-zcode-bridge") };
 }
 function validateHostProfile(host) {
-  if (!host || typeof host.name !== "string" || !host.name.trim() || typeof host.settingsDirectory !== "string" || !path.isAbsolute(host.settingsDirectory)) throw new Error("invalid Bridge host profile");
-  if (host.legacySettingsDirectories !== void 0 && (!Array.isArray(host.legacySettingsDirectories) || host.legacySettingsDirectories.some((directory) => typeof directory !== "string" || !path.isAbsolute(directory)))) throw new Error("host migration directories must be absolute");
-  if (host.workerEntryPath !== void 0 && (typeof host.workerEntryPath !== "string" || !path.isAbsolute(host.workerEntryPath))) throw new Error("host worker entry must be absolute");
+  if (!host || typeof host.name !== "string" || !host.name.trim() || typeof host.settingsDirectory !== "string" || !path2.isAbsolute(host.settingsDirectory)) throw new Error("invalid Bridge host profile");
+  if (host.legacySettingsDirectories !== void 0 && (!Array.isArray(host.legacySettingsDirectories) || host.legacySettingsDirectories.some((directory) => typeof directory !== "string" || !path2.isAbsolute(directory)))) throw new Error("host migration directories must be absolute");
+  if (host.workerEntryPath !== void 0 && (typeof host.workerEntryPath !== "string" || !path2.isAbsolute(host.workerEntryPath))) throw new Error("host worker entry must be absolute");
   if (host.instructions !== void 0 && typeof host.instructions !== "string") throw new Error("host instructions must be text");
-  if (host.defaultDataRoot !== void 0 && (typeof host.defaultDataRoot !== "string" || !path.isAbsolute(host.defaultDataRoot))) throw new Error("host default data root must be absolute");
+  if (host.defaultDataRoot !== void 0 && (typeof host.defaultDataRoot !== "string" || !path2.isAbsolute(host.defaultDataRoot))) throw new Error("host default data root must be absolute");
   return host;
 }
 var init_profile = __esm({
@@ -292,9 +461,9 @@ var init_failure_facts = __esm({
 });
 
 // src/store/process-lock.ts
-import { existsSync as existsSync2, mkdirSync, readFileSync as readFileSync2, renameSync, rmdirSync, statSync as statSync2, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync as existsSync3, mkdirSync, readFileSync as readFileSync3, renameSync, rmdirSync, statSync as statSync2, unlinkSync, writeFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
-import path3 from "node:path";
+import path4 from "node:path";
 function isTransientLockFsError(error2) {
   return TRANSIENT_LOCK_FS_CODES.has(error2?.code ?? "");
 }
@@ -322,7 +491,7 @@ async function withProcessLock(directory, operation, timeoutMs = 3e4) {
 }
 function describeLockOwner(directory) {
   try {
-    const owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
+    const owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
     if (!Number.isSafeInteger(owner.pid)) return null;
     return `pid ${String(owner.pid)}${owner.started_at ? `, started ${owner.started_at}` : ""}`;
   } catch {
@@ -334,7 +503,7 @@ function tryAcquireProcessLock(directory) {
 }
 function tryAcquireProcessLockWithRetry(directory, retries) {
   const token = randomUUID();
-  if (existsSync2(directory)) return acquireExistingLock(directory);
+  if (existsSync3(directory)) return acquireExistingLock(directory);
   const staging = `${directory}.${process.pid}.${token}.pending`;
   const ownerRecord = {
     pid: process.pid,
@@ -346,14 +515,14 @@ function tryAcquireProcessLockWithRetry(directory, retries) {
   };
   try {
     mkdirSync(staging, { mode: 448 });
-    writeFileSync(path3.join(staging, "owner.json"), JSON.stringify(ownerRecord), { mode: 384, flag: "wx" });
+    writeFileSync(path4.join(staging, "owner.json"), JSON.stringify(ownerRecord), { mode: 384, flag: "wx" });
     try {
       renameSync(staging, directory);
     } catch (error2) {
       removeStagedLock(staging);
       const code = error2.code;
       if (!isTransientLockFsError(error2)) throw error2;
-      if (DESTINATION_PRESENT_CONTENTION_CODES.has(code ?? "") || existsSync2(directory)) {
+      if (DESTINATION_PRESENT_CONTENTION_CODES.has(code ?? "") || existsSync3(directory)) {
         return acquireExistingLock(directory);
       }
       if (retries < PUBLICATION_RETRY_ATTEMPTS) {
@@ -367,7 +536,7 @@ function tryAcquireProcessLockWithRetry(directory, retries) {
     throw error2;
   }
   return () => {
-    const owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
+    const owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
     if (owner.token !== token) throw new Error("process lock ownership changed");
     const retired = `${directory}.${token}.retired`;
     renameWithTransientRetry(directory, retired);
@@ -389,7 +558,7 @@ function renameWithTransientRetry(source, target) {
 function acquireExistingLock(directory) {
   let owner;
   try {
-    owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
+    owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
     if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error("invalid lock owner");
   } catch {
     try {
@@ -409,7 +578,7 @@ function acquireExistingLock(directory) {
   return null;
 }
 function removeStagedLock(directory) {
-  removePrivateFile(path3.join(directory, "owner.json"));
+  removePrivateFile(path4.join(directory, "owner.json"));
   removePrivateDirectory(directory);
 }
 function removePrivateFile(file) {
@@ -448,7 +617,7 @@ function reclaimDeadOwner(directory) {
   }
   let outcome;
   try {
-    const owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
+    const owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
     if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) {
       outcome = { kind: "busy" };
     } else {
@@ -551,17 +720,17 @@ var init_atomic_rename = __esm({
 
 // src/runtime/durable-file-system.ts
 import { spawnSync } from "node:child_process";
-import { closeSync, existsSync as existsSync3, fsyncSync, openSync, renameSync as renameSync3 } from "node:fs";
-import path4 from "node:path";
+import { closeSync, existsSync as existsSync4, fsyncSync, openSync, renameSync as renameSync3 } from "node:fs";
+import path5 from "node:path";
 function canonicalParent(filePath) {
-  return path4.dirname(path4.resolve(filePath));
+  return path5.dirname(path5.resolve(filePath));
 }
 function assertSameDirectory(source, destination) {
   const left = canonicalParent(source);
   const right = canonicalParent(destination);
   const same = process.platform === "win32" ? left.toLocaleLowerCase("en-US") === right.toLocaleLowerCase("en-US") : left === right;
   if (!same) throw new Error("durable file operation requires one directory");
-  if (path4.resolve(source) === path4.resolve(destination)) {
+  if (path5.resolve(source) === path5.resolve(destination)) {
     throw new Error("durable file operation requires distinct files");
   }
 }
@@ -610,7 +779,7 @@ function runWindowsHelper(operation, source, destination, replace) {
 function moveFileSync(source, destination, replace) {
   assertSameDirectory(source, destination);
   if (process.platform === "win32") {
-    runWindowsHelper("move", path4.resolve(source), path4.resolve(destination), replace);
+    runWindowsHelper("move", path5.resolve(source), path5.resolve(destination), replace);
     return;
   }
   renameSync3(source, destination);
@@ -699,13 +868,13 @@ exit 12
     WINDOWS_HELPER_COMMAND = Buffer.from(WINDOWS_HELPER_SCRIPT, "utf16le").toString("base64");
     defaultDurableFileOperations = Object.freeze({
       replaceFileSync(source, destination) {
-        moveFileSync(source, destination, existsSync3(destination));
+        moveFileSync(source, destination, existsSync4(destination));
       },
       moveFileSync(source, destination) {
         moveFileSync(source, destination, false);
       },
       flushDirectorySync(directory) {
-        const resolved = path4.resolve(directory);
+        const resolved = path5.resolve(directory);
         if (process.platform === "win32") {
           runWindowsHelper("flush", resolved, null, false);
           return;
@@ -816,34 +985,34 @@ var init_json_history_result_exceptions = __esm({
 });
 
 // src/store/json-writer-quiescence.ts
-import { closeSync as closeSync2, existsSync as existsSync4, fsyncSync as fsyncSync2, mkdirSync as mkdirSync2, openSync as openSync2, readFileSync as readFileSync3, readdirSync, realpathSync, rmSync, writeFileSync as writeFileSync2 } from "node:fs";
+import { closeSync as closeSync2, existsSync as existsSync5, fsyncSync as fsyncSync2, mkdirSync as mkdirSync2, openSync as openSync2, readFileSync as readFileSync4, readdirSync, realpathSync, rmSync, writeFileSync as writeFileSync2 } from "node:fs";
 import { createHash as createHash2, randomUUID as randomUUID2 } from "node:crypto";
-import path5 from "node:path";
+import path6 from "node:path";
 function jsonWriterFenceState(dataRoot) {
   return readFence(dataRoot)?.state ?? "open";
 }
 function fencePath(dataRoot) {
-  return path5.join(dataRoot, ".tasks", FENCE_FILE);
+  return path6.join(dataRoot, ".tasks", FENCE_FILE);
 }
 function rosterPath(dataRoot) {
-  return path5.join(dataRoot, ".tasks", ROSTER_DIR);
+  return path6.join(dataRoot, ".tasks", ROSTER_DIR);
 }
 function leasePath(dataRoot, token) {
   if (!/^[a-f0-9-]{36}$/u.test(token)) throw new Error("invalid JSON writer lease token");
-  return path5.join(rosterPath(dataRoot), `${token}.json`);
+  return path6.join(rosterPath(dataRoot), `${token}.json`);
 }
 function gateLockPath(dataRoot) {
-  return path5.join(dataRoot, ".tasks", GATE_LOCK);
+  return path6.join(dataRoot, ".tasks", GATE_LOCK);
 }
 function strictObject2(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 function readFence(dataRoot) {
   const file = fencePath(dataRoot);
-  if (!existsSync4(file)) return null;
+  if (!existsSync5(file)) return null;
   let value;
   try {
-    value = JSON.parse(readFileSync3(file, "utf8"));
+    value = JSON.parse(readFileSync4(file, "utf8"));
   } catch (error2) {
     throw new Error("JSON writer quiescence record is unreadable; writes fail closed", { cause: error2 });
   }
@@ -853,7 +1022,7 @@ function readFence(dataRoot) {
   return value;
 }
 function writeJsonAtomic(file, value, durability = defaultDurableFileOperations) {
-  mkdirSync2(path5.dirname(file), { recursive: true, mode: 448 });
+  mkdirSync2(path6.dirname(file), { recursive: true, mode: 448 });
   const temporary = `${file}.${randomUUID2()}.tmp`;
   let fd;
   try {
@@ -933,10 +1102,10 @@ function withJsonWriterWritePermit(dataRoot, token, taskId, attempt, operation) 
 }
 function readLease(dataRoot, token) {
   const file = leasePath(dataRoot, token);
-  if (!existsSync4(file)) return null;
+  if (!existsSync5(file)) return null;
   let value;
   try {
-    value = JSON.parse(readFileSync3(file, "utf8"));
+    value = JSON.parse(readFileSync4(file, "utf8"));
   } catch (error2) {
     throw new Error("JSON writer lease is unreadable; writes fail closed", { cause: error2 });
   }
@@ -953,11 +1122,11 @@ function validIdentity(value) {
   return Number.isSafeInteger(value.pid) && value.pid > 0 && typeof value.fingerprint === "string" && value.fingerprint.length > 0 && value.fingerprint_precision === "exact" && Number.isSafeInteger(value.identity_version) && typeof value.platform === "string" && typeof value.captured_at === "string" && Number.isFinite(Date.parse(value.captured_at));
 }
 function registryEnabled(dataRoot) {
-  const file = path5.join(rosterPath(dataRoot), REGISTRY_FILE);
-  if (!existsSync4(file)) return false;
+  const file = path6.join(rosterPath(dataRoot), REGISTRY_FILE);
+  if (!existsSync5(file)) return false;
   let value;
   try {
-    value = JSON.parse(readFileSync3(file, "utf8"));
+    value = JSON.parse(readFileSync4(file, "utf8"));
   } catch (error2) {
     throw new Error("JSON writer registry is unreadable; writes fail closed", { cause: error2 });
   }
@@ -995,7 +1164,7 @@ function assertLeaseMutationScope(dataRoot, lease, taskId, attempt) {
   }
   let status;
   try {
-    status = JSON.parse(readFileSync3(path5.join(dataRoot, ".tasks", taskId, "status.json"), "utf8"));
+    status = JSON.parse(readFileSync4(path6.join(dataRoot, ".tasks", taskId, "status.json"), "utf8"));
   } catch (error2) {
     throw new Error("Worker Task status is unreadable; write rejected", { cause: error2 });
   }
@@ -1103,9 +1272,9 @@ __export(task_store_exports, {
   stableJson: () => stableJson,
   toPublicStatus: () => toPublicStatus
 });
-import { appendFileSync, chmodSync, closeSync as closeSync3, copyFileSync, existsSync as existsSync5, mkdirSync as mkdirSync3, openSync as openSync3, readFileSync as readFileSync4, readSync, readdirSync as readdirSync2, rmSync as rmSync2, statSync as statSync3, writeFileSync as writeFileSync3 } from "node:fs";
+import { appendFileSync, chmodSync, closeSync as closeSync3, copyFileSync, existsSync as existsSync6, mkdirSync as mkdirSync3, openSync as openSync3, readFileSync as readFileSync5, readSync, readdirSync as readdirSync2, rmSync as rmSync2, statSync as statSync3, writeFileSync as writeFileSync3 } from "node:fs";
 import { createHash as createHash3, randomUUID as randomUUID3 } from "node:crypto";
-import path6 from "node:path";
+import path7 from "node:path";
 import { StringDecoder } from "node:string_decoder";
 function stableJson(value) {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
@@ -1136,8 +1305,8 @@ function privateFile(file) {
   if (process.platform !== "win32") chmodSync(file, 384);
 }
 function readLastEventSeq(file) {
-  if (!existsSync5(file)) return 0;
-  for (const line of readFileSync4(file, "utf8").trimEnd().split("\n").reverse()) {
+  if (!existsSync6(file)) return 0;
+  for (const line of readFileSync5(file, "utf8").trimEnd().split("\n").reverse()) {
     try {
       const event = JSON.parse(line);
       if (Number.isInteger(event.seq)) return event.seq;
@@ -1235,7 +1404,7 @@ var init_task_store = __esm({
       #writerLeaseToken;
       constructor(dataRoot, options = {}) {
         this.#dataRoot = dataRoot;
-        this.#tasksRoot = path6.join(dataRoot, ".tasks");
+        this.#tasksRoot = path7.join(dataRoot, ".tasks");
         this.#maxLogBytes = options.maxLogBytes ?? DEFAULT_MAX_LOG_BYTES;
         this.#maxEventBytes = options.maxEventBytes ?? DEFAULT_MAX_LOG_BYTES;
         this.#writerQuiescence = options.writerQuiescence ?? false;
@@ -1261,19 +1430,19 @@ var init_task_store = __esm({
       }
       taskDir(taskId) {
         this.assertValidTaskId(taskId);
-        return path6.join(this.#tasksRoot, taskId);
+        return path7.join(this.#tasksRoot, taskId);
       }
       hasTask(taskId) {
         try {
-          return existsSync5(path6.join(this.taskDir(taskId), "status.json"));
+          return existsSync6(path7.join(this.taskDir(taskId), "status.json"));
         } catch {
           return false;
         }
       }
       listTaskIds() {
-        if (!existsSync5(this.#tasksRoot)) return [];
+        if (!existsSync6(this.#tasksRoot)) return [];
         return readdirSync2(this.#tasksRoot).filter(
-          (entry) => existsSync5(path6.join(this.#tasksRoot, entry, "status.json"))
+          (entry) => existsSync6(path7.join(this.#tasksRoot, entry, "status.json"))
         );
       }
       createTask(task, createdAt) {
@@ -1281,11 +1450,11 @@ var init_task_store = __esm({
           assertJsonAdmissionOpen(this.#dataRoot);
           this.assertValidTaskId(task.task_id);
           const dir = this.taskDir(task.task_id);
-          if (existsSync5(path6.join(dir, "task.json"))) {
+          if (existsSync6(path7.join(dir, "task.json"))) {
             throw new Error(`task already exists: ${task.task_id}`);
           }
-          privateMkdir(path6.join(dir, "attempts"));
-          this.#writeJsonAtomic(path6.join(dir, "task.json"), task);
+          privateMkdir(path7.join(dir, "attempts"));
+          this.#writeJsonAtomic(path7.join(dir, "task.json"), task);
           const status = {
             task_id: task.task_id,
             status: "queued",
@@ -1298,40 +1467,40 @@ var init_task_store = __esm({
             zcode_session_id: null,
             exit_code: null
           };
-          this.#writeJsonAtomic(path6.join(dir, "status.json"), status);
+          this.#writeJsonAtomic(path7.join(dir, "status.json"), status);
         });
       }
       readTask(taskId) {
-        const file = path6.join(this.taskDir(taskId), "task.json");
+        const file = path7.join(this.taskDir(taskId), "task.json");
         const parsed = this.#readJson(file);
         const task = parsed;
         if (!task || task.task_id !== taskId || typeof task.workspace !== "string" || !task.workspace || typeof task.objective !== "string" || [task.requirements, task.allowed_paths, task.forbidden_paths, task.acceptance_criteria, task.test_commands].some((items) => !Array.isArray(items) || items.some((item) => typeof item !== "string"))) throw new Error(`corrupt task record: ${file}`);
         return task;
       }
       readSubmission(taskId) {
-        const file = path6.join(this.taskDir(taskId), "submission.json");
-        if (!existsSync5(file)) return null;
+        const file = path7.join(this.taskDir(taskId), "submission.json");
+        if (!existsSync6(file)) return null;
         return this.#readJson(file);
       }
       writeSubmission(taskId, submission) {
         return this.#withWriterMutation(() => {
-          this.#writeJsonAtomic(path6.join(this.taskDir(taskId), "submission.json"), submission);
+          this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "submission.json"), submission);
         }, taskId);
       }
       writeWorkspaceRef(taskId, workspace) {
         return this.#withWriterMutation(() => {
-          this.#writeJsonAtomic(path6.join(this.taskDir(taskId), "workspace.json"), workspace);
+          this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "workspace.json"), workspace);
         }, taskId);
       }
       readWorkspaceRef(taskId) {
-        const file = path6.join(this.taskDir(taskId), "workspace.json");
-        if (!existsSync5(file)) return null;
+        const file = path7.join(this.taskDir(taskId), "workspace.json");
+        if (!existsSync6(file)) return null;
         const workspace = this.#readJson(file);
         if (!workspace || typeof workspace.canonicalPath !== "string" || typeof workspace.requestedPath !== "string" || !["direct", "worktree"].includes(workspace.mode)) throw new Error(`corrupt workspace record: ${file}`);
         return workspace;
       }
       readStatus(taskId) {
-        const file = path6.join(this.taskDir(taskId), "status.json");
+        const file = path7.join(this.taskDir(taskId), "status.json");
         const parsed = this.#readJson(file);
         if (!parsed || parsed.task_id !== taskId || !["queued", "running", "completed", "failed", "cancelled", "waiting_for_master"].includes(parsed.status) || !Number.isSafeInteger(parsed.attempt) || parsed.attempt < 1 || typeof parsed.created_at !== "string") {
           throw new Error(`corrupt status record: ${file}`);
@@ -1341,7 +1510,7 @@ var init_task_store = __esm({
       /** Read-merge-write with an updated timestamp; atomic via temp file + rename. */
       writeStatus(taskId, patch, expectedAttempt) {
         return this.#withWriterMutation(() => {
-          return withEventLock(path6.join(this.taskDir(taskId), "state.lock"), () => {
+          return withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
             const current = this.readStatus(taskId);
             if (expectedAttempt !== void 0 && (current.attempt !== expectedAttempt || isTerminalStatus(current.status))) throw new Error("stale or terminal worker status rejected");
             const next = {
@@ -1350,31 +1519,31 @@ var init_task_store = __esm({
               task_id: current.task_id,
               updated_at: (/* @__PURE__ */ new Date()).toISOString()
             };
-            this.#writeJsonAtomic(path6.join(this.taskDir(taskId), "status.json"), next);
+            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "status.json"), next);
             return next;
           });
         }, taskId, expectedAttempt);
       }
       readResult(taskId) {
-        const file = path6.join(this.taskDir(taskId), "result.json");
-        if (!existsSync5(file)) return null;
+        const file = path7.join(this.taskDir(taskId), "result.json");
+        if (!existsSync6(file)) return null;
         const result = this.#readJson(file);
         if (!result || result.task_id !== taskId || !Number.isSafeInteger(result.attempt) || !isTerminalStatus(result.status)) throw new Error(`corrupt result record: ${file}`);
         return result.attempt === this.readStatus(taskId).attempt ? result : null;
       }
       writeResult(taskId, result) {
         return this.#withWriterMutation(() => {
-          withEventLock(path6.join(this.taskDir(taskId), "state.lock"), () => {
+          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
             if (this.readStatus(taskId).attempt !== result.attempt) throw new Error("stale worker attempt result rejected");
-            this.#writeJsonAtomic(path6.join(this.taskDir(taskId), "result.json"), result);
+            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "result.json"), result);
           });
         }, taskId, result.attempt);
       }
       commitWorkerResult(taskId, attempt, result, patch) {
         return this.#withWriterMutation(() => {
-          withEventLock(path6.join(this.taskDir(taskId), "state.lock"), () => {
+          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
             this.assertWorkerAttempt(taskId, attempt);
-            this.#writeJsonAtomic(path6.join(this.taskDir(taskId), "result.json"), result);
+            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "result.json"), result);
             const current = this.readStatus(taskId);
             let effective = patch;
             if (current.cleanup_unverified === true) {
@@ -1383,16 +1552,16 @@ var init_task_store = __esm({
                 effective = { ...effective, error: current.error };
               }
             }
-            this.#writeJsonAtomic(path6.join(this.taskDir(taskId), "status.json"), { ...current, ...effective, task_id: taskId, attempt, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
+            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "status.json"), { ...current, ...effective, task_id: taskId, attempt, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
           });
         }, taskId, attempt);
       }
       patchRunningAttempt(taskId, attempt, patch) {
         return this.#withWriterMutation(() => {
-          withEventLock(path6.join(this.taskDir(taskId), "state.lock"), () => {
+          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
             const current = this.readStatus(taskId);
             if (current.attempt !== attempt || current.status !== "running") return;
-            this.#writeJsonAtomic(path6.join(this.taskDir(taskId), "status.json"), { ...current, ...patch, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
+            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "status.json"), { ...current, ...patch, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
           });
         }, taskId, attempt);
       }
@@ -1400,23 +1569,23 @@ var init_task_store = __esm({
       archiveResultToAttempt(taskId, attempt) {
         return this.#withWriterMutation(() => {
           const dir = this.taskDir(taskId);
-          const source = path6.join(dir, "result.json");
-          if (!existsSync5(source)) return;
+          const source = path7.join(dir, "result.json");
+          if (!existsSync6(source)) return;
           const targetDir = this.attemptDir(taskId, attempt);
           privateMkdir(targetDir);
-          copyFileSync(source, path6.join(targetDir, "result.json"));
-          privateFile(path6.join(targetDir, "result.json"));
+          copyFileSync(source, path7.join(targetDir, "result.json"));
+          privateFile(path7.join(targetDir, "result.json"));
         }, taskId, attempt);
       }
       /** A claim is permanent: a started attempt must never execute again. */
       claimWorkerExecution(taskId, attempt) {
         return this.#withWriterMutation(() => {
-          return withEventLock(path6.join(this.taskDir(taskId), "state.lock"), () => {
+          return withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
             const status = this.readStatus(taskId);
             if (status.attempt !== attempt || isTerminalStatus(status.status)) return false;
             privateMkdir(this.attemptDir(taskId, attempt));
             try {
-              writeFileSync3(path6.join(this.attemptDir(taskId, attempt), "execution.claim"), JSON.stringify({ pid: process.pid }), { flag: "wx", mode: 384 });
+              writeFileSync3(path7.join(this.attemptDir(taskId, attempt), "execution.claim"), JSON.stringify({ pid: process.pid }), { flag: "wx", mode: 384 });
               return true;
             } catch (error2) {
               if (error2.code === "EEXIST") return false;
@@ -1430,25 +1599,25 @@ var init_task_store = __esm({
         if (status.attempt !== attempt || isTerminalStatus(status.status)) throw new Error("stale or terminal worker attempt rejected");
       }
       readArchivedResult(taskId, attempt) {
-        const file = path6.join(this.attemptDir(taskId, attempt), "result.json");
-        if (!existsSync5(file)) return null;
+        const file = path7.join(this.attemptDir(taskId, attempt), "result.json");
+        if (!existsSync6(file)) return null;
         return this.#readJson(file);
       }
       attemptDir(taskId, attempt) {
-        return path6.join(this.taskDir(taskId), "attempts", String(attempt));
+        return path7.join(this.taskDir(taskId), "attempts", String(attempt));
       }
       writeAttemptFile(taskId, attempt, fileName, content) {
         return this.#withWriterMutation(() => {
           const dir = this.attemptDir(taskId, attempt);
           privateMkdir(dir);
-          this.#writeTextAtomic(path6.join(dir, fileName), content);
+          this.#writeTextAtomic(path7.join(dir, fileName), content);
         }, taskId, attempt);
       }
       writeAttemptMeta(taskId, attempt, fileName, meta2) {
         return this.#withWriterMutation(() => {
           const dir = this.attemptDir(taskId, attempt);
           privateMkdir(dir);
-          this.#writeJsonAtomic(path6.join(dir, fileName), meta2);
+          this.#writeJsonAtomic(path7.join(dir, fileName), meta2);
         }, taskId, attempt);
       }
       // ---- ADR-011 P0 private failure facts (M3 dedicated ownership entry) ----
@@ -1465,8 +1634,8 @@ var init_task_store = __esm({
        * state, results, or cleanup (ADR-011).
        */
       writeFailureFacts(taskId, attempt, writerPid, facts) {
-        const file = path6.join(this.attemptDir(taskId, attempt), "failure-facts.json");
-        return this.#withWriterMutation(() => withEventLock(path6.join(this.taskDir(taskId), "state.lock"), () => {
+        const file = path7.join(this.attemptDir(taskId, attempt), "failure-facts.json");
+        return this.#withWriterMutation(() => withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
           const status = this.readStatus(taskId);
           if (status.attempt !== attempt) throw new Error("stale attempt failure facts rejected");
           if (status.status !== "running") throw new Error("non-running attempt failure facts rejected");
@@ -1474,7 +1643,7 @@ var init_task_store = __esm({
           const claim2 = this.readAttemptMeta(taskId, attempt, "execution.claim");
           if (!claim2 || claim2.pid !== writerPid) throw new Error("failure facts writer does not own the execution claim");
           validateFailureFacts(facts);
-          if (existsSync5(file)) {
+          if (existsSync6(file)) {
             const existing = validateFailureFacts(this.#readJson(file));
             if (stableJson(existing) === stableJson(facts)) return "duplicate";
             throw new Error("failure facts root cause already established; divergent snapshot rejected");
@@ -1486,28 +1655,28 @@ var init_task_store = __esm({
       /** Read-only accessor for diagnostics and tests. Never consulted for manager
        * state, recovery, occupancy, or READY/DONE decisions (ADR-011). */
       readFailureFacts(taskId, attempt) {
-        const file = path6.join(this.attemptDir(taskId, attempt), "failure-facts.json");
-        if (!existsSync5(file)) return { facts: null, corrupt: false };
+        const file = path7.join(this.attemptDir(taskId, attempt), "failure-facts.json");
+        if (!existsSync6(file)) return { facts: null, corrupt: false };
         try {
-          return { facts: validateFailureFacts(JSON.parse(readFileSync4(file, "utf8"))), corrupt: false };
+          return { facts: validateFailureFacts(JSON.parse(readFileSync5(file, "utf8"))), corrupt: false };
         } catch {
           return { facts: null, corrupt: true };
         }
       }
       readAttemptMeta(taskId, attempt, fileName) {
-        const file = path6.join(this.attemptDir(taskId, attempt), fileName);
-        if (!existsSync5(file)) return null;
+        const file = path7.join(this.attemptDir(taskId, attempt), fileName);
+        if (!existsSync6(file)) return null;
         return this.#readJson(file);
       }
       writeWorkerHeartbeat(taskId, attempt, heartbeat) {
         return this.#withWriterMutation(() => {
-          withEventLock(path6.join(this.taskDir(taskId), "state.lock"), () => {
+          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
             const status = this.readStatus(taskId);
             const claim2 = this.readAttemptMeta(taskId, attempt, "execution.claim");
             if (status.attempt !== attempt || status.status !== "running" || status.worker_pid !== heartbeat.worker_pid || claim2?.pid !== heartbeat.worker_pid) {
               throw new Error("stale or unowned worker heartbeat rejected");
             }
-            this.#writeJsonAtomic(path6.join(this.attemptDir(taskId, attempt), "heartbeat.json"), heartbeat);
+            this.#writeJsonAtomic(path7.join(this.attemptDir(taskId, attempt), "heartbeat.json"), heartbeat);
           });
         }, taskId, attempt);
       }
@@ -1517,9 +1686,9 @@ var init_task_store = __esm({
         return value;
       }
       readAttemptText(taskId, attempt, fileName) {
-        const file = path6.join(this.attemptDir(taskId, attempt), fileName);
-        if (!existsSync5(file)) return null;
-        return readFileSync4(file, "utf8");
+        const file = path7.join(this.attemptDir(taskId, attempt), fileName);
+        if (!existsSync6(file)) return null;
+        return readFileSync5(file, "utf8");
       }
       // ---- A1 observation evidence (bounded reads, no task bodies) ----
       /** Bounded persisted evidence for the observation judger. */
@@ -1536,8 +1705,8 @@ var init_task_store = __esm({
       }
       /** Last complete event line, read from a bounded tail window. */
       readLastBusinessEvent(taskId) {
-        const file = path6.join(this.taskDir(taskId), "events.jsonl");
-        if (!existsSync5(file)) return null;
+        const file = path7.join(this.taskDir(taskId), "events.jsonl");
+        if (!existsSync6(file)) return null;
         let size = 0;
         try {
           size = statSync3(file).size;
@@ -1570,8 +1739,8 @@ var init_task_store = __esm({
       }
       /** Distinct event types from a bounded tail window (A3 stage inference). */
       listRecentEventTypes(taskId, maxLines) {
-        const file = path6.join(this.taskDir(taskId), "events.jsonl");
-        if (!existsSync5(file)) return [];
+        const file = path7.join(this.taskDir(taskId), "events.jsonl");
+        if (!existsSync6(file)) return [];
         let size = 0;
         try {
           size = statSync3(file).size;
@@ -1604,7 +1773,7 @@ var init_task_store = __esm({
       }
       /** Newest unanswered interaction request (bounded directory scan). */
       readPendingInteraction(taskId) {
-        const directory = path6.join(this.taskDir(taskId), "interactions");
+        const directory = path7.join(this.taskDir(taskId), "interactions");
         let entries;
         try {
           entries = readdirSync2(directory);
@@ -1615,7 +1784,7 @@ var init_task_store = __esm({
         let newest = null;
         for (const file of files) {
           try {
-            const record3 = JSON.parse(readFileSync4(path6.join(directory, file), "utf8"));
+            const record3 = JSON.parse(readFileSync5(path7.join(directory, file), "utf8"));
             if (record3.state === "pending" && typeof record3.method === "string" && typeof record3.created_at === "string") {
               if (!newest || record3.created_at > newest.created_at) newest = { method: record3.method, created_at: record3.created_at };
             }
@@ -1633,7 +1802,7 @@ var init_task_store = __esm({
        */
       writeWorkerObservation(taskId, attempt, writerPid, patch, revision, updatedAt = (/* @__PURE__ */ new Date()).toISOString()) {
         return this.#withWriterMutation(() => {
-          withEventLock(path6.join(this.taskDir(taskId), "state.lock"), () => {
+          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
             const status = this.readStatus(taskId);
             if (status.attempt !== attempt) throw new Error("stale attempt observation rejected");
             const claim2 = this.readAttemptMeta(taskId, attempt, "execution.claim");
@@ -1646,7 +1815,7 @@ var init_task_store = __esm({
        * phases are never overwritten from the manager side. */
       writeManagerObservation(taskId, attempt, patch, revision, updatedAt = (/* @__PURE__ */ new Date()).toISOString()) {
         return this.#withWriterMutation(() => {
-          withEventLock(path6.join(this.taskDir(taskId), "state.lock"), () => {
+          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
             const status = this.readStatus(taskId);
             if (status.attempt !== attempt) throw new Error("stale attempt observation rejected");
             this.#mergeObservationSnapshot(taskId, attempt, "manager", revision, patch, updatedAt);
@@ -1654,10 +1823,10 @@ var init_task_store = __esm({
         }, taskId, attempt);
       }
       readObservationSnapshot(taskId, attempt) {
-        const file = path6.join(this.attemptDir(taskId, attempt), "observation.json");
-        if (!existsSync5(file)) return { snapshot: null, corrupt: false };
+        const file = path7.join(this.attemptDir(taskId, attempt), "observation.json");
+        if (!existsSync6(file)) return { snapshot: null, corrupt: false };
         try {
-          const parsed = JSON.parse(readFileSync4(file, "utf8"));
+          const parsed = JSON.parse(readFileSync5(file, "utf8"));
           if (parsed.schema_version !== 1 || parsed.task_id !== taskId || parsed.attempt !== attempt) {
             return { snapshot: null, corrupt: true };
           }
@@ -1715,7 +1884,7 @@ var init_task_store = __esm({
           const dir = this.attemptDir(taskId, attempt);
           privateMkdir(dir);
           try {
-            closeSync3(openSync3(path6.join(dir, "respawn.claim"), "wx"));
+            closeSync3(openSync3(path7.join(dir, "respawn.claim"), "wx"));
             return true;
           } catch (error2) {
             if (error2.code === "EEXIST") return false;
@@ -1726,7 +1895,7 @@ var init_task_store = __esm({
       /** File time of the respawn claim, or null when the attempt is unclaimed. */
       respawnClaimedAt(taskId, attempt) {
         try {
-          return statSync3(path6.join(this.attemptDir(taskId, attempt), "respawn.claim")).mtime;
+          return statSync3(path7.join(this.attemptDir(taskId, attempt), "respawn.claim")).mtime;
         } catch {
           return null;
         }
@@ -1737,7 +1906,7 @@ var init_task_store = __esm({
         return this.#withWriterMutation(() => {
           const dir = this.taskDir(taskId);
           privateMkdir(dir);
-          const file = path6.join(dir, `${kind}.log`);
+          const file = path7.join(dir, `${kind}.log`);
           let currentBytes = 0;
           try {
             currentBytes = statSync3(file).size;
@@ -1753,17 +1922,17 @@ var init_task_store = __esm({
         }, taskId);
       }
       readLog(taskId, kind) {
-        const file = path6.join(this.taskDir(taskId), `${kind}.log`);
-        return existsSync5(file) ? readFileSync4(file, "utf8") : "";
+        const file = path7.join(this.taskDir(taskId), `${kind}.log`);
+        return existsSync6(file) ? readFileSync5(file, "utf8") : "";
       }
       appendEvent(taskId, type, summary, details, at = (/* @__PURE__ */ new Date()).toISOString()) {
         return this.#withWriterMutation(() => {
           const dir = this.taskDir(taskId);
           mkdirSync3(dir, { recursive: true });
-          const lockDir = path6.join(dir, "events.lock");
+          const lockDir = path7.join(dir, "events.lock");
           return withEventLock(lockDir, () => {
-            const file = path6.join(dir, "events.jsonl");
-            const seqFile = path6.join(dir, "events.seq");
+            const file = path7.join(dir, "events.jsonl");
+            const seqFile = path7.join(dir, "events.seq");
             let bytes = 0;
             let previousSeq = 0;
             let needsSeparator = false;
@@ -1787,7 +1956,7 @@ var init_task_store = __esm({
               bytes = 0;
             }
             try {
-              previousSeq = Number(readFileSync4(seqFile, "utf8"));
+              previousSeq = Number(readFileSync5(seqFile, "utf8"));
               if (!Number.isSafeInteger(previousSeq) || previousSeq < 0) previousSeq = readLastEventSeq(file);
             } catch {
               previousSeq = readLastEventSeq(file);
@@ -1809,12 +1978,12 @@ var init_task_store = __esm({
             const eventOffset = bytes + (needsSeparator ? 1 : 0);
             appendFileSync(file, `${needsSeparator ? "\n" : ""}${line}`, { encoding: "utf8", mode: 384 });
             privateFile(file);
-            const genFile = path6.join(dir, "events.gen");
-            if (!existsSync5(genFile)) {
+            const genFile = path7.join(dir, "events.gen");
+            if (!existsSync6(genFile)) {
               this.#writeTextAtomic(genFile, randomUUID3());
             }
             if (event.seq % 100 === 0) {
-              const index = path6.join(dir, "events.index");
+              const index = path7.join(dir, "events.index");
               appendFileSync(index, `${event.seq}	${eventOffset}
 `, { encoding: "utf8", mode: 384 });
               privateFile(index);
@@ -1824,12 +1993,12 @@ var init_task_store = __esm({
         }, taskId);
       }
       readEvents(taskId, afterSeq = 0, limit = 100, view = "raw") {
-        const file = path6.join(this.taskDir(taskId), "events.jsonl");
-        if (!existsSync5(file)) return { events: [], nextSeq: afterSeq, hasMore: false, omittedEvents: 0 };
+        const file = path7.join(this.taskDir(taskId), "events.jsonl");
+        if (!existsSync6(file)) return { events: [], nextSeq: afterSeq, hasMore: false, omittedEvents: 0 };
         let offset = 0;
-        const indexFile = path6.join(this.taskDir(taskId), "events.index");
-        if (existsSync5(indexFile)) {
-          for (const row of readFileSync4(indexFile, "utf8").split(/\r?\n/u)) {
+        const indexFile = path7.join(this.taskDir(taskId), "events.index");
+        if (existsSync6(indexFile)) {
+          for (const row of readFileSync5(indexFile, "utf8").split(/\r?\n/u)) {
             const [seqText, offsetText] = row.split("	");
             const seq = Number(seqText);
             const candidateOffset = Number(offsetText);
@@ -1912,7 +2081,7 @@ var init_task_store = __esm({
         const limit = input.limit ?? 100;
         const view = input.view ?? "raw";
         const budget = input.maxBytes ?? this.#maxEventBytes;
-        const file = path6.join(this.taskDir(taskId), "events.jsonl");
+        const file = path7.join(this.taskDir(taskId), "events.jsonl");
         const empty = {
           events: [],
           nextSeq: afterSeq,
@@ -1948,12 +2117,12 @@ var init_task_store = __esm({
         }
         let indexFallback = false;
         if (startOffset === 0) {
-          const indexFile = path6.join(this.taskDir(taskId), "events.index");
-          if (existsSync5(indexFile)) {
+          const indexFile = path7.join(this.taskDir(taskId), "events.index");
+          if (existsSync6(indexFile)) {
             try {
               let lastSeq = 0;
               let lastOffset = 0;
-              for (const row of readFileSync4(indexFile, "utf8").split(/\r?\n/u)) {
+              for (const row of readFileSync5(indexFile, "utf8").split(/\r?\n/u)) {
                 if (!row.trim()) continue;
                 const [seqText, offsetText] = row.split("	");
                 const seq = Number(seqText);
@@ -1964,7 +2133,7 @@ var init_task_store = __esm({
                 lastSeq = seq;
                 lastOffset = offset;
               }
-              for (const row of readFileSync4(indexFile, "utf8").split(/\r?\n/u)) {
+              for (const row of readFileSync5(indexFile, "utf8").split(/\r?\n/u)) {
                 const [seqText, offsetText] = row.split("	");
                 const seq = Number(seqText);
                 const offset = Number(offsetText);
@@ -2105,7 +2274,7 @@ var init_task_store = __esm({
       /** Generation marker detecting log replacement/truncation across reads. */
       readEventGeneration(taskId) {
         try {
-          const value = readFileSync4(path6.join(this.taskDir(taskId), "events.gen"), "utf8").trim();
+          const value = readFileSync5(path7.join(this.taskDir(taskId), "events.gen"), "utf8").trim();
           return value || null;
         } catch {
           return null;
@@ -2133,11 +2302,11 @@ var init_task_store = __esm({
       }
       writeInteractionRequest(taskId, request, createdAt = (/* @__PURE__ */ new Date()).toISOString()) {
         return this.#withWriterMutation(() => {
-          const directory = path6.join(this.taskDir(taskId), "interactions");
+          const directory = path7.join(this.taskDir(taskId), "interactions");
           privateMkdir(directory);
           const file = this.interactionFile(taskId, request.request_id);
-          return withEventLock(path6.join(this.taskDir(taskId), "interactions.lock"), () => {
-            if (existsSync5(file)) {
+          return withEventLock(path7.join(this.taskDir(taskId), "interactions.lock"), () => {
+            if (existsSync6(file)) {
               const record4 = this.#readJson(file);
               if (record4.request_id !== request.request_id || record4.method !== request.method || stableJson(record4.params) !== stableJson(request.params)) {
                 throw new Error("interaction request id collision");
@@ -2163,7 +2332,7 @@ var init_task_store = __esm({
       }
       readInteractionRequest(taskId, requestId) {
         const file = this.interactionFile(taskId, requestId);
-        if (!existsSync5(file)) return null;
+        if (!existsSync6(file)) return null;
         const record3 = this.#readJson(file);
         if (record3.request_id !== requestId) throw new Error("interaction request id hash mismatch");
         return record3;
@@ -2187,7 +2356,7 @@ var init_task_store = __esm({
       verifyInteractionRequestIntegrity(taskId, requestId) {
         const file = this.interactionFile(taskId, requestId);
         try {
-          if (!existsSync5(file)) return { ok: false, reason: "the full request record is missing" };
+          if (!existsSync6(file)) return { ok: false, reason: "the full request record is missing" };
           const record3 = this.#readJson(file);
           if (record3.request_id !== requestId) return { ok: false, reason: "the persisted request id does not match this request" };
           if (record3.state !== "pending" && record3.state !== "answered") return { ok: false, reason: "the persisted request state is unreadable" };
@@ -2225,8 +2394,8 @@ var init_task_store = __esm({
       answerInteractionRequest(taskId, requestId, answer, answeredAt = (/* @__PURE__ */ new Date()).toISOString()) {
         return this.#withWriterMutation(() => {
           const file = this.interactionFile(taskId, requestId);
-          return withEventLock(path6.join(this.taskDir(taskId), "interactions.lock"), () => {
-            if (!existsSync5(file)) throw new Error(`unknown ZCode interaction request: ${requestId}`);
+          return withEventLock(path7.join(this.taskDir(taskId), "interactions.lock"), () => {
+            if (!existsSync6(file)) throw new Error(`unknown ZCode interaction request: ${requestId}`);
             const current = this.#readJson(file);
             if (current.request_id !== requestId) throw new Error("interaction request id hash mismatch");
             if (current.state === "answered") return "already_answered";
@@ -2247,8 +2416,8 @@ var init_task_store = __esm({
       answerInteractionRequestVerified(taskId, requestId, answer, options, answeredAt = (/* @__PURE__ */ new Date()).toISOString()) {
         return this.#withWriterMutation(() => {
           const file = this.interactionFile(taskId, requestId);
-          return withEventLock(path6.join(this.taskDir(taskId), "interactions.lock"), () => {
-            if (!existsSync5(file)) throw new Error(`unknown ZCode interaction request: ${requestId}`);
+          return withEventLock(path7.join(this.taskDir(taskId), "interactions.lock"), () => {
+            if (!existsSync6(file)) throw new Error(`unknown ZCode interaction request: ${requestId}`);
             const current = this.#readJson(file);
             if (current.request_id !== requestId) throw new Error("interaction request id hash mismatch");
             if (current.state === "answered") return { state: "already_answered" };
@@ -2269,11 +2438,11 @@ var init_task_store = __esm({
       interactionFile(taskId, requestId) {
         if (!requestId || requestId.length > 512) throw new Error("invalid ZCode interaction request_id");
         const key = createHash3("sha256").update(requestId).digest("hex");
-        return path6.join(this.taskDir(taskId), "interactions", `${this.readStatus(taskId).attempt}-${key}.json`);
+        return path7.join(this.taskDir(taskId), "interactions", `${this.readStatus(taskId).attempt}-${key}.json`);
       }
       #readJson(file) {
         try {
-          return JSON.parse(readFileSync4(file, "utf8"));
+          return JSON.parse(readFileSync5(file, "utf8"));
         } catch (error2) {
           throw new Error(`unreadable or corrupt JSON record: ${file}`, { cause: error2 });
         }
@@ -2320,16 +2489,24 @@ var init_errors = __esm({
 });
 
 // src/runtime/child-env.ts
-function createMinimalOsEnv(source) {
-  const allowed = process.platform === "win32" ? WINDOWS_OS_ENV : POSIX_OS_ENV;
+function createMinimalOsEnv(source, options = {}) {
+  const platform = options.platform ?? process.platform;
+  const allowed = platform === "win32" ? WINDOWS_OS_ENV : POSIX_OS_ENV;
   const env = {};
   for (const [key, value] of Object.entries(source)) {
     if (allowed.has(key.toUpperCase()) && value !== void 0) env[key] = value;
   }
+  if (platform === "win32") {
+    try {
+      const home = resolveUserHome(source, { platform });
+      if (home.userHome) env["HOME"] = home.userHome;
+    } catch {
+    }
+  }
   return env;
 }
-function createWorkerEnv(source) {
-  const env = createMinimalOsEnv(source);
+function createWorkerEnv(source, options = {}) {
+  const env = createMinimalOsEnv(source, options);
   const explicitBridgeKeys = /* @__PURE__ */ new Set([
     "ZCODE_BRIDGE_NODE",
     "ZCODE_BRIDGE_ZCODE_CJS",
@@ -2359,6 +2536,7 @@ var WINDOWS_OS_ENV, POSIX_OS_ENV;
 var init_child_env = __esm({
   "src/runtime/child-env.ts"() {
     "use strict";
+    init_paths();
     WINDOWS_OS_ENV = /* @__PURE__ */ new Set([
       "PATH",
       "SYSTEMROOT",
@@ -2400,18 +2578,18 @@ var init_child_env = __esm({
 
 // src/runtime/build-provenance.ts
 import { createHash as createHash4 } from "node:crypto";
-import { readFileSync as readFileSync5, realpathSync as realpathSync2 } from "node:fs";
-import path7 from "node:path";
+import { readFileSync as readFileSync6, realpathSync as realpathSync2 } from "node:fs";
+import path8 from "node:path";
 function fingerprintRuntimeArtifact(filePath) {
   if (!filePath) return { path: null, sha256: null };
   try {
     const resolvedPath = realpathSync2(filePath);
     return {
       path: resolvedPath,
-      sha256: createHash4("sha256").update(readFileSync5(resolvedPath)).digest("hex").toUpperCase()
+      sha256: createHash4("sha256").update(readFileSync6(resolvedPath)).digest("hex").toUpperCase()
     };
   } catch {
-    return { path: path7.resolve(filePath), sha256: null };
+    return { path: path8.resolve(filePath), sha256: null };
   }
 }
 var BRIDGE_WORKER_LAUNCH_MARKER;
@@ -2425,10 +2603,10 @@ var init_build_provenance = __esm({
 // src/manager/spawn-worker.ts
 import { spawn } from "node:child_process";
 import { closeSync as closeSync4, mkdirSync as mkdirSync4, openSync as openSync4 } from "node:fs";
-import path8 from "node:path";
+import path9 from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 function spawnClaimOnlyWorker(workerPath, provenance, options = {}) {
-  if (!path8.isAbsolute(workerPath)) throw new TypeError("claim-only worker path must be absolute");
+  if (!path9.isAbsolute(workerPath)) throw new TypeError("claim-only worker path must be absolute");
   if (options.dropAfterPrepared && !options.interactionChannel) throw new TypeError("interaction channel is required for drop-after-prepared");
   const env = {
     ...createWorkerEnv(process.env),
@@ -2447,7 +2625,7 @@ function spawnClaimOnlyWorker(workerPath, provenance, options = {}) {
     shell: false,
     stdio: options.interactionChannel ? ["ignore", "ignore", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe"] : ["ignore", "ignore", "pipe", "pipe", "pipe", "pipe", "pipe"],
     windowsHide: true,
-    cwd: path8.dirname(workerPath),
+    cwd: path9.dirname(workerPath),
     env
   });
   const pipes = child.stdio;
@@ -2480,9 +2658,9 @@ function createWorkerSpawner(host, provenance, options = {}) {
     worker: fingerprintRuntimeArtifact(host?.workerEntryPath ?? workerEntryPath())
   };
   return (dataRoot, taskId, attempt, writerLeaseToken) => {
-    const attemptDir = path8.join(dataRoot, ".tasks", taskId, "attempts", String(attempt));
+    const attemptDir = path9.join(dataRoot, ".tasks", taskId, "attempts", String(attempt));
     mkdirSync4(attemptDir, { recursive: true });
-    const stderrFd = openSync4(path8.join(attemptDir, "worker-stderr.log"), "a", 384);
+    const stderrFd = openSync4(path9.join(attemptDir, "worker-stderr.log"), "a", 384);
     try {
       const workerEnv = {
         ...createWorkerEnv(process.env),
@@ -4005,7 +4183,7 @@ var init_trusted_local_profile = __esm({
 // src/sqlite-candidate/wp6b2b1/trusted-local-policy.ts
 import { createHash as createHash9 } from "node:crypto";
 import { realpathSync as realpathSync3, statSync as statSync6 } from "node:fs";
-import path14 from "node:path";
+import path15 from "node:path";
 function createTrustedLocalPolicyProvider(config2) {
   let enabled = false;
   let invalid = false;
@@ -4132,13 +4310,13 @@ function resolveLocalDirectory(input) {
   if (!stat2.isDirectory()) throw new Error("workspace_not_directory");
   const canonical4 = realpathSync3(input);
   if (!isLocalAbsolute(canonical4)) throw new Error("workspace_path_form_denied");
-  return path14.win32.normalize(canonical4);
+  return path15.win32.normalize(canonical4);
 }
 function isLocalAbsolute(value) {
-  return process.platform === "win32" && path14.win32.isAbsolute(value) && /^[A-Za-z]:[\\/]/u.test(value) && !value.startsWith("\\\\");
+  return process.platform === "win32" && path15.win32.isAbsolute(value) && /^[A-Za-z]:[\\/]/u.test(value) && !value.startsWith("\\\\");
 }
 function sameWindowsPath(left, right) {
-  return windowsKey(path14.win32.normalize(left)) === windowsKey(path14.win32.normalize(right));
+  return windowsKey(path15.win32.normalize(left)) === windowsKey(path15.win32.normalize(right));
 }
 function windowsKey(value) {
   return value.replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US");
@@ -4757,8 +4935,8 @@ __export(store_exports, {
 });
 import { DatabaseSync } from "node:sqlite";
 import { createHash as createHash14, randomUUID as randomUUID5 } from "node:crypto";
-import { existsSync as existsSync11, lstatSync as lstatSync2, realpathSync as realpathSync5, readFileSync as readFileSync11, writeFileSync as writeFileSync6, openSync as openSync5, closeSync as closeSync5, fsyncSync as fsyncSync3, unlinkSync as unlinkSync2, renameSync as renameSync4, statSync as statSync7 } from "node:fs";
-import path16 from "node:path";
+import { existsSync as existsSync12, lstatSync as lstatSync2, realpathSync as realpathSync5, readFileSync as readFileSync12, writeFileSync as writeFileSync6, openSync as openSync5, closeSync as closeSync5, fsyncSync as fsyncSync3, unlinkSync as unlinkSync2, renameSync as renameSync4, statSync as statSync7 } from "node:fs";
+import path17 from "node:path";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
 function schemaObjects(db) {
   return db.prepare(SCHEMA_OBJECT_QUERY).all().map((row) => [
@@ -5122,7 +5300,7 @@ function parseAuthoritySourceManifest(sourceManifestJson, sourceManifestDigest) 
   const parsed = parseHistoricalExceptionManifest(sourceManifestJson, sourceManifestDigest);
   const { manifest } = parsed;
   if (manifest.kind === void 0) return { ...parsed, kind: "historical_projection" };
-  if (manifest.kind !== "raw_json_archive_cutover" || typeof manifest.source_tasks_root !== "string" || !path16.isAbsolute(manifest.source_tasks_root) || typeof manifest.archive_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(manifest.archive_manifest_digest) || typeof manifest.source_files_digest !== "string" || !/^[0-9a-f]{64}$/u.test(manifest.source_files_digest) || manifest.task_count !== 0 || manifest.result_count !== 0 || manifest.event_count !== 0 || !Number.isSafeInteger(manifest.artifact_count) || manifest.artifact_count < 0 || !Number.isSafeInteger(manifest.artifact_bytes) || manifest.artifact_bytes < 0 || !Number.isSafeInteger(manifest.archive_file_count) || manifest.archive_file_count !== manifest.artifact_count || !Number.isSafeInteger(manifest.archive_byte_count) || manifest.archive_byte_count !== manifest.artifact_bytes || parsed.exceptions.length !== 0 || !Array.isArray(manifest.files) || manifest.files.length !== 0)
+  if (manifest.kind !== "raw_json_archive_cutover" || typeof manifest.source_tasks_root !== "string" || !path17.isAbsolute(manifest.source_tasks_root) || typeof manifest.archive_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(manifest.archive_manifest_digest) || typeof manifest.source_files_digest !== "string" || !/^[0-9a-f]{64}$/u.test(manifest.source_files_digest) || manifest.task_count !== 0 || manifest.result_count !== 0 || manifest.event_count !== 0 || !Number.isSafeInteger(manifest.artifact_count) || manifest.artifact_count < 0 || !Number.isSafeInteger(manifest.artifact_bytes) || manifest.artifact_bytes < 0 || !Number.isSafeInteger(manifest.archive_file_count) || manifest.archive_file_count !== manifest.artifact_count || !Number.isSafeInteger(manifest.archive_byte_count) || manifest.archive_byte_count !== manifest.artifact_bytes || parsed.exceptions.length !== 0 || !Array.isArray(manifest.files) || manifest.files.length !== 0)
     fail("invalid_raw_json_archive_cutover_manifest");
   return { ...parsed, kind: "raw_json_archive_cutover" };
 }
@@ -5140,22 +5318,22 @@ function validateHistoricalExceptionSnapshot(snapshot, sourceManifest) {
   }
 }
 function pathsFor(root, { databaseFileName = "operations.sqlite3", managedDataDirectory = false, allowCutoverPending = false, allowUnpublishedCutover = false, allowFreshBootstrapPending = false } = {}) {
-  if (typeof root !== "string" || !path16.isAbsolute(root) || !existsSync11(root) || !lstatSync2(root).isDirectory() || lstatSync2(root).isSymbolicLink()) fail("invalid_data_root");
+  if (typeof root !== "string" || !path17.isAbsolute(root) || !existsSync12(root) || !lstatSync2(root).isDirectory() || lstatSync2(root).isSymbolicLink()) fail("invalid_data_root");
   if (typeof databaseFileName !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/u.test(databaseFileName) || databaseFileName === "." || databaseFileName === "..") fail("invalid_database_file_name");
   const resolved = realpathSync5.native(root);
   if (!managedDataDirectory) {
-    const relative = path16.relative(HERE, resolved);
-    if (!relative || relative.startsWith("..") || path16.isAbsolute(relative)) fail("data_root_outside_candidate");
+    const relative = path17.relative(HERE, resolved);
+    if (!relative || relative.startsWith("..") || path17.isAbsolute(relative)) fail("data_root_outside_candidate");
   }
-  const db = path16.join(resolved, databaseFileName);
+  const db = path17.join(resolved, databaseFileName);
   const files = {
     root: resolved,
     db,
     bootstrapPending: `${db}.bootstrap-pending.json`,
     cutoverPending: `${db}.cutover-pending.json`,
     cutoverPublished: `${db}.cutover-published.json`,
-    poison: path16.join(resolved, "ROOT_POISONED.json"),
-    intent: path16.join(resolved, "WRITER_INTENT.json")
+    poison: path17.join(resolved, "ROOT_POISONED.json"),
+    intent: path17.join(resolved, "WRITER_INTENT.json")
   };
   for (const file of [files.db, `${files.db}-wal`, `${files.db}-shm`, files.bootstrapPending, files.cutoverPending, files.cutoverPublished, files.poison, files.intent]) {
     try {
@@ -5171,21 +5349,21 @@ function pathsFor(root, { databaseFileName = "operations.sqlite3", managedDataDi
 function readPublishedCutoverReceipt(file) {
   let value;
   try {
-    value = JSON.parse(readFileSync11(file, "utf8"));
+    value = JSON.parse(readFileSync12(file, "utf8"));
   } catch {
     fail("cutover_publication_receipt_unreadable");
   }
   const keys = ["archive", "created_at", "cutover_id", "database_file", "migration_id", "schema_version", "source_manifest_digest", "source_root_digest", "state"];
   const archiveKeys = ["archive_directory", "byte_count", "file_count", "manifest_digest", "source_tasks_root"];
-  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== keys.join("|") || value.schema_version !== 1 || value.state !== "authority_switch_receipt" || !validText2(value.migration_id, 128) || !validText2(value.cutover_id, 128) || typeof value.source_root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.source_root_digest) || typeof value.source_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.source_manifest_digest) || !validText2(value.database_file, 96) || !validText2(value.created_at, 64) || Number.isNaN(Date.parse(value.created_at)) || !value.archive || Object.getPrototypeOf(value.archive) !== Object.prototype || Object.keys(value.archive).sort().join("|") !== archiveKeys.join("|") || !validText2(value.archive.archive_directory, 32767) || !path16.isAbsolute(value.archive.archive_directory) || !validText2(value.archive.source_tasks_root, 32767) || !path16.isAbsolute(value.archive.source_tasks_root) || typeof value.archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.archive.manifest_digest) || !Number.isSafeInteger(value.archive.file_count) || value.archive.file_count < 0 || !Number.isSafeInteger(value.archive.byte_count) || value.archive.byte_count < 0) fail("cutover_publication_receipt_invalid");
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== keys.join("|") || value.schema_version !== 1 || value.state !== "authority_switch_receipt" || !validText2(value.migration_id, 128) || !validText2(value.cutover_id, 128) || typeof value.source_root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.source_root_digest) || typeof value.source_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.source_manifest_digest) || !validText2(value.database_file, 96) || !validText2(value.created_at, 64) || Number.isNaN(Date.parse(value.created_at)) || !value.archive || Object.getPrototypeOf(value.archive) !== Object.prototype || Object.keys(value.archive).sort().join("|") !== archiveKeys.join("|") || !validText2(value.archive.archive_directory, 32767) || !path17.isAbsolute(value.archive.archive_directory) || !validText2(value.archive.source_tasks_root, 32767) || !path17.isAbsolute(value.archive.source_tasks_root) || typeof value.archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.archive.manifest_digest) || !Number.isSafeInteger(value.archive.file_count) || value.archive.file_count < 0 || !Number.isSafeInteger(value.archive.byte_count) || value.archive.byte_count < 0) fail("cutover_publication_receipt_invalid");
   return value;
 }
 function assertCutoverPublicationGate(db, paths) {
   const switched = db.prepare("SELECT * FROM authority_switch").all();
   if (switched.length === 0) return;
   if (switched.length !== 1) fail("authority_receipt_missing_or_ambiguous");
-  const pending = existsSync11(paths.cutoverPending);
-  const published = existsSync11(paths.cutoverPublished);
+  const pending = existsSync12(paths.cutoverPending);
+  const published = existsSync12(paths.cutoverPublished);
   if (pending && published) fail("cutover_publication_receipt_ambiguous");
   if (pending) {
     if (!paths.allowCutoverPending) fail("cutover_publish_pending");
@@ -5197,7 +5375,7 @@ function assertCutoverPublicationGate(db, paths) {
   }
   const receipt2 = switched[0];
   const publication = readPublishedCutoverReceipt(paths.cutoverPublished);
-  if (publication.database_file !== path16.basename(paths.db) || publication.migration_id !== receipt2.migration_id || publication.cutover_id !== receipt2.cutover_id || publication.source_root_digest !== receipt2.source_root_digest || publication.source_manifest_digest !== receipt2.source_manifest_digest || publication.archive.archive_directory !== receipt2.archive_directory || publication.archive.manifest_digest !== receipt2.archive_manifest_digest || publication.archive.source_tasks_root !== receipt2.archive_source_tasks_root || publication.archive.file_count !== receipt2.archive_file_count || publication.archive.byte_count !== receipt2.archive_byte_count) fail("cutover_publication_receipt_mismatch");
+  if (publication.database_file !== path17.basename(paths.db) || publication.migration_id !== receipt2.migration_id || publication.cutover_id !== receipt2.cutover_id || publication.source_root_digest !== receipt2.source_root_digest || publication.source_manifest_digest !== receipt2.source_manifest_digest || publication.archive.archive_directory !== receipt2.archive_directory || publication.archive.manifest_digest !== receipt2.archive_manifest_digest || publication.archive.source_tasks_root !== receipt2.archive_source_tasks_root || publication.archive.file_count !== receipt2.archive_file_count || publication.archive.byte_count !== receipt2.archive_byte_count) fail("cutover_publication_receipt_mismatch");
 }
 function writePoison(file, value) {
   const tmp = `${file}.${randomUUID5()}.tmp`;
@@ -5211,7 +5389,7 @@ function writePoison(file, value) {
   try {
     renameSync4(tmp, file);
   } catch (error2) {
-    if (!existsSync11(file)) throw error2;
+    if (!existsSync12(file)) throw error2;
     try {
       unlinkSync2(tmp);
     } catch {
@@ -5445,7 +5623,7 @@ function validateTaskPackage(task) {
 }
 function validateWorkspace(input, validator) {
   if (typeof input !== "string" || !input.trim()) fail("workspace_missing");
-  if (!path16.isAbsolute(input)) fail("workspace_not_absolute");
+  if (!path17.isAbsolute(input)) fail("workspace_not_absolute");
   if (input.replace(/\//g, "\\").startsWith("\\\\")) fail("workspace_unsupported_path_form");
   let st, canonicalPath;
   try {
@@ -5484,9 +5662,9 @@ var init_store = __esm({
     "use strict";
     init_interaction_channel();
     init_json_history_result_exceptions();
-    HERE = path16.dirname(fileURLToPath4(import.meta.url));
-    SCHEMA = readFileSync11(new URL("./schema.sql", import.meta.url), "utf8");
-    ADMIN_ABANDONMENT_SCHEMA = readFileSync11(new URL("./admin-abandonment.sql", import.meta.url), "utf8");
+    HERE = path17.dirname(fileURLToPath4(import.meta.url));
+    SCHEMA = readFileSync12(new URL("./schema.sql", import.meta.url), "utf8");
+    ADMIN_ABANDONMENT_SCHEMA = readFileSync12(new URL("./admin-abandonment.sql", import.meta.url), "utf8");
     CONSTRUCT = /* @__PURE__ */ Symbol("construct");
     SCHEMA_VERSION = 13;
     SCHEMA_OBJECT_QUERY = "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE type IN ('table','view','index','trigger') AND substr(lower(name),1,7)<>'sqlite_' ORDER BY type COLLATE BINARY,name COLLATE BINARY";
@@ -5568,7 +5746,7 @@ var init_store = __esm({
       }
       static initialize(root, options = {}) {
         const p = pathsFor(root, options);
-        if (existsSync11(p.db) || existsSync11(p.cutoverPending) || existsSync11(p.cutoverPublished) || existsSync11(p.poison) || existsSync11(p.intent)) fail("root_not_empty");
+        if (existsSync12(p.db) || existsSync12(p.cutoverPending) || existsSync12(p.cutoverPublished) || existsSync12(p.poison) || existsSync12(p.intent)) fail("root_not_empty");
         if (options.onFreshBootstrapStage !== void 0 && typeof options.onFreshBootstrapStage !== "function") fail("invalid_fresh_bootstrap_stage_hook");
         const freshBootstrapStage = options.onFreshBootstrapStage;
         const db = new DatabaseSync(p.db, { timeout: 5e3 });
@@ -5606,10 +5784,10 @@ var init_store = __esm({
       }
       static open(root, { fault, ...pathOptions } = {}) {
         const p = pathsFor(root, pathOptions);
-        if (existsSync11(p.bootstrapPending) && !p.allowBootstrapPending) fail("sqlite_bootstrap_pending");
-        if (existsSync11(p.cutoverPending)) fail("cutover_publish_pending");
-        if (existsSync11(p.poison)) fail("root_poisoned");
-        if (!existsSync11(p.db)) fail("database_missing");
+        if (existsSync12(p.bootstrapPending) && !p.allowBootstrapPending) fail("sqlite_bootstrap_pending");
+        if (existsSync12(p.cutoverPending)) fail("cutover_publish_pending");
+        if (existsSync12(p.poison)) fail("root_poisoned");
+        if (!existsSync12(p.db)) fail("database_missing");
         const db = new DatabaseSync(p.db, { timeout: 5e3 });
         db.exec("PRAGMA foreign_keys=ON");
         const s = new _IsolatedAdmissionStore(CONSTRUCT, db, p, fault);
@@ -5629,9 +5807,9 @@ var init_store = __esm({
       /** Open only the current candidate schema read-only for conservative recovery inspection. */
       static openForRecovery(root, options = {}) {
         const p = pathsFor(root, options);
-        if (existsSync11(p.bootstrapPending)) fail("sqlite_bootstrap_pending");
-        if (existsSync11(p.cutoverPending) && !p.allowCutoverPending) fail("cutover_publish_pending");
-        if (!existsSync11(p.db)) fail("database_missing");
+        if (existsSync12(p.bootstrapPending)) fail("sqlite_bootstrap_pending");
+        if (existsSync12(p.cutoverPending) && !p.allowCutoverPending) fail("cutover_publish_pending");
+        if (!existsSync12(p.db)) fail("database_missing");
         const db = new DatabaseSync(p.db, { timeout: 5e3, readOnly: true });
         try {
           if (db.prepare("PRAGMA user_version").get().user_version !== SCHEMA_VERSION) fail("schema_version_unknown");
@@ -5658,7 +5836,7 @@ var init_store = __esm({
         this.#db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
       }
       get poisoned() {
-        return this.#poisoned || existsSync11(this.#paths.poison);
+        return this.#poisoned || existsSync12(this.#paths.poison);
       }
       get foreignKeysEnabled() {
         this.#assertOpen();
@@ -5720,7 +5898,7 @@ var init_store = __esm({
         const sourceKeys = ["manifest_digest", "manifest_json", "root_digest"];
         const archive = snapshot.archive;
         const archiveKeys = ["archive_directory", "byte_count", "file_count", "manifest_digest", "source_tasks_root"];
-        if (Object.keys(snapshot).sort().join("|") !== topKeys.join("|") || !source || Object.getPrototypeOf(source) !== Object.prototype || Object.keys(source).sort().join("|") !== sourceKeys.join("|") || !archive || Object.getPrototypeOf(archive) !== Object.prototype || Object.keys(archive).sort().join("|") !== archiveKeys.join("|") || !validId3(snapshot.migration_id) || !validId3(snapshot.cutover_id) || !validText2(snapshot.verifier_version, 128) || !validText2(snapshot.protocol_version, 128) || typeof snapshot.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(snapshot.runtime_roster_digest) || typeof source.root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.root_digest) || typeof source.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.manifest_digest) || typeof source.manifest_json !== "string" || digest2(source.manifest_json) !== source.manifest_digest || !validText2(archive.archive_directory, 32767) || !path16.isAbsolute(archive.archive_directory) || !validText2(archive.source_tasks_root, 32767) || !path16.isAbsolute(archive.source_tasks_root) || typeof archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(archive.manifest_digest) || !Number.isSafeInteger(archive.file_count) || archive.file_count < 0 || !Number.isSafeInteger(archive.byte_count) || archive.byte_count < 0) fail("invalid_raw_cutover_snapshot");
+        if (Object.keys(snapshot).sort().join("|") !== topKeys.join("|") || !source || Object.getPrototypeOf(source) !== Object.prototype || Object.keys(source).sort().join("|") !== sourceKeys.join("|") || !archive || Object.getPrototypeOf(archive) !== Object.prototype || Object.keys(archive).sort().join("|") !== archiveKeys.join("|") || !validId3(snapshot.migration_id) || !validId3(snapshot.cutover_id) || !validText2(snapshot.verifier_version, 128) || !validText2(snapshot.protocol_version, 128) || typeof snapshot.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(snapshot.runtime_roster_digest) || typeof source.root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.root_digest) || typeof source.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.manifest_digest) || typeof source.manifest_json !== "string" || digest2(source.manifest_json) !== source.manifest_digest || !validText2(archive.archive_directory, 32767) || !path17.isAbsolute(archive.archive_directory) || !validText2(archive.source_tasks_root, 32767) || !path17.isAbsolute(archive.source_tasks_root) || typeof archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(archive.manifest_digest) || !Number.isSafeInteger(archive.file_count) || archive.file_count < 0 || !Number.isSafeInteger(archive.byte_count) || archive.byte_count < 0) fail("invalid_raw_cutover_snapshot");
         const policy = parseAuthoritySourceManifest(source.manifest_json, source.manifest_digest);
         if (policy.kind !== "raw_json_archive_cutover" || policy.manifest.source_tasks_root !== archive.source_tasks_root || policy.manifest.archive_manifest_digest !== archive.manifest_digest || policy.manifest.archive_file_count !== archive.file_count || policy.manifest.archive_byte_count !== archive.byte_count) fail("raw_cutover_archive_identity_mismatch");
         const at = (/* @__PURE__ */ new Date()).toISOString();
@@ -5794,7 +5972,7 @@ var init_store = __esm({
         const sourceKeys = ["artifact_bytes", "artifact_count", "event_count", "historical_exception_count", "historical_exception_digest", "manifest_digest", "manifest_json", "result_count", "root_digest", "task_count"];
         const archive = snapshot.archive;
         const archiveKeys = ["archive_directory", "byte_count", "file_count", "manifest_digest", "source_tasks_root"];
-        if (!source || Object.getPrototypeOf(source) !== Object.prototype || Object.keys(source).sort().join("|") !== sourceKeys.join("|") || !archive || Object.getPrototypeOf(archive) !== Object.prototype || Object.keys(archive).sort().join("|") !== archiveKeys.join("|") || !validId3(snapshot.migration_id) || !validId3(snapshot.cutover_id) || !validText2(snapshot.verifier_version, 128) || !validText2(snapshot.protocol_version, 128) || typeof snapshot.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(snapshot.runtime_roster_digest) || typeof source.root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.root_digest) || typeof source.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.manifest_digest) || typeof source.manifest_json !== "string" || digest2(source.manifest_json) !== source.manifest_digest || !validText2(archive.archive_directory, 32767) || !path16.isAbsolute(archive.archive_directory) || !validText2(archive.source_tasks_root, 32767) || !path16.isAbsolute(archive.source_tasks_root) || typeof archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(archive.manifest_digest) || !Number.isSafeInteger(archive.file_count) || archive.file_count < 0 || !Number.isSafeInteger(archive.byte_count) || archive.byte_count < 0 || archive.file_count !== source.artifact_count || archive.byte_count !== source.artifact_bytes || !Array.isArray(snapshot.tasks) || !Array.isArray(snapshot.artifacts) || !Array.isArray(snapshot.results) || !Array.isArray(snapshot.events) || !Array.isArray(snapshot.historical_exceptions) || ![source.task_count, source.artifact_count, source.artifact_bytes, source.result_count, source.event_count].every((v) => Number.isSafeInteger(v) && v >= 0) || !Number.isSafeInteger(source.historical_exception_count) || source.historical_exception_count < 0 || typeof source.historical_exception_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.historical_exception_digest) || source.historical_exception_count !== snapshot.historical_exceptions.length || source.historical_exception_digest !== historicalResultExceptionSetDigest(snapshot.historical_exceptions) || source.artifact_count !== snapshot.artifacts.length || source.result_count !== snapshot.results.length || source.event_count !== snapshot.events.length) fail("invalid_migration_snapshot");
+        if (!source || Object.getPrototypeOf(source) !== Object.prototype || Object.keys(source).sort().join("|") !== sourceKeys.join("|") || !archive || Object.getPrototypeOf(archive) !== Object.prototype || Object.keys(archive).sort().join("|") !== archiveKeys.join("|") || !validId3(snapshot.migration_id) || !validId3(snapshot.cutover_id) || !validText2(snapshot.verifier_version, 128) || !validText2(snapshot.protocol_version, 128) || typeof snapshot.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(snapshot.runtime_roster_digest) || typeof source.root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.root_digest) || typeof source.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.manifest_digest) || typeof source.manifest_json !== "string" || digest2(source.manifest_json) !== source.manifest_digest || !validText2(archive.archive_directory, 32767) || !path17.isAbsolute(archive.archive_directory) || !validText2(archive.source_tasks_root, 32767) || !path17.isAbsolute(archive.source_tasks_root) || typeof archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(archive.manifest_digest) || !Number.isSafeInteger(archive.file_count) || archive.file_count < 0 || !Number.isSafeInteger(archive.byte_count) || archive.byte_count < 0 || archive.file_count !== source.artifact_count || archive.byte_count !== source.artifact_bytes || !Array.isArray(snapshot.tasks) || !Array.isArray(snapshot.artifacts) || !Array.isArray(snapshot.results) || !Array.isArray(snapshot.events) || !Array.isArray(snapshot.historical_exceptions) || ![source.task_count, source.artifact_count, source.artifact_bytes, source.result_count, source.event_count].every((v) => Number.isSafeInteger(v) && v >= 0) || !Number.isSafeInteger(source.historical_exception_count) || source.historical_exception_count < 0 || typeof source.historical_exception_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.historical_exception_digest) || source.historical_exception_count !== snapshot.historical_exceptions.length || source.historical_exception_digest !== historicalResultExceptionSetDigest(snapshot.historical_exceptions) || source.artifact_count !== snapshot.artifacts.length || source.result_count !== snapshot.results.length || source.event_count !== snapshot.events.length) fail("invalid_migration_snapshot");
         const sourceManifest = parseHistoricalExceptionManifest(source.manifest_json, source.manifest_digest);
         if (sourceManifest.manifest.task_count !== source.task_count || sourceManifest.manifest.artifact_count !== source.artifact_count || sourceManifest.manifest.artifact_bytes !== source.artifact_bytes || sourceManifest.manifest.result_count !== source.result_count || sourceManifest.manifest.event_count !== source.event_count || sourceManifest.manifest.historical_exception_count !== source.historical_exception_count || sourceManifest.manifest.historical_exception_digest !== source.historical_exception_digest || canonical3(sourceManifest.exceptions) !== canonical3(snapshot.historical_exceptions)) fail("invalid_source_manifest");
         validateHistoricalExceptionSnapshot(snapshot, sourceManifest);
@@ -7186,7 +7364,7 @@ var init_store = __esm({
             events: this.#db.prepare("SELECT * FROM manager_operation_events ORDER BY operation_id,sequence").all()
           };
         });
-        return { ...snapshot, root_poisoned: this.poisoned || existsSync11(this.#paths.intent) };
+        return { ...snapshot, root_poisoned: this.poisoned || existsSync12(this.#paths.intent) };
       }
       /** Read-only recovery entry point. Writable Stores cannot be used as Recovery authority. */
       readRecoverySnapshot() {
@@ -7218,7 +7396,7 @@ var init_store = __esm({
           }
           this.#db.exec("COMMIT");
           transaction = false;
-          const poisoned = this.poisoned, writerIntent = existsSync11(this.#paths.intent);
+          const poisoned = this.poisoned, writerIntent = existsSync12(this.#paths.intent);
           const rootBlocked = Boolean(integrityError || meta2.length !== 1 || poisoned || writerIntent);
           const operationsWithRecovery = operations.map((row) => {
             const adminAbandonment = adminAbandonments.get(row.operation_id);
@@ -8128,9 +8306,9 @@ var init_store = __esm({
           }
           throw e;
         } finally {
-          if (settled && !this.#poisoned && !existsSync11(this.#paths.poison)) {
+          if (settled && !this.#poisoned && !existsSync12(this.#paths.poison)) {
             try {
-              const intent = JSON.parse(readFileSync11(this.#paths.intent, "utf8"));
+              const intent = JSON.parse(readFileSync12(this.#paths.intent, "utf8"));
               if (intent.token !== token) fail("writer_intent_identity_mismatch");
               unlinkSync2(this.#paths.intent);
             } catch (e) {
@@ -8171,7 +8349,7 @@ var init_store = __esm({
             if (migrationRuns.length || migratedResultsCount || migratedEventsCount || this.#db.prepare("SELECT COUNT(*) AS n FROM json_artifacts").get().n) fail("fresh_install_contains_legacy_data");
           } else if (authoritySwitches.length) {
             const receipt2 = authoritySwitches[0], migration = migrationRuns[0];
-            if (!migration || migration.state !== "verified" || migration.migration_id !== receipt2.migration_id || migration.source_root_digest !== receipt2.source_root_digest || migration.source_manifest_digest !== receipt2.source_manifest_digest || digest2(migration.source_manifest_json) !== migration.source_manifest_digest || !validText2(migration.archive_directory, 32767) || !path16.isAbsolute(migration.archive_directory) || !validText2(receipt2.archive_directory, 32767) || !path16.isAbsolute(receipt2.archive_directory) || migration.archive_directory !== receipt2.archive_directory || typeof migration.archive_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(migration.archive_manifest_digest) || migration.archive_manifest_digest !== receipt2.archive_manifest_digest || !validText2(migration.archive_source_tasks_root, 32767) || !path16.isAbsolute(migration.archive_source_tasks_root) || migration.archive_source_tasks_root !== receipt2.archive_source_tasks_root || !Number.isSafeInteger(migration.archive_file_count) || migration.archive_file_count < 0 || migration.archive_file_count !== migration.source_artifact_count || migration.archive_file_count !== receipt2.archive_file_count || !Number.isSafeInteger(migration.archive_byte_count) || migration.archive_byte_count < 0 || migration.archive_byte_count !== migration.source_artifact_bytes || migration.archive_byte_count !== receipt2.archive_byte_count || receipt2.schema_version !== SCHEMA_VERSION || !validText2(receipt2.protocol_version, 128) || typeof receipt2.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(receipt2.runtime_roster_digest) || !validText2(receipt2.verifier_version, 128) || !validText2(migration.verifier_version, 128) || receipt2.verifier_version !== migration.verifier_version || !validText2(receipt2.cutover_id, 128) || !validText2(receipt2.created_at, 64) || Number.isNaN(Date.parse(receipt2.created_at)) || !validText2(migration.created_at, 64) || !validText2(migration.verified_at, 64) || Number.isNaN(Date.parse(migration.created_at)) || Number.isNaN(Date.parse(migration.verified_at))) fail("authority_switch_invalid");
+            if (!migration || migration.state !== "verified" || migration.migration_id !== receipt2.migration_id || migration.source_root_digest !== receipt2.source_root_digest || migration.source_manifest_digest !== receipt2.source_manifest_digest || digest2(migration.source_manifest_json) !== migration.source_manifest_digest || !validText2(migration.archive_directory, 32767) || !path17.isAbsolute(migration.archive_directory) || !validText2(receipt2.archive_directory, 32767) || !path17.isAbsolute(receipt2.archive_directory) || migration.archive_directory !== receipt2.archive_directory || typeof migration.archive_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(migration.archive_manifest_digest) || migration.archive_manifest_digest !== receipt2.archive_manifest_digest || !validText2(migration.archive_source_tasks_root, 32767) || !path17.isAbsolute(migration.archive_source_tasks_root) || migration.archive_source_tasks_root !== receipt2.archive_source_tasks_root || !Number.isSafeInteger(migration.archive_file_count) || migration.archive_file_count < 0 || migration.archive_file_count !== migration.source_artifact_count || migration.archive_file_count !== receipt2.archive_file_count || !Number.isSafeInteger(migration.archive_byte_count) || migration.archive_byte_count < 0 || migration.archive_byte_count !== migration.source_artifact_bytes || migration.archive_byte_count !== receipt2.archive_byte_count || receipt2.schema_version !== SCHEMA_VERSION || !validText2(receipt2.protocol_version, 128) || typeof receipt2.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(receipt2.runtime_roster_digest) || !validText2(receipt2.verifier_version, 128) || !validText2(migration.verifier_version, 128) || receipt2.verifier_version !== migration.verifier_version || !validText2(receipt2.cutover_id, 128) || !validText2(receipt2.created_at, 64) || Number.isNaN(Date.parse(receipt2.created_at)) || !validText2(migration.created_at, 64) || !validText2(migration.verified_at, 64) || Number.isNaN(Date.parse(migration.created_at)) || Number.isNaN(Date.parse(migration.verified_at))) fail("authority_switch_invalid");
             const policy = parseAuthoritySourceManifest(migration.source_manifest_json, migration.source_manifest_digest);
             if (policy.manifest.task_count !== migration.source_task_count || policy.manifest.artifact_count !== migration.source_artifact_count || policy.manifest.artifact_bytes !== migration.source_artifact_bytes || policy.manifest.result_count !== migration.source_result_count || policy.manifest.event_count !== migration.source_event_count) fail("authority_switch_invalid");
           } else if (migrationRuns.length || migratedResultsCount || migratedEventsCount || this.#db.prepare("SELECT COUNT(*) AS n FROM json_artifacts").get().n) {
@@ -8804,9 +8982,9 @@ __export(lifecycle_gate_exports, {
   readAllLifecycleEventsForRecovery: () => readAllLifecycleEventsForRecovery
 });
 import { createHash as createHash15, randomUUID as randomUUID6 } from "node:crypto";
-import { closeSync as closeSync6, existsSync as existsSync12, fsyncSync as fsyncSync4, linkSync, lstatSync as lstatSync3, openSync as openSync6, readFileSync as readFileSync12, readdirSync as readdirSync3, realpathSync as realpathSync6, unlinkSync as unlinkSync3, writeFileSync as writeFileSync7 } from "node:fs";
+import { closeSync as closeSync6, existsSync as existsSync13, fsyncSync as fsyncSync4, linkSync, lstatSync as lstatSync3, openSync as openSync6, readFileSync as readFileSync13, readdirSync as readdirSync3, realpathSync as realpathSync6, unlinkSync as unlinkSync3, writeFileSync as writeFileSync7 } from "node:fs";
 import { spawn as spawn5 } from "node:child_process";
-import path17 from "node:path";
+import path18 from "node:path";
 function readAllLifecycleEventsForRecovery(port, operationId) {
   const pageSize = 200;
   const events = [];
@@ -8860,7 +9038,7 @@ async function initializeFreshInstallSqliteRoot(root, databaseFileName, version2
     throw new LifecycleGateError("sqlite_bootstrap_database_name_invalid");
   }
   const modules = await loadLifecycleCandidateModules(version2);
-  const key = path17.join(path17.resolve(root), databaseFileName);
+  const key = path18.join(path18.resolve(root), databaseFileName);
   const pending = freshBootstrapPromises.get(key);
   if (pending) return pending;
   const operation = ensureFreshSqliteAuthority(root, databaseFileName, modules, processProbe, options);
@@ -8878,7 +9056,7 @@ async function acquireFreshBootstrapLock(root, databaseFileName, timeoutMs, owne
       "Fresh SQLite bootstrap requires the Windows exclusive-file-handle lock"
     );
   }
-  const lockPath = path17.join(root, `${databaseFileName}.bootstrap.lock`);
+  const lockPath = path18.join(root, `${databaseFileName}.bootstrap.lock`);
   const deadline = Date.now() + timeoutMs;
   for (; ; ) {
     assertFreshBootstrapRootPath(root);
@@ -8922,8 +9100,8 @@ async function tryAcquireWindowsBootstrapLock(root, lockPath, databaseFileName, 
   })}
 `;
   const systemRoot = process.env["SystemRoot"];
-  const absolutePowerShell = systemRoot ? path17.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe") : "powershell.exe";
-  const executable = existsSync12(absolutePowerShell) ? absolutePowerShell : "powershell.exe";
+  const absolutePowerShell = systemRoot ? path18.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe") : "powershell.exe";
+  const executable = existsSync13(absolutePowerShell) ? absolutePowerShell : "powershell.exe";
   const child = spawn5(executable, [
     "-NoLogo",
     "-NoProfile",
@@ -9134,9 +9312,9 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 async function ensureFreshSqliteAuthority(root, databaseFileName, modules, processProbe, options) {
-  const resolvedRoot = path17.resolve(root);
+  const resolvedRoot = path18.resolve(root);
   assertFreshBootstrapRootPath(resolvedRoot);
-  const databasePath = path17.join(resolvedRoot, databaseFileName);
+  const databasePath = path18.join(resolvedRoot, databaseFileName);
   const pendingPath = `${databasePath}.bootstrap-pending.json`;
   const markerTempPath = `${databasePath}.bootstrap-marker.tmp`;
   const lockTimeoutMs = options.lockTimeoutMs ?? DEFAULT_FRESH_BOOTSTRAP_LOCK_TIMEOUT_MS;
@@ -9162,18 +9340,18 @@ async function ensureFreshSqliteAuthority(root, databaseFileName, modules, proce
     for (; ; ) {
       assertFreshBootstrapRootPath(resolvedRoot);
       lock.assertHeld();
-      if (existsSync12(markerTempPath)) {
+      if (existsSync13(markerTempPath)) {
         const tempStat = lstatSync3(markerTempPath);
-        if (!tempStat.isFile() || tempStat.isSymbolicLink() || existsSync12(databasePath) && !existsSync12(pendingPath)) {
+        if (!tempStat.isFile() || tempStat.isSymbolicLink() || existsSync13(databasePath) && !existsSync13(pendingPath)) {
           throw new LifecycleGateError("sqlite_bootstrap_marker_temp_unexpected");
         }
       }
-      if (existsSync12(pendingPath)) {
+      if (existsSync13(pendingPath)) {
         const marker2 = readFreshBootstrapMarker(pendingPath, databaseFileName);
-        if (existsSync12(databasePath)) {
+        if (existsSync13(databasePath)) {
           const published = tryReadReadySqliteAuthority(modules, resolvedRoot, databaseFileName, true);
           if (published?.kind === "fresh_install" && published.receipt_id === `fresh-install-${marker2.token}`) {
-            const stagePath2 = path17.join(resolvedRoot, marker2.stage_file);
+            const stagePath2 = path18.join(resolvedRoot, marker2.stage_file);
             removeOwnedBootstrapFile(stagePath2);
             removeOwnedBootstrapFile(`${stagePath2}-wal`);
             removeOwnedBootstrapFile(`${stagePath2}-shm`);
@@ -9186,7 +9364,7 @@ async function ensureFreshSqliteAuthority(root, databaseFileName, modules, proce
           }
           throw new LifecycleGateError("sqlite_bootstrap_published_database_unverified");
         }
-        const stagePath = path17.join(resolvedRoot, marker2.stage_file);
+        const stagePath = path18.join(resolvedRoot, marker2.stage_file);
         removeOwnedBootstrapFile(stagePath);
         removeOwnedBootstrapFile(`${stagePath}-wal`);
         removeOwnedBootstrapFile(`${stagePath}-shm`);
@@ -9195,10 +9373,10 @@ async function ensureFreshSqliteAuthority(root, databaseFileName, modules, proce
         removeOwnedBootstrapFile(markerTempPath);
         continue;
       }
-      if (existsSync12(markerTempPath)) {
+      if (existsSync13(markerTempPath)) {
         removeOwnedBootstrapFile(markerTempPath);
       }
-      if (existsSync12(databasePath)) {
+      if (existsSync13(databasePath)) {
         const existing = tryReadReadySqliteAuthority(modules, resolvedRoot, databaseFileName, false);
         if (!existing) throw new LifecycleGateError("sqlite_existing_database_unverified", "existing SQLite database is not a valid production Authority");
         emitFreshBootstrapStage(options, "ready");
@@ -9248,9 +9426,9 @@ async function ensureFreshSqliteAuthority(root, databaseFileName, modules, proce
   return result;
 }
 async function constructAndPublishFreshSqlite(root, databaseFileName, marker, modules, lock, options) {
-  const databasePath = path17.join(root, databaseFileName);
+  const databasePath = path18.join(root, databaseFileName);
   const pendingPath = `${databasePath}.bootstrap-pending.json`;
-  const stagePath = path17.join(root, marker.stage_file);
+  const stagePath = path18.join(root, marker.stage_file);
   let published = false;
   try {
     lock.assertHeld();
@@ -9277,7 +9455,7 @@ async function constructAndPublishFreshSqlite(root, databaseFileName, marker, mo
     }
     lock.assertHeld();
     assertFreshBootstrapRootPath(root);
-    if (existsSync12(databasePath)) throw new LifecycleGateError("sqlite_database_appeared_during_bootstrap");
+    if (existsSync13(databasePath)) throw new LifecycleGateError("sqlite_database_appeared_during_bootstrap");
     linkSync(stagePath, databasePath);
     published = true;
     unlinkSync3(stagePath);
@@ -9339,7 +9517,7 @@ function assertFreshBootstrapRootPath(root) {
   try {
     const stat2 = lstatSync3(root);
     const real = realpathSync6.native(root);
-    const normalize = (value) => process.platform === "win32" ? path17.win32.normalize(value).replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US") : path17.resolve(value);
+    const normalize = (value) => process.platform === "win32" ? path18.win32.normalize(value).replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US") : path18.resolve(value);
     if (!stat2.isDirectory() || stat2.isSymbolicLink() || normalize(real) !== normalize(root)) {
       throw new LifecycleGateError("sqlite_data_root_redirected");
     }
@@ -9352,7 +9530,7 @@ function readFreshBootstrapMarker(file, databaseFileName) {
   try {
     const stat2 = lstatSync3(file);
     if (!stat2.isFile() || stat2.isSymbolicLink() || stat2.size > 16 * 1024) throw new Error("unsafe_marker");
-    const value = JSON.parse(readFileSync12(file, "utf8"));
+    const value = JSON.parse(readFileSync13(file, "utf8"));
     const expectedStagePrefix = `${databaseFileName}.bootstrap-`;
     if (value.schema_version !== 1 || value.state !== "sqlite_bootstrap_pending" || value.database_file !== databaseFileName || typeof value.token !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(value.token) || value.stage_file !== `${expectedStagePrefix}${value.token}.stage` || !value.owner_identity || value.owner_identity.pid < 1 || !Number.isSafeInteger(value.owner_identity.pid) || value.owner_identity.fingerprint_precision !== "exact" || !value.owner_identity.fingerprint || value.owner_identity.identity_version !== PROCESS_IDENTITY_VERSION || !value.owner_identity.platform || !value.owner_identity.captured_at || Number.isNaN(Date.parse(value.owner_identity.captured_at))) throw new Error("invalid_marker");
     return value;
@@ -9483,7 +9661,7 @@ async function openClaimOnlyDriver(options) {
   const modules = await (options.loadModules?.() ?? loadLifecycleCandidateModules());
   let raw;
   try {
-    if (!existsSync12(options.dataRoot)) throw new LifecycleGateError("sqlite_database_missing", "candidate database must be initialized explicitly");
+    if (!existsSync13(options.dataRoot)) throw new LifecycleGateError("sqlite_database_missing", "candidate database must be initialized explicitly");
     raw = modules.Store.open(options.dataRoot, {
       ...options.databaseFileName ? { databaseFileName: options.databaseFileName } : {},
       ...options.managedDataDirectory ? { managedDataDirectory: true } : {}
@@ -11854,7 +12032,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
 
 // src/mcp/main.ts
 import { realpathSync as realpathSync7 } from "node:fs";
-import path19 from "node:path";
+import path20 from "node:path";
 import { fileURLToPath as fileURLToPath5 } from "node:url";
 
 // node_modules/@modelcontextprotocol/server/dist/chunk-Br0eD_fh.mjs
@@ -12150,10 +12328,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path20) {
-  if (!path20)
+function getElementAtPath(obj, path21) {
+  if (!path21)
     return obj;
-  return path20.reduce((acc, key) => acc?.[key], obj);
+  return path21.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12493,11 +12671,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path20, issues) {
+function prefixIssues(path21, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path20);
+    iss.path.unshift(path21);
     return iss;
   });
 }
@@ -12946,16 +13124,16 @@ function flattenError(error2, mapper = (issue2) => issue2.message) {
 }
 function formatError(error2, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error3, path20 = []) => {
+  const processError = (error3, path21 = []) => {
     for (const issue2 of error3.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path20, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path21, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path20, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path21, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path20, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path21, ...issue2.path]);
       } else {
-        const fullpath = [...path20, ...issue2.path];
+        const fullpath = [...path21, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -22298,9 +22476,9 @@ var rev2026Codec = {
     });
     const parsed = buildSchemas2026().RequestMetaEnvelopeSchema.safeParse(meta2);
     if (!parsed.success) for (const issue2 of parsed.error.issues) {
-      const path20 = issue2.path.map(String);
-      const key = path20.length > 0 ? path20.join(".") : "_meta";
-      if (path20.length === 1 && issues.some((existing) => existing.key === key && existing.problem === "missing")) continue;
+      const path21 = issue2.path.map(String);
+      const key = path21.length > 0 ? path21.join(".") : "_meta";
+      if (path21.length === 1 && issues.some((existing) => existing.key === key && existing.problem === "missing")) continue;
       issues.push({
         key,
         problem: issue2.message
@@ -22621,29 +22799,29 @@ var PERMITTED_X_MCP_HEADER_TYPES = /* @__PURE__ */ new Set([
 function scanXMcpHeaderDeclarations(inputSchema) {
   const declarations = [];
   const seenLower = /* @__PURE__ */ new Map();
-  const visit = (node2, path20, reachable) => {
+  const visit = (node2, path21, reachable) => {
     if (node2 === null || typeof node2 !== "object") return void 0;
     const schema = node2;
     if (X_MCP_HEADER_KEY in schema) {
-      if (!reachable || path20.length === 0) return `${pathName(path20)}: x-mcp-header is only permitted on properties statically reachable via a chain of 'properties' keys (not under items, additionalProperties, oneOf/anyOf/allOf/not, if/then/else, or $ref)`;
+      if (!reachable || path21.length === 0) return `${pathName(path21)}: x-mcp-header is only permitted on properties statically reachable via a chain of 'properties' keys (not under items, additionalProperties, oneOf/anyOf/allOf/not, if/then/else, or $ref)`;
       const raw = schema[X_MCP_HEADER_KEY];
-      if (typeof raw !== "string" || raw.length === 0) return `${pathName(path20)}: x-mcp-header MUST be a non-empty string`;
-      if (!RFC9110_TOKEN.test(raw)) return `${pathName(path20)}: x-mcp-header '${raw}' is not a valid RFC 9110 token (no spaces, control characters or HTTP delimiters)`;
+      if (typeof raw !== "string" || raw.length === 0) return `${pathName(path21)}: x-mcp-header MUST be a non-empty string`;
+      if (!RFC9110_TOKEN.test(raw)) return `${pathName(path21)}: x-mcp-header '${raw}' is not a valid RFC 9110 token (no spaces, control characters or HTTP delimiters)`;
       const type = typeof schema.type === "string" ? schema.type : void 0;
-      if (type === void 0 || !PERMITTED_X_MCP_HEADER_TYPES.has(type)) return `${pathName(path20)}: x-mcp-header is only permitted on primitive-typed properties (string, integer, boolean); got ${type ?? "<none>"}`;
+      if (type === void 0 || !PERMITTED_X_MCP_HEADER_TYPES.has(type)) return `${pathName(path21)}: x-mcp-header is only permitted on primitive-typed properties (string, integer, boolean); got ${type ?? "<none>"}`;
       const lower = raw.toLowerCase();
       const prior = seenLower.get(lower);
       if (prior !== void 0) return `x-mcp-header '${raw}' is not case-insensitively unique (also declared as '${prior}')`;
       seenLower.set(lower, raw);
       declarations.push({
-        path: path20,
+        path: path21,
         headerName: raw,
         type
       });
     }
     const properties = schema.properties;
     if (properties !== null && typeof properties === "object") for (const [key, child] of Object.entries(properties)) {
-      const fault$1 = visit(child, [...path20, key], reachable);
+      const fault$1 = visit(child, [...path21, key], reachable);
       if (fault$1 !== void 0) return fault$1;
     }
     for (const k of NON_REACHABLE_SUBSCHEMA_KEYWORDS) {
@@ -22651,7 +22829,7 @@ function scanXMcpHeaderDeclarations(inputSchema) {
       if (sub === void 0) continue;
       const branches = Array.isArray(sub) ? sub : sub !== null && typeof sub === "object" && OBJECT_VALUED_SUBSCHEMA_KEYWORDS.has(k) ? Object.values(sub) : [sub];
       for (const branch of branches) {
-        const fault$1 = visit(branch, [...path20, `<${k}>`], false);
+        const fault$1 = visit(branch, [...path21, `<${k}>`], false);
         if (fault$1 !== void 0) return fault$1;
       }
     }
@@ -22691,8 +22869,8 @@ var OBJECT_VALUED_SUBSCHEMA_KEYWORDS = /* @__PURE__ */ new Set([
   "$defs",
   "definitions"
 ]);
-function pathName(path20) {
-  return path20.length === 0 ? "<root>" : path20.join(".");
+function pathName(path21) {
+  return path21.length === 0 ? "<root>" : path21.join(".");
 }
 var HEADER_MISMATCH_ERROR_CODE = -32020;
 var INBOUND_VALIDATION_LADDER = [
@@ -22981,7 +23159,7 @@ var PROPERTY_KEYS_BY_TYPE = {
   array: shapeKeys([UntitledMultiSelectEnumSchemaSchema, TitledMultiSelectEnumSchemaSchema])
 };
 var SUPPORTED_STRING_FORMATS = new Set(StringSchemaSchema.shape.format.unwrap().options);
-function walkProperty(node2, path20, vendor, unsupported) {
+function walkProperty(node2, path21, vendor, unsupported) {
   if (!isJsonObject(node2)) return node2;
   const allowedKeys = typeof node2.type === "string" && Object.hasOwn(PROPERTY_KEYS_BY_TYPE, node2.type) ? PROPERTY_KEYS_BY_TYPE[node2.type] : void 0;
   if (allowedKeys === void 0) return node2;
@@ -22989,8 +23167,8 @@ function walkProperty(node2, path20, vendor, unsupported) {
   for (const [key, value] of Object.entries(node2)) if (allowedKeys.has(key) || isAnnotationOnlyJsonSchemaKeyword(key)) pruned[key] = value;
   else if (key === "pattern" && node2.type === "string" && typeof node2.format === "string") {
     if (!SUPPORTED_STRING_FORMATS.has(node2.format)) pruned[key] = value;
-    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path20}.${key}`);
-  } else unsupported.push(`${path20}.${key}`);
+    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path21}.${key}`);
+  } else unsupported.push(`${path21}.${key}`);
   return pruned;
 }
 function walkRequestedSchema(converted, vendor) {
@@ -23007,11 +23185,11 @@ function describeUnsupportedProperties(pruned, fallback) {
   const offenders = Object.entries(pruned.properties).filter(([, node2]) => !parseSchema(PrimitiveSchemaDefinitionSchema, node2).success).map(([name]) => `properties.${name}`);
   return offenders.length > 0 ? offenders.join(", ") : fallback;
 }
-function findDroppedConstraintPaths(original, parsed, path20 = "") {
-  if (Array.isArray(original) && Array.isArray(parsed)) return original.flatMap((item, index) => findDroppedConstraintPaths(item, parsed[index], `${path20}[${index}]`));
+function findDroppedConstraintPaths(original, parsed, path21 = "") {
+  if (Array.isArray(original) && Array.isArray(parsed)) return original.flatMap((item, index) => findDroppedConstraintPaths(item, parsed[index], `${path21}[${index}]`));
   if (!isJsonObject(original) || !isJsonObject(parsed)) return [];
   return Object.entries(original).flatMap(([key, value]) => {
-    const childPath = path20 ? `${path20}.${key}` : key;
+    const childPath = path21 ? `${path21}.${key}` : key;
     if (!Object.prototype.hasOwnProperty.call(parsed, key)) return isAnnotationOnlyJsonSchemaKeyword(key) ? [] : [childPath];
     return findDroppedConstraintPaths(value, parsed[key], childPath);
   });
@@ -27090,8 +27268,8 @@ var require_utils = /* @__PURE__ */ __commonJSMin(((exports, module) => {
     for (let i = 0; i < str.length; i++) if (str[i] === token) ind++;
     return ind;
   }
-  function removeDotSegments(path20) {
-    let input = path20;
+  function removeDotSegments(path21) {
+    let input = path21;
     const output = [];
     let nextSlash = -1;
     let len = 0;
@@ -27244,8 +27422,8 @@ var require_schemes = /* @__PURE__ */ __commonJSMin(((exports, module) => {
       wsComponent.secure = void 0;
     }
     if (wsComponent.resourceName) {
-      const [path20, query] = wsComponent.resourceName.split("?");
-      wsComponent.path = path20 && path20 !== "/" ? path20 : void 0;
+      const [path21, query] = wsComponent.resourceName.split("?");
+      wsComponent.path = path21 && path21 !== "/" ? path21 : void 0;
       wsComponent.query = query;
       wsComponent.resourceName = void 0;
     }
@@ -33385,12 +33563,12 @@ function toError(value) {
 
 // src/host/stdio.ts
 import { homedir as homedir4 } from "node:os";
-import path18 from "node:path";
+import path19 from "node:path";
 
 // src/runtime/resolver.ts
-import { accessSync, existsSync, readFileSync, statSync } from "node:fs";
+import { accessSync, existsSync as existsSync2, readFileSync as readFileSync2, statSync } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import path2 from "node:path";
+import path3 from "node:path";
 import { fileURLToPath } from "node:url";
 
 // src/runtime/errors.ts
@@ -33406,6 +33584,7 @@ var BridgeError = class extends Error {
 };
 
 // src/runtime/resolver.ts
+init_paths();
 init_profile();
 var PERSISTED_RUNTIME_KEYS = [
   "ZCODE_BRIDGE_NODE",
@@ -33427,21 +33606,21 @@ var PERSISTED_RUNTIME_KEYS = [
 ];
 function loadPersistedRuntimeEnvironment(source, homeDir = homedir2(), host = codexHostProfile(homeDir)) {
   validateHostProfile(host);
-  const settingsPaths = [host.settingsDirectory, ...host.legacySettingsDirectories ?? []].map((directory) => path2.join(directory, "runtime-config.json"));
+  const settingsPaths = [host.settingsDirectory, ...host.legacySettingsDirectories ?? []].map((directory) => path3.join(directory, "runtime-config.json"));
   const legacyDataRoot = source["ZCODE_BRIDGE_DATA_DIR"]?.trim();
-  if (legacyDataRoot && path2.isAbsolute(legacyDataRoot)) {
-    settingsPaths.push(path2.join(legacyDataRoot, "runtime-config.json"));
+  if (legacyDataRoot && path3.isAbsolute(legacyDataRoot)) {
+    settingsPaths.push(path3.join(legacyDataRoot, "runtime-config.json"));
   }
   let parsed = null;
   const seenPaths = /* @__PURE__ */ new Set();
   for (const settingsPath of settingsPaths) {
-    const normalized = path2.resolve(settingsPath);
+    const normalized = path3.resolve(settingsPath);
     const identity = process.platform === "win32" ? normalized.toLocaleLowerCase("en-US") : normalized;
     if (seenPaths.has(identity)) continue;
     seenPaths.add(identity);
     try {
       if (statSync(normalized).size > 64 * 1024) throw new Error("runtime settings exceed 64 KB");
-      const candidate = JSON.parse(readFileSync(normalized, "utf8"));
+      const candidate = JSON.parse(readFileSync2(normalized, "utf8"));
       if (isPlainObject3(candidate)) {
         parsed = candidate;
         break;
@@ -33476,7 +33655,18 @@ var NodeRuntimeResolver = class {
   }
   async resolve() {
     const env = loadPersistedRuntimeEnvironment(this.#env, this.#homeDir, this.#host);
+    const data = discoverZCodeData(env, { fallbackHomeDir: this.#homeDir });
     const zcodeHome = resolveZcodeHome(env);
+    const explicitDataBaseDir = env["ZCODE_DATA_BASE_DIR"]?.trim() || null;
+    if (explicitDataBaseDir && !isAbsolutePathForPlatform(explicitDataBaseDir)) {
+      throw new BridgeError("provider_config_invalid", "ZCODE_DATA_BASE_DIR must be an absolute path");
+    }
+    if (zcodeHome && explicitDataBaseDir && !sameFileSystemPath(path3.dirname(zcodeHome), explicitDataBaseDir)) {
+      throw new BridgeError(
+        "provider_config_invalid",
+        `ZCODE_HOME (${zcodeHome}) and ZCODE_DATA_BASE_DIR (${explicitDataBaseDir}) conflict; ZCODE_HOME must name <ZCODE_DATA_BASE_DIR>/.zcode. Fix one of them instead of relying on silent selection.`
+      );
+    }
     let nodeExecutable = "node";
     const nodeOverride = env["ZCODE_BRIDGE_NODE"]?.trim();
     if (nodeOverride) {
@@ -33486,7 +33676,10 @@ var NodeRuntimeResolver = class {
       );
       nodeExecutable = nodeOverride;
     }
+    const builtinEnv = env["ZCODE_BUILTIN_PROVIDER_CONFIG_FILE"]?.trim() || null;
+    const personalEnv = env["ZCODE_PERSONAL_PROVIDER_CONFIG_FILE"]?.trim() || null;
     let zcodeEntrypoint;
+    let explicitRuntime = false;
     const entryOverride = env["ZCODE_BRIDGE_ZCODE_CJS"]?.trim();
     if (entryOverride) {
       this.#assertReadableFile(
@@ -33494,19 +33687,17 @@ var NodeRuntimeResolver = class {
         "ZCODE_BRIDGE_ZCODE_CJS is set but is not a readable file"
       );
       zcodeEntrypoint = entryOverride;
+      explicitRuntime = true;
     } else {
-      const candidates = installCandidates(env, ["resources", "glm", "zcode.cjs"]);
-      const discovered = candidates.find(isReadableFile);
-      if (!discovered) {
+      const install = discoverZCodeInstall(env, { requireBuiltin: !builtinEnv });
+      if (!install.zcodeEntrypoint) {
         throw new BridgeError(
           "runtime_not_found",
-          `zcode.cjs was not found; searched: ${candidates.join(", ") || "(no installation roots available)"}`
+          `zcode.cjs${builtinEnv ? "" : " with a same-install zcode-builtin.json"} was not found; searched: ` + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
         );
       }
-      zcodeEntrypoint = discovered;
+      zcodeEntrypoint = install.zcodeEntrypoint;
     }
-    const builtinEnv = env["ZCODE_BUILTIN_PROVIDER_CONFIG_FILE"]?.trim() || null;
-    const personalEnv = env["ZCODE_PERSONAL_PROVIDER_CONFIG_FILE"]?.trim() || null;
     let builtinConfigFile;
     let personalConfigFile;
     if (builtinEnv && personalEnv) {
@@ -33518,33 +33709,37 @@ var NodeRuntimeResolver = class {
       if (builtinEnv) {
         this.#validateBuiltinConfig(builtinEnv);
         builtinConfigFile = builtinEnv;
-      } else {
-        const candidates = installCandidates(env, [
-          "resources",
-          "config",
-          "provider",
-          "zcode-builtin.json"
-        ]);
-        const discovered = candidates.find(isReadableFile);
-        if (!discovered) {
+      } else if (explicitRuntime) {
+        const derived2 = builtinConfigForRuntime(zcodeEntrypoint);
+        if (!isReadableFile(derived2)) {
           throw new BridgeError(
             "provider_config_missing",
-            "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and no builtin provider config was found in the ZCode installation; searched: " + (candidates.join(", ") || "(no installation roots available)")
+            `ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and the builtin config was not found next to the configured runtime; expected: ${derived2}`
           );
         }
-        this.#validateBuiltinConfig(discovered);
-        builtinConfigFile = discovered;
+        this.#validateBuiltinConfig(derived2);
+        builtinConfigFile = derived2;
+      } else {
+        const install = discoverZCodeInstall(env, { requireBuiltin: true });
+        if (!install.builtinConfigFile) {
+          throw new BridgeError(
+            "provider_config_missing",
+            "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and no builtin provider config was found in the ZCode installation; searched: " + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
+          );
+        }
+        this.#validateBuiltinConfig(install.builtinConfigFile);
+        builtinConfigFile = install.builtinConfigFile;
       }
       if (personalEnv) {
         this.#validatePersonalConfig(personalEnv);
         personalConfigFile = personalEnv;
       } else {
-        const candidates = zcodeHome ? [path2.join(zcodeHome, "v2", "provider_config.json")] : [
-          env["ZCODE_DATA_BASE_DIR"]?.trim(),
-          ...configuredDataBaseDirs(this.#homeDir),
-          this.#homeDir
-        ].filter((base) => Boolean(base)).filter((base, index, values) => values.indexOf(base) === index).map((base) => path2.join(base, ".zcode", "v2", "provider_config.json"));
-        const existing = candidates.filter((candidate) => existsSync(candidate));
+        const candidates = zcodeHome ? [path3.join(zcodeHome, "v2", "provider_config.json")] : [
+          explicitDataBaseDir,
+          data.configuredDataBaseDir,
+          data.userHome
+        ].filter((base) => Boolean(base)).filter((base, index, values) => values.indexOf(base) === index).map((base) => path3.join(base, ".zcode", "v2", "provider_config.json"));
+        const existing = candidates.filter((candidate) => existsSync2(candidate));
         if (existing.length === 0) {
           throw new BridgeError(
             "provider_config_missing",
@@ -33571,7 +33766,7 @@ var NodeRuntimeResolver = class {
         personalConfigFile = accepted;
       }
     }
-    if (zcodeHome && !samePath(personalConfigFile, path2.join(zcodeHome, "v2", "provider_config.json"))) {
+    if (zcodeHome && !samePath(personalConfigFile, path3.join(zcodeHome, "v2", "provider_config.json"))) {
       throw new BridgeError(
         "provider_config_invalid",
         `ZCODE_PERSONAL_PROVIDER_CONFIG_FILE must be ZCODE_HOME/v2/provider_config.json (${zcodeHome})`
@@ -33580,12 +33775,12 @@ var NodeRuntimeResolver = class {
     const dataOverride = env["ZCODE_BRIDGE_DATA_DIR"]?.trim();
     let dataRoot;
     if (dataOverride) {
-      if (!path2.isAbsolute(dataOverride)) {
+      if (!path3.isAbsolute(dataOverride)) {
         throw new Error(
           `ZCODE_BRIDGE_DATA_DIR must be an absolute path when set, got: ${dataOverride}`
         );
       }
-      dataRoot = path2.normalize(dataOverride);
+      dataRoot = path3.normalize(dataOverride);
     } else {
       dataRoot = this.#packageRoot ?? findPackageRoot();
     }
@@ -33640,7 +33835,7 @@ var NodeRuntimeResolver = class {
     }
     let text2;
     try {
-      text2 = readFileSync(filePath, "utf8");
+      text2 = readFileSync2(filePath, "utf8");
     } catch (error2) {
       throw new BridgeError(
         "provider_config_invalid",
@@ -33662,37 +33857,14 @@ var NodeRuntimeResolver = class {
     return parsed;
   }
 };
-function installCandidates(env, relative) {
-  const roots = [
-    env["ZCODE_WINDOWS_APP_INSTALL_DIR"]?.trim(),
-    env["LOCALAPPDATA"]?.trim() ? path2.join(env["LOCALAPPDATA"].trim(), "Programs", "ZCode") : null,
-    env["ProgramFiles"]?.trim() ? path2.join(env["ProgramFiles"].trim(), "ZCode") : null
-  ].filter((root) => Boolean(root));
-  return roots.map((root) => path2.join(root, ...relative));
-}
-function configuredDataBaseDirs(homeDir) {
-  const candidates = [path2.join(homeDir, ".zcode", "v2", "setting.json")];
-  for (const settingPath of candidates) {
-    try {
-      const parsed = JSON.parse(readFileSync(settingPath, "utf8"));
-      if (!isPlainObject3(parsed)) continue;
-      const dataBaseDir = parsed["dataBaseDir"];
-      if (typeof dataBaseDir === "string" && path2.isAbsolute(dataBaseDir.trim())) {
-        return [path2.normalize(dataBaseDir.trim())];
-      }
-    } catch {
-    }
-  }
-  return [];
-}
 function resolveZcodeHome(env) {
   const configured = env["ZCODE_HOME"]?.trim();
   if (!configured) return null;
-  if (!path2.isAbsolute(configured)) {
+  if (!isAbsolutePathForPlatform(configured)) {
     throw new BridgeError("provider_config_invalid", "ZCODE_HOME must be an absolute path");
   }
-  const resolved = path2.normalize(configured);
-  if (path2.basename(resolved).toLowerCase() !== ".zcode") {
+  const resolved = path3.normalize(configured);
+  if (path3.basename(resolved).toLowerCase() !== ".zcode") {
     throw new BridgeError(
       "provider_config_invalid",
       "ZCODE_HOME must name a .zcode directory so app-server can use the same data root"
@@ -33709,13 +33881,13 @@ function resolveZcodeHome(env) {
   return resolved;
 }
 function samePath(left, right) {
-  const resolvedLeft = path2.resolve(left);
-  const resolvedRight = path2.resolve(right);
+  const resolvedLeft = path3.resolve(left);
+  const resolvedRight = path3.resolve(right);
   return process.platform === "win32" ? resolvedLeft.toLowerCase() === resolvedRight.toLowerCase() : resolvedLeft === resolvedRight;
 }
 function isReadableFile(filePath) {
   try {
-    if (!existsSync(filePath) || !statSync(filePath).isFile()) return false;
+    if (!existsSync2(filePath) || !statSync(filePath).isFile()) return false;
     accessSync(filePath);
     return true;
   } catch {
@@ -33723,12 +33895,12 @@ function isReadableFile(filePath) {
   }
 }
 function findPackageRoot(startDir) {
-  let current = startDir ?? path2.dirname(fileURLToPath(import.meta.url));
+  let current = startDir ?? path3.dirname(fileURLToPath(import.meta.url));
   for (let depth = 0; depth < 10; depth++) {
-    if (existsSync(path2.join(current, "package.json"))) {
+    if (existsSync2(path3.join(current, "package.json"))) {
       return current;
     }
-    const parent = path2.dirname(current);
+    const parent = path3.dirname(current);
     if (parent === current) break;
     current = parent;
   }
@@ -33751,9 +33923,9 @@ function errorText(error2) {
 
 // src/manager/task-manager.ts
 init_task_store();
-import path9 from "node:path";
+import path10 from "node:path";
 import { createHash as createHash5 } from "node:crypto";
-import { existsSync as existsSync6, statSync as statSync4, writeFileSync as writeFileSync4 } from "node:fs";
+import { existsSync as existsSync7, statSync as statSync4, writeFileSync as writeFileSync4 } from "node:fs";
 
 // src/manager/normalize.ts
 function buildTaskResult(input) {
@@ -34260,7 +34432,7 @@ var BridgeTaskManager = class _BridgeTaskManager {
     if (this.#lifecycleAuthority) return this.#lifecycleAuthority.recoverTasks?.() ?? Promise.resolve();
     if (jsonWriterFenceState(this.#dataRoot) === "sealed") return;
     if (this.#recoveryPromise) return this.#recoveryPromise;
-    const releaseRecovery = tryAcquireProcessLock(path9.join(this.#store.tasksRoot, ".recovery.lock"));
+    const releaseRecovery = tryAcquireProcessLock(path10.join(this.#store.tasksRoot, ".recovery.lock"));
     if (!releaseRecovery) return;
     try {
       if (jsonWriterFenceState(this.#dataRoot) === "sealed") {
@@ -34271,8 +34443,8 @@ var BridgeTaskManager = class _BridgeTaskManager {
       releaseRecovery();
       throw error2;
     }
-    const lastRunFile = path9.join(this.#store.tasksRoot, ".recovery-last-run");
-    if (this.#recoveryCooldownMs > 0 && existsSync6(lastRunFile) && Date.now() - statSync4(lastRunFile).mtimeMs < this.#recoveryCooldownMs) {
+    const lastRunFile = path10.join(this.#store.tasksRoot, ".recovery-last-run");
+    if (this.#recoveryCooldownMs > 0 && existsSync7(lastRunFile) && Date.now() - statSync4(lastRunFile).mtimeMs < this.#recoveryCooldownMs) {
       releaseRecovery();
       return;
     }
@@ -34704,8 +34876,8 @@ var BridgeTaskManager = class _BridgeTaskManager {
       if (this.#store.hasTask(task.task_id)) {
         const existing = this.#store.readTask(task.task_id);
         const ref = this.#store.readWorkspaceRef(task.task_id);
-        const sameWorkspace = path9.resolve(task.workspace) === path9.resolve(ref?.requestedPath ?? existing.workspace);
-        const sameExecutionPath = task.worktree_path === void 0 ? existing.worktree_path === void 0 : existing.worktree_path !== void 0 && path9.resolve(task.worktree_path) === path9.resolve(ref?.canonicalPath ?? existing.worktree_path);
+        const sameWorkspace = path10.resolve(task.workspace) === path10.resolve(ref?.requestedPath ?? existing.workspace);
+        const sameExecutionPath = task.worktree_path === void 0 ? existing.worktree_path === void 0 : existing.worktree_path !== void 0 && path10.resolve(task.worktree_path) === path10.resolve(ref?.canonicalPath ?? existing.worktree_path);
         const normalizedRetry = {
           ...task,
           workspace: existing.workspace,
@@ -35448,7 +35620,7 @@ var BridgeTaskManager = class _BridgeTaskManager {
   #executionPathKeyLocked(taskId) {
     const recorded = this.#store.readWorkspaceRef(taskId)?.canonicalPath;
     const task = recorded ? null : this.#store.readTask(taskId);
-    const resolved = path9.resolve(recorded ?? task.worktree_path ?? task.workspace);
+    const resolved = path10.resolve(recorded ?? task.worktree_path ?? task.workspace);
     return process.platform === "win32" ? resolved.toLocaleLowerCase("en-US") : resolved;
   }
   #startWorkerLocked(taskId) {
@@ -35582,7 +35754,7 @@ var BridgeTaskManager = class _BridgeTaskManager {
       clearTimeout(timeout);
       this.#queuedOperations = Math.max(0, this.#queuedOperations - 1);
       try {
-        return await withProcessLock(path9.join(this.#store.tasksRoot, ".manager.lock"), operation, 5e3);
+        return await withProcessLock(path10.join(this.#store.tasksRoot, ".manager.lock"), operation, 5e3);
       } catch (error2) {
         if (error2 instanceof Error && error2.message.startsWith("timed out waiting for process lock:")) {
           throw new TaskManagerError("REQUEST_QUEUE_TIMEOUT", "Bridge operation did not acquire the shared scheduling lock within 5 seconds; retry with the same task_id");
@@ -35614,9 +35786,9 @@ var BridgeTaskManager = class _BridgeTaskManager {
   }
 };
 function pathsOverlap(left, right) {
-  const relative = path9.relative(left, right);
-  const reverse = path9.relative(right, left);
-  const inside = (value) => value === "" || !path9.isAbsolute(value) && value !== ".." && !value.startsWith(`..${path9.sep}`);
+  const relative = path10.relative(left, right);
+  const reverse = path10.relative(right, left);
+  const inside = (value) => value === "" || !path10.isAbsolute(value) && value !== ".." && !value.startsWith(`..${path10.sep}`);
   return inside(relative) || inside(reverse);
 }
 function encodeScanCursor(cursor) {
@@ -35979,8 +36151,8 @@ init_errors();
 
 // src/ledger/bridge.ts
 init_process_lock();
-import { existsSync as existsSync7, mkdirSync as mkdirSync5, readFileSync as readFileSync7, writeFileSync as writeFileSync5 } from "node:fs";
-import path10 from "node:path";
+import { existsSync as existsSync8, mkdirSync as mkdirSync5, readFileSync as readFileSync8, writeFileSync as writeFileSync5 } from "node:fs";
+import path11 from "node:path";
 
 // src/ledger/types.ts
 var LedgerError = class extends Error {
@@ -36002,8 +36174,8 @@ var LedgerBridgeLink = class {
   #cursorFile;
   constructor(ledger) {
     this.#ledger = ledger;
-    this.#ledgerDir = path10.join(ledger.root, ".agent-ledger", "ledger");
-    this.#cursorFile = path10.join(this.#ledgerDir, "bridge-cursors.json");
+    this.#ledgerDir = path11.join(ledger.root, ".agent-ledger", "ledger");
+    this.#cursorFile = path11.join(this.#ledgerDir, "bridge-cursors.json");
   }
   /** Persists the run intent, then dispatches; every retry of the same
    * operation keeps the same run and the same executor task id (C2-01). */
@@ -36102,9 +36274,9 @@ var LedgerBridgeLink = class {
     return run;
   }
   #readCursors() {
-    if (!existsSync7(this.#cursorFile)) return {};
+    if (!existsSync8(this.#cursorFile)) return {};
     try {
-      return JSON.parse(readFileSync7(this.#cursorFile, "utf8"));
+      return JSON.parse(readFileSync8(this.#cursorFile, "utf8"));
     } catch {
       return {};
     }
@@ -36113,7 +36285,7 @@ var LedgerBridgeLink = class {
     const cursors = this.#readCursors();
     cursors[runId] = { executor_task_id: executorTaskId, last_seq: lastSeq };
     mkdirSync5(this.#ledgerDir, { recursive: true });
-    const release = tryAcquireProcessLock(path10.join(this.#ledgerDir, "cursor.lock"));
+    const release = tryAcquireProcessLock(path11.join(this.#ledgerDir, "cursor.lock"));
     if (!release) return;
     try {
       writeFileSync5(this.#cursorFile, JSON.stringify(cursors, null, 2), { mode: 384 });
@@ -36455,7 +36627,7 @@ function formatDuration(durationMs2) {
 
 // src/mcp/server.ts
 var SERVER_NAME = "codex-zcode-bridge";
-var SERVER_VERSION = "1.3.0"; // x-release-please-version
+var SERVER_VERSION = "1.4.0"; // x-release-please-version
 var EXECUTION_NOT_VERDICT = "Results describe Bridge/ZCode execution only: status 'completed' means the invocation and report normalization finished, NOT that the calling host accepted the work. the calling host must independently review the workspace diff and checks before deciding PASS.";
 function okResult2(data) {
   return {
@@ -36697,23 +36869,23 @@ function createBridgeServer(options) {
 }
 
 // src/runtime/doctor.ts
-import { accessSync as accessSync2, constants, existsSync as existsSync9, readFileSync as readFileSync9, statSync as statSync5 } from "node:fs";
+import { accessSync as accessSync2, constants, existsSync as existsSync10, readFileSync as readFileSync10, statSync as statSync5 } from "node:fs";
 import { execFileSync } from "node:child_process";
-import path12 from "node:path";
+import path13 from "node:path";
 
 // src/runtime/account-provider.ts
 import { createHash as createHash7 } from "node:crypto";
-import { existsSync as existsSync8, readFileSync as readFileSync8 } from "node:fs";
-import path11 from "node:path";
+import { existsSync as existsSync9, readFileSync as readFileSync9 } from "node:fs";
+import path12 from "node:path";
 function buildAccountProviderPayload(config2) {
   const table = readJson(config2.providerBuiltinConfigFile);
   const providerRules = readProviderRules(table).filter(isRecord).map((rule) => rule).filter((rule) => rule.config?.access?.type === "zhipu-account" && typeof rule.providerId === "string");
   if (!providerRules.length) return null;
   const dataDir = zcodeV2DataDir(config2.providerPersonalConfigFile);
   if (!dataDir) return null;
-  const credentials = readJson(path11.join(dataDir, "config.json"));
+  const credentials = readJson(path12.join(dataDir, "config.json"));
   const credentialProviders = asRecord2(credentials?.provider);
-  const cache = readJson(path11.join(dataDir, "coding-plan-cache.json"));
+  const cache = readJson(path12.join(dataDir, "coding-plan-cache.json"));
   const cacheItems = asRecord2(asRecord2(cache?.entryStatus).items);
   const providers = {};
   const states = {};
@@ -36735,7 +36907,7 @@ function buildAccountProviderPayload(config2) {
     };
   }
   const revision = typeof table?.revision === "number" ? table.revision : 0;
-  const resolvedBuiltinPath = path11.resolve(config2.providerBuiltinConfigFile);
+  const resolvedBuiltinPath = path12.resolve(config2.providerBuiltinConfigFile);
   return {
     revision: `account:codex-zcode-bridge:${Date.now()}`,
     basedOnZCodeBuiltinRevision: `zcode-builtin:${revision}:${createHash7("sha256").update(resolvedBuiltinPath).digest("hex")}`,
@@ -36757,8 +36929,8 @@ function runtimeAuthReply(providerId, config2) {
   const legacyId = configProviderId(providerId, rule);
   const dataDir = zcodeV2DataDir(config2.providerPersonalConfigFile);
   if (!dataDir) return unavailable;
-  const credentials = readJson(path11.join(dataDir, "config.json"));
-  const cache = readJson(path11.join(dataDir, "coding-plan-cache.json"));
+  const credentials = readJson(path12.join(dataDir, "config.json"));
+  const cache = readJson(path12.join(dataDir, "coding-plan-cache.json"));
   const status = asRecord2(asRecord2(asRecord2(cache?.entryStatus).items)[legacyId]).status;
   const provider = asRecord2(asRecord2(credentials?.provider)[legacyId]);
   const options = asRecord2(provider.options);
@@ -36768,19 +36940,19 @@ function runtimeAuthReply(providerId, config2) {
 }
 function zcodeDataBaseDir(personalProviderConfigFile) {
   const dataDir = zcodeV2DataDir(personalProviderConfigFile);
-  return dataDir ? path11.dirname(path11.dirname(dataDir)) : null;
+  return dataDir ? path12.dirname(path12.dirname(dataDir)) : null;
 }
 function zcodeTasksIndexPath(personalProviderConfigFile) {
   const dataDir = zcodeV2DataDir(personalProviderConfigFile);
-  return dataDir ? path11.join(dataDir, "tasks-index.sqlite") : null;
+  return dataDir ? path12.join(dataDir, "tasks-index.sqlite") : null;
 }
 function zcodeV2DataDir(personalProviderConfigFile) {
-  const absolute = path11.resolve(personalProviderConfigFile);
-  if (path11.basename(absolute).toLowerCase() !== "provider_config.json") return null;
-  const v2Dir = path11.dirname(absolute);
-  if (path11.basename(v2Dir).toLowerCase() !== "v2") return null;
-  const zcodeDir = path11.dirname(v2Dir);
-  if (path11.basename(zcodeDir).toLowerCase() !== ".zcode") return null;
+  const absolute = path12.resolve(personalProviderConfigFile);
+  if (path12.basename(absolute).toLowerCase() !== "provider_config.json") return null;
+  const v2Dir = path12.dirname(absolute);
+  if (path12.basename(v2Dir).toLowerCase() !== "v2") return null;
+  const zcodeDir = path12.dirname(v2Dir);
+  if (path12.basename(zcodeDir).toLowerCase() !== ".zcode") return null;
   return v2Dir;
 }
 function configProviderId(providerId, rule) {
@@ -36795,8 +36967,8 @@ function readProviderRules(table) {
 }
 function readJson(filePath) {
   try {
-    if (!existsSync8(filePath)) return null;
-    const value = JSON.parse(readFileSync8(filePath, "utf8"));
+    if (!existsSync9(filePath)) return null;
+    const value = JSON.parse(readFileSync9(filePath, "utf8"));
     return isRecord(value) ? value : null;
   } catch {
     return null;
@@ -36808,6 +36980,10 @@ function asRecord2(value) {
 function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+// src/runtime/doctor.ts
+init_child_env();
+init_paths();
 
 // src/runtime/session-preferences.ts
 init_trusted_local_profile();
@@ -36897,6 +37073,138 @@ async function runBridgeDoctor(options = {}) {
     checks.push({ name: "execution_mode", status: "error", summary: safeError(error2) });
   }
   let config2 = null;
+  let dataDiscovery = null;
+  try {
+    const home = resolveUserHome(env, { fallbackHomeDir: options.resolver?.homeDir });
+    dataDiscovery = discoverZCodeData(env, {
+      fallbackHomeDir: options.resolver?.homeDir,
+      ...options.settingReadFile ? { readFile: options.settingReadFile } : {}
+    });
+    const homeSource = home.source === "HOME" ? "HOME (verified against USERPROFILE)" : home.source === "USERPROFILE" ? `USERPROFILE${home.homeConflict ? `; HOME was rejected: ${home.homeConflict}` : ""}` : "fallback (os.homedir)";
+    checks.push({
+      name: "user_home",
+      status: home.homeConflict ? "warning" : "ok",
+      summary: `User directory: ${home.userHome} (from ${homeSource})`
+    });
+  } catch (error2) {
+    checks.push({ name: "user_home", status: "error", summary: `User directory discovery failed: ${safeError(error2)}` });
+  }
+  if (dataDiscovery) {
+    const setting = dataDiscovery;
+    const settingStatusText = {
+      absent: "setting.json is not present; the default data location applies",
+      ok: setting.migrated ? `setting.json is valid and moves the data directory to ${setting.dataBaseDir}` : "setting.json is valid; no dataBaseDir override, so the default data location applies",
+      invalid_json: "setting.json is not valid JSON; the default data location applies",
+      invalid_shape: `setting.json has an unexpected shape${setting.settingError ? ` (${setting.settingError})` : ""}; the default data location applies`,
+      unreadable: `setting.json could not be read${setting.settingError ? ` (${setting.settingError})` : ""}; the default data location applies`,
+      permission_denied: "setting.json is not readable due to permissions; the default data location applies"
+    };
+    const relativeDataBaseDir = setting.settingStatus === "ok" && setting.settingError?.includes("dataBaseDir is a relative path");
+    const settingSummary = relativeDataBaseDir ? `${settingStatusText.ok}; dataBaseDir is a relative path and was ignored` : settingStatusText[setting.settingStatus] ?? "setting.json status unknown";
+    checks.push({
+      name: "desktop_settings",
+      status: relativeDataBaseDir ? "warning" : setting.settingStatus === "ok" || setting.settingStatus === "absent" ? "ok" : setting.settingStatus === "permission_denied" ? "error" : "warning",
+      summary: settingSummary
+    });
+    const explicitHome = env["ZCODE_HOME"]?.trim();
+    const explicitBase = env["ZCODE_DATA_BASE_DIR"]?.trim();
+    const homeValid = explicitHome ? isAbsolutePathForPlatform(explicitHome) : false;
+    const baseValid = explicitBase ? isAbsolutePathForPlatform(explicitBase) : false;
+    let effectiveBase = setting.dataBaseDir;
+    let baseSource;
+    if (explicitHome && homeValid) {
+      effectiveBase = path13.dirname(path13.resolve(explicitHome));
+      baseSource = explicitBase ? "explicit ZCODE_HOME and ZCODE_DATA_BASE_DIR (consistent)" : "explicit ZCODE_HOME (parent directory)";
+    } else if (explicitBase && baseValid) {
+      effectiveBase = path13.resolve(explicitBase);
+      baseSource = "explicit ZCODE_DATA_BASE_DIR";
+    } else if (explicitHome || explicitBase) {
+      effectiveBase = path13.resolve(explicitHome ?? explicitBase);
+      baseSource = `explicit ${explicitHome ? "ZCODE_HOME" : "ZCODE_DATA_BASE_DIR"} (invalid absolute path)`;
+    } else {
+      baseSource = setting.migrated ? "setting.json dataBaseDir" : "default (user directory)";
+    }
+    let dataDirStatus = "ok";
+    let dataDirSummary = `ZCode data base directory: ${effectiveBase} (from ${baseSource})`;
+    if (explicitHome && explicitBase) {
+      if (!sameFileSystemPath(path13.dirname(path13.resolve(explicitHome)), path13.resolve(explicitBase))) {
+        dataDirStatus = "error";
+        dataDirSummary = `ZCODE_HOME (${explicitHome}) and ZCODE_DATA_BASE_DIR (${explicitBase}) conflict; ZCODE_HOME must be <ZCODE_DATA_BASE_DIR>/.zcode`;
+      }
+    }
+    if (dataDirStatus === "ok" && (explicitHome && !homeValid || explicitBase && !baseValid)) {
+      dataDirStatus = "error";
+      dataDirSummary += "; the explicit value must be a full Windows absolute path";
+    }
+    if (dataDirStatus === "ok") {
+      try {
+        const inspectDirectory = options.dataDirStat ?? statSync5;
+        const directoryInfo = inspectDirectory(effectiveBase);
+        if (!directoryInfo.isDirectory()) {
+          dataDirStatus = "error";
+          dataDirSummary += "; path exists but is not a directory";
+        } else {
+          dataDirSummary += !explicitHome && !explicitBase && setting.migrated ? "; migrated data directory exists" : "; directory exists";
+        }
+      } catch (error2) {
+        const code = error2.code;
+        if (code === "ENOENT") {
+          dataDirStatus = "warning";
+          dataDirSummary += "; directory does not exist yet (the Bridge never creates ZCode data directories)";
+        } else {
+          dataDirStatus = isPermissionDeniedCode(error2) ? "error" : "warning";
+          dataDirSummary += isPermissionDeniedCode(error2) ? "; permission denied while inspecting the directory" : `; could not be inspected (${safeError(error2)})`;
+        }
+      }
+    }
+    checks.push({ name: "zcode_data_dir", status: dataDirStatus, summary: dataDirSummary });
+  }
+  const install = discoverZCodeInstall(env, { requireBuiltin: !env["ZCODE_BUILTIN_PROVIDER_CONFIG_FILE"]?.trim() });
+  const explicitRuntime = env["ZCODE_BRIDGE_ZCODE_CJS"]?.trim();
+  if (explicitRuntime) {
+    let explicitRuntimeStatus = "ok";
+    const automaticDiscovery = install.installDir ? `; auto-discovery would choose ${install.installDir} (${install.source})` : "; auto-discovery found no complete installation";
+    let explicitRuntimeSummary = `Runtime is explicitly configured (ZCODE_BRIDGE_ZCODE_CJS); the builtin provider config is derived from the same installation: ${path13.dirname(path13.dirname(explicitRuntime))}${automaticDiscovery}`;
+    try {
+      if (!isAbsolutePathForPlatform(explicitRuntime)) throw new Error("not a full absolute path");
+      const runtimeStat = statSync5(explicitRuntime);
+      if (!runtimeStat.isFile()) throw new Error("not a regular file");
+      accessSync2(explicitRuntime, constants.R_OK);
+    } catch (error2) {
+      explicitRuntimeStatus = "error";
+      explicitRuntimeSummary = isPermissionDeniedCode(error2) ? `Explicit runtime exists but is not readable: ${explicitRuntime}` : `Explicit runtime was configured but is not a readable file: ${explicitRuntime}`;
+    }
+    checks.push({
+      name: "zcode_install",
+      status: explicitRuntimeStatus,
+      summary: explicitRuntimeSummary
+    });
+  } else if (install.installDir) {
+    checks.push({
+      name: "zcode_install",
+      status: "ok",
+      summary: `ZCode installation: ${install.installDir} (discovered via ${install.source}); runtime and builtin provider config come from the same installation`
+    });
+  } else {
+    checks.push({
+      name: "zcode_install",
+      status: "warning",
+      summary: `No ZCode installation was auto-discovered; searched: ${install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)"}`
+    });
+  }
+  try {
+    const workerEnv = createWorkerEnv(sourceEnv);
+    const mainHome = resolveUserHome(env, { fallbackHomeDir: options.resolver?.homeDir });
+    const workerHome = resolveUserHome(workerEnv, { fallbackHomeDir: options.resolver?.homeDir });
+    const sameHome = sameFileSystemPath(mainHome.userHome, workerHome.userHome);
+    checks.push({
+      name: "worker_env_consistency",
+      status: sameHome ? "ok" : "error",
+      summary: sameHome ? `Detached worker environment resolves the same user directory as the Bridge: ${mainHome.userHome}` : `Detached worker user directory (${workerHome.userHome}) differs from the Bridge (${mainHome.userHome})`
+    });
+  } catch (error2) {
+    checks.push({ name: "worker_env_consistency", status: "unknown", summary: `Worker environment consistency could not be determined: ${safeError(error2)}` });
+  }
   try {
     config2 = await new NodeRuntimeResolver({ ...options.resolver, env }).resolve();
     checks.push({ name: "zcode_runtime", status: "ok", summary: "ZCode runtime was found and its configured path is readable" });
@@ -36943,10 +37251,10 @@ async function runBridgeDoctor(options = {}) {
       });
     } else if (browserUse === "headless") {
       if (browserExecutable) {
-        if (!path12.isAbsolute(browserExecutable)) {
+        if (!path13.isAbsolute(browserExecutable)) {
           checks.push({ name: "browser_host", status: "error", summary: `ZCODE_BRIDGE_BROWSER_EXECUTABLE must be an absolute path: ${browserExecutable}` });
-        } else if (existsSync9(browserExecutable)) {
-          checks.push({ name: "browser_host", status: "ok", summary: `Headless browser host is enabled with the configured executable (${path12.basename(browserExecutable)})` });
+        } else if (existsSync10(browserExecutable)) {
+          checks.push({ name: "browser_host", status: "ok", summary: `Headless browser host is enabled with the configured executable (${path13.basename(browserExecutable)})` });
         } else {
           checks.push({ name: "browser_host", status: "error", summary: `Configured browser executable does not exist: ${browserExecutable}` });
         }
@@ -36957,7 +37265,7 @@ async function runBridgeDoctor(options = {}) {
       checks.push({ name: "browser_host", status: "warning", summary: `ZCODE_BRIDGE_BROWSER_USE must be "off" or "headless"; got "${browserUse}" \u2014 the browser host stays disabled` });
     }
     const dataRoot = options.dataRoot ?? env["ZCODE_BRIDGE_DATA_DIR"]?.trim() ?? null;
-    if (dataRoot && existsSync9(dataRoot)) {
+    if (dataRoot && existsSync10(dataRoot)) {
       try {
         const info = statSync5(dataRoot);
         accessSync2(dataRoot, constants.W_OK);
@@ -36971,8 +37279,8 @@ async function runBridgeDoctor(options = {}) {
     const indexPath = zcodeTasksIndexPath(config2.providerPersonalConfigFile);
     checks.push({
       name: "desktop_index",
-      status: indexPath && existsSync9(indexPath) ? "ok" : "warning",
-      summary: indexPath && existsSync9(indexPath) ? "ZCode Desktop task index file exists; Desktop refresh timing is not tested" : "ZCode Desktop task index file was not found at the configured data location"
+      status: indexPath && existsSync10(indexPath) ? "ok" : "warning",
+      summary: indexPath && existsSync10(indexPath) ? "ZCode Desktop task index file exists; Desktop refresh timing is not tested" : "ZCode Desktop task index file was not found at the configured data location"
     });
   } else {
     checks.push({ name: "runtime_node", status: "unknown", summary: "Not checked because runtime validation did not complete" });
@@ -36994,7 +37302,7 @@ async function runBridgeDoctor(options = {}) {
     summary: "Not probed here: use the Master Skill helper with the explicit CODEX_THREAD_ID; codex_rollout values require a report-window baseline and must not be replaced by account quotas or text estimates"
   });
   const observedRoot = options.observationDataRoot ?? env["ZCODE_BRIDGE_DATA_DIR"]?.trim() ?? null;
-  if (observedRoot && existsSync9(observedRoot)) {
+  if (observedRoot && existsSync10(observedRoot)) {
     try {
       const { TaskStore: Store } = await Promise.resolve().then(() => (init_task_store(), task_store_exports));
       const { buildTaskObservation: buildTaskObservation2, inferExecutionStage: inferExecutionStage2 } = await Promise.resolve().then(() => (init_build(), build_exports));
@@ -37029,7 +37337,7 @@ async function runBridgeDoctor(options = {}) {
         const summary = `${running.length} running, ${queued.length} queued, ${cleanupPending.length} cleanup-unverified; oldest queue ${queueAge}${blocked ? "; dispatch may be blocked" : ""}. ${lines.join("; ")}`;
         checks.push({ name: "active_tasks", status: blocked ? "warning" : "ok", summary: summary.slice(0, 1200) });
       }
-      checks.push(inspectRecoveryLock(path12.join(store.tasksRoot, ".recovery.lock")));
+      checks.push(inspectRecoveryLock(path13.join(store.tasksRoot, ".recovery.lock")));
     } catch (error2) {
       checks.push({ name: "active_tasks", status: "unknown", summary: safeError(error2) });
     }
@@ -37037,12 +37345,12 @@ async function runBridgeDoctor(options = {}) {
   return { checked_at: (/* @__PURE__ */ new Date()).toISOString(), execution_mode: mode, checks };
 }
 function inspectRecoveryLock(lockDirectory) {
-  if (!existsSync9(lockDirectory)) {
+  if (!existsSync10(lockDirectory)) {
     return { name: "recovery_lock", status: "ok", summary: "No persisted recovery lock is blocking task reconciliation" };
   }
   try {
     const lockStat = statSync5(lockDirectory);
-    const raw = readFileSync9(path12.join(lockDirectory, "owner.json"), "utf8");
+    const raw = readFileSync10(path13.join(lockDirectory, "owner.json"), "utf8");
     const owner = JSON.parse(raw);
     if (!Number.isSafeInteger(owner.pid) || (owner.pid ?? 0) <= 0 || typeof owner.token !== "string" || !owner.token) {
       throw new Error("invalid lock owner record");
@@ -37079,7 +37387,7 @@ import { spawn as spawn4 } from "node:child_process";
 import { createHash as createHash8, randomUUID as randomUUID4 } from "node:crypto";
 import { mkdir, readFile as readFile2, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { homedir as homedir3 } from "node:os";
-import path13 from "node:path";
+import path14 from "node:path";
 init_process_spawn();
 init_profile();
 init_process_lock();
@@ -37099,7 +37407,7 @@ var ZCodeModelSettings = class {
   }
   async listModels(workspace) {
     const requestedWorkspace = workspace.trim();
-    if (!path13.isAbsolute(requestedWorkspace)) {
+    if (!path14.isAbsolute(requestedWorkspace)) {
       throw new BridgeError("provider_config_invalid", "workspace must be an absolute existing directory");
     }
     let workspacePath;
@@ -37249,8 +37557,8 @@ var ZCodeModelSettings = class {
   #updateConfig(update) {
     const operation = this.#writeQueue.then(async () => {
       await mkdir(this.#host.settingsDirectory, { recursive: true });
-      return withProcessLock(path13.join(this.#host.settingsDirectory, ".settings.lock"), async () => {
-        const configPath = path13.join(this.#host.settingsDirectory, "runtime-config.json");
+      return withProcessLock(path14.join(this.#host.settingsDirectory, ".settings.lock"), async () => {
+        const configPath = path14.join(this.#host.settingsDirectory, "runtime-config.json");
         let config2 = {};
         try {
           const info = await stat(configPath);
@@ -37264,7 +37572,7 @@ var ZCodeModelSettings = class {
           if (isMissingFile(error2)) {
             config2 = {};
             for (const directory of this.#host.legacySettingsDirectories ?? []) {
-              const legacyPath = path13.join(directory, "runtime-config.json");
+              const legacyPath = path14.join(directory, "runtime-config.json");
               try {
                 if ((await stat(legacyPath)).size > 64 * 1024) throw new Error("legacy settings exceed size limit");
                 const legacy = JSON.parse(await readFile2(legacyPath, "utf8"));
@@ -37500,7 +37808,7 @@ function modelCatalogCachePath(workspace, config2, env, settingsDirectory) {
     zcodeHome: env.ZCODE_HOME ?? ""
   });
   const key = createHash8("sha256").update(identity).digest("hex");
-  return path13.join(settingsDirectory, "model-catalog", `${key}.json`);
+  return path14.join(settingsDirectory, "model-catalog", `${key}.json`);
 }
 async function modelCatalogSourceFingerprint(config2, env) {
   const digest3 = createHash8("sha256");
@@ -37538,7 +37846,7 @@ function toCachedCatalogEntry(value) {
   return result;
 }
 async function writeModelCatalogCache(cachePath, cache) {
-  await mkdir(path13.dirname(cachePath), { recursive: true });
+  await mkdir(path14.dirname(cachePath), { recursive: true });
   const tempPath = `${cachePath}.${process.pid}.${randomUUID4()}.tmp`;
   try {
     await writeFile(tempPath, `${JSON.stringify(cache)}
@@ -37558,9 +37866,9 @@ init_build_provenance();
 init_trusted_local_deployment();
 
 // src/runtime/sqlite-install-config.ts
-import { existsSync as existsSync10, lstatSync, mkdirSync as mkdirSync6, readFileSync as readFileSync10, realpathSync as realpathSync4 } from "node:fs";
+import { existsSync as existsSync11, lstatSync, mkdirSync as mkdirSync6, readFileSync as readFileSync11, realpathSync as realpathSync4 } from "node:fs";
 import os from "node:os";
-import path15 from "node:path";
+import path16 from "node:path";
 import { fileURLToPath as fileURLToPath3 } from "node:url";
 init_profile();
 var CONFIG_FILE = "authority.json";
@@ -37576,12 +37884,12 @@ var SqliteInstallConfigurationError = class extends Error {
 };
 function loadInstallAuthoritySelection(host) {
   validateHostProfile(host);
-  const configPath = path15.join(host.settingsDirectory, CONFIG_FILE);
+  const configPath = path16.join(host.settingsDirectory, CONFIG_FILE);
   try {
     const stat2 = lstatSync(configPath);
     if (!stat2.isFile() || stat2.isSymbolicLink()) throw new SqliteInstallConfigurationError("authority_config_not_regular_file");
     if (stat2.size > CONFIG_LIMIT) throw new SqliteInstallConfigurationError("authority_config_too_large");
-    const parsed = JSON.parse(readFileSync10(configPath, "utf8"));
+    const parsed = JSON.parse(readFileSync11(configPath, "utf8"));
     if (!isRecord3(parsed)) throw new SqliteInstallConfigurationError("authority_config_invalid_shape");
     const keys = Object.keys(parsed).sort().join("|");
     if (parsed.schema_version !== 1) throw new SqliteInstallConfigurationError("authority_config_version_unsupported");
@@ -37607,10 +37915,10 @@ function prepareFreshSqliteStateDirectory(selection, env) {
 }
 function sqliteInstallationRoot(env) {
   const modulePath = fileURLToPath3(import.meta.url);
-  const dist = path15.dirname(modulePath);
-  if (env["ZCODE_BRIDGE_PLUGIN_MODE"] === "1" && path15.basename(modulePath) === "bridge.mjs" && path15.basename(dist) === "dist") {
-    const pluginRoot = path15.dirname(dist);
-    if (!existsSync10(path15.join(pluginRoot, ".codex-plugin", "plugin.json")) || !existsSync10(path15.join(pluginRoot, "launch-node24.mjs"))) {
+  const dist = path16.dirname(modulePath);
+  if (env["ZCODE_BRIDGE_PLUGIN_MODE"] === "1" && path16.basename(modulePath) === "bridge.mjs" && path16.basename(dist) === "dist") {
+    const pluginRoot = path16.dirname(dist);
+    if (!existsSync11(path16.join(pluginRoot, ".codex-plugin", "plugin.json")) || !existsSync11(path16.join(pluginRoot, "launch-node24.mjs"))) {
       throw new SqliteInstallConfigurationError("sqlite_plugin_layout_invalid");
     }
     return pluginRoot;
@@ -37620,10 +37928,10 @@ function sqliteInstallationRoot(env) {
 function resolveStateDirectory(selection, env, packageRootValue, tempRootValue) {
   const appRoot = selection.configuredDataRoot || defaultDataRoot(env);
   if (!isLocalAbsolutePath(appRoot)) throw new SqliteInstallConfigurationError("sqlite_data_root_not_local_absolute");
-  const normalizedRoot = path15.resolve(appRoot);
-  const stateDirectory = path15.join(normalizedRoot, "state");
-  const packageRoot = path15.resolve(packageRootValue);
-  const tempRoot = path15.resolve(tempRootValue);
+  const normalizedRoot = path16.resolve(appRoot);
+  const stateDirectory = path16.join(normalizedRoot, "state");
+  const packageRoot = path16.resolve(packageRootValue);
+  const tempRoot = path16.resolve(tempRootValue);
   if (within(packageRoot, normalizedRoot) || within(tempRoot, normalizedRoot) || within(packageRoot, stateDirectory) || within(tempRoot, stateDirectory)) {
     throw new SqliteInstallConfigurationError("sqlite_data_root_reserved_location");
   }
@@ -37631,7 +37939,7 @@ function resolveStateDirectory(selection, env, packageRootValue, tempRootValue) 
 }
 function prepareStateDirectory(selection, env, packageRootValue, tempRootValue) {
   const resolved = resolveStateDirectory(selection, env, packageRootValue, tempRootValue);
-  const normalizedRoot = path15.dirname(resolved.dataRoot);
+  const normalizedRoot = path16.dirname(resolved.dataRoot);
   ensurePlainDirectoryTree(normalizedRoot);
   ensurePlainDirectoryTree(resolved.dataRoot);
   const canonicalState = canonicalDirectory(resolved.dataRoot);
@@ -37641,15 +37949,15 @@ function prepareStateDirectory(selection, env, packageRootValue, tempRootValue) 
 function defaultDataRoot(env) {
   const localAppData = env["LOCALAPPDATA"]?.trim();
   if (!localAppData || !isLocalAbsolutePath(localAppData)) throw new SqliteInstallConfigurationError("local_app_data_unavailable");
-  return path15.join(localAppData, "CodexZCodeBridge");
+  return path16.join(localAppData, "CodexZCodeBridge");
 }
 function ensurePlainDirectoryTree(value) {
   if (!isLocalAbsolutePath(value)) throw new SqliteInstallConfigurationError("sqlite_data_path_not_local");
-  const parsed = path15.parse(value);
-  const segments = value.slice(parsed.root.length).split(path15.sep).filter(Boolean);
+  const parsed = path16.parse(value);
+  const segments = value.slice(parsed.root.length).split(path16.sep).filter(Boolean);
   let current = parsed.root;
   for (const segment of segments) {
-    current = path15.join(current, segment);
+    current = path16.join(current, segment);
     try {
       const stat2 = lstatSync(current);
       if (!stat2.isDirectory() || stat2.isSymbolicLink()) throw new SqliteInstallConfigurationError("sqlite_data_path_component_unsafe");
@@ -37679,8 +37987,8 @@ function canonicalDirectory(value) {
   }
 }
 function rejectOrphanedDatabaseState(root) {
-  const expected = path15.join(root, FRESH_SQLITE_DATABASE_FILE);
-  if (existsSync10(expected)) return;
+  const expected = path16.join(root, FRESH_SQLITE_DATABASE_FILE);
+  if (existsSync11(expected)) return;
   for (const name of [
     `${FRESH_SQLITE_DATABASE_FILE}-wal`,
     `${FRESH_SQLITE_DATABASE_FILE}-shm`,
@@ -37690,19 +37998,19 @@ function rejectOrphanedDatabaseState(root) {
     "ROOT_POISONED.json",
     "WRITER_INTENT.json"
   ]) {
-    if (existsSync10(path15.join(root, name))) throw new SqliteInstallConfigurationError("sqlite_existing_state_incomplete");
+    if (existsSync11(path16.join(root, name))) throw new SqliteInstallConfigurationError("sqlite_existing_state_incomplete");
   }
 }
 function isLocalAbsolutePath(value) {
-  if (process.platform === "win32") return /^[A-Za-z]:\\/u.test(value) && path15.win32.isAbsolute(value) && !value.startsWith("\\\\");
-  return path15.isAbsolute(value) && !value.startsWith("/proc/") && !value.startsWith("/sys/") && !value.startsWith("/dev/");
+  if (process.platform === "win32") return /^[A-Za-z]:\\/u.test(value) && path16.win32.isAbsolute(value) && !value.startsWith("\\\\");
+  return path16.isAbsolute(value) && !value.startsWith("/proc/") && !value.startsWith("/sys/") && !value.startsWith("/dev/");
 }
 function within(root, candidate) {
-  const relative = path15.relative(root, candidate);
-  return relative === "" || relative !== ".." && !relative.startsWith(`..${path15.sep}`) && !path15.isAbsolute(relative);
+  const relative = path16.relative(root, candidate);
+  return relative === "" || relative !== ".." && !relative.startsWith(`..${path16.sep}`) && !path16.isAbsolute(relative);
 }
 function samePath2(left, right) {
-  const normalize = (value) => process.platform === "win32" ? path15.win32.normalize(value).replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US") : path15.resolve(value);
+  const normalize = (value) => process.platform === "win32" ? path16.win32.normalize(value).replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US") : path16.resolve(value);
   return normalize(left) === normalize(right);
 }
 function isRecord3(value) {
@@ -37717,13 +38025,13 @@ function createTrustedLocalCandidateContext(host) {
 function resolveDataRoot(env) {
   const override = env["ZCODE_BRIDGE_DATA_DIR"]?.trim();
   if (override) {
-    if (!path18.isAbsolute(override)) {
+    if (!path19.isAbsolute(override)) {
       return {
         dataRoot: findPackageRoot(),
         warning: `ZCODE_BRIDGE_DATA_DIR must be an absolute path; ignoring ${override} and using the Bridge installation directory`
       };
     }
-    return { dataRoot: path18.normalize(override) };
+    return { dataRoot: path19.normalize(override) };
   }
   return { dataRoot: findPackageRoot() };
 }
@@ -37816,7 +38124,7 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
   }
   const processProbe = createPlatformProbe();
   let manager;
-  const databasePath = path18.join(dataRoot, FRESH_SQLITE_DATABASE_FILE);
+  const databasePath = path19.join(dataRoot, FRESH_SQLITE_DATABASE_FILE);
   let trustedLocalContext;
   try {
     trustedLocalContext = createTrustedLocalCandidateContext(host);
@@ -37874,7 +38182,7 @@ var isEntry = process.argv[1] !== void 0 && sameRealPath(import.meta.url, proces
 function sameRealPath(moduleUrl, argvPath) {
   try {
     const modulePath = realpathSync7(fileURLToPath5(moduleUrl));
-    const entryPath = realpathSync7(path19.resolve(argvPath));
+    const entryPath = realpathSync7(path20.resolve(argvPath));
     return process.platform === "win32" ? modulePath.toLocaleLowerCase("en-US") === entryPath.toLocaleLowerCase("en-US") : modulePath === entryPath;
   } catch {
     return false;

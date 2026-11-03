@@ -2629,21 +2629,6 @@
       "icon": "./plugins/Eliasjunit/vibestretch/assets/icon.png"
     },
     {
-      "name": "vidbyte-memory",
-      "displayName": "vidbyte-memory",
-      "source": {
-        "source": "local",
-        "path": "./plugins/cerredz/vidbyte-memory"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Correction-driven memory for Codex: turns corrections into facts and pytest checks, stages all repository changes for commits and pushes to origin unless --no-push is used, and installs a Stop hook that keeps turns open until checks pass.",
-      "icon": "./plugins/cerredz/vidbyte-memory/.claude-plugin/icon.png"
-    },
-    {
       "name": "villagesql",
       "displayName": "VillageSQL Skills",
       "source": {
@@ -3697,6 +3682,21 @@
       "icon": "./plugins/bosmdavid-gif/dropthehassle-skill/assets/icon.png"
     },
     {
+      "name": "easybrandkit",
+      "displayName": "easybrandkit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/EminBudak/easybrandkit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Saves a website's real logo files, colors, fonts and first screen as a brand kit your agent can read.",
+      "icon": "./plugins/EminBudak/easybrandkit/assets/icon.svg"
+    },
+    {
       "name": "education-agent-skills",
       "displayName": "Education Agent Skills",
       "source": {
@@ -4125,6 +4125,21 @@
       "category": "Tools & Integrations",
       "description": "Official Launch Fast plugin adapter for rapid SaaS deployment.",
       "icon": "./plugins/BlockchainHB/launchfast_codex_plugin/assets/icon.png"
+    },
+    {
+      "name": "launch-film",
+      "displayName": "launch-film",
+      "source": {
+        "source": "local",
+        "path": "./plugins/EminBudak/launch-film"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Makes a launch film with music from a website or an App Store page, using its real logo, colors, fonts and screens.",
+      "icon": "./plugins/EminBudak/launch-film/assets/icon.svg"
     },
     {
       "name": "liendeadline",
@@ -5218,6 +5233,21 @@
       "category": "Tools & Integrations",
       "description": "Make AI videos from Codex through Treza's hosted MCP server: one clip from a description, edits to media you have, and pipelines that render and post to YouTube and TikTok on a schedule.",
       "icon": "./plugins/treza-labs/treza-plugin/assets/treza-logo-400.png"
+    },
+    {
+      "name": "tweetapi",
+      "displayName": "TweetAPI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tweetapi/agent-skill"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Read-only lookups of public Twitter/X profiles, tweets, search results, lists, communities and Spaces through TweetAPI's hosted MCP server, with guidance for server-side API reads.",
+      "icon": "./plugins/tweetapi/agent-skill/assets/tweetapi-icon.png"
     },
     {
       "name": "unified-ai-system",

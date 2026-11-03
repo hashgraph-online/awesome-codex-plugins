@@ -1,0 +1,36 @@
+{
+  "name": "easybrandkit",
+  "version": "0.2.1",
+  "description": "Get a website's real logo files, colors, fonts and first screen as a brand kit your coding agent can read.",
+  "author": {
+    "name": "Emin Budak",
+    "url": "https://eminbudak.com"
+  },
+  "repository": "https://github.com/EminBudak/easybrandkit",
+  "license": "MIT",
+  "keywords": [
+    "brand",
+    "logo",
+    "colors",
+    "fonts",
+    "design"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "easybrandkit",
+    "shortDescription": "Brand kit from a website",
+    "longDescription": "Opens a product's website in the Chrome, Chromium, Edge or Brave you already have and saves its real logo files, colors, fonts, first screen and app store images as BRAND.md and brand.json. Needs Node 22 or newer and no API key.",
+    "developerName": "Emin Budak",
+    "category": "Creativity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteUrl": "https://github.com/EminBudak/easybrandkit",
+    "defaultPrompt": [
+      "Get the brand kit for linear.app"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

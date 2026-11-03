@@ -50,7 +50,20 @@ Or verify an arbitrary snippet:
 ```bash
 uvx aw1-circuit-breaker verify "subprocess.run(['rm', '-rf', '/'])"
 ```
+## Quick Connect via MCP
 
+To connect Claude Desktop, Cursor, or any MCP client to the remote AW-1 circuit breaker gateway, add this to your client configuration:
+
+```json
+{
+  "mcpServers": {
+    "aw1-circuit-breaker": {
+      "type": "http",
+      "url": "[https://p20.laveto.net/wisdom/mcp/sse](https://p20.laveto.net/wisdom/mcp/sse)"
+    }
+  }
+}
+```
 ---
 
 # AW-1 Circuit Breaker

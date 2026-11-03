@@ -42,9 +42,11 @@ give you a score: a number would claim a precision a read-through does not have.
 Connected to [VoiceMoat](https://voicemoat.com) through its
 [MCP connector](https://voicemoat.com/mcp), the sketch is replaced by a voice
 profile trained on your own published posts, held separately per platform,
-and a draft comes back with a Voice Match score from 0 to 100 and a note on
-what is off. The connector needs a VoiceMoat account on the Pro or Enterprise
-plan; the skills themselves never do.
+and a draft comes back with a voice check in two parts: Style, how many of
+your measurable habits it matches, and Stance, whether what it says fits your
+views, with the lines that are off. In assistants that show interactive cards,
+the check and the publishing preview can show as cards. The connector needs a
+VoiceMoat account on the Pro or Enterprise plan; the skills themselves never do.
 
 ## LinkedIn, 21 skills
 
@@ -114,7 +116,8 @@ quoting means quoting with the author named.
 
 This matters more once a connector with publishing tools is attached. Nothing in
 those skills can publish: on VoiceMoat, posting takes a second call you confirm,
-and the preview shows the exact words first.
+and the preview shows the exact words first. When the preview shows as a card,
+its Post now or Schedule button is that confirmation.
 
 To report a security problem, see [SECURITY.md](SECURITY.md).
 

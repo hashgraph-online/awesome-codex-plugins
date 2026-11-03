@@ -1,0 +1,15 @@
+interface:
+  display_name: "TweetAPI"
+  short_description: "Read public Twitter/X data with TweetAPI"
+  default_prompt: "Use $tweetapi to add a one-page read-only public Twitter/X lookup to this project."
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "tweetapi"
+      description: "Hosted OAuth MCP server for read-only TweetAPI calls"
+      transport: "streamable_http"
+      url: "https://mcp.tweetapi.com/mcp"
+
+policy:
+  allow_implicit_invocation: true

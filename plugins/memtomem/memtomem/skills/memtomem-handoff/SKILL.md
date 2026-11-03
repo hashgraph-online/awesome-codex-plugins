@@ -20,7 +20,7 @@ words after the skill's invocation name), as in `s to codex-cli` or `r <handoff-
 calling a tool; in a non-interactive context (a subagent or scripted run with nobody to
 ask), do not stall and do not guess — stop and report `insufficient_input: operation`.
 Supported runtime labels are `claude-code`, `codex-cli`, `kimi-code`,
-`opencode`, `antigravity-cli`, and `any`. Infer the current runtime when possible; use `any` as
+`opencode`, `antigravity-cli`, `cursor`, and `any`. Infer the current runtime when possible; use `any` as
 the default target. Write only these labels: normalize `claude` to `claude-code`, `codex` to
 `codex-cli`, `kimi` to `kimi-code`, and `antigravity` or `agy` to `antigravity-cli`, and use
 `any` as `from_runtime` when the current runtime cannot be inferred. A requested target that is

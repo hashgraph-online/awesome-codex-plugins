@@ -129,6 +129,17 @@ declares is `contract`.
 
 **Correct rows, not only a green build.**
 
+- A protected-value read refusal is not an instruction to remove, redact or
+  replace a column in a transformation. When the requested or existing output
+  contract includes a protected field, preserve its authorized pass-through
+  through the normal plan/apply path where supported. Check column presence and
+  types with metadata and rows with permitted aggregates, without requesting raw
+  protected values. Intentional removal or redaction needs an applicable user
+  instruction or contract. If the transformation itself is prohibited or
+  unsupported, report that limitation accurately: permission on another command
+  does not transfer, and a privacy or dev-target guard is never bypassed. Keep
+  protected examples out of assumptions, tests, logs and explanations. Only a
+  human clears a PII flag.
 - Drive a model from the entity it describes. When that entity is the parent
   and the population keeps parents with no children, left-join the children so
   each such parent survives, with a count of zero rather than NULL.
@@ -303,6 +314,10 @@ need is not described here.
   `ANY_VALUE`, `STRING_AGG`).
 - A refusal names the offending column and the fix. Rewrite once; do not retry
   the same shape.
+- A protected-value read refusal limits inspection; it does not change a
+  transformation's output contract. Preserve an authorized, supported
+  pass-through and validate its schema with metadata and its rows with permitted
+  aggregates. Do not request protected examples or invent redaction.
 - An unnest in the FROM clause must expand a column of a table in the query, and
   its outputs inherit that column's PII flags. The per-connector idioms are in
   the probe playbook.

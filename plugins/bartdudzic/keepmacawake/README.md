@@ -58,6 +58,8 @@ git clone https://github.com/bartdudzic/keepmacawake
 agy plugin install keepmacawake/plugins/keep-mac-awake
 ```
 
+Kiro (the skill only, without the hook, as a power in the Agent Plugins format): in the Powers panel, choose Add Custom Power, then Import power from GitHub, and enter `https://github.com/bartdudzic/keepmacawake/tree/main/powers/keep-mac-awake` ([the power](../../powers/keep-mac-awake/README.md)).
+
 Any agent that reads Agent Skills (the skill only, without the hook):
 
 ```sh

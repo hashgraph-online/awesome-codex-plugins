@@ -146,7 +146,7 @@ Retired IDs still route if typed — `gpt-5.4-mini`, `gpt-5-codex`, `gpt-5.1-cod
 
 ## Quota status
 
-The TUI prompt line shows quota for the account that served the last request. `quotaStatus.mode` in `~/.opencode/openai-codex-auth-config.json` controls it:
+The TUI prompt line shows quota for the account that served the current session's last request (OpenCode V2: the last request overall). `quotaStatus.mode` in `~/.opencode/openai-codex-auth-config.json` controls it:
 
 - `active` (default): the serving account's remaining quota
 - `overview`: the whole pool on one line, weighted by plan

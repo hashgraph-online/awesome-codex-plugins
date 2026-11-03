@@ -1,0 +1,42 @@
+{
+  "name": "tweetapi",
+  "version": "0.1.1",
+  "description": "Use TweetAPI for read-only public Twitter/X lookups and server-side application integration.",
+  "author": {
+    "name": "TweetAPI",
+    "url": "https://tweetapi.com"
+  },
+  "homepage": "https://tweetapi.com/mcp",
+  "repository": "https://github.com/tweetapi/agent-skill",
+  "license": "MIT",
+  "keywords": [
+    "tweetapi",
+    "twitter",
+    "x-api",
+    "agent-skill",
+    "mcp",
+    "read-only"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "TweetAPI",
+    "shortDescription": "Read public Twitter/X data with TweetAPI",
+    "longDescription": "Read current TweetAPI documentation, make one-page public Twitter/X lookups through OAuth, or add server-side reads to an application.",
+    "developerName": "TweetAPI",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://tweetapi.com/mcp",
+    "privacyPolicyURL": "https://tweetapi.com/privacy",
+    "termsOfServiceURL": "https://tweetapi.com/terms",
+    "composerIcon": "./assets/tweetapi-icon.png",
+    "logo": "./assets/tweetapi-icon.png",
+    "defaultPrompt": [
+      "Find the current read-only endpoint for a public profile.",
+      "Add a one-page server-side TweetAPI lookup to this project.",
+      "Inspect TweetAPI docs without making a live data request."
+    ]
+  }
+}

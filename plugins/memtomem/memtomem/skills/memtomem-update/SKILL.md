@@ -32,7 +32,7 @@ mode is requested without a focus, ask before calling a tool, or in a non-intera
 and report `insufficient_input: topic focus`. Session outcomes are reviewed in every mode.
 
 Supported runtime labels are `claude-code`, `codex-cli`, `kimi-code`, `opencode`,
-`antigravity-cli`, and `any`.
+`antigravity-cli`, `cursor`, and `any`.
 Infer the current runtime when possible; use `any` if unknown.
 
 ## Common checks

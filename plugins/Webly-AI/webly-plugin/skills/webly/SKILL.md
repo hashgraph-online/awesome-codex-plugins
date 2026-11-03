@@ -391,6 +391,12 @@ one before creating a site, and on `400 workspace_required` ask; never guess.
 `workspaces: "one"` means the connection is limited to one workspace. If they
 need another (`list_workspaces` shows `canUse: false`), they reconnect: in
 Claude Code `/mcp` → webly → re-authenticate, and pick All my workspaces.
+When the owner asks about the "Made with Webly" badge: Hobby and Pro sites go
+without it unless they opt in. `set_workspace_badge` turns it on or off for every
+site, new ones included; `update_website` with `showBadge` sets one site, and that
+always wins (`null` follows the workspace again). Free always shows it: on
+`402 plan_required`, give them `details.upgradeUrl`.
+
 When the owner asks for a team workspace photo, `set_workspace_photo` takes a
 public image `url` or the file as `base64` (PNG, JPEG, WebP or GIF, 2 MB);
 `remove_workspace_photo` clears it. A personal workspace shows the person's own

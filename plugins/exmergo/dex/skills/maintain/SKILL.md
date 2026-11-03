@@ -131,6 +131,17 @@ declares is `contract`.
 
 **Correct rows, not only a green build.**
 
+- A protected-value read refusal is not an instruction to remove, redact or
+  replace a column in a transformation. When the requested or existing output
+  contract includes a protected field, preserve its authorized pass-through
+  through the normal plan/apply path where supported. Check column presence and
+  types with metadata and rows with permitted aggregates, without requesting raw
+  protected values. Intentional removal or redaction needs an applicable user
+  instruction or contract. If the transformation itself is prohibited or
+  unsupported, report that limitation accurately: permission on another command
+  does not transfer, and a privacy or dev-target guard is never bypassed. Keep
+  protected examples out of assumptions, tests, logs and explanations. Only a
+  human clears a PII flag.
 - Drive a model from the entity it describes. When that entity is the parent
   and the population keeps parents with no children, left-join the children so
   each such parent survives, with a count of zero rather than NULL.

@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-03",
-  "total": 367,
+  "total": 369,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1781,16 +1781,6 @@
       "install_url": "https://raw.githubusercontent.com/Eliasjunit/vibestretch/HEAD/.codex-plugin/plugin.json"
     },
     {
-      "name": "vidbyte-memory",
-      "url": "https://github.com/cerredz/vidbyte-memory",
-      "owner": "cerredz",
-      "repo": "vidbyte-memory",
-      "description": "Correction-driven memory for Codex: turns corrections into facts and pytest checks, stages all repository changes for commits and pushes to origin unless --no-push is used, and installs a Stop hook that keeps turns open until checks pass.",
-      "category": "Development & Workflow",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/cerredz/vidbyte-memory/HEAD/.codex-plugin/plugin.json"
-    },
-    {
       "name": "VillageSQL Skills",
       "url": "https://github.com/villagesql/villagesql-skills",
       "owner": "villagesql",
@@ -2503,6 +2493,16 @@
       "install_url": "https://raw.githubusercontent.com/bosmdavid-gif/dropthehassle-skill/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "easybrandkit",
+      "url": "https://github.com/EminBudak/easybrandkit",
+      "owner": "EminBudak",
+      "repo": "easybrandkit",
+      "description": "Saves a website's real logo files, colors, fonts and first screen as a brand kit your agent can read.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/EminBudak/easybrandkit/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Education Agent Skills",
       "url": "https://github.com/GarethManning/education-agent-skills",
       "owner": "GarethManning",
@@ -2791,6 +2791,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/BlockchainHB/launchfast_codex_plugin/HEAD/plugins/launchfast/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "launch-film",
+      "url": "https://github.com/EminBudak/launch-film",
+      "owner": "EminBudak",
+      "repo": "launch-film",
+      "description": "Makes a launch film with music from a website or an App Store page, using its real logo, colors, fonts and screens.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/EminBudak/launch-film/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "LienDeadline",
@@ -3531,6 +3541,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/treza-labs/treza-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "TweetAPI",
+      "url": "https://github.com/tweetapi/agent-skill",
+      "owner": "tweetapi",
+      "repo": "agent-skill",
+      "description": "Read-only lookups of public Twitter/X profiles, tweets, search results, lists, communities and Spaces through TweetAPI's hosted MCP server, with guidance for server-side API reads.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/tweetapi/agent-skill/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Unified AI System",

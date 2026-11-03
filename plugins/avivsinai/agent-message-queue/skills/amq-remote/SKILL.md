@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.125.0 # x-release-please-version
+version: 0.126.0 # x-release-please-version
 description: Let the owner reach this running agent from Buzz, on the phone or in Buzz Desktop. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -94,52 +94,28 @@ command's own message. Do not work around a refusal.
      Desktop (Agents, the agent, Start); it then makes this session's
      channel."
    If the JSON has `warning`, show it too.
-4. **`--native` on Claude Code only: the approval hook.** Run
-   `amq-remote doctor --root "$ROOT" --json` and read its `failing` list; the
-   exit code is not the signal. When a `native_capability` entry says the
-   PermissionRequest hook is not installed:
-   - **No relay share** (the usual `--native` case). Tell the user: "This adds
-     one PermissionRequest hook. It exits at once in sessions that are not
-     connected. It lets Buzz deny a tool call only: a cross-mark reaction (❌)
-     in the DM denies, and allow stays in Claude's terminal.
-     `amq-remote claude uninstall-approval-hook` removes it." Ask once, then run
-     `amq-remote claude install-approval-hook`.
-   - **A Claude target shared through a relay share.** Tell the user:
-     - "This adds one PermissionRequest hook. It exits at once in sessions
-       that are not shared."
-     - "It pins your Buzz public key and this share's relay, body, DM channel
-       and target. Only your signed check-mark reaction (✅), or your yes in
-       the approval's thread, in this DM can allow a tool call."
-     - "Do not allow Claude to edit .claude for a session, use
-       bypassPermissions or auto permission mode (also when started with
-       `--permission-mode`), or allow every Bash command: each lets the pin
-       be changed."
-     - "The relay is trusted to return the message's full edit and deletion
-       history. Replacing the amq-remote binary, or a settings edit you
-       approve, defeats the pin."
-     - "Run the install again if the share's relay or channel changes.
-       Another decision hook you have can answer first.
-       `amq-remote claude uninstall-approval-hook` removes it."
-
-     Ask once, then run
-     `amq-remote claude install-approval-hook --root "$ROOT"`. If doctor
-     reports `claude_approval_pin_warnings`, show them to the user.
+4. **Claude Code only: the approval hook** (default and `--native`, after
+   a successful attach). Run `amq-remote doctor --root "$ROOT" --json` and
+   read its `failing` list; the exit code is not the signal. When a
+   `native_capability` entry says the PermissionRequest hook is not
+   installed, tell the user: "This adds one approval hook so Buzz shows every
+   approval dialog of this session; ✅ allows, ❌ denies, first answer wins.
+   `amq-remote claude uninstall-approval-hook` removes it." Ask once, then run
+   `amq-remote claude install-approval-hook`. Codex needs no hook: its
+   approvals reach Buzz only for a session on the Codex app-server (the
+   `--native` Codex path below); a plain `codex` TUI session answers
+   approvals in the terminal.
 5. Add one line for the carrier:
    - Default: "Buzz messages arrive in this agent's AMQ inbox. Stop in Buzz
      stops waiting; a delivered message may still be acted on."
    - `--native`: "A message sent while this session is busy waits. Buzz Stop
      cannot interrupt a Claude turn."
-   - In a channel the machine agent made, a tool approval can only be denied
-     (❌); allow it in the terminal.
-   - Approval hook installed in step 4 with a relay share: "When a Buzz
-     request needs a tool approval, the DM shows it. A cross-mark reaction
-     (❌) blocks that call. A check-mark reaction (✅), or yes replied in the
-     approval's thread, allows it when the DM offers the check mark: a Bash
-     command shown whole. Otherwise allow it in the terminal. The first
-     answer wins."
-   - Approval hook installed without a relay share: "When a Buzz request
-     needs a tool approval, the DM shows it. A cross-mark reaction (❌)
-     denies that call; allow it in Claude's terminal. The first answer wins."
+   - Claude with the hook installed: "Every approval dialog of this session
+     shows in Buzz with its options. ✅ or ❌, or a reply with the option
+     number, answers it. The first answer, in Buzz or in the terminal,
+     wins."
+   - Codex on the app-server: the same line. A plain `codex` TUI session:
+     "Approvals stay in the terminal."
 
 Codex with `--native`: attach needs `CODEX_THREAD_ID` and a thread loaded in
 the Codex app-server daemon. A session started with plain `codex` is not in

@@ -13,7 +13,7 @@ and price history. No account or API key is needed.
 
 ## Start shopping
 
-- The [ChatGPT plugin](https://chatgpt.com/plugins/plugin_asdk_app_6a8d8ed6e2bc8191b3caaf7214f3c981) is temporarily unavailable while the updated version is under review. Developer integrations can still call the public endpoint below.
+- The [BestPrice app for ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6ad82ceb86108191ac9cd6b08197aabd) is available. Developer integrations can still call the public endpoint below.
 - [Connect BestPrice to Claude](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=BestPrice&connectorUrl=https%3A%2F%2Fmcp.bestprice.gr%2Fmcp) using the prefilled connector form.
 - See the [shopping guide](https://www.bestprice.gr/en/mcp) for examples and other assistants.
 
@@ -34,7 +34,7 @@ manifests for each AI client, a local stdio bridge for hosts that cannot speak H
 the browser-native WebMCP layer. The server itself is not in this repository.
 
 The [current release matrix](submission/current-release-matrix.md) records the
-live gateway, UI, OAuth/Events, plugin review and separate ACP qualification.
+live gateway, UI, OAuth/Events, the ChatGPT directory listing and separate ACP qualification.
 
 ## Tools
 
