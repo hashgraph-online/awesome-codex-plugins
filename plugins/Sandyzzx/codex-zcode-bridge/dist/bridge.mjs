@@ -4181,6 +4181,45 @@ var init_build = __esm({
   }
 });
 
+// src/attention/snapshot.ts
+function parseTaskAttentionSnapshot(value, expectedTaskId) {
+  if (!isRecord(value)) throw new TaskManagerError("TASK_STATE", "SQLite attention projection is invalid");
+  const taskId = value.task_id;
+  const attempt = value.attempt;
+  const status = value.status;
+  const pending = value.pending_requests;
+  if (typeof taskId !== "string" || !taskId || expectedTaskId !== void 0 && taskId !== expectedTaskId || !Number.isSafeInteger(attempt) || Number(attempt) < 1 || typeof status !== "string" || !TASK_STATUSES.has(status) || !Array.isArray(pending) || pending.some((requestId) => typeof requestId !== "string" || requestId.length < 1 || requestId.length > 512)) {
+    throw new TaskManagerError("TASK_STATE", "SQLite attention projection is invalid");
+  }
+  return {
+    task_id: taskId,
+    attempt: Number(attempt),
+    status,
+    pending_requests: [...pending]
+  };
+}
+function isAttentionTerminalStatus(status) {
+  return status === "completed" || status === "failed" || status === "cancelled" || status === "waiting_for_master";
+}
+function isRecord(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+var TASK_STATUSES;
+var init_snapshot = __esm({
+  "src/attention/snapshot.ts"() {
+    "use strict";
+    init_errors();
+    TASK_STATUSES = /* @__PURE__ */ new Set([
+      "queued",
+      "running",
+      "completed",
+      "failed",
+      "cancelled",
+      "waiting_for_master"
+    ]);
+  }
+});
+
 // src/runtime/trusted-local-profile.ts
 function resolveTrustedLocalExecutionProfile(id) {
   return PROFILES[id] ?? null;
@@ -5417,6 +5456,12 @@ function writePoison(file, value) {
     }
   }
 }
+function workspacePathsOverlap(left, right) {
+  const a = path17.win32.resolve(left).toLowerCase();
+  const b = path17.win32.resolve(right).toLowerCase();
+  const contains = (parent, child) => child === parent || child.startsWith(parent.endsWith("\\") ? parent : `${parent}\\`);
+  return contains(a, b) || contains(b, a);
+}
 function validateInteractionHistory(db, operation, events) {
   const payloads = db.prepare("SELECT * FROM manager_interaction_payloads WHERE operation_id=? ORDER BY request_id").all(operation.operation_id);
   const interactionEvents = events.filter((event) => event.event_type.startsWith("interaction_"));
@@ -5833,11 +5878,12 @@ var init_store = __esm({
         if (!existsSync12(p.db)) fail("database_missing");
         const db = new DatabaseSync(p.db, { timeout: 5e3, readOnly: true });
         try {
+          db.exec("PRAGMA foreign_keys=ON");
+          db.exec("PRAGMA query_only=ON");
           if (db.prepare("PRAGMA user_version").get().user_version !== SCHEMA_VERSION) fail("schema_version_unknown");
           const columns = new Set(db.prepare("PRAGMA table_info(manager_operations)").all().map((x) => x.name));
           if (!["result_status", "result_generation", "result_digest", "result_json", "result_commit_ref"].every((x) => columns.has(x))) fail("candidate_schema_mismatch");
           if (!db.prepare("SELECT 1 FROM pragma_table_info('manager_operation_events') WHERE name='event_cursor'").get()) fail("candidate_schema_mismatch");
-          db.exec("PRAGMA foreign_keys=ON");
           assertCutoverPublicationGate(db, p);
           return new _IsolatedAdmissionStore(CONSTRUCT, db, p, void 0, true);
         } catch (e) {
@@ -5862,6 +5908,10 @@ var init_store = __esm({
       get foreignKeysEnabled() {
         this.#assertOpen();
         return this.#db.prepare("PRAGMA foreign_keys").get().foreign_keys === 1;
+      }
+      get queryOnlyEnabled() {
+        this.#assertOpen();
+        return this.#db.prepare("PRAGMA query_only").get().query_only === 1;
       }
       #adminAbandonments() {
         const table = this.#db.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='manager_admin_abandonments'").get();
@@ -6399,58 +6449,95 @@ var init_store = __esm({
       readInteractionRequest(taskId, requestId) {
         if (!validId3(taskId) || typeof requestId !== "string" || !validId3(requestId) || requestId.length > 512) fail("invalid_interaction_request_id");
         return this.#readConsistent(() => {
-          const task = this.#db.prepare("SELECT current_attempt FROM tasks WHERE task_id=?").get(taskId);
+          const task = this.#db.prepare("SELECT task_id,current_attempt FROM tasks WHERE task_id=?").get(taskId);
           if (!task) fail("task_not_found");
-          const payload = this.#db.prepare("SELECT * FROM manager_interaction_payloads WHERE task_id=? AND attempt=? AND request_id=?").get(taskId, task.current_attempt, requestId);
-          if (!payload) return null;
-          const events = this.#db.prepare("SELECT sequence,event_type,evidence_json,evidence_digest FROM manager_operation_events WHERE operation_id=? AND json_extract(evidence_json,'$.request_id')=? AND event_type IN ('interaction_requested','interaction_reply_intent','interaction_reply_prepared','interaction_reply_committed','interaction_reply_accepted') ORDER BY sequence").all(payload.operation_id, requestId).map((e) => ({ ...e, evidence: JSON.parse(e.evidence_json) }));
-          const requestEvent = events.find((e) => e.event_type === "interaction_requested");
-          const intent = events.find((e) => e.event_type === "interaction_reply_intent");
-          const prepared = events.find((e) => e.event_type === "interaction_reply_prepared");
-          const committed = events.find((e) => e.event_type === "interaction_reply_committed");
-          const accepted = events.find((e) => e.event_type === "interaction_reply_accepted");
-          if (!requestEvent || events.filter((e) => e.event_type === "interaction_requested").length !== 1 || events.filter((e) => e.event_type === "interaction_reply_intent").length > 1 || events.filter((e) => e.event_type === "interaction_reply_prepared").length > 1 || events.filter((e) => e.event_type === "interaction_reply_committed").length > 1 || events.filter((e) => e.event_type === "interaction_reply_accepted").length > 1 || accepted && !committed || events.some((e) => e.evidence_digest !== digest2(e.evidence_json)) || requestEvent.evidence.request_digest !== payload.request_digest || requestEvent.evidence.request_method !== payload.request_method || intent && (intent.sequence <= requestEvent.sequence || intent.evidence.reply_id !== payload.reply_id || intent.evidence.answer_digest !== payload.answer_digest) || prepared && (!intent || prepared.sequence !== intent.sequence + 1 || prepared.evidence.reply_id !== payload.reply_id || prepared.evidence.answer_digest !== payload.answer_digest) || committed && (!prepared || committed.sequence !== prepared.sequence + 1 || committed.evidence.reply_id !== payload.reply_id || committed.evidence.answer_digest !== payload.answer_digest || committed.evidence.prepared_digest !== prepared.evidence.prepared_digest) || accepted && (!committed || accepted.sequence !== committed.sequence + 1 || accepted.evidence.reply_id !== payload.reply_id || accepted.evidence.answer_digest !== payload.answer_digest || accepted.evidence.commit_digest !== committed.evidence.commit_digest)) fail("interaction_history_mismatch");
-          const request = JSON.parse(payload.request_json);
-          if (!validateInteractionRequest(request) || interactionCanonical(request) !== payload.request_json || request.request_id !== requestId || request.method !== payload.request_method || payload.request_digest !== interactionDigest({
-            interaction_contract_version: 1,
+          return this.#readInteractionRequestInSnapshot(task, requestId);
+        });
+      }
+      /** Read current Attention facts in one SQLite snapshot without mutating state. */
+      readTaskAttention(taskId) {
+        if (!validId3(taskId)) fail("invalid_task_id");
+        return this.#readConsistent(() => {
+          const task = this.#db.prepare("SELECT task_id,status,current_attempt FROM tasks WHERE task_id=?").get(taskId);
+          if (!task) return null;
+          const attempt = this.#db.prepare("SELECT attempt,generation,status FROM attempts WHERE task_id=? AND attempt=?").get(taskId, task.current_attempt);
+          if (!attempt || attempt.attempt !== task.current_attempt || attempt.status !== task.status) fail("task_attempt_projection_mismatch");
+          const pending = [];
+          if (task.status === "completed" || task.status === "failed" || task.status === "cancelled" || task.status === "waiting_for_master") {
+            return { task_id: task.task_id, attempt: task.current_attempt, status: task.status, pending_requests: [] };
+          }
+          if (task.status === "queued") return { task_id: task.task_id, attempt: task.current_attempt, status: task.status, pending_requests: [] };
+          if (task.status !== "running") fail("task_attempt_projection_mismatch");
+          const operation = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(taskId, task.current_attempt);
+          if (!operation || attempt.status !== "running" || operation.phase !== "running" || operation.generation !== attempt.generation || operation.claim_generation !== operation.generation || !operation.claim_id || !operation.claim_worker_identity_digest)
+            fail("interaction_task_projection_mismatch");
+          const candidates = this.#db.prepare(`SELECT p.request_id,e.sequence
+        FROM manager_interaction_payloads p
+        LEFT JOIN manager_operation_events e ON e.operation_id=p.operation_id
+          AND e.event_type='interaction_requested'
+          AND json_extract(e.evidence_json,'$.request_id')=p.request_id
+        WHERE p.operation_id=? AND p.task_id=? AND p.attempt=?
+        ORDER BY e.sequence,p.rowid`).all(operation.operation_id, taskId, task.current_attempt);
+          for (const candidate of candidates) {
+            const request = this.#readInteractionRequestInSnapshot(task, candidate.request_id);
+            if (!request) fail("interaction_history_mismatch");
+            if (request.state === "unknown") fail("interaction_reply_outcome_unknown");
+            if (request.state === "pending") pending.push(candidate.request_id);
+          }
+          return { task_id: task.task_id, attempt: task.current_attempt, status: task.status, pending_requests: pending };
+        });
+      }
+      #readInteractionRequestInSnapshot(task, requestId) {
+        const requestIdValue = String(requestId);
+        const payload = this.#db.prepare("SELECT * FROM manager_interaction_payloads WHERE task_id=? AND attempt=? AND request_id=?").get(task.task_id, task.current_attempt, requestIdValue);
+        if (!payload) return null;
+        const events = this.#db.prepare("SELECT sequence,event_type,evidence_json,evidence_digest FROM manager_operation_events WHERE operation_id=? AND json_extract(evidence_json,'$.request_id')=? AND event_type IN ('interaction_requested','interaction_reply_intent','interaction_reply_prepared','interaction_reply_committed','interaction_reply_accepted') ORDER BY sequence").all(payload.operation_id, requestIdValue).map((e) => ({ ...e, evidence: JSON.parse(e.evidence_json) }));
+        const requestEvent = events.find((e) => e.event_type === "interaction_requested");
+        const intent = events.find((e) => e.event_type === "interaction_reply_intent");
+        const prepared = events.find((e) => e.event_type === "interaction_reply_prepared");
+        const committed = events.find((e) => e.event_type === "interaction_reply_committed");
+        const accepted = events.find((e) => e.event_type === "interaction_reply_accepted");
+        if (!requestEvent || events.filter((e) => e.event_type === "interaction_requested").length !== 1 || events.filter((e) => e.event_type === "interaction_reply_intent").length > 1 || events.filter((e) => e.event_type === "interaction_reply_prepared").length > 1 || events.filter((e) => e.event_type === "interaction_reply_committed").length > 1 || events.filter((e) => e.event_type === "interaction_reply_accepted").length > 1 || accepted && !committed || events.some((e) => e.evidence_digest !== digest2(e.evidence_json)) || requestEvent.evidence.request_digest !== payload.request_digest || requestEvent.evidence.request_method !== payload.request_method || intent && (intent.sequence <= requestEvent.sequence || intent.evidence.reply_id !== payload.reply_id || intent.evidence.answer_digest !== payload.answer_digest) || prepared && (!intent || prepared.sequence !== intent.sequence + 1 || prepared.evidence.reply_id !== payload.reply_id || prepared.evidence.answer_digest !== payload.answer_digest) || committed && (!prepared || committed.sequence !== prepared.sequence + 1 || committed.evidence.reply_id !== payload.reply_id || committed.evidence.answer_digest !== payload.answer_digest || committed.evidence.prepared_digest !== prepared.evidence.prepared_digest) || accepted && (!committed || accepted.sequence !== committed.sequence + 1 || accepted.evidence.reply_id !== payload.reply_id || accepted.evidence.answer_digest !== payload.answer_digest || accepted.evidence.commit_digest !== committed.evidence.commit_digest)) fail("interaction_history_mismatch");
+        const request = JSON.parse(payload.request_json);
+        if (!validateInteractionRequest(request) || interactionCanonical(request) !== payload.request_json || request.request_id !== requestIdValue || request.method !== payload.request_method || payload.request_digest !== interactionDigest({
+          interaction_contract_version: 1,
+          operation_id: payload.operation_id,
+          task_id: payload.task_id,
+          attempt: payload.attempt,
+          generation: payload.generation,
+          claim_id: payload.claim_id,
+          worker_identity_digest: payload.worker_identity_digest,
+          request
+        }))
+          fail("interaction_history_mismatch");
+        if (intent) {
+          const answer = JSON.parse(payload.answer_json);
+          if (interactionCanonical(answer) !== payload.answer_json || !validPersistedInteractionAnswer(request, answer) || payload.answer_digest !== interactionDigest({
+            interaction_reply_contract_version: 1,
             operation_id: payload.operation_id,
             task_id: payload.task_id,
             attempt: payload.attempt,
             generation: payload.generation,
             claim_id: payload.claim_id,
             worker_identity_digest: payload.worker_identity_digest,
-            request
+            request_id: requestIdValue,
+            answer
           }))
             fail("interaction_history_mismatch");
-          if (intent) {
-            const answer = JSON.parse(payload.answer_json);
-            if (interactionCanonical(answer) !== payload.answer_json || !validPersistedInteractionAnswer(request, answer) || payload.answer_digest !== interactionDigest({
-              interaction_reply_contract_version: 1,
-              operation_id: payload.operation_id,
-              task_id: payload.task_id,
-              attempt: payload.attempt,
-              generation: payload.generation,
-              claim_id: payload.claim_id,
-              worker_identity_digest: payload.worker_identity_digest,
-              request_id: requestId,
-              answer
-            }))
-              fail("interaction_history_mismatch");
-          }
-          return {
-            operation_id: payload.operation_id,
-            task_id: payload.task_id,
-            attempt: payload.attempt,
-            generation: payload.generation,
-            claim_id: payload.claim_id,
-            worker_identity_digest: payload.worker_identity_digest,
-            request,
-            request_digest: payload.request_digest,
-            state: accepted ? "answered" : intent ? "unknown" : "pending",
-            ...intent ? { reply_id: intent.evidence.reply_id, answer_digest: intent.evidence.answer_digest } : {},
-            ...accepted ? { answer: JSON.parse(payload.answer_json), ack_digest: accepted.evidence.ack_digest } : {}
-          };
-        });
+        }
+        return {
+          operation_id: payload.operation_id,
+          task_id: payload.task_id,
+          attempt: payload.attempt,
+          generation: payload.generation,
+          claim_id: payload.claim_id,
+          worker_identity_digest: payload.worker_identity_digest,
+          request,
+          request_digest: payload.request_digest,
+          state: accepted ? "answered" : intent ? "unknown" : "pending",
+          ...intent ? { reply_id: intent.evidence.reply_id, answer_digest: intent.evidence.answer_digest } : {},
+          ...accepted ? { answer: JSON.parse(payload.answer_json), ack_digest: accepted.evidence.ack_digest } : {}
+        };
       }
       /** Persist reply intent before any channel write. An intent without accepted ack is never replayed. */
       beginInteractionReply(input) {
@@ -6796,6 +6883,8 @@ var init_store = __esm({
           }
           const same = this.#db.prepare("SELECT operation_id FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(requested.task_id, requested.attempt);
           if (same) fail("attempt_already_admitted");
+          const occupiedWorkspaces = this.#db.prepare("SELECT workspace_ref FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND phase NOT IN ('released','cancelled_before_launch')").all();
+          if (occupiedWorkspaces.some((row2) => typeof row2.workspace_ref === "string" && workspacePathsOverlap(w, row2.workspace_ref))) fail("workspace_already_occupied");
           const meta2 = this.#db.prepare("SELECT * FROM authority_metadata WHERE singleton=1").get();
           if (!meta2 || meta2.policy_version !== 1 || meta2.policy_generation < 1) fail("capacity_policy_missing");
           const active = this.#db.prepare("SELECT COUNT(*) AS n FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND phase NOT IN ('released','cancelled_before_launch')").get().n;
@@ -8973,6 +9062,7 @@ var init_lifecycle_port = __esm({
       "readTaskProjection",
       "readAttempt",
       "readTaskLifecycle",
+      "readTaskAttention",
       "readRecoverableQueuedAttempts",
       "readTaskEvents",
       "readTaskFeedback",
@@ -9008,6 +9098,9 @@ import { createHash as createHash15, randomUUID as randomUUID6 } from "node:cryp
 import { closeSync as closeSync6, existsSync as existsSync13, fsyncSync as fsyncSync4, linkSync, lstatSync as lstatSync3, openSync as openSync6, readFileSync as readFileSync13, readdirSync as readdirSync3, realpathSync as realpathSync6, unlinkSync as unlinkSync3, writeFileSync as writeFileSync7 } from "node:fs";
 import { spawn as spawn5 } from "node:child_process";
 import path18 from "node:path";
+function recoveryStopKey(dataRoot, databaseFileName, operationId) {
+  return `${path18.resolve(dataRoot)}\0${databaseFileName ?? "operations.sqlite3"}\0${operationId}`;
+}
 function readAllLifecycleEventsForRecovery(port, operationId) {
   const pageSize = 200;
   const events = [];
@@ -9760,13 +9853,15 @@ async function openClaimOnlyDriver(options) {
       }
     },
     readRecoverableQueuedAttempts: () => port.readRecoverableQueuedAttempts(),
-    async recoverOperation(operationId) {
+    async recoverOperation(operationId, recoveryOptions = {}) {
+      const stopKey = recoveryStopKey(options.dataRoot, options.databaseFileName, operationId);
       const operationValue = port.readOperation(operationId);
       if (!operationValue) throw new LifecycleGateError("recovery_operation_missing");
       const operation = asRecord4(operationValue);
       if (operation.operation_kind !== "attempt_lifecycle") return { state: "not_applicable", operation_id: operationId };
       const phase = text(operation.phase, "recovery_phase_missing");
       if (phase === "released" || phase === "cancelled_before_launch" || phase === "admin_abandoned") {
+        if (phase === "released") verifiedRecoveryStops.delete(stopKey);
         return { state: "complete", operation_id: operationId, phase };
       }
       if (phase === "reserved") return { state: "reserved", operation_id: operationId, phase };
@@ -9826,6 +9921,7 @@ async function openClaimOnlyDriver(options) {
           cleanup_digest: cleanupDigest
         }));
         if (release.phase !== "released" || release.capacity_released !== true) throw new LifecycleGateError("recovery_release_not_persisted");
+        verifiedRecoveryStops.delete(stopKey);
         return { state: "released", operation_id: operationId, phase: "released", revision: release.revision };
       }
       const claimId = operation.claim_id;
@@ -9861,9 +9957,9 @@ async function openClaimOnlyDriver(options) {
       const probeOutcome = await probeWithDeadline(probe, { pid: processId, identity }, processProbeTimeoutMs);
       if (probeOutcome.status === "resolved") verdict2 = probeOutcome.verdict;
       else probeFailure = probeOutcome.status === "timeout" ? "probe_timeout" : "probe_rejected";
-      const identityState = verdict2?.state === "alive" || verdict2?.state === "exited" ? verdict2.state : "unknown";
+      let identityState = verdict2?.state === "alive" || verdict2?.state === "exited" ? verdict2.state : "unknown";
       const cleanupPhase = phase === "result_committed" || phase === "cleanup_pending" || phase === "cleanup_unverified";
-      const probeReason = probeFailure ?? (typeof verdict2?.reason_code === "string" ? verdict2.reason_code : "probe_result_unknown");
+      let probeReason = probeFailure ?? (typeof verdict2?.reason_code === "string" ? verdict2.reason_code : "probe_result_unknown");
       const cancellationRequested = lifecycleEvents.some((event) => {
         if (event.event_type !== "observation_recorded") return false;
         try {
@@ -9882,18 +9978,54 @@ async function openClaimOnlyDriver(options) {
           probe_reason: probeReason
         };
       }
+      if (phase === "cleanup_unverified" && recoveryOptions.stopAliveWorker === true && identityState === "alive") {
+        try {
+          let stop = verifiedRecoveryStops.get(stopKey);
+          if (!stop) {
+            stop = (async () => {
+              if (options.testStopWorkerForRecovery) {
+                await options.testStopWorkerForRecovery(processId, fingerprint);
+              } else {
+                const stopped = await terminateProcessTree(processId, {
+                  graceMs: 500,
+                  killWaitMs: 5e3,
+                  expectedRootFingerprint: fingerprint
+                });
+                if (stopped.verified !== true) throw new LifecycleGateError("recovery_worker_stop_unverified");
+              }
+            })();
+            verifiedRecoveryStops.set(stopKey, stop);
+            try {
+              await stop;
+            } catch (error2) {
+              if (verifiedRecoveryStops.get(stopKey) === stop) verifiedRecoveryStops.delete(stopKey);
+              throw error2;
+            }
+          } else {
+            await stop;
+          }
+          const afterStop = await probeWithDeadline(probe, { pid: processId, identity }, processProbeTimeoutMs);
+          const afterStopVerdict = afterStop.status === "resolved" ? afterStop.verdict : void 0;
+          identityState = afterStopVerdict?.state === "exited" ? "exited" : afterStopVerdict?.state === "alive" ? "alive" : "unknown";
+          probeReason = afterStopVerdict?.reason_code ?? (identityState === "exited" ? "worker_stopped_and_exit_verified" : "worker_stop_exit_unverified");
+        } catch (error2) {
+          identityState = "unknown";
+          probeReason = errorCode(error2) ?? "worker_stop_unverified";
+        }
+      }
       let treeOutcome;
       if ((phase === "result_committed" || phase === "cleanup_pending" || phase === "cleanup_unverified") && identityState === "exited") {
         treeOutcome = await processTreeWithDeadline([{ pid: processId, fingerprint }], 3e4);
       }
       if ((phase === "result_committed" || phase === "cleanup_pending" || phase === "cleanup_unverified") && identityState === "exited") {
-        const completeCleanupClosureAvailable = false;
+        const completeCleanupClosureAvailable = treeOutcome?.status === "resolved" && treeOutcome.result.clean === true && treeOutcome.result.livePids.length === 0;
         if (completeCleanupClosureAvailable && treeOutcome?.status === "resolved" && treeOutcome.result.clean === true && treeOutcome.result.livePids.length === 0) {
           const currentOperation = asRecord4(port.readOperation(operationId));
           if (currentOperation.task_id !== operation.task_id || Number(currentOperation.attempt) !== Number(operation.attempt) || Number(currentOperation.generation) !== Number(operation.generation) || currentOperation.claim_id !== claimId || currentOperation.claim_worker_identity_digest !== workerDigest) {
             return { state: "held", operation_id: operationId, phase: String(currentOperation.phase), reason: "recovery_identity_fence_changed" };
           }
           if (currentOperation.phase === "released") {
+            verifiedRecoveryStops.delete(stopKey);
             return {
               state: "released",
               operation_id: operationId,
@@ -9922,6 +10054,7 @@ async function openClaimOnlyDriver(options) {
               cleanup_digest: text(verifiedEvidence.cleanup_digest, "recovery_cleanup_digest_missing")
             }));
             if (released2.phase !== "released" || released2.capacity_released !== true) throw new LifecycleGateError("recovery_release_not_persisted");
+            verifiedRecoveryStops.delete(stopKey);
             return {
               state: "released",
               operation_id: operationId,
@@ -9955,6 +10088,7 @@ async function openClaimOnlyDriver(options) {
             claim_id: text(claimId, "recovery_claim_id_missing"),
             claim_worker_identity_digest: text(workerDigest, "recovery_claim_identity_missing")
           };
+          if (currentPhase === "cleanup_unverified") await options.testBeforeRecoveryWrite?.(operationId, currentPhase);
           const pending = currentPhase === "result_committed" ? asRecord4(port.beginCleanup(fence)) : currentOperation;
           const expectedCleanupPhase = currentPhase === "cleanup_unverified" ? "cleanup_unverified" : "cleanup_pending";
           if (pending.phase !== expectedCleanupPhase || pending.operation_id !== operationId || Number(pending.generation) !== fence.generation) {
@@ -9977,7 +10111,7 @@ async function openClaimOnlyDriver(options) {
           };
           const resourceFacts = {
             contract: "sqlite-candidate-recovery-operation-resources-v1",
-            adapter: "fake_candidate_adapter",
+            adapter: options.testOnlyFakeAdapter ? "fake_candidate_adapter" : "zcode_app_server",
             operation_id: operationId,
             generation: fence.generation,
             claim_id: fence.claim_id,
@@ -10019,6 +10153,7 @@ async function openClaimOnlyDriver(options) {
           if (released.phase !== "released" || released.capacity_released !== true) {
             throw new LifecycleGateError("recovery_release_not_persisted");
           }
+          verifiedRecoveryStops.delete(stopKey);
           return {
             state: "released",
             operation_id: operationId,
@@ -10088,6 +10223,7 @@ async function openClaimOnlyDriver(options) {
     },
     createTask: (task) => port.createTask(task),
     readTaskLifecycle: (taskId) => port.readTaskLifecycle(taskId),
+    readTaskAttention: (taskId) => port.readTaskAttention(taskId),
     readTaskEvents: (taskId, options2) => port.readTaskEvents(taskId, options2),
     readCommittedResult: (operationId) => port.readCommittedResult(operationId),
     readTaskFeedback: (taskId) => port.readTaskFeedback(taskId),
@@ -10830,6 +10966,7 @@ async function finalizeClaimedWorkerCleanup(port, input, generation, claimId, pr
   if (recorded.cleanup_verified !== true || recorded.phase !== "cleanup_verified") {
     throw new LifecycleGateError("cleanup_evidence_not_persisted");
   }
+  stage("cleanup_verified_persisted", { revision: recorded.revision, cleanup_digest: recorded.cleanup_digest });
   const cleanupDigest = text(recorded.cleanup_digest, "cleanup_digest_missing");
   const released = asRecord4(port.releaseCapacity({
     ...cleanupFence,
@@ -11169,7 +11306,7 @@ function digestProvenance(value) {
 function interactionKey(taskId, requestId) {
   return `${taskId}\0${requestId}`;
 }
-var DEFAULT_PROCESS_PROBE_TIMEOUT_MS, LifecycleGateError, freshBootstrapPromises, DEFAULT_FRESH_BOOTSTRAP_LOCK_TIMEOUT_MS, FRESH_BOOTSTRAP_LOCK_RETRY_MS, FRESH_BOOTSTRAP_LOCK_HANDSHAKE_TIMEOUT_MS, FRESH_BOOTSTRAP_LOCK_RELEASE_TIMEOUT_MS, WINDOWS_BOOTSTRAP_LOCK_SCRIPT;
+var DEFAULT_PROCESS_PROBE_TIMEOUT_MS, verifiedRecoveryStops, LifecycleGateError, freshBootstrapPromises, DEFAULT_FRESH_BOOTSTRAP_LOCK_TIMEOUT_MS, FRESH_BOOTSTRAP_LOCK_RETRY_MS, FRESH_BOOTSTRAP_LOCK_HANDSHAKE_TIMEOUT_MS, FRESH_BOOTSTRAP_LOCK_RELEASE_TIMEOUT_MS, WINDOWS_BOOTSTRAP_LOCK_SCRIPT;
 var init_lifecycle_gate = __esm({
   "src/store/lifecycle-gate.ts"() {
     "use strict";
@@ -11185,6 +11322,7 @@ var init_lifecycle_gate = __esm({
     init_sqlite_runtime_roster();
     init_node_runtime();
     DEFAULT_PROCESS_PROBE_TIMEOUT_MS = 5e3;
+    verifiedRecoveryStops = /* @__PURE__ */ new Map();
     LifecycleGateError = class extends Error {
       constructor(code, message = code) {
         super(message);
@@ -11326,6 +11464,7 @@ __export(sqlite_lifecycle_mcp_authority_exports, {
   SqliteLifecycleMcpAuthority: () => SqliteLifecycleMcpAuthority
 });
 import { createHash as createHash16, randomBytes } from "node:crypto";
+import path19 from "node:path";
 function validateTaskPackage2(task) {
   const worktreePath = task.worktree_path;
   if (!task || typeof task.task_id !== "string" || !task.task_id.trim() || task.task_id.length > 128 || typeof task.workspace !== "string" || !task.workspace.trim() || !pathIsAbsolute(task.workspace) || worktreePath !== void 0 && (typeof worktreePath !== "string" || !worktreePath.trim() || !pathIsAbsolute(worktreePath)) || typeof task.objective !== "string" || !task.objective.trim() || !Array.isArray(task.requirements) || !Array.isArray(task.allowed_paths) || !Array.isArray(task.forbidden_paths) || !Array.isArray(task.acceptance_criteria) || !Array.isArray(task.test_commands)) {
@@ -11377,6 +11516,18 @@ function encodeCursor(taskId, cursor) {
 function operationIdFor(taskId, attempt) {
   const digest3 = createHash16("sha256").update(`${taskId}\0${attempt}`, "utf8").digest("hex").slice(0, 32);
   return `sqlite-${digest3}`;
+}
+function taskExecutionPath(task) {
+  return task.worktree_path ?? task.workspace;
+}
+function executionPathsOverlap(left, right) {
+  const leftPath = normalizeExecutionPath(left);
+  const rightPath = normalizeExecutionPath(right);
+  return leftPath === rightPath || leftPath.startsWith(rightPath + path19.sep) || rightPath.startsWith(leftPath + path19.sep);
+}
+function normalizeExecutionPath(value) {
+  const resolved = path19.resolve(value).replace(/[\\/]+$/u, "");
+  return process.platform === "win32" ? resolved.toLowerCase() : resolved;
 }
 function queueKey(taskId, attempt) {
   return `${taskId}\0${attempt}`;
@@ -11450,6 +11601,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
     "use strict";
     init_lifecycle_gate();
     init_errors();
+    init_snapshot();
     init_process_probe();
     init_sqlite_doctor();
     EXECUTION_OBSERVATION_PROBE_BUDGET_MS = 5e3;
@@ -11458,20 +11610,21 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
       #driver;
       #queue = [];
       #activeRuns = /* @__PURE__ */ new Map();
+      #recoveryRuns = /* @__PURE__ */ new Map();
+      #dispatchingPaths = /* @__PURE__ */ new Set();
       #queued = /* @__PURE__ */ new Set();
-      #active = false;
+      #active = 0;
       #closed = false;
       #shuttingDown = false;
       #shutdownPromise = null;
-      #pumpPromise = null;
+      #pumpPromises = /* @__PURE__ */ new Set();
       #recoveryComplete = false;
       #pumpPending = false;
       #awaitingDispatchPrerequisite = false;
       #pumpRetryTimer = null;
+      #workspaceRetryTimer = null;
       #capacityRetryMs = 100;
       #pumpFailure = null;
-      #dispatchingTaskId = null;
-      #dispatchingKey = null;
       #recoveryBlocked = null;
       #testBeforeDispatch;
       #testOnScheduler;
@@ -11563,6 +11716,24 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           ...executionObservation ? { execution_observation: executionObservation } : {},
           ...Number(attempt.attempt) > 0 ? {} : {}
         };
+      }
+      async getAttention(taskId) {
+        this.#assertOpen();
+        let value;
+        try {
+          value = this.#driver.readTaskAttention(taskId);
+        } catch (error2) {
+          const code = errorCode2(error2);
+          if (code === "interaction_reply_outcome_unknown") {
+            throw new TaskManagerError(code, code);
+          }
+          throw new TaskManagerError(
+            "TASK_STATE",
+            `SQLite attention read failed${code ? `: ${code}` : ""}`
+          );
+        }
+        if (value === null) throw new TaskManagerError("TASK_NOT_FOUND", `unknown SQLite task: ${taskId}`);
+        return parseTaskAttentionSnapshot(value, taskId);
       }
       async getResult(taskId) {
         const snapshot = this.#readSnapshot(taskId);
@@ -11709,6 +11880,48 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           this.#schedulePump();
           return this.getStatus(taskId);
         }
+        const operation = snapshot.operation ? asRecord5(snapshot.operation) : null;
+        if (projection.status === "failed" && operation?.phase === "released") {
+          return this.getStatus(taskId);
+        }
+        if (projection.status === "failed" && operation && operation.phase === "cleanup_unverified") {
+          const recoveryKey = queueKey(taskId, Number(attempt.attempt));
+          const existingRecovery = this.#recoveryRuns.get(recoveryKey);
+          if (existingRecovery) return existingRecovery;
+          const recovery = Promise.resolve().then(async () => {
+            const readReleased = async () => {
+              const latest = this.#readSnapshot(taskId);
+              const latestProjection = asRecord5(latest.projection);
+              const latestOperation = latest.operation ? asRecord5(latest.operation) : null;
+              return latestProjection.status === "failed" && latestOperation?.phase === "released" ? this.getStatus(taskId) : null;
+            };
+            let outcome;
+            try {
+              outcome = asRecord5(await this.#driver.recoverOperation(
+                string4(operation.operation_id, "operation_id_missing"),
+                { stopAliveWorker: true }
+              ));
+            } catch (error2) {
+              const released = await readReleased();
+              if (released) return released;
+              throw error2;
+            }
+            if (outcome.state !== "released" && outcome.state !== "complete") {
+              const released = await readReleased();
+              if (released) return released;
+              const reason = typeof outcome.reason === "string" ? outcome.reason : "worker_cleanup_unverified";
+              throw new TaskManagerError("CANCEL_FAILED", `SQLite cleanup remains occupied for this workspace: ${reason}`);
+            }
+            this.#schedulePump();
+            return this.getStatus(taskId);
+          });
+          this.#recoveryRuns.set(recoveryKey, recovery);
+          try {
+            return await recovery;
+          } finally {
+            if (this.#recoveryRuns.get(recoveryKey) === recovery) this.#recoveryRuns.delete(recoveryKey);
+          }
+        }
         throw new TaskManagerError("TASK_STATE", `zcode_cancel is not allowed from SQLite status ${String(projection.status)}`);
       }
       async replyToInteraction(input) {
@@ -11734,6 +11947,8 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
         this.#shuttingDown = true;
         if (this.#pumpRetryTimer) clearTimeout(this.#pumpRetryTimer);
         this.#pumpRetryTimer = null;
+        if (this.#workspaceRetryTimer) clearTimeout(this.#workspaceRetryTimer);
+        this.#workspaceRetryTimer = null;
         const attempt = this.#shutdownGracefully();
         let tracked;
         tracked = attempt.catch((error2) => {
@@ -11767,7 +11982,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
             failures.push(`${taskId}:${errorCode2(error2) ?? (error2 instanceof Error && error2.message === "shutdown_wait_timeout" ? "shutdown_wait_timeout" : "shutdown_cancel_failed")}`);
           }
         }
-        const pump = this.#pumpPromise;
+        const pump = Promise.allSettled(this.#pumpPromises).then(() => void 0);
         if (pump && (active.length > 0 || !this.#awaitingDispatchPrerequisite)) {
           try {
             await waitUntilDeadline(pump, deadline);
@@ -11832,13 +12047,14 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
               reason: outcome.reason ?? null
             });
             if (outcome.state === "held") {
-              this.#recoveryBlocked = `operation ${operationId} is held: ${String(outcome.reason ?? "recovery_evidence_unknown")}`;
-              this.#schedulerStage("recovery_root_read_only", { operation_id: operationId, reason: this.#recoveryBlocked });
-              break;
+              this.#schedulerStage("recovery_workspace_scoped", {
+                operation_id: operationId,
+                reason: outcome.reason ?? "recovery_evidence_unknown"
+              });
             }
           }
           snapshot = this.#validateRecoverySnapshot(this.#driver.readRecoverySnapshot());
-          const queued = this.#recoveryBlocked ? [] : this.#driver.readRecoverableQueuedAttempts();
+          const queued = this.#driver.readRecoverableQueuedAttempts();
           for (const value of queued) {
             const candidate = asRecord5(value);
             if (candidate.dispatchable === true && typeof candidate.task_id === "string" && Number.isSafeInteger(candidate.attempt) && Number(candidate.attempt) > 0) {
@@ -11856,9 +12072,9 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           this.#recoveryComplete = true;
           this.#schedulerStage("recovery_complete", {
             recoverable_queued_attempts: queued.filter((value) => value.dispatchable === true).length,
-            root_read_only: this.#recoveryBlocked !== null
+            root_read_only: false
           });
-          if (!this.#recoveryBlocked) this.#schedulePump();
+          this.#schedulePump();
         } catch (error2) {
           this.#recoveryBlocked = error2 instanceof Error ? error2.message : String(error2);
           this.#pumpFailure = { taskId: "root", reason: errorCode2(error2) ?? "recovery_snapshot_unavailable" };
@@ -11970,7 +12186,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           return;
         }
         const key = queueKey(taskId, attempt);
-        if (this.#queued.has(key) || this.#dispatchingKey === key) {
+        if (this.#queued.has(key) || this.#activeRuns.has(key)) {
           this.#schedulerStage("enqueue_duplicate", { task_id: taskId, attempt, queue_depth: this.#queue.length });
           return;
         }
@@ -11991,7 +12207,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           });
           return;
         }
-        if (this.#pumpRetryTimer) {
+        if (this.#pumpRetryTimer || this.#workspaceRetryTimer) {
           this.#schedulerStage("schedule_waiting_for_capacity", { retry_ms: this.#capacityRetryMs, queue_depth: this.#queue.length });
           return;
         }
@@ -12001,31 +12217,45 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           this.#pumpPending = false;
           this.#schedulerStage("scheduled_callback", { active: this.#active, queue_depth: this.#queue.length });
           const running = this.#pump();
-          this.#pumpPromise = running;
-          const failedTaskId = this.#dispatchingTaskId;
+          this.#pumpPromises.add(running);
           void running.catch((error2) => {
             const reason = errorCode2(error2) ?? "dispatch_failed";
-            this.#pumpFailure = { taskId: failedTaskId ?? "unknown", reason };
+            this.#pumpFailure = { taskId: "unknown", reason };
           }).finally(() => {
-            if (this.#pumpPromise === running) this.#pumpPromise = null;
+            this.#pumpPromises.delete(running);
           });
         });
       }
+      #scheduleWorkspaceRetry() {
+        if (this.#closed || this.#shuttingDown || !this.#recoveryComplete || this.#pumpFailure || this.#queue.length === 0) return;
+        if (this.#workspaceRetryTimer) return;
+        this.#workspaceRetryTimer = setTimeout(() => {
+          this.#workspaceRetryTimer = null;
+          this.#schedulePump();
+        }, 1e3);
+        this.#workspaceRetryTimer.unref?.();
+      }
+      #activeExecutionPaths(excludeOperationId) {
+        const snapshot = this.#validateRecoverySnapshot(this.#driver.readRecoverySnapshot());
+        return snapshot.operations.flatMap((value) => {
+          const operation = asRecord5(value);
+          return operation.operation_id !== excludeOperationId && operation.capacity_occupied === true && typeof operation.workspace_ref === "string" ? [operation.workspace_ref] : [];
+        });
+      }
       async #pump() {
-        if (this.#closed || this.#shuttingDown || this.#active) {
+        if (this.#closed || this.#shuttingDown) {
           this.#schedulerStage("pump_skipped", { closed: this.#closed, shutting_down: this.#shuttingDown, active: this.#active, queue_depth: this.#queue.length });
           return;
         }
-        this.#active = true;
+        this.#active += 1;
         this.#schedulerStage("pump_started", { queue_depth: this.#queue.length });
         let capacityBlocked = false;
+        const deferredByWorkspace = [];
         try {
           while (!this.#closed && !this.#shuttingDown && this.#queue.length > 0) {
             const next = this.#queue.shift();
             const nextKey = queueKey(next.taskId, next.attempt);
             this.#schedulerStage("dispatch_dequeued", { task_id: next.taskId, attempt: next.attempt, queue_depth: this.#queue.length });
-            this.#dispatchingTaskId = next.taskId;
-            this.#dispatchingKey = nextKey;
             this.#queued.delete(nextKey);
             let snapshot;
             try {
@@ -12035,6 +12265,19 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
             }
             if (snapshot.projection.status !== "queued" || Number(snapshot.attempt.attempt) !== next.attempt) continue;
             const operationId = operationIdFor(next.taskId, next.attempt);
+            const executionPath = taskExecutionPath(snapshot.task);
+            const workspaceConflict = [...this.#activeExecutionPaths(operationId), ...this.#dispatchingPaths].find((occupiedPath) => executionPathsOverlap(occupiedPath, executionPath));
+            if (workspaceConflict) {
+              this.#schedulerStage("dispatch_deferred_workspace_occupied", {
+                task_id: next.taskId,
+                attempt: next.attempt,
+                execution_path: executionPath,
+                occupied_path: workspaceConflict
+              });
+              deferredByWorkspace.push(next);
+              this.#queued.add(nextKey);
+              continue;
+            }
             if (this.#testBeforeDispatch) {
               this.#awaitingDispatchPrerequisite = true;
               try {
@@ -12044,6 +12287,8 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
               }
             }
             if (this.#closed || this.#shuttingDown) break;
+            const dispatchPathKey = normalizeExecutionPath(executionPath);
+            this.#dispatchingPaths.add(dispatchPathKey);
             const runPromise = this.#driver.run({
               task: snapshot.task,
               operationId,
@@ -12059,6 +12304,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
               run = await runPromise;
             } finally {
               if (this.#activeRuns.get(nextKey) === runPromise) this.#activeRuns.delete(nextKey);
+              this.#dispatchingPaths.delete(dispatchPathKey);
             }
             this.#schedulerStage("driver_run_returned", { task_id: next.taskId, attempt: next.attempt, state: run.state, queue_depth: this.#queue.length });
             this.#acceptRunOutcome(run);
@@ -12070,14 +12316,25 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
               this.#capacityRetryMs = Math.min(this.#capacityRetryMs * 2, 2e3);
               break;
             }
+            if (after.projection.status === "queued" && after.operation === null && run.reason === "workspace_already_occupied") {
+              deferredByWorkspace.push(next);
+              this.#queued.add(queueKey(next.taskId, next.attempt));
+              this.#schedulerStage("dispatch_deferred_workspace_admission_race", {
+                task_id: next.taskId,
+                attempt: next.attempt,
+                reason: run.reason
+              });
+              continue;
+            }
             this.#capacityRetryMs = 100;
             if (after.operation?.phase === "released") continue;
             if (after.operation && after.operation.phase !== "released" && after.operation.phase !== "cancelled_before_launch") break;
           }
+          for (const item of deferredByWorkspace.reverse()) {
+            this.#queue.unshift(item);
+          }
         } finally {
-          this.#active = false;
-          this.#dispatchingTaskId = null;
-          this.#dispatchingKey = null;
+          this.#active = Math.max(0, this.#active - 1);
           this.#schedulerStage("pump_finished", { queue_depth: this.#queue.length, pump_failure: this.#pumpFailure?.reason ?? null });
           if (capacityBlocked && !this.#closed && !this.#pumpFailure && this.#queue.length > 0) {
             this.#pumpRetryTimer = setTimeout(() => {
@@ -12085,6 +12342,8 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
               this.#schedulePump();
             }, this.#capacityRetryMs);
             this.#pumpRetryTimer.unref?.();
+          } else if (deferredByWorkspace.length > 0 && !this.#closed && !this.#pumpFailure && this.#queue.length > 0) {
+            this.#scheduleWorkspaceRetry();
           } else this.#schedulePump();
         }
       }
@@ -12108,7 +12367,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
 
 // src/mcp/main.ts
 import { realpathSync as realpathSync7 } from "node:fs";
-import path20 from "node:path";
+import path21 from "node:path";
 import { fileURLToPath as fileURLToPath5 } from "node:url";
 
 // node_modules/@modelcontextprotocol/server/dist/chunk-Br0eD_fh.mjs
@@ -12404,10 +12663,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path21) {
-  if (!path21)
+function getElementAtPath(obj, path22) {
+  if (!path22)
     return obj;
-  return path21.reduce((acc, key) => acc?.[key], obj);
+  return path22.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -12747,11 +13006,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path21, issues) {
+function prefixIssues(path22, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path21);
+    iss.path.unshift(path22);
     return iss;
   });
 }
@@ -13200,16 +13459,16 @@ function flattenError(error2, mapper = (issue2) => issue2.message) {
 }
 function formatError(error2, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error3, path21 = []) => {
+  const processError = (error3, path22 = []) => {
     for (const issue2 of error3.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path21, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path22, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path21, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path22, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path21, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path22, ...issue2.path]);
       } else {
-        const fullpath = [...path21, ...issue2.path];
+        const fullpath = [...path22, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -22552,9 +22811,9 @@ var rev2026Codec = {
     });
     const parsed = buildSchemas2026().RequestMetaEnvelopeSchema.safeParse(meta2);
     if (!parsed.success) for (const issue2 of parsed.error.issues) {
-      const path21 = issue2.path.map(String);
-      const key = path21.length > 0 ? path21.join(".") : "_meta";
-      if (path21.length === 1 && issues.some((existing) => existing.key === key && existing.problem === "missing")) continue;
+      const path22 = issue2.path.map(String);
+      const key = path22.length > 0 ? path22.join(".") : "_meta";
+      if (path22.length === 1 && issues.some((existing) => existing.key === key && existing.problem === "missing")) continue;
       issues.push({
         key,
         problem: issue2.message
@@ -22875,29 +23134,29 @@ var PERMITTED_X_MCP_HEADER_TYPES = /* @__PURE__ */ new Set([
 function scanXMcpHeaderDeclarations(inputSchema) {
   const declarations = [];
   const seenLower = /* @__PURE__ */ new Map();
-  const visit = (node2, path21, reachable) => {
+  const visit = (node2, path22, reachable) => {
     if (node2 === null || typeof node2 !== "object") return void 0;
     const schema = node2;
     if (X_MCP_HEADER_KEY in schema) {
-      if (!reachable || path21.length === 0) return `${pathName(path21)}: x-mcp-header is only permitted on properties statically reachable via a chain of 'properties' keys (not under items, additionalProperties, oneOf/anyOf/allOf/not, if/then/else, or $ref)`;
+      if (!reachable || path22.length === 0) return `${pathName(path22)}: x-mcp-header is only permitted on properties statically reachable via a chain of 'properties' keys (not under items, additionalProperties, oneOf/anyOf/allOf/not, if/then/else, or $ref)`;
       const raw = schema[X_MCP_HEADER_KEY];
-      if (typeof raw !== "string" || raw.length === 0) return `${pathName(path21)}: x-mcp-header MUST be a non-empty string`;
-      if (!RFC9110_TOKEN.test(raw)) return `${pathName(path21)}: x-mcp-header '${raw}' is not a valid RFC 9110 token (no spaces, control characters or HTTP delimiters)`;
+      if (typeof raw !== "string" || raw.length === 0) return `${pathName(path22)}: x-mcp-header MUST be a non-empty string`;
+      if (!RFC9110_TOKEN.test(raw)) return `${pathName(path22)}: x-mcp-header '${raw}' is not a valid RFC 9110 token (no spaces, control characters or HTTP delimiters)`;
       const type = typeof schema.type === "string" ? schema.type : void 0;
-      if (type === void 0 || !PERMITTED_X_MCP_HEADER_TYPES.has(type)) return `${pathName(path21)}: x-mcp-header is only permitted on primitive-typed properties (string, integer, boolean); got ${type ?? "<none>"}`;
+      if (type === void 0 || !PERMITTED_X_MCP_HEADER_TYPES.has(type)) return `${pathName(path22)}: x-mcp-header is only permitted on primitive-typed properties (string, integer, boolean); got ${type ?? "<none>"}`;
       const lower = raw.toLowerCase();
       const prior = seenLower.get(lower);
       if (prior !== void 0) return `x-mcp-header '${raw}' is not case-insensitively unique (also declared as '${prior}')`;
       seenLower.set(lower, raw);
       declarations.push({
-        path: path21,
+        path: path22,
         headerName: raw,
         type
       });
     }
     const properties = schema.properties;
     if (properties !== null && typeof properties === "object") for (const [key, child] of Object.entries(properties)) {
-      const fault$1 = visit(child, [...path21, key], reachable);
+      const fault$1 = visit(child, [...path22, key], reachable);
       if (fault$1 !== void 0) return fault$1;
     }
     for (const k of NON_REACHABLE_SUBSCHEMA_KEYWORDS) {
@@ -22905,7 +23164,7 @@ function scanXMcpHeaderDeclarations(inputSchema) {
       if (sub === void 0) continue;
       const branches = Array.isArray(sub) ? sub : sub !== null && typeof sub === "object" && OBJECT_VALUED_SUBSCHEMA_KEYWORDS.has(k) ? Object.values(sub) : [sub];
       for (const branch of branches) {
-        const fault$1 = visit(branch, [...path21, `<${k}>`], false);
+        const fault$1 = visit(branch, [...path22, `<${k}>`], false);
         if (fault$1 !== void 0) return fault$1;
       }
     }
@@ -22945,8 +23204,8 @@ var OBJECT_VALUED_SUBSCHEMA_KEYWORDS = /* @__PURE__ */ new Set([
   "$defs",
   "definitions"
 ]);
-function pathName(path21) {
-  return path21.length === 0 ? "<root>" : path21.join(".");
+function pathName(path22) {
+  return path22.length === 0 ? "<root>" : path22.join(".");
 }
 var HEADER_MISMATCH_ERROR_CODE = -32020;
 var INBOUND_VALIDATION_LADDER = [
@@ -23235,7 +23494,7 @@ var PROPERTY_KEYS_BY_TYPE = {
   array: shapeKeys([UntitledMultiSelectEnumSchemaSchema, TitledMultiSelectEnumSchemaSchema])
 };
 var SUPPORTED_STRING_FORMATS = new Set(StringSchemaSchema.shape.format.unwrap().options);
-function walkProperty(node2, path21, vendor, unsupported) {
+function walkProperty(node2, path22, vendor, unsupported) {
   if (!isJsonObject(node2)) return node2;
   const allowedKeys = typeof node2.type === "string" && Object.hasOwn(PROPERTY_KEYS_BY_TYPE, node2.type) ? PROPERTY_KEYS_BY_TYPE[node2.type] : void 0;
   if (allowedKeys === void 0) return node2;
@@ -23243,8 +23502,8 @@ function walkProperty(node2, path21, vendor, unsupported) {
   for (const [key, value] of Object.entries(node2)) if (allowedKeys.has(key) || isAnnotationOnlyJsonSchemaKeyword(key)) pruned[key] = value;
   else if (key === "pattern" && node2.type === "string" && typeof node2.format === "string") {
     if (!SUPPORTED_STRING_FORMATS.has(node2.format)) pruned[key] = value;
-    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path21}.${key}`);
-  } else unsupported.push(`${path21}.${key}`);
+    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path22}.${key}`);
+  } else unsupported.push(`${path22}.${key}`);
   return pruned;
 }
 function walkRequestedSchema(converted, vendor) {
@@ -23261,11 +23520,11 @@ function describeUnsupportedProperties(pruned, fallback) {
   const offenders = Object.entries(pruned.properties).filter(([, node2]) => !parseSchema(PrimitiveSchemaDefinitionSchema, node2).success).map(([name]) => `properties.${name}`);
   return offenders.length > 0 ? offenders.join(", ") : fallback;
 }
-function findDroppedConstraintPaths(original, parsed, path21 = "") {
-  if (Array.isArray(original) && Array.isArray(parsed)) return original.flatMap((item, index) => findDroppedConstraintPaths(item, parsed[index], `${path21}[${index}]`));
+function findDroppedConstraintPaths(original, parsed, path22 = "") {
+  if (Array.isArray(original) && Array.isArray(parsed)) return original.flatMap((item, index) => findDroppedConstraintPaths(item, parsed[index], `${path22}[${index}]`));
   if (!isJsonObject(original) || !isJsonObject(parsed)) return [];
   return Object.entries(original).flatMap(([key, value]) => {
-    const childPath = path21 ? `${path21}.${key}` : key;
+    const childPath = path22 ? `${path22}.${key}` : key;
     if (!Object.prototype.hasOwnProperty.call(parsed, key)) return isAnnotationOnlyJsonSchemaKeyword(key) ? [] : [childPath];
     return findDroppedConstraintPaths(value, parsed[key], childPath);
   });
@@ -27344,8 +27603,8 @@ var require_utils = /* @__PURE__ */ __commonJSMin(((exports, module) => {
     for (let i = 0; i < str.length; i++) if (str[i] === token) ind++;
     return ind;
   }
-  function removeDotSegments(path21) {
-    let input = path21;
+  function removeDotSegments(path22) {
+    let input = path22;
     const output = [];
     let nextSlash = -1;
     let len = 0;
@@ -27498,8 +27757,8 @@ var require_schemes = /* @__PURE__ */ __commonJSMin(((exports, module) => {
       wsComponent.secure = void 0;
     }
     if (wsComponent.resourceName) {
-      const [path21, query] = wsComponent.resourceName.split("?");
-      wsComponent.path = path21 && path21 !== "/" ? path21 : void 0;
+      const [path22, query] = wsComponent.resourceName.split("?");
+      wsComponent.path = path22 && path22 !== "/" ? path22 : void 0;
       wsComponent.query = query;
       wsComponent.resourceName = void 0;
     }
@@ -33639,7 +33898,7 @@ function toError(value) {
 
 // src/host/stdio.ts
 import { homedir as homedir4 } from "node:os";
-import path19 from "node:path";
+import path20 from "node:path";
 
 // src/runtime/resolver.ts
 import { accessSync, existsSync as existsSync2, readFileSync as readFileSync2, statSync } from "node:fs";
@@ -34383,6 +34642,36 @@ function buildTaskFeedbackSnapshotV01(input) {
 
 // src/manager/task-manager.ts
 init_json_writer_quiescence();
+
+// src/attention/wait.ts
+init_snapshot();
+async function waitForAttentionSnapshot(options) {
+  const now = options.now ?? Date.now;
+  const pollMs = options.pollMs ?? 250;
+  const sleep4 = options.sleep ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+  if (!Number.isFinite(options.timeoutMs) || options.timeoutMs < 0) throw new Error("timeoutMs must be non-negative");
+  if (!Number.isInteger(pollMs) || pollMs < 1) throw new Error("pollMs must be a positive integer");
+  const started = now();
+  const deadline = started + options.timeoutMs;
+  let snapshot = await options.read();
+  const initialAttempt = snapshot.attempt;
+  for (; ; ) {
+    const reason = classify(snapshot, initialAttempt, now() >= deadline);
+    if (reason) {
+      return { snapshot, initial_attempt: initialAttempt, reason, elapsed_ms: Math.max(0, now() - started) };
+    }
+    await sleep4(Math.min(pollMs, Math.max(1, deadline - now())));
+    snapshot = await options.read();
+  }
+}
+function classify(snapshot, initialAttempt, deadlineReached) {
+  if (isAttentionTerminalStatus(snapshot.status)) return "terminal";
+  if (snapshot.pending_requests.length > 0) return "interaction";
+  if (snapshot.attempt !== initialAttempt) return "attempt_changed";
+  return deadlineReached ? "timeout" : null;
+}
+
+// src/manager/task-manager.ts
 var BridgeTaskManager = class _BridgeTaskManager {
   /** How long a respawn claim counts as in-flight across Bridge processes. */
   static RESPAWN_IN_FLIGHT_MS = 1e4;
@@ -35030,6 +35319,15 @@ var BridgeTaskManager = class _BridgeTaskManager {
     const observation = this.#safeObservation(taskId, status);
     return { ...toPublicStatus(status), ...observation ? { observation } : {} };
   }
+  async getAttention(taskId) {
+    if (!this.#lifecycleAuthority) {
+      throw new TaskManagerError("TASK_STATE", "attention waiting is unsupported for the JSON Authority");
+    }
+    if (!this.#lifecycleAuthority.getAttention) {
+      throw new TaskManagerError("TASK_STATE", "lifecycle authority does not provide attention snapshots");
+    }
+    return this.#lifecycleAuthority.getAttention(taskId);
+  }
   /** Observation built by the shared judger; a corrupt/failed build degrades
    * to a minimal unknown observation instead of failing the status read.
    * Fresh persisted probe verdicts from the recovery scan are included. */
@@ -35056,6 +35354,11 @@ var BridgeTaskManager = class _BridgeTaskManager {
     }
   }
   async getEvents(input) {
+    if (input.wait_for !== void 0 && input.wait_for !== "attention") {
+      throw new TaskManagerError("TASK_INVALID", "wait_for must be attention when provided");
+    }
+    if (input.wait_for === "attention") return this.#waitForAttention(input);
+    const startCursor = this.#validateEventsInput(input);
     if (this.#lifecycleAuthority) {
       if (!this.#lifecycleAuthority.getEvents) throw new TaskManagerError("TASK_STATE", "lifecycle authority does not provide events");
       return this.#lifecycleAuthority.getEvents(input);
@@ -35063,34 +35366,6 @@ var BridgeTaskManager = class _BridgeTaskManager {
     const afterSeq = input.after_seq ?? 0;
     const limit = input.limit ?? 100;
     const waitMs = input.wait_ms ?? 0;
-    if (!Number.isInteger(afterSeq) || afterSeq < 0) {
-      throw new TaskManagerError("TASK_INVALID", "after_seq must be a non-negative integer");
-    }
-    if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
-      throw new TaskManagerError("TASK_INVALID", "limit must be an integer from 1 to 200");
-    }
-    if (!Number.isInteger(waitMs) || waitMs < 0 || waitMs > 25e3) {
-      throw new TaskManagerError("TASK_INVALID", "wait_ms must be an integer from 0 to 25000");
-    }
-    if (input.view !== void 0 && input.view !== "raw" && input.view !== "summary") {
-      throw new TaskManagerError("TASK_INVALID", "view must be raw or summary");
-    }
-    if (input.max_bytes !== void 0 && (!Number.isInteger(input.max_bytes) || input.max_bytes < 1024 || input.max_bytes > 32 * 1024 * 1024)) {
-      throw new TaskManagerError("TASK_INVALID", "max_bytes must be an integer from 1024 to 33554432");
-    }
-    let startCursor = null;
-    if (input.scan_cursor !== void 0) {
-      if (typeof input.scan_cursor !== "string" || input.scan_cursor.length > 2048) {
-        throw new TaskManagerError("TASK_INVALID", "scan_cursor must be an opaque cursor string returned by a previous page");
-      }
-      try {
-        const decoded = JSON.parse(Buffer.from(input.scan_cursor, "base64url").toString("utf8"));
-        if (decoded?.v !== 1 || decoded.task_id !== input.task_id) throw new Error("cursor does not belong to this task");
-        startCursor = decoded;
-      } catch {
-        throw new TaskManagerError("TASK_INVALID", "scan_cursor is not a valid cursor for this task; restart the scan with after_seq");
-      }
-    }
     const deadline = Date.now() + waitMs;
     const readPage = () => {
       this.#requireTask(input.task_id);
@@ -35130,6 +35405,54 @@ var BridgeTaskManager = class _BridgeTaskManager {
       }
       if (page.events.length || isTerminalStatus(page.status) || Date.now() >= deadline) return page;
       await sleep3(Math.min(250, Math.max(1, deadline - Date.now())));
+    }
+  }
+  async #waitForAttention(input) {
+    const cursor = this.#validateEventsInput(input);
+    if (input.scan_cursor !== void 0 && this.#lifecycleAuthority) {
+      const sqliteCursor = cursor?.cursor;
+      if (!Number.isSafeInteger(sqliteCursor) || Number(sqliteCursor) < 0) {
+        throw new TaskManagerError("TASK_INVALID", "scan_cursor is not a valid cursor for this SQLite task");
+      }
+      if (input.after_seq !== void 0 && input.after_seq !== sqliteCursor) {
+        throw new TaskManagerError("TASK_INVALID", "after_seq conflicts with scan_cursor");
+      }
+    }
+    const waitMs = input.wait_ms ?? 0;
+    await waitForAttentionSnapshot({ read: () => this.getAttention(input.task_id), timeoutMs: waitMs });
+    const page = await this.getEvents({ ...input, wait_for: void 0, wait_ms: 0 });
+    const finalAttention = await this.getAttention(input.task_id);
+    return { ...page, status: finalAttention.status, attention: finalAttention };
+  }
+  #validateEventsInput(input) {
+    const afterSeq = input.after_seq ?? 0;
+    const limit = input.limit ?? 100;
+    const waitMs = input.wait_ms ?? 0;
+    if (!Number.isInteger(afterSeq) || afterSeq < 0) {
+      throw new TaskManagerError("TASK_INVALID", "after_seq must be a non-negative integer");
+    }
+    if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
+      throw new TaskManagerError("TASK_INVALID", "limit must be an integer from 1 to 200");
+    }
+    if (!Number.isInteger(waitMs) || waitMs < 0 || waitMs > 25e3) {
+      throw new TaskManagerError("TASK_INVALID", "wait_ms must be an integer from 0 to 25000");
+    }
+    if (input.view !== void 0 && input.view !== "raw" && input.view !== "summary") {
+      throw new TaskManagerError("TASK_INVALID", "view must be raw or summary");
+    }
+    if (input.max_bytes !== void 0 && (!Number.isInteger(input.max_bytes) || input.max_bytes < 1024 || input.max_bytes > 32 * 1024 * 1024)) {
+      throw new TaskManagerError("TASK_INVALID", "max_bytes must be an integer from 1024 to 33554432");
+    }
+    if (input.scan_cursor === void 0) return null;
+    if (typeof input.scan_cursor !== "string" || input.scan_cursor.length > 2048) {
+      throw new TaskManagerError("TASK_INVALID", "scan_cursor must be an opaque cursor string returned by a previous page");
+    }
+    try {
+      const decoded = JSON.parse(Buffer.from(input.scan_cursor, "base64url").toString("utf8"));
+      if (decoded?.v !== 1 || decoded.task_id !== input.task_id) throw new Error("cursor does not belong to this task");
+      return decoded;
+    } catch {
+      throw new TaskManagerError("TASK_INVALID", "scan_cursor is not a valid cursor for this task; restart the scan with after_seq");
     }
   }
   async getFeedback(taskId) {
@@ -35977,7 +36300,8 @@ var zcodeEventsInputSchema = strictObject({
   wait_ms: number2().int().min(0).max(25e3).optional(),
   view: _enum(["raw", "summary"]).optional(),
   scan_cursor: string2().max(2048).optional(),
-  max_bytes: number2().int().min(1024).max(33554432).optional()
+  max_bytes: number2().int().min(1024).max(33554432).optional(),
+  wait_for: literal("attention").optional()
 });
 var zcodeInteractionReplyInputSchema = strictObject({
   task_id: taskIdSchema,
@@ -36055,6 +36379,19 @@ var taskStatusRecordSchema = object({
   error: string2().optional(),
   observation: taskObservationSchema.optional(),
   execution_observation: executionObservationSchema.optional()
+});
+var taskAttentionSnapshotSchema = strictObject({
+  task_id: string2(),
+  attempt: number2().int().positive(),
+  status: _enum([
+    "queued",
+    "running",
+    "completed",
+    "failed",
+    "cancelled",
+    "waiting_for_master"
+  ]),
+  pending_requests: array(string2().min(1).max(512))
 });
 var normalizedUsageSchema = object({
   source: string2().nullable(),
@@ -36141,7 +36478,8 @@ var taskProgressPageSchema = object({
     corrupt_count: number2().int(),
     first_corrupt_offset: number2().int().nullable(),
     index_fallback: number2().int()
-  }).optional()
+  }).optional(),
+  attention: taskAttentionSnapshotSchema.optional()
 });
 var taskFeedbackSnapshotV01Schema = strictObject({
   schema_version: literal("0.1"),
@@ -36850,7 +37188,7 @@ function createBridgeServer(options) {
     "zcode_events",
     {
       title: "Read live ZCode execution events",
-      description: "Read persisted progress events for a task. Set view to summary to merge adjacent model text chunks; raw is the default. next_seq advances across all scanned events, including merged chunks. Immediately after submission, report the project path, effective execution path (and worktree path when supplied), and queued/running state from the first events. Keep polling until turn_started or startup failure; before longer monitoring, report the ZCode session, runtime-reported selected model, runtime-reported reasoning level when present, and execution mode. Set after_seq to the last next_seq returned and wait_ms up to 25000. Hidden reasoning is excluded. interaction_requested events include bounded tool/request details needed for a deliberate permission or input decision.",
+      description: "Read persisted progress events for a task. Set view to summary to merge adjacent model text chunks; raw is the default. next_seq advances across all scanned events, including merged chunks. Immediately after submission, report the project path, effective execution path (and worktree path when supplied), and queued/running state from the first events. Keep polling until turn_started or startup failure; before longer monitoring, report the ZCode session, runtime-reported selected model, runtime-reported reasoning level when present, and execution mode. Set after_seq to the last next_seq returned and wait_ms up to 25000. Set wait_for to attention to wait only for a current-Attempt pending request, a terminal status, or an Attempt change; ordinary events do not wake this mode. Hidden reasoning is excluded. interaction_requested events include bounded tool/request details needed for a deliberate permission or input decision.",
       inputSchema: zcodeEventsInputSchema,
       outputSchema: taskProgressPageSchema
     },
@@ -36894,8 +37232,8 @@ function createBridgeServer(options) {
   server.registerTool(
     "zcode_cancel",
     {
-      title: "Cancel a queued or running ZCode task",
-      description: `Cancel a queued or running task. Running cancellation returns only after the worker process tree termination is confirmed. ${EXECUTION_NOT_VERDICT}`,
+      title: "Cancel or recover a ZCode task",
+      description: `Cancel a queued or running task, or recover a failed SQLite task whose cleanup is unverified. Held-operation recovery may terminate the original Worker by its recorded process identity; callers must obtain explicit user authorization first. Recovery does not replay the task or create an Attempt and returns only the Task status record. ${EXECUTION_NOT_VERDICT}`,
       inputSchema: taskIdOnlyInputSchema,
       outputSchema: taskStatusRecordSchema
     },
@@ -36955,7 +37293,7 @@ import { existsSync as existsSync9, readFileSync as readFileSync9 } from "node:f
 import path12 from "node:path";
 function buildAccountProviderPayload(config2) {
   const table = readJson(config2.providerBuiltinConfigFile);
-  const providerRules = readProviderRules(table).filter(isRecord).map((rule) => rule).filter((rule) => rule.config?.access?.type === "zhipu-account" && typeof rule.providerId === "string");
+  const providerRules = readProviderRules(table).filter(isRecord2).map((rule) => rule).filter((rule) => rule.config?.access?.type === "zhipu-account" && typeof rule.providerId === "string");
   if (!providerRules.length) return null;
   const dataDir = zcodeV2DataDir(config2.providerPersonalConfigFile);
   if (!dataDir) return null;
@@ -36999,7 +37337,7 @@ function runtimeAuthReply(providerId, config2) {
   if (!providerId?.startsWith("account:")) return unavailable;
   const table = readJson(config2.providerBuiltinConfigFile);
   const rule = readProviderRules(table).find(
-    (candidate) => isRecord(candidate) && candidate.providerId === providerId
+    (candidate) => isRecord2(candidate) && candidate.providerId === providerId
   );
   if (rule?.config?.access?.mode !== "individual-coding-plan") return unavailable;
   const legacyId = configProviderId(providerId, rule);
@@ -37045,15 +37383,15 @@ function readJson(filePath) {
   try {
     if (!existsSync9(filePath)) return null;
     const value = JSON.parse(readFileSync9(filePath, "utf8"));
-    return isRecord(value) ? value : null;
+    return isRecord2(value) ? value : null;
   } catch {
     return null;
   }
 }
 function asRecord2(value) {
-  return isRecord(value) ? value : {};
+  return isRecord2(value) ? value : {};
 }
-function isRecord(value) {
+function isRecord2(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -37652,7 +37990,7 @@ var ZCodeModelSettings = class {
             throw new BridgeError("provider_config_invalid", "Bridge runtime config is not a small regular JSON file");
           }
           const parsed = JSON.parse(await readFile2(configPath, "utf8"));
-          if (!isRecord2(parsed)) throw new BridgeError("provider_config_invalid", "Bridge runtime config must contain a JSON object");
+          if (!isRecord3(parsed)) throw new BridgeError("provider_config_invalid", "Bridge runtime config must contain a JSON object");
           config2 = parsed;
         } catch (error2) {
           if (isMissingFile(error2)) {
@@ -37662,7 +38000,7 @@ var ZCodeModelSettings = class {
               try {
                 if ((await stat(legacyPath)).size > 64 * 1024) throw new Error("legacy settings exceed size limit");
                 const legacy = JSON.parse(await readFile2(legacyPath, "utf8"));
-                if (!isRecord2(legacy)) throw new Error("invalid legacy settings");
+                if (!isRecord3(legacy)) throw new Error("invalid legacy settings");
                 loadPersistedRuntimeEnvironment(this.#sourceEnv, this.#homeDir, this.#host);
                 config2 = legacy;
                 break;
@@ -37876,9 +38214,9 @@ function nestedString(record4, keys) {
   return typeof value === "string" ? value : null;
 }
 function asRecord3(value) {
-  return isRecord2(value) ? value : {};
+  return isRecord3(value) ? value : {};
 }
-function isRecord2(value) {
+function isRecord3(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function isMissingFile(error2) {
@@ -37913,7 +38251,7 @@ async function readModelCatalogCache(cachePath) {
     const info = await stat(cachePath);
     if (!info.isFile() || info.size > 2 * 1024 * 1024) return null;
     const value = JSON.parse(await readFile2(cachePath, "utf8"));
-    if (!isRecord2(value) || !Number.isFinite(value.cached_at_ms) || typeof value.source_fingerprint !== "string" || !Array.isArray(value.models)) return null;
+    if (!isRecord3(value) || !Number.isFinite(value.cached_at_ms) || typeof value.source_fingerprint !== "string" || !Array.isArray(value.models)) return null;
     const models = value.models.map(toCachedCatalogEntry).filter((entry) => entry !== null);
     if (models.length !== value.models.length || models.length === 0) return null;
     return { cached_at_ms: value.cached_at_ms, source_fingerprint: value.source_fingerprint, models };
@@ -37922,8 +38260,8 @@ async function readModelCatalogCache(cachePath) {
   }
 }
 function toCachedCatalogEntry(value) {
-  if (!isRecord2(value) || typeof value.provider_id !== "string" || !value.provider_id || typeof value.model_id !== "string" || !value.model_id || typeof value.label !== "string") return null;
-  if (value.reasoning_levels !== void 0 && (!Array.isArray(value.reasoning_levels) || !value.reasoning_levels.every((level) => isRecord2(level) && typeof level.value === "string" && typeof level.label === "string"))) return null;
+  if (!isRecord3(value) || typeof value.provider_id !== "string" || !value.provider_id || typeof value.model_id !== "string" || !value.model_id || typeof value.label !== "string") return null;
+  if (value.reasoning_levels !== void 0 && (!Array.isArray(value.reasoning_levels) || !value.reasoning_levels.every((level) => isRecord3(level) && typeof level.value === "string" && typeof level.label === "string"))) return null;
   for (const key of ["provider_label", "reasoning_default_level", "disabled_reason"]) if (value[key] !== void 0 && typeof value[key] !== "string") return null;
   for (const key of ["context_window", "max_output_tokens"]) if (value[key] !== void 0 && (typeof value[key] !== "number" || !Number.isFinite(value[key]) || value[key] < 0)) return null;
   const result = {};
@@ -37976,7 +38314,7 @@ function loadInstallAuthoritySelection(host) {
     if (!stat2.isFile() || stat2.isSymbolicLink()) throw new SqliteInstallConfigurationError("authority_config_not_regular_file");
     if (stat2.size > CONFIG_LIMIT) throw new SqliteInstallConfigurationError("authority_config_too_large");
     const parsed = JSON.parse(readFileSync11(configPath, "utf8"));
-    if (!isRecord3(parsed)) throw new SqliteInstallConfigurationError("authority_config_invalid_shape");
+    if (!isRecord4(parsed)) throw new SqliteInstallConfigurationError("authority_config_invalid_shape");
     const keys = Object.keys(parsed).sort().join("|");
     if (parsed.schema_version !== 1) throw new SqliteInstallConfigurationError("authority_config_version_unsupported");
     if (parsed.authority === "json" && keys === "authority|schema_version") {
@@ -38002,7 +38340,9 @@ function prepareFreshSqliteStateDirectory(selection, env) {
 function sqliteInstallationRoot(env) {
   const modulePath = fileURLToPath3(import.meta.url);
   const dist = path16.dirname(modulePath);
-  if (env["ZCODE_BRIDGE_PLUGIN_MODE"] === "1" && path16.basename(modulePath) === "bridge.mjs" && path16.basename(dist) === "dist") {
+  const entry = path16.basename(modulePath);
+  const pluginEntry = entry === "wait-task.mjs" || entry === "bridge.mjs" && env["ZCODE_BRIDGE_PLUGIN_MODE"] === "1";
+  if (pluginEntry && path16.basename(dist) === "dist") {
     const pluginRoot = path16.dirname(dist);
     if (!existsSync11(path16.join(pluginRoot, ".codex-plugin", "plugin.json")) || !existsSync11(path16.join(pluginRoot, "launch-node24.mjs"))) {
       throw new SqliteInstallConfigurationError("sqlite_plugin_layout_invalid");
@@ -38099,7 +38439,7 @@ function samePath2(left, right) {
   const normalize = (value) => process.platform === "win32" ? path16.win32.normalize(value).replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US") : path16.resolve(value);
   return normalize(left) === normalize(right);
 }
-function isRecord3(value) {
+function isRecord4(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
 }
 
@@ -38111,13 +38451,13 @@ function createTrustedLocalCandidateContext(host) {
 function resolveDataRoot(env) {
   const override = env["ZCODE_BRIDGE_DATA_DIR"]?.trim();
   if (override) {
-    if (!path19.isAbsolute(override)) {
+    if (!path20.isAbsolute(override)) {
       return {
         dataRoot: findPackageRoot(),
         warning: `ZCODE_BRIDGE_DATA_DIR must be an absolute path; ignoring ${override} and using the Bridge installation directory`
       };
     }
-    return { dataRoot: path19.normalize(override) };
+    return { dataRoot: path20.normalize(override) };
   }
   return { dataRoot: findPackageRoot() };
 }
@@ -38211,7 +38551,7 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
   const processProbe = createPlatformProbe();
   let manager;
   let lifecycleChecks;
-  const databasePath = path19.join(dataRoot, FRESH_SQLITE_DATABASE_FILE);
+  const databasePath = path20.join(dataRoot, FRESH_SQLITE_DATABASE_FILE);
   let trustedLocalContext;
   try {
     trustedLocalContext = createTrustedLocalCandidateContext(host);
@@ -38270,7 +38610,7 @@ var isEntry = process.argv[1] !== void 0 && sameRealPath(import.meta.url, proces
 function sameRealPath(moduleUrl, argvPath) {
   try {
     const modulePath = realpathSync7(fileURLToPath5(moduleUrl));
-    const entryPath = realpathSync7(path20.resolve(argvPath));
+    const entryPath = realpathSync7(path21.resolve(argvPath));
     return process.platform === "win32" ? modulePath.toLocaleLowerCase("en-US") === entryPath.toLocaleLowerCase("en-US") : modulePath === entryPath;
   } catch {
     return false;

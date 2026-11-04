@@ -1,254 +1,374 @@
 ---
 name: find-references
 description: >-
-  Find real references for a video before anything is made, then turn them into ten visual ideas. The agent
-  goes through seven sources in order (varg how to, X from the last 7 days, Refs, FrameThrower, the film-still
-  libraries, Pinterest and Are.na, YouTube) and comes back with four kinds of reference: style (palette, light,
-  texture, type), film (framing, lens, camera move), pop culture (moments people recognize) and trends (what
-  people saved this week, with the numbers). It writes refs.md, trends.md, links.md and ideas.md and builds one
-  board to pick from. Use when someone says "find references", "reference board", "what should this look like",
-  "give me visual ideas", "moodboard references", "make it not look like AI", or starts a video with no look yet.
-  Not for writing the look bible from chosen references (varg-video-prompting) or for downloading one known link
-  (media-download).
+  Find real, human-made references before anything is made, for AI image, video and music and for video made with
+  code. Turns a request into one query pack per job (light first if generated; type, motion and palette first if
+  coded; then framing, people, location, texture, music, and a "never" board of what must not appear), searches each
+  source in its own words, opens everything it keeps, proves who made it, measures what code can measure, checks light
+  with an LLM judge, and hands a person three candidates per job. Use when someone says "find references", "reference
+  board", "what should this look like", "lighting reference", "framing reference", "texture reference", "font
+  reference", "motion reference", "casting reference", "music reference", "moodboard references", "make it not look
+  like AI", "avoid slop", "rank these references", or starts a video with no look yet. Not for writing the look from
+  chosen references (video-moodboard, varg-video-prompting), building the cast (character-passport) or downloading one
+  known link (media-download).
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.0"
+  version: "2.0.0"
   openclaw:
     requires:
       anyBins:
-        - curl
         - python3
+        - curl
     homepage: https://github.com/vargHQ/skills/tree/main/find-references
 compatibility: >-
-  Works in any agent with a shell and web access. Refs search is free with no key: connect it as MCP or call it
-  with scripts/mcp_call.py (Python 3, standard library); its frame sheets and blueprints need Refs Pro.
-  FrameThrower needs a FrameThrower account (OAuth sign-in, $2 free credit, then pay per use), so connect it as
-  MCP. X needs an X MCP or API; without one the agent falls back to web search and says so. Pinterest images need
-  gallery-dl (via the media-download skill), YouTube clips need yt-dlp. No varg credits are used.
-allowed-tools: Bash(curl:*) Bash(python3:*) Bash(yt-dlp:*) Bash(gallery-dl:*) Bash(ffprobe:*) Read Write Edit
+  Works in any agent with a shell and web access. scripts/search.py needs only Python 3 and reaches 22 open sources with
+  no key. frame_light.py needs ffmpeg. motion_read.py needs ffmpeg and uv. judge.py and the palette commands need
+  ImageMagick; judge.py read uses the person's own logged-in claude or codex CLI, with no API key. OCR needs tesseract.
+  FrameThrower, Refs Pro, Are.na v3, Flickr's API, Mapillary and Epidemic Sound need the person's own account. No varg
+  credits are used.
+allowed-tools: Bash(python3:*) Bash(curl:*) Bash(ffmpeg:*) Bash(ffprobe:*) Bash(magick:*) Bash(uv:*) Bash(tesseract:*) WebFetch WebSearch Read Write Edit
 ---
 
 # Find references
 
-Without a reference the agent falls back to its default look: "centered text, gradient background, everything
-fading in" (https://x.com/rexan_wong/status/2103707054108299437, 18K bookmarks). "Most AI videos look cheap
-because nobody gives the AI a real film reference" (https://x.com/ScaleWthAI/status/2111821935021863254). A search
-that stays in the middle finds the same average. This skill sends the agent to seven places, in a fixed order,
-for four kinds of reference, and makes it show what it found before anyone writes a prompt.
+Without a reference an agent falls back to its default look: "centered text, gradient background, everything fading in"
+(https://x.com/rexan_wong/status/2103707054108299437). Adding more words does not fix it. Three facts shape this skill:
+
+- **No library searches by ratio, shadow edge or Kelvin.** Search with words a cataloguer would use, then measure what
+  you find. A spec and a query are different things.
+- **Machines read light and taste badly** (`references/evidence.md`). A judge answers literal questions about what is
+  visible, and nothing else.
+- **The best libraries forbid bots.** Film-Grab, ShotDeck, Pinterest, Instagram, Rate Your Music and Bandcamp's pages are
+  for people. The agent reads open archives and writes links for the person.
+
+So each part does what it can do. **Code owns facts in pixels and timing. Records own who made it and the rights. The
+LLM owns literal yes/no checks and the shortlist. A named person owns meaning and the final pick.**
+
+**Some things only a person can find.** In the cold run on an ad (`tested 2026-11-03`), no open source returned the
+inside of an old Portuguese tile shop, the thing that person loved most. Finding that out early and writing the link is a
+good result. Say so plainly, and do not pass off something near it as the thing.
+
+## Read and run
+
+Read this file and `references/queries.md`. Then read only the job files this piece needs. Every rule that matters for
+the whole run is in this file. Job files hold routes, traps and queries.
+
+Run from the project folder. Call scripts by absolute path. Never write into the skill folder. Use `-I` when a folder
+holds downloads, which is nearly every folder here, so the commands below all have it.
+
+```bash
+S=<skill folder>/scripts     # absolute path
+python3 -I "$S/search.py" sources
+```
+
+| Script | Does | Needs |
+|---|---|---|
+| `search.py` | 22 open sources, person-only links, fusion, the search log | Python 3 |
+| `board.py` | the board page | Python 3 |
+| `sun.py` | sunrise, sunset, sun altitude and azimuth | Python 3 |
+| `ai_marker.py`, `hdri_light.py`, `mcp_call.py` | AI marker scan; light in an HDRI; any MCP tool with no client | Python 3 |
+| `frame_light.py` | bright side, contrast, colour | ffmpeg |
+| `motion_read.py` | cuts, holds, camera, elements, scale | ffmpeg and uv, in the `uv run` form below |
+| `judge.py` | blind, read, enforce, aggregate, pairs, rank | `magick`. `read` and `pairs` use the person's logged-in `claude` or `codex` CLI |
 
 ## What you come back with
 
-Four kinds of reference ("atoms"). Each kept reference is one of them:
-
-| Atom | What it lends | Minimum |
-|---|---|---|
-| **Style** | palette, light quality, texture and grain, type, grade | 3 |
-| **Film** | framing, lens, camera move, cut, staging | 3 |
-| **Pop culture** | a moment people recognize: a music video, an anime opening, a game cinematic, an iconic costume, an era, an ad everyone remembers | 2 |
-| **Trend** | what people saved this week in this format, with likes, bookmarks, views and date | 3 |
-
-Then **ten visual ideas**, each built from at least two references of different kinds.
-
-Files, all in the project folder:
-
 ```
-brief.md      the brief in 6 lines
-refs/         every frame or clip the agent actually opened, named NN-atom-source.ext
-refs.md       one entry per kept reference (template in references/templates.md)
-trends.md     the trend posts with their numbers
-links.md      search links for the sites only a person may open
-ideas.md      the ten visual ideas
-board.html    everything numbered on one page, to pick from
+brief.json        the request as 11 fields, each marked said, assumed or asked
+queries.md        one query pack per job, plus the whole-brief control query
+search_log.jsonl  source, exact query, status, rank and count for each search
+never.md          reject-if tests, with a positive translation for prompts
+want/<job>.txt    one want card per job, frozen before you look
+refs/<job>/       every frame or clip you opened and kept, named NN-job-source.ext
+refs.md           one job card per kept candidate; picks are marked when the person picks
+links.md          searches only a person may open, with a one-line reason each
+board.html        three candidates per job, shuffled, no scores, for the person to pick
+DESIGN.md         coded only: hex, type, grid, motion, each value labelled measured, record, by eye or assumed
+timing.md         coded only: beat, seconds, frames, what moves first, ease, source
 ```
+
+For a coded piece the picks become numbers in those two files. With nobody there to pick, write them from the first passers
+and head them PROVISIONAL. For a generated piece the picks become role lines and words. See `references/templates.md`.
+
+## The jobs
+
+**Priority depends on the method.** Generated: light first, because people and machines both read it badly. Coded: type,
+motion and palette first, and light only where a shot has it (a 3D scene, a single still, an HDRI). Change the order to fit
+the piece, and say so in `queries.md`. Run only the jobs a piece needs: People only with a cast or one generated person,
+Characters only with a cast. Queries and sources are a floor to start from, not a limit.
+
+| Job | What the reference proves | Queries, sources | Agent starts with | Person gets links to | Read |
+|---|---|---|---|---|---|
+| **Never** | what the default looks like, so it can be rejected | 2, 2 | Refs obvious query; generated: Commons `deepcat:`; coded: Impeccable | Meta Ad Library and TikTok Creative Center for ads; Kagi `ai:only`, r/aislop | `references/never.md` |
+| **Light** | one source, a side, a hardness, and why it is there | 6, 3 | Deakins site, Met by artist, Commons, LoC; Poly Haven for code | Film-Grab, ShotDeck | `references/light.md` |
+| **Framing** | shot size, height, angle, where the subject sits | 4, 2 to 3 | Met, Commons, ShotOnWhat | Film-Grab, Shot Cafe, Frame Set | `references/framing.md` |
+| **People** | who this person is, apart from pose, place, expression, clothes | 4, 2 to 3 | LoC FSA/OWI, Commons | Flickr group 100 Strangers, ShotDeck | `references/people.md` |
+| **Characters** | shape language and how a non-human moves | 2, 2 | Sakugabooru metadata, Are.na | ArtStation | `references/characters.md` |
+| **Location** | a real place, decade and region | 3, 2 | Commons categories, LoC HABS, TheFilmMap MCP | Street View, Atlas Obscura | `references/location.md` |
+| **Texture** | one named material or process, at pixel level | 2 to 3, 2 | Commons, LoC, ambientCG; Flickr feed for leads | filmdev.org, Camera-wiki, Lomography | `references/texture.md` |
+| **Palette** | colours and proportions from a named frame | 2, 2 | your candidates' frames, Wada JSON, Meditations in Color | Movies in Color, Screenmusings | `references/palette.md` |
+| **Type, graphics** | a real use of a named typeface, or its class, in a year | 2 to 3, 2 | Fonts In Use numbered paths, Art of the Title, Poster House, a Commons category of the genre's posters | Fonts In Use search | `references/type-graphics.md` |
+| **Motion** | timing you can measure and rebuild | 3, 2 | Refs, Commons `filetype:video` for clips you may process, Sakugabooru metadata, Motionographer | whatships films, Instagram Reels, Meta Ad Library, TikTok Creative Center, Ads of the World, Vimeo Staff Picks | `references/motion.md` |
+| **Music, voice** | tempo, instruments, era, for a person to hear. Voice: a casting line (age, region, texture, pace), and `video-sound` casts candidates | 3, 2 | Discogs, MusicBrainz, ListenBrainz, NTS | Rate Your Music, Bandcamp pages | `references/music.md` |
+
+Style is not a job. It comes from a board (`references/style-boards.md`), which answers how a piece should feel; archives
+answer who and where. A style you cannot break into these jobs is a mood, not a reference.
 
 ## Rules
 
-1. **Open every reference you keep.** Never describe a frame you did not see, and never invent a film, a scene or
-   a post. If a source is out of reach, write what you could not open.
-2. **Respect the sites that block bots.** Film-Grab, Shot Cafe, Eyecannndy, ShotDeck and Film Vibes forbid
-   crawling and automated use (robots.txt, Cloudflare, terms). Never fetch them. Build search links for the
-   person in `links.md`; frames the person drops into `refs/` count as references.
-3. **Borrow the look, not the content.** Palette, framing, lens, light, texture and motion. Never actors,
-   characters, logos, recognizable people or "in the style of" a living filmmaker.
-4. **Found frames are for words and for judging, not for feeding a generator.** Whatever sits in a reference
-   image comes back in the shot, including someone else's actor, set or logo. Feed a model only frames the person
-   owns or licensed, and later your own approved stills.
-5. **Skip the first, obvious pick.** For every idea, drop what comes to mind first and look one step further
-   (for a sci-fi look, not Blade Runner). The middle of a search is the average you are trying to avoid.
-6. **Give every reference one job** and say what it must not copy: "The reference image defines WHO the person
-   is, not the pose, location, expression, clothing, lighting, or composition"
-   (https://x.com/swiat_ai/status/2100482637341012201).
-7. **Numbers come from the source.** Copy likes, bookmarks, views, installs and dates as the source shows them;
-   never round them up or guess them. Bookmarks show usefulness better than likes.
+1. **Brief before search.** The output of this step is a written description of light and staging. Images are how you get
+   there. Roger Deakins produces "sketches of possible shots and staging as well as detailed diagrams for lighting"
+   (https://www.rogerdeakins.com/?p=215049).
+2. **One job per card.** Say what it lends and what it must not copy. An image may have two cards if it truly does two
+   jobs, each with its own do-not-copy line. Everything else in the image leaks: "Any asset you pass as a reference, even
+   if you're not explicitly prompting for it, will still influence the output"
+   (https://x.com/henrydaubrez/status/2037554793850499369).
+3. **Open what you keep.** Keyword hits lie: of two Met hits for `candlelight`, one has a single low candle and one has no
+   candle at all. Write one line saying only what you can see. Delete what you could not open.
+4. **Prove who made it before judging pixels.** People and detectors both fail at spotting AI, and curated AI is the worst
+   case. Sort sources by when the collection closed. Give each reference one label (`references/never.md`):
+   **HUMAN-PROVEN** (a verified film title or a named archive or museum as holder, or a named author plus a date before
+   2022 plus a body of work or credits), **LIKELY HUMAN** (a named author or a date, with nothing against), **UNKNOWN**
+   (nothing proven: mood only, no measurements, no feeding) or **AI** (a marker, or the maker says so: never board only).
+   "No AI marker" and "the detector says human" are never a pass.
+5. **Respect access.** Every source is `agent`, `token`, `person` or `dead` (`references/sources.md`). Never fetch a
+   person-only site, not even to check a link. Never spoof a user agent, sign in for someone or download store previews.
+   - **401, 403 and a bot wall are final.** Stop and write the link in `links.md`.
+   - **A 429 means slow down.** Wait what `Retry-After` says, or 60 s, try once more, then stop using that source for this
+     run.
+   - A server error (500, 504) gets one retry.
+6. **Tag every reference `feed`, `words` or `look`.**
+   - `feed` may go to a generator: yours, licensed for this use, CC0 or public domain, and no identifiable person.
+   - `words` is read and described. CC BY and BY-SA are `words` by default; a person may clear them for feeding.
+   - `look` is seen by a person, and nobody keeps a copy.
+   - **Any identifiable real person is `words`, even in a public-domain photo.** Copyright and likeness are separate rights.
+   - A public-domain painting is legally `feed`, but start from words: whether paint texture comes back is untested, so
+     feed one only after a test frame.
+   - Audio used as an asset has its own licence rules in `references/music.md`.
+7. **Feed a model far fewer references than it accepts: 1 to 5, each with a role.** `@Image1 defines the light only. Do not
+   copy the room, the person or the colours from @Image1.` Scores fell as reference count rose in the benchmarks we found.
+   Keep identity sheets flatly lit so the light reference can work (`references/queries.md`).
+8. **Never ask a judge for what it cannot perceive.** Lens, film stock, ratios and exact hex come from records or code.
+   Report "these three pass the checks", never "the best" (`references/judge.md`).
+9. **Borrow one step sideways.** Skip the first famous name that comes to mind. Take the same job from another field:
+   candlelight from a painting, a 9:16 composition from a hanging scroll. Never pass a director's or artist's name to a
+   generator: pass measurements.
+10. **Copy numbers as the source shows them.** Never round up or invent a film, scene, post or tag. Say what you could not
+    reach, what the search actually returned, and which expected things it did not confirm.
 
 ## Step by step
 
-### 0. Brief
+### 0. Write the brief
 
-Write `brief.md` in six lines: what the video is, who it is for, where it plays (platform, aspect ratio), length,
-the brand or product, and taste (one or two things the person loves, one thing they hate). If the person already
-gave references, they go first in `refs/` and every search starts from them. If the brief is missing a line, ask
-once, then go on with a stated assumption.
+`brief.json`: idea (what the viewer should believe afterwards), feeling (two adjectives and one opposite), subject, world
+(place and decade), medium, audience, platform (aspect ratio, length), method (coded, generated, hybrid, filmed),
+constraints, loves, hates. Mark each `said`, `assumed` or `asked`.
 
-Turn the brief into search words: name the feeling, not the subject ("lonely, sodium-lit, wet" finds a look,
-"night market" finds stock photos), and add attributes (color, light direction, lens, decade, film stock, shot
-size, mood).
+Ask at most two questions: what they hate, and the method if you cannot infer it. Assume the rest out loud. Also ask for
+real assets (product, UI, founder, brand), which does not count as a question: real material beats any reference. If the
+request is vague, show three territories and ask one question: `references/queries.md`.
 
-### 1. varg how to: what already worked
+### 1. Run the obvious search, and ban what repeats
 
-Search the catalog for the format and the look. It returns style cards, tutorials and prompt cards taken from
-viral posts, with their bookmarks and views.
+Search the plainest words (`coffee`, `coffee ad`). Say what the results actually show, and name what they share.
 
 ```bash
-curl -s "https://varg.ai/how-to/api/search?q=<format and look in plain words>"
+python3 -I "$S/search.py" refs '{"query":"coffee","ai_made":false,"limit":8}' --log search_log.jsonl
 ```
 
-Or `search_how_to` on the varg how to MCP, or `vargai search "<query>"`. Run 3 to 5 searches, not 50. Search
-results carry no numbers: open the 2 or 3 cards closest to the brief (add `.md` to the card's link) and copy their
-installs, GitHub stars or, for prompt cards, the bookmarks and views of the post they came from. Keep them as
-style or trend atoms.
+Refs may not show the obvious thing: in the cold run 17 of 48 cards were about coffee, and 9 of those were Nespresso. Mark
+anything you expected and could not confirm. For ads, the real picture of a category is in Meta Ad Library and TikTok
+Creative Center, which are person-only, so write those links.
 
-### 2. X, the last 7 days: what people save now
+Write `never.md` from the search you ran and from the person's stated hates. Each entry is a test a stranger can check, on
+a frame, a clip or a text as fits. At intake, drop a reference only if what matches a never test is what it lends: a
+painting that shows people drinking can still lend only light. Details: `references/never.md`.
 
-Search for the format, the look and the tools, newest week only, and rank by bookmarks:
+### 2. Write one query pack per job
 
-```
-<format or look> since:<date 7 days ago> min_faves:100 -filter:retweets
-<model or tool> prompt since:<date 7 days ago> min_faves:50
-```
+Each pack has up to five slots, shaped for the engine that reads it: L literal, C caption (skip it if you have no semantic
+engine), N named, A adjacent, X excluded. `references/queries.md` has the slots, a bad-to-good table per job and the
+feeling table. Add one whole-brief control query.
 
-X has no sort by bookmarks: filter with `min_faves:` and rank by bookmarks yourself. Ask for 10 to 20 posts per
-search, not 100: posts often carry whole prompts and long results get cut off. Read the top posts; the prompt is
-in the post, its link or the author's first reply. Watch the video before you keep a post: the text and the clip
-do not always match. For each kept post write a line in
-`trends.md`: link, author and followers, date, likes, bookmarks, views, and the look or format in one line.
-Posts with far more bookmarks than the author's following suggests, and bait hooks, are suspect: keep them only
-when nothing else shows the same trend.
+- Keyword sources want one or two catalogue words. A silent zero usually means the wrong vocabulary: open one good result,
+  read its tags and reuse them.
+- Never write "no X" into a semantic query. Filter afterwards.
+- Search in the place's own words and in English: both, since neither always wins (`references/light.md`). Read the author
+  field of good Commons hits: institutions upload whole collections. Ask a local archive by name.
+- **Stop a job when two queries in a row add nothing new.** The floors in the table do not cap you: Light took 26 queries on
+  a hard brief in the cold run, and that is fine.
+- Palette needs no first search of its own. For the first board, extract from three named frames of candidates. After the
+  pick, re-extract from the picked frame.
 
-Use an X MCP or the X API if one is connected. Without one, search the web for `site:x.com <query>`, keep only
-posts you could open, and write in `trends.md` that X search was not available.
-
-Extra trend sources when they fit: the Civitai MCP (what AI looks are popular this week, with prompts; needs a
-Civitai key), TikTok Creative Center and the Meta Ad Library for ads (see `varg-ad-library-remix`).
-
-### 3. Refs: films like this one, measured
-
-Refs (https://refs.video) holds 4,000+ launch films, product demos, explainers, motion pieces, teasers and UGC
-ads, each taken apart shot by shot (cut map, pacing, palette, type, voice, music). Searching is free with no key
-and returns short cards: title, maker, length, aspect, summary, thumbnail and a link that plays the film.
-
-- `search_videos` with the brief in plain words (filters: category, aspect, seconds, platform, brand).
-- Look at the thumbnails and open the 2 or 3 best on refs.video or their original post.
-- With Refs Pro: `get_frames` for labelled frame sheets and `get_blueprint` for the beats, shot list and style
-  guide of the one you keep. Without Pro, say which films you could only see as cards.
-
-Connect it as MCP (`claude mcp add --transport http refs https://refs.video/mcp`) or call it with the script:
+### 3. Search, and write the links
 
 ```bash
-python3 scripts/mcp_call.py https://refs.video/mcp search_videos '{"query":"founder-led launch film under 60 s","limit":8}'
+python3 -I "$S/search.py" met "Georges de La Tour" --artist --public-domain --medium Paintings --log search_log.jsonl > light-1.json
+python3 -I "$S/search.py" commons '"low key" portrait' --log search_log.jsonl > light-2.json
+python3 -I "$S/search.py" commons-cat "Category:Diners in New Jersey" --log search_log.jsonl > location-1.json
+python3 -I "$S/search.py" loc "mechanic" --collection fsa-owi-black-and-white-negatives --log search_log.jsonl > people-1.json
+python3 -I "$S/search.py" links "sodium street night" --job light     # that job's person-only links, nothing is fetched
 ```
 
-Films play from their original posts and stay their makers'. Do not download or bulk-export them.
+- Retrieve 10 to 20 a query and 30 to 60 candidates a job at most.
+- Every call prints JSON with a `status`: `ok`, `error`, `blocked` or `rate_limited`, and anything but `ok` exits 1.
+  `search.py` paces itself across processes, handles a 429 as rule 5 says, and logs every outcome. Add a row by hand for
+  anything you fetch another way (WebFetch, curl, `mcp_call.py`), including silent zeros and blocks.
+- `image` is often a sized copy, and `original` can be a 272 MB TIF (cold run on a coded film). Check `width`, `height` and
+  `bytes` first. Use a sized copy for layout and palette (`--width 1920` on `commons` and `commons-cat` sets Commons
+  `iiurlwidth`), and the original only for a 100% texture check.
+- The best route of the cold run was a Commons category walk, with author, date, EXIF and licence in one call. Which source
+  to use for which job is in each job's file. Who may read what is in `references/sources.md`.
+- Connect what the person has an account for: FrameThrower is the only library with a filter for what lights a frame
+  (`references/light.md`).
 
-### 4. FrameThrower: film frames, ads and animation
+### 4. Fuse, open, prove
 
-FrameThrower (https://framethrower.ai) is a cinematography library indexed frame by frame, with credits. It needs
-a FrameThrower account: connect it as MCP and sign in once (`claude mcp add --transport http framethrower
-https://framethrower.ai/api/mcp`, then `/mcp` to authenticate); new accounts get $2 of credit, then it is pay per
-use. It covers three of the four atoms:
+Fusion merges duplicates and rank across queries. It does not cut by maker: one pick per maker happens only at the
+shortlist, after opening. Across different sources few items overlap (6 of 119 in the cold run), so read the top of each
+query too.
 
-- **Film:** `search_frames` by concept, mood or color; `find_by_craft` by lens, shot size, visual style, setting,
-  time of day, director or years; `find_similar` for "more like #2".
-- **Ads:** `search_commercials` and `search_commercial_shots` by idea or by what is in the frame.
-- **Pop culture:** `search_animation_frames` and `find_animation_titles` (anime and Western animation).
+```bash
+python3 -I "$S/search.py" fuse light-1.json light-2.json light-3.json --limit 20
+```
 
-Example call: `find_by_craft` with `{"lens": "anamorphic", "time_of_day": "night", "limit": 8}`. Use the frames to
-see and name the look. They are someone else's films: rule 4 applies. If FrameThrower is not connected, say so
-and lean on step 5 for film atoms.
+Open every candidate you keep and write what you can see. Then prove provenance from records: a named maker and date, a
+holding archive, or an oldest copy. Run `python3 -I "$S/ai_marker.py" refs/` on what you download: a hit rejects, and a
+miss proves nothing, because any re-encode erases the marker.
 
-### 5. Film-still libraries: links for the person
+### 5. Measure, then judge
 
-These are the best human libraries and they forbid bots. Write searches into `links.md`, grouped by what to look
-for, and ask the person to open them and drop 1 to 3 frames each into `refs/`:
+Write a **want card** per job in `want/<job>.txt` before you look at candidates, with values only and no praise words:
 
-| Site | Link pattern | Good for |
+```
+job: light | direction: any | hardness: soft (assumed) | source: window or practical lamp | shadow side: near black
+```
+
+- Freeze only values the person gave or the brief implies.
+- Anything you had to invent is marked `assumed`, and it cannot be core. If you invented a side, write `direction: any`, and
+  the judge skips L2. It also skips a question whose value says `(assumed)`.
+- The person's words outrank your card. A reference that fits the brief and fails an assumed value goes to the person with
+  a note.
+
+Every kept candidate passes the gates, for every job: opened, provenance, source allowed, rights, identity safety, no
+duplicate (`references/judge.md`). Then measure. Gates, code and the person are usually enough.
+
+```bash
+python3 -I "$S/frame_light.py" refs/light/07-light-met.jpg       # bright side, contrast in stops, highlight and shadow colour
+uv run --no-project --python 3.12 --with scenedetect --with opencv-python python -I "$S/motion_read.py" cuts refs/motion/12-motion-archive.mp4
+```
+
+**Generated: judge Light by default, and only if more than 3 candidates survive the gates. Coded: usually no judge,**
+since the answers come from records and code. Run one only on a generated still's light, when more than 3 candidates
+survive. We have not run the demographic swap, so for light prefer frames without people, and a person confirms the rest.
+For other jobs the criteria tables are a draft, off by default. On a small budget: Light only, 2 reads per family. Ask
+binary questions about visible things only, with labels stripped and order shuffled, then take the best few to pairs in
+both orders. No API key: `read` uses the person's own logged-in `claude` or `codex` CLI.
+
+```bash
+C="$S/../assets/criteria/light.json"
+python3 -I "$S/judge.py" blind refs/ blinded/                    # no metadata, random ids, never upscales, ledger kept apart
+python3 -I "$S/judge.py" read blinded/light --family claude --want want/light.txt --criteria "$C" --reads 3 --out reads.jsonl
+python3 -I "$S/judge.py" read blinded/light --family codex --want want/light.txt --criteria "$C" --reads 3 --out reads.jsonl
+python3 -I "$S/judge.py" enforce reads.jsonl --criteria "$C" > enforced.jsonl
+python3 -I "$S/judge.py" aggregate enforced.jsonl --criteria "$C" > shortlist.json
+```
+
+Pairs, prompts, criteria and the budget rules are in `references/judge.md`. What we measured on this judge is in
+`references/judge-evidence.md`. It is weakest on rooms with no face, so a person looks at anything the checks rank low that
+fits the brief.
+
+### 6. The person picks
+
+Put three candidates per job on the board, grouped by job, shuffled, with no scores until they choose. Reference lists
+ranked in one column raise fixation ([Chan et al. 2024](https://arxiv.org/abs/2401.11022)), so do not make one.
+
+```bash
+python3 -I "$S/board.py" board.json board.html --seed 7          # input shape in references/templates.md
+```
+
+`board.py` numbers candidates after shuffling. A `look` reference goes on as a link with no image. Do not use
+`varg-mockups` for this: it is a storyboard template. If nobody is there, name the first passer per job and say so.
+
+Close the loop for one or two rounds. Picks go to "more like this": FrameThrower `/similar`, the Are.na connection walk
+(`python3 -I "$S/search.py" arena-walk <block>`), a person's Google Lens. Rejects go to `never.md` with the reason.
+
+### 7. Write the job cards
+
+One per kept candidate, in `refs.md` (template in `references/templates.md`). Mark the picks when the person picks.
+
+```
+id · job · URL · maker · year · what I see · lends (one thing, with numbers from a measurement or record) ·
+must not copy · rights (feed | words | look) · provenance label · query and rank that found it
+```
+
+Then pass on. Generated: the look comes next, in `video-moodboard`. Coded: `DESIGN.md` and `timing.md` go to `hyperframes`,
+`code-to-video-previz`, `kinetic-type-art` or `motion-formats`. Anyone who recurs: `character-passport`.
+
+### Optional: what people save this week, and ten ideas
+
+When the piece rides a trend, search X for the format (`references/experts.md`). If the person asks for visual ideas, write
+up to ten in `ideas.md`, each built from two or more references of different jobs (`references/templates.md`).
+
+## For code, and for generation
+
+| | Coded (HyperFrames, Remotion, three.js) | Generated (Seedance, Kling, Veo, Nano Banana) |
 |---|---|---|
-| Film-Grab | `https://film-grab.com/?s=<query>` | full sets of stills from one film; lens, stock and process words |
-| Shot Cafe | `https://shot.cafe/tag/<tag>` (spaces as `%20`) | shot type, light, day or night, interior or exterior |
-| Eyecannndy | `https://eyecannndy.com/technique/<slug>` | the name of a technique you can see but cannot name |
-| ShotDeck | `https://shotdeck.com` (search needs a login) | color, light, camera angle, location; shot cards list palette, lens, lighting and film stock |
+| Light | none on a flat film. Where a shot has it: HDRI choice, key angle, shadow softness, glow values | real-looking source: direction, hardness, colour |
+| Framing | grid, margins, scale ratios, safe zones | shot size, lens, staging |
+| Texture | noise, grain shader, PBR maps | material words, or a neutral close-up reference |
+| Palette | exact hex and contrast | named colours and a chosen frame, loosely held |
+| Type | exact licensed font, tracking, size in px | avoid in frame; overlay in code |
+| Motion | seconds per beat, ease curve, what moves first, stagger | camera verb, subject action, cut rate |
+| Rights question | shipped fonts, textures, code licences, any generated person | every fed image |
+| Output | `DESIGN.md` plus `timing.md` | role lines plus a look description |
 
-Never fetch these pages, not even to check a link.
-
-### 6. Pinterest and Are.na: curated boards
-
-People have already curated costumes, grades, posters, sets, cosplay and eras. Search by attribute, not subject:
-`<film> still`, `<director> color palette`, `<decade> film grain`, `<character> cosplay`, `<genre> lighting`.
-
-- Pinterest images: the `media-download` skill (`scripts/pinterest.sh -n 8 -o refs "<query 1>" "<query 2>"`,
-  gallery-dl underneath, run through uvx if it is not installed). Its `references/pinterest-presets.md` has ready
-  query sets. Saved files are not named by pin, so link the search page as the source.
-- Are.na: the Are.na MCP (`https://mcp.are.na/mcp`) or its API to search channels and read the person's boards; it
-  can hold the final board. Its image files refuse direct downloads: put the channels in `links.md` and do not
-  work around the block.
-
-### 7. YouTube: motion and pop culture
-
-Music videos, trailers, title sequences, game cinematics, anime openings and ads people remember. Search, watch
-the 2 or 3 best, and note the timestamps of the moments you would borrow. Pull a 5 to 15 second clip with yt-dlp
-(`media-download`'s `video.sh`) only where motion or pacing matters, and keep it for reference.
-
-### 8. Board and picks
-
-Put every candidate on one page, numbered, with its atom, its source link and one line on what it lends: use the
-`varg-mockups` board (`templates/board.html`) or a plain HTML contact sheet. Aim for 20 to 30 candidates. Keep the
-12 or more that are strongest and most different from each other, covering every atom at its minimum. When the
-person is present, let them pick; otherwise pick yourself and say why.
-
-### 9. refs.md
-
-One entry per kept reference, in the format in `references/templates.md`: number, atom, source and link, what it
-lends (palette with named colors, framing, light direction and hardness, lens, texture, motion), its one job and
-what it must not copy.
-
-### 10. Ten visual ideas
-
-Write `ideas.md`. Each idea:
-
-- a title and a one-line pitch
-- the references it combines, by number, from at least two different atoms
-- the look line: medium, palette with the accent named, lens, light, grain, motion
-- the first shot in one sentence
-- why now: the trend post it rides, with its numbers; use a different trend for each idea where you can (wild
-  ideas may have none)
-- the risk: what could make it slop, and any rights question
-
-Spread them: 3 close to what is working this week, 4 stretches, 3 wild. No two ideas share the same main
-reference. None may fall back to centered text, a gradient background and everything fading in. Add the ideas to
-the board and stop there: the person picks one or two, and the look bible comes next (`varg-video-prompting`,
-look line plus a Never list).
+Hybrid is often the answer: generate plates, and set type and data in code.
 
 ## Done when
 
-- `refs.md` has 12 or more references the agent or the person opened: 3+ style, 3+ film, 2+ pop culture and 3+
-  trends from the last 7 days with their numbers.
-- Every entry has a source link, what it lends, one job and a do-not-copy line.
-- `links.md` lists the searches only a person may open.
-- `ideas.md` has 10 ideas, each from 2+ references of different atoms, spread 3 / 4 / 3.
-- `board.html` shows every reference and idea, numbered, with sources.
-- Nothing in any file was invented, and no blocked site was fetched.
+- `brief.json` exists, with each field marked, and `queries.md` shows a pack for each job this piece needs.
+- `never.md` has tests from a search you ran and from the person's stated hates, each one a stranger could check.
+- `refs.md` has a job card per kept candidate, with what you saw, one job, what not to copy, rights and provenance.
+- `search_log.jsonl` records each search, including silent zeros and blocks.
+- `links.md` lists the searches only a person may open, and says what you could not find.
+- `board.html` shows three candidates per job, and the person has picked, or you said why not.
+- Coded: `DESIGN.md` and `timing.md` exist, with every value labelled measured, record, by eye or assumed.
+- If a generated person appears in an ad, you flagged possible disclosure (New York, EU Article 50(4)) for the person to
+  decide.
+- No person-only site was fetched, no real person's face was fed, and nothing in any file was invented.
 
-## The same thing as one prompt
+## Reference files
 
-`references/goal-prompt.md` holds this skill as one prompt to paste after `/goal` in Claude Code (or as a task in
-any agent). `references/sources.md` has the seven sources in detail: tools, queries and what each one may be used
-for.
+Claims in these files carry a label: `tested 2026-11-03` (run that day), `reported` (read, not reproduced), `our proposal`
+(a synthesis nobody has validated).
+
+| File | Use it for |
+|---|---|
+| `references/queries.md` | **always**: from a request to query packs, fusion, the feeling table, one worked brief |
+| `references/light.md` | **the priority job for generated work**: read light, search it, verify it |
+| `references/framing.md`, `texture.md`, `palette.md`, `type-graphics.md`, `motion.md` | one job each |
+| `references/people.md`, `characters.md`, `location.md`, `style-boards.md`, `music.md` | one job each |
+| `references/never.md` | never board, dated tells, keeping slop out, provenance labels |
+| `references/judge.md` | the judge protocol, commands and criteria |
+| `references/judge-evidence.md` | our bench, published bias findings, the prompts as tested, how to test your own judge |
+| `references/sources.md` | who may read what, person-run link templates, unstable endpoints |
+| `references/experts.md` | who to learn from per job, how to search X, MCP servers that exist |
+| `references/evidence.md` | what is measured, what is only our proposal, what nobody has tested |
+| `references/templates.md` | file templates: brief, want card, job card, never, links, board input, ideas, `DESIGN.md`, `timing.md` |
+| `references/goal-prompt.md` | the whole skill as one prompt to paste after `/goal` or into any agent, and short prompts per job |
+
+Judge questions per job: `assets/criteria/`.
 
 ## Related skills
 
-- `media-download`: Pinterest images and YouTube or X clips for steps 6 and 7.
-- `varg-mockups`: the review board for steps 8 and 10.
-- `varg-video-prompting`: the look bible and Never list once the person picks an idea; its
-  `references/look-references.md` is the short version of this skill.
-- `how-to-make-ai-video`: the whole ten-step film; this skill is its step 1.
+- `video-moodboard`: turns chosen references into a checked board. It is the next step for generated work.
+- `hyperframes`, `code-to-video-previz`, `kinetic-type-art`, `motion-formats`: the next step for coded work, from
+  `DESIGN.md` and `timing.md`.
+- `character-passport`: builds the cast once the identity card is written, for anyone who recurs. Not for one still.
+- `video-sound`: makes the sound once the music reference is picked, and casts voice candidates.
+- `media-judge`: judges finished takes. This skill judges references.
+- `how-to-make-ai-video`: the whole ten-step film. This skill is its step 1.
+- varg how to, for existing guides and skills on a format: `curl -s "https://varg.ai/how-to/api/search?q=coffee+ad"`. It
+  returns how-to guides and skills to install, not references.

@@ -351,6 +351,7 @@ For a repo that must not publish data values, ignore the rest:
 .dex/drift.json
 .dex/spend.jsonl
 .dex/spend.lock
+.dex/cache.lock
 ```
 
 `.dex/dex.db` is the SQLite backend's equivalent of `cache.json`, so it gets
@@ -389,9 +390,10 @@ Apache-2.0. [Learn more](https://www.exmergo.com/dex/enterprise).
 
 ### Community Integrations
 
-| Integration | Maintainer | What it does |
-| --- | --- | --- |
-| <img src="assets/dagster-logo.png" width="20" height="20" alt=""> **[dagster-dex](https://github.com/catincloud-labs/dagster-dex)** | <img src="assets/catincloudlabs-logo.png" width="20" height="20" alt=""> [CatInCloud Labs](https://github.com/catincloud-labs) | Explore and maintain your Dagster assets with Dex, using the asset graph in place of a dbt project. |
+| Integration&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Maintainer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | What it does | Details |
+| --- | --- | --- | --- |
+| <img src="assets/dagster-logo.png" width="20" height="20" alt=""> **[dagster-dex](https://github.com/catincloud-labs/dagster-dex)** | <img src="assets/catincloudlabs-logo.png" width="20" height="20" alt=""> [CatInCloud Labs](https://github.com/catincloud-labs) | Explore and maintain your Dagster assets with Dex, using the asset graph in place of a dbt project. | [Repository](https://github.com/catincloud-labs/dagster-dex) |
+| <img src="assets/openlakeforge-logo.png" width="20" height="20" alt=""> **[OpenLakeForge](https://github.com/OpenLakeForge/openlakeforge)** | <img src="assets/openlakeforge-logo.png" width="20" height="20" alt=""> [OpenLakeForge](https://github.com/OpenLakeForge) | Explore an OpenLakeForge lakehouse alongside Dex through the `olf` CLI, with read-only access to Trino data, OpenMetadata domains and products, and Dagster jobs and runs. | [Skill](https://github.com/OpenLakeForge/openlakeforge/blob/main/skills/exploring-openlakeforge/SKILL.md) |
 
 ### Connect with the Community
 

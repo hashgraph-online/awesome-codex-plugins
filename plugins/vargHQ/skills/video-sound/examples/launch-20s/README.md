@@ -11,8 +11,8 @@ python3 ../../scripts/sound.py check mix.wav --cues cues.json
 python3 ../../scripts/sound.py preview mix.wav --cues cues.json -o preview.mp4
 ```
 
-Watch: designed https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_111e6016cdb8.mp4 ·
-plain https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_1bac44684a40.mp4
+Watch: designed https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_024cbf6d16ee.mp4 ·
+plain https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_7391d35ac5ee.mp4
 
 ## The plan
 

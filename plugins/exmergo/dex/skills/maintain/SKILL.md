@@ -160,6 +160,12 @@ declares is `contract`.
   only the conditionals. A flag's default decides neither. State the behavior
   that survives with a `retirement` contract on `dex transform remove var`.
   Recipe: `skills/transform/references/feature-retirement.md`.
+- A new version of an existing model ("v2", a future replacement) is a native
+  dbt version: a `versions:` list on the model's YAML entry, with
+  `latest_version` keeping the current default, never an independent
+  `<model>_v2`. Declare a version as `<model>.v<N>`. Promotion is its own plan:
+  `data.model_versions` names the default and every consumer it moves.
+  Recipe: `skills/transform/references/model-versions.md`.
 - Change only what the request asks; keep the output columns the request and
   the existing model define.
 - A balance or a running total is `semi_additive`: never sum it across time.
@@ -316,6 +322,11 @@ is not described here.
   more. `declared_grain_not_unique` means nothing changed: the project declares a
   grain the data never had, so the fix is to the declaration (widen it, dedup
   upstream, or drop the claim), not to the data.
+- `join_orphans_increased` and `declared_join_orphans` split the same way. The
+  first is a baseline join that gained orphans. The second is a join declared
+  now and held to a fixed bound, because the baseline never measured it or
+  measured it already over the bound, so it says the declaration and the data
+  disagree today, not that anything changed.
 - On `maintain semantic`, read `unavailable` before hunting for an element kind.
   A native Ossie layer has no measures and no entities, so their absence is the
   format, not drift.

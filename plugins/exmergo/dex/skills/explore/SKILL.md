@@ -158,6 +158,12 @@ declares is `contract`.
   only the conditionals. A flag's default decides neither. State the behavior
   that survives with a `retirement` contract on `dex transform remove var`.
   Recipe: `skills/transform/references/feature-retirement.md`.
+- A new version of an existing model ("v2", a future replacement) is a native
+  dbt version: a `versions:` list on the model's YAML entry, with
+  `latest_version` keeping the current default, never an independent
+  `<model>_v2`. Declare a version as `<model>.v<N>`. Promotion is its own plan:
+  `data.model_versions` names the default and every consumer it moves.
+  Recipe: `skills/transform/references/model-versions.md`.
 - Change only what the request asks; keep the output columns the request and
   the existing model define.
 - A balance or a running total is `semi_additive`: never sum it across time.

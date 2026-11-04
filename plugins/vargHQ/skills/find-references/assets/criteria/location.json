@@ -1,0 +1,30 @@
+[
+ {
+  "id": "O2",
+  "question": "Does nothing visible contradict the decade on the want card?",
+  "pass_example": "1970s cars only",
+  "fail_example": "LED billboard on a 1974 street",
+  "ct_rule": "No dated objects"
+ },
+ {
+  "id": "O3",
+  "question": "Do weather and time of day match the want card?",
+  "pass_example": "Wet pavement, low sun as asked",
+  "fail_example": "Dry noon",
+  "ct_rule": "Indoors"
+ },
+ {
+  "id": "O4",
+  "question": "Does visible signage fit the stated place and language? Do not guess the place.",
+  "pass_example": "Readable signs in the right language",
+  "fail_example": "Wrong script",
+  "ct_rule": "No signage"
+ },
+ {
+  "id": "O5",
+  "question": "Is it lived-in: wear, repairs, clutter?",
+  "pass_example": "Patched wall, mismatched chairs",
+  "fail_example": "Pristine, empty",
+  "ct_rule": "Tight detail"
+ }
+]

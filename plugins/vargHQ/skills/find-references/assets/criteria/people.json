@@ -1,0 +1,16 @@
+[
+ {
+  "id": "H2",
+  "question": "Is this not arranged as a stock type?",
+  "pass_example": "Sitter meets camera, no commercial smile, own surroundings",
+  "fail_example": "Arms crossed, white background, posed smile",
+  "ct_rule": "Tight crop"
+ },
+ {
+  "id": "H3",
+  "question": "Is the skin unretouched: pores, lines, asymmetry visible? This tests retouching only. Age, skin tone and body are not the question.",
+  "pass_example": "Visible pores on a face crop",
+  "fail_example": "Airbrushed, waxy, plastic",
+  "ct_rule": "Face under 256 px, heavy grain"
+ }
+]

@@ -22,6 +22,10 @@ Hand content over with `--edits-file <path>` (or `-` to read stdin):
 
 ## Kinds and what each must be
 
+A new version of an existing model is a `model_sql` edit for the version's file
+and a `schema_yml` edit giving the model a `versions:` list. It is never a second
+plain model named `<model>_v2`. Recipe: [model-versions.md](model-versions.md).
+
 | Kind | Where | Must be |
 |---|---|---|
 | `model_sql` | model paths | a single read-only SELECT once its jinja is stripped |

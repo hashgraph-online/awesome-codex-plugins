@@ -30,7 +30,10 @@ ffmpeg; run beat analysis with `uv run --with librosa`).
 3. Cast from candidates. Render the hardest line in 3-5 voices, 2 takes each (on varg an identical request returns
    the cached file: change the text slightly for take 2). Write each casting note as role + listener + 2-3 precise
    adjectives. Measure every take (length, words per minute, pauses, pitch spread; transcript must match the script)
-   and build one audition page (scripts/audition.py). Quote the price first. STOP: I listen and pick.
+   and build one audition page (scripts/audition.py). Quote the price first. If there are too many takes, shortlist
+   with an audio LLM judge (references/judge.md): yes/no questions about one take at a time, code decides, survivors
+   compared two at a time in both orders, only agreeing verdicts count. Never ask it "which is better". STOP: I
+   listen and pick.
 
 4. Record all lines in the chosen voice. Transcribe each with word timestamps, compare with the script, re-render
    only wrong lines. Keep quiet breaths; don't denoise or level normal sentence declination. The word times set the

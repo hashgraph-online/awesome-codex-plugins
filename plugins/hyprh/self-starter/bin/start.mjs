@@ -5,8 +5,8 @@
 // deno, into ~/.self-starter/runtime/<version>; later starts need no network.
 // SELF_STARTER_RUNTIME installs from somewhere else, such as a tarball in tests.
 //
-// The same file is the launcher for Codex, Claude Code and ZCode; a test keeps
-// the copies in codex-plugin/, cc-plugin/ and zcode-plugin/ identical.
+// The same file is the launcher for Codex, Claude Code, ZCode and Antigravity; a test keeps
+// the copies in codex-plugin/, cc-plugin/, zcode-plugin/ and agy-plugin/ identical.
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, openSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from "node:fs";
@@ -24,7 +24,7 @@ function fail(message) {
 if (Number(process.versions.node.split(".")[0]) < 20) fail(`Node.js 20 or newer is required (this is ${process.version})`);
 
 const pluginRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const manifest = [".codex-plugin", ".claude-plugin", ".zcode-plugin"].map((dir) => join(pluginRoot, dir, "plugin.json")).find((path) => existsSync(path));
+const manifest = [".codex-plugin", ".claude-plugin", ".zcode-plugin", "."].map((dir) => join(pluginRoot, dir, "plugin.json")).find((path) => existsSync(path));
 if (!manifest) fail(`no plugin manifest in ${pluginRoot}`);
 const { version } = JSON.parse(readFileSync(manifest, "utf8"));
 const home = resolve(process.env.SELF_STARTER_HOME || join(homedir(), ".self-starter"));
@@ -166,8 +166,8 @@ if (process.env.SELF_STARTER_INSTALL_ONLY === "1") {
 const args = process.argv.slice(2);
 if (!existsSync(cli)) {
   const installed = installInBackground();
-  // Claude Code sets CLAUDE_CODE_SESSION_ID for its MCP servers; Codex waits as long as the plugin's .mcp.json says.
-  if (args[0] === "mcp" && process.env.CLAUDE_CODE_SESSION_ID) {
+  // Claude Code sets CLAUDE_CODE_SESSION_ID for its MCP servers; Antigravity sets SELF_STARTER_HOST=antigravity; Codex waits as long as the plugin's .mcp.json says.
+  if (args[0] === "mcp" && (process.env.CLAUDE_CODE_SESSION_ID || process.env.SELF_STARTER_HOST === "antigravity")) {
     if (await serveWhileInstalling(installed)) args.push("--tools-changed");
   } else {
     await installed;

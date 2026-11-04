@@ -1,11 +1,11 @@
 ---
 name: launch-film
-description: Make a 20 to 40 second launch film (an MP4 at 1920x1080 with music and sound effects) for a product from its website or App Store page, using its real logo, colors, fonts and screens. Use it when the user asks for a launch video, product video, promo, teaser or announcement clip for a site or an app and gives its address. Everything renders locally with Chrome and ffmpeg; no account or API key.
+description: Make a 20 to 40 second launch film (an MP4 at 1920x1080 with music and sound effects) for a product from its website or App Store page, using its real logo, colors, fonts and screens. Use it when the user asks for a launch video, product video, promo, teaser or announcement clip for a site or an app and gives its address. It also makes launch pictures at the sizes stores and sites ask for (Product Hunt gallery, og:image, X, Google Play feature graphic, Chrome Web Store tiles), and checks any rendered video by measuring it (size, length, black or frozen stretches, silence, loudness, clipping, cuts on the beat). Everything runs locally with Chrome and ffmpeg; no account or API key.
 ---
 
 # launch-film
 
-A launch film made from the product itself: its logo cut from its own page, its colors and typefaces, its real screens in a browser window or a phone, and the words its site already uses. You plan the film as a short JSON file, render it, look at the frames, and hand over the MP4.
+A launch film made from the product itself: its logo cut from its own page, its colors and typefaces, its real screens in a browser window or a phone, and the words its site already uses. You plan the film as a short JSON file, render it, check it, and hand over the MP4, with launch pictures when the user wants them.
 
 The tool is the `launch-film` npm package. It needs Node 22 or newer, Chrome or Chromium, and ffmpeg. Check them first:
 
@@ -84,13 +84,19 @@ npx -y launch-film@latest render film/<name>/film.json
 
 Clips render two at a time; a 30 second film takes one to three minutes. The film is `film/<name>/film.mp4`. If a clip fails, the message names it: fix film.json and render again.
 
-## 5. Look at the frames before you hand it over
+## 5. Check the film before you hand it over
+
+You can't watch the film or hear it, so measure it:
 
 ```bash
-npx -y launch-film@latest frames film/<name>/film.mp4
+npx -y launch-film@latest check film/<name>/film.mp4 --expect 1920x1080@25 --seconds 20-40 --lufs -14
 ```
 
-Open `film/<name>/frames/sheet.jpg` and the stills next to it, two for each clip. Check:
+launch-film renders at 25 fps, 1920x1080 (1080x1920 for 9:16). `--seconds 20-40` is the range a launch film keeps to; when the user asked for a length, give that instead (`--seconds 30` allows half a second either way). Clips last whole bars, so a film planned for 30 seconds can come out two seconds short: to hit a length exactly, give the last clip `seconds` in place of `bars` and render again. `--lufs -14` is the loudness YouTube, X and most social apps play at. If the user has music cues from another tool, add `--cues cues.json` to see whether the cuts land on the beat.
+
+Read `film/<name>/check/CHECK.md` first. It says PASS or FAIL and why, for each check: size, frame rate, length, black, still and silent stretches, loudness, true peak, clipping and cuts on the beat. A warning is something to look at, not always a fault: a title that rests or an end card is a hold, and you can pass the stretches you meant with `--allow 27-30`.
+
+Then look, because a measurement can't read words. Open `check/sheet.png` (a frame from each shot) and `check/wave.png` (the sound over time, with the cuts). For two stills a clip, run `npx -y launch-film@latest frames film/<name>/film.mp4` and open `frames/sheet.jpg`. Check:
 
 - every word is whole, inside the frame and spelled as written;
 - no text lies on other text or runs out of its card;
@@ -98,11 +104,21 @@ Open `film/<name>/frames/sheet.jpg` and the stills next to it, two for each clip
 - the screens are the product's and not a cookie banner or a login page;
 - nothing is blank where something should show.
 
-Fix what you find in film.json and render again. Then give the user the MP4's path, its length and look, and one line on each clip.
+Fix what you find in film.json and render again. If the loudness or the peaks fail, tell the user what CHECK.md measured instead of rendering again: the render does not change them. Then give the user the MP4's path, its length and look, the check's verdict, and one line on each clip.
+
+## 6. Launch pictures, when the user wants them
+
+```bash
+npx -y launch-film@latest stills film/<name>/film.json --for ph,og,x,play,chrome
+```
+
+This makes the pictures a launch needs from the same plan, at the exact size each place asks for, in `film/<name>/stills/`: the Product Hunt gallery (`ph-1.png` to `ph-6.png`, 1270x760) and thumbnail (240x240), `og.png` (1200x630) for link previews, `x.png` (1600x900) for a post on X, `play-feature.png` (1024x500) for Google Play, and the Chrome Web Store tiles (`chrome-small.png` 440x280 and `chrome-marquee.png` 1400x560). Ask for only the ones the user needs with `--for`; a site's address in place of film.json plans the film first.
+
+Read `stills/STILLS.md` and look at every picture with the same list as the frames. The words come from film.json, so fix them there and run `stills` again. Then give the user the folder and say what each file is for.
 
 ## Without a plan step
 
-`npx -y launch-film@latest <url>` does all of the above in one go with the first plan, and saves the frames. Use it when the user wants a film quickly and has no wishes about the words.
+`npx -y launch-film@latest <url>` does steps 1 to 4 in one go with the first plan, and saves the frames. Use it when the user wants a film quickly and has no wishes about the words, and check the MP4 as in step 5 before you hand it over.
 
 ## Options
 

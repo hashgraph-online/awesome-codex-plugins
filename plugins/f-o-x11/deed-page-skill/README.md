@@ -207,19 +207,27 @@ Or `npx skills add f-o-x11/deed-page-skill -a hermes-agent -g`.
 
 ## What it does
 
-Ask your agent to "publish this", "host this report", or "give me a link". The agent runs:
+Ask your agent to "publish this", "host this report", or "give me a link". The default path is the bundled publish script:
+
+```bash
+sh skills/deed-page/scripts/publish.sh ./dist --client "<agent name>"
+```
+
+It publishes a single file or a clean output folder (`dist`, `build`, `out`, `public`, `_site`), skips secrets and repo-metadata paths, refuses a project root unless `--allow-root` is set, and switches to the large-upload flow above 4 MB. Add `--dry-run` to see the exact file list first. The script prints the live URL on its last line, and the agent answers with it. The first publish returns a `token` once. It is the key to update or delete that site, so keep it safe.
+
+A request that only says "make a website" or "build a page" produces a local draft. The agent shows a preview, offers to publish, and uploads only after you ask to publish or confirm the public URL and the exact file list. An unattended run publishes only when its instructions explicitly say to.
+
+If the script can't run (no shell, or a single small file), the same publish is one `curl` request:
 
 ```bash
 curl -sS -T index.html "https://deed.page/v1/sites?slug=my-report-7f3a2c&ref=skill-gh" -H "X-Client: <agent name>"
 ```
 
-and answers with the `url` from the JSON response. The first publish returns a `token` once. It is the key to update or delete that site, so keep it safe. A request that only says "make a website" or "build a page" produces a local draft. The agent offers to publish and uploads after you ask to publish or confirm the public URL and the exact file list. An unattended run publishes only when its instructions explicitly say to.
-
 - Free plan: 25 sites, 25 MB per site, 60 publishes per hour.
 - Free sites are public. Do not publish secrets.
 - Static files only.
 
-`?ref=skill-gh` tells deed.page that a publish came from this skill. It does not change what is published. Set `DEED_REF` to override it. You can also say where you found deed.page with the optional `X-Deed-Heard-From` header on the first publish (at most 200 characters).
+`publish.sh` sends `?ref=skill-script` and the `curl` fallback sends `?ref=skill-gh`; both tell deed.page that a publish came from this skill. It does not change what is published. Pass `--ref` to the script, or set `DEED_REF` for the skill's `curl` command, to override it. You can also say where you found deed.page with the optional `X-Deed-Heard-From` header on the first publish (at most 200 characters).
 
 ## Network endpoints and credentials
 

@@ -1,6 +1,6 @@
 {
   "name": "launch-film",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "description": "A launch film from a website or an App Store page: its real logo, colors, fonts and screens, rendered locally with Chrome and ffmpeg.",
   "license": "MIT",
   "author": "Emin Budak",

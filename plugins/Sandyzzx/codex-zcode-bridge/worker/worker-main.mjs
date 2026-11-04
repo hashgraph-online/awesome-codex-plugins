@@ -26423,6 +26423,14 @@ function readFactsCandidate(error62) {
   if (!(error62 instanceof Error)) return null;
   return error62[FACTS_CANDIDATE] ?? null;
 }
+function retryAfterMilliseconds(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value * 1e3;
+  if (typeof value !== "string" || !value.trim()) return null;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds)) return seconds * 1e3;
+  const dateMs = Date.parse(value);
+  return Number.isFinite(dateMs) ? Math.max(0, dateMs - Date.now()) : null;
+}
 function interactionDecline(method, reason) {
   return method === "interaction/requestPermission" ? { decision: "deny", reason } : { action: "decline", reason };
 }
@@ -26571,7 +26579,7 @@ function stableSerialize(value) {
   }
   return JSON.stringify(value) ?? "undefined";
 }
-var FACTS_CANDIDATE, RPC_TIMEOUT_MS, MAX_CAPTURE_CHARS, MAX_FRAME_BYTES, ZCodeAppServerAdapter;
+var FACTS_CANDIDATE, PROVIDER_RETRY_LIMIT, MAX_PROVIDER_RETRY_AFTER_MS, RPC_TIMEOUT_MS, MAX_CAPTURE_CHARS, MAX_FRAME_BYTES, ZCodeAppServerAdapter;
 var init_zcode_app_server_adapter = __esm({
   "src/adapters/zcode-app-server-adapter.ts"() {
     "use strict";
@@ -26593,6 +26601,8 @@ var init_zcode_app_server_adapter = __esm({
     init_host();
     init_load_backend();
     FACTS_CANDIDATE = /* @__PURE__ */ Symbol("zcodeFailureFactsCandidate");
+    PROVIDER_RETRY_LIMIT = 2;
+    MAX_PROVIDER_RETRY_AFTER_MS = 6e4;
     RPC_TIMEOUT_MS = 3e4;
     MAX_CAPTURE_CHARS = 2e6;
     MAX_FRAME_BYTES = 16 * 1024 * 1024;
@@ -26616,6 +26626,7 @@ var init_zcode_app_server_adapter = __esm({
       #replayIdleMs;
       #onFailureFacts;
       #nativeSendCorrelationVerified;
+      #providerRetryLimit;
       #onSendBoundary;
       #browser;
       #probe;
@@ -26642,6 +26653,7 @@ var init_zcode_app_server_adapter = __esm({
         this.#replayIdleMs = options.replayIdleMs ?? 1e4;
         this.#onFailureFacts = options.onFailureFacts;
         this.#nativeSendCorrelationVerified = options.nativeSendCorrelationVerified === true;
+        this.#providerRetryLimit = options.providerRetryLimit ?? PROVIDER_RETRY_LIMIT;
         this.#onSendBoundary = options.onSendBoundary;
         this.#browser = options.browser;
       }
@@ -26741,6 +26753,9 @@ var init_zcode_app_server_adapter = __esm({
           acceptingTurn: false,
           turnId: null,
           awaitingTurnStart: false,
+          prompt: null,
+          providerSendNumber: 0,
+          providerRetryTimer: null,
           rpcAcceptedAt: null,
           turnStartedAt: null,
           turnCompletedAt: null,
@@ -27010,6 +27025,8 @@ var init_zcode_app_server_adapter = __esm({
             afterSeq: runtimeSeq
           });
           entry.acceptingTurn = true;
+          entry.prompt = prompt;
+          entry.providerSendNumber = 1;
           await client.request("session/send", { sessionId, content: prompt });
           entry.rpcAcceptedAt = this.#now().toISOString();
           entry.onEvent({ type: "turn_started", summary: "ZCode accepted the task and started a turn", details: { rpc_accepted: true, ...entry.turnId ? { turn_id: entry.turnId } : {} } });
@@ -27062,6 +27079,10 @@ var init_zcode_app_server_adapter = __esm({
             if (entry.pendingTimer) {
               clearTimeout(entry.pendingTimer);
               entry.pendingTimer = null;
+            }
+            if (entry.providerRetryTimer) {
+              clearTimeout(entry.providerRetryTimer);
+              entry.providerRetryTimer = null;
             }
           }
           entry.turnCompletedAt = turnResult.completedAt;
@@ -27771,6 +27792,11 @@ var init_zcode_app_server_adapter = __esm({
               ...extraction
             };
             const quotaExhausted = classification.category === "quota_exhausted";
+            const retryDelayMs = quotaExhausted ? null : this.#preTurnProviderRetryDelayMs(entry, asRecord2(payload.error), extraction, classification.category);
+            if (retryDelayMs !== null) {
+              this.#schedulePreTurnProviderRetry(entry, retryDelayMs);
+              return;
+            }
             const failure2 = quotaExhausted ? new BridgeError(
               "zcode_usage_exhausted",
               "ZCode \u63D0\u4F9B\u65B9\u660E\u786E\u62A5\u544A\u7528\u91CF\u989D\u5EA6\u5DF2\u8017\u5C3D\uFF1B\u5F53\u524D\u6267\u884C\u5DF2\u4E2D\u65AD\u3002\u8BF7\u7ACB\u5373\u505C\u6B62\u5F53\u524D\u4EFB\u52A1\u5E76\u544A\u77E5\u7528\u6237\uFF1B\u4E0D\u8981\u7EE7\u7EED\u5DE5\u4F5C\u3001\u81EA\u52A8\u91CD\u8BD5\u6216\u7EED\u4F5C\uFF0C\u7B49\u5F85\u7528\u6237\u786E\u8BA4\u989D\u5EA6\u6062\u590D\u540E\u518D\u7EE7\u7EED\u3002"
@@ -28032,6 +28058,75 @@ var init_zcode_app_server_adapter = __esm({
         });
         void event;
       }
+      #preTurnProviderRetryDelayMs(entry, error62, extraction, category) {
+        if (entry.providerSendNumber > this.#providerRetryLimit || entry.turnStartedAt || entry.turnId || entry.turnBinding !== "pending" || !entry.prompt || entry.cancelRequested || entry.timedOut) return null;
+        if (entry.acceptedEvidence !== "no") return null;
+        if (extraction.retryableBooleans.includes(false)) return null;
+        const explicitRateLimitRejection = category === "rate_limited" && extraction.httpStatus === 429;
+        if (!explicitRateLimitRejection) return null;
+        const attribution = asRecord2(error62.attribution);
+        const retryAfterMs = typeof error62.retryAfterMs === "number" && Number.isFinite(error62.retryAfterMs) ? error62.retryAfterMs : typeof attribution.retryAfterMs === "number" && Number.isFinite(attribution.retryAfterMs) ? attribution.retryAfterMs : retryAfterMilliseconds(error62.retryAfter ?? attribution.retryAfter);
+        if (retryAfterMs !== null && (retryAfterMs < 0 || retryAfterMs > MAX_PROVIDER_RETRY_AFTER_MS)) return null;
+        return retryAfterMs ?? 1e3;
+      }
+      #schedulePreTurnProviderRetry(entry, delayMs) {
+        const attemptNumber = entry.providerSendNumber + 1;
+        entry.providerSendNumber = attemptNumber;
+        entry.acceptingTurn = false;
+        if (entry.bindingTimer) {
+          clearTimeout(entry.bindingTimer);
+          entry.bindingTimer = null;
+        }
+        this.#publishSessionEvent("provider_retry_scheduled", {
+          attempt: attemptNumber,
+          delay_ms: delayMs,
+          scope: "pre_turn"
+        }, entry, {});
+        entry.providerRetryTimer = setTimeout(() => {
+          entry.providerRetryTimer = null;
+          void this.#retryPreTurnProviderSend(entry, attemptNumber);
+        }, delayMs);
+        entry.providerRetryTimer.unref();
+      }
+      async #retryPreTurnProviderSend(entry, attemptNumber) {
+        if (entry.finished || entry.cancelRequested || entry.timedOut || !entry.client || !entry.sessionId || !entry.prompt) return;
+        entry.acceptingTurn = true;
+        entry.awaitingTurnStart = entry.sendSeqBaseline !== null;
+        entry.turnBinding = "pending";
+        entry.turnId = null;
+        try {
+          await entry.client.request("session/send", { sessionId: entry.sessionId, content: entry.prompt });
+          entry.rpcAcceptedAt = this.#now().toISOString();
+          entry.acceptingTurn = true;
+          entry.turnBinding = "pending";
+          entry.turnId = null;
+          this.#publishSessionEvent("provider_retry_send_accepted", {
+            attempt: attemptNumber,
+            scope: "pre_turn"
+          }, entry, {});
+          entry.bindingTimer = setTimeout(() => {
+            if (!entry.awaitingTurnStart) return;
+            entry.awaitingTurnStart = false;
+            entry.turnBinding = "compat";
+            entry.onEvent({
+              type: "turn_binding_compat",
+              summary: "turn.started did not arrive after the provider retry; binding degraded to the documented compatibility mode"
+            });
+            this.#settlePendingCompletion(entry);
+          }, Math.max(this.#turnBindingCompatMs, 5e3));
+          entry.bindingTimer.unref();
+        } catch (error62) {
+          entry.acceptingTurn = false;
+          entry.rejectTurn(withFactsCandidate(error62 instanceof Error ? error62 : new Error("ZCode provider retry failed"), {
+            kind: "turn",
+            input: {
+              source: "turn_event",
+              phase: "turn_terminal",
+              accepted: entry.acceptedEvidence
+            }
+          }));
+        }
+      }
       #modelProfile(entry) {
         if (!entry.selectedModel && !entry.selectedModelSelection) return null;
         return {
@@ -28180,6 +28275,16 @@ var init_zcode_app_server_adapter = __esm({
             type: "tool_status",
             summary: `${name}: ${state}`,
             details: { tool_name: name, state, ...callId ? { tool_call_id: callId } : {} }
+          });
+        } else if (type === "provider_retry_scheduled" || type === "provider_retry_send_accepted") {
+          entry.onEvent({
+            type,
+            summary: type === "provider_retry_scheduled" ? `ZCode transient provider failure scheduled pre-turn retry ${Number(payload.attempt)}` : `ZCode pre-turn provider retry ${Number(payload.attempt)} accepted`,
+            details: {
+              attempt: Number(payload.attempt),
+              retry_scope: payload.scope,
+              ...type === "provider_retry_scheduled" && typeof payload.delay_ms === "number" ? { retry_after_ms: payload.delay_ms } : {}
+            }
           });
         } else if (type === "turn.completed") {
           entry.onEvent({

@@ -1,7 +1,7 @@
 interface:
   display_name: "TweetAPI"
   short_description: "Read public Twitter/X data with TweetAPI"
-  default_prompt: "Use $tweetapi to add a one-page read-only public Twitter/X lookup to this project."
+  default_prompt: "Use $tweetapi to look up public Twitter/X data or find the right read-only TweetAPI endpoint for this task."
 
 dependencies:
   tools:

@@ -99,8 +99,10 @@ where the project can keep it:
 
 - a seed: `+column_types` in `dbt_project.yml`. A seed already built in dev keeps
   its old types on a plain reload; on DuckDB `transform build` notices the change
-  and rebuilds the seed with `dbt seed --full-refresh`, and elsewhere build with
-  `--full-refresh`. Check the type with
+  and rebuilds the seed with `dbt seed --full-refresh`. Elsewhere, rebuild only
+  that seed with `transform build --target dev --select <seed> --full-refresh`,
+  since the default selection would also rebuild every incremental model, then
+  build what reads it as a separate step. Check the type with
   `explore profile <dev namespace>.<seed> --target dev`;
 - a model, your own or an override: an explicit cast to the intended type, valid on
   your warehouse. BigQuery refuses a cast from an integer to a timestamp, so an

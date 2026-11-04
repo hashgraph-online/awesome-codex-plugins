@@ -8,15 +8,15 @@ This repository contains:
 - optional Codex and Claude Code plugin metadata;
 - configuration for TweetAPI's OAuth-protected hosted MCP server.
 
-Installing the skill does not create a TweetAPI account, connect the MCP server, consume quota, or make API requests. Connect the hosted MCP separately when you want live public data.
+Installing the skill doesn't create a TweetAPI account, connect the MCP server, spend units or make API requests. Connect the hosted MCP separately when you want live public data.
 
-This repository covers public Twitter/X data and documentation only. It does not support posting, engagement, account sessions, profile changes, direct messages, login automation, billing, or administration.
+The skill covers public Twitter/X data, TweetAPI's docs, and the free unit check for your own API key. It doesn't post, like, follow, send or read DMs, handle X logins, or change accounts, billing or admin settings.
 
 TweetAPI is a third-party service and is not affiliated with X Corp.
 
 ## Choose your path
 
-| Goal | Use | Credentials | Uses quota? |
+| Goal | Use | Credentials | Uses units? |
 | --- | --- | --- | --- |
 | Learn the API or add TweetAPI to an application | Install the Agent Skill | None during setup | No |
 | Query live public Twitter/X data from an agent | Connect the hosted MCP | Browser OAuth | Yes |
@@ -33,7 +33,9 @@ gh skill install tweetapi/agent-skill tweetapi --agent codex --scope project
 
 Use `--scope user` for a user-wide installation. Replace `codex` with the supported agent you use, such as `claude-code` or `cursor`.
 
-The repository also includes Codex and Claude Code plugin manifests plus a remote MCP configuration. Plugin hosts should prompt for OAuth authorization; no TweetAPI key belongs in a prompt or repository file.
+This installs the latest release. To try unreleased changes from `main`, pin a commit with `tweetapi@<commit>` or `--pin <commit>`.
+
+The repository also includes Codex and Claude Code plugin manifests and a remote MCP configuration. Plugin hosts ask you to sign in to TweetAPI. Never put a TweetAPI key in a prompt or in this repository.
 
 ## Connect the hosted MCP server directly
 
@@ -51,25 +53,23 @@ claude mcp add --transport http --scope user tweetapi https://mcp.tweetapi.com/m
 claude mcp login tweetapi
 ```
 
-Start with a documentation-only request so setup does not consume data quota:
+To check the connection without spending units, start with a docs question:
 
-> Find the current read-only endpoint and parameters for looking up a public user by username. Do not make a live data request.
+> Find the current TweetAPI endpoint and parameters for looking up a public user by username. Don't make a live data request.
 
-## Safety and quota rules
+## How the skill behaves
 
-- Live data requests consume quota.
-- Make one live tool call and retrieve one page by default.
-- Never auto-paginate or silently retry.
-- Return the cursor and ask before another page.
-- Keep API keys in server-side environment variables only.
-- Never request Twitter/X cookies, passwords, session tokens, proxy credentials, or private-message content.
-- Treat only HTTP 2xx responses as success.
+- Live requests usually cost 1 unit each. The unit check is free.
+- The agent says how many requests it plans, fetches one page at a time, and asks before fetching more.
+- It reports failed calls instead of retrying them silently.
+- API keys stay in server-side environment variables.
+- It never asks for X cookies, passwords, session tokens or proxy credentials.
 
-Read the complete workflow in [`skills/tweetapi/SKILL.md`](skills/tweetapi/SKILL.md).
+The full instructions are in [`skills/tweetapi/SKILL.md`](skills/tweetapi/SKILL.md).
 
 ## Repository layout
 
-- `skills/tweetapi/`: portable Agent Skill and progressive references
+- `skills/tweetapi/`: the skill, and the guides it loads when needed
 - `.codex-plugin/plugin.json`: Codex plugin metadata
 - `.claude-plugin/plugin.json`: Claude Code plugin metadata
 - `.mcp.json`: hosted TweetAPI MCP connection
@@ -87,7 +87,7 @@ The continuous-integration workflow runs both checks without making a live Tweet
 
 ## Source policy
 
-Endpoint details change, so the skill does not copy the catalog. It links to TweetAPI's public documentation, maintained OpenAPI specification, generated full Postman collection, and smaller read-only Postman quick start. `skills/tweetapi/references/sources.md` lists their canonical URLs and explains the boundaries of each source.
+Endpoints change, so the skill links to TweetAPI's docs, OpenAPI spec and Postman collections instead of copying them. `skills/tweetapi/references/sources.md` lists each source and what it's for.
 
 ## License
 

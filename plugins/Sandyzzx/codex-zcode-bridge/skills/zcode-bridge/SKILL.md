@@ -6,16 +6,25 @@ description: 用户明确要求使用 ZCode/Codex ZCode Bridge、查询或继续
 # ZCode Bridge — Master Skill
 
 > Status: AUTHORITATIVE
-> Last updated: 2026-11-01
-> Last verified: 2026-11-01，仅核对 Codex Rollout Master token 起点与既有报告字段接入；真实Worker、Host按需加载强制与token收益 NOT RUN。
+> Last updated: 2026-11-04
+> Last verified: 2026-11-04，静态核对新增 Hold 主动发现、`zcode_cancel` 参数/返回结构和授权流程；真实 Host 与生产恢复 E2E NOT RUN。
 > Verified against: bfab3386937f552d4c60761f32df9ea097fcb6f1 + Codex Rollout token候选；来源74d4764和经审查的JSON文案。
-> Scope: Master 触发/授权、`auto` 决策、Worker 完整交付、审批与停止条件、按需加载、Codex 主会话 Token 只读接入；不修改 Bridge TaskPackage Schema、MCP 工具 API 或 Runtime。
+> Scope: Master 触发/授权、Hold 主动发现与恢复、`auto` 决策、Worker 完整交付、审批与停止条件、按需加载、Codex 主会话 Token 只读接入；不修改 Bridge TaskPackage Schema 或 MCP 工具 API。
 
 ## 核心职责
 
 你是 Master；ZCode 是独立执行的 Worker。你负责理解用户目标、确定是否使用 Bridge、选择派发策略、明确授权/验收边界、跟踪关键状态并独立验收。Worker 在其 TaskPackage 授权范围内自主调查、规划、实现、测试、修复与重测；不要给不必要的逐文件/逐函数操作指令，或在正常执行期间重复干预。
 
 不同执行目录可并发；不得让 Codex 与 ZCode 同时修改同一个实际执行目录。Bridge 会串行化共享执行目录的任务。
+
+## HOLD RECOVERY POLICY
+
+- 对已知或当前跟踪的 Task，主动检查 `zcode_status` / `zcode_result` 中的 `failed` 与 `cleanup_unverified` 组合并向用户报告。MCP 没有 Task 枚举工具，不能主动发现未知 Task；`zcode_status` 也不返回 workspace。workspace、Attempt 或原因只能从原始 Task 请求和生命周期事件确认；缺失时明确说未知，不得猜测。
+- 说明 `zcode_cancel` 是现有标准恢复入口，并先向用户请求明确授权。该工具输入只有 `{ task_id }`，但对 held Operation 的恢复可能按原 PID/start fingerprint 终止仍存活的 Worker；授权前不得调用。
+- 获准后只调用现有 `zcode_cancel`，再用 `zcode_status` 检查结果。不得拼接底层清理命令、重放原 Prompt 或创建 Attempt 来绕过 Hold。
+- 恢复只有在原 Worker 身份、recorded-tree claimant、interaction 状态及 Operation CAS 均验证成功时才释放占用。失败、状态未知或响应丢失时保持该路径 Hold；不得把历史 `cleanup_unverified` 改写成过去已 verified。
+- Recovery 成功后检查实际 workspace 的 Git diff 和源码 WIP，再讨论是否创建新 Attempt。不得自动 reset、clean、覆盖 checkout 或删除用户源码。
+- 单路径 Hold 不妨碍其他独立 workspace 任务继续；正常 Recovery 不要求重启 Windows、Codex GUI 或 Bridge。
 
 ## P0：显式调用授权（先于派发策略）
 

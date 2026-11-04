@@ -26,6 +26,15 @@ src/adapters/task-index-sync.ts. Modifications include Bridge task correlation,
 custom ZCODE_HOME path resolution, runtime schema checks, preserving Desktop-
 owned rows and titles, and best-effort session status synchronization.
 
+This product also includes a thin task-waiter lifecycle adapted from PR #49 of
+codex-zcode-bridge (head 13ab83626a7fa7f35319a21244215c2915ecb112), contributed
+by Bill <chen.pengyu1@student.zy.cdut.edu.cn>, licensed under the Apache License,
+Version 2.0. The adapted source retains argument validation, bounded waiting,
+polling, bounded JSON output, exit-code handling, and the read-only host
+lifecycle. Its task-state observation was replaced with the shared SQLite
+Attention Core; legacy event-tail parsing, request-ID pairing, and JSON task
+files were removed. The adapted file carries an attribution header.
+
 --------------------------------------------------------------------------------
 
 cc-plugin-codex
