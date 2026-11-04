@@ -382,6 +382,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Chrome DevTools](https://github.com/win4r/chrome-devtools-codex-plugin) - One-click Codex plugin wrapper for chrome-devtools-mcp.
 - [claude-math](https://github.com/vladimirrott/claude-math) - Emit mathematics as copy- and search-safe inline Unicode (∑, ≤, ℝ, x², matrices, set-builder) instead of LaTeX so equations stay legible in the Codex TUI, terminals, and Claude Code.
 - [Clera](https://github.com/getclera/mcp) - Search 210,000+ vetted startup candidates, review Clera's picks for your open roles, and request intros through Clera's hosted MCP.
+- [Clickwise](https://github.com/softdevfz/clickwise-api) - Affiliate programs, deals, tracked links and product search, plus merchant program setup tools.
 - [Codex Be Serious](https://github.com/lulucatdev/codex-be-serious) - Enforce formal, textbook-grade written register across all agent output.
 - [Codex Discord Bridge](https://github.com/yaffalhakim1/codex-discord-bridge) - Control Codex CLI from Discord with a Rust serenity bridge that streams agent output live and turns approval requests into buttons.
 - [Codex Image Plugin](https://github.com/zlsbksdxl/codex-image-plugin) - Generate and edit raster images through any OpenAI-compatible image API, with model discovery, reference-image editing, masks, and provider configuration support.
