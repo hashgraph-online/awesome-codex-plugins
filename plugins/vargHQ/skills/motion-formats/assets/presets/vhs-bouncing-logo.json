@@ -1,0 +1,337 @@
+{
+  "id": "vhs-bouncing-logo",
+  "name": "VHS bouncing-logo screensaver",
+  "use": "A 5 s brand sting or loop: a logo bouncing at constant speed on a worn videotape at 50/60 fps, landing in a corner on cue.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "VT323",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/VT323",
+      "role": "VCR on-screen display (PLAY, counter)"
+    }
+  ],
+  "presets": [
+    {
+      "id": "vhs-bouncing-logo.pal-50",
+      "label": "PAL 50 fps, landscape",
+      "look": "PAL tape, dark field, colour switch on every wall hit, corner hit at 4.5 s",
+      "params": {
+        "canvas_px": [
+          1920,
+          1080
+        ],
+        "fps": 50,
+        "logo_px": [
+          420,
+          180
+        ],
+        "free_area_px": [
+          1500,
+          900
+        ],
+        "lcm_px": 4500,
+        "speed_px_per_s": 1000,
+        "speed_px_per_frame": 20,
+        "angle_deg": 45,
+        "easing": "none (linear, constant speed)",
+        "position_formula": "x = L - abs(((v*t + x0) mod 2L) - L), L = free_w; same for y with free_h",
+        "start_offset_px": [
+          0,
+          0
+        ],
+        "wall_hits_s": {
+          "x": [
+            1.5,
+            3.0
+          ],
+          "y": [
+            0.9,
+            1.8,
+            2.7,
+            3.6
+          ],
+          "corner": 4.5
+        },
+        "hold_after_corner_s": 0.5,
+        "colour_cycle_hex": [
+          "#FF3B30",
+          "#FFCC00",
+          "#34C759",
+          "#00C7FF",
+          "#5856D6",
+          "#FF2D92"
+        ],
+        "corner_flash": {
+          "colour": "#FFFFFF",
+          "frames": 2
+        },
+        "wall_chroma_kick": {
+          "frames": 1,
+          "chroma_shift_px": 5
+        },
+        "background_hex": "#000000",
+        "lock_in": {
+          "start_s": 0,
+          "duration_s": 0.5,
+          "tracking_band_px": 27,
+          "direction": "bottom-to-top, fade out"
+        },
+        "osd": {
+          "text": "PLAY ▶",
+          "font": "VT323",
+          "size_pct_frame_h": 6,
+          "colour": "#FFFFFF",
+          "shadow": "2px #000000",
+          "inset_pct": 7,
+          "visible_s": [
+            0,
+            1.5
+          ]
+        },
+        "ntsc_rs": {
+          "tape_speed": "LP",
+          "head_switching": {
+            "height_lines": 8,
+            "offset": 3,
+            "horizontal_shift": 72
+          },
+          "tracking_noise": {
+            "height_lines": 12,
+            "wave_intensity": 15,
+            "snow_intensity": 0.025,
+            "noise_intensity": 0.25
+          },
+          "chroma_noise": {
+            "intensity": 0.1,
+            "frequency": 0.05,
+            "detail": 2
+          },
+          "chroma_phase_noise": 0.001,
+          "luma_smear": 0.5,
+          "ringing": {
+            "frequency": 0.45,
+            "power": 4,
+            "scale": 4
+          },
+          "edge_wave": {
+            "intensity": 0.5,
+            "speed": 4,
+            "frequency": 0.05
+          },
+          "vhs_sharpen": {
+            "intensity": 0.25,
+            "frequency": 1
+          },
+          "use_field": "Interleaved (upper first)"
+        },
+        "equivalent_1080p": {
+          "luma_blur_sigma_px": 1.75,
+          "chroma_blur_sigma_px": 9,
+          "chroma_delay_px": 4,
+          "head_switch_band_px": 18
+        },
+        "pipeline_order": [
+          "clean render",
+          "tape (ntsc-rs)",
+          "downscale",
+          "optional CRT"
+        ],
+        "start_offset": "0.25 * L on x and y (L = free width / free height), so frame 0 does not show a corner; recompute the corner hit time"
+      },
+      "sources": [
+        1,
+        2,
+        3,
+        8
+      ]
+    },
+    {
+      "id": "vhs-bouncing-logo.ntsc-60",
+      "label": "NTSC 60 fps, landscape",
+      "look": "Same path at NTSC field rate",
+      "params": {
+        "canvas_px": [
+          1920,
+          1080
+        ],
+        "fps": 60,
+        "logo_px": [
+          420,
+          180
+        ],
+        "free_area_px": [
+          1500,
+          900
+        ],
+        "speed_px_per_s": 1000,
+        "speed_px_per_frame": 16.667,
+        "corner_s": 4.5,
+        "ntsc_rs": {
+          "tape_speed": "LP",
+          "use_field": "Interleaved (upper first)"
+        }
+      },
+      "sources": [
+        1,
+        2,
+        8
+      ]
+    },
+    {
+      "id": "vhs-bouncing-logo.vertical",
+      "label": "9:16 phone screensaver",
+      "look": "Tall frame: fast side-to-side ping-pong, slow vertical travel",
+      "params": {
+        "canvas_px": [
+          1080,
+          1920
+        ],
+        "fps": 60,
+        "logo_px": [
+          330,
+          170
+        ],
+        "free_area_px": [
+          750,
+          1750
+        ],
+        "lcm_px": 5250,
+        "speed_px_per_s": 1166.67,
+        "wall_hit_interval_s": {
+          "x": 0.643,
+          "y": 1.5
+        },
+        "corner_s": 4.5
+      },
+      "sources": [
+        8
+      ]
+    },
+    {
+      "id": "vhs-bouncing-logo.square",
+      "label": "1:1",
+      "look": "Square feed version",
+      "params": {
+        "canvas_px": [
+          1080,
+          1080
+        ],
+        "fps": 50,
+        "logo_px": [
+          330,
+          180
+        ],
+        "free_area_px": [
+          750,
+          900
+        ],
+        "lcm_px": 4500,
+        "speed_px_per_s": 1000,
+        "wall_hit_interval_s": {
+          "x": 0.75,
+          "y": 0.9
+        },
+        "corner_s": 4.5
+      },
+      "sources": [
+        8
+      ]
+    },
+    {
+      "id": "vhs-bouncing-logo.worn-ep",
+      "label": "Worn EP rental tape",
+      "look": "Heavier tape damage for a horror or nostalgia tone",
+      "params": {
+        "inherits": "vhs-bouncing-logo.pal-50",
+        "ntsc_rs": {
+          "tape_speed": "EP",
+          "head_switching": {
+            "height_lines": 12,
+            "offset": 3,
+            "horizontal_shift": 72
+          },
+          "tracking_noise": {
+            "height_lines": 24,
+            "wave_intensity": 15,
+            "snow_intensity": 0.08
+          },
+          "chroma_noise": {
+            "intensity": 0.25
+          },
+          "chroma_phase_noise": 0.01
+        }
+      },
+      "sources": [
+        1,
+        6
+      ]
+    }
+  ],
+  "ffmpeg_fallback": "scale=-2:480:flags=bicubic,format=yuv420p,gblur=sigma=1.0:sigmaV=0.01:planes=1,gblur=sigma=4:sigmaV=0.5:planes=6,chromashift=cbh=2:crh=-2:edge=smear,noise=c0s=6:c0f=t+u:c1s=3:c1f=t:c2s=3:c2f=t,eq=saturation=0.85:contrast=0.95,scale=-2:1080:flags=bicubic",
+  "registry_blocks": [
+    "logo-sting",
+    "extruded-logo",
+    "camcorder-hud",
+    "grain-overlay",
+    "scan-band",
+    "chromatic-aberration-wipe",
+    "rgb-glitch-text",
+    "yt-screen-warp"
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "ntsc-rs parameter reference (MLT Framework plugin docs)",
+      "url": "https://mltframework.org/plugins/FilterOpenfx-wtf-vala^ntscrs/"
+    },
+    {
+      "n": 2,
+      "name": "Mika Iisakkila — VHS / S-VHS technical comparison (VideoUniversity)",
+      "url": "https://www.videouniversity.com/?p=909"
+    },
+    {
+      "n": 3,
+      "name": "Finn McKenty on X — NTSC → downscale → CRT order",
+      "url": "https://x.com/thefinnmckenty/status/2078469612786847903"
+    },
+    {
+      "n": 4,
+      "name": "Finn McKenty on X — ntsc-rs + RetroArch CRT app",
+      "url": "https://x.com/thefinnmckenty/status/2079554243380572162"
+    },
+    {
+      "n": 5,
+      "name": "Finn McKenty on X — tapered rows on high-contrast edges",
+      "url": "https://x.com/thefinnmckenty/status/2099292476687491095"
+    },
+    {
+      "n": 6,
+      "name": "Kazuya Kanehisa on X — ntsc-rs AE plugin",
+      "url": "https://x.com/kane_hisa/status/2089547611653181655"
+    },
+    {
+      "n": 7,
+      "name": "Aoi Aiue on X — ntsc-rs in a music video",
+      "url": "https://x.com/aiue_aoi_/status/2066505023367028766"
+    },
+    {
+      "n": 8,
+      "name": "David Vreken — Bouncing DVD Logo (The Lost Math Lessons)",
+      "url": "http://lostmathlessons.blogspot.com/2016/03/bouncing-dvd-logo.html"
+    },
+    {
+      "n": 9,
+      "name": "FFmpeg filters documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    }
+  ]
+}

@@ -21,7 +21,7 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 
-from finding_schema import normalize_severity
+from kicad_core.render import normalize_severity
 
 
 GATE_VERSION = "1.0"
@@ -563,6 +563,9 @@ def main():
                         help="Treat warnings as failures")
 
     args = parser.parse_args()
+    if args.text:
+        from kicad_core.cli import utf8_text_stdout
+        utf8_text_stdout()
 
     def _load(path):
         if not path or not os.path.isfile(path):

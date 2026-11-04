@@ -39,12 +39,14 @@ story snapshot --list --path .
 story compare . --snapshot draft-1
 story snapshot --restore draft-1 --dry-run --path .
 story compare . --ref beta-round-1 --anchor ch03-p12
+story notes returned.docx --path .
 story similarity . --against ../book-one
 story similarity . --snapshot draft-1
 story series .
 story init 'The Last Ember' --form novel
 story init 'Embers of the Vale' --follows ../the-last-ember
 story import draft.md --title 'Title'
+story import draft.docx --title 'Title'
 story report .
 story report . --actionable
 story next .
@@ -71,6 +73,9 @@ story split chapter-07 --at 2 --dry-run
 story split chapter-07 --at 'The ferry came at noon.' --title 'The Crossing'
 story merge chapter-07 chapter-08
 story remove promise old-promise
+story impact die king-aldric chapter-05
+story impact move scene chapter-03-scene-02 --chapter chapter-09
+story impact remove character old-id --json
 story export . --out dist/manuscript.md
 story build . --format markdown
 story build . --format epub
@@ -83,6 +88,7 @@ story build . --format narration
 story build . --format metadata
 story build . --format twee
 story build . --format ink
+story build . --format ics
 story knowledge sera-voss --at chapter-04
 story continuity . --json
 story context chapter-04 --budget 6000

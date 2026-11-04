@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Ad Variants"
+  short_description: "Make new ad hooks while reusing accepted footage"
+  default_prompt: "Use $magic-hour-ad-variants to make requested hook and angle variants of my approved ad, reuse accepted footage, and deliver inspected clean and captioned files within my budget."

@@ -57,10 +57,10 @@ codex plugin add oh-my-cassette@cassette-editor
 
 ```bash
 # Hermes
-hermes mcp add cassette --command uvx --args oh-my-cassette==0.5.1
+hermes mcp add cassette --command uvx --args oh-my-cassette==0.6.0
 ```
 
-OpenCode and any other MCP host: see [Install](#install) below. Run `uvx oh-my-cassette==0.5.1 login` and complete the
+OpenCode and any other MCP host: see [Install](#install) below. Run `uvx oh-my-cassette==0.6.0 login` and complete the
 email-code sign-in in your browser. Then restart your agent if it cannot refresh its tool list, and say:
 
 > *Start a new Cassette project and import the clips in ./footage, then cut a 30-second travel video with a title at the start.*
@@ -70,10 +70,10 @@ email-code sign-in in your browser. Then restart your agent if it cannot refresh
 0.5 is a rewrite. The 0.4 plugin carried its own editing runtime, music search and Hermes gateway; 0.5 is a thin bridge
 to the Cassette MCP service, and the tools your agent sees are the service's.
 
-- **Sign in again** with `uvx oh-my-cassette==0.5.1 login`. 0.4 passwords and tokens are not used.
+- **Sign in again** with `uvx oh-my-cassette==0.6.0 login`. 0.4 passwords and tokens are not used.
 - **Tools are new.** Projects, editing turns, questions, plans, undo, media, analysis and export come from the service,
   with their own descriptions; the 0.4 tool names (`cassette_run_job`, `cassette_ingest_media`, `cassette_match_bgm`, …)
-  are gone. Reinstall the plugin, or point your host config at `uvx oh-my-cassette==0.5.1`.
+  are gone. Reinstall the plugin, or point your host config at `uvx oh-my-cassette==0.6.0`.
 - **Projects live in your Cassette account**, the same ones you open on the web or in Cassette for Mac, and the editor
   link each answer carries opens the project you are working on. 0.4 sessions do not carry over.
 - **Hermes** is a plain MCP host now; remove the 0.4 gateway plugin.
@@ -118,9 +118,9 @@ service against them.
 
 ## Requirements
 
-- An invited Cassette account and a Cassette MCP service that implements contract v1. Check it with `uvx oh-my-cassette==0.5.1 check --url <endpoint>`. While the
+- An invited Cassette account and a Cassette MCP service that implements contract v1. Check it with `uvx oh-my-cassette==0.6.0 check --url <endpoint>`. While the
   service is unreachable or refuses the token, only `cassette_bridge_status` is listed.
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) 0.5 or newer. `uvx oh-my-cassette==0.5.1` resolves Python 3.11 or newer by itself.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) 0.5 or newer. `uvx oh-my-cassette==0.6.0` resolves Python 3.11 or newer by itself.
 - [ffmpeg](https://ffmpeg.org/download.html) (with ffprobe) to import video: `brew install ffmpeg`,
   `sudo apt install ffmpeg` or `winget install ffmpeg`. Video is transcoded on your machine before it
   uploads. A build with `zscale` also tone-maps HDR footage properly.
@@ -152,12 +152,12 @@ Sign in once with `oh-my-cassette login`, using the Cassette account of your pro
 
 ### Claude Code
 
-Plugin (recommended): the two commands at the top. The plugin uses the connection saved by `oh-my-cassette login` and starts `uvx oh-my-cassette==0.5.1` with a 10-minute tool timeout.
+Plugin (recommended): the two commands at the top. The plugin uses the connection saved by `oh-my-cassette login` and starts `uvx oh-my-cassette==0.6.0` with a 10-minute tool timeout.
 
 Project scope without the plugin: copy [`.mcp.json`](https://github.com/Cassette-Editor/oh-my-cassette/blob/main/.mcp.json) into your project, or run:
 
 ```bash
-claude mcp add --transport stdio cassette -- uvx oh-my-cassette==0.5.1
+claude mcp add --transport stdio cassette -- uvx oh-my-cassette==0.6.0
 ```
 
 The skill lives in [`skills/cassette-video-edit/SKILL.md`](https://github.com/Cassette-Editor/oh-my-cassette/blob/main/skills/cassette-video-edit/SKILL.md) and ships with the plugin.
@@ -167,7 +167,7 @@ The skill lives in [`skills/cassette-video-edit/SKILL.md`](https://github.com/Ca
 Plugin: the two commands at the top ([`.codex-plugin/plugin.json`](https://github.com/Cassette-Editor/oh-my-cassette/blob/main/.codex-plugin/plugin.json) declares the server inline with `tool_timeout_sec: 600` and passes the `CASSETTE_*` variables through from your shell). Or add the server directly:
 
 ```bash
-codex mcp add cassette -- uvx oh-my-cassette==0.5.1
+codex mcp add cassette -- uvx oh-my-cassette==0.6.0
 ```
 
 ### OpenCode
@@ -179,7 +179,7 @@ Add to `opencode.json` (project or `~/.config/opencode/opencode.json`):
   "mcp": {
     "cassette": {
       "type": "local",
-      "command": ["uvx", "oh-my-cassette==0.5.1"],
+      "command": ["uvx", "oh-my-cassette==0.6.0"],
       "timeout": 600000
     }
   }
@@ -190,7 +190,7 @@ Then copy the skill so OpenCode loads it:
 
 ```bash
 mkdir -p ~/.config/opencode/skills/cassette-video-edit
-curl -fsSL https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/v0.5.1/skills/cassette-video-edit/SKILL.md \
+curl -fsSL https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/v0.6.0/skills/cassette-video-edit/SKILL.md \
   -o ~/.config/opencode/skills/cassette-video-edit/SKILL.md
 ```
 
@@ -199,10 +199,10 @@ OpenCode has no MCP elicitation, which is fine: the editing agent's questions co
 ### Hermes
 
 ```bash
-hermes mcp add cassette --command uvx --args oh-my-cassette==0.5.1
+hermes mcp add cassette --command uvx --args oh-my-cassette==0.6.0
 
 mkdir -p ~/.hermes/skills/cassette-video-edit
-curl -fsSL https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/v0.5.1/skills/cassette-video-edit/SKILL.md \
+curl -fsSL https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/v0.6.0/skills/cassette-video-edit/SKILL.md \
   -o ~/.hermes/skills/cassette-video-edit/SKILL.md
 ```
 
@@ -210,7 +210,7 @@ Set `mcp_servers.cassette.timeout: 600` in `~/.hermes/config.yaml` so a call's b
 
 ### Any other MCP host
 
-Command `uvx`, args `["oh-my-cassette==0.5.1"]`, stdio transport, a tool timeout of 10 minutes, and the environment variables above. No uv? `pipx run oh-my-cassette==0.5.1` works too.
+Command `uvx`, args `["oh-my-cassette==0.6.0"]`, stdio transport, a tool timeout of 10 minutes, and the environment variables above. No uv? `pipx run oh-my-cassette==0.6.0` works too.
 
 ## How a turn looks
 
@@ -230,7 +230,7 @@ The editor link comes from the service: open it in a browser to watch the run li
 ## Check a service
 
 ```bash
-uvx oh-my-cassette==0.5.1 check --url http://127.0.0.1:8790/mcp --upload \
+uvx oh-my-cassette==0.6.0 check --url http://127.0.0.1:8790/mcp --upload \
   --arguments '{"project_id": "<a test project>"}'
 ```
 

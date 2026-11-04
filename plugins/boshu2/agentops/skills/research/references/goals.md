@@ -8,6 +8,8 @@ both exist (`ao goals` auto-detects `GOALS.md` first). Preserve directive and
 gate identities and report each executable check with its actual outcome. Run
 the requested `ao goals` command once: `measure --json`, `validate --json`,
 `drift`, `history`, `export`, `meta --json`, `scenarios` or `render`.
+Inspecting the source needs no `ao`; if `ao` is not on PATH (the plugin does
+not ship it), report the command as not run (tool unavailable).
 
 These commands do not edit the goals source, but `measure`, `drift` and
 `export` may write best-effort derived snapshots under

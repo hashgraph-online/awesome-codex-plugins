@@ -1,6 +1,6 @@
 {
   "name": "codex-claude-council",
-  "version": "0.14.0",
+  "version": "0.21.1",
   "mcpName": "io.github.hamza-aziz-ai/codex-claude-council",
   "description": "Ask OpenAI Codex (ChatGPT) and Claude the same question through your own signed-in CLIs; they answer independently, then reply to each other until they agree on one answer. MCP server + plugin for Claude Code, Claude Cowork and Codex.",
   "type": "module",
@@ -11,7 +11,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test test/config.test.mjs test/council.test.mjs test/mcp.test.mjs test/cli.test.mjs test/manifests.test.mjs test/skills.test.mjs test/share.test.mjs test/npm-readme.test.mjs test/ui.test.mjs"
+    "test": "node --test test/config.test.mjs test/council.test.mjs test/mcp.test.mjs test/cli.test.mjs test/manifests.test.mjs test/skills.test.mjs test/share.test.mjs test/npm-readme.test.mjs test/ui.test.mjs test/bench.test.mjs test/api.test.mjs"
   },
   "keywords": [
     "mcp",
@@ -40,9 +40,14 @@
     ".claude-plugin/",
     ".codex-plugin/",
     "mcpb/icon.png",
+    "mcpb/icon-192.png",
     ".agents/",
     "skills/",
     "README.md",
     "LICENSE"
-  ]
+  ],
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0",
+    "openai": "^7.45.0"
+  }
 }

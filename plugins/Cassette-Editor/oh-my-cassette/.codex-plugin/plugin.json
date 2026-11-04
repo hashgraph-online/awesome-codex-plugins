@@ -1,6 +1,6 @@
 {
   "name": "oh-my-cassette",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Edit video with the Cassette agent from Codex: import local media, send editing turns, read the timeline, export.",
   "author": {
     "name": "Oh My Cassette contributors",
@@ -22,7 +22,7 @@
     "cassette": {
       "command": "uvx",
       "args": [
-        "oh-my-cassette==0.5.1"
+        "oh-my-cassette==0.6.0"
       ],
       "env": {},
       "env_vars": [

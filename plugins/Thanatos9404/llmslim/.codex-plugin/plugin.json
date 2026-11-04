@@ -1,6 +1,6 @@
 {
   "name": "llmslim",
-  "version": "0.11.2",
+  "version": "0.12.0",
   "description": "Long-term memory with no LLM in the loop: stores messages word for word in local SQLite and recalls the ones that answer a question within a token budget.",
   "author": {
     "name": "Yashvardhan Thanvi",

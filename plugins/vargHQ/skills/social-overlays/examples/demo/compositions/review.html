@@ -1,0 +1,268 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+    }
+    .rev-screen {
+      position: absolute;
+      left: 690px;
+      top: 60px;
+      width: 1080px;
+      height: 1920px;
+      transform: scale(0.5);
+      transform-origin: 0 0;
+      border-radius: 72px;
+      overflow: hidden;
+      background: #6e3526;
+    }
+    #rev-wall,
+    #rev-beams {
+      position: absolute;
+      left: -60px;
+      top: 0;
+      width: 1200px;
+      height: 1920px;
+    }
+    /* review-proof-card.app-store-style: white card, radius 36, padding 44 */
+    #rev-card {
+      position: absolute;
+      left: 120px;
+      top: 300px;
+      width: 768px;
+      border-radius: 36px;
+      background: #ffffff;
+      padding: 44px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+      font-family: "Inter", sans-serif;
+      color: #111114;
+    }
+    #rev-head {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    #rev-icon {
+      width: 72px;
+      height: 72px;
+      border-radius: 18px;
+      background: linear-gradient(140deg, #1fa37f 0%, #0e5f4c 100%);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: none;
+    }
+    #rev-app {
+      flex: 1;
+    }
+    #rev-app-name {
+      font-weight: 700;
+      font-size: 32px;
+      line-height: 38px;
+    }
+    #rev-app-sub {
+      font-weight: 400;
+      font-size: 26px;
+      line-height: 32px;
+      color: #6b6b72;
+    }
+    #rev-sample {
+      flex: none;
+      height: 44px;
+      padding: 0 16px;
+      border-radius: 22px;
+      border: 2px solid #c98a00;
+      color: #8a5d00;
+      font-weight: 700;
+      font-size: 26px;
+      line-height: 40px;
+      letter-spacing: 0.08em;
+    }
+    #rev-rating {
+      margin-top: 28px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      height: 44px;
+    }
+    #rev-stars {
+      position: relative;
+      width: 244px;
+      height: 44px;
+    }
+    .rev-row {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 244px;
+      height: 44px;
+    }
+    #rev-score {
+      font-weight: 800;
+      font-size: 36px;
+      font-variant-numeric: tabular-nums;
+    }
+    #rev-title {
+      margin-top: 24px;
+      font-weight: 700;
+      font-size: 40px;
+      line-height: 48px;
+    }
+    #rev-quote {
+      margin-top: 10px;
+      font-weight: 500;
+      font-size: 40px;
+      line-height: 52px;
+      color: #2a2a30;
+      max-width: 640px; /* <= 34 characters a line */
+      text-wrap: balance;
+    }
+    #rev-by {
+      margin-top: 22px;
+      font-weight: 400;
+      font-size: 28px;
+      line-height: 34px;
+      color: rgba(17, 17, 20, 0.6);
+    }
+    #rev-tag {
+      position: absolute;
+      left: 48px;
+      bottom: 40px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="review"
+    data-width="1920"
+    data-height="1080"
+    data-composition-variables='[{"id":"revQuote","type":"string","label":"Quote (real, permissioned)","default":"Folds flat, fits a week of clothes, and the zips still glide after six trips."},{"id":"revBy","type":"string","label":"Author and date","default":"Jo Rivera · Oct 12, 2026 · invented sample"}]'
+  >
+    <div class="rev-screen">
+      <svg id="rev-wall" data-layout-allow-overflow viewBox="0 0 1200 1920" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="rev-wall-g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#9a553b" />
+            <stop offset="0.72" stop-color="#6e3526" />
+            <stop offset="0.721" stop-color="#4a2219" />
+            <stop offset="1" stop-color="#2e1510" />
+          </linearGradient>
+        </defs>
+        <rect width="1200" height="1920" fill="url(#rev-wall-g)" />
+      </svg>
+      <svg id="rev-beams" data-layout-allow-overflow viewBox="0 0 1200 1920" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="rev-beam-g" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#ffd9b0" stop-opacity="0" />
+            <stop offset="0.25" stop-color="#ffd9b0" stop-opacity="0.26" />
+            <stop offset="0.75" stop-color="#ffd9b0" stop-opacity="0.26" />
+            <stop offset="1" stop-color="#ffd9b0" stop-opacity="0" />
+          </linearGradient>
+        </defs>
+        <path d="M580 -260 L820 -260 L560 1380 L320 1380 Z" fill="url(#rev-beam-g)" />
+        <path d="M860 -260 L1020 -260 L800 1380 L640 1380 Z" fill="url(#rev-beam-g)" />
+        <path d="M320 1380 L560 1380 L380 1920 L60 1920 Z" fill="url(#rev-beam-g)" opacity="0.6" />
+        <path d="M640 1380 L800 1380 L660 1920 L440 1920 Z" fill="url(#rev-beam-g)" opacity="0.6" />
+      </svg>
+
+      <div id="rev-card">
+        <div id="rev-head">
+          <div id="rev-icon">N</div>
+          <div id="rev-app">
+            <div id="rev-app-name">Northwind Carry</div>
+            <div id="rev-app-sub">Travel gear</div>
+          </div>
+          <div id="rev-sample">SAMPLE</div>
+        </div>
+        <div id="rev-rating">
+          <div id="rev-stars">
+            <svg class="rev-row" viewBox="0 0 244 44">
+              <defs>
+                <path id="rev-star" d="M22 2.5l5.9 12.6 13.6 1.6-10.1 9.3 2.7 13.5L22 32.7 9.9 39.5l2.7-13.5L2.5 16.7l13.6-1.6z" />
+              </defs>
+              <g fill="#d1d1d6">
+                <use href="#rev-star" x="0" />
+                <use href="#rev-star" x="50" />
+                <use href="#rev-star" x="100" />
+                <use href="#rev-star" x="150" />
+                <use href="#rev-star" x="200" />
+              </g>
+            </svg>
+            <svg id="rev-gold" class="rev-row" viewBox="0 0 244 44">
+              <g fill="#ffb400">
+                <use href="#rev-star" x="0" />
+                <use href="#rev-star" x="50" />
+                <use href="#rev-star" x="100" />
+                <use href="#rev-star" x="150" />
+                <use href="#rev-star" x="200" />
+              </g>
+            </svg>
+          </div>
+          <div id="rev-score">4.6</div>
+        </div>
+        <div id="rev-title">Lives in my carry-on now</div>
+        <div id="rev-quote" data-var-text="revQuote">Folds flat, fits a week of clothes, and the zips still glide after six trips.</div>
+        <div id="rev-by" data-var-text="revBy">Jo Rivera · Oct 12, 2026 · invented sample</div>
+      </div>
+    </div>
+    <div id="rev-tag">review-proof-card · app-store-style</div>
+  </div>
+  <script>
+    const bez = (x1, y1, x2, y2) => (t) => {
+      const cx = (u) => 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u;
+      let lo = 0, hi = 1, u = t;
+      for (let i = 0; i < 24; i++) {
+        u = (lo + hi) / 2;
+        if (cx(u) < t) lo = u; else hi = u;
+      }
+      return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+    };
+    const ENTER = bez(0.05, 0.7, 0.1, 1);
+    const EXIT = bez(0.3, 0, 0.8, 0.15);
+    const RATING = 4.6;
+    // star k spans [50k, 50k + 44]; 4.6 -> four full stars + 60% of the fifth
+    const fillPx = Math.floor(RATING) * 50 + (RATING % 1) * 44;
+    const tl = gsap.timeline({ paused: true });
+
+    tl.fromTo("#rev-beams", { x: 0 }, { x: -40, duration: 4.3, ease: "none" }, 0);
+    tl.fromTo("#rev-tag", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.1);
+
+    const t0 = 0.15;
+    // card rises 56 px + fades, 0.45 s
+    tl.fromTo("#rev-card", { y: 56, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: ENTER }, t0);
+    // stars sweep left to right over 0.6 s power2.out from +0.35 s; the score counts in sync
+    tl.fromTo(
+      "#rev-gold",
+      { clipPath: "inset(0px 244px 0px 0px)" },
+      { clipPath: `inset(0px ${244 - fillPx}px 0px 0px)`, duration: 0.6, ease: "power2.out" },
+      t0 + 0.35,
+    );
+    const score = { v: 0 };
+    const scoreEl = document.querySelector("#rev-score");
+    tl.fromTo(
+      score,
+      { v: 0 },
+      {
+        v: RATING,
+        duration: 0.6,
+        ease: "power2.out",
+        onUpdate: () => {
+          scoreEl.textContent = score.v.toFixed(1);
+        },
+      },
+      t0 + 0.35,
+    );
+    // quote slides 12 px and fades in 0.3 s at +0.6 s; name and date row +0.1 s
+    tl.fromTo(["#rev-title", "#rev-quote"], { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "power2.out", stagger: 0.06 }, t0 + 0.6);
+    tl.fromTo("#rev-by", { y: 12, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "power2.out" }, t0 + 0.7);
+    // exit 0.25 s down + fade
+    tl.to("#rev-card", { y: 32, opacity: 0, duration: 0.25, ease: EXIT }, 3.95);
+    window.__timelines["review"] = tl;
+  </script>
+</template>

@@ -1,0 +1,278 @@
+{
+  "id": "marbled-ink",
+  "name": "Marbled ink",
+  "use": "Colours folding into each other like marbled ink, for title backgrounds and interstitials",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "marbled-ink.signature",
+      "label": "Signature",
+      "look": "Lavender and ink veins combed through warm white",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Warp",
+        "motion": {
+          "timeScale": 1.0,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1.2,
+          "rotation": 30,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#141218",
+            "#E9E4DA",
+            "#8C7BD8",
+            "#E9E4DA"
+          ],
+          "proportion": 0.35,
+          "softness": 0.15,
+          "distortion": 0.25,
+          "swirl": 0.85,
+          "swirlIterations": 10,
+          "shape": "stripes",
+          "shapeScale": 0.3
+        }
+      },
+      "sources": [
+        3,
+        18,
+        20,
+        21
+      ]
+    },
+    {
+      "id": "marbled-ink.ink",
+      "label": "Ink",
+      "look": "Black ink veins in pale mint, hard edges (Paper's Live Ink values, slower)",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Warp",
+        "motion": {
+          "timeScale": 1.5,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1.2,
+          "rotation": 44,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#111314",
+            "#9FAEAB",
+            "#F3FEE7",
+            "#F3FEE7"
+          ],
+          "proportion": 0.05,
+          "softness": 0,
+          "distortion": 0.25,
+          "swirl": 0.8,
+          "swirlIterations": 10,
+          "shape": "checks",
+          "shapeScale": 0.28
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "marbled-ink.ember",
+      "label": "Ember",
+      "look": "Oxblood, rose and apricot folds (Paper's Passion values at half speed)",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Warp",
+        "motion": {
+          "timeScale": 1.5,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 2.5,
+          "rotation": 1.35,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#3B1515",
+            "#954751",
+            "#FFC085"
+          ],
+          "proportion": 0.5,
+          "softness": 1,
+          "distortion": 0.09,
+          "swirl": 0.9,
+          "swirlIterations": 6,
+          "shape": "checks",
+          "shapeScale": 0.25
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "marbled-ink.sage",
+      "label": "Sage",
+      "look": "Moss, sage and bone over a split edge",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Warp",
+        "motion": {
+          "timeScale": 1.2,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 160,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#1E2A22",
+            "#8FA88A",
+            "#E6EBD9"
+          ],
+          "proportion": 0.45,
+          "softness": 0.6,
+          "distortion": 0.2,
+          "swirl": 0.85,
+          "swirlIterations": 8,
+          "shape": "edge",
+          "shapeScale": 0.5
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 3,
+      "name": "Stephen Haney: Warp shader",
+      "url": "https://x.com/stephenhaney/status/1882113262092976634"
+    },
+    {
+      "n": 16,
+      "name": "Mirza Beig: domain-warp feedback",
+      "url": "https://x.com/TheMirzaBeig/status/1734567042882175412"
+    },
+    {
+      "n": 18,
+      "name": "Paper Shaders reference (llms.txt)",
+      "url": "https://shaders.paper.design/llms.txt"
+    },
+    {
+      "n": 19,
+      "name": "Paper Shaders source (Apache-2.0)",
+      "url": "https://github.com/paper-design/shaders"
+    },
+    {
+      "n": 20,
+      "name": "varg paper-shaders skill",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 21,
+      "name": "Inigo Quilez: Domain warping",
+      "url": "https://iquilezles.org/articles/warp/"
+    },
+    {
+      "n": 22,
+      "name": "Inigo Quilez: fBM",
+      "url": "https://iquilezles.org/articles/fbm/"
+    },
+    {
+      "n": 25,
+      "name": "The Book of Shaders ch. 13 fBM",
+      "url": "https://thebookofshaders.com/13/"
+    },
+    {
+      "n": 39,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 40,
+      "name": "Wikipedia: Paper marbling",
+      "url": "https://en.wikipedia.org/wiki/Paper_marbling"
+    },
+    {
+      "n": 42,
+      "name": "Ken Perlin: Noise and Turbulence",
+      "url": "https://mrl.cs.nyu.edu/~perlin/doc/oscar.html"
+    }
+  ],
+  "customGLSL": {
+    "technique": "IQ domain warping f = fbm(p + 4.0*r), r = fbm2(p + 4.0*q + offsets), q = fbm2(p)",
+    "offsets": {
+      "q": [
+        [
+          0,
+          0
+        ],
+        [
+          5.2,
+          1.3
+        ]
+      ],
+      "r": [
+        [
+          1.7,
+          9.2
+        ],
+        [
+          8.3,
+          2.8
+        ]
+      ]
+    },
+    "warpGain": 4.0,
+    "fbm": {
+      "octaves": 5,
+      "gain": 0.5,
+      "lacunarity": 2.0,
+      "rotationPerOctaveRad": 0.5,
+      "shift": 100
+    },
+    "timeDrift": {
+      "r.x": "0.15*t",
+      "r.y": "0.126*t"
+    },
+    "colour": "mix(c0,c1,clamp(f*f*4,0,1)) -> mix(.,c2,clamp(length(q),0,1)) -> mix(.,c3,clamp(r.x,0,1))",
+    "sources": [
+      21,
+      22,
+      25
+    ]
+  }
+}

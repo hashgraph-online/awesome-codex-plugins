@@ -1,0 +1,247 @@
+<!doctype html>
+<!--
+  word-corridor · night (assets/presets/word-corridor.json: paper base values + night overrides)
+  Four real-text walls of an open-ended box (perspective 450 px), each 5x the frame width deep.
+  The camera never moves: the word strips travel toward the viewer linearly, one word pitch per
+  beat at 120 BPM, double speed for the 2-beat drop (beats 3-4). Fog from 60% of the depth to the
+  background, far end glows #FF5A1F at 30%. Fades in from the background over 15 f; on beat 6
+  (frame 90) it match-cuts to the flat word and holds 30 f.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Anton"; src: url("assets/fonts/anton.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #0b0b0d;
+        }
+        #cor-world {
+          position: absolute;
+          inset: 0;
+          perspective: 450px;
+          perspective-origin: 50% 50%;
+        }
+        .cor-wall {
+          position: absolute;
+          overflow: hidden;
+          background: #0b0b0d;
+          backface-visibility: hidden;
+        }
+        #cor-left {
+          left: 0;
+          top: 0;
+          width: 9600px;
+          height: 1080px;
+          transform-origin: 0 50%;
+          transform: rotateY(90deg);
+        }
+        #cor-right {
+          left: -7680px;
+          top: 0;
+          width: 9600px;
+          height: 1080px;
+          transform-origin: 100% 50%;
+          transform: rotateY(-90deg);
+        }
+        #cor-floor {
+          left: 0;
+          top: -8520px;
+          width: 1920px;
+          height: 9600px;
+          transform-origin: 50% 100%;
+          transform: rotateX(90deg);
+        }
+        #cor-ceil {
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 9600px;
+          transform-origin: 50% 0;
+          transform: rotateX(-90deg);
+        }
+        /* floor / ceiling: a 9600 x 1920 lane turned so the text runs along the depth */
+        .cor-lane {
+          position: absolute;
+          left: -3840px;
+          top: 3840px;
+          width: 9600px;
+          height: 1920px;
+        }
+        #cor-floor .cor-lane {
+          transform: rotate(-90deg);
+        }
+        #cor-ceil .cor-lane {
+          transform: rotate(90deg);
+        }
+        .cor-side {
+          position: absolute;
+          inset: 0;
+        }
+        .cor-strip {
+          position: absolute;
+          top: 0;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          white-space: nowrap;
+        }
+        .cor-strip.from-left {
+          left: 0;
+        }
+        .cor-strip.from-right {
+          right: 0;
+          flex-direction: row-reverse;
+        }
+        .cor-strip span {
+          font-family: "Anton";
+          font-weight: 400;
+          color: #f2efe8;
+          letter-spacing: 0.05em;
+          line-height: 1;
+          display: block;
+        }
+        .cor-fog {
+          position: absolute;
+          inset: 0;
+        }
+        #cor-left .cor-fog { background: linear-gradient(to right, rgba(11, 11, 13, 0) 0%, rgba(11, 11, 13, 0) 60%, #0b0b0d 100%); }
+        #cor-right .cor-fog { background: linear-gradient(to left, rgba(11, 11, 13, 0) 0%, rgba(11, 11, 13, 0) 60%, #0b0b0d 100%); }
+        #cor-floor .cor-fog { background: linear-gradient(to top, rgba(11, 11, 13, 0) 0%, rgba(11, 11, 13, 0) 60%, #0b0b0d 100%); }
+        #cor-ceil .cor-fog { background: linear-gradient(to bottom, rgba(11, 11, 13, 0) 0%, rgba(11, 11, 13, 0) 60%, #0b0b0d 100%); }
+        #cor-glow {
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(ellipse 420px 300px at 50% 50%, rgba(255, 90, 31, 0.3) 0%, rgba(255, 90, 31, 0.12) 45%, rgba(255, 90, 31, 0) 100%);
+          mix-blend-mode: screen;
+        }
+        #cor-fade {
+          position: absolute;
+          inset: 0;
+          background: #0b0b0d;
+        }
+        #cor-flat {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          background: #0b0b0d;
+        }
+        #cor-flat span {
+          font-family: "Anton";
+          font-weight: 400;
+          color: #f2efe8;
+          letter-spacing: 0.05em;
+          line-height: 1;
+          font-size: 400px;
+        }
+        #cor-label {
+          position: absolute;
+          left: 96px;
+          bottom: 72px;
+          font-family: "JetBrains Mono", monospace;
+          font-size: 17px;
+          color: #f2efe8;
+          opacity: 0.6;
+        }
+      </style>
+      <div id="root" data-composition-id="corridor" data-width="1920" data-height="1080">
+        <div id="cor-world" data-layout-allow-overflow data-layout-ignore>
+          <div class="cor-wall" id="cor-left">
+            <div class="cor-side"><div class="cor-strip from-left" id="cor-s-left"></div></div>
+            <div class="cor-fog"></div>
+          </div>
+          <div class="cor-wall" id="cor-right">
+            <div class="cor-side"><div class="cor-strip from-right" id="cor-s-right"></div></div>
+            <div class="cor-fog"></div>
+          </div>
+          <div class="cor-wall" id="cor-floor">
+            <div class="cor-lane"><div class="cor-strip from-left" id="cor-s-floor"></div></div>
+            <div class="cor-fog"></div>
+          </div>
+          <div class="cor-wall" id="cor-ceil">
+            <div class="cor-lane"><div class="cor-strip from-left" id="cor-s-ceil"></div></div>
+            <div class="cor-fog"></div>
+          </div>
+        </div>
+        <div id="cor-glow"></div>
+        <div id="cor-fade"></div>
+        <div id="cor-flat"><span id="cor-flat-word">DEEPER</span></div>
+        <div id="cor-label" data-layout-ignore>word-corridor · night</div>
+      </div>
+      <script>
+        (function () {
+          const FPS = 30;
+          const BEAT = 60 / 120;
+          const WORD = "DEEPER";
+          const WALL_H = 1080;
+          const CAP_PCT = 0.6; // cap_height_pct_of_wall
+          const GAP_EM = 0.6; // word_gap_em
+          const TRACK_EM = 0.05; // tracking_em
+          const DEPTH = 9600; // wall_depth_x_frame_width 5
+          const strips = ["left", "right", "floor", "ceil"].map((k) => document.getElementById("cor-s-" + k));
+
+          document.fonts.load('400 100px "Anton"', WORD).then(() => {
+            const c = document.createElement("canvas").getContext("2d");
+            c.font = '400 100px "Anton"';
+            const capR = c.measureText("H").actualBoundingBoxAscent / 100;
+            const fs = (CAP_PCT * WALL_H) / capR;
+            const wordW = (c.measureText(WORD).width / 100) * fs + TRACK_EM * fs * WORD.length;
+            const gap = GAP_EM * fs;
+            const pitch = wordW + gap;
+            const reps = Math.ceil(DEPTH / pitch) + 2;
+            strips.forEach((s) => {
+              for (let i = 0; i < reps; i++) {
+                const sp = document.createElement("span");
+                sp.textContent = WORD;
+                sp.style.fontSize = fs.toFixed(1) + "px";
+                sp.style.marginRight = gap.toFixed(1) + "px";
+                if (s.classList.contains("from-right")) {
+                  sp.style.marginRight = "0px";
+                  sp.style.marginLeft = gap.toFixed(1) + "px";
+                }
+                s.appendChild(sp);
+              }
+            });
+            // Flat end word: same face and colour, centred, 80% of frame width.
+            const flat = document.getElementById("cor-flat-word");
+            const flatFs = (0.8 * 1920) / (wordW / fs);
+            flat.style.fontSize = flatFs.toFixed(1) + "px";
+
+            // Travel in word pitches, linear: 1 pitch/beat, 2 pitches/beat on the drop (beats 3-4).
+            const pitchesAt = (t) => {
+              const b = t / BEAT;
+              if (b < 3) return b;
+              if (b < 5) return 3 + 2 * (b - 3);
+              return 7 + (b - 5);
+            };
+            const draw = (t) => {
+              const p = pitchesAt(t);
+              const off = (p % 1) * pitch; // the strip repeats every pitch, so wrap seamlessly
+              gsap.set(strips[0], { x: -off });
+              gsap.set(strips[1], { x: off });
+              gsap.set(strips[2], { x: -off });
+              gsap.set(strips[3], { x: -off });
+            };
+            const tl = gsap.timeline({ paused: true });
+            const clock = { t: 0 };
+            tl.fromTo(clock, { t: 0 }, { t: 6 * BEAT, duration: 6 * BEAT, ease: "none", onUpdate: () => draw(clock.t) }, 0);
+            draw(0);
+            // Fade in from the background over the first beat (15 f).
+            tl.fromTo("#cor-fade", { opacity: 1 }, { opacity: 0, duration: 15 / FPS, ease: "none" }, 0);
+            // Match cut to the flat word on beat 6 (frame 90), hold 30 f.
+            tl.set("#cor-flat", { opacity: 1 }, 90 / FPS - 0.004);
+            window.__timelines["corridor"] = tl;
+          });
+        })();
+      </script>
+    </template>
+  </body>
+</html>

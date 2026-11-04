@@ -1,0 +1,33 @@
+{
+  "id": "paper-dithering-default",
+  "label": "Default (Paper Dithering)",
+  "shader": "Dithering",
+  "page": "https://shaders.paper.design/dithering",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for Dithering, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "mount": {
+    "minPixelRatio": 1
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colorFront": "#00b2ff",
+    "shape": "sphere",
+    "type": "4x4",
+    "size": 2
+  }
+}

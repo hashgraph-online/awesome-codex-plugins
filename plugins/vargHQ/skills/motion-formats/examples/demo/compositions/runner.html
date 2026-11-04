@@ -1,0 +1,457 @@
+<!doctype html>
+<!--
+  pixel-runner-crt · console-16 (assets/presets/pixel-runner-crt.json)
+  Pixel layer: a 320x180 canvas in the 16-colour PICO-8 palette (every pixel is snapped to it),
+  hero 16x16 with 3 colours + transparent, 8-pose run, 1 px bob, three parallax layers at 0.25x /
+  0.5x / 1.0x of the ground speed (1 base px per 60 fps frame = 2 base px per 30 fps frame, floored),
+  jumps of 0.5 s airtime and a 24 px apex on a closed-form parabola that land on the 120 BPM
+  downbeats, 1-frame squash on landing, +1 per gem. Original cast: a small cyan robot, hazard pylons,
+  spikes and pink gems on a dusk world. HUD "◆ 09" and "STAGE 01" in Press Start 2P at 8 px base, snapped.
+  CRT pass, last, on the low-res texture: a WebGL port of the public-domain Lottes CRT shader with
+  the preset defaults (hardScan -8, hardPix -3, warpX 0.031, warpY 0.041, shadowMask 3, maskDark 0.5,
+  maskLight 1.5, bloomAmount 0.15, brightBoost 1.0), plus crt-geom style corners of 0.03.
+  Power-on 2 f line + 8 f expand + 6 f overbright (1.3 -> 1.0); power-off 6 f collapse, 6 f to a dot,
+  12 f dot fade.
+  Deviation: 30 fps output (preview spec) instead of 60, so poses hold 2 frames (67 ms, the
+  reference's 30 fps option) and the scroll moves 2 base px per frame.
+-->
+<html>
+  <head>
+    <meta charset="UTF-8" />
+  </head>
+  <body>
+    <template>
+      <style>
+        @font-face { font-family: "Press Start 2P"; src: url("assets/fonts/press-start-2p.woff2") format("woff2"); font-weight: 400; font-display: block; }
+        #root {
+          position: absolute;
+          inset: 0;
+          overflow: hidden;
+          background: #000000;
+        }
+        #run-crt {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 1920px;
+          height: 1080px;
+        }
+        #run-label {
+          position: absolute;
+          left: 96px;
+          bottom: 72px;
+          font-family: "JetBrains Mono", monospace;
+          font-size: 17px;
+          color: #ffffff;
+          opacity: 0.6;
+        }
+      </style>
+      <div id="root" data-composition-id="runner" data-width="1920" data-height="1080">
+        <canvas id="run-crt" width="1920" height="1080"></canvas>
+        <div id="run-label" data-layout-ignore>pixel-runner-crt · console-16</div>
+      </div>
+      <script>
+        (function () {
+          const FPS = 30;
+          const DUR = 4.5;
+          const BW = 320;
+          const BH = 180;
+          const PAL = ["#000000", "#1D2B53", "#7E2553", "#008751", "#AB5236", "#5F574F", "#C2C3C7", "#FFF1E8", "#FF004D", "#FFA300", "#FFEC27", "#00E436", "#29ADFF", "#83769C", "#FF77A8", "#FFCCAA"];
+          const RGB = PAL.map((h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]);
+          const C = {};
+          ["black", "navy", "plum", "green", "brown", "grey", "silver", "white", "red", "orange", "yellow", "lime", "sky", "lav", "pink", "skin"].forEach((n, i) => (C[n] = i));
+
+          const base = document.createElement("canvas");
+          base.width = BW;
+          base.height = BH;
+          const b = base.getContext("2d", { willReadFrequently: true });
+          b.imageSmoothingEnabled = false;
+          const txt = document.createElement("canvas");
+          txt.width = BW;
+          txt.height = 16;
+          const tctx = txt.getContext("2d", { willReadFrequently: true });
+
+          // ---------- level script on the 0.5 s beat grid ----------
+          const GROUND = 150; // ground top in base px
+          const HERO_X = 98; // sprite left; centre at 106 = 33% of 320
+          const JUMPS = [1.0, 2.0, 3.0]; // take-off; landings on the downbeats 1.5, 2.5, 3.5
+          const AIR = 0.5;
+          const APEX = 24;
+          const scrollAt = (f) => 2 * f; // ground: 1 base px per 60 fps frame
+          const OBST = JUMPS.map((tj, i) => {
+            const fa = Math.round((tj + AIR / 2) * FPS);
+            return { type: i === 1 ? "spike" : "pylon", wx: scrollAt(fa) + 106, fa: fa };
+          });
+
+          // ---------- palette-indexed background into a buffer ----------
+          const buf = new Uint8Array(BW * BH);
+          function tri(x, p) {
+            const m = ((x % p) + p) % p;
+            return Math.abs(m - p / 2) / (p / 2); // 1 at edges, 0 at centre
+          }
+          function hash2(x, y) {
+            let h = (x * 374761393 + y * 668265263) | 0;
+            h = Math.imul(h ^ (h >>> 13), 1274126177);
+            return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+          }
+          function drawBackground(f) {
+            const far = Math.floor(0.5 * f); // 0.25x of 2 px/frame
+            const mid = Math.floor(1.0 * f); // 0.5x
+            const gnd = scrollAt(f); // 1.0x
+            // dusk sky with fixed stars and a crescent moon (the sky does not scroll)
+            for (let y = 0; y < BH; y++) for (let x = 0; x < BW; x++) {
+              let c = C.navy;
+              const r = hash2(x, y);
+              if (y < 110 && r < 0.002) c = C.white;
+              else if (y < 110 && r < 0.004) c = C.lav;
+              buf[y * BW + x] = c;
+            }
+            for (let y = 16; y < 54; y++) for (let x = 246; x < 284; x++) {
+              const dx = x - 264.5, dy = y - 34.5, ex = x - 270.5, ey = y - 30.5;
+              if (dx * dx + dy * dy < 13 * 13) buf[y * BW + x] = ex * ex + ey * ey < 11 * 11 ? C.navy : C.white;
+            }
+            for (let x = 0; x < BW; x++) {
+              // far layer: stepped mesas in two inks
+              const wx = x + far;
+              const h1 = 14 + 12 * Math.min(3, Math.floor(4 * (1 - tri(wx, 150))));
+              const h2 = 10 + 8 * Math.min(3, Math.floor(4 * (1 - tri(wx + 64, 92))));
+              const h = Math.max(h1, h2);
+              for (let y = GROUND - h; y < GROUND; y++) buf[y * BW + x] = h2 > h1 ? C.plum : C.lav;
+              // mid layer: rolling dunes
+              const wm = x + mid;
+              const hm = Math.floor(16 + 7 * Math.cos((2 * Math.PI * wm) / 104) + 3 * Math.cos((2 * Math.PI * wm) / 37));
+              for (let y = GROUND - hm; y < GROUND; y++) buf[y * BW + x] = C.plum;
+              for (let y = GROUND - hm; y < GROUND - hm + 1; y++) buf[y * BW + x] = C.pink;
+              // ground: dusty rock with a lavender rim and scattered pebbles (world-anchored)
+              const wg = x + gnd;
+              for (let y = GROUND; y < BH; y++) {
+                let c = C.grey;
+                if (y < GROUND + 2) c = C.lav;
+                else if (y === GROUND + 2) c = C.plum;
+                else {
+                  const r = hash2(wg >> 1, y >> 1);
+                  if (r < 0.022) c = C.black;
+                  else if (r < 0.04) c = C.lav;
+                }
+                buf[y * BW + x] = c;
+              }
+            }
+          }
+          function px(x, y, c) {
+            if (x >= 0 && x < BW && y >= 0 && y < BH) buf[y * BW + x] = c;
+          }
+          function rect(x, y, w, h, c) {
+            for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) px(x + i, y + j, c);
+          }
+          function line2(x0, y0, x1, y1, c) {
+            const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
+            for (let i = 0; i <= n; i++) {
+              const x = Math.round(x0 + ((x1 - x0) * i) / n);
+              const y = Math.round(y0 + ((y1 - y0) * i) / n);
+              px(x, y, c);
+              px(x + 1, y, c);
+            }
+          }
+
+          // ---------- hero: a small cyan robot, 3 colours + transparent, 8-pose run ----------
+          const LEG = [[4, 0], [2, 0], [0, 0], [-2, 0], [-4, 1], [-2, 3], [1, 3], [3, 2]];
+          const BOB = [0, -1, -1, 0, 0, -1, -1, 0];
+          function drawHero(ox, feetY, mode, pose) {
+            let legA, legB, bob, armA, armB;
+            if (mode === "jump") {
+              legA = [3, 3]; legB = [-3, 2]; bob = 0; armA = [3, -4]; armB = [-3, -1];
+            } else if (mode === "squash") {
+              legA = [3, 0]; legB = [-3, 0]; bob = 1; armA = [3, 0]; armB = [-3, 0];
+            } else {
+              legA = LEG[pose]; legB = LEG[(pose + 4) % 8]; bob = BOB[pose];
+              armA = [-Math.round(legA[0] * 0.75), 0]; armB = [-Math.round(legB[0] * 0.75), 0];
+            }
+            const oy = feetY - 16 + bob;
+            const hipY = oy + 11;
+            // back leg and arm (silver limbs)
+            line2(ox + 7, hipY, ox + 7 + legB[0], feetY - 1 - legB[1], C.silver);
+            rect(ox + 7 + legB[0], feetY - 1 - legB[1], 3, 1, C.silver);
+            line2(ox + 7, oy + 8, ox + 7 + armB[0], oy + 10 + armB[1], C.silver);
+            // antenna with a glowing tip
+            px(ox + 7, oy + 1, C.silver);
+            px(ox + 7, oy + 0, C.yellow);
+            // head: rounded box with a visor and one eye
+            rect(ox + 5, oy + 2, 6, 1, C.sky);
+            rect(ox + 4, oy + 3, 8, 4, C.sky);
+            rect(ox + 6, oy + 3, 5, 2, C.silver);
+            rect(ox + 9, oy + 3, 2, 2, C.yellow);
+            // body: small barrel torso
+            rect(ox + 5, oy + 7, 6, 4, C.sky);
+            px(ox + 7, oy + 8, C.yellow);
+            // front leg and arm
+            line2(ox + 7, hipY, ox + 7 + legA[0], feetY - 1 - legA[1], C.silver);
+            rect(ox + 7 + legA[0], feetY - 1 - legA[1], 3, 1, C.silver);
+            line2(ox + 7, oy + 8, ox + 7 + armA[0], oy + 10 + armA[1], C.silver);
+          }
+          // hazard pylon: 3 colours, striped
+          function drawPylon(x, y) {
+            for (let j = 0; j < 12; j++) {
+              const half = 1 + Math.floor(j / 2.4);
+              for (let i = -half; i <= half; i++) px(x + 6 + i, y + j, j === 4 || j === 5 || j === 9 ? C.white : C.orange);
+            }
+            rect(x, y + 11, 13, 1, C.black);
+          }
+          function drawSpike(x, y) {
+            for (let k = 0; k < 3; k++) for (let j = 0; j < 8; j++) {
+              const half = Math.floor(j / 2);
+              for (let i = -half; i <= half; i++) px(x + k * 4 + 2 + i, y + j, j > 5 || i > 0 ? C.lav : C.silver);
+            }
+          }
+          // spinning gem (diamond), pink with a light facet
+          function drawGem(x, y, f) {
+            const w = [7, 5, 1, 5][Math.floor(f / 3) % 4];
+            for (let j = 0; j < 9; j++) {
+              const half = Math.floor(((j < 4 ? j : 8 - j) * w) / 8);
+              for (let i = -half; i <= half; i++) px(x + 3 + i, y + j, i === -half || i === half ? C.plum : j < 3 && i < 0 ? C.white : C.pink);
+            }
+          }
+          function gemIcon(x, y) {
+            for (let j = 0; j < 7; j++) {
+              const half = j < 3 ? j : 6 - j;
+              for (let i = -half; i <= half; i++) px(x + 3 + i, y + j, C.pink);
+            }
+          }
+
+          // Press Start 2P at 8 px, thresholded so it stays on the pixel grid
+          function text(str, x, y, c, shadow) {
+            tctx.clearRect(0, 0, BW, 16);
+            tctx.font = '8px "Press Start 2P"';
+            tctx.textBaseline = "top";
+            tctx.fillStyle = "#fff";
+            tctx.fillText(str, 0, 0);
+            const w = Math.min(BW, Math.ceil(tctx.measureText(str).width) + 1);
+            const a = tctx.getImageData(0, 0, w, 10).data;
+            for (let j = 0; j < 10; j++) for (let i = 0; i < w; i++) {
+              if (a[(j * w + i) * 4 + 3] > 120) {
+                if (shadow !== undefined) px(x + i + 1, y + j + 1, shadow);
+              }
+            }
+            for (let j = 0; j < 10; j++) for (let i = 0; i < w; i++) {
+              if (a[(j * w + i) * 4 + 3] > 120) px(x + i, y + j, c);
+            }
+          }
+
+          function drawGame(t) {
+            const f = Math.round(t * FPS);
+            drawBackground(f);
+            const scroll = scrollAt(f);
+            // obstacles and gems
+            let gems = 9;
+            OBST.forEach((o) => {
+              const sx = o.wx - scroll;
+              if (o.type === "pylon") drawPylon(sx - 6, GROUND - 12);
+              else drawSpike(sx - 6, GROUND - 8);
+              if (f < o.fa) drawGem(sx - 3, GROUND - APEX - 23, f);
+              else {
+                gems += 1;
+                const k = f - o.fa;
+                if (k < 10) text("+1", sx - 7, GROUND - APEX - 30 - k, C.white, C.black);
+              }
+            });
+            // hero
+            const tt = f / FPS;
+            let mode = "run";
+            let lift = 0;
+            JUMPS.forEach((tj) => {
+              const u = (tt - tj) / AIR;
+              if (u > 0 && u < 1) {
+                mode = "jump";
+                lift = Math.floor(4 * APEX * u * (1 - u));
+              }
+              if (Math.abs(tt - (tj + AIR)) < 0.5 / FPS) mode = "squash";
+            });
+            const pose = Math.floor(f / 2) % 8;
+            drawHero(HERO_X, GROUND - lift, mode, pose);
+            // UI on the same grid
+            gemIcon(8, 8);
+            text(String(gems).padStart(2, "0"), 20, 8, C.white, C.black);
+            text("STAGE 01", 248, 8, C.white, C.black);
+            // to RGBA
+            const img = b.createImageData(BW, BH);
+            for (let i = 0; i < BW * BH; i++) {
+              const c = RGB[buf[i]];
+              img.data[i * 4] = c[0];
+              img.data[i * 4 + 1] = c[1];
+              img.data[i * 4 + 2] = c[2];
+              img.data[i * 4 + 3] = 255;
+            }
+            b.putImageData(img, 0, 0);
+          }
+
+          // ---------- CRT: Lottes (public domain) on the 320x180 texture ----------
+          const gl = document.getElementById("run-crt").getContext("webgl", { preserveDrawingBuffer: true, antialias: false });
+          const VS = "attribute vec2 p; varying vec2 vUv; void main(){ vUv = p*0.5+0.5; gl_Position = vec4(p,0.0,1.0); }";
+          const FS = `
+            precision highp float;
+            varying vec2 vUv;
+            uniform sampler2D uTex;
+            uniform vec2 uRes;
+            uniform vec2 uOut;
+            uniform float uV, uH, uBoost, uWhite, uFade, uDot;
+            const float hardScan = -8.0;
+            const float hardPix = -3.0;
+            const float warpX = 0.031;
+            const float warpY = 0.041;
+            const float maskDark = 0.5;
+            const float maskLight = 1.5;
+            const float bloomAmount = 0.15;
+            const float hardBloomPix = -1.5;
+            const float hardBloomScan = -2.0;
+            const float cornerSize = 0.03;
+            float tl1(float c){ return c <= 0.04045 ? c/12.92 : pow((c+0.055)/1.055, 2.4); }
+            vec3 ToLinear(vec3 c){ return vec3(tl1(c.r), tl1(c.g), tl1(c.b)); }
+            float ts1(float c){ return c < 0.0031308 ? c*12.92 : 1.055*pow(c, 0.41666)-0.055; }
+            vec3 ToSrgb(vec3 c){ return vec3(ts1(c.r), ts1(c.g), ts1(c.b)); }
+            vec3 Fetch(vec2 pos, vec2 off){
+              pos = (floor(pos*uRes + off) + vec2(0.5)) / uRes;
+              if (pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0) return vec3(0.0);
+              return ToLinear(uBoost * texture2D(uTex, pos).rgb);
+            }
+            vec2 Dist(vec2 pos){ pos = pos*uRes; return -((pos - floor(pos)) - vec2(0.5)); }
+            float Gaus(float pos, float scale){ return exp2(scale*pos*pos); }
+            vec3 Horz3(vec2 pos, float off){
+              vec3 b = Fetch(pos, vec2(-1.0, off)); vec3 c = Fetch(pos, vec2(0.0, off)); vec3 d = Fetch(pos, vec2(1.0, off));
+              float dst = Dist(pos).x;
+              float wb = Gaus(dst-1.0, hardPix); float wc = Gaus(dst, hardPix); float wd = Gaus(dst+1.0, hardPix);
+              return (b*wb + c*wc + d*wd) / (wb + wc + wd);
+            }
+            vec3 Horz5(vec2 pos, float off){
+              vec3 a = Fetch(pos, vec2(-2.0, off)); vec3 b = Fetch(pos, vec2(-1.0, off)); vec3 c = Fetch(pos, vec2(0.0, off));
+              vec3 d = Fetch(pos, vec2(1.0, off)); vec3 e = Fetch(pos, vec2(2.0, off));
+              float dst = Dist(pos).x;
+              float wa = Gaus(dst-2.0, hardPix); float wb = Gaus(dst-1.0, hardPix); float wc = Gaus(dst, hardPix);
+              float wd = Gaus(dst+1.0, hardPix); float we = Gaus(dst+2.0, hardPix);
+              return (a*wa + b*wb + c*wc + d*wd + e*we) / (wa + wb + wc + wd + we);
+            }
+            vec3 Horz7(vec2 pos, float off){
+              vec3 a = Fetch(pos, vec2(-3.0, off)); vec3 b = Fetch(pos, vec2(-2.0, off)); vec3 c = Fetch(pos, vec2(-1.0, off));
+              vec3 d = Fetch(pos, vec2(0.0, off)); vec3 e = Fetch(pos, vec2(1.0, off)); vec3 f = Fetch(pos, vec2(2.0, off)); vec3 g = Fetch(pos, vec2(3.0, off));
+              float dst = Dist(pos).x;
+              float wa = Gaus(dst-3.0, hardBloomPix); float wb = Gaus(dst-2.0, hardBloomPix); float wc = Gaus(dst-1.0, hardBloomPix);
+              float wd = Gaus(dst, hardBloomPix); float we = Gaus(dst+1.0, hardBloomPix); float wf = Gaus(dst+2.0, hardBloomPix); float wg = Gaus(dst+3.0, hardBloomPix);
+              return (a*wa + b*wb + c*wc + d*wd + e*we + f*wf + g*wg) / (wa + wb + wc + wd + we + wf + wg);
+            }
+            float Scan(vec2 pos, float off){ return Gaus(Dist(pos).y + off, hardScan); }
+            float BloomScan(vec2 pos, float off){ return Gaus(Dist(pos).y + off, hardBloomScan); }
+            vec3 Tri(vec2 pos){
+              return Horz3(pos, -1.0)*Scan(pos, -1.0) + Horz3(pos, 0.0)*Scan(pos, 0.0) + Horz3(pos, 1.0)*Scan(pos, 1.0);
+            }
+            vec3 Bloom(vec2 pos){
+              return Horz5(pos,-2.0)*BloomScan(pos,-2.0) + Horz7(pos,-1.0)*BloomScan(pos,-1.0) + Horz7(pos,0.0)*BloomScan(pos,0.0)
+                   + Horz7(pos,1.0)*BloomScan(pos,1.0) + Horz5(pos,2.0)*BloomScan(pos,2.0);
+            }
+            vec2 Warp(vec2 pos){
+              pos = pos*2.0 - 1.0;
+              pos *= vec2(1.0 + (pos.y*pos.y)*warpX, 1.0 + (pos.x*pos.x)*warpY);
+              return pos*0.5 + 0.5;
+            }
+            vec3 Mask(vec2 pos){
+              pos.x += pos.y*3.0;
+              vec3 mask = vec3(maskDark);
+              pos.x = fract(pos.x/6.0);
+              if (pos.x < 0.333) mask.r = maskLight; else if (pos.x < 0.666) mask.g = maskLight; else mask.b = maskLight;
+              return mask;
+            }
+            float Corner(vec2 c){
+              vec2 aspect = vec2(1.0, uOut.y/uOut.x);
+              c = min(c, vec2(1.0) - c) * aspect;
+              vec2 cd = vec2(cornerSize) - c;
+              cd = max(cd, vec2(0.0));
+              float dist = sqrt(dot(cd, cd));
+              return clamp((cornerSize - dist) * 1000.0, 0.0, 1.0);
+            }
+            void main(){
+              vec2 uv = vec2(vUv.x, 1.0 - vUv.y);
+              vec2 pos = Warp(uv);
+              vec2 p = vec2(0.5 + (pos.x - 0.5)/uH, 0.5 + (pos.y - 0.5)/uV);
+              vec3 col = Tri(p);
+              col += Bloom(p) * bloomAmount;
+              col *= Mask(gl_FragCoord.xy);
+              col = ToSrgb(col);
+              float inside = step(abs(pos.x - 0.5), uH*0.5) * step(abs(pos.y - 0.5), uV*0.5);
+              col = mix(col, vec3(1.0), uWhite * inside);
+              vec2 d = (pos - 0.5) * uOut;
+              col += vec3(1.0) * uDot * exp(-dot(d, d) / 90.0);
+              col *= uFade;
+              col *= Corner(pos);
+              if (pos.x < 0.0 || pos.x > 1.0 || pos.y < 0.0 || pos.y > 1.0) col = vec3(0.0);
+              gl_FragColor = vec4(col, 1.0);
+            }`;
+          function sh(type, src) {
+            const s = gl.createShader(type);
+            gl.shaderSource(s, src);
+            gl.compileShader(s);
+            if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+            return s;
+          }
+          const prog = gl.createProgram();
+          gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS));
+          gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS));
+          gl.linkProgram(prog);
+          gl.useProgram(prog);
+          const vb = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, vb);
+          gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+          const loc = gl.getAttribLocation(prog, "p");
+          gl.enableVertexAttribArray(loc);
+          gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+          const tex = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, tex);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          const U = {};
+          ["uTex", "uRes", "uOut", "uV", "uH", "uBoost", "uWhite", "uFade", "uDot"].forEach((n) => (U[n] = gl.getUniformLocation(prog, n)));
+          gl.uniform1i(U.uTex, 0);
+          gl.uniform2f(U.uRes, BW, BH);
+          gl.uniform2f(U.uOut, 1920, 1080);
+          gl.viewport(0, 0, 1920, 1080);
+
+          // Power-on / power-off envelopes, in frames.
+          const LINE = 2 / 1080;
+          const OFF = Math.round(3.7 * FPS); // 111
+          function tube(f) {
+            let v = 1, h = 1, boost = 1, white = 0, fade = 1, dot = 0;
+            if (f < 2) { v = LINE; white = 1; }
+            else if (f < 10) { const u = (f - 1) / 9; v = LINE + (1 - LINE) * u; white = 1 - u; }
+            else if (f < 16) { boost = 1.3 - (0.3 * (f - 9)) / 7; }
+            if (f >= OFF && f < OFF + 6) { const u = (f - OFF + 1) / 6; v = 1 - (1 - LINE) * u; white = u; }
+            else if (f >= OFF + 6 && f < OFF + 12) { const u = (f - OFF - 5) / 6; v = LINE; h = 1 - (1 - 2 / 1920) * u; white = 1; dot = u * 0.9; }
+            else if (f >= OFF + 12) { const u = (f - OFF - 11) / 12; v = LINE; h = 2 / 1920; white = 1; dot = 0.9 * (1 - u); fade = 1; if (u >= 1) dot = 0; }
+            return { v, h, boost, white, fade, dot };
+          }
+
+          function render(t) {
+            const f = Math.round(t * FPS);
+            drawGame(t);
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, base);
+            const s = tube(f);
+            gl.uniform1f(U.uV, s.v);
+            gl.uniform1f(U.uH, s.h);
+            gl.uniform1f(U.uBoost, s.boost);
+            gl.uniform1f(U.uWhite, s.white);
+            gl.uniform1f(U.uFade, s.fade);
+            gl.uniform1f(U.uDot, s.dot);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+          }
+
+          document.fonts.load('8px "Press Start 2P"', "STAGE 0123456789+").then(() => {
+            const tl = gsap.timeline({ paused: true });
+            const clock = { t: 0 };
+            tl.fromTo(clock, { t: 0 }, { t: DUR, duration: DUR, ease: "none", onUpdate: () => render(clock.t) }, 0);
+            render(0);
+            window.__timelines["runner"] = tl;
+          });
+        })();
+      </script>
+    </template>
+  </body>
+</html>

@@ -6,9 +6,6 @@ This module parses those files and produces a structured report with
 pass/warn/fail/skip status for each simulation.
 """
 
-import math
-import re
-
 
 def parse_output_file(filepath):
     """Parse an ngspice echo output file into a dict of key=value pairs.
@@ -26,7 +23,7 @@ def parse_output_file(filepath):
     """
     results = {}
     try:
-        with open(filepath, "r") as f:
+        with open(filepath, "r", encoding="utf-8", errors="replace") as f:
             content = f.read().strip()
     except (OSError, IOError):
         return results
@@ -1208,22 +1205,22 @@ def build_report(simulation_runs):
         },
         "findings": findings,
         "simulation_results": simulation_runs,
+        "diagnostics": [],
     }
 
     # Trust summary — populate through the shared helper so consumers get
     # the same shape they expect from every other v1.3 analyzer.
     try:
-        import os as _os, sys as _sys
-        _kicad_scripts = _os.path.join(
-            _os.path.dirname(_os.path.abspath(__file__)),
-            '..', '..', 'kicad', 'scripts')
-        if _os.path.isdir(_kicad_scripts):
-            _sys.path.insert(0, _os.path.abspath(_kicad_scripts))
+        import _core_path  # noqa: F401
         from finding_schema import compute_trust_summary
         report["trust_summary"] = compute_trust_summary(findings)
-    except (ImportError, Exception):
+    except Exception as exc:
         # Fall back to a minimal hand-rolled trust_summary so the envelope
         # is still complete even when the helper isn't importable.
+        if not isinstance(exc, ImportError):
+            from kicad_core.diagnostics import record  # _core_path imported above
+            record(report["diagnostics"], "spice_results.build_report", exc,
+                   "minimal trust_summary used")
         report["trust_summary"] = {
             "total_findings": len(findings),
             "trust_level": "high" if not findings else "mixed",

@@ -1,0 +1,38 @@
+{
+  "id": "paper-warp-live-ink",
+  "label": "Live Ink (Paper Warp)",
+  "shader": "Warp",
+  "page": "https://shaders.paper.design/warp",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Live Ink\" preset for Warp, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 2.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1.2,
+    "rotation": 44,
+    "offsetX": 0,
+    "offsetY": -0.3,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#111314",
+      "#9faeab",
+      "#f3fee7",
+      "#f3fee7"
+    ],
+    "proportion": 0.05,
+    "softness": 0,
+    "distortion": 0.25,
+    "swirl": 0.8,
+    "swirlIterations": 10,
+    "shapeScale": 0.28,
+    "shape": "checks"
+  }
+}

@@ -1,0 +1,27 @@
+TLC2 Version 2.19 of 08 August 2024 (rev: 5a47802)
+Running breadth-first search Model-Checking with fp 0 and seed -1346984620705125198 with 1 worker on 2 cores with 1330MB heap and 64MB offheap memory [pid: 6297] (Linux 6.18.44-fc-v165 amd64, Ubuntu 21.0.12.1 x86_64, MSBDiskFPSet, DiskStateQueue).
+Parsing file /work/endostack/skills/statechart/scripts/test/corpus/depths/Depths.tla
+Parsing file /tmp/statechart-rec-ayMxfI/02-verdict-1/tlc.tmp/Naturals.tla
+Semantic processing of module Naturals
+Semantic processing of module Depths
+Starting... (2026-10-27 16:48:22)
+Computing initial states...
+Finished computing initial states: 1 distinct state generated at 2026-10-27 16:48:22.
+Error: Invariant AUnderTwo is violated.
+Error: The behavior up to this point is:
+State 1: <Initial predicate>
+/\ a = 0
+/\ b = 0
+
+State 2: <IncA line 5, col 9 to line 5, col 37 of module Depths>
+/\ a = 1
+/\ b = 0
+
+State 3: <IncA line 5, col 9 to line 5, col 37 of module Depths>
+/\ a = 2
+/\ b = 0
+
+4 states generated, 4 distinct states found, 1 states left on queue.
+The depth of the complete state graph search is 3.
+The average outdegree of the complete state graph is 2 (minimum is 2, the maximum 2 and the 95th percentile is 2).
+Finished in 00s at (2026-10-27 16:48:22)

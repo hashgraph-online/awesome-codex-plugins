@@ -12,11 +12,7 @@ This module provides typed accessors that abstract cache lookup, null safety, an
 
 Returns a dict of regulator-relevant fields from the extraction, or `None` if no extraction is available.
 
-Returns `None` when:
-- No extraction is cached for the MPN
-- Extraction is stale (below `EXTRACTION_VERSION`)
-- Extraction score is below `MIN_SCORE` (6.0)
-- Extraction topology is not one of: `'boost'`, `'buck'`, `'ldo'`
+`get_regulator_features` and `get_mcu_features` return `None` only when no extraction is cached for the MPN (`_load`), or when the part is not of the requested kind: topology outside `boost` / `buck` / `ldo` for the regulator helper, topology other than `mcu` for the MCU helper. Quality is **described, not gated** for these two helpers: the returned dict always carries `quality`, a dict `{score, scale, trusted, reasons}` built by `_quality_v13` (v1.3 caches, scale `0-10`) or `_quality_v14` (v1.4 caches, scale `0-100`), and callers decide. Legacy v1.3 caches (score below `MIN_SCORE`, old `EXTRACTION_VERSION`) are still returned, with `quality.trusted` false and `quality.reasons` such as `low_score (...)` or `stale_version (...)`. `get_pin_function` and `is_extraction_available` still gate on `quality.trusted` (see Quality Gate below).
 
 ```python
 from datasheet_features import get_regulator_features
@@ -59,7 +55,6 @@ Returns MCU-relevant fields, or `None` if no extraction is available.
 
 Returns `None` when:
 - No extraction is cached for the MPN
-- Extraction is stale or below `MIN_SCORE`
 - Extraction topology is not `'mcu'`
 
 ```python
@@ -101,7 +96,7 @@ Possible return values: `'VIN'`, `'VOUT'`, `'EN'`, `'PG'`, `'SW'`, `'FB'`, `'GND
 
 ### `is_extraction_available(mpn, *, extract_dir=None, analysis_json=None, project_dir=None) -> bool`
 
-Returns `True` iff a v2+, sufficiently-scored extraction exists for the MPN.
+Returns `True` iff a v1.4 extraction exists for the MPN, or a v1.3 extraction exists whose `quality.trusted` is true (not stale, score at least `MIN_SCORE`).
 
 ```python
 from datasheet_features import is_extraction_available
@@ -119,7 +114,7 @@ The contract for all helper functions: individual fields within a returned dict 
 
 | Value | Meaning | Detector action |
 |-------|---------|----------------|
-| `None` (whole return) | No extraction cached, stale, or low score | Skip the check; emit INFO |
+| `None` (whole return) | No extraction cached, or the part is not the requested kind (`get_pin_function`: also an untrusted v1.3 extraction or unknown pin) | Skip the check; emit INFO |
 | `None` (field within dict) | Datasheet didn't specify this field | Treat as unknown; do not fire checks based on this field |
 | `False` | Datasheet explicitly says feature is absent | Fire relevant checks if configured |
 | `0` / `0.0` | Datasheet specifies zero | Treat as numeric zero |
@@ -218,11 +213,12 @@ If `extract_dir` does not exist, skip silently (no INFO finding) — this is the
 
 ## Quality Gate
 
-The helper functions (`get_regulator_features()`, `get_mcu_features()`, etc.) apply a quality gate transparently:
-- Extractions with `extraction_metadata.extraction_score < MIN_SCORE` (6.0) are treated as unavailable.
-- Extractions with `extraction_metadata.extraction_version < EXTRACTION_VERSION` are stale and treated as unavailable.
+Quality handling differs by helper (`datasheet_features.py`):
 
-This means a `None` return from a helper does not require the detector to check the score separately. For direct cache access, apply the same gate:
+- `get_regulator_features()` and `get_mcu_features()` **describe** quality and do not gate. Any cached extraction of the right kind is returned with `quality = {score, scale, trusted, reasons}`. A detector that needs verified data checks `quality['trusted']` itself and may downgrade confidence or skip.
+- `get_pin_function()` and `is_extraction_available()` **gate** on the v1.3 path: an extraction with `quality['trusted']` false (stale `extraction_version` below `EXTRACTION_VERSION`, or `extraction_score` below `MIN_SCORE`, 6.0) yields `None` / `False`. The v1.4 path for these two helpers is not score-gated.
+
+`None` from `get_regulator_features()` or `get_mcu_features()` therefore means "no cached extraction of that kind", not "low quality". For direct cache access, apply the gate explicitly when you need one:
 
 ```python
 from datasheet_extract_cache import get_cached_extraction, EXTRACTION_VERSION, MIN_SCORE

@@ -15,7 +15,7 @@ A practitioner's guide to AI-powered marketing tools across every discipline. Co
 | Tool | Strength | Best Use Case | Pricing Model |
 |------|----------|---------------|---------------|
 | **Claude (Anthropic)** | Long-form reasoning, brand voice adherence, nuanced writing, safety | Strategy documents, long-form content, analysis, research synthesis | API usage-based + Pro/Team plans |
-| **ChatGPT (OpenAI, GPT-5.6 family)** | Versatile, strong code generation, wide plugin ecosystem | Short-form copy, brainstorming, content repurposing | API usage-based + Plus/Team plans |
+| **ChatGPT (OpenAI)** | Versatile, strong code generation, wide plugin ecosystem | Short-form copy, brainstorming, content repurposing | API usage-based + Plus/Team plans |
 | **Gemini (Google)** | Multimodal (text + image + video), integrated with Google Workspace | Content that requires visual understanding, Workspace-native workflows | API usage-based + Advanced plan |
 | **Jasper** | Marketing-specific templates, campaign workflows, brand voice training | Marketing teams needing templated workflows and team collaboration | Per-seat SaaS ($49-$125/mo) |
 | **Writer** | Enterprise governance, style guide enforcement, terminology management | Large organizations with strict brand/compliance requirements | Enterprise SaaS |
@@ -96,7 +96,7 @@ A practitioner's guide to AI-powered marketing tools across every discipline. Co
 | **Target ROAS** | Google, Meta | eCommerce with conversion value tracking |
 | **Target CPA** | Google, Meta | Lead gen with consistent lead values |
 | **Maximize conversions** | Google | When volume matters more than efficiency |
-| **Advantage+ (unified setup)** | Meta | When creative testing at scale is the priority (standalone ASC/AAC campaign types are retiring — v26 pauses them Sept 2026) |
+| **Advantage+ (unified setup)** | Meta | When creative testing at scale is the priority (standalone ASC/AAC campaign types are retiring: v26.0, introduced 29 Jul 2026, blocks edits to legacy ones) |
 
 ### AI-Powered Audience Discovery
 

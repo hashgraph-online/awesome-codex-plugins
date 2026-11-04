@@ -1,0 +1,65 @@
+{
+  "skill_name": "suede-ops-assessment",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We want to add AI but honestly we don't know what to automate. Where do we start?",
+      "expected_output": "Should start with the floor map rather than proposing automations. Should establish scope, access, and who performs versus manages each process, then run walkthrough interviews with performers. Should not name candidate automations before the map and the numbers exist. Should return the Output Contract sections.",
+      "assertions": [
+        "Begins with interviews and inventory rather than proposing automations",
+        "Distinguishes people who perform the work from people who manage it",
+        "Returns the Output Contract format"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our ops manager says the intake process is five steps and takes ten minutes. Map it.",
+      "expected_output": "Should treat the manager's account as the leadership map and require at least one performer interview before calling the process mapped. Should use the Step 1 halt format if no performer is available, offering to schedule the interview, mark the process leadership-map-only, or drop it from scope.",
+      "assertions": [
+        "Does not accept the manager's description as the floor map",
+        "Requires a performer interview or marks the process leadership map only",
+        "Uses the halt format with resolution options"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "We think we lose about 12 hours a week on re-entry and our loaded cost is around $65/hour. Also, what do other companies our size lose?",
+      "expected_output": "Should take the 12 hours and $65 as given and compute the annual labor figure from them without auditing, hedging, or scoring the user's numbers. Should decline to substitute an industry benchmark as their number; if it offers any comparative figure at all it must be marked as assumed by the skill and listed under ASSUMED BY THIS SKILL. Should quantify the process rather than any named person.",
+      "assertions": [
+        "Uses the supplied hours and rate without verifying or hedging them",
+        "Does not present an industry benchmark as the user's own number",
+        "Marks any skill-supplied figure as assumed",
+        "Attaches the cost to the process, not to an individual"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Here are 40 automation ideas from our team offsite. Which ones should we do?",
+      "expected_output": "Should score each on value from Step 3 against a counted complexity score, rank by value over complexity, and report three explicit groups: do first, real but later, and impressive with low return. Should mark confidence as measured, stated, or missing per opportunity rather than treating all forty as equally evidenced.",
+      "assertions": [
+        "Scores complexity by counting systems, write paths, exception branches, and approval gates",
+        "Reports the impressive-but-low-return group explicitly",
+        "Marks confidence per opportunity"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "We launched the new system six weeks ago. Half the team still keeps their own spreadsheet. Are they just being difficult?",
+      "expected_output": "Should treat the shadow spreadsheet as diagnostic rather than as disobedience, assigning it to either a training gap or a genuine system gap. Should compute Adoption Rate from system logs rather than by asking people, and should check whether the original assessment was rushed or leadership-only before blaming the build.",
+      "assertions": [
+        "Treats shadow systems as diagnostic, not as a discipline problem",
+        "Computes Adoption Rate from logs rather than self-report",
+        "Traces low adoption back to the assessment"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Interview our customers about what features they want next quarter.",
+      "expected_output": "Should route to suede-customer-research, which owns external customer discovery, and should not run the floor-map interview method on a customer segment. May note that this skill covers internal operators if the user meant staff.",
+      "assertions": [
+        "Routes to suede-customer-research",
+        "Does not run the internal assessment steps on external customers"
+      ]
+    }
+  ]
+}

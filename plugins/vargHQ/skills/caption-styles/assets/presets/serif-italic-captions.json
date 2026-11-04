@@ -1,0 +1,233 @@
+{
+  "id": "serif-italic-captions",
+  "name": "Serif italic emphasis captions",
+  "use": "Large serif text with a soft shadow and no box; the spoken word flips to italic.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 1,
+  "fonts": [
+    {
+      "family": "Instrument Serif",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Instrument+Serif",
+      "weights": [
+        400
+      ]
+    },
+    {
+      "family": "Playfair Display",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Playfair+Display",
+      "weights": [
+        400,
+        600
+      ]
+    },
+    {
+      "family": "Fraunces",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Fraunces",
+      "weights": [
+        400,
+        600
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "serif-italic-captions.instrument-italic",
+      "label": "Instrument italic",
+      "look": "Instrument Serif 400, spoken word italic, soft shadow",
+      "params": {
+        "font_family": "Instrument Serif",
+        "font_weight": 400,
+        "font_size_px_9x16": 96,
+        "font_size_pct_h_9x16": 5.0,
+        "font_size_px_16x9": 72,
+        "font_size_pct_h_16x9": 6.7,
+        "text_color": "#FFFFFF",
+        "text_shadow": "0 2px 12px rgba(0,0,0,0.55), 0 0 2px rgba(0,0,0,0.6)",
+        "active_style": "italic",
+        "swap": {
+          "method": "stacked-crossfade",
+          "frames": 3
+        },
+        "letter_spacing_em": -0.005,
+        "words_per_page": [
+          4,
+          7
+        ],
+        "max_lines": 2,
+        "lead_frames": 1
+      },
+      "sources": [
+        1,
+        6,
+        15
+      ]
+    },
+    {
+      "id": "serif-italic-captions.playfair-warm",
+      "label": "Playfair warm",
+      "look": "Playfair Display with warm ivory text for luxury",
+      "params": {
+        "font_family": "Playfair Display",
+        "font_weight": 500,
+        "text_color": "#FFF8EC",
+        "line_height": 1.1,
+        "letter_spacing_em": -0.01
+      },
+      "sources": [
+        46
+      ]
+    },
+    {
+      "id": "serif-italic-captions.fraunces-soft",
+      "label": "Fraunces soft",
+      "look": "Fraunces with SOFT axis for a friendlier editorial voice",
+      "params": {
+        "font_family": "Fraunces",
+        "font_variation_settings": "'opsz' 72, 'SOFT' 50",
+        "font_weight": 400,
+        "active_weight": 500,
+        "active_style": "italic"
+      },
+      "sources": [
+        46
+      ]
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "safe_box_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "centered_max_width": 696
+    },
+    "safe_area_16x9_pct": {
+      "vertical": 90,
+      "horizontal": 75,
+      "max_line_width_pct_w": 68
+    },
+    "reading_rate_wpm": [
+      160,
+      180
+    ],
+    "active_word_lead_frames": [
+      1,
+      2
+    ],
+    "min_contrast": 4.5
+  },
+  "sources": [
+    {
+      "n": 1,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 3,
+      "name": "Netflix — Timed Text Style Guide: Subtitle Timing Guidelines",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/360051554394-Timed-Text-Style-Guide-Subtitle-Timing-Guidelines"
+    },
+    {
+      "n": 4,
+      "name": "BBC — BBC Subtitle Guidelines",
+      "url": "https://www.bbc.co.uk/accessibility/forproducts/guides/subtitles/"
+    },
+    {
+      "n": 6,
+      "name": "DCMP — Captioning Key: Text",
+      "url": "https://dcmp.org/learn/597-captioning-key---text"
+    },
+    {
+      "n": 8,
+      "name": "W3C WAI — Understanding WCAG 2.2 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 10,
+      "name": "Meta — Instagram Reels video ad specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 11,
+      "name": "Socialync — Social media safe zones",
+      "url": "https://www.socialync.io/tools/safe-zones"
+    },
+    {
+      "n": 12,
+      "name": "TikTok — TikTok Auction In-Feed Ads",
+      "url": "https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en"
+    },
+    {
+      "n": 13,
+      "name": "Google — Safe zones for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 15,
+      "name": "Randy Hoffner / ITU-R BT.1359 — AV synchronization: how bad is bad?",
+      "url": "https://www.tvtechnology.com/opinions/av-synchronization-how-bad-is-bad"
+    },
+    {
+      "n": 18,
+      "name": "Google Material Design 3 — md-sys-motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 20,
+      "name": "Aegisub — ASS override tags",
+      "url": "https://aegisub.org/docs/latest/ass_tags/"
+    },
+    {
+      "n": 25,
+      "name": "Apple — Materials",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/materials"
+    },
+    {
+      "n": 27,
+      "name": "SIL Open Font License — OFL-FAQ",
+      "url": "https://openfontlicense.org/ofl-faq/"
+    },
+    {
+      "n": 28,
+      "name": "Meryl K. Evans — Why captioned videos are important",
+      "url": "https://meryl.net/why-captioned-videos-are-important/"
+    },
+    {
+      "n": 33,
+      "name": "@merylkevans (Meryl Evans) — Reply: italics",
+      "url": "https://x.com/merylkevans/status/1280899601445400576"
+    },
+    {
+      "n": 39,
+      "name": "@wayofzorro (Zorro) — Shorts production checklist",
+      "url": "https://x.com/wayofzorro/status/2105523352261542050"
+    },
+    {
+      "n": 44,
+      "name": "Derek Coleman (OpusClip) — Video caption design and placement",
+      "url": "https://www.opus.pro/blog/video-caption-design-placement"
+    },
+    {
+      "n": 45,
+      "name": "HeyGen HyperFrames registry — Caption components (registry-item.json descriptions)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components"
+    },
+    {
+      "n": 46,
+      "name": "Google Fonts — google/fonts",
+      "url": "https://github.com/google/fonts"
+    }
+  ]
+}

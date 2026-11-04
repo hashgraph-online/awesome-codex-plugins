@@ -1,0 +1,256 @@
+{
+  "id": "dithered-gradient",
+  "name": "Dithered gradient",
+  "use": "A moving two-tone field dithered like print or an old screen, for interstitials and end cards",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "dithered-gradient.signature",
+      "label": "Signature",
+      "look": "Pale blue ink on near-black, 4x4 Bayer over a warped field",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Dithering",
+        "motion": {
+          "timeScale": 0.5,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#0B0B0F",
+          "colorFront": "#9CC2FF",
+          "shape": "warp",
+          "type": "4x4",
+          "size": 3
+        },
+        "mount": {
+          "minPixelRatio": 1
+        }
+      },
+      "sources": [
+        17,
+        18,
+        20,
+        27
+      ]
+    },
+    {
+      "id": "dithered-gradient.newsprint",
+      "label": "Newsprint",
+      "look": "Warm black on newsprint white, fine 8x8 Bayer over simplex noise",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Dithering",
+        "motion": {
+          "timeScale": 0.4,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#FBFAF4",
+          "colorFront": "#231F20",
+          "shape": "simplex",
+          "type": "8x8",
+          "size": 3
+        },
+        "mount": {
+          "minPixelRatio": 1
+        }
+      },
+      "sources": [
+        18,
+        27,
+        29,
+        33
+      ]
+    },
+    {
+      "id": "dithered-gradient.riso",
+      "label": "Riso",
+      "look": "Fluorescent pink 4x4 dither on paper; optional second layer in riso blue offset 3 px with multiply",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Dithering",
+        "motion": {
+          "timeScale": 0.5,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#FBFAF4",
+          "colorFront": "#FF48B0",
+          "shape": "wave",
+          "type": "4x4",
+          "size": 4
+        },
+        "mount": {
+          "minPixelRatio": 1
+        },
+        "secondInk": {
+          "colorFront": "#0078BF",
+          "shape": "wave",
+          "frameOffsetMs": 1500,
+          "offsetPx": [
+            3,
+            2
+          ],
+          "blend": "multiply"
+        }
+      },
+      "sources": [
+        18,
+        33,
+        35
+      ]
+    },
+    {
+      "id": "dithered-gradient.phosphor",
+      "label": "Phosphor",
+      "look": "Green phosphor on black, chunky 2x2 Bayer ripple",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Dithering",
+        "motion": {
+          "timeScale": 0.6,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#020A04",
+          "colorFront": "#41FF7A",
+          "shape": "ripple",
+          "type": "2x2",
+          "size": 4
+        },
+        "mount": {
+          "minPixelRatio": 1
+        }
+      },
+      "sources": [
+        18,
+        20,
+        29
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 10,
+      "name": "Lucas Pope: sphere-mapped dither",
+      "url": "https://x.com/dukope/status/933700786260910080"
+    },
+    {
+      "n": 11,
+      "name": "Lucas Pope: blue noise vs Bayer when downscaled; 1080p60 ProRes",
+      "url": "https://x.com/dukope/status/1300260173919866880"
+    },
+    {
+      "n": 12,
+      "name": "Lucas Pope: hi-contrast dither on YouTube",
+      "url": "https://x.com/dukope/status/490854690297364480"
+    },
+    {
+      "n": 13,
+      "name": "Lucas Pope: blue-noise tonal range",
+      "url": "https://x.com/dukope/status/525304273488211968"
+    },
+    {
+      "n": 14,
+      "name": "Rune Skovbo Johansen: surface-stable dithering",
+      "url": "https://x.com/runevision/status/1666067893447000066"
+    },
+    {
+      "n": 17,
+      "name": "Kubai087: ordered dither recipe",
+      "url": "https://x.com/Kubai087/status/2115091203465290087"
+    },
+    {
+      "n": 18,
+      "name": "Paper Shaders reference (llms.txt)",
+      "url": "https://shaders.paper.design/llms.txt"
+    },
+    {
+      "n": 19,
+      "name": "Paper Shaders source (Apache-2.0)",
+      "url": "https://github.com/paper-design/shaders"
+    },
+    {
+      "n": 20,
+      "name": "varg paper-shaders skill",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 27,
+      "name": "Surma: Ditherpunk",
+      "url": "https://surma.dev/things/ditherpunk/"
+    },
+    {
+      "n": 28,
+      "name": "Xor: GM Shaders Mini Dither",
+      "url": "https://mini.gmshaders.com/p/gm-shaders-mini-dither"
+    },
+    {
+      "n": 29,
+      "name": "Wikipedia: Ordered dithering",
+      "url": "https://en.wikipedia.org/wiki/Ordered_dithering"
+    },
+    {
+      "n": 33,
+      "name": "Paper blog: Retro print CMYK halftone",
+      "url": "https://paper.design/blog/retro-print-cmyk-halftone-shader"
+    },
+    {
+      "n": 35,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 39,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 41,
+      "name": "Lucas Pope: Adventures in One Bit",
+      "url": "https://blog.playstation.com/2019/10/17/return-of-the-obra-dinn-adventures-in-one-bit-out-tomorrow/"
+    }
+  ]
+}

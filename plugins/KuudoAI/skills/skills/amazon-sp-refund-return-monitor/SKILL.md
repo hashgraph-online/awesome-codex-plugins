@@ -4,7 +4,8 @@ description: Analyze Amazon FBA customer returns and seller-fulfilled return req
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Works from provided tabular exports without a live integration. Live retrieval requires a client-configured Amazon Selling Partner API integration exposing current report operations; document, spreadsheet, or dashboard delivery requires corresponding host capabilities.
 metadata:
-  version: "0.7.0"
+  display-name: "Amazon SP Refund and Return Monitor"
+  version: "0.7.1"
 ---
 
 # Amazon SP Refund and Return Monitor

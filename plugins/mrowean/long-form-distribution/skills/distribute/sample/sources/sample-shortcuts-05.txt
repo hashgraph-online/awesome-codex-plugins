@@ -1,0 +1,23 @@
+Astra’s ability to perform long complex tasks has changed the vibe from coding to dimensional building, which is exciting because it unlocks a crazy amount of surfaces. Want to make a complex product? Create plans a contractor could work with? Build game worlds? Make 3D assets you can move a camera through? Until last month, that kind of work was a highly specialized realm, and extremely time consuming. I’m now building 3D assets of real quality FAST.
+
+Blender is free, so the only cost of trying this is tokens.
+
+PUSH HARDER. My initial ideas tend to be very direct and simple, where I'm constantly impressed is when I throw something really abstract, difficult or complicated at the machine.
+Try pushing way beyond what seems reasonable, that's the realm where things get interesting.
+
+I pasted that email into Code to see which of my automations were affected. My daily social scrub makes 57 searches a run and pulls about 435 posts. Today costs $0.39 a run, about $12 a month. On the new meter it is $38 to $68 a month. I checked it on Grok and it’s unfortunately true. If you run any automated Grok searches through the API, ask your model what the price change does to your bill before the 21st.
+That led me to figure out I could move the whole thing off Grok and run it a different way for free. Lesson here: check the usage rates. Companies love to get you in with a lot of freeness, then slowly boil the water.
+
+The leap in ChatGPT Images 2.5 is not prettier pictures, it’s that the model holds a huge leap in consistency across scenes.
+
+It is not a photographer; location plates should still go to Nano Banana Pro.
+
+Every image in SHORTCUTS is made in Flora now, mostly as a forcing mechanism to learn its potential. The biggest change I see is that rather than looking for swipe, or the perfect image, I can look for different aspects of exactly the type of image I want, and then create it.
+
+Figma for design, vector and layout work; Flora for every asset that goes into it. Flora is not for infographics or anything with type in it, because image models still garble text. If you are laying something out, Figma. If you are making imagery, Flora.
+Inside Flora: Explore on a sub-cent model, iterate on one under $0.20, finish on the stronger models.
+
+“Clean this up” strips the grain. The model treats grain as dirt. A cleanup instruction has to name what to keep: “remove the marks, keep the grain and the paper colour” is a different node from “clean this up.”
+Put the prompt in a text node, not in the image node. My boards run an image with a text box beneath it; drag both into a new image node and press Run. Changing the words never touches the source, and one text node can drive many images.
+
+Where it has already changed our work is pre-production. Storyboards are now dynamic; they move and we can iterate a LOT more for experiential renderings. You can board a spot in the exact visual style you are going for, then bring the style frames to life, I’m moving completely off swipe for storyboarding.

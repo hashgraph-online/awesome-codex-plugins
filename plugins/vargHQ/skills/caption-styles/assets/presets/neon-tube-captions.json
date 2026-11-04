@@ -1,0 +1,209 @@
+{
+  "id": "neon-tube-captions",
+  "name": "Neon tube captions",
+  "use": "Words glow like neon tubes (hot pink by default) inside a dark box with a glowing border.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 1,
+  "fonts": [
+    {
+      "family": "Nunito",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Nunito",
+      "weights": [
+        800,
+        900
+      ]
+    },
+    {
+      "family": "Outfit",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Outfit",
+      "weights": [
+        700
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "neon-tube-captions.hot-pink",
+      "label": "Hot pink",
+      "look": "Pink halo, near-white core, pink border box",
+      "params": {
+        "font_family": "Nunito",
+        "font_weight": 900,
+        "font_size_px": 84,
+        "text_color": "#FFE6F7",
+        "inactive_text_shadow": "0 0 0.06em #FFFFFF, 0 0 0.3em #FF4FD8, 0 0 0.7em #FF4FD8",
+        "active_text_shadow": "0 0 0.08em #FFFFFF, 0 0 0.12em #FFFFFF, 0 0 0.25em #FFFFFF, 0 0 0.5em #FF4FD8, 0 0 1.0em #FF4FD8, 0 0 1.2em #FF4FD8, 0 0 1.8em #FF4FD8",
+        "box_color": "rgba(11,11,18,0.85)",
+        "box_border": "3px solid #FF4FD8",
+        "box_glow": "0 0 24px #FF4FD8, inset 0 0 18px rgba(255,79,216,0.35)",
+        "box_radius_px": 22,
+        "box_padding_em": [
+          0.3,
+          0.55
+        ],
+        "lead_frames": 1,
+        "words_per_page": [
+          2,
+          4
+        ]
+      },
+      "sources": [
+        8,
+        26
+      ]
+    },
+    {
+      "id": "neon-tube-captions.cyan-ice",
+      "label": "Cyan ice",
+      "look": "Cyan halo for tech/gaming",
+      "params": {
+        "halo_color": "#00FFFF",
+        "text_color": "#E6FFFF",
+        "box_border": "3px solid #00FFFF"
+      },
+      "sources": [
+        4,
+        8
+      ]
+    },
+    {
+      "id": "neon-tube-captions.pulse-only",
+      "label": "Pulse only (no flicker)",
+      "look": "Halo breathes 1 cycle per 2 s",
+      "params": {
+        "pulse": {
+          "scale_min": 0.85,
+          "scale_max": 1.15,
+          "period_s": 2.0,
+          "ease": "sine.inOut"
+        },
+        "flicker": false
+      },
+      "sources": [
+        9,
+        26
+      ]
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "safe_box_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "centered_max_width": 696
+    },
+    "safe_area_16x9_pct": {
+      "vertical": 90,
+      "horizontal": 75,
+      "max_line_width_pct_w": 68
+    },
+    "reading_rate_wpm": [
+      160,
+      180
+    ],
+    "active_word_lead_frames": [
+      1,
+      2
+    ],
+    "min_contrast": 4.5
+  },
+  "sources": [
+    {
+      "n": 1,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 3,
+      "name": "Netflix — Timed Text Style Guide: Subtitle Timing Guidelines",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/360051554394-Timed-Text-Style-Guide-Subtitle-Timing-Guidelines"
+    },
+    {
+      "n": 4,
+      "name": "BBC — BBC Subtitle Guidelines",
+      "url": "https://www.bbc.co.uk/accessibility/forproducts/guides/subtitles/"
+    },
+    {
+      "n": 8,
+      "name": "W3C WAI — Understanding WCAG 2.2 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 9,
+      "name": "W3C WAI — Understanding WCAG 2.2 SC 2.3.1 Three Flashes or Below Threshold",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold.html"
+    },
+    {
+      "n": 10,
+      "name": "Meta — Instagram Reels video ad specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 11,
+      "name": "Socialync — Social media safe zones",
+      "url": "https://www.socialync.io/tools/safe-zones"
+    },
+    {
+      "n": 12,
+      "name": "TikTok — TikTok Auction In-Feed Ads",
+      "url": "https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en"
+    },
+    {
+      "n": 13,
+      "name": "Google — Safe zones for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 15,
+      "name": "Randy Hoffner / ITU-R BT.1359 — AV synchronization: how bad is bad?",
+      "url": "https://www.tvtechnology.com/opinions/av-synchronization-how-bad-is-bad"
+    },
+    {
+      "n": 26,
+      "name": "Silvia O'Dwyer (CSS-Tricks) — How to Create Neon Text With CSS",
+      "url": "https://css-tricks.com/how-to-create-neon-text-with-css/"
+    },
+    {
+      "n": 27,
+      "name": "SIL Open Font License — OFL-FAQ",
+      "url": "https://openfontlicense.org/ofl-faq/"
+    },
+    {
+      "n": 28,
+      "name": "Meryl K. Evans — Why captioned videos are important",
+      "url": "https://meryl.net/why-captioned-videos-are-important/"
+    },
+    {
+      "n": 39,
+      "name": "@wayofzorro (Zorro) — Shorts production checklist",
+      "url": "https://x.com/wayofzorro/status/2105523352261542050"
+    },
+    {
+      "n": 44,
+      "name": "Derek Coleman (OpusClip) — Video caption design and placement",
+      "url": "https://www.opus.pro/blog/video-caption-design-placement"
+    },
+    {
+      "n": 45,
+      "name": "HeyGen HyperFrames registry — Caption components (registry-item.json descriptions)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components"
+    },
+    {
+      "n": 46,
+      "name": "Google Fonts — google/fonts",
+      "url": "https://github.com/google/fonts"
+    }
+  ]
+}

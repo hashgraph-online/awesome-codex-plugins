@@ -13,6 +13,13 @@ Bump rules:
 
 Every bump also updates the `evals/evals.json` `skill_version`.
 
+## [0.2.3] - 2026-10-28
+
+### Added
+
+- `metadata.display-name` "Amazon SP FBA Inbound": a human-readable label for catalogs
+  and skill pickers. Instructions and triggering are unchanged.
+
 ## [0.2.2] - 2026-10-18
 
 ### Fixed

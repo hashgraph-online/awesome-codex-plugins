@@ -1,0 +1,166 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    #dr-stage {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+    }
+    .dr-g {
+      position: absolute;
+      inset: 0;
+    }
+    .dr-l {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1920px;
+      height: 1080px;
+      transform-origin: 960px 540px;
+      background-size: 1920px 1080px;
+    }
+    .dr-l[data-bg="room"] {
+      background-image: url("assets/shots/room.svg");
+    }
+    .dr-l[data-bg="ridge"] {
+      background-image: url("assets/shots/ridge.svg");
+    }
+    /* glass glare of each monitor level: sits over everything seen through that screen */
+    .dr-gl {
+      position: absolute;
+      left: 720px;
+      top: 405px;
+      width: 480px;
+      height: 270px;
+      transform-origin: 240px 135px;
+      mix-blend-mode: screen;
+      background:
+        linear-gradient(122deg, rgba(255, 255, 255, 0) 18%, rgba(255, 255, 255, 0.9) 34%, rgba(255, 255, 255, 0) 52%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.5) 0%, rgba(255, 255, 255, 0) 30%);
+      opacity: 0.08;
+    }
+    .lbl {
+      position: absolute;
+      left: 96px;
+      bottom: 62px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: #fff;
+      opacity: 0.6;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+      white-space: nowrap;
+    }
+  </style>
+  <div id="root" data-composition-id="droste" data-width="1920" data-height="1080">
+    <div id="dr-stage" data-layout-allow-overflow>
+      <!-- 4 zoom-blur samples; each holds levels 0..3 (3 rooms, then the landing shot) -->
+      <div class="dr-g" id="dr-g0">
+        <div class="dr-l" id="dr-g0-l0" data-bg="room"></div>
+        <div class="dr-l" id="dr-g0-l1" data-bg="room"></div>
+        <div class="dr-l" id="dr-g0-l2" data-bg="room"></div>
+        <div class="dr-l" id="dr-g0-l3" data-bg="ridge"></div>
+      </div>
+      <div class="dr-g" id="dr-g1">
+        <div class="dr-l" id="dr-g1-l0" data-bg="room"></div>
+        <div class="dr-l" id="dr-g1-l1" data-bg="room"></div>
+        <div class="dr-l" id="dr-g1-l2" data-bg="room"></div>
+        <div class="dr-l" id="dr-g1-l3" data-bg="ridge"></div>
+      </div>
+      <div class="dr-g" id="dr-g2">
+        <div class="dr-l" id="dr-g2-l0" data-bg="room"></div>
+        <div class="dr-l" id="dr-g2-l1" data-bg="room"></div>
+        <div class="dr-l" id="dr-g2-l2" data-bg="room"></div>
+        <div class="dr-l" id="dr-g2-l3" data-bg="ridge"></div>
+      </div>
+      <div class="dr-g" id="dr-g3">
+        <div class="dr-l" id="dr-g3-l0" data-bg="room"></div>
+        <div class="dr-l" id="dr-g3-l1" data-bg="room"></div>
+        <div class="dr-l" id="dr-g3-l2" data-bg="room"></div>
+        <div class="dr-l" id="dr-g3-l3" data-bg="ridge"></div>
+      </div>
+      <div class="dr-gl" id="dr-gl0"></div>
+      <div class="dr-gl" id="dr-gl1"></div>
+      <div class="dr-gl" id="dr-gl2"></div>
+    </div>
+    <div class="lbl" id="dr-lbl" data-layout-ignore>droste-recursive-zoom · monitor-push</div>
+  </div>
+  <script>
+    (function () {
+      // preset droste-recursive-zoom.monitor-push (assets/presets/droste-recursive-zoom.json)
+      const K = 4; // screen = 1/4 of frame width -> k = 4
+      const LEVELS = 3; // levels pushed; level 3 is the next shot
+      const D = 4.0; // duration_s
+      // exponent e(t): hold 0-0.3, power2.in 0.3-0.9, linear 0.9-3.2, expo.out 3.2-4.0.
+      // Segment sizes are solved so the velocity is continuous: v = 3 / 2.7153 levels/s.
+      const expoK = 1 - Math.pow(2, -10);
+      const v = LEVELS / (0.3 + 2.3 + (0.8 * expoK) / (10 * Math.LN2));
+      const e1 = 0.3 * v;
+      const e2 = 2.3 * v;
+      const e3 = LEVELS - e1 - e2;
+      function E(t) {
+        if (t <= 0.3) return 0;
+        if (t <= 0.9) {
+          const x = (t - 0.3) / 0.6;
+          return e1 * x * x;
+        }
+        if (t <= 3.2) return e1 + v * (t - 0.9);
+        if (t < D) {
+          const x = (t - 3.2) / 0.8;
+          return e1 + e2 + (e3 * (1 - Math.pow(2, -10 * x))) / expoK;
+        }
+        return LEVELS;
+      }
+      const SAMPLES = 4;
+      const groups = [0, 1, 2, 3].map((g) => [0, 1, 2, 3].map((l) => document.getElementById(`dr-g${g}-l${l}`)));
+      const groupEls = [0, 1, 2, 3].map((g) => document.getElementById(`dr-g${g}`));
+      const glares = [0, 1, 2].map((l) => document.getElementById(`dr-gl${l}`));
+
+      function placeGroup(g, e) {
+        const els = groups[g];
+        for (let l = 0; l <= LEVELS; l++) {
+          const s = Math.pow(K, e - l);
+          // a level is fully hidden once the next level fills the frame (e >= l + 1)
+          const covered = l < LEVELS && e >= l + 1;
+          els[l].style.visibility = covered ? "hidden" : "visible";
+          els[l].style.transform = `scale(${s})`;
+        }
+      }
+
+      function render(t) {
+        const e = E(t);
+        const speed = (E(Math.min(D, t + 1 / 60)) - E(Math.max(0, t - 1 / 60))) / (1 / 30); // levels/s
+        // radial (zoom) blur: 0 px below 0.5 levels/s, ramping toward 10 px at 2 levels/s; never on the landing frame
+        let blurPx = Math.max(0, Math.min(10, ((speed - 0.5) / 1.5) * 10));
+        if (t >= D - 0.2) blurPx = 0;
+        const de = Math.log(1 + blurPx / 1100) / Math.log(K); // exponent spread that moves a corner by blurPx
+        for (let g = 0; g < SAMPLES; g++) {
+          const on = g === 0 || blurPx > 0.3;
+          groupEls[g].style.opacity = on ? String(1 / (g + 1)) : "0";
+          groupEls[g].style.visibility = on ? "visible" : "hidden";
+          if (on) placeGroup(g, e + (g / (SAMPLES - 1) - 0.5) * de);
+        }
+        for (let l = 0; l < LEVELS; l++) {
+          const s = Math.pow(K, e - l);
+          const fade = Math.max(0, Math.min(1, (l + 1 - e) / 0.25)); // glass fades as we pass through it
+          glares[l].style.transform = `scale(${s})`;
+          glares[l].style.opacity = String(0.08 * fade);
+          glares[l].style.visibility = fade > 0 ? "visible" : "hidden";
+        }
+      }
+
+      const tl = gsap.timeline({ paused: true, onUpdate: () => render(tl.time()) });
+      tl.to({ p: 0 }, { p: 1, duration: D, ease: "none" }, 0);
+      tl.fromTo("#dr-lbl", { opacity: 0 }, { opacity: 0.6, duration: 0.3, ease: "power1.out" }, 0.15);
+      tl.to("#dr-lbl", { opacity: 0, duration: 0.2, ease: "power1.in" }, D - 0.3);
+      render(0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["droste"] = tl;
+    })();
+  </script>
+</template>

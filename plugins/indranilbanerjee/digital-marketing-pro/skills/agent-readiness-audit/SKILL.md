@@ -40,6 +40,8 @@ From Google's [AI optimization guide](https://developers.google.com/search/docs/
 | `ClaudeBot` | Anthropic | training: **policy** | Future content excluded from training datasets | same |
 | `PerplexityBot` | Perplexity | search: **must be allowed** | Not surfaced or linked in Perplexity results (Perplexity says it is not used for model training) | [Perplexity bots](https://docs.perplexity.ai/guides/bots) |
 | `Perplexity-User` | Perplexity | user fetch: **must be allowed** | Perplexity says this fetcher "generally ignores robots.txt rules" | same |
+| `Google-Agent` | Google | user fetch: **must be allowed** | Agents on Google infrastructure that browse and act on a user's request. Google: user-triggered fetchers "generally ignore robots.txt rules"; Google is testing Web Bot Auth with the `https://agent.bot.goog` identity | [Google user-triggered fetchers](https://developers.google.com/crawling/docs/crawlers-fetchers/google-user-triggered-fetchers) (checked 2026-10-27) |
+| `Google-GeminiNotebook` | Google | user fetch: **must be allowed** | Fetches URLs a user adds as sources in a Gemini Notebook project. It replaces `Google-NotebookLM`, "supported until August 2026": the audit warns when robots.txt still names the old token | same |
 | `Google-Extended` | Google | training: **policy** | Controls use for Gemini training and grounding. It "does not impact a site's inclusion in Google Search nor is it used as a ranking signal", and it has no separate user-agent string | [Google crawlers](https://developers.google.com/crawling/docs/crawlers-fetchers/google-common-crawlers) |
 | `Applebot-Extended` | Apple | training: **policy** | Controls use in Apple foundation-model training. It does not crawl, and pages that disallow it "can still be included in search results" | [Apple](https://support.apple.com/en-us/119829) |
 
@@ -49,12 +51,14 @@ From Google's [AI optimization guide](https://developers.google.com/search/docs/
 
 All checks run **offline** on files the user exports. The script fetches over the network only with `--fetch`.
 
-- **robots.txt**: `--robots FILE`, or `--site URL --fetch`. Add `--path /products/` (repeatable) to test the paths that matter, beyond `/`.
+- **robots.txt**: `--robots FILE`, or `--site URL --fetch`. Add `--path /products/` (repeatable) to test the paths that matter, beyond `/`. On Windows, Claude Code's Bash tool is Git Bash, which rewrites `/products/` into a Windows folder: set `MSYS_NO_PATHCONV=1` for the command (as below) or write `//products/`. The script refuses a `--path` that doesn't start with `/`.
 - **Server HTML**: `--html FILE` (repeatable). Save it as the server sends it, for example with `curl -L URL > page.html`, **not** "Save as" from a browser, which saves the post-JavaScript DOM. Add `--expect "Product name"` (repeatable) for text that must be in that HTML, such as a product name or price.
 - **Merchant Center feed export**: `--feed FILE` (TSV, CSV, or RSS/Atom XML with `g:` attributes).
-- **Agentic-commerce product feed (optional)**: `--acp-feed FILE`. Accepts the JSONL "OpenAI format" or the Google-compatible CSV/TSV ([spec](https://developers.openai.com/commerce/specs/file-upload/products)).
+- **Agentic-commerce product feed (optional)**: `--acp-feed FILE`. Accepts JSONL in OpenAI's product file format or the Google-compatible CSV/TSV ([spec](https://developers.openai.com/commerce/specs/file-upload/products)).
+- **Discovery feed first; checkout is partner-gated on both platforms.** OpenAI onboards product feeds into ChatGPT for approved partners only (apply at chatgpt.com/merchants) and recommends a full snapshot at least daily ([get started](https://developers.openai.com/commerce/guides/get-started), read 2026-10-28). On 2026-03-24 OpenAI said the first Instant Checkout "did not offer the level of flexibility" it wanted and now lets merchants use their own checkout while it focuses on discovery (OpenAI, "Powering Product Discovery in ChatGPT"). Google's UCP-powered checkout in AI Mode and the Gemini app is for select merchants, with products eligible in the US, Canada and Australia (see `native_commerce` below). So the audit scores the feed; checkout is an application the merchant makes, not a field to fill.
 - **WebMCP (optional, experimental)**: `--webmcp`.
 - **Brand policy**: `--training-policy either|allow|block`. The default, `either`, reports training-crawler rules without judging them.
+- **Access logs (optional)**: the site's server or CDN logs, for `scripts/crawler-log-report.py` (step 5). Combined format or JSON lines (Cloudflare Logpush keys work), `.gz` allowed.
 
 ## Process
 
@@ -62,9 +66,10 @@ All checks run **offline** on files the user exports. The script fetches over th
    - From the profile, take the domain, whether the brand sells products (feed checks apply), and any stated AI-training policy (sets `--training-policy`).
    - If no brand exists, ask: "Set up a brand first (/digital-marketing-pro:brand-setup)?" or proceed with the inputs the user gives.
 2. **Collect inputs.** Ask for exports first. If the user only has a URL, confirm they want a live fetch before using `--fetch`.
-3. **Run the audit.**
+3. **Run the audit.** Create the output folder first; nothing else creates it.
    ```bash
-   python "${CLAUDE_PLUGIN_ROOT}/scripts/agent-readiness-audit.py" \
+   mkdir -p "${CLAUDE_PLUGIN_DATA}/{brand}/seo/agent-readiness/{date}"
+   MSYS_NO_PATHCONV=1 python "${CLAUDE_PLUGIN_ROOT}/scripts/agent-readiness-audit.py" \
        --robots robots.txt --path /products/ \
        --html home.html --html product.html --expect "Acme Anvil" \
        --feed products.tsv --acp-feed openai-feed.jsonl --webmcp \
@@ -99,8 +104,18 @@ All checks run **offline** on files the user exports. The script fetches over th
      - **Conversational attributes** (`question_and_answer`, `document_link`, `related_product`, `item_group_title`, `variant_option`, `popularity_rank`) are optional ([help](https://support.google.com/merchants/answer/17085370)). Report their coverage; never fail on them.
    - **acp_feed**: optional. If supplied, missing required fields are a **fail**. Report the `is_eligible_search` / `is_eligible_checkout` counts.
    - **webmcp**: always `info`. WebMCP is a Chrome origin trial (from Chrome 149) and "under active discussion and subject to change" ([Chrome docs](https://developer.chrome.com/docs/ai/webmcp)). Report the declarative `toolname` / `tooldescription` forms and the inline `registerTool` calls found. Recommend nothing beyond "optional experiment".
-5. **Decide policy questions with the user, not for them.** Two are the brand's call: whether to block training crawlers, and whether to opt products into checkout on Google. Present the trade-off and the source.
-6. **Prioritize fixes.** Use the script's `recommendations` array as the backbone.
+5. **See what the crawlers actually did (optional; needs the site's access logs).** robots.txt says what a crawler may fetch; the logs say what it fetched. Anyone can send a crawler's user-agent string, so the report checks each request against the addresses the vendor publishes.
+   ```bash
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/crawler-log-report.py" --refresh-ranges   # downloads the vendors' lists; the only network call
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/crawler-log-report.py" --log access.log --log access.log.1.gz \
+       > "${CLAUDE_PLUGIN_DATA}/{brand}/seo/agent-readiness/{date}/02b-crawler-log.json"
+   ```
+   - The logs never leave the machine, and the report prints no full IP address. Ask the user before reading logs they haven't offered, and say they contain visitors' addresses.
+   - Each crawler is counted as **verified** (from a published address), **spoofed** (its name from an address the vendor does not list: robots.txt won't stop it, a firewall or CDN rule will) or **unverified** (the lists are not downloaded, or not all of them). Never call an unverified request genuine.
+   - Read it beside step 4: a search or user-fetch bot that robots.txt allows but that made no verified request may not have the site in its index yet; a bot that gets many 4xx/5xx needs those paths fixed before its visits mean interest.
+   - Lists older than 14 days are flagged; run `--refresh-ranges` again before a report you will act on.
+6. **Decide policy questions with the user, not for them.** Two are the brand's call: whether to block training crawlers, and whether to opt products into checkout on Google. Present the trade-off and the source.
+7. **Prioritize fixes.** Use the script's `recommendations` array as the backbone.
    - Order by impact: blocked answer engines → content missing from server HTML → broken JSON-LD → feed required attributes → everything else.
    - Route the work: rendering to `/digital-marketing-pro:tech-seo-audit`, markup to `/digital-marketing-pro:entity-audit`, and visibility follow-up to `/digital-marketing-pro:aeo-geo`.
 
@@ -112,6 +127,7 @@ All outputs go to `${CLAUDE_PLUGIN_DATA}/{brand}/seo/agent-readiness/{YYYY-MM-DD
 00-input.md            domain, which exports were supplied, fetch yes/no, training policy
 01-inputs/             the robots.txt, HTML and feed files actually audited (for reproducibility)
 02-audit.json          raw script output
+02b-crawler-log.json   crawler-log-report.py output, when access logs were given (no full IP addresses)
 03-findings.md         per-check status, findings, sources (with the 2026-10-04 check date)
 04-policy-decisions.md training-crawler stance, checkout opt-in decision — with rationale
 05-fix-plan.md         prioritized fixes with owners and the skill each routes to
@@ -135,15 +151,17 @@ PLAN.md                one-page summary: verdict, top 3 fixes, re-audit date
 - **Rendering and markup report**: per page, the visible-text size, app-shell markers, missing expected phrases, JSON-LD types found, and parse errors.
 - **Feed readiness**: required-attribute gaps, the native_commerce opt-in count, conversational-attribute coverage, and the optional agentic-commerce feed result.
 - **WebMCP note** (if requested): tools found, clearly marked experimental.
+- **Crawler activity** (if access logs were given): per crawler, verified, spoofed and unverified requests, robots.txt fetches, status codes and top paths, with the age of the address lists.
 - **Fix plan** in priority order, each fix routed to the skill that implements it.
 
 ## Caveats
 
-1. **robots.txt is a request, not a wall, for user-initiated fetchers.** OpenAI says robots.txt "may not apply" to ChatGPT-User. Perplexity says Perplexity-User "generally ignores robots.txt rules". Don't promise that blocking them keeps content out.
+1. **robots.txt is a request, not a wall, for user-initiated fetchers.** OpenAI says robots.txt "may not apply" to ChatGPT-User. Perplexity says Perplexity-User "generally ignores robots.txt rules", and Google says the same of its user-triggered fetchers (Google-Agent, Google-GeminiNotebook). Don't promise that blocking them keeps content out.
 2. **The no-JS check is not a rendering test.** It reads the HTML as served. It cannot tell you how a JavaScript-capable crawler renders the page; use `/digital-marketing-pro:tech-seo-audit` for that.
 3. **A feed export is not Merchant Center's verdict.** The audit checks the file. Merchant Center diagnostics, account-level policies, and UCP onboarding status live in the account.
-4. **Being allowed is not being cited.** This audit checks whether agents *can* use the site. Whether they *do* is measured by `/digital-marketing-pro:geo-monitor` (probes plus Bing Webmaster AI Performance) and `/digital-marketing-pro:gsc-ai-performance`.
+4. **Being allowed is not being cited.** This audit checks whether agents *can* use the site. Whether they *visit* is in the site's logs (step 5); whether they *cite* it is measured by `/digital-marketing-pro:geo-monitor` (probes plus Bing Webmaster AI Performance) and `/digital-marketing-pro:gsc-ai-performance`.
 5. **An unreachable robots.txt fails the robots check.** With `--fetch`, a 4xx robots.txt means allow-all, and a 5xx or network error means every crawler must assume complete disallow (RFC 9309). The first finding says so; if the cause was your own network rather than the site, re-run.
+6. **Cloudflare can override robots.txt, and since 15 Sep 2026 its block modes reach search crawlers.** If the site is behind Cloudflare (response headers `server: cloudflare` or `cf-ray`), check its AI crawler controls (Search, Training, Agent) as well as robots.txt. **Block** and **Block on pages with ads** now apply to mixed-use crawlers too, so **Block** stops Googlebot, Bingbot and Applebot and takes the site out of search. **Disallow AI Training** publishes a no-training preference in robots.txt and keeps accountable mixed-use crawlers allowed for search (Bing excepted until Microsoft's support launches). Sites that had used Block or Block on pages with ads were migrated to Search: Allow, Training: Disallow AI Training, Agent: Block on pages with ads. The script cannot see these settings; ask for a screenshot of the dashboard. Source: [Cloudflare blog](https://blog.cloudflare.com/accountable-mixed-use-ai-crawlers/), 15 Sep 2026.
 
 ## Agents used
 

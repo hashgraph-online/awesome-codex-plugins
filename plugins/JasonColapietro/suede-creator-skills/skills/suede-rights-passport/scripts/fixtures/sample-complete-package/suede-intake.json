@@ -1,0 +1,174 @@
+{
+  "schema_version": "0.1.0",
+  "package_type": "suede-transfer-package",
+  "generated_at": "2026-07-03T03:17:54.561582+00:00",
+  "metadata_source": "metadata.json",
+  "project": {
+    "title": "Golden Hour Reprise",
+    "artist_name": "Ari Fontaine",
+    "work_type": "song",
+    "description": "Synthetic test fixture: a fictional single with fully confirmed ownership and splits, no samples.",
+    "release_status": "unreleased",
+    "public_urls": []
+  },
+  "creator": {
+    "name": "Ari Fontaine",
+    "email": "ari.fontaine.synthetic@example.com",
+    "wallet_address": "",
+    "organization": "",
+    "confirmation_status": "confirmed"
+  },
+  "assets": [
+    {
+      "id": "asset-001",
+      "relative_path": "assets/audio/Golden Hour Reprise - Master.wav",
+      "original_path": "Golden Hour Reprise - Master.wav",
+      "category": "audio",
+      "role": "master",
+      "mime_guess": "audio/x-wav",
+      "size_bytes": 2950,
+      "sha256": "35fd720d072bd35f4ca163bfad51453782a874659323b2a553dcc6da28d46aa1",
+      "notes": ""
+    },
+    {
+      "id": "asset-002",
+      "relative_path": "assets/artwork/cover-artwork.png",
+      "original_path": "cover-artwork.png",
+      "category": "artwork",
+      "role": "cover-art",
+      "mime_guess": "image/png",
+      "size_bytes": 960,
+      "sha256": "a8f5976b87a9b8e603f3215266baf6c2fb81167fc6b362f3abbd63a419277872",
+      "notes": ""
+    },
+    {
+      "id": "asset-003",
+      "relative_path": "assets/lyrics/lyrics.txt",
+      "original_path": "lyrics.txt",
+      "category": "lyrics",
+      "role": "lyrics",
+      "mime_guess": "text/plain",
+      "size_bytes": 213,
+      "sha256": "b70ec5ceaf4ad3828c15849f280a0c8ff68bc569fdf1e5b31504b85da33e5ca4",
+      "notes": ""
+    },
+    {
+      "id": "asset-004",
+      "relative_path": "assets/docs/metadata.json",
+      "original_path": "metadata.json",
+      "category": "document",
+      "role": "document",
+      "mime_guess": "application/json",
+      "size_bytes": 1528,
+      "sha256": "4b794bfee0893a61dde60e2c311f1c0f50fea1d315b789efc009ac37ebe04338",
+      "notes": ""
+    },
+    {
+      "id": "asset-005",
+      "relative_path": "assets/docs/split-sheet.txt",
+      "original_path": "split-sheet.txt",
+      "category": "document",
+      "role": "split-sheet",
+      "mime_guess": "text/plain",
+      "size_bytes": 376,
+      "sha256": "5a3b2848b1292a4f0291e67e2ed1e548fe18f13b3ed37b6f4be66e84e9873e69",
+      "notes": ""
+    },
+    {
+      "id": "asset-006",
+      "relative_path": "assets/stems/Golden Hour Reprise - Instrumental Stem.wav",
+      "original_path": "stems/Golden Hour Reprise - Instrumental Stem.wav",
+      "category": "stem",
+      "role": "stem",
+      "mime_guess": "audio/x-wav",
+      "size_bytes": 1840,
+      "sha256": "0a7505b8256ff3613f2c4baf35cd0e4153f4bbead269af01bbd6ab7e2264c94c",
+      "notes": ""
+    },
+    {
+      "id": "asset-007",
+      "relative_path": "assets/stems/Golden Hour Reprise - Vocals Stem.wav",
+      "original_path": "stems/Golden Hour Reprise - Vocals Stem.wav",
+      "category": "stem",
+      "role": "stem",
+      "mime_guess": "audio/x-wav",
+      "size_bytes": 1600,
+      "sha256": "b6eb13e6377dedc642b6ec3ce256a4b06387a19f7750a4b267861f960e930280",
+      "notes": ""
+    }
+  ],
+  "rights": {
+    "owner_claim": "Ari Fontaine (master and publishing, per signed split sheet on file)",
+    "ownership_status": "confirmed",
+    "contributors": [
+      {
+        "name": "Ari Fontaine",
+        "role": "Songwriter/Producer",
+        "master_percent": 60,
+        "publishing_percent": 60,
+        "confirmed": true
+      },
+      {
+        "name": "Devon Okafor",
+        "role": "Co-writer/Vocals",
+        "master_percent": 40,
+        "publishing_percent": 40,
+        "confirmed": true
+      }
+    ],
+    "contributors_confirmed": true,
+    "splits_confirmed": true,
+    "contains_samples": "no",
+    "sample_clearance_status": "not-needed",
+    "cover_or_interpolation": "no",
+    "license_restrictions": []
+  },
+  "provenance": {
+    "source_root": "synthetic-complete-project",
+    "metadata_source": "metadata.json",
+    "creation_notes": "Synthetic test fixture created for validate_transfer_package.py testing. Written and recorded entirely by the two listed contributors; no third-party material used.",
+    "chain_of_custody": [
+      {
+        "date": "2026-07-03",
+        "event": "Source folder inventoried for Suede transfer package.",
+        "actor": "suede-rights-passport",
+        "evidence": "local file hashes"
+      }
+    ],
+    "registry_status": "ready-for-review"
+  },
+  "optimization": {
+    "requested_services": [],
+    "recommended_services": [
+      {
+        "service": "rights-review",
+        "priority": "high",
+        "reason": "Ownership, contributor, sample, and release facts need confirmation.",
+        "blocks": [
+          "registry",
+          "licensing",
+          "royalty-routing",
+          "agent-commerce"
+        ]
+      },
+      {
+        "service": "provenance-cleanup",
+        "priority": "high",
+        "reason": "File hashes are present, but creation history and chain-of-custody need creator notes.",
+        "blocks": [
+          "registry"
+        ]
+      },
+      {
+        "service": "mastering-or-wav-review",
+        "priority": "normal",
+        "reason": "Primary audio was found and can be reviewed for final delivery quality.",
+        "blocks": []
+      }
+    ],
+    "priority": "normal",
+    "notes": "Synthetic fixture: ready for rights review pass."
+  },
+  "missing_information": [],
+  "risk_flags": []
+}

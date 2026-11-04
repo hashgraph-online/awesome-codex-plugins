@@ -94,6 +94,20 @@ Keep these byte-for-byte unless the user explicitly asks otherwise:
 | A-22 | Evaluative predicate `~은 명확하다/분명하다` (`it is clear that`) | Advisory. Drop the predicate and assert the proposition; keep real certainty as the adverb `분명히`. The adverb itself, `명확히 하다`, and a conclusion the text argued for are excluded. |
 | A-24 | `더 이상 ~ 않다/아니다` (`no longer`) twice or more, or closing a redefinition | Advisory. `이제` or a change verb (`~로 옮겨 갔다`). Never turn the negation into a positive claim, and never write a new `더 이상 A가 아니라 B` while flattening C-8. |
 
+## R: Paragraph And Document Shape (guidance only)
+
+Adopted 2026-10-29 from a review of `blader/humanizer` (ideas only, Korean examples written here). These tells live in paragraph or document shape, so a whole-text regex cannot see them: no audit counter and no grade effect. Favorite words drift from one model generation to the next, while these shapes keep returning, so check them even when the S1 and S2 counts are clean. R-1, R-3, R-4, and R-6 warrant an edit the first time they appear; R-2 and R-5 need a repeat or support from other tells nearby; R-7 needs the conversation in view.
+
+| ID | Pattern | Repair |
+| --- | --- | --- |
+| R-1 | Rebuttal or option nobody raised: `~라고 생각할 수도 있지만`, `오해하지 말아야 할 점은`, `~하는 방법도 떠올릴 수 있지만` answering a claim that appears nowhere in the text or conversation. A `~가 아니라` / `~라는 뜻은 아니다` antithesis, in one sentence or spread over two, stays under C-8 and its repetition threshold, not here | Delete the defense and state whatever substantive claim it contains. Keep it when someone in the text or thread raised the objection, or when the reader is likely to propose that option, such as one a reviewer asked about. |
+| R-2 | The document narrates itself: `아래 표는 ~를 비교합니다`, `이 문서는 ~를 정리했습니다`, `~를 바탕으로 작성했습니다`, `확인되지 않은 내용은 추정하지 않고 표시했습니다`, `기존 방식을 대체하기 위해 추가되었다` | State the subject. Keep any citation that lets the reader check a claim, any caveat that alters the reader's next step, history in documents whose subject is change (변경 이력, 릴리스 노트, 마이그레이션 가이드), and a reading convention the reader could not guess. H-3 is the sentence-level form. |
+| R-3 | Heading echo: the first sentence under a heading restates it (`## 성능` → `성능은 중요합니다.`) | Delete the echo and let the heading carry it. |
+| R-4 | Placard closer and fragment run: the same closing line after several sections (`이것이 핵심입니다.`, `바로 이 점이 중요합니다.`), a sentence announcing the lesson of the preceding example (`이 경험이 말해 주는 바는 분명합니다.`), or a row of verbless fragments (`복잡한 설정 없이. 별도 비용 없이.`) | Cut the repeat; merge fragments into one sentence that carries the fact. Keep a brief sentence that tells the reader something the example left out. D-9, D-10, and D-12 are the counted forms of this family. |
+| R-5 | Padded three: three nouns or adjectives (`효율성, 안정성, 확장성`), three parallel examples, or a trio of short statements that ends in a moral, where one item only repeats another in different words | Keep the items with distinct content; never drop one that carries a fact. A subject with three separate parts keeps all three. C-7 is the transition form. |
+| R-6 | Warm-up line: a standalone `여기서 중요한 건`, `짚고 넘어갈 점이 있습니다`, `한마디로 정리하면`, or `그렇다면 답은?` that only promises the point before an ordinary statement | Delete the warm-up and open with the claim itself. `결론부터 말씀드리면` opening a report or work mail is a Korean genre convention; leave a single use alone. |
+| R-7 | Reply re-tells known context: a Slack, PR, or Jira reply re-tells the problem or walks through the investigation before the answer, which waits until the end | Act only when the conversation is visible or the text is plainly a reply. Open with the answer and cut re-told prose only: numbers, dates, URLs, and other protected spans stay, moved next to the answer or kept as a one-line pointer, and evidence the task or a house rule requires stays as a link or attachment. Cutting a short reply often pushes the change rate past 0.3 or even 0.5: run the audit with `--cut R-7`, which requires the final to be shorter, keeps protected tokens as a hard gate, and moves the failure line from 0.5 to 0.8; name R-7 as the cause in the summary. |
+
 ## Calque Repair Ladder (P family)
 
 P rules are lexical counters like K-1 and M-1; N-1 stays semantic. Repairs are shapes, not replacement phrases: a fixed phrase becomes the next tell.
@@ -107,8 +121,9 @@ Any stock phrase proposed for P repair text must first pass the reverse test in 
 ## Rewrite Order
 
 1. Freeze protected spans.
-2. Remove S1 signature phrases.
+2. Remove S1 signature phrases and the one-sighting R tells (R-1, R-3, R-4, R-6); in a visible reply thread, apply R-7.
 3. Reduce translationese (A rules and P calques) and passive constructions.
 4. Adjust hedging only where certainty already exists.
-5. Smooth repeated structure and sentence endings.
+5. Smooth repeated structure and sentence endings, including R-2 and R-5 when they repeat or cluster.
 6. Remove visual decoration that makes the text feel generated.
+7. Reread once for tells a first pass tends to leave behind: C-8 pairs (including the split form), D-9/D-10 and R-4 closers, R-5 threes, M-1, and Q-1 frames.

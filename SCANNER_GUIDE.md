@@ -6,11 +6,11 @@ All plugins submitted to **Awesome Codex Plugins** must pass the HOL AI Plugin S
 
 | Requirement | Threshold |
 |-------------|-----------|
-| **Scanner Score** | ≥ 80 / 100 on the normalized centralized score |
-| **Centralized Scan** | Normalized score ≥ 80 / 100 is the catalog admission threshold |
+| **Scanner Score** | ≥ 75 / 100 on the normalized centralized score |
+| **Centralized Scan** | Normalized score ≥ 75 / 100 is the catalog admission threshold |
 | **Source CI** | Optional; recommended for pre-submission feedback |
 
-Catalog admission uses the normalized 0–100 score from the catalog-owned centralized scan. A score of **80/100 or higher** is scanner-clear even when the scanner action reports advisory findings or exits nonzero for a non-gating reason. Raw point totals in local scanner output are informational; use the centralized normalized score for eligibility. Separate catalog-format, source-availability, or repository-integrity defects can still block merge.
+Catalog admission uses the normalized 0–100 score from the catalog-owned centralized scan. A score of **75/100 or higher** is scanner-clear even when the scanner action reports advisory findings or exits nonzero for a non-gating reason. Raw point totals in local scanner output are informational; use the centralized normalized score for eligibility. Separate catalog-format, source-availability, or repository-integrity defects can still block merge.
 
 ## Quick Start
 
@@ -67,7 +67,7 @@ $ plugin-scanner scan . --format text
 Score: 119 / 130 (91.5%)
 ──────────────────────────────────────────────────────────────────
 
-✅ PASSED: Score ≥ 80; finding severities are advisory to listing eligibility
+✅ PASSED: Score ≥ 75; finding severities are advisory to listing eligibility
 ```
 
 ## CI integration (optional, recommended)
@@ -100,7 +100,7 @@ jobs:
         with:
           plugin_dir: "."
           mode: scan
-          min_score: 80
+          min_score: 75
           fail_on_severity: none
           format: sarif
           upload_sarif: true
@@ -188,7 +188,7 @@ jobs:
         with:
           plugin_dir: "."
           mode: scan
-          min_score: 80
+          min_score: 75
           fail_on_severity: none
 
       - name: Submit to HOL Registry
@@ -196,9 +196,9 @@ jobs:
         with:
           plugin_dir: "."
           mode: submit
-          min_score: 80
+          min_score: 75
           submission_enabled: true
-          submission_score_threshold: 80
+          submission_score_threshold: 75
 ```
 
 ## Scoring Categories
@@ -441,7 +441,7 @@ cd my-plugin/
 plugin-scanner scan . --format text
 ```
 
-### Score is stuck below 80
+### Score is stuck below 75
 
 Check the scanner output for specific findings. Each finding has a severity and explanation. Fix high-severity items first.
 

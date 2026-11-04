@@ -1,0 +1,27 @@
+{
+  "skill": "title-design",
+  "should_trigger": [
+    "how to make a lower third for an interview video",
+    "how long should a lower third stay on screen",
+    "how to animate text on twos",
+    "how to make a podcast intro title with guest names",
+    "how to make a glitch text reveal",
+    "how to make a CRT scanline text effect",
+    "how to make chrome text animation",
+    "title safe area for vertical video reels tiktok"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Burn word-by-word captions into my reel",
+      "use_instead": "caption-styles"
+    },
+    {
+      "query": "Animate our logo mark into a 3 s sting",
+      "use_instead": "paper-shaders or a logo-animation skill"
+    },
+    {
+      "query": "Generate a cinematic opening shot of a city at night",
+      "use_instead": "varg-ai"
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Offer Design Skills"
+  short_description: "Build the offer and the honest persuasion behind it"
+  default_prompt: "Use $suede-offers on [target]. The user is building or fixing an offer for a service, agency, course, coaching, info product, or high-ticket B2B sale, or wants to know which behavioral lever applies. Score the Suede Value Levers, audit the six offer parts, design bonuses, guarantees, real constraints, naming, and payment structure, state any behavioral model with its evidence tier and a test, and return the Offer Brief with what to measure next."
+policy:
+  allow_implicit_invocation: true

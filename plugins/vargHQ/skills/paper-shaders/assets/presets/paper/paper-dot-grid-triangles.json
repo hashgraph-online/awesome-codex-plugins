@@ -1,0 +1,38 @@
+{
+  "id": "paper-dot-grid-triangles",
+  "label": "Triangles (Paper DotGrid)",
+  "shader": "DotGrid",
+  "page": "https://shaders.paper.design/dot-grid",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Triangles\" preset for DotGrid, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "mount": {
+    "minPixelRatio": 1
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#ffffff",
+    "colorFill": "#ffffff",
+    "colorStroke": "#808080",
+    "size": 5,
+    "gapX": 32,
+    "gapY": 32,
+    "strokeWidth": 1,
+    "sizeRange": 0,
+    "opacityRange": 0,
+    "shape": "triangle"
+  }
+}

@@ -66,6 +66,12 @@ Layered so a plan that validates will build:
 dbt cannot parse semantic models without a MetricFlow **time spine**. The engine
 warns when one is missing and defers the parse gate until one exists.
 
+A semantic model **derived** from a declared mart (`data.semantic_proposal`, see
+[declarations.md](declarations.md#derived-semantic-model-datasemantic_proposal))
+passes the same three layers before it is offered or added to a plan. Its parse
+is never skipped: not by `--no-parse`, and not for a missing time spine, which
+the throwaway copy alone borrows so dbt can parse it.
+
 A `cumulative` metric that omits `cumulative_type_params.period_agg` plans with a
 warning. MetricFlow defaults it to `first`, so at week or month grain the metric
 reports each period's first day. Set `period_agg: last` for a running total.
@@ -96,6 +102,24 @@ transformation project.
 - An unknown key is refused as incompatible with the pinned schema: it may be a
   typo or written for a newer Ossie draft. The diagnostic names the pinned spec
   version.
+- A document is one semantic model, flat at its root: `version`, `name`,
+  `datasets`, `relationships`, `metrics`. The earlier wrapped `semantic_model:
+  [...]` shape is refused (`wrapped_document`) with the migration named: lift the
+  model to the root, one document per model, each listed in
+  `semantic.ossie.files`.
+- Keys (`primary_key`, `unique_keys`) and a relationship's `from_columns` and
+  `to_columns` name **fields** of the dataset, never source columns; one that
+  names no declared field is refused. A field's expression is what names the
+  column, so a field `customer_id` defined as `o_custkey` is a key on
+  `o_custkey`. Write a portable expression as `sql:` (`OSSIE_SQL_2026`); any
+  other dialect token is accepted and kept, and only the SQL ones are read.
+- `declarations` may ride beside (or instead of) `edits`: each annotates a
+  dataset the layer or the payload defines. Grain goes to `primary_key` on the
+  fields exposing the grain columns (refused by name where none does), a declared
+  aggregation becomes a dataset metric `<field>_<agg>`, a foreign key a
+  relationship to the parent's field, and population, assumptions, unit, NULL
+  rule and additivity go to `ai_context`. Only that dataset is rewritten. The
+  mapping: [declarations.md](declarations.md#ossie-semanticvendor-ossie).
 - On apply, Dex does not re-serialize the document, so comments, key order,
   quoting, and whitespace survive, and a configured document the payload did not
   mention is untouched. A target file that changed after planning refuses the
@@ -103,6 +127,43 @@ transformation project.
 
 A worked end-to-end example on a local warehouse, for a human reader:
 <https://github.com/exmergo/dex/blob/main/references/ossie-walkthrough.md>.
+
+## Cube models: `semantic cube define|update|plan`
+
+Under `semantic.vendor: cube`, the configured Cube YAML files are the semantic
+layer. Author them with
+`semantic cube define|update|plan <intent> --edits-file <path|->`; never
+generate them with `cube_dbt` or convert them from another format. The wrapper installs the `[cube]` extra (the dialect engine) for it.
+
+- Each edit is one **whole plain-YAML file**, keyed exactly as
+  `semantic.cube.files` lists it, relative to the repository root, and written
+  byte-for-byte. Restate every cube and view the file holds; one you leave out is
+  removed (and named in a warning; `define` refuses it).
+- Only the listed `.yml`/`.yaml` files are writable. A path off the list, a `.js`
+  model, `globals.py`, `cube.py`/`cube.js`, a file that is a Jinja template on
+  disk, and content carrying Jinja or `extends` are refused by name. To add a
+  file, propose `dex config set semantic.cube.files '[..., <path>]'` first (the
+  user confirms the diff).
+- The whole set is validated by Dex's port of Cube's model rules: unique names
+  across cubes and views, join targets and `{member}` references resolving, view
+  `join_path`s following declared joins, one join between a pair of cubes (give a
+  second an `alias`), and no key Cube does not declare in a file you write. Every
+  refusal names `file: element: [rule]`; fix that element and re-plan.
+- A `[fan_out]` warning means a cube on the one side of a join sums or counts with
+  no `primary_key`: declare the key dimension rather than ignoring it.
+- The envelope classifies each cube and view in the edited files as `defined`,
+  `updated` or `unchanged`. `define` refuses an existing name, `update` a new one.
+- A file changed after planning makes `transform apply` refuse the plan; remake
+  it with `semantic cube plan` against the files as they are.
+
+**A declared mart derives its cube.** Under `vendor: cube`, `transform plan` on a
+declared mart proposes `<dir>/<mart>.yml` beside the configured files
+(`primary_key` on the grain dimensions, joins from foreign keys, measures named
+after their column from declared aggregations, population and units in
+`meta.dex`), stored as a second plan when that path is already in
+`semantic.cube.files`. `semantic cube define|update|plan` also take
+`declarations`, which annotate a cube the payload or the layer defines, rewriting
+only that cube's entry. See [declarations.md](declarations.md#cube-semanticvendor-cube).
 
 ## SLayer models: `semantic slayer define|update|plan`
 
@@ -186,6 +247,15 @@ and re-plan.
 
 The refusal is a backstop, not a guide: the gaps below are what to write
 instead.
+
+**A declared mart derives its SLayer model.** Under `vendor: slayer`,
+`transform plan` on a declared mart proposes `models/<data_source>/<mart>.yaml`
+(primary key from the grain, joins from foreign keys, saved measures
+`<column>_<agg>` from declared aggregations, population and units in `meta.dex`),
+stored as a second plan when that path is already under `semantic.slayer.models`.
+`semantic slayer define|update|plan` also take `declarations`, which annotate a
+model the payload or the layer defines. See
+[declarations.md](declarations.md#slayer-semanticvendor-slayer).
 
 ### What SLayer does not declare
 

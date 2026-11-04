@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "multi_llm": {
+      "command": "python3",
+      "args": [
+        "./mcp/server.py"
+      ],
+      "cwd": ".",
+      "env_vars": [
+        "CODEX_HOME",
+        "MULTI_LLM_PROVIDERS_CONFIG",
+        "MULTI_LLM_PROVIDERS_CONFIG_PERMISSIVE",
+        "MULTI_LLM_GIT_CREDENTIAL_HELPER",
+        "MULTI_LLM_HOST",
+        "MULTI_LLM_UV",
+        "MULTI_LLM_UV_RUN_ARGS",
+        "MULTI_LLM_SKILL_DIR",
+        "MULTI_LLM_MAX_DETACHED",
+        "MULTI_LLM_HEARTBEAT_INTERVAL_S",
+        "MULTI_LLM_HANDSHAKE_TIMEOUT_S",
+        "MULTI_LLM_REPLAY_FLAGS",
+        "MULTI_LLM_LEGACY_INSTRUCTIONS",
+        "MULTI_LLM_CODEX_UNSANDBOXED_WRITES",
+        "UV_PROJECT_ENVIRONMENT",
+        "UV_CACHE_DIR",
+        "UV_OFFLINE",
+        "PWD"
+      ],
+      "tool_timeout_sec": 900,
+      "default_tools_approval_mode": "approve"
+    }
+  }
+}

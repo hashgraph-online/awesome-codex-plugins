@@ -45,7 +45,7 @@ The user must provide (or will be prompted for):
 A structured test report containing:
 
 - **Test summary**: Test name, content type, number of variants, date range
-- **Per-variant scorecard**: Each variant's label, description, composite score, and per-dimension breakdown (content_quality, brand_voice, hallucination_risk, claim_verification, output_structure, readability)
+- **Per-variant scorecard**: Each variant's label, description, composite score, and per-dimension breakdown (content_quality, brand_voice, hallucination, claim_verification, output_structure, readability)
 - **Winner declaration**: Which variant won, by what margin, and whether the margin is statistically meaningful
 - **Dimension analysis**: Which variant leads on each individual dimension — reveals trade-offs (e.g., "Variant B scores higher on content_quality but Variant A has better brand_voice")
 - **Confidence level**: High confidence (>15% margin), moderate confidence (5-15% margin), or low confidence (<5% margin, recommend further testing)

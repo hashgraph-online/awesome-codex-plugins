@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Answer Engine Optimization Skills"
+  short_description: "Get cited and recommended by AI answer engines"
+  default_prompt: "Use $suede-ai-seo on [site or pages]. Work the Suede AEO stack: retrieval crawler access per bot, entity and sameAs consistency, answer-first quotable pages, sourced and original proof, off-site corroboration, and a prompt panel with share of citations and recommendations. Report only prompts actually run, tie each fix to a KPI, and fill the AI search visibility report."
+policy:
+  allow_implicit_invocation: true

@@ -17,7 +17,8 @@ description: >-
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Requires an SP-API MCP server exposing Fulfillment Inbound v2024-03-20 operations, plus the v0 getLabels and getBillOfLading operations for shipment labels. Without a server the skill can only explain the process.
 metadata:
-  version: "0.2.2"
+  display-name: "Amazon SP FBA Inbound"
+  version: "0.2.3"
 ---
 
 # Amazon FBA inbound

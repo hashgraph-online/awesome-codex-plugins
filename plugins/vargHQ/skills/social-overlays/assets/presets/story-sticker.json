@@ -1,0 +1,201 @@
+{
+  "id": "story-sticker",
+  "name": "Story sticker tag",
+  "use": "Stories-style @mention, location or post-tag sticker over footage.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        600,
+        700,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "rules": [
+    "Generic look, no Instagram glyph; Instagram UI in commercials needs permission [17]",
+    "Tag only with consent [21][22]",
+    "Inside Reels 14/35/6 % safe area [4]",
+    "Pop with overshoot, settle <0.4 s [27]"
+  ],
+  "presets": [
+    {
+      "id": "story-sticker.mention",
+      "label": "Mention",
+      "look": "White pill, gradient-ink @handle",
+      "params": {
+        "pill": "#FFFFFF",
+        "text_gradient": [
+          "#F58529",
+          "#DD2A7B",
+          "#8134AF"
+        ],
+        "text_gradient_note": "house generic warm gradient",
+        "font": "Inter 800",
+        "text_px": 44,
+        "height_px": 92,
+        "radius": "height/2",
+        "tilt_deg": -4,
+        "in_at_s": 0.3,
+        "in_s": 0.35,
+        "in_ease": "back.out(1.7)",
+        "rotate_from_deg": "tilt-8",
+        "out_at_s": 4.5,
+        "out_s": 0.2,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+        "shadow": "0 6px 18px rgba(0,0,0,.25)"
+      },
+      "sources": [
+        27,
+        26
+      ]
+    },
+    {
+      "id": "story-sticker.location",
+      "label": "Location",
+      "look": "White pill with own pin icon",
+      "params": {
+        "pill": "#FFFFFF",
+        "text": "#262626",
+        "font": "Inter 700",
+        "text_px": 40,
+        "radius_px": 24,
+        "tilt_deg": 3
+      },
+      "sources": [
+        27
+      ]
+    },
+    {
+      "id": "story-sticker.post-tag",
+      "label": "Post tag",
+      "look": "Dot on product + dark bubble",
+      "params": {
+        "dot_px": 18,
+        "dot": "#FFFFFF",
+        "dot_ring": "6px rgba(255,255,255,0.4)",
+        "bubble": "rgba(0,0,0,0.8)",
+        "bubble_height_px": 64,
+        "bubble_offset_px": 20,
+        "font": "Inter 600",
+        "text_px": 32
+      },
+      "sources": []
+    },
+    {
+      "id": "story-sticker.glass-mention",
+      "label": "Glass mention",
+      "look": "Frosted pill for busy footage",
+      "params": {
+        "fill": "rgba(255,255,255,0.22)",
+        "backdrop_blur_px": 20,
+        "text": "#FFFFFF",
+        "font": "Inter 800"
+      },
+      "sources": []
+    }
+  ],
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 3,
+      "name": "TikTok Ads Help: Creative best practices for performance ads",
+      "url": "https://ads.tiktok.com/help/article/creative-best-practices?lang=en"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 17,
+      "name": "Meta Brand Resource Center: Instagram brand",
+      "url": "https://www.meta.com/brand/resources/instagram/instagram-brand/"
+    },
+    {
+      "n": 21,
+      "name": "FTC: Final rule banning fake reviews and testimonials (2024)",
+      "url": "https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials"
+    },
+    {
+      "n": 22,
+      "name": "FTC: Disclosures 101 for social media influencers",
+      "url": "https://www.ftc.gov/business-guidance/resources/disclosures-101-social-media-influencers"
+    },
+    {
+      "n": 26,
+      "name": "Material Design 3 motion tokens (material-components-android Motion.md)",
+      "url": "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md"
+    },
+    {
+      "n": 27,
+      "name": "GSAP source gsap-core.js (back/elastic defaults)",
+      "url": "https://github.com/greensock/GSAP/blob/master/src/gsap-core.js"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

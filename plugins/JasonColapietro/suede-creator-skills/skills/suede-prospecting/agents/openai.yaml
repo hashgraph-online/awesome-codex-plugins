@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Prospecting Skills"
+  short_description: "Source-backed prospect lists with fit and compliance checks"
+  default_prompt: "Use $suede-prospecting on [target]. The user needs a prospect or lead list, or is deciding which accounts to go after. Work through ICP fit, sourcing, enrichment, disqualification, and where the first customers actually are, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

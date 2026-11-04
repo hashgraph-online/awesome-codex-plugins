@@ -56,6 +56,10 @@ A structured client proposal document containing:
 - **Investment justification**: ROI framework showing how the proposed services connect to measurable business outcomes
 - **Risk and assumptions**: Key assumptions underpinning projections and risks that could affect delivery or results
 
+## Before it goes to the client
+
+Run the zero-context review in `/digital-marketing-pro:check` (`--goldfish`). `goldfish-review.py` packs the deliverable, the brief and the brand profile into one file and nothing else, flags money figures and benchmark rates that nothing in the brief or profile supports, and writes the prompt for a reviewer that sees only that file. Answer each finding in the document itself (state the assumption for the client to confirm, cite the source, or cut the figure) before it is sent.
+
 ## Agents Used
 
 - **marketing-strategist** — Strategic positioning, service scoping, KPI framework, competitive analysis, proposal narrative, industry benchmarking

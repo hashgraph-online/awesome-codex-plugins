@@ -1,0 +1,8 @@
+interface:
+  display_name: "Suede AI Rights Passport Skills"
+  short_description: "Audit rights gaps and build validated rights packages"
+  brand_color: "#D71920"
+  default_prompt: "Use $suede-rights-passport to audit this creator project for rights gaps (ownership, contributors, splits, samples, licenses, provenance, AI involvement) in an evidence table, then, if I want the handoff folder, build a validated local rights package with separate works, recordings, releases, parties, claims, licenses, consent, provenance, and privacy, preserving unknown or disputed facts without clearing them."
+
+policy:
+  allow_implicit_invocation: true

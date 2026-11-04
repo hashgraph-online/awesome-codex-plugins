@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Competitor Profiling Skills"
+  short_description: "Research competitors and turn public evidence into profiles"
+  default_prompt: "Use $suede-competitor-profiling on [target]. The user wants competitor research, a competitive landscape, or structured profiles built from competitor URLs. Work through positioning, pricing, messaging, and where they are weak, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

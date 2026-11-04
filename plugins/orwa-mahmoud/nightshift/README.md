@@ -22,14 +22,17 @@ Ticks remain self-reported; the item checks and your review determine whether th
 
 ## Install
 
-Codex and ChatGPT: the
-[official OpenAI Plugin Directory](https://chatgpt.com/plugins/plugins_6a7c58f65d708191b3a705a8625baffe),
-or from the marketplace for local Codex development:
+Codex — recommended, the full plugin from the repository marketplace:
 
 ```text
 codex plugin marketplace add orwa-mahmoud/nightshift
 codex plugin add nightshift@nightshift
 ```
+
+Review and trust its hooks, then start a new conversation. The
+[OpenAI Plugin Directory](https://chatgpt.com/plugins/plugins_6a7c58f65d708191b3a705a8625baffe)
+lists a skills-only edition without the clock-out gate, recovery or usage accounting; turn it off
+after installing the full plugin.
 
 Claude Code:
 

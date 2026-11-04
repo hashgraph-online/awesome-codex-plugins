@@ -138,11 +138,14 @@ This immediately schedules the renewal. If you used the subscription-renewal-fai
 The CLI ships separately from the SDKs:
 
 ```bash
-npm install -g dodopayments-cli
-dodo login
+npm i -g dodopayments-cli   # browser sign-in needs v3.7.0 or later
+dodo login                  # sign in with the browser
+dodo whoami                 # show the stored sign-in
 ```
 
-`dodo login` opens the API Keys page, accepts a pasted key, and asks whether it is Test Mode or Live Mode. One key of each can stay authenticated at the same time.
+Over SSH or with no browser, run `dodo login --device` in place of `dodo login`, and enter the code on another device. To sign out when you finish, run `dodo logout all`.
+
+`dodo login` opens a Dodo Payments consent page: pick the business, mode and permissions. No step asks you to paste an API key. To review or revoke the CLI's access, open the dashboard at **Settings > Connected Apps**.
 
 ### Listen for webhooks locally
 
@@ -154,7 +157,7 @@ This forwards real test-mode events to your local URL over an outbound relay. It
 
 Two constraints to know before running it:
 
-- **A Test Mode key is required.** Live Mode keys are not supported by the listen flow.
+- **Test mode only.** The listen flow needs a test-mode sign-in. Live mode is not supported.
 - **The URL argument is required in direct mode.** Bare `dodo wh listen` only works inside the interactive TUI as `/wh listen`, which opens a wizard.
 
 Events arriving this way carry valid signatures, so verify them normally with `webhooks.unwrap()`.

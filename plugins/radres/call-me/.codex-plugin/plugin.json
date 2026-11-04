@@ -1,7 +1,7 @@
 {
   "name": "call-me",
-  "version": "1.0.0",
-  "description": "Let a Codex agent ring or text your iPhone through the /call-me app and read your spoken or typed reply back as text.",
+  "version": "1.0.1",
+  "description": "Let a Codex agent ring or text your phone (iPhone or Android) through the /call-me app and read your spoken or typed reply back as text.",
   "author": {
     "name": "Serdar Oztetik",
     "url": "https://github.com/radres"
@@ -14,6 +14,7 @@
     "call",
     "text",
     "iphone",
+    "android",
     "notifications",
     "human-in-the-loop",
     "approval",
@@ -23,8 +24,8 @@
   "mcpServers": "./plugin/.mcp.json",
   "interface": {
     "displayName": "/call-me",
-    "shortDescription": "Your agent rings or texts your iPhone and hears your answer.",
-    "longDescription": "/call-me gives you a private 10-digit number for your AI agents. The agent rings your iPhone with a real incoming-call screen, reads its question aloud and gets your spoken answer back as text, or texts you and waits for the reply. It works hands free in the car or with AirPods. The MCP server is hosted at callmemcp.com with no credentials; the iPhone app needs a paid subscription.",
+    "shortDescription": "Your agent rings or texts your phone and hears your answer.",
+    "longDescription": "/call-me gives you a private 10-digit number for your AI agents. The agent rings your phone (iPhone or Android) with a real incoming-call screen, reads its question aloud and gets your spoken answer back as text, or texts you and waits for the reply. It works hands free in the car or with AirPods. The MCP server is hosted at callmemcp.com with no credentials; the phone app needs a paid subscription.",
     "developerName": "Serdar Oztetik",
     "category": "Productivity",
     "capabilities": [

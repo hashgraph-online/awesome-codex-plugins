@@ -1,0 +1,14 @@
+Report only what you can see in the frames. Do not judge, compare or give an opinion. Frames are numbered 1 to 12, reading left to right, top to bottom. Use an empty list when there is nothing to report.
+
+misspelled: every word on screen that you can read and that is misspelled, quoted exactly. Skip brand names and code.
+hard_to_read: every line of text that blends into what is behind it, quoted as well as you can. Skip tiny interface text.
+most_words: the frame with the most readable words, and about how many words it holds.
+equal_elements: frames holding 3 or more separate text blocks or objects where none is clearly larger than the others.
+no_subject: frames that are a wall of similar elements, with no main subject.
+people: one entry per different person, with the frames they appear in and what they wear in one short phrase. If the same person changes clothes or face between frames, make it two entries.
+covered: frames where text, boxes or shapes sit on top of a face or the main object.
+broken: frames that are black, corrupted or broken into random blocks.
+melted: frames where a hand, face or object is melted, merged or has the wrong count.
+
+Reply with one line of JSON and nothing else:
+{"misspelled":[],"hard_to_read":[],"most_words":{"frame":0,"words":0},"equal_elements":[],"no_subject":[],"people":[{"frames":[],"wears":""}],"covered":[],"broken":[],"melted":[]}

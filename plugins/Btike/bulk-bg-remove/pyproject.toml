@@ -1,0 +1,82 @@
+[project]
+name = "bulk-bg-remove"
+version = "0.1.3"
+description = "Remove image backgrounds locally and in bulk: an agent skill for Claude Code, Codex and any agent, plus the engine behind it."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Btike" }]
+requires-python = ">=3.11,<3.14"
+keywords = ["background-removal", "remove-background", "transparent-png", "rembg", "birefnet", "bulk", "image-processing", "agent-skill", "claude-code", "codex"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Environment :: Web Environment",
+    "Intended Audience :: End Users/Desktop",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics",
+]
+dependencies = [
+    "rembg[cpu]>=2.0.86",
+    "pillow>=11.3",
+    "numpy>=1.26",
+    "pillow-heif>=0.18",
+    "pymatting>=1.1",
+    "scipy>=1.11",
+    "psutil>=5.9",
+    "rich>=13.7",
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "python-multipart>=0.0.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.1",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "types-psutil>=7.2.2.20260906",
+    "httpx>=0.27",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.urls]
+Homepage = "https://github.com/Btike/bulk-bg-remove"
+Repository = "https://github.com/Btike/bulk-bg-remove"
+Issues = "https://github.com/Btike/bulk-bg-remove/issues"
+Benchmark = "https://github.com/Btike/bulk-bg-remove/blob/main/BENCHMARK.md"
+
+[project.scripts]
+bulk-bg-remove = "bulk_bg_remove.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bulk_bg_remove"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = "src"
+packages = ["bulk_bg_remove"]
+
+[[tool.mypy.overrides]]
+module = ["rembg", "rembg.*", "onnxruntime", "onnxruntime.*", "pymatting", "pymatting.*", "scipy", "scipy.*"]
+ignore_missing_imports = true

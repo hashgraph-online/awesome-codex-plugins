@@ -2,7 +2,7 @@
 
 > **Status:** Phase 3a (v1.4). The contract is stable and applies to every dispatcher implementation: `dispatch-claude-code.md` (v1.4), `dispatch-codex.md`, `dispatch-gemini.md`, `extract.py` SDK runner, canned harness dispatcher (all v1.5+).
 
-A **dispatcher** is the swappable layer between `plan_extraction.py` and `merge_results.py` in the Phase 3a extraction pipeline. Its job: read `<mpn>.plan.json`, run each per-task subagent under its native LLM-dispatch primitive, write per-task wrapped result files. Python (plan_extraction + merge_results) is stdlib-only and platform-agnostic; the dispatcher is the only agent-specific component.
+A **dispatcher** is the swappable layer between `plan_extraction.py` and `merge_results.py` in the Phase 3a extraction pipeline. Its job: read `<mpn>.plan.json`, run each per-task subagent under its native LLM-dispatch primitive, write per-task wrapped result files. Python (plan_extraction + merge_results) is platform-agnostic; plan_extraction is stdlib-only, merge_results needs the `jsonschema` package (`pip install jsonschema`); the dispatcher is the only agent-specific component.
 
 ## Inputs
 

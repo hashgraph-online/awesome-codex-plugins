@@ -32,10 +32,11 @@ LienDeadline's calculation, show the statute, and flag anything it can't confirm
 
 ## What the skill does
 
-- **Asks the right questions.** The project's state and type, who hired you, your first and last
-  delivery dates, and plain yes, no or unknown answers about events that can move a deadline.
+- **Asks the right questions.** It discovers support for the project's state, type and hiring
+  relationship, then asks the jurisdiction-specific questions with yes, no or unknown answers.
 - **Gets the dates from LienDeadline.** It uses the LienDeadline tools when they're connected, or
-  calls LienDeadline's public API directly. No account or key.
+  calls LienDeadline's API directly. Supplier discovery and calculations require a dedicated
+  customer API key; completed calculations consume API plan allowance. State guides remain public.
 - **Shows its work.** Every deadline comes with its status, the statute behind it, and any warnings
   or assumptions. The agent reports a date only when LienDeadline's answer matches the facts it sent.
 - **Flags instead of guessing.** A missing fact, an "unknown" answer or a case that isn't covered
@@ -95,7 +96,10 @@ gh skill install LienDeadline/skills liendeadline
 [LienDeadline from Claude's Connectors directory](https://claude.ai/directory/connectors/liendeadline).
 
 **Any other MCP client.** Connect `https://mcp.liendeadline.com/mcp` (Streamable HTTP). State guides need no key; supplier discovery and calculations require a dedicated caller key configured through the client's approved secret settings.
-If your agent reads Agent Skills, add the skill with the first command above as well.
+If your agent reads Agent Skills, add the skill with the first command above as well. Installing
+the skill alone does not connect the tools or provision API access. For a customer key, use the
+[approved access process](https://liendeadline.com/contact), then configure the credential through
+your client's secret settings without pasting it into a conversation.
 
 ## Try asking
 
@@ -112,8 +116,9 @@ deadline that depends on it comes back as "needs review", with the reason.
 
 | | Today |
 | --- | --- |
-| **Calculated deadlines** | `supplier-events-v2` covers Florida and Kansas private projects. Additional v3 eligibility comes only from authenticated live discovery for the exact scope. |
-| **More states** | Added as each state's reviewed rules are released. The skill checks what's live for your project, so you never get a date for a state that isn't ready. |
+| **Supplier deadlines (`supplier-events-v3`)** | Jurisdiction-specific discovery checks current support for the exact state, project type and hiring relationship before collecting event facts. Coverage extends beyond Florida and Kansas; only the live response establishes eligibility for your scope. |
+| **Legacy workflow (`supplier-events-v2`)** | Florida and Kansas private-project baselines. This contract does not describe the full v3 coverage. |
+| **Conditional outcomes** | Independently required notices, qualified planning targets and recurring notice records when returned for the scope. Planning targets and advisory checkpoints remain distinct from calculated statutory deadlines. |
 | **Everything else** | "Needs review" with the reason: unsupported scopes, public projects, and any deadline that depends on a fact you don't know |
 | **Lien guides** | All 50 states and DC, with statute citations |
 
@@ -138,7 +143,7 @@ sends LienDeadline only the structured facts it needs.
   [LienDeadline MCP server](https://liendeadline.com/mcp?utm_source=github&utm_medium=readme&utm_campaign=liendeadline-skills) ([GitHub](https://github.com/LienDeadline/liendeadline-mcp)) on your computer with
   `npx`, pinned to one exact release. This needs Node.js 22.22 or newer.
 - **The skill on its own:** uses the LienDeadline tools if you've connected them, or calls the
-  public API over HTTPS.
+  API over HTTPS with the required caller credentials for supplier operations.
 
 ## Privacy and safety
 
@@ -163,9 +168,10 @@ each date. Statutes change and every project is different, so check critical dea
 qualified counsel before you rely on them. LienDeadline is not a law firm and files nothing for you.
 
 **Which states can it calculate?**
-The legacy `supplier-events-v2` workflow covers Florida and Kansas private projects. For
-additional v3 scopes, authenticated live discovery determines availability for the exact project
-before facts are collected. Lien guides cover all 50 states and DC.
+The `supplier-events-v3` workflow supports jurisdiction-specific scopes beyond Florida and
+Kansas. Authenticated live discovery checks the exact state, project type and hiring relationship
+before facts are collected. The older `supplier-events-v2` contract remains limited to Florida and
+Kansas private projects. Lien guides cover all 50 states and DC.
 
 **Do I need an account or API key?**
 Supplier discovery and calculations through MCP or direct API require a dedicated LienDeadline customer key; completed calculations consume API plan allowance. Configure it through your client's approved secret settings. Guides remain public. The Website separately offers its ordinary anonymous calculation allowance.

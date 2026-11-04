@@ -53,6 +53,22 @@ The user must provide (or will be prompted for):
 
 For the per-dimension checklists (incl. keyword research), the findings and action-plan table layouts, the after-audit follow-up menu, and the parallel-dispatch rules (independent dimensions concurrently; the action plan stays sequential), read `dimension-checklists.md` beside this file.
 
+## How you'll know it worked
+
+Every recommendation gets a metric it should move, the direction it should move in, and a date to check it. Add this table to the report, one row per recommendation:
+
+| Recommendation | Metric | Expected direction | Check by |
+|---|---|---|---|
+| Fix the 12 broken internal links | Crawl errors in Search Console | Down | 2027-01-15 |
+
+Then record the rows so the continuous-improvement loop checks them when they fall due:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/recommendation-tracker.py" --brand {slug} --action add --source seo-audit --data '[{"recommendation": "...", "metric": "...", "direction": "up", "check_by": "YYYY-MM-DD"}]'
+```
+
+A recommendation without a metric, a direction (up or down) and a future check-by date is refused (exit 2): if you can't say how you'd know it worked, rewrite it until you can.
+
 ## Output
 
 A structured SEO audit report containing:

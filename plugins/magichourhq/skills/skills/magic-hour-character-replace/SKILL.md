@@ -26,7 +26,7 @@ Do not use a text prompt to invent a source performance that was already supplie
 
 Inspect the actual video interval, dimensions, cuts, subject count, visible limbs, occlusions and motion speed. Match the character reference to the visible body and framing when possible. A portrait cannot establish faithful unseen legs; complicated hand contacts and fast turns need a representative output check. Keep the original, rather than repeatedly feeding generated revisions back into the model.
 
-For a named saved character, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with `type: character`, match the name and follow `next_cursor` as needed. Disambiguate multiple matches, inspect the primary `IMAGE` asset for performance-compatible framing, and pass its durable `file_path` as `assets.image_file_path`. Do not upload it again or pass the item ID. Preserve an explicitly supplied reference.
+For a named saved character, use `list_saved_items` (or authenticated `GET /v1/saved-items` through the existing API) with `type: character`, match the name and follow `next_cursor` as needed. Disambiguate multiple matches, inspect the primary `IMAGE` asset for performance-compatible framing, and pass its durable `file_path` as `assets.image_file_path`. Do not upload it again or pass the item ID. Preserve an explicitly supplied reference.
 
 Use authorized footage and reference images. For a difficult or long source, generate a short representative interval before committing the remaining budget. Select the difficult action, not only the easiest stationary moment. Preserve any user-requested duration and review point.
 
@@ -34,9 +34,9 @@ For one unambiguous subject, use `style.selection_mode: auto`. For a specific su
 
 ## Execute and compare
 
-Use `character_replace_create_video` with `assets.image_file_path`, `assets.video_file_path`, the source interval, supported resolution and `style.mode`. Use the creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). API users should consult the [live schema](https://docs.magichour.ai/api-reference/openapi.json) for `/v1/character-replace`. Check final interval cost against the existing authorization.
+Use `replace_character_in_video` with `assets.image_file_path`, `assets.video_file_path`, the source interval, supported resolution and `style.mode`. Use the creation MCP at `https://mcp.magichour.ai/`; [setup](https://github.com/magichourhq/magic-hour-mcp/blob/main/user.md). API users should consult the [live schema](https://docs.magichour.ai/api-reference/openapi.json) for `/v1/character-replace`. Check final interval cost against the existing authorization.
 
-Upload local inputs through `video_assets_generate_presigned_url`, PUT raw bytes without the API bearer token, then pass `file_path`. Create once, save the project ID, and use `wait_for_video_project`. Resume the same project on a timeout. Keep returned download URLs intact and save the completed file.
+Upload local inputs through `get_upload_urls`, PUT raw bytes without the API bearer token, then pass `file_path`. Create once, save the project ID, and use `wait_for_video_project`. Resume the same project on a timeout. Keep returned download URLs intact and save the completed file.
 
 Review the whole result beside both inputs: correct target, recognizable character, intended mode, head/body proportions, hands and feet, source gesture timing, contact with objects, occlusion boundaries, background and audio. Multiple attractive frames cannot establish a preserved performance. Check every cut; a changed face or extra limb is a failed requirement.
 

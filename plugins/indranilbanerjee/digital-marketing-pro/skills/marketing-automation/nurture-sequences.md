@@ -266,7 +266,7 @@ Customer onboarding email → No product login → Push notification (if app) or
 
 | Metric | Good | Needs Work | Alarm |
 |---|---|---|---|
-| **Open rate** | >25% | 15-25% | <15% |
+| **Open rate** (directional only: Apple Mail Privacy Protection inflates opens; never the health verdict) | >25% | 15-25% | <15% |
 | **Click rate** | >3.5% | 1.5-3.5% | <1.5% |
 | **Click-to-open rate** | >15% | 8-15% | <8% |
 | **Unsubscribe rate** | <0.3% | 0.3-0.5% | >0.5% |

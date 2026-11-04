@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "oh-my-cassette"
-version = "0.5.1"
+version = "0.6.0"
 description = "MCP server that drives the Cassette video editor from Codex, Claude Code, OpenCode and Hermes."
 readme = "README.md"
 license = "MIT"

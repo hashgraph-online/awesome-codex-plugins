@@ -1,0 +1,13 @@
+stateDiagram-v2
+  state Legend {
+    legend0: repeats forever so EventuallyBlue breaks
+  }
+  s0: #34;red#34;
+  s1: #34;green#34;
+  s2: #34;yellow#34;
+  [*] --> s0
+  s0 --> s1: Go
+  s1 --> s2: Slow
+  s2 --> s0: Stop
+  class legend0 repeats
+  class s0,s1,s2 repeats

@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "generated_tasks.schema.json",
+  "title": "Task-generation result document (task_generation_result.json)",
+  "description": "The document a task_generation subagent prints and the invoker persists under the phase dir. Validated before anything is written to the plan; the semantic rules utils/task_decomposer.py owns (unique T### ids, depends_on naming only declared ids, acyclic, at least one dependency-free task) run in Python immediately after this schema check. A document that fails either is a schema_invalid failure; the executor lane re-asks the runner once with the validator's errors (the retry ladder's rule 7), and nothing else retries it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "plan_preamble", "tasks"],
+  "properties": {
+    "schema_version": {"type": "string", "const": "1.0"},
+    "plan_preamble": {
+      "type": "string",
+      "minLength": 1,
+      "description": "3-5 sentences of shared context injected into every task prompt. Required, and non-empty: the task_generation reply contract emits it unconditionally, and a document that omits it would validate cleanly while every downstream implement prompt silently loses its shared context."
+    },
+    "tasks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/generated_task"}
+    }
+  },
+  "$defs": {
+    "generated_task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "description",
+        "depends_on",
+        "files_to_create",
+        "files_to_modify",
+        "acceptance_criteria",
+        "estimated_complexity",
+        "executor_role",
+        "subagent_type"
+      ],
+      "properties": {
+        "id": {"type": "string", "pattern": "^T[0-9]{3}$"},
+        "title": {"type": "string", "minLength": 1},
+        "description": {"type": "string", "minLength": 1},
+        "depends_on": {"type": "array", "items": {"type": "string"}},
+        "files_to_create": {"type": "array", "items": {"type": "string"}},
+        "files_to_modify": {"type": "array", "items": {"type": "string"}},
+        "acceptance_criteria": {"type": "array", "items": {"type": "string"}},
+        "estimated_complexity": {"type": "string", "enum": ["low", "medium", "high"]},
+        "executor_role": {"type": "string", "enum": ["agent", "human"]},
+        "subagent_type": {
+          "type": ["string", "null"],
+          "enum": ["general-purpose", "human", null],
+          "description": "Optional Claude-Code-only metadata, so required-but-nullable: OpenAI's strict structured-output subset needs every property in `required` (measured 2026-10-01: codex declined this schema on `subagent_type` alone), and null is how a reply says it has none. The invoker supplies null when a reply leaves the key out (subagent_executor.normalize_result). When non-null it must agree with executor_role; that rule lives in task_decomposer.validate_generated_tasks because OpenAI's strict subset does not list allOf/if/then (the former allOf here is gone, not weakened)."
+        }
+      }
+    }
+  }
+}

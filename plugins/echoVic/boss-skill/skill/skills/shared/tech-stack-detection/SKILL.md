@@ -1,4 +1,5 @@
 ---
+
 name: shared/tech-stack-detection
 description: 检测项目技术栈的通用方法，通过分析配置文件识别语言、框架、工具链
 version: 1.0.0
@@ -8,11 +9,12 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
-  - 需要了解项目技术栈时
-  - 技术选型前需要检测现有技术时
-  - 生成框架特定的代码或配置时
-metadata:
+- 需要了解项目技术栈时
+- 技术选型前需要检测现有技术时
+- 生成框架特定的代码或配置时
+  metadata:
   internal: true
+
 ---
 
 # 技术栈检测方法
@@ -32,13 +34,13 @@ metadata:
 
 #### JavaScript/TypeScript 生态
 
-| 文件 | 说明 | 检测内容 |
-|------|------|----------|
-| `package.json` | Node.js 项目配置 | dependencies, devDependencies, scripts |
-| `tsconfig.json` | TypeScript 配置 | 确认使用 TypeScript |
-| `next.config.js` | Next.js 配置 | 确认使用 Next.js |
-| `vite.config.js` | Vite 配置 | 确认使用 Vite |
-| `nuxt.config.js` | Nuxt 配置 | 确认使用 Nuxt |
+| 文件             | 说明             | 检测内容                               |
+| ---------------- | ---------------- | -------------------------------------- |
+| `package.json`   | Node.js 项目配置 | dependencies, devDependencies, scripts |
+| `tsconfig.json`  | TypeScript 配置  | 确认使用 TypeScript                    |
+| `next.config.js` | Next.js 配置     | 确认使用 Next.js                       |
+| `vite.config.js` | Vite 配置        | 确认使用 Vite                          |
+| `nuxt.config.js` | Nuxt 配置        | 确认使用 Nuxt                          |
 
 **检测命令**：
 ```bash
@@ -61,12 +63,12 @@ Read(file_path: "package.json")
 
 #### Python 生态
 
-| 文件 | 说明 | 检测内容 |
-|------|------|----------|
-| `requirements.txt` | pip 依赖 | 依赖列表 |
-| `pyproject.toml` | Poetry/PDM 配置 | 依赖和项目配置 |
-| `Pipfile` | Pipenv 配置 | 依赖 |
-| `setup.py` | 包配置 | 项目元数据 |
+| 文件               | 说明            | 检测内容       |
+| ------------------ | --------------- | -------------- |
+| `requirements.txt` | pip 依赖        | 依赖列表       |
+| `pyproject.toml`   | Poetry/PDM 配置 | 依赖和项目配置 |
+| `Pipfile`          | Pipenv 配置     | 依赖           |
+| `setup.py`         | 包配置          | 项目元数据     |
 
 **关键依赖识别**：
 - `django`: Django 项目
@@ -77,10 +79,10 @@ Read(file_path: "package.json")
 
 #### Go 生态
 
-| 文件 | 说明 | 检测内容 |
-|------|------|----------|
+| 文件     | 说明        | 检测内容       |
+| -------- | ----------- | -------------- |
 | `go.mod` | Go 模块配置 | 依赖和 Go 版本 |
-| `go.sum` | 依赖校验和 | 确认依赖锁定 |
+| `go.sum` | 依赖校验和  | 确认依赖锁定   |
 
 **关键依赖识别**：
 - `github.com/gin-gonic/gin`: Gin 框架
@@ -89,10 +91,10 @@ Read(file_path: "package.json")
 
 #### Rust 生态
 
-| 文件 | 说明 | 检测内容 |
-|------|------|----------|
+| 文件         | 说明       | 检测内容       |
+| ------------ | ---------- | -------------- |
 | `Cargo.toml` | Cargo 配置 | 依赖和项目配置 |
-| `Cargo.lock` | 依赖锁定 | 确认依赖版本 |
+| `Cargo.lock` | 依赖锁定   | 确认依赖版本   |
 
 **关键依赖识别**：
 - `actix-web`: Actix Web 框架
@@ -101,9 +103,9 @@ Read(file_path: "package.json")
 
 #### Java/Kotlin 生态
 
-| 文件 | 说明 | 检测内容 |
-|------|------|----------|
-| `pom.xml` | Maven 配置 | 依赖和插件 |
+| 文件           | 说明        | 检测内容   |
+| -------------- | ----------- | ---------- |
+| `pom.xml`      | Maven 配置  | 依赖和插件 |
 | `build.gradle` | Gradle 配置 | 依赖和任务 |
 
 **关键依赖识别**：
@@ -113,10 +115,10 @@ Read(file_path: "package.json")
 
 #### Ruby 生态
 
-| 文件 | 说明 | 检测内容 |
-|------|------|----------|
-| `Gemfile` | Bundler 配置 | 依赖 |
-| `Gemfile.lock` | 依赖锁定 | 确认依赖版本 |
+| 文件           | 说明         | 检测内容     |
+| -------------- | ------------ | ------------ |
+| `Gemfile`      | Bundler 配置 | 依赖         |
+| `Gemfile.lock` | 依赖锁定     | 确认依赖版本 |
 
 **关键依赖识别**：
 - `rails`: Ruby on Rails 项目
@@ -124,13 +126,13 @@ Read(file_path: "package.json")
 
 ### 2. 检测数据库配置
 
-| 文件/目录 | 说明 |
-|-----------|------|
-| `prisma/schema.prisma` | Prisma 数据库配置 |
-| `drizzle.config.ts` | Drizzle ORM 配置 |
-| `ormconfig.json` | TypeORM 配置 |
-| `alembic/` | Python Alembic 迁移 |
-| `migrations/` | 数据库迁移目录 |
+| 文件/目录              | 说明                |
+| ---------------------- | ------------------- |
+| `prisma/schema.prisma` | Prisma 数据库配置   |
+| `drizzle.config.ts`    | Drizzle ORM 配置    |
+| `ormconfig.json`       | TypeORM 配置        |
+| `alembic/`             | Python Alembic 迁移 |
+| `migrations/`          | 数据库迁移目录      |
 
 **数据库类型识别**：
 - `postgresql://`: PostgreSQL
@@ -141,37 +143,37 @@ Read(file_path: "package.json")
 
 ### 3. 检测部署配置
 
-| 文件 | 说明 |
-|------|------|
-| `Dockerfile` | Docker 容器化 |
+| 文件                 | 说明                  |
+| -------------------- | --------------------- |
+| `Dockerfile`         | Docker 容器化         |
 | `docker-compose.yml` | Docker Compose 多容器 |
-| `vercel.json` | Vercel 部署 |
-| `.github/workflows/` | GitHub Actions CI/CD |
-| `netlify.toml` | Netlify 部署 |
-| `railway.json` | Railway 部署 |
+| `vercel.json`        | Vercel 部署           |
+| `.github/workflows/` | GitHub Actions CI/CD  |
+| `netlify.toml`       | Netlify 部署          |
+| `railway.json`       | Railway 部署          |
 
 ### 4. 检测测试框架
 
 #### JavaScript/TypeScript
 
-| 文件/依赖 | 框架 |
-|-----------|------|
-| `jest.config.js` | Jest |
-| `vitest.config.js` | Vitest |
+| 文件/依赖              | 框架       |
+| ---------------------- | ---------- |
+| `jest.config.js`       | Jest       |
+| `vitest.config.js`     | Vitest     |
 | `playwright.config.js` | Playwright |
-| `cypress.json` | Cypress |
+| `cypress.json`         | Cypress    |
 
 #### Python
 
-| 依赖 | 框架 |
-|------|------|
-| `pytest` | pytest |
+| 依赖       | 框架            |
+| ---------- | --------------- |
+| `pytest`   | pytest          |
 | `unittest` | unittest (内置) |
 
 #### Go
 
-| 文件 | 框架 |
-|------|------|
+| 文件        | 框架        |
+| ----------- | ----------- |
 | `*_test.go` | Go 内置测试 |
 
 ## 检测流程
@@ -208,26 +210,31 @@ Read(file_path: "package.json")  # 或其他检测到的文件
 ## 技术栈检测结果
 
 ### 语言和运行时
+
 - **语言**：TypeScript
 - **运行时**：Node.js 20.x
 - **包管理器**：pnpm
 
 ### 前端框架
+
 - **框架**：Next.js 14 (App Router)
 - **UI 库**：React 18
 - **样式**：Tailwind CSS
 - **状态管理**：Zustand
 
 ### 后端框架
+
 - **框架**：Next.js API Routes
 - **ORM**：Prisma
 - **数据库**：PostgreSQL
 
 ### 测试
+
 - **单元测试**：Vitest
 - **E2E 测试**：Playwright
 
 ### 部署
+
 - **容器化**：Docker
 - **CI/CD**：GitHub Actions
 - **托管**：Vercel

@@ -1,0 +1,246 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: "JetBrains Mono", monospace;
+    }
+    /* agent-terminal-session.prompt-tools: bg #282C34, text #E6E6E6, dim #8A8F98, accent #d97757 */
+    #ag-window {
+      position: absolute;
+      left: 260px;
+      top: 190px;
+      width: 1400px;
+      height: 700px;
+      border-radius: 16px;
+      background: #282c34;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.55);
+      overflow: hidden;
+      color: #e6e6e6;
+      font-size: 30px;
+      line-height: 42px;
+    }
+    #ag-bar {
+      height: 52px;
+      background: #21252b;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      gap: 10px;
+    }
+    .ag-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 7px;
+      background: #4b515c;
+    }
+    #ag-title {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: 52px;
+      line-height: 52px;
+      text-align: center;
+      font-size: 20px;
+      color: #8a8f98;
+    }
+    #ag-body {
+      position: absolute;
+      left: 48px;
+      right: 48px;
+      top: 92px;
+    }
+    .ag-row {
+      position: relative;
+      height: 42px;
+      white-space: nowrap;
+    }
+    .verb {
+      display: inline-block;
+      width: 6ch;
+      font-weight: 700;
+    }
+    .ag-after {
+      margin-left: 2ch;
+    }
+    .ag-gap {
+      height: 26px;
+    }
+    .dim {
+      color: #8a8f98;
+    }
+    .acc {
+      color: #d97757;
+    }
+    .ok {
+      color: #98c379;
+    }
+    .bad {
+      color: #e06c75;
+    }
+    .b {
+      font-weight: 700;
+    }
+    #ag-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #ag-mode {
+      height: 36px;
+      line-height: 34px;
+      padding: 0 14px;
+      border: 1px solid #d97757;
+      border-radius: 18px;
+      color: #e08868;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .ag-tool {
+      padding-left: 48px;
+    }
+    .ag-icon {
+      position: absolute;
+      left: 4px;
+      top: 7px;
+      width: 28px;
+      height: 28px;
+    }
+    .ag-type {
+      display: inline-block;
+      vertical-align: top;
+      overflow: hidden;
+      white-space: pre;
+      width: 0ch;
+    }
+    #ag-input {
+      position: absolute;
+      left: 48px;
+      right: 48px;
+      bottom: 92px;
+      height: 72px;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 8px;
+      padding: 14px 18px;
+      white-space: pre;
+    }
+    #ag-caret {
+      display: inline-block;
+      vertical-align: top;
+      width: 17px;
+      height: 40px;
+      margin-top: 1px;
+      background: #e6e6e6;
+    }
+    #ag-tip {
+      position: absolute;
+      left: 66px;
+      bottom: 40px;
+      font-size: 22px;
+      line-height: 32px;
+      color: #a0a5ad;
+    }
+    #ag-tag {
+      position: absolute;
+      left: 48px;
+      bottom: 40px;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="agent"
+    data-width="1920"
+    data-height="1080"
+    data-composition-variables='[{"id":"agPrompt","type":"string","label":"Prompt","default":"retry failed uploads"}]'
+  >
+    <div id="ag-window">
+      <div id="ag-bar"><div class="ag-dot"></div><div class="ag-dot"></div><div class="ag-dot"></div></div>
+      <div id="ag-title">northwind-api — agent</div>
+      <div id="ag-body">
+        <div class="ag-row" id="ag-head"><span class="dim">~/northwind-api</span><span id="ag-mode">accept edits</span></div>
+        <div class="ag-gap"></div>
+        <div class="ag-row" id="ag-echo"><span class="acc">&gt;&nbsp;</span>retry failed uploads</div>
+        <div class="ag-gap"></div>
+        <div class="ag-row ag-tool" id="ag-t1">
+          <svg class="ag-icon ag-spin" id="ag-s1" viewBox="-14 -14 28 28"><g fill="#d97757"><circle cx="0" cy="-10" r="3" /><circle cx="7.07" cy="-7.07" r="3" opacity="0.85" /><circle cx="10" cy="0" r="3" opacity="0.7" /><circle cx="7.07" cy="7.07" r="3" opacity="0.55" /><circle cx="0" cy="10" r="3" opacity="0.42" /><circle cx="-7.07" cy="7.07" r="3" opacity="0.3" /><circle cx="-10" cy="0" r="3" opacity="0.2" /><circle cx="-7.07" cy="-7.07" r="3" opacity="0.12" /></g></svg>
+          <svg class="ag-icon" id="ag-c1" viewBox="0 0 28 28"><path d="M6 14.5l5 5L22 8.5" fill="none" stroke="#98c379" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <span class="verb">Read</span><span class="dim">src/upload/client.ts</span>
+        </div>
+        <div class="ag-row ag-tool" id="ag-t2">
+          <svg class="ag-icon ag-spin" id="ag-s2" viewBox="-14 -14 28 28"><g fill="#d97757"><circle cx="0" cy="-10" r="3" /><circle cx="7.07" cy="-7.07" r="3" opacity="0.85" /><circle cx="10" cy="0" r="3" opacity="0.7" /><circle cx="7.07" cy="7.07" r="3" opacity="0.55" /><circle cx="0" cy="10" r="3" opacity="0.42" /><circle cx="-7.07" cy="7.07" r="3" opacity="0.3" /><circle cx="-10" cy="0" r="3" opacity="0.2" /><circle cx="-7.07" cy="-7.07" r="3" opacity="0.12" /></g></svg>
+          <svg class="ag-icon" id="ag-c2" viewBox="0 0 28 28"><path d="M6 14.5l5 5L22 8.5" fill="none" stroke="#98c379" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <span class="verb">Edit</span><span class="dim">src/upload/client.ts</span><span id="ag-diff" class="ag-after"><span class="ok">+18</span> <span class="bad">−4</span></span>
+        </div>
+        <div class="ag-row ag-tool" id="ag-t3">
+          <svg class="ag-icon ag-spin" id="ag-s3" viewBox="-14 -14 28 28"><g fill="#d97757"><circle cx="0" cy="-10" r="3" /><circle cx="7.07" cy="-7.07" r="3" opacity="0.85" /><circle cx="10" cy="0" r="3" opacity="0.7" /><circle cx="7.07" cy="7.07" r="3" opacity="0.55" /><circle cx="0" cy="10" r="3" opacity="0.42" /><circle cx="-7.07" cy="7.07" r="3" opacity="0.3" /><circle cx="-10" cy="0" r="3" opacity="0.2" /><circle cx="-7.07" cy="-7.07" r="3" opacity="0.12" /></g></svg>
+          <svg class="ag-icon" id="ag-c3" viewBox="0 0 28 28"><path d="M6 14.5l5 5L22 8.5" fill="none" stroke="#98c379" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <span class="verb">Run</span><span class="dim">bun test</span><span id="ag-pass" class="ok ag-after">14 passed</span>
+        </div>
+        <div class="ag-gap"></div>
+        <div class="ag-row" id="ag-sum"><span class="ag-type" id="ag-sum-text">Uploads retry 3 times with backoff. 14 tests pass.</span></div>
+      </div>
+      <div id="ag-input"><span class="acc">&gt; </span><span class="ag-type" id="ag-typed" data-var-text="agPrompt">retry failed uploads</span><span id="ag-caret"></span></div>
+      <div id="ag-tip">? for shortcuts</div>
+    </div>
+    <div id="ag-tag">agent-terminal-session · prompt-tools</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const PROMPT = document.querySelector("#ag-typed").textContent;
+    const SUMMARY = document.querySelector("#ag-sum-text").textContent;
+    // preset gap table (ms per character, seeded "demo"), +120 ms at a space
+    const GAPS = [100, 33, 200, 133, 200, 33, 67, 33, 100, 67, 33, 67, 67, 67, 133, 67, 33, 67, 100, 100, 67, 133, 100, 33, 100, 33, 167, 33, 100, 100];
+
+    tl.fromTo("#ag-tag", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.1);
+    // 0-0.4 s: window settles, scale 0.97 -> 1, ease-out
+    tl.fromTo("#ag-window", { scale: 0.97, opacity: 0.4 }, { scale: 1, opacity: 1, duration: 0.4, ease: "power2.out" }, 0);
+
+    // hidden until their beat
+    tl.set(["#ag-echo", "#ag-t1", "#ag-t2", "#ag-t3", "#ag-c1", "#ag-c2", "#ag-c3", "#ag-diff", "#ag-pass", "#ag-sum"], { opacity: 0 }, 0);
+
+    // prompt typed from 0.35 s on the gap table
+    let t = 0.35;
+    for (let i = 0; i < PROMPT.length; i++) {
+      t += GAPS[i % GAPS.length] / 1000 + (PROMPT[i] === " " ? 0.12 : 0);
+      tl.set("#ag-typed", { width: `${i + 1}ch` }, t);
+    }
+    const enter = t + 0.2; // Enter beat
+    tl.set("#ag-typed", { width: "0ch" }, enter);
+    tl.fromTo("#ag-echo", { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, enter);
+
+    // tool lines every 0.5 s, each with a 0.6 s spinner (frame every 100 ms = 3 f), then a done mark
+    const tools = [
+      { row: "#ag-t1", spin: "#ag-s1", check: "#ag-c1", extra: null },
+      { row: "#ag-t2", spin: "#ag-s2", check: "#ag-c2", extra: "#ag-diff" },
+      { row: "#ag-t3", spin: "#ag-s3", check: "#ag-c3", extra: "#ag-pass" },
+    ];
+    const firstTool = enter + 0.25;
+    tools.forEach((tool, k) => {
+      const s = firstTool + k * 0.5;
+      tl.fromTo(tool.row, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, s);
+      for (let f = 0; f < 6; f++) tl.set(tool.spin, { rotation: f * 45 }, s + f * 0.1);
+      tl.set(tool.spin, { opacity: 0 }, s + 0.6);
+      tl.set(tool.check, { opacity: 1 }, s + 0.6);
+      if (tool.extra) tl.fromTo(tool.extra, { opacity: 0 }, { opacity: 1, duration: 0.15, ease: "power2.out" }, s + 0.6);
+    });
+
+    // summary streams at 60 cps in word bursts, no caret
+    const sumStart = firstTool + 2 * 0.5 + 0.66;
+    tl.set("#ag-sum", { opacity: 1 }, sumStart);
+    let idx = 0;
+    SUMMARY.split(" ").forEach((w) => {
+      idx += w.length + 1;
+      tl.set("#ag-sum-text", { width: `${Math.min(idx, SUMMARY.length)}ch` }, sumStart + idx / 60);
+    });
+
+    // exit
+    tl.to(["#ag-window", "#ag-tag"], { opacity: 0, duration: 0.2, ease: "power2.in" }, 5.45);
+    window.__timelines["agent"] = tl;
+  </script>
+</template>

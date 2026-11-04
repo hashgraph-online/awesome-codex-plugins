@@ -7,7 +7,7 @@ present. Soft-skip when the cache is missing or below trust gate — no
 analyzer ever blocks on lookup() per Phase 4 spec §5.1.
 
 API surface (Phase 4b alignment, 2026-05-03):
-    facts = get_facts(mpn, cache_dir=cache_dir)        # may be None
+    facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=diagnostics)  # may be None
     if facts is None: return []                        # silent skip
     specs = facts.base.absolute_max.get(key)           # list[SpecValue]
     if has_data(specs):
@@ -99,14 +99,13 @@ def detect_absolute_max_violations(ctx, rail_voltages: dict) -> list[dict]:
     """
     findings: list[dict] = []
     cache_dir = getattr(ctx, "cache_dir", None)
-    design_context = getattr(ctx, "design_context", None)
 
     for component in ctx.components:
         ref = component.get("reference") or component.get("ref")
         mpn = _component_mpn(component)
         if not ref or not mpn:
             continue
-        facts = get_facts(mpn, cache_dir=cache_dir)
+        facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=getattr(ctx, "diagnostics", None))
         if facts is None:
             continue
         base = getattr(facts, "base", None)
@@ -174,7 +173,6 @@ def detect_absolute_max_violations(ctx, rail_voltages: dict) -> list[dict]:
                 report_section="Electrical Safety",
                 impact="Risk of permanent device damage or destruction.",
                 source=ctx.source,
-                design_context=design_context,
                 schema_era="v1.4",
                 rail_voltage=rail_v,
                 absolute_max_v=absolute_max_v,
@@ -196,14 +194,13 @@ def detect_vcc_outside_recommended(ctx, rail_voltages: dict) -> list[dict]:
     """
     findings: list[dict] = []
     cache_dir = getattr(ctx, "cache_dir", None)
-    design_context = getattr(ctx, "design_context", None)
 
     for component in ctx.components:
         ref = component.get("reference") or component.get("ref")
         mpn = _component_mpn(component)
         if not ref or not mpn:
             continue
-        facts = get_facts(mpn, cache_dir=cache_dir)
+        facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=getattr(ctx, "diagnostics", None))
         if facts is None:
             continue
         base = getattr(facts, "base", None)
@@ -260,7 +257,6 @@ def detect_vcc_outside_recommended(ctx, rail_voltages: dict) -> list[dict]:
                     report_section="Electrical Safety",
                     impact="Specified electrical characteristics may not be met.",
                     source=ctx.source,
-                    design_context=design_context,
                     schema_era="v1.4",
                     rail_voltage=rail_v,
                     recommended_min=v_min,
@@ -289,7 +285,6 @@ def detect_vcc_outside_recommended(ctx, rail_voltages: dict) -> list[dict]:
                     report_section="Electrical Safety",
                     impact="Specified electrical characteristics may not be met.",
                     source=ctx.source,
-                    design_context=design_context,
                     schema_era="v1.4",
                     rail_voltage=rail_v,
                     recommended_max=v_max,
@@ -302,8 +297,7 @@ def detect_vcc_outside_recommended(ctx, rail_voltages: dict) -> list[dict]:
 # TJ-001 — junction temperature exceeds TJmax (thermal)
 # ---------------------------------------------------------------------------
 
-def detect_tj_exceeds_max(assessments, *, source, cache_dir,
-                            design_context=None) -> list[dict]:
+def detect_tj_exceeds_max(assessments, *, source, cache_dir, diagnostics=None) -> list[dict]:
     """TJ-001: Recompute junction temperature using v1.4 facts.base.thermal
     [theta_ja] and compare to facts.base.absolute_max[TJ_SYNONYMS].
 
@@ -319,7 +313,7 @@ def detect_tj_exceeds_max(assessments, *, source, cache_dir,
         mpn = a.get("mpn") or a.get("value")
         if not ref or not mpn:
             continue
-        facts = get_facts(mpn, cache_dir=cache_dir)
+        facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=diagnostics)
         if facts is None:
             continue
         base = getattr(facts, "base", None)
@@ -376,7 +370,6 @@ def detect_tj_exceeds_max(assessments, *, source, cache_dir,
             report_section="Thermal",
             impact="Risk of thermal shutdown or accelerated device aging.",
             source=source,
-            design_context=design_context,
             schema_era="v1.4",
             tj_estimated_c=round(tj_v14, 1),
             tj_max_c=tj_max,
@@ -405,14 +398,13 @@ def detect_5v_on_non_tolerant_pin(ctx, rail_voltages: dict) -> list[dict]:
     """
     findings: list[dict] = []
     cache_dir = getattr(ctx, "cache_dir", None)
-    design_context = getattr(ctx, "design_context", None)
 
     for component in ctx.components:
         ref = component.get("reference") or component.get("ref")
         mpn = _component_mpn(component)
         if not ref or not mpn:
             continue
-        facts = get_facts(mpn, cache_dir=cache_dir)
+        facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=getattr(ctx, "diagnostics", None))
         if facts is None:
             continue
         base = getattr(facts, "base", None)
@@ -457,7 +449,6 @@ def detect_5v_on_non_tolerant_pin(ctx, rail_voltages: dict) -> list[dict]:
                 report_section="Electrical Safety",
                 impact="Risk of permanent input damage from over-voltage signal.",
                 source=ctx.source,
-                design_context=design_context,
                 schema_era="v1.4",
                 signal_voltage=sig_v,
                 is_5v_tolerant=False,
@@ -504,14 +495,13 @@ def detect_wrong_signal_type(ctx) -> list[dict]:
     """
     findings: list[dict] = []
     cache_dir = getattr(ctx, "cache_dir", None)
-    design_context = getattr(ctx, "design_context", None)
 
     for component in ctx.components:
         ref = component.get("reference") or component.get("ref")
         mpn = _component_mpn(component)
         if not ref or not mpn:
             continue
-        facts = get_facts(mpn, cache_dir=cache_dir)
+        facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=getattr(ctx, "diagnostics", None))
         if facts is None:
             continue
         base = getattr(facts, "base", None)
@@ -572,7 +562,6 @@ def detect_wrong_signal_type(ctx) -> list[dict]:
                 report_section="Design Intent",
                 impact="Likely net-naming error or incorrect pin assignment.",
                 source=ctx.source,
-                design_context=design_context,
                 schema_era="v1.4",
                 inferred_peripheral=inferred[0],
                 supported_alt_functions=af_names,
@@ -612,14 +601,13 @@ def detect_missing_required_components(ctx, power_regulators: list) -> list[dict
     """
     findings: list[dict] = []
     cache_dir = getattr(ctx, "cache_dir", None)
-    design_context = getattr(ctx, "design_context", None)
 
     for reg in power_regulators:
         ref = reg.get("ref") or reg.get("reference")
         mpn = reg.get("mpn") or reg.get("value")
         if not ref or not mpn:
             continue
-        facts = get_facts(mpn, cache_dir=cache_dir)
+        facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=getattr(ctx, "diagnostics", None))
         if facts is None:
             continue
         regulator = getattr(facts, "regulator", None)
@@ -636,7 +624,7 @@ def detect_missing_required_components(ctx, power_regulators: list) -> list[dict
             if sv is not None and not _net_has_component_type(ctx, input_rail, "capacitor"):
                 findings.append(_make_ex_001(
                     ref, mpn, "input cap", input_rail, sv,
-                    "regulator.cin_min", ctx.source, design_context,
+                    "regulator.cin_min", ctx.source,
                     f"Add a {sv.min}F (min) input capacitor between {input_rail} and ground."
                 ))
 
@@ -647,7 +635,7 @@ def detect_missing_required_components(ctx, power_regulators: list) -> list[dict
             if sv is not None and not _net_has_component_type(ctx, output_rail, "capacitor"):
                 findings.append(_make_ex_001(
                     ref, mpn, "output cap", output_rail, sv,
-                    "regulator.cout_min", ctx.source, design_context,
+                    "regulator.cout_min", ctx.source,
                     f"Add a {sv.min}F (min) output capacitor between {output_rail} and ground."
                 ))
 
@@ -661,14 +649,14 @@ def detect_missing_required_components(ctx, power_regulators: list) -> list[dict
                 rail_for_finding = output_rail or input_rail or "(unknown rail)"
                 findings.append(_make_ex_001(
                     ref, mpn, "inductor", rail_for_finding, sv,
-                    "regulator.inductor_range", ctx.source, design_context,
+                    "regulator.inductor_range", ctx.source,
                     f"Add a {rec_l}H inductor between the switch node and {output_rail}."
                 ))
     return findings
 
 
 def _make_ex_001(ref, mpn, kind, rail, sv, datasheet_field, source,
-                   design_context, recommendation):
+                   recommendation):
     """Build an EX-001 finding from common args."""
     spec_min = getattr(sv, "min", None)
     spec_typ = getattr(sv, "typ", None)
@@ -693,7 +681,6 @@ def _make_ex_001(ref, mpn, kind, rail, sv, datasheet_field, source,
         report_section="Completeness",
         impact="Regulator may oscillate, fail to start, or violate datasheet stability requirements.",
         source=source,
-        design_context=design_context,
         schema_era="v1.4",
         missing_kind=kind,
         datasheet_field=datasheet_field,

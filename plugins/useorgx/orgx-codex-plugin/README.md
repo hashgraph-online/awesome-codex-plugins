@@ -382,3 +382,12 @@ execution continues to enforce its signed tool names and schemas.
 - Existing OrgX references:
   - `orgx-claude-code-plugin`
   - `orgx-openclaw-plugin`
+
+## About OrgX
+
+[OrgX](https://useorgx.com) is proof for AI-delivered work — the operating record your agents and tools share. Agents in ChatGPT, Claude, Cursor, and Codex work from one record of decisions, approvals, and work receipts.
+
+- [OrgX FAQ](https://useorgx.com/faq): what it is, who it's for, and what it costs
+- [Agent work receipts](https://useorgx.com/agent-work-receipts): how finished agent work is checked and signed off
+- [Pricing](https://useorgx.com/pricing)
+- Hosted MCP server: [useorgx/orgx-mcp](https://github.com/useorgx/orgx-mcp)

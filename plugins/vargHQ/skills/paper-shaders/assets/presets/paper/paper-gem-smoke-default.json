@@ -1,0 +1,40 @@
+{
+  "id": "paper-gem-smoke-default",
+  "label": "Default (Paper GemSmoke)",
+  "shader": "GemSmoke",
+  "page": "https://shaders.paper.design/gem-smoke",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for GemSmoke, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#f0efea",
+    "colorInner": "#fafaf5",
+    "colors": [
+      "#333333",
+      "#e7e6df"
+    ],
+    "outerGlow": 0.55,
+    "innerGlow": 1,
+    "innerDistortion": 0.8,
+    "outerDistortion": 0.6,
+    "offset": 0,
+    "angle": 0,
+    "size": 0.8,
+    "shape": "diamond",
+    "image": ""
+  }
+}

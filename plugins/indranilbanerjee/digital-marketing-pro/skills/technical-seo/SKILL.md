@@ -1,6 +1,6 @@
 ---
 name: technical-seo
-description: "Technical SEO reference for deep fixes: Web Vitals, JS SEO, migrations, schema. \"plan a site migration\""
+description: "Technical SEO fixes for devs: JS rendering (SSR, prerender), Web Vitals (LCP, INP), schema. \"plan a site migration\""
 ---
 
 # Technical SEO

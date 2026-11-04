@@ -15,14 +15,12 @@ reporting an issue.
 
 If you discover a security vulnerability, please report it privately so it can
 be addressed before public disclosure.
-
 - **Preferred:** Open a [GitHub Security Advisory](https://github.com/echoVic/boss-skill/security/advisories/new)
   for this repository.
 - **Alternative:** Email the maintainer at `137844255@qq.com` with the subject
   line `[SECURITY] boss-skill`.
 
 Please include:
-
 - A description of the vulnerability and its impact.
 - Steps to reproduce (proof-of-concept, affected commands, or configuration).
 - The affected version(s).
@@ -40,7 +38,6 @@ Do **not** open a public issue for security reports.
 
 This project orchestrates coding-agent pipelines and ships hooks and a CLI.
 Of particular interest are:
-
 - Command injection or arbitrary code execution via hooks, the CLI, or
   workflow definitions.
 - Path traversal or unintended file writes outside the `.boss/` workspace.
@@ -70,7 +67,6 @@ registry, the repository owner should claim the plugin with GitHub OAuth at
 `https://hol.org/guard/plugins`.
 
 Review these surfaces before installing or publishing:
-
 - `boss-skill install` can copy the Boss skill bundle into agent configuration
   directories and merge Boss-managed entries into `~/.codex/hooks.json`.
 - Hook entries call `boss hooks run ...`, which dispatches scripts under

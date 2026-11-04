@@ -178,7 +178,7 @@ START: What is your primary goal?
 - [ ] Implement contextual targeting as primary scale driver
 - [ ] Test Universal ID solutions (UID2 via TTD, RampID via LiveRamp)
 - [ ] Evaluate seller-defined audiences from premium publishers
-- [ ] Do NOT invest in Google Privacy Sandbox APIs — Topics and Attribution Reporting are under "Intent to Deprecate and Remove" (privacysandbox.google.com/overview/status, checked 2026-10-04); put the effort into server-side conversion APIs and clean-room / first-party matching
+- [ ] Do NOT invest in Google Privacy Sandbox APIs — Google retired Topics and Attribution Reporting on 2025-10-17 (privacysandbox.google.com, read 2026-10-28); put the effort into server-side conversion APIs and clean-room / first-party matching
 - [ ] Shift measurement from last-click to incrementality and media mix modeling
 
 ## Brand Safety & Fraud Prevention

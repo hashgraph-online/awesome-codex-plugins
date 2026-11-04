@@ -58,7 +58,7 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 
 ### Tools
 
-26 tools:
+27 tools:
 
 | Tool | What it does |
 | --- | --- |
@@ -74,7 +74,7 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 | `finalize_upload` | Commit a large upload as a new version. |
 | `set_site_access` | Set or clear a site password. |
 | `set_listing` | List a site in the public gallery, or remove it. |
-| `site_analytics` | Cookieless view counts, top paths, referrers, and AI crawler counts for a site. |
+| `site_analytics` | Cookieless view counts, top paths, referrers, and AI crawler counts for a site. 90 days per request on Free and Hobby; 365 days and CSV on Pro. |
 | `add_domain` | Attach a custom domain and get the DNS records to create. |
 | `list_domains` | List custom domains. |
 | `domain_status` | Check and refresh a custom domain's verification and certificate status. |
@@ -82,22 +82,23 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 | `whoami` | Show the plan, limits, and usage for the token. |
 | `get_upgrade_link` | Get a checkout link for a paid plan. |
 | `set_badge` | Set the "Published with deed.page" badge. Only a paid plan (Hobby $3/mo or Pro) removes it. |
-| `claim_share_credit` | Free only, once per token: send the URL of the user's public X or Reddit post about deed.page for +25 sites and 50 MB per site. |
+| `claim_share_credit` | Free only, once per token: send the URL of the user's public X or Reddit post about deed.page for +25 sites and 50 MB per site. An X post that links to deed.page (at most 7 days old) also turns the badge off for 30 days, once per account. |
 | `rotate_token` | Issue a new owner token; every site carries over. |
 | `revoke_token` | Revoke the current token or all tokens. |
+| `agent_seats` | Pro: list, create, or revoke up to 5 named agent seats (separate tokens on one owner). |
 | `create_webhook` | Register a webhook for site and domain events. |
 | `list_webhooks` | List registered webhooks. |
 | `delete_webhook` | Delete a webhook. |
 
 ### Use
 
-Ask your agent to "publish this folder to deed.page" or "host this report and give me a link". The agent calls `publish_site` with the files and answers with the live URL. To change the site later, it calls `update_site` with the same slug and token.
+Ask your agent to "publish this folder to deed.page" or "host this report and give me a link". The agent calls `publish_site` with the files and answers with the live URL. A request that only says "make a website" or "build a page" stays a local draft until you ask to publish or confirm the public URL and the exact file list. An unattended run publishes only when its instructions explicitly say to. To change the site later, it calls `update_site` with the same slug and token.
 
 Free plan: 25 sites, 25 MB per site, 60 publishes per hour. Free sites are public, so do not publish secrets. Static files only. Free sites show a small "Published with deed.page" badge; Hobby ($3/mo) and Pro never do.
 
 ## Skill and plugins
 
-The skill is one file: [`skills/deed-page/SKILL.md`](skills/deed-page/SKILL.md). The repo is also a plugin that bundles the skill with the hosted deed.page MCP server, with manifests for each agent:
+The skill is [`skills/deed-page/SKILL.md`](skills/deed-page/SKILL.md). Since 1.7.0 it also ships two optional scripts in [`skills/deed-page/scripts/`](skills/deed-page/scripts/): `publish.sh` publishes a file or a clean output folder and, above 4 MB, hands off to `publish-large.mjs` (Node 18+), which uploads through the manifest flow (`/v1/uploads`). Both skip sensitive and repo-metadata paths and refuse a project root that has no `dist`, `build`, `out`, `public`, or `_site` directory unless `--allow-root` is set. They are the same files served at https://deed.page/cli/. The repo is also a plugin that bundles the skill with the hosted deed.page MCP server, with manifests for each agent:
 
 | File | Format |
 | --- | --- |
@@ -212,7 +213,7 @@ Ask your agent to "publish this", "host this report", or "give me a link". The a
 curl -sS -T index.html "https://deed.page/v1/sites?slug=my-report-7f3a2c&ref=skill-gh" -H "X-Client: <agent name>"
 ```
 
-and answers with the `url` from the JSON response. The first publish returns a `token` once. It is the key to update or delete that site, so keep it safe.
+and answers with the `url` from the JSON response. The first publish returns a `token` once. It is the key to update or delete that site, so keep it safe. A request that only says "make a website" or "build a page" produces a local draft. The agent offers to publish and uploads after you ask to publish or confirm the public URL and the exact file list. An unattended run publishes only when its instructions explicitly say to.
 
 - Free plan: 25 sites, 25 MB per site, 60 publishes per hour.
 - Free sites are public. Do not publish secrets.
@@ -224,7 +225,7 @@ and answers with the `url` from the JSON response. The first publish returns a `
 
 - The skill calls only `https://deed.page/v1/sites` with `curl`. The MCP server is `https://deed.page/mcp`. Published sites live at `https://<slug>.deed.page/`.
 - No account or API key is needed. The first publish returns a site token once; the skill saves it to `~/.config/deed-page/token` (mode 600), loads it into `DEEDPAGE_TOKEN` before later publishes so every site stays under one owner, and sends it only to `https://deed.page`.
-- No install scripts, hooks, or executable code. See [SECURITY.md](SECURITY.md).
+- No install scripts or hooks. The only executable code is the two optional publish scripts in `skills/deed-page/scripts/`, which run only when the agent publishes. Above 4 MB, `publish-large.mjs` PUTs file bytes to the Vercel Blob upload URLs that deed.page returns. See [SECURITY.md](SECURITY.md).
 
 ## Privacy and support
 

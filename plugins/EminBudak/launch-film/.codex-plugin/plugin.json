@@ -1,0 +1,36 @@
+{
+  "name": "launch-film",
+  "version": "0.1.4",
+  "description": "A launch film from a website or an App Store page: its real logo, colors, fonts and screens, rendered locally with Chrome and ffmpeg.",
+  "author": {
+    "name": "Emin Budak",
+    "url": "https://eminbudak.com"
+  },
+  "repository": "https://github.com/EminBudak/launch-film",
+  "license": "MIT",
+  "keywords": [
+    "video",
+    "launch",
+    "brand",
+    "ffmpeg",
+    "marketing"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "launch-film",
+    "shortDescription": "Launch film from a website",
+    "longDescription": "Makes a 20 to 40 second launch film with music from a product's website or App Store page, using its real logo, colors, fonts and screens. Renders locally with Chrome and ffmpeg. Needs Node 22 or newer and no API key.",
+    "developerName": "Emin Budak",
+    "category": "Creativity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteUrl": "https://github.com/EminBudak/launch-film",
+    "defaultPrompt": [
+      "Make a launch video for linear.app"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

@@ -28,7 +28,7 @@ Choose conformance testing when the target has a contract that can be exercised 
 2. Build fixtures from the contract, not from the implementation under test.
 3. Run the current implementation and capture output.
 4. Canonicalize dynamic fields before comparing.
-5. Fail loudly on unknown fields, missing fields, wrong exit codes, or silently skipped cases.
+5. Fail loudly on missing fields, wrong exit codes or silently skipped cases, and on unknown fields when the contract forbids them.
 6. List contract rows left uncovered, with the reason, under `not_checked`.
 
 ## Stop Criteria

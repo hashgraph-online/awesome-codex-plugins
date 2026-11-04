@@ -1,0 +1,37 @@
+{
+  "id": "paper-warp-nectar",
+  "label": "Nectar (Paper Warp)",
+  "shader": "Warp",
+  "page": "https://shaders.paper.design/warp",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Nectar\" preset for Warp, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 4.2,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 2,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0.6,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#151310",
+      "#d3a86b",
+      "#f0edea"
+    ],
+    "proportion": 0.24,
+    "softness": 1,
+    "distortion": 0.21,
+    "swirl": 0.57,
+    "swirlIterations": 10,
+    "shapeScale": 0.75,
+    "shape": "edge"
+  }
+}

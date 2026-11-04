@@ -1,0 +1,266 @@
+{
+  "id": "line-hug-box-captions",
+  "name": "Line-hugging rounded box captions",
+  "use": "Bold dark text on a white box whose rounded corners follow each line's own width, the native look of in-app text on vertical platforms.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 7,
+  "fonts": [
+    {
+      "family": "Plus Jakarta Sans",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Plus+Jakarta+Sans",
+      "weights": [
+        700,
+        800
+      ]
+    },
+    {
+      "family": "Inter",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter",
+      "weights": [
+        700,
+        800
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "line-hug-box-captions.white-box-classic",
+      "label": "White box classic",
+      "look": "#111 text on white per-line boxes with 0.28 em radius",
+      "params": {
+        "font_family": "Plus Jakarta Sans",
+        "font_weight": 800,
+        "font_size_px": 80,
+        "font_size_pct_h": 4.2,
+        "line_height": 1.22,
+        "text_color": "#111111",
+        "box_color": "#FFFFFF",
+        "box_padding_em": [
+          0.14,
+          0.42
+        ],
+        "box_radius_em": 0.28,
+        "box_decoration_break": "clone",
+        "words_per_screen": [
+          2,
+          6
+        ],
+        "max_lines": 3,
+        "max_width_px": 696,
+        "block_center_y_pct_h": 62,
+        "entrance": {
+          "type": "scaleX",
+          "from": 0.92,
+          "to": 1,
+          "frames": 6,
+          "ease": "cubic-bezier(0.05,0.7,0.1,1)"
+        }
+      },
+      "sources": [
+        4,
+        8,
+        18,
+        21
+      ]
+    },
+    {
+      "id": "line-hug-box-captions.black-box-inverse",
+      "label": "Black box inverse",
+      "look": "White text on black per-line boxes for bright footage",
+      "params": {
+        "font_family": "Plus Jakarta Sans",
+        "font_weight": 800,
+        "font_size_px": 80,
+        "text_color": "#FFFFFF",
+        "box_color": "#111111",
+        "box_padding_em": [
+          0.14,
+          0.42
+        ],
+        "box_radius_em": 0.28,
+        "box_decoration_break": "clone"
+      },
+      "sources": [
+        8,
+        21
+      ]
+    },
+    {
+      "id": "line-hug-box-captions.navy-pill-rise",
+      "label": "Navy pill rise",
+      "look": "Spaced caps in translucent navy pills; each line rises through a clip",
+      "params": {
+        "text_transform": "uppercase",
+        "letter_spacing_px": [
+          3,
+          6
+        ],
+        "text_color": "#FFFFFF",
+        "box_color": "rgba(6,20,40,0.62)",
+        "box_radius": "999px",
+        "box_decoration_break": "clone",
+        "entrance": {
+          "type": "clip-rise",
+          "distance_x_line_height": 1.3,
+          "frames": 10,
+          "ease": "cubic-bezier(0.22,1,0.36,1)"
+        }
+      },
+      "sources": [
+        8,
+        42
+      ]
+    },
+    {
+      "id": "line-hug-box-captions.brand-tint",
+      "label": "Brand tint",
+      "look": "Box in the brand colour, text auto-picked for >= 4.5:1",
+      "params": {
+        "box_color": "{brand}",
+        "text_color": "auto_max_contrast(#111111,#FFFFFF)",
+        "min_contrast": 4.5,
+        "box_shadow": "0 6px 18px rgba(0,0,0,0.28)",
+        "box_radius_em": 0.28
+      },
+      "sources": [
+        8
+      ]
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "safe_box_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "centered_max_width": 696
+    },
+    "safe_area_16x9_pct": {
+      "vertical": 90,
+      "horizontal": 75,
+      "max_line_width_pct_w": 68
+    },
+    "reading_rate_wpm": [
+      160,
+      180
+    ],
+    "active_word_lead_frames": [
+      1,
+      2
+    ],
+    "min_contrast": 4.5
+  },
+  "sources": [
+    {
+      "n": 1,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 3,
+      "name": "Netflix — Timed Text Style Guide: Subtitle Timing Guidelines",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/360051554394-Timed-Text-Style-Guide-Subtitle-Timing-Guidelines"
+    },
+    {
+      "n": 4,
+      "name": "BBC — BBC Subtitle Guidelines",
+      "url": "https://www.bbc.co.uk/accessibility/forproducts/guides/subtitles/"
+    },
+    {
+      "n": 6,
+      "name": "DCMP — Captioning Key: Text",
+      "url": "https://dcmp.org/learn/597-captioning-key---text"
+    },
+    {
+      "n": 8,
+      "name": "W3C WAI — Understanding WCAG 2.2 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 10,
+      "name": "Meta — Instagram Reels video ad specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 11,
+      "name": "Socialync — Social media safe zones",
+      "url": "https://www.socialync.io/tools/safe-zones"
+    },
+    {
+      "n": 12,
+      "name": "TikTok — TikTok Auction In-Feed Ads",
+      "url": "https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en"
+    },
+    {
+      "n": 13,
+      "name": "Google — Safe zones for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 15,
+      "name": "Randy Hoffner / ITU-R BT.1359 — AV synchronization: how bad is bad?",
+      "url": "https://www.tvtechnology.com/opinions/av-synchronization-how-bad-is-bad"
+    },
+    {
+      "n": 16,
+      "name": "Remotion — createTikTokStyleCaptions()",
+      "url": "https://www.remotion.dev/docs/captions/create-tiktok-style-captions"
+    },
+    {
+      "n": 18,
+      "name": "Google Material Design 3 — md-sys-motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 21,
+      "name": "MDN — box-decoration-break",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/box-decoration-break"
+    },
+    {
+      "n": 27,
+      "name": "SIL Open Font License — OFL-FAQ",
+      "url": "https://openfontlicense.org/ofl-faq/"
+    },
+    {
+      "n": 28,
+      "name": "Meryl K. Evans — Why captioned videos are important",
+      "url": "https://meryl.net/why-captioned-videos-are-important/"
+    },
+    {
+      "n": 36,
+      "name": "@digitalMakerCIC (Digital Maker CIC) — Reply: ALL CAPS",
+      "url": "https://x.com/digitalMakerCIC/status/1643577323210326016"
+    },
+    {
+      "n": 39,
+      "name": "@wayofzorro (Zorro) — Shorts production checklist",
+      "url": "https://x.com/wayofzorro/status/2105523352261542050"
+    },
+    {
+      "n": 41,
+      "name": "@finnardley (Finn) — Stickman thriller recipe",
+      "url": "https://x.com/finnardley/status/2115786060231770351"
+    },
+    {
+      "n": 42,
+      "name": "@finnardley (Finn) — Space explainer recipe",
+      "url": "https://x.com/finnardley/status/2114305886420086817"
+    },
+    {
+      "n": 44,
+      "name": "Derek Coleman (OpusClip) — Video caption design and placement",
+      "url": "https://www.opus.pro/blog/video-caption-design-placement"
+    }
+  ]
+}

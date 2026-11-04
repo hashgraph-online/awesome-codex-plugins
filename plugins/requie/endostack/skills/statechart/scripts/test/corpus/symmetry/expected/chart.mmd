@@ -1,0 +1,18 @@
+stateDiagram-v2
+  state Legend {
+    legend0: breaks NotAllBusy
+    legend1: path to the NotAllBusy bug
+  }
+  s0: #123;#125;
+  s1: #123;w1#125;
+  s2: #123;w1, w2#125;
+  [*] --> s0
+  s0 --> s1: Take
+  s1 --> s0: Free
+  s1 --> s2: Take
+  s2 --> s1: Free
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 breaks
+  class legend1 bugPath
+  class s2 breaks
+  class s0,s1 bugPath

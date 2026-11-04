@@ -1,0 +1,215 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+    }
+    .live-screen {
+      position: absolute;
+      left: 690px;
+      top: 60px;
+      width: 1080px;
+      height: 1920px;
+      transform: scale(0.5);
+      transform-origin: 0 0;
+      border-radius: 72px;
+      overflow: hidden;
+      background: #150f27;
+    }
+    #live-sky,
+    #live-bokeh-far,
+    #live-bokeh-near {
+      position: absolute;
+      left: -60px;
+      top: 0;
+      width: 1200px;
+      height: 1920px;
+    }
+    /* live-badge.instagram-style at (120, 312): pill 56 px, label 30 px/800, +4% tracking, dot 14 px */
+    #live-badge {
+      position: absolute;
+      left: 120px;
+      top: 312px;
+      height: 56px;
+      display: flex;
+      gap: 12px;
+      font-family: "Inter", sans-serif;
+      color: #ffffff;
+    }
+    #live-pill {
+      height: 56px;
+      padding: 0 20px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #dd2a7b 0%, #f58529 100%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 30px;
+      letter-spacing: 0.04em;
+    }
+    #live-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 7px;
+      background: #ffffff;
+    }
+    #live-chip {
+      height: 56px;
+      padding: 0 20px 0 16px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 30px;
+      font-variant-numeric: tabular-nums;
+    }
+    #live-eye {
+      width: 34px;
+      height: 34px;
+    }
+    #live-counts {
+      display: grid;
+      overflow: hidden;
+      height: 40px;
+      line-height: 40px;
+    }
+    .live-n {
+      grid-area: 1 / 1;
+      white-space: nowrap;
+    }
+    #live-note {
+      position: absolute;
+      left: 122px;
+      top: 380px;
+      font-family: "Inter", sans-serif;
+      font-weight: 500;
+      font-size: 30px;
+      color: rgba(255, 255, 255, 0.78);
+    }
+    #live-tag {
+      position: absolute;
+      left: 48px;
+      bottom: 40px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+  <div id="root" data-composition-id="live" data-width="1920" data-height="1080">
+    <div class="live-screen">
+      <svg id="live-sky" data-layout-allow-overflow viewBox="0 0 1200 1920" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="live-sky-g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0f0c22" />
+            <stop offset="0.55" stop-color="#2a1a48" />
+            <stop offset="1" stop-color="#3a1f3f" />
+          </linearGradient>
+          <radialGradient id="live-bk-b" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#8fb2ff" stop-opacity="1" />
+            <stop offset="0.72" stop-color="#8fb2ff" stop-opacity="0.85" />
+            <stop offset="1" stop-color="#8fb2ff" stop-opacity="0" />
+          </radialGradient>
+          <radialGradient id="live-bk-p" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#ff7aa8" stop-opacity="1" />
+            <stop offset="0.72" stop-color="#ff7aa8" stop-opacity="0.85" />
+            <stop offset="1" stop-color="#ff7aa8" stop-opacity="0" />
+          </radialGradient>
+          <radialGradient id="live-bk-a" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#ffb36b" stop-opacity="1" />
+            <stop offset="0.72" stop-color="#ffb36b" stop-opacity="0.85" />
+            <stop offset="1" stop-color="#ffb36b" stop-opacity="0" />
+          </radialGradient>
+          <radialGradient id="live-bk-y" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#ffd28a" stop-opacity="1" />
+            <stop offset="0.72" stop-color="#ffd28a" stop-opacity="0.85" />
+            <stop offset="1" stop-color="#ffd28a" stop-opacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="1200" height="1920" fill="url(#live-sky-g)" />
+      </svg>
+      <svg id="live-bokeh-far" data-layout-allow-overflow viewBox="0 0 1200 1920" preserveAspectRatio="none">
+        <circle cx="487" cy="899" r="52" fill="url(#live-bk-b)" opacity="0.38" />
+        <circle cx="442" cy="640" r="78" fill="url(#live-bk-p)" opacity="0.45" />
+        <circle cx="297" cy="1517" r="47" fill="url(#live-bk-a)" opacity="0.21" />
+        <circle cx="1105" cy="1441" r="34" fill="url(#live-bk-a)" opacity="0.27" />
+        <circle cx="510" cy="230" r="38" fill="url(#live-bk-y)" opacity="0.27" />
+        <circle cx="397" cy="735" r="42" fill="url(#live-bk-a)" opacity="0.43" />
+        <circle cx="821" cy="1582" r="79" fill="url(#live-bk-y)" opacity="0.36" />
+        <circle cx="1104" cy="376" r="78" fill="url(#live-bk-b)" opacity="0.43" />
+        <circle cx="658" cy="1428" r="31" fill="url(#live-bk-b)" opacity="0.26" />
+      </svg>
+      <svg id="live-bokeh-near" data-layout-allow-overflow viewBox="0 0 1200 1920" preserveAspectRatio="none">
+        <circle cx="14" cy="293" r="118" fill="url(#live-bk-b)" opacity="0.32" />
+        <circle cx="309" cy="434" r="99" fill="url(#live-bk-b)" opacity="0.22" />
+        <circle cx="349" cy="1022" r="99" fill="url(#live-bk-a)" opacity="0.43" />
+        <circle cx="664" cy="1132" r="91" fill="url(#live-bk-y)" opacity="0.35" />
+        <circle cx="512" cy="903" r="115" fill="url(#live-bk-b)" opacity="0.37" />
+        <circle cx="387" cy="486" r="87" fill="url(#live-bk-p)" opacity="0.17" />
+        <circle cx="1153" cy="1457" r="83" fill="url(#live-bk-y)" opacity="0.45" />
+        <circle cx="869" cy="1024" r="98" fill="url(#live-bk-y)" opacity="0.33" />
+        <circle cx="988" cy="845" r="88" fill="url(#live-bk-b)" opacity="0.33" />
+      </svg>
+
+      <div id="live-badge">
+        <div id="live-pill"><div id="live-dot"></div><span>LIVE</span></div>
+        <div id="live-chip">
+          <svg id="live-eye" viewBox="0 0 34 34">
+            <path d="M3 17c3.6-6.4 8.3-9.6 14-9.6S27.4 10.6 31 17c-3.6 6.4-8.3 9.6-14 9.6S6.6 23.4 3 17z" fill="none" stroke="#fff" stroke-width="3" stroke-linejoin="round" />
+            <circle cx="17" cy="17" r="4.6" fill="#fff" />
+          </svg>
+          <div id="live-counts">
+            <span id="live-n0" class="live-n">1.18K</span>
+            <span id="live-n1" class="live-n">1.19K</span>
+            <span id="live-n2" class="live-n">1.21K</span>
+          </div>
+        </div>
+      </div>
+      <div id="live-note">illustrative count</div>
+    </div>
+    <div id="live-tag">live-badge · instagram-style</div>
+  </div>
+  <script>
+    const bez = (x1, y1, x2, y2) => (t) => {
+      const cx = (u) => 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u;
+      let lo = 0, hi = 1, u = t;
+      for (let i = 0; i < 24; i++) {
+        u = (lo + hi) / 2;
+        if (cx(u) < t) lo = u; else hi = u;
+      }
+      return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+    };
+    const ENTER = bez(0.05, 0.7, 0.1, 1);
+    const EXIT = bez(0.3, 0, 0.8, 0.15);
+    const tl = gsap.timeline({ paused: true });
+
+    // footage: two bokeh layers drifting at different speeds
+    tl.fromTo("#live-bokeh-far", { x: 0, y: 0 }, { x: -24, y: -10, duration: 3.5, ease: "none" }, 0);
+    tl.fromTo("#live-bokeh-near", { x: 0, y: 0 }, { x: -60, y: -20, duration: 3.5, ease: "none" }, 0);
+    tl.fromTo("#live-tag", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.1);
+
+    // in at 0.2 s: pill slides from x-24 + fade, 0.3 s; count chip +0.1 s
+    tl.fromTo("#live-pill", { x: -24, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: ENTER }, 0.2);
+    tl.fromTo("#live-chip", { x: -24, opacity: 0 }, { x: 0, opacity: 1, duration: 0.3, ease: ENTER }, 0.3);
+    tl.fromTo("#live-note", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.45);
+
+    // dot pulse: period 1.0 s, scale 1 -> 1.35 -> 1, opacity 1 -> 0.55 -> 1, sine.inOut
+    tl.fromTo("#live-dot", { scale: 1, opacity: 1 }, { scale: 1.35, opacity: 0.55, duration: 0.5, ease: "sine.inOut", yoyo: true, repeat: 5 }, 0.3);
+
+    // seeded ticks (mulberry32(42): every 0.9-1.4 s, +0.3-2%): 1,184 -> 1,196 -> 1,212
+    // shown as 3 significant figures, truncated: 1.18K -> 1.19K -> 1.21K; digits roll 8 px up in 0.2 s
+    tl.set(["#live-n1", "#live-n2"], { opacity: 0 }, 0);
+    const ticks = [1.55, 2.88];
+    ticks.forEach((t, i) => {
+      tl.to(`#live-n${i}`, { y: -8, opacity: 0, duration: 0.2, ease: "power2.out" }, t);
+      tl.fromTo(`#live-n${i + 1}`, { y: 8, opacity: 0 }, { y: 0, opacity: 1, duration: 0.2, ease: "power2.out" }, t);
+    });
+
+    // out at 3.25 s: 0.2 s fade + x-16
+    tl.to(["#live-badge", "#live-note"], { x: -16, opacity: 0, duration: 0.2, ease: EXIT }, 3.25);
+    window.__timelines["live"] = tl;
+  </script>
+</template>

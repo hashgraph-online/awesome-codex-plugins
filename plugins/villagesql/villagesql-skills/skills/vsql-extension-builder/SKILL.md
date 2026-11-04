@@ -370,6 +370,8 @@ server-side tracking issues happens in Phase 6.
    - Update `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` so they describe this
      extension, not the template. These onboard future agents and must
      not ship as template boilerplate.
+     Leave the version number out of them: `manifest.json` is the one
+     place it lives, and a copy goes stale at the next bump.
    - Update `.github/workflows/ci.yml`: change `extension-name: vsql_extension_template`
      to `extension-name: <extension_name>` (underscore form). This is easy to miss and
      causes CI to build the wrong extension silently.

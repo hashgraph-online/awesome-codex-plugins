@@ -1,0 +1,12 @@
+{
+  "name": "mnemoverse",
+  "version": "1.0.3",
+  "description": "Persistent memory for AI agents, shared across tools: write a memory in OpenClaw, recall it in Claude Code, Cursor, VS Code or any MCP client. Browser sign-in, no API key to paste.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mnemoverse/claude-plugin.git"
+  }
+}

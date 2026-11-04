@@ -2,28 +2,7 @@
 
 This directory contains the core analysis scripts, shared utilities, the S-expression parser, and the rich-finding/trust-summary infrastructure. Each analyzer outputs a structured JSON envelope for the AI agent to consume during design reviews.
 
-| Script | Input | Size | Purpose |
-|--------|-------|------|---------|
-| `analyze_schematic.py` | `.kicad_sch` / `.sch` | ~9,300 LOC | Component extraction, net building, subcircuit detection, signal/power/BOM/DFM analysis, audit detectors |
-| `analyze_pcb.py` | `.kicad_pcb` | ~6,600 LOC | Footprint inventory, routing, signal integrity, power, thermal, placement, manufacturing, DFM, union-find connectivity graph, assembly/DFM checks |
-| `analyze_gerbers.py` | Gerber dir (`.gbr`/`.drl`) | ~1,400 LOC | Layer completeness, drill holes, apertures, coordinate alignment, X2 attributes |
-| `analyze_thermal.py` | schematic + PCB JSON | ~910 LOC | Junction-temperature estimator with package θJA, thermal via correction, proximity warnings |
-| `cross_analysis.py` | schematic + PCB JSON | ~430 LOC | Cross-domain checks: CC-001 connector current, EG-001 ESD gaps, DA-001 decoupling adequacy, XV-001..003, PCB intelligence (NR/RP/TW/PS/VS/DP-005) |
-| `lifecycle_audit.py` | schematic JSON + distributor API | ~855 LOC | Component obsolescence, temperature audit (LC-001..006, LT-001) |
-| `sexp_parser.py` | — | ~220 LOC | S-expression parser shared by schematic and PCB analyzers |
-| `kicad_utils.py` | — | ~860 LOC | Shared utilities: component classification, value parsing, net detection, switching-frequency table, Vref lookup |
-| `kicad_types.py` | — | ~110 LOC | Typed dataclass (`AnalysisContext`) shared across detectors |
-| `signal_detectors.py` | — | ~4,400 LOC | Core signal path detectors (regulators, filters, opamps, dividers, crystals, transistors, bridges, protection), plus v1.3 audit detectors (RS-001, LB-001, PP-001) |
-| `domain_detectors.py` | — | ~6,100 LOC | Domain-specific detectors (RF, Ethernet, HDMI, memory, BMS, battery chargers, motor drivers, wireless modules, etc.) |
-| `validation_detectors.py` | — | ~1,000 LOC | Validation detectors (PU-001, VM-001, PR-001..004, PS-001, LR-001, FS-001) |
-| `finding_schema.py` | — | ~330 LOC | `make_finding()` factory, `Det.*` constants, `get_findings()` / `group_findings()` helpers, `trust_summary` aggregation, `sort_findings()` determinism |
-| `output_filters.py` | — | ~460 LOC | Stage/audience filtering (`--stage schematic/layout/pre_fab/bring_up`, `--audience designer/reviewer/manager`) |
-| `pcb_connectivity.py` | — | ~300 LOC | Union-find over pads/tracks/vias/zone fills for per-net island detection (used by `analyze_pcb.py --full`) |
-| `project_config.py` | — | ~870 LOC | `.kicad-happy.json` loader, suppression matching, design intent resolution |
-| `analysis_cache.py` | — | ~510 LOC | Analysis-folder convention, manifest-based run tracking, SHA-256 staleness detection |
-| `diff_analysis.py` | two analyzer JSONs | ~950 LOC | Diff-aware design comparison (component/signal/EMC/SPICE) |
-| `what_if.py` | analyzer JSON + patch spec | ~1,500 LOC | Parameter sweep + automated fix suggestions (inverse solvers with E-series snapping) |
-| `summarize_findings.py` | analysis/manifest.json | ~200 LOC | Cross-run severity × count rollup |
+The module map (file, size, purpose) is the "Key files" table in the repository `CONTRIBUTING.md`; module ownership and import direction are in `ARCHITECTURE.md`.
 
 Detailed methodology documentation for each analyzer:
 - `methodology_schematic.md` — parsing pipeline, net building, component classification, detector inventory
@@ -32,7 +11,7 @@ Detailed methodology documentation for each analyzer:
 
 ---
 
-## sexp_parser.py
+## kicad_core/sexp.py
 
 Parses KiCad's Lisp-like S-expression format into nested Python lists. Used by both `analyze_schematic.py` and `analyze_pcb.py`.
 
@@ -57,7 +36,7 @@ Parses KiCad's Lisp-like S-expression format into nested Python lists. Used by b
 
 ## analyze_pcb.py
 
-Parses `.kicad_pcb` files (KiCad 5 `module` and KiCad 6+ `footprint` formats).
+Parses `.kicad_pcb` files (KiCad 5 `module` and KiCad 6+ `footprint` formats). The CLI is a thin wrapper; the analyzer lives in the `pcb/` package.
 
 ### Pipeline
 
@@ -179,7 +158,7 @@ python3 analyze_gerbers.py ./gerbers/ --compact          # Minified JSON
 
 ## analyze_schematic.py
 
-The largest and most complex script. The rest of this document focuses on its architecture and pitfalls.
+The CLI entry point. The analysis itself lives in the `schematic/` package; `analyze_schematic.py` parses arguments, runs the pipeline and writes the output. The rest of this document focuses on its architecture and pitfalls.
 
 ### Pipeline
 
@@ -187,29 +166,15 @@ The largest and most complex script. The rest of this document focuses on its ar
 .kicad_sch file(s)
     |
     v
-parse_single_sheet()          -- S-expression parsing, component/wire/label extraction
+schematic/pipeline.py          -- named phases: read sheets -> build AnalysisContext -> run analyses -> assemble
+    |  detect_topologies / reconcile_detections / run_domain_detectors / assemble_signal_results
+    |  build_net_map (schematic/connectivity.py): union-find nets, sheet-aware coordinates
     |
     v
-analyze_schematic()           -- Multi-sheet orchestration, instance remapping
-    |  Builds: all_components, all_wires, all_labels, all_junctions
-    |
+schematic/presentation.py      -- result dict in the historical key order; detections -> flat findings[]
+    |                             with rich envelopes (detector, rule_id, severity, confidence, recommendation)
     v
-build_net_map()               -- Union-find net building (sheet-aware coordinates)
-    |  Produces: nets dict {name -> {pins, labels, ...}}
-    |
-    v
-analyze_signal_paths()        -- Subcircuit detection (VD, RC, regulators, bridges, etc.)
-analyze_design_rules()        -- Bus detection, diff pairs, power domains, ERC
-analyze_ic_pinouts()          -- Per-IC pin connectivity summary
-compute_statistics()          -- Counts, BOM dedup
-    |
-    v
-Output harmonization           -- All detections → flat findings[] with rich envelopes
-                                  (detector, rule_id, severity, confidence, recommendation)
-                                  rail_voltages/net_classifications promoted to top level
-    |
-    v
-JSON output                    -- {analyzer_type, summary, findings[], components, nets, ...}
+output_io.write_primary_run / write_derived_output (thermal/cross/gerber)  -- JSON to stdout, -o, or the --analysis-dir run folder
 ```
 
 ### Key Data Structures
@@ -222,10 +187,10 @@ JSON output                    -- {analyzer_type, summary, findings[], component
 ## File Format Support
 
 ### Modern `.kicad_sch` (KiCad 6+)
-Full support. S-expression format parsed by `sexp_parser.py`.
+Full support. S-expression format parsed by `kicad_core/sexp.py`.
 
 ### Legacy `.sch` (KiCad 4/5)
-Line-based format. Components, wires, labels, power symbols parsed. `.lib` symbol libraries are parsed for pin definitions (`parse_legacy_lib()`), enabling pin-to-net mapping via geometric snapping. Library resolution searches cache-lib, sym-lib-table, LIBS: directives, and built-in defaults. Pin geometry uses a snapping radius (up to 12mm) when parsed symbols are incomplete — results are heuristic and carry reduced confidence compared to KiCad 6+ native pin data.
+Line-based format. Components, wires, labels, power symbols parsed. `.lib` symbol libraries are parsed for pin definitions (`schematic.legacy_reader._parse_legacy_lib()`), enabling pin-to-net mapping via geometric snapping. Library resolution searches cache-lib, sym-lib-table, LIBS: directives, and built-in defaults. Pin geometry uses a snapping radius (up to 12mm) when parsed symbols are incomplete — results are heuristic and carry reduced confidence compared to KiCad 6+ native pin data.
 
 ### Eagle `.sch`
 Not supported (binary and XML formats). Returns 0 components gracefully.

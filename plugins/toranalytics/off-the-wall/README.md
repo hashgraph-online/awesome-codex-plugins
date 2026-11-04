@@ -2,21 +2,41 @@
   <strong>English</strong> | <a href="README.ko.md">한국어</a> | <a href="README.ja.md">日本語</a> | <a href="README.zh-CN.md">中文</a>
 </p>
 
+> **Dude Toldya** was called **Off the Wall** before. The command is now `duto`; `otw` still works. Your saved corrections stay in `~/.otw`.
+
+**Your past corrections, back in context.**
+
+Plain-language overview of what it does and does not do, with the test details at the end: [English](https://toranalytics.github.io/en/otw-what-it-does/) · [한국어](https://toranalytics.github.io/otw-what-it-does/) · [中文](https://toranalytics.github.io/zh/otw-what-it-does/). Release notes: [CHANGELOG](CHANGELOG.md).
+
 <p align="center">
-  <img src="assets/hero.png" alt="Off the Wall: a pixel-art parrot on a terminal, quoting your past corrections" width="100%" />
+  <img src="assets/hero.png" alt="Original pixel-art AI assistant mascot being gently bonked" width="100%" />
 </p>
 
-<h1 align="center">Off the Wall</h1>
+<p align="center"><sub>The illustration is AI-generated and inspired by the comic timing of the <a href="https://namu.wiki/w/조용히%20하세요!">linked meme</a>; it is not the Gajae Code character.</sub></p>
 
 <p align="center">
-  <strong>Remind your coding agent what you already corrected.</strong>
+  <img src="assets/before-after-en.png" alt="Same request, same model (Claude Sonnet), run once each, real outputs: without Dude Toldya the commit message, summary and PR description ignore the saved habit; with it they follow it. Three tasks, first run shown, one correction made up for the demo." width="100%" />
+</p>
+
+<p align="center"><sub>This is an illustration. The measured numbers are under Evidence below.</sub></p>
+
+<p align="center">
+  <img src="assets/demo.svg" alt="Illustration with a made-up example, not a recording: a correction is saved on day 1, and on day 8 a similar request gets that correction quoted word for word before the agent answers." width="100%" />
+</p>
+
+<h1 align="center">Dude Toldya</h1>
+
+<p align="center">
+  <strong>Stop telling your coding agent the same thing twice.</strong>
   <br/>
   <sub>A plugin for <strong>Claude Code</strong> and <strong>Codex</strong> that puts your own past corrections from the same working directory in front of the next answer.</sub>
+  <br/>
+  <sub>In my tests Claude ignored a habit it could not know in 94% of runs (31 of 33). With Dude Toldya: 39% (13 of 33). Made-up habits, Claude Sonnet. <a href="#check-it-yourself">Check it yourself</a>.</sub>
 </p>
 
 <p align="center">
-  <a href="https://github.com/toranalytics/off-the-wall/actions/workflows/ci.yml"><img alt="tests" src="https://img.shields.io/github/actions/workflow/status/toranalytics/off-the-wall/ci.yml?branch=main&label=tests&style=flat-square"></a>
-  <a href="https://github.com/toranalytics/off-the-wall/releases"><img alt="release" src="https://img.shields.io/github/v/release/toranalytics/off-the-wall?style=flat-square"></a>
+  <a href="https://github.com/toranalytics/dude-toldya/actions/workflows/ci.yml"><img alt="tests" src="https://img.shields.io/github/actions/workflow/status/toranalytics/dude-toldya/ci.yml?branch=main&label=tests&style=flat-square"></a>
+  <a href="https://github.com/toranalytics/dude-toldya/releases"><img alt="release" src="https://img.shields.io/github/v/release/toranalytics/dude-toldya?style=flat-square"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-green?style=flat-square"></a>
   <img alt="Claude Code plugin" src="https://img.shields.io/badge/Claude%20Code-plugin-d97757?style=flat-square">
   <img alt="Codex plugin" src="https://img.shields.io/badge/Codex-plugin-10a37f?style=flat-square">
@@ -25,7 +45,7 @@
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> ·
-  <a href="#why-off-the-wall">Why</a> ·
+  <a href="#why-dude-toldya">Why</a> ·
   <a href="#see-what-you-correct-most">Your report</a> ·
   <a href="#what-the-agent-sees">How it works</a> ·
   <a href="#model-selection-for-subagents">Model selection</a> ·
@@ -34,22 +54,24 @@
   <a href="#privacy">Privacy</a>
 </p>
 
+**A model can't know your habits, like how you write commit messages or dates. I gave Claude 33 tasks like that. Without Dude Toldya, Claude (Sonnet) followed the habit 2 times. With it, 20 times.** It works because your own earlier correction is shown again, word for word. These are test habits I made up, not real users' records. With the haiku model it went from 1 to 17, and from 2 to 25 when I measured again. [How it was measured](#evidence)
+
 **Your corrections from the same working directory, quoted word for word before the agent answers. A local, model-labelled report of what you correct most. Model-selection guidance for subagents.**
 
 Every correction you make ("stop asking, just pick one", "did you actually run the tests?") is usually forgotten by
-the next session. Off the Wall keeps those messages locally and, before an answer, quotes back to the agent in your own
+the next session. Dude Toldya keeps those messages locally and, before an answer, quotes back to the agent in your own
 words up to 6 corrections recorded in the same working directory. It uses the `claude` or `codex` CLI you already run,
 so it needs no separate API key. That does not mean nothing leaves your machine; see [Privacy](#privacy).
 
-> This is the 0.2.0 unreleased safety candidate, with source published for review. It is not a stable release or a claim of live-product effectiveness. The numbers below come from one person's history with earlier versions; run the report on yours.
+> This is the 0.3.1 pre-release, not a stable release. Measured so far: when the right past correction is quoted back, the agent follows personal preferences it cannot otherwise know far more often, in synthetic tests (see [Evidence](#evidence)). Not measured: a real user's long history, other models, or interactive use.
 
 > Beta note: the evidence is exploratory, from one person’s text replays, not a general guarantee of fewer corrections, lower costs or better task completion. The input classifier can still mistake automated host or plugin text for a user reply, and it is not a perfect detector of human-written input. Check source messages locally before sharing aggregate report counts, because the counts are model classifications that can be wrong.
 
 ---
 
-## Why Off the Wall?
+## Why Dude Toldya?
 
-| Problem | What happens | Off the Wall |
+| Problem | What happens | Dude Toldya |
 | :-- | :-- | :-- |
 | Repeated corrections | You say "stop asking, just do it" for the tenth time this month | Your past words go in front of the next answer |
 | Rules that do not stick | Corrections are summarised into neat one-line rules that change little | Your own words are quoted instead of summarised. In one small replay, distilled rules did no better than random rules ([evidence](#evidence)) |
@@ -63,36 +85,44 @@ so it needs no separate API key. That does not mean nothing leaves your machine;
 Claude Code, at the prompt:
 
 ```
-/plugin install off-the-wall --marketplace toranalytics/off-the-wall
+/plugin install dude-toldya --marketplace toranalytics/dude-toldya
 ```
 
 Codex:
 
 ```bash
-codex plugin marketplace add toranalytics/off-the-wall
-codex plugin add off-the-wall@off-the-wall
+codex plugin marketplace add toranalytics/dude-toldya
+codex plugin add dude-toldya@dude-toldya
 ```
 
-Then open `/hooks` in Codex once and trust the Off the Wall hooks. Codex skips plugin hooks until they are trusted.
+Then open `/hooks` in Codex once and trust the Dude Toldya hooks. Codex skips plugin hooks until they are trusted.
 
 **2. Try the report on the example history** (no history of your own needed)
 
 ```bash
-git clone https://github.com/toranalytics/off-the-wall && cd off-the-wall
-node bin/otw.mjs report --host claude --claude-dir examples/claude-history --days 0
+git clone https://github.com/toranalytics/dude-toldya && cd dude-toldya
+node bin/duto.mjs report --host claude --claude-dir examples/claude-history --days 0
 ```
 
 **3. Run it on your own history and start recall from it**
 
 ```bash
-node bin/otw.mjs report --seed
+node bin/duto.mjs report --seed
 ```
+
+`report` without `--seed` is an explicit provider-processing action and can run with `capture: false`. `--seed` requires capture enabled and unchanged storage/config through classification; if authorization is revoked, results are not saved.
 
 `--seed` rereads the history you chose and stores corrections with their provenance (project hash and input origin)
 where the host history records a working directory. Turns with no known working directory are not stored (the count of skipped turns is reported)
 and are not promoted automatically. See [Scope and legacy records](#scope-and-legacy-records).
 
-Requires Node 18 or newer. Historical: an earlier version was tried on macOS with Claude Code 2.1.301 and codex-cli 0.162.1. This 0.2.0 candidate has only had synthetic launcher and worker checks on macOS. It has not been run in a current live Claude Code or Codex session.
+Requires Node 18 or newer. Live-host checks so far: one Codex smoke run (0.2.0 on codex-cli 0.162.1) and one headless Claude Code run (2.1.311 with plugin 0.2.1: save and recall), both linked under Evidence. Interactive Claude Code use and live-host effects of the current main remain unverified.
+
+### If nothing happens
+
+Codex does not run plugin hooks until you trust them in `/hooks` (or accept "Hooks need review" at startup and choose **Trust all**). `duto status` now shows the latest hook activity recorded in the local sessions directory and, when readable, the number of Codex trust entries. These diagnostics are not proof that hooks are currently enabled or that recall is effective. Interactive Claude Code use remains unverified (one headless run was checked).
+
+Disabling the plugin in Codex config may not stop already-trusted hooks in `codex exec`; to stop OTW, set `{"recall":false,"routing":false,"capture":false}` in `~/.otw/config.json`.
 
 ## See what you correct most
 
@@ -112,20 +142,24 @@ in earlier-version testing, 100 turns took about 50 s on Codex and 65 turns abou
 `--seed` saves what it found, so recall can start with your next prompt in that project instead of after weeks of use.
 
 At the end it prints a link that opens a prefilled post in this repo's
-[Discussions](https://github.com/toranalytics/off-the-wall/discussions/categories/show-and-tell) with your top three
+[Discussions](https://github.com/toranalytics/dude-toldya/discussions/categories/show-and-tell) with your top three
 kinds and their counts. Only the counts and kind names go in; none of your quoted words. The counts are model
 classifications and may be wrong, so check the source messages locally and review the post yourself before you
 publish anything. Nothing is posted for you.
 
+## See what would be recalled
+
+`node bin/duto.mjs explain "<prompt>"` (add `--cwd DIR` for another working directory) shows which stored corrections would be quoted before an answer to that prompt, with similarity scores and how many records were excluded. It is read-only: no model call, no file written. It is the quickest way to see why a quote you did not expect shows up. Available on main; not in the 0.3.1 release yet.
+
 ## What the agent sees
 
 <p align="center">
-  <img src="assets/context.svg" alt="Illustration of the format of the block Off the Wall adds before the agent answers: example corrections quoted verbatim and an instruction to predict your objection. The quotes are taken from the example report, not selected for relevance" width="92%" />
+  <img src="assets/context.svg" alt="Illustration of the format of the block Dude Toldya adds before the agent answers: example corrections quoted verbatim and an instruction to predict your objection. The quotes are taken from the example report, not selected for relevance" width="92%" />
 </p>
 
 | Event | Claude Code | Codex |
 | :-- | :-- | :-- |
-| Each prompt | up to 6 past corrections quoted, each cut at 200 characters, only from the same normalized working directory (project key) and only if they pass the match guard. Fewer than 6, or none, is normal; there is no filler from other projects or just the latest | same |
+| Each prompt | by default, prompts of 20+ trimmed characters get up to 6 eligible same-project quotes regardless of similarity, ranked by similarity, with zero-overlap records excluded. Each quote is cut at 200 characters. Prompts under 20 characters keep the 0.18 similarity floor; `"recallWide": false` restores that floor for all prompts. There is no filler from other projects or just the latest; relevance is not guaranteed | same |
 | Each prompt | the previous answer and your new message are judged in a detached process; a correction is saved with the project hash and input origin | same |
 | Turn end | the end of the answer is kept for that judge | same |
 | Session start | the routing rule is added | the routing rule is added |
@@ -154,12 +188,12 @@ report. It shows the format only. It is not a real selection by relevance, worki
   stores new unscoped records, and there is no automatic "safe" promotion.
 - The input classifier leaves out text from an explicit meta or non-human source and known automation envelopes, and
   keeps ordinary Markdown and long English text. It is a filter, not a perfect detector of human-written input.
-- The match guard decides whether a stored correction is similar enough to the request to be quoted. Its current
-  threshold is an initial engineering setting. It is a filter, not a calibrated accuracy figure, and no precision or
-  recall is claimed for it.
-- There is no memory-management UI or delete command in this iteration. To clear local records, delete files under
+- By default, prompts of 20+ trimmed characters get up to 6 quotes regardless of similarity, ranked by similarity
+  and excluding zero overlap. The match guard uses the 0.18 floor for shorter prompts; `"recallWide": false` restores
+  that floor for all prompts. These are engineering settings, not calibrated accuracy or relevance guarantees.
+- There is no memory-management UI. Since 0.3.1 `duto forget --all --yes` deletes every stored correction, the session state and the log, and `duto forget --project --yes` deletes only the current working directory's corrections; without `--yes` both only show what would be deleted. Provider-side copies and your Claude Code/Codex histories are not affected. Before 0.3.1, delete files under
   `~/.otw` yourself (see [Privacy](#privacy)). With `capture: false`, new prompt and answer excerpts are not kept
-  (corrections already stored are not erased). `node bin/otw.mjs status` shows how many records are scoped and
+  (corrections already stored are not erased). `node bin/duto.mjs status` shows how many records are scoped and
   origin-tagged and how many are quarantined.
 
 ## Model selection for subagents
@@ -168,7 +202,7 @@ report. It shows the format only. It is not a real selection by relevance, worki
   <img src="assets/routing.svg" alt="One historical task, two runs per arm: $0.171 and $0.173 with the model rule, $0.300 and $0.439 without. Not an average and not a guarantee" width="92%" />
 </p>
 
-The main model acts as an orchestrator and picks the subagent's model by what the written task leaves to it. Off the Wall
+The main model acts as an orchestrator and picks the subagent's model by what the written task leaves to it. Dude Toldya
 only supplies this guidance and checks for a missing model argument. It does not force a model or guarantee
 cheaper routing or any cost saving. The chart is one historical test; see [Evidence](#evidence).
 
@@ -179,15 +213,50 @@ cheaper routing or any cost saving. The chart is one historical test; see [Evide
 | large | the subagent decides what the problem is: root cause, design, migration | `opus` | the frontier model, `high` |
 
 Work that takes only a few steps is cheapest done by the main model itself. Codex model names differ by account,
-so Off the Wall reads the list Codex keeps for you (`~/.codex/models_cache.json`) and sorts it into the three classes
+so Dude Toldya reads the list Codex keeps for you (`~/.codex/models_cache.json`) and sorts it into the three classes
 by each model's description. For Codex, the rule also says to pass `fork_turns: "none"` when the subagent does not
 need the conversation. Otherwise the whole history is copied into it, and on a different model none of it is
 cached.
 
+## Check it yourself
+
+`duto bench` runs 11 small tasks, each needing a habit a model cannot know, with your own `claude` CLI: once with recall off and once with Dude Toldya on. It prints how often the habit was followed in each case. It needs the plugin installed in Claude Code and `claude` logged in.
+
+**Availability:** `bench` is on the repository main branch, not in the 0.3.1 release or an npm package. Clone the repository first (see Quick Start), then run the commands below from that checkout. The first run used an experimental modified plugin in an isolated profile; normal installations have not been verified. Claude Code may load global instructions and other plugins and save session transcripts.
+
+```bash
+node bin/duto.mjs bench                        # shows what it would do and the rough cost, runs nothing
+node bin/duto.mjs bench --yes                  # 66 runs on haiku, about USD 0.4 and 13 minutes on your own plan
+node bin/duto.mjs bench --yes --model sonnet   # about USD 4
+```
+
+The habits are made up and the tasks are small. Your own CLAUDE.md or global rules stay active, so a rule of yours that matches a task can raise the "off" score. First real run (author's own terminal, haiku, 66 runs, USD 0.33): 3/33 with recall off, 20/33 with Dude Toldya ([record](docs/data/bench-first-run/result.md)). The numbers above came from a store of 240 corrections; `duto bench` uses 11, so expect different numbers. If you run it, a line like "haiku, 66 runs: 3/33 off, 19/33 on" in an [issue](https://github.com/toranalytics/dude-toldya/issues) is plenty.
+
 ## Evidence
 
+### Latest measurements (2026-10-28): personal preferences the model cannot know
+Claude Code 2.1.311, haiku, headless, plugin 0.2.1/0.2.3 code, synthetic store and tasks written by other models than the experimenter, automatic scoring, plans fixed before the runs. 11 tasks where the default model rarely follows the preference (commit format, tooling, tone, date format, spelling...), 3 runs each:
+
+| | followed the preference |
+|---|---|
+| no recall | 1/33 |
+| Dude Toldya, former narrow default | 9/33 |
+| Dude Toldya, `recallWide` (default since 0.3.0) | 17/33 |
+
+- With a larger model (Claude Code with Sonnet instead of haiku, same tasks and store, 66 runs): no recall 2/33, current default 20/33; better in 7 tasks, worse in none (sign test p = 0.016). Synthetic habits, 3 runs per cell. Record: [docs](docs/preference-experiment-2026-10-28.md).
+- A third run after fixing the scorer defect (experiment 5b, same store and tasks, 99 more runs): no recall 2/33, former narrow default 14/33, `recallWide` 25/33. It is one more sample with the same direction; the higher numbers come partly from the fix and partly from run-to-run variation, so the first table is not replaced. Record: [docs](docs/preference-experiment-2026-10-28.md).
+- The result was seen twice on two different stores (16/33 vs 8/33, then 17/33 vs 9/33). Against no recall, task by task: wide recall was better in 8 tasks and worse in none (sign test p = 0.008); the former narrow default was better in 5 and worse in none (p = 0.063).
+- The mechanism is retrieval: when the right correction is among the quotes shown the model follows it far more often; when it is not found, nothing changes. Offline, the former narrow default finds the right correction for 8 of 20 tasks (13 of 20 when the same correction has been repeated); `recallWide` finds more.
+- It does not always work: in one of the 11 tasks (a strict one-sentence answer format) the shown correction was not followed in any run. A second task that also stayed at 0/3 was a scoring defect found afterwards (the scorer rejected answers wrapped in a code fence); re-read from the transcripts, 5 of 6 runs that saw the correction followed it against 0 of 3 that did not. That recount is post hoc and the reported numbers above are the original ones, so they understate the effect.
+- No benefit was found where the default model already avoids the mistake (14 of 16 tasks passed without any recall), and the quoted correction did not beat a plain list of rules at 150 records. Such a list stops fitting as a history grows; that case was not tested.
+- Not shown: effect on a real user's history, models other than Claude haiku and Sonnet (for example Opus or the Codex models), interactive sessions or long-term correction rates; the corrections here are written by a model.
+- Records, scripts and data: [docs/](docs/), including the weaknesses found by an independent review. Every experiment, including the ones that failed or were stopped (19 entries), is listed with its result in [docs/experiments.md](docs/experiments.md).
+
+- [Live Claude Code headless smoke record (2.1.311, plugin 0.2.1; interactive use not tested; one run produced a very long malformed output that did not reproduce in 8 reruns)](docs/live-claude-smoke-2026-10-27.md)
+- [Live Codex smoke record (macOS, 0.2.0 on codex-cli 0.162.1; Claude Code not tested)](docs/live-codex-smoke-2026-10-27.md). This supplied historical record is not a live verification of 0.2.2.
+
 <p align="center">
-  <img src="assets/evidence.svg" alt="Wins, ties and losses against nothing attached: actual correction 36/3/0, Off the Wall 25/11/3, random rules 18/15/6, distilled rules 14/17/8" width="92%" />
+  <img src="assets/evidence.svg" alt="Wins, ties and losses against nothing attached: actual correction 36/3/0, Dude Toldya 25/11/3, random rules 18/15/6, distilled rules 14/17/8" width="92%" />
 </p>
 
 All measured numbers come from one person's history, so treat them as a first, exploratory result, not a general law.
@@ -197,7 +266,7 @@ context is built as described. It says nothing about model or user outcomes.
 **One-person text replay, not a general finding.** 39 selected requests from one user's history were replayed as text.
 Each had in fact been followed by a correction that could be judged from the text. Opus 5.5 answered each request
 under each condition. A Sonnet grader (a model, not a person) compared two answers at a time, blind, and was asked twice
-with the order swapped; a win needed both orders to agree. The Off the Wall condition combined 6 quotes with the
+with the order swapped; a win needed both orders to agree. The Dude Toldya condition combined 6 quotes with the
 "predict the objection" line: 25 wins, 11 ties, 3 losses against nothing attached, and 17 wins, 14 ties, 8 losses
 against random rules (a lean on 39 cases, not a settled result). Distilled one-line rules did not beat random ones.
 This is not an independent replication. It does not show a benefit in the live product, and because quotes and the
@@ -235,11 +304,12 @@ mapping follows the same classes by analogy and has not been measured.
 
 ## Settings
 
-`~/.otw/config.json`, every key optional. What you set here wins over what is detected:
+`~/.otw/config.json` is optional; a missing file uses normal defaults. Valid partial settings keep the same schema, and explicit values override detection. `recall`, `recallWide`, `capture` and `routing` must be actual JSON booleans, not strings. One leading UTF-8 BOM is supported. An existing file that is unreadable, malformed, not an object, has wrong types, unknown keys or invalid nested values fails closed: all four flags become `false`, and manual `report` stops before reading history or calling a provider. `node bin/duto.mjs status` shows sanitized `config-invalid`, never raw config values or errors.
 
 ```json
 {
   "recall": true,
+  "recallWide": true,
   "capture": true,
   "routing": true,
   "judge": { "claude": "haiku", "codex": "gpt-6.1-sol" },
@@ -250,11 +320,21 @@ mapping follows the same classes by analogy and has not been measured.
 }
 ```
 
-`node bin/otw.mjs status` shows what is stored.
+`node bin/duto.mjs status` shows what is stored.
+
+### Wide recall (default since 0.3.0)
+
+Wide recall is now on by default. For prompts of 20+ trimmed characters it ranks up to six distinct eligible same-project quotes by similarity regardless of the normal 0.18 floor, using a tiny positive floor and still excluding zero overlap. Project scoping, provenance and deduplication are unchanged; `recall: false` still disables recall. Set `"recallWide": false` in `~/.otw/config.json` to restore the old 0.18 floor. Prompts under 20 trimmed characters keep that narrow guard even in wide mode, so short follow-ups do not automatically receive six weak matches. Status adds `recall narrow` only when wide recall is off.
+
+Cost: up to 6 quotes of at most 200 characters each, roughly 300 tokens per prompt, on every prompt including unrelated ones (subject to the short-prompt guard and eligibility filters).
+
+Evidence: two synthetic runs on two stores, with 11 personal-preference tasks and 3 runs each in Claude Code with haiku, passed 16/33 and 17/33 with wide recall against 8/33 and 9/33 with the former narrow default. A harm check on 14 tasks with no applicable preference (42 runs per condition) passed 40/42 with no recall against 41/42 with wide recall; no task lost 2 or more of 3 runs. Output tokens were about 9 percent higher on average (2,026 vs 2,210), and seconds were 16.5 vs 17.8 (not significant, indicative only). All tests were synthetic, on one small model, headless; they do not establish benefit on real histories or other models. The short-prompt guard itself was not measured.
+
+[Experiment details](docs/preference-experiment-2026-10-28.md) · [Preference data](docs/data/exp4) · [Second-store data](docs/data/exp5) · [Harm-check data](docs/data/exp6)
 
 ## Privacy
 
-Storage is local, but local storage does not mean nothing leaves your machine. Off the Wall keeps these in `~/.otw`:
+Storage is local, but local storage does not mean nothing leaves your machine. Dude Toldya keeps these in `~/.otw`:
 - `corrections.jsonl`, including older records that are no longer recalled
 - per-session state
 - `log.jsonl`
@@ -268,12 +348,23 @@ What is sent out, always through your own `claude` or `codex` CLI and so to your
 There is no publisher telemetry and no separate API key. That is not the same as no provider processing: your
 provider still sees these excerpts and your plan's usage or charges can apply. The default event and error logs omit raw
 excerpts. With `OTW_DEBUG` set, raw excerpts can be written to `~/.otw/log.jsonl`. History frames that are unknown or too
-large fail closed: project and pending state are not guessed from them. Deleting `~/.otw` forgets what Off the Wall stored, but it does not erase your Claude Code
-or Codex histories or any copies kept by a provider. There is no delete command yet. Sharing is manual: the Discussions
+large fail closed: project and pending state are not guessed from them. Deleting `~/.otw` forgets what Dude Toldya stored, but it does not erase your Claude Code
+or Codex histories or any copies kept by a provider. `duto forget` (since 0.3.1; see Scope and legacy records) deletes what Dude Toldya stored; 0.3.0 and earlier have no delete command. Sharing is manual: the Discussions
 link only prefills counts and kind names, and you review it before publishing.
+
+### Capture controls and deletion
+
+- An eligible foreground capture or explicit `report --seed` initializes `.capture-generation` and empty target files when needed. Jobs bind to that generation, the store root and corrections-file identities, and the config filesystem revision. They recheck before provider dispatch and before appending. Legacy queued jobs without this storage authorization are dropped; old corrections are preserved without silent migration. When config is absent, jobs also bind the root-directory revision; unrelated root-entry creation/deletion can conservatively invalidate older jobs.
+
+- Turning capture off, changing the config revision, deleting `corrections.jsonl`, or deleting/replacing the whole store prevents old results from being saved, including debug excerpts. Workers do not recreate directories. A new foreground human prompt/session can initialize fresh storage, but old results cannot enter it. Deleting the whole store also removes its config, so normal defaults can enable capture again on a new eligible prompt/session.
+
+- This revokes result storage, not the process or text already sent. An already-dispatched provider call may finish and consume usage. Manual file edits or truncation are not an erase/revocation command: delete the corrections file or store folder. Filesystem metadata/timestamp sensitivity varies; this is not a promise of atomic, instant cancellation against every external write.
+
+- On POSIX, new directories/files request `0700`/`0600`; existing permissions are not globally changed. Session writes use atomic temporary-file/rename replacement, not a guarantee of full concurrent-hook ordering or recovery from corrupt state. There is no per-memory UI or new clear/pause command.
 
 ## Limits
 
+- Native judge tool/context isolation remains unfixed; live-host reload and effects remain unverified.
 - Windows: CI covers Node 18/20/22 on Windows, Linux and macOS; see the current PR checks for results. Live Windows Claude Code/Codex sessions remain unverified. The two POSIX configured fake-provider tests are skipped on Windows.
 - The judge sometimes misses (Claude Haiku: precision 0.82, recall 0.72, on one user's labels). Historically, on Codex, live
   sessions of an earlier version installed from this repository caught 2 of 2 corrections with the default judge; the earlier gpt-6-luna
@@ -282,7 +373,7 @@ link only prefills counts and kind names, and you review it before publishing.
   some relevant corrections can be left out.
 - Scope is per exact working directory. Related folders, moved projects and worktrees do not share recall.
 - Recall quotes your words to the model only. They are not shown to you during the session.
-- There is no memory-management UI or delete command yet.
+- There is no memory-management UI; `duto forget` (since 0.3.1) deletes stored records on request.
 
 ## Development
 
@@ -306,10 +397,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Changes are listed in [CHANGELOG.md](CHA
 - [awesome-context-engineering](https://github.com/yzfly/awesome-context-engineering)
 - [awesome-agent-memory](https://github.com/mnemoverse/awesome-agent-memory)
 
-Community plugin directory: [Claude & Codex Plugins](https://claudecodexplugins.com/plugins/toranalytics/off-the-wall/off-the-wall).
+Community plugin directory: [Claude & Codex Plugins](https://claudecodexplugins.com/plugins/toranalytics/dude-toldya/dude-toldya).
 
 ## License
 
 MIT © [Junebeom Seo](https://github.com/toranalytics)
 
-[Privacy](https://github.com/toranalytics/off-the-wall#privacy)
+[Privacy](https://github.com/toranalytics/dude-toldya#privacy)

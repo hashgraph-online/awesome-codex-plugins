@@ -1,0 +1,4 @@
+interface:
+  display_name: "Magic Hour Creator Ads"
+  short_description: "Finish grounded presenter and product video ads"
+  default_prompt: "Use $magic-hour-ugc-ad-video to turn my approved product facts and references into a finished creator-style ad with speech, product footage, captions and CTA within my budget."

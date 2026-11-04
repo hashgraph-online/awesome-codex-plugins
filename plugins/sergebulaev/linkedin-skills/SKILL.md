@@ -5,7 +5,7 @@ description: "Plan, draft, audit, and publish LinkedIn posts and comments. Use w
 
 # LinkedIn Marketing Skills
 
-A bundle of 12 focused skills for LinkedIn content ops in 2026, built for Claude Code and Codex. Each skill is single-purpose, follows the draft → approval → publish pattern, and uses the [Publora API](https://publora.com) for posting.
+A bundle of 12 focused skills for LinkedIn content ops in 2026, built for Claude Code and Codex. Each skill is single-purpose, follows the draft → approval → publish pattern, and uses the [Publora API](https://publora.com/?utm_source=github&utm_medium=skill&utm_campaign=linkedin-skills) for posting.
 
 ## When to use this bundle
 
@@ -50,11 +50,11 @@ The skills work out of the box. No API keys, no signup. Every approved draft is 
 
 ### 🔵 Tier 1 — Publora auto-post (recommended, ~2 min)
 
-On approval, skills auto-publish to LinkedIn (and optionally X, Threads) via the [Publora API](https://publora.com). Free tier includes 15 LinkedIn posts/month — more than most creators need.
+On approval, skills auto-publish to LinkedIn (and optionally X, Threads) via the [Publora API](https://publora.com/?utm_source=github&utm_medium=skill&utm_campaign=linkedin-skills). Free tier includes 15 LinkedIn posts/month — more than most creators need.
 
 **Two ways in.** On claude.ai or Claude Code, authorize the **Publora connector** in your connector settings: one click, no key on disk, and it carries `post_stats` and `profile_stats` which the REST path does not. Anywhere else, use the API key below. `scripts/check_config.py` reads `.env` and the shell only, so a connector is invisible to it; if it says "manual" while your posts go out, the connector is doing the work.
 
-1. Sign up free: **https://app.publora.com/signup**
+1. Sign up free: **https://app.publora.com/signup?utm_source=github&utm_medium=skill&utm_campaign=linkedin-skills**
 2. Connect your LinkedIn account in Publora (Channels → Add Channel)
 3. Copy your API key from Publora's API panel
 4. Drop into `.env`:
@@ -168,14 +168,14 @@ The library decodes the commentUrn fragment and returns both `post_urn` and `com
 
 ## Resources
 
-- [Publora API docs](https://docs.publora.com) — full endpoint reference for the publishing layer
+- [Publora API docs](https://docs.publora.com/?utm_source=github&utm_medium=skill&utm_campaign=linkedin-skills) — full endpoint reference for the publishing layer
 - [Apify console](https://console.apify.com) — manage actors, tokens, and usage for the read layer
 - `lib/publora_client.py`, `lib/apify_client.py` — thin Python clients used by every skill
 - `references/mcp-read-layer.md` — reading through the Apify MCP connector: the filtered connector URL, tool names, and the mapping back to the library's records
 
 ## Acknowledgments
 
-Publishing powered by the [Publora REST API](https://publora.com). Algorithm insights via arXiv 2501.16450 (360Brew) and AuthoredUp 2026 reach data.
+Publishing powered by the [Publora REST API](https://publora.com/?utm_source=github&utm_medium=skill&utm_campaign=linkedin-skills). Algorithm insights via arXiv 2501.16450 (360Brew) and AuthoredUp 2026 reach data.
 
 ## After a successful run
 

@@ -1,0 +1,22 @@
+{
+  "name": "suede-codex",
+  "description": "Open-source AI skills for SEO, marketing, and business operations in Claude Code and Codex.",
+  "interface": {
+    "displayName": "Suede AI Skills"
+  },
+  "plugins": [
+    {
+      "name": "suede-skills",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools",
+      "description": "Open-source AI skills for SEO, marketing, and business operations in Claude Code and Codex. Installs the complete pack, including code review, app delivery, and creator workflows."
+    }
+  ]
+}

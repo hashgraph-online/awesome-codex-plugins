@@ -98,7 +98,7 @@ Read only the references needed for the task.
 
 For document, PDF, spreadsheet, or presentation files, also use any available format-specific skill for file manipulation and rendering. Keep this skill responsible for engineering validity and scientific interpretation.
 
-For a manuscript authored or supervised by Han Hu, read [han-hu-research-style.md](references/han-hu-research-style.md) together with the task-specific paper and figure references even when the request does not explicitly ask for style matching. When the user provides or configures a private style-calibration corpus, also read [han-hu-style-calibration-protocol.md](references/han-hu-style-calibration-protocol.md), retrieve only genre-matched evidence, and report the evidence status of the exemplars used.
+For a manuscript authored or supervised by Han Hu, read [han-hu-research-style.md](references/han-hu-research-style.md) together with the task-specific paper and figure references even when the request does not explicitly ask for style matching. Apply its noun-first wording and evidence-specific vocabulary rules. Do not use generic interrogative clauses or `record` as a catch-all when a precise scientific object is available. When the user provides or configures a private style-calibration corpus, also read [han-hu-style-calibration-protocol.md](references/han-hu-style-calibration-protocol.md), retrieve only genre-matched evidence, and report the evidence status of the exemplars used.
 
 For iterative peer-review work, use `reviewer-author-loop` as the process scaffold when available. Apply this skill to physics, equations, instrumentation, uncertainty, data reduction, figures, modeling assumptions, and claim support.
 

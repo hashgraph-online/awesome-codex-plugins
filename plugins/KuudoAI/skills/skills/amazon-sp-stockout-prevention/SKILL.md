@@ -16,7 +16,8 @@ description: >-
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Requires an SP-API MCP server exposing FBA Inventory (getInventorySummaries), Sales (getOrderMetrics), and Fulfillment Inbound v2024-03-20 reads. Amazon's planning report also needs the Reports API and a host that can run the bundled Python 3.9+ script with outbound HTTPS. Charts render only where the host supports artifacts.
 metadata:
-  version: "0.2.1"
+  display-name: "Amazon SP FBA Stockout Prevention"
+  version: "0.2.2"
 ---
 
 # Amazon FBA stockout prevention

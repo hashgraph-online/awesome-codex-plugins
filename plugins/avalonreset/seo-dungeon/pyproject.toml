@@ -1,8 +1,8 @@
 [project]
 name = "legends-seo-dungeon"
-version = "2.2.5"
+version = "2.2.6"
 description = "Open-source Legends SEO Dungeon skill suite"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "MIT"
 readme = "README.md"
 authors = [
@@ -24,7 +24,7 @@ classifiers = [
   "Intended Audience :: Developers",
   "License :: OSI Approved :: MIT License",
   "Programming Language :: Python :: 3",
-  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
   "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
 ]
 dependencies = []
@@ -35,7 +35,7 @@ Repository = "https://github.com/avalonreset/legends-seo-dungeon"
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "bestprice-shopping": {
+      "type": "http",
+      "url": "https://mcp.bestprice.gr/mcp"
+    }
+  }
+}

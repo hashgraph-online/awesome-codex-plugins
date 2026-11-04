@@ -1,0 +1,130 @@
+{
+  "skill_name": "suede-video",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We need a 2-minute product demo video for our SaaS homepage. What's the fastest way to produce it?",
+      "expected_output": "Should check for product-marketing.md first. Should walk through the Product Demo Video workflow: script the key features and value props (cross-reference `suede-copy`), screen record the product flow, programmatic overlay with Hyperframes or Remotion for titles, callouts, and transitions, optional AI B-roll for establishing shots, voiceover via recording or an approved avatar workflow, and export at platform-appropriate specs. Should recommend a programmatic approach when it fits the verified runtime. Should remind: do not use AI for product UI screens because models can hallucinate UI; use real screen recording. Should make captions an accessibility default and require current account data before stating a sound-off viewing rate.",
+      "assertions": [
+        "Checks for product-marketing.md",
+        "Walks through Product Demo workflow steps",
+        "Uses real screen recording, not AI generated UI",
+        "Recommends programmatic overlay tool",
+        "Mentions captions",
+        "Cross-references suede-copy"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We want to make weekly product update videos. About 60 seconds each. Don't want to be on camera. Recommend a setup.",
+      "expected_output": "Should consider an AI-avatar workflow for the recurring no-camera requirement, but first discover currently callable tools and verify authenticated access, current official features, price, output rights, and voice or likeness consent. If no avatar tool is available, it should return a vendor-neutral manual workflow using an approved script, user-operated upload, export checklist, and recorded-voice or camera fallback. It should outline a reusable pipeline from product context through script, approved presenter, optional overlay, review, captions, and export. It should explain the authenticity tradeoff and avoid hard-coded vendor rankings or plan claims.",
+      "assertions": [
+        "Recommends AI avatar approach",
+        "Discovers and verifies current authorized avatar tooling",
+        "Provides a manual fallback when no connector is callable",
+        "Requires voice and likeness consent",
+        "Identifies as a recurring use case",
+        "Warns about authenticity tradeoff"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I want to generate a 10-second clip of a person typing on a laptop in a coffee shop for our landing page. Which AI tool?",
+      "expected_output": "Should discover which image-to-video or text-to-video tools are currently callable and authorized, then compare only those using current official documentation, cost, duration, output rights, and motion-control needs. If none is available, it should provide a vendor-neutral prompt and licensed-stock or original-footage fallback. The prompt should follow Subject + Action + Camera + Style + Mood. It should warn about vague prompts, missing camera direction, unverified readable text, and unapproved likenesses.",
+      "assertions": [
+        "Compares only currently available authorized generators",
+        "Provides structured video prompt example",
+        "Follows Subject + Action + Camera + Style + Mood pattern",
+        "Warns about common prompt mistakes",
+        "Provides a manual or licensed-footage fallback"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "We just did a 60-minute webinar. How do we get short clips out of it for social?",
+      "expected_output": "Should apply the Repurposing Workflow: long-form source to transcript-based cleanup, bounded clip selection, captions and platform styling, then approved distribution. Should explain when each available tool fits and verify current access, cost, and rights before use. Should make captions an accessibility default without asserting a universal sound-off rate. Should treat aspect ratio and opening-hook timing as platform and account hypotheses to verify. Should cross-reference `suede-social` for channel strategy.",
+      "assertions": [
+        "Applies repurposing workflow",
+        "Maps the workflow to discovered tools or a manual edit fallback",
+        "Uses captions as an accessibility default",
+        "Treats aspect ratios as current platform requirements to verify",
+        "Treats opening-hook timing as a testable hypothesis",
+        "May cross-reference suede-social"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "We need to generate 50 personalized intro videos for sales outreach. Each one mentions a different company name and pain point.",
+      "expected_output": "Should treat this as a rights-sensitive batch workflow. Before recommending automation, it should discover currently callable avatar and rendering tools, verify access, price, output rights, personalization consent, and approved company claims. It should prepare a master template and run a bounded pilot sized to reveal quality and reply-signal problems before producing all 50; the pilot size must be justified by cost and review capacity rather than hard-coded. If no tools are callable, it should return scripts, variables, asset manifest, captions, and manual editor instructions. It should track replies and cost against an approved baseline without asserting the videos must outperform email.",
+      "assertions": [
+        "Discovers current authorized avatar and rendering tools",
+        "Provides a manual production fallback",
+        "Suggests template + loop approach",
+        "Recommends a justified bounded pilot before the full batch",
+        "Mentions reply tracking / ROI",
+        "Mentions captions"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Should I use Hyperframes or Remotion for programmatic video?",
+      "expected_output": "Should first verify whether Hyperframes and Remotion are installed or callable and read their current official documentation and licenses. It should compare the verified runtime, authoring model, animation needs, rendering path, hosting cost, licensing, and the user's stack. If neither is available, it should provide a renderer-neutral storyboard, asset manifest, and timing spec. It should not assert ownership, license, hosting, or scale claims from memory.",
+      "assertions": [
+        "Compares the two with the When to Pick Which table",
+        "Verifies both current runtimes and official documentation",
+        "Compares rendering and hosting paths",
+        "Compares current licenses",
+        "Provides a renderer-neutral fallback",
+        "Asks about stack or animation needs"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "There's a TikTok edit style I love — fast cuts, one-word captions that pop, a whoosh on every scene change. I have my own talking-head clip. Break down how that edit works so I can replicate the style. Here's the reference: [link]",
+      "expected_output": "Should apply references/edit-anatomy.md, not just describe the reference. It should first discover a currently callable authorized media viewer, local-file inspector, or browser. If none is available, it should request the media, screenshots, or a timecoded export and provide a manual frame-sampling checklist. It must not claim to have seen frames it did not render. It should extract the edit anatomy into both a per-beat sheet and a concise style summary, present the sheet for review before execution, map execution to a currently available editor or a manual handoff, and copy only editing grammar applied to the user's own footage and message.",
+      "assertions": [
+        "Applies the edit-anatomy reverse-engineering method, not a plain description",
+        "Discovers an authorized viewer or uses a supplied-media manual fallback",
+        "Extracts the edit anatomy across the dimensions and expresses patterns (not a raw list of cut timestamps)",
+        "Outputs a per-beat beat sheet AND a style summary of the signature moves",
+        "Presents the beat sheet for a review-once approval before executing",
+        "Maps execution to an available editor or manual handoff",
+        "Applies the originality guardrail — copies editing grammar applied to the user's own footage, never the reference's footage/script/music"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Our sales team wants a tailored 60-second product demo video for each of our top 200 target accounts. We have Claude Code. How do we do this without spending 20 minutes per video going back and forth?",
+      "expected_output": "Should use the Personalized Video per Account workflow: build the foundation before producing films. Should include a reusable product component library, motion primitives, a menu of company-agnostic demo flows, per-account scripts drafted from call notes, CRM and account research with a fictional company on screen, voiceover from a narrator voice cloned only with documented consent, a render engine that turns a beat list into a film, automated QA via contact sheets (clipped text, small type, stray pointers), and one tracker with a row per film. Should suggest storyboarding the first film, running parallel lanes for tool limits, and should stay tool-neutral (Hyperframes, Remotion, or a design tool with agent access) rather than prescribing one. Rendering, voice cloning, and delivery stay separate approvals.",
+      "assertions": [
+        "Says to build the reusable foundation before producing per-account films",
+        "Includes a product component library and reusable motion parts",
+        "Builds per-account scripts from account data with a fictional company on screen",
+        "Requires the narrator's consent for a cloned voice",
+        "Includes automated QA before human review",
+        "Includes a tracker with one row per film",
+        "Presents rendering tools as options rather than recommending one as best"
+      ],
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Hyperframes or Remotion for our product videos? Which one is more powerful?",
+      "expected_output": "Should not declare either framework more powerful. Should explain that the main difference is the authoring model: Hyperframes compositions are HTML/CSS/JS with timing declared in markup and a paused timeline the renderer seeks, while Remotion compositions are React components that compute each frame from the frame number. Should recommend choosing by what the team and source material already are (existing HTML or browser animations vs an existing React codebase), and point to each project's docs for current rendering options, licensing and features rather than stating them as fixed facts.",
+      "assertions": [
+        "Does not claim either tool is more powerful or better overall",
+        "Explains the difference as HTML vs React authoring",
+        "Recommends choosing based on the team's existing stack and source material",
+        "Points to each project's docs for licensing, rendering options and features"
+      ],
+      "files": []
+    }
+  ]
+}

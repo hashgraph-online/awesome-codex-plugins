@@ -1,0 +1,110 @@
+{
+  "id": "pixel-runner-crt",
+  "name": "Pixel-art runner on a CRT",
+  "use": "An 18 s side-scrolling pixel-art mini game (run, jump, reach the logo) shown through a curved, scanlined CRT.",
+  "formats": ["16:9", "9:16", "1:1"],
+  "duration_s": 18,
+  "fonts": [
+    { "family": "Press Start 2P", "weights": [400], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Press+Start+2P", "role": "title, score; 8 px base, integer-scaled" },
+    { "family": "Silkscreen", "weights": [400, 700], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Silkscreen", "role": "small UI" }
+  ],
+  "beats": [
+    { "t": [0.0, 1.0], "beat": "CRT power-on" },
+    { "t": [1.0, 3.0], "beat": "title + PRESS START blink 2 Hz; 8 Hz for 0.5 s on press" },
+    { "t": [3.0, 5.0], "beat": "hero runs in; camera locks hero at 33% of the frame width" },
+    { "t": [5.0, 11.0], "beat": "3 obstacles, one every 2 beats; coins +100" },
+    { "t": [11.0, 13.0], "beat": "speed-up: 2 base px/frame, poses at 4 frames" },
+    { "t": [13.0, 15.0], "beat": "big gap jump: 2-frame hit-stop at apex, 1 px shake for 6 frames on landing" },
+    { "t": [15.0, 16.5], "beat": "goal turns into the logo; STAGE CLEAR types in at 15 chars/s" },
+    { "t": [16.5, 18.0], "beat": "logo hold 0.75 s, CRT power-off" }
+  ],
+  "presets": [
+    {
+      "id": "pixel-runner-crt.console-16",
+      "label": "16-colour console, 16:9",
+      "look": "Fantasy-console palette on a consumer CRT",
+      "params": {
+        "base_px": [320, 180],
+        "scale": 6,
+        "output_px": [1920, 1080],
+        "fps": 60,
+        "scaling_filter": "nearest-neighbour",
+        "palette_hex": ["#000000", "#1D2B53", "#7E2553", "#008751", "#AB5236", "#5F574F", "#C2C3C7", "#FFF1E8", "#FF004D", "#FFA300", "#FFEC27", "#00E436", "#29ADFF", "#83769C", "#FF77A8", "#FFCCAA"],
+        "colours_per_sprite_max": 4,
+        "hero_px": [16, 16],
+        "hero_pct_frame_h": 8.9,
+        "run_cycle": { "poses": 8, "pose_ms": 80, "pose_frames_at_60fps": 5, "bob_px": 1 },
+        "scroll_base_px_per_frame": 1,
+        "scroll_speedup_base_px_per_frame": 2,
+        "parallax": [0.25, 0.5, 1.0],
+        "jump": { "airtime_s": 0.5, "apex_base_px": 24, "curve": "parabola", "land_squash_frames": 1 },
+        "music_bpm": 120,
+        "music_voices_max": 4,
+        "crt_lottes": { "hardScan": -8.0, "hardPix": -3.0, "warpX": 0.031, "warpY": 0.041, "shadowMask": 3, "maskDark": 0.5, "maskLight": 1.5, "bloomAmount": 0.15, "brightBoost": 1.0, "scaleInLinearGamma": 1 },
+        "power_on": { "line_frames": 2, "expand_frames": 8, "overbright_frames": 6, "brightBoost_from": 1.3 },
+        "power_off": { "collapse_frames": 6, "shrink_to_dot_frames": 6, "dot_fade_frames": 12 },
+        "press_start_blink_hz": 2,
+        "pipeline_order": ["pixel render at base res", "optional composite (ntsc-rs, light)", "CRT shader on low-res texture", "output"]
+      },
+      "sources": [3, 10, 13, 14, 17, 18]
+    },
+    {
+      "id": "pixel-runner-crt.dmg-green",
+      "label": "4-shade handheld green",
+      "look": "Monochrome green handheld, soft scanlines, flat screen",
+      "params": {
+        "base_px": [320, 180],
+        "scale": 6,
+        "palette_hex": ["#081820", "#346856", "#88c070", "#e0f8d0"],
+        "crt_lottes": { "hardScan": -6.0, "hardPix": -3.0, "warpX": 0.0, "warpY": 0.0, "maskDark": 1.0, "maskLight": 1.0, "bloomAmount": 0.1 }
+      },
+      "sources": [10, 19]
+    },
+    {
+      "id": "pixel-runner-crt.nes-strict",
+      "label": "Strict 8-bit sprite limits",
+      "look": "Hardware-honest sprites and a curved tube",
+      "params": {
+        "base_px": [320, 180],
+        "scale": 6,
+        "sprite_tiles_px": [8, 8],
+        "sprite_visible_colours": 3,
+        "sprite_palettes": 4,
+        "max_sprites_per_row": 8,
+        "max_sprites_on_screen": 64,
+        "run_cycle": { "poses": 3, "loop_frames": 4, "repeat_pose": "passing", "pose_frames_at_60fps": 8, "pose_ms": 133 },
+        "crt_geom": { "CRTgamma": 2.4, "monitorgamma": 2.2, "R": 2.0, "d": 2.0, "cornersize": 0.03, "cornersmooth": 1000, "overscan": 1.02 }
+      },
+      "sources": [11, 14, 15, 16]
+    },
+    {
+      "id": "pixel-runner-crt.vertical",
+      "label": "9:16",
+      "look": "Phone-format runner on the lower third",
+      "params": { "base_px": [180, 320], "scale": 6, "output_px": [1080, 1920], "ground_y_pct": 70, "hero_px": [16, 16], "inherits": "pixel-runner-crt.console-16" },
+      "sources": [13]
+    },
+    {
+      "id": "pixel-runner-crt.square-128",
+      "label": "1:1 fantasy console",
+      "look": "128×128 cart look in a square frame with a bezel",
+      "params": { "base_px": [128, 128], "scale": 8, "screen_px": [1024, 1024], "output_px": [1080, 1080], "bezel_px": 28, "update_fps": 30, "pose_frames": 4, "pose_ms": 133, "palette": "PICO-8 16" },
+      "sources": [17, 18]
+    }
+  ],
+  "registry_blocks": ["stop-motion-cadence", "yt-screen-warp", "vignette", "filmed-screen", "ordered-dither-pass", "grain-overlay"],
+  "sources": [
+    { "n": 3, "name": "Finn McKenty on X — NTSC → downscale → CRT order", "url": "https://x.com/thefinnmckenty/status/2078469612786847903" },
+    { "n": 4, "name": "Finn McKenty on X — ntsc-rs + RetroArch CRT app", "url": "https://x.com/thefinnmckenty/status/2079554243380572162" },
+    { "n": 10, "name": "Timothy Lottes — public-domain CRT shader (libretro slang port)", "url": "https://raw.githubusercontent.com/libretro/slang-shaders/master/crt/shaders/crt-lottes.slang" },
+    { "n": 11, "name": "Hunter K. — Customizing cgwg's CRT pixel shader (crt-geom)", "url": "https://filthypants.blogspot.com/2012/07/customizing-cgwgs-crt-pixel-shader.html" },
+    { "n": 12, "name": "Pedro Medeiros (@saint11) on X — pixel-art tutorial index", "url": "https://x.com/saint11/status/1283130502195539968" },
+    { "n": 13, "name": "Pedro Medeiros — Scaling pixel art", "url": "https://saint11.art/blog/scaling/" },
+    { "n": 14, "name": "Raymond Schlitter (Slynyrd) — Pixelblog 8: Intro to Animation", "url": "https://slynyrd.com/blog/2018/8/19/pixelblog-8-intro-to-animation" },
+    { "n": 15, "name": "NESdev Wiki — PPU palettes", "url": "https://www.nesdev.org/wiki/PPU_palettes" },
+    { "n": 16, "name": "NESdev Wiki — PPU OAM", "url": "https://www.nesdev.org/wiki/PPU_OAM" },
+    { "n": 17, "name": "Lexaloffle — PICO-8 manual", "url": "https://www.lexaloffle.com/dl/docs/pico-8_manual.html" },
+    { "n": 18, "name": "Lospec — PICO-8 palette", "url": "https://lospec.com/palette-list/pico-8" },
+    { "n": 19, "name": "Lospec — Nintendo Game Boy (BGB) palette", "url": "https://lospec.com/palette-list/nintendo-gameboy-bgb" }
+  ]
+}

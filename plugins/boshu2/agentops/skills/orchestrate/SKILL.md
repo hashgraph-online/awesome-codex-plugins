@@ -78,7 +78,9 @@ edits; it does not enforce restricted-source or model-egress limits
 ([model dispatch](../agent-native/references/model-dispatch.md)).
 
 Dispatch a genuinely fresh implementer for one coherent accepted task, without
-the coordinator's transcript or unrelated research; a new goal, role label,
+the coordinator's transcript or unrelated research: use the runtime's task-only
+dispatch, since a short prompt in a forked session still carries the history
+([RPI](../rpi/SKILL.md#delegation-and-handoffs)). A new goal, role label,
 cleared summary or resumed author context is not fresh. Pass the accepted
 examples, applicable constraints, exact starting content, usable prerequisites,
 authorized write/output scope, source pointers, required checks, integration
@@ -86,7 +88,8 @@ responsibility and real remaining bounds; brevity cannot omit a constraint. A
 pointer counts only if the worker can open it: a link relative to a skill's own
 folder, or a file outside the worker's workspace, does not resolve there, so
 pass a path it can read or paste the rule itself. Record the worker's observed
-identity at startup through Agent Native's association procedure.
+identity at startup through Agent Native's
+[association procedure](../agent-native/SKILL.md#launch-and-observe).
 
 [Implement](../implement/SKILL.md) owns the complete change, meaningful checks
 and direct repair; it is optional guidance for that worker, not a compulsory

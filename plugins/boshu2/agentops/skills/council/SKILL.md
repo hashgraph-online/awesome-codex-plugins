@@ -197,6 +197,8 @@ its [schema](schemas/council-report.v1.schema.json).
 - **Validation command:**
   `bash "<skill-dir>/scripts/validate-output.sh" <council-report.json>`, or
   `bash "<skill-dir>/scripts/validate-output.sh" -` with an inline report on stdin.
+  It needs `jq`; exit 2 means the report was not checked, so check its fields
+  by hand against the schema and say the validator did not run.
 
 A judge that times out, errors, or returns an evidence-free judgment is excluded
 from agreement counting and listed as non-returning in `synthesis.notes` with

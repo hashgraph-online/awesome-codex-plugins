@@ -29,8 +29,8 @@ This skill owns:
 - **Typed access layer (v1.4)** — `datasheet_types/` package exposes `DatasheetFacts`, `SpecValue`, `Pin`, `Pinout`, `lookup()`, `best()`, `trusted()`, `has_data()`. Recommended for all new consumers.
 - **PDF page selection** — heuristics to pick pages most likely to contain pinouts, e-chars, applications, SPICE models.
 - **Quality scoring** — v1.4 uses a three-dimension rubric (pinout completeness, base completeness, category-extension completeness, 0–100 scale). v1.3 5-dimension weighted rubric still applies to legacy caches.
-- **Consumer APIs** — `scripts/datasheet_lookup.py` for v1.4 typed access; `scripts/datasheet_features.py` for the v1.3 dict-shaped helpers (`get_regulator_features`, `get_mcu_features`, `get_pin_function`) — the v1.3 helpers dual-read v1.4 caches and translate to v1.3 dict shape for legacy detector code. Sunset planned for v1.6.
-- **Verification** — `datasheet_verify.py` (v1.3, schema-vs-usage cross-check) plus `datasheet_verify_v14_extraction` (v1.4, power_domain references resolve, recommended ≤ absolute, regulator pin references exist).
+- **Consumer APIs** — `datasheet_types.cache_reader` (`from datasheet_types import lookup`) for v1.4 typed access; `scripts/datasheet_features.py` for the v1.3 dict-shaped helpers (`get_regulator_features`, `get_mcu_features`, `get_pin_function`) — the v1.3 helpers dual-read v1.4 caches and translate to v1.3 dict shape for legacy detector code. Sunset planned for v1.6.
+- **Verification** — `datasheet_verify.py` (v1.3, schema-vs-usage cross-check) plus `verify_v14_extraction` (v1.4, power_domain references resolve, recommended ≤ absolute, regulator pin references exist).
 
 ## Non-goals
 
@@ -63,15 +63,15 @@ This skill owns:
 - `scripts/datasheet_page_selector.py` — page selection heuristics (used by both v1.3 and v1.4 pipelines)
 - `scripts/datasheet_score.py` — v1.3 extraction quality scoring
 - `scripts/datasheet_verify.py` — cross-check extraction vs schematic usage (v1.3 + v1.4 `verify_v14_extraction` mode)
-- `scripts/datasheet_lookup.py` — **v1.4** typed `lookup(mpn) → DatasheetFacts` facade with staleness detection
 - `scripts/datasheet_features.py` — v1.3 consumer helper API (dual-reads v1.4 caches via `_derive_*_v14` translators)
 - `scripts/plan_extraction.py` — **v1.4** orchestration plan generator (Phase 3 extraction pipeline)
 - `scripts/merge_results.py` — **v1.4** per-task result validator + merger
 - `datasheet_types/` — **v1.4** typed access layer package (`DatasheetFacts`, `SpecValue`, `Pin`, `Pinout`, `lookup`, `best`, `trusted`, `has_data`)
+- `distributor_core/` — shared sync/fetch plumbing for the four distributor skills (BOM projection, `manifest.json`, download, verification, the sync driver); not an entry point of this skill
 
 ## Extraction workflow
 
-Run `python3 skills/datasheets/scripts/plan_extraction.py <project>` to generate an orchestration plan, then `merge_results.py` to validate and merge per-task outputs. Full scout→plan→dispatch→merge procedure: [`references/extraction-pipeline.md`](references/extraction-pipeline.md).
+Run `python3 skills/datasheets/scripts/plan_extraction.py <mpn> <pdf_path>` to generate the orchestration plan for one part, then `merge_results.py` to validate and merge per-task outputs. `merge_results.py` and `validate_extraction_result.py` need the `jsonschema` package (`pip install jsonschema`); everything else here is stdlib-only. Full scout→plan→dispatch→merge procedure: [`references/extraction-pipeline.md`](references/extraction-pipeline.md).
 
 ## Consuming extractions (v1.4 typed API)
 
@@ -82,7 +82,7 @@ import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent / "datasheets"))
 from datasheet_types import lookup, has_data, best, trusted
 
-# Returns Optional[DatasheetFacts]. None on cache miss / stale PDF / low quality.
+# Returns Optional[DatasheetFacts]. None on cache miss or unreadable cache; quality is reported on the object, not gated.
 facts = lookup("TPS61023DRLR", cache_dir=pathlib.Path("datasheets/extracted"))
 if facts is None:
     return  # heuristic-only path; no datasheet evidence available

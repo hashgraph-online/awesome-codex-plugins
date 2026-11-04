@@ -12,7 +12,7 @@ jk test <command> [flags]
 
 | Subcommand | Description | Key Flags |
 |---|---|---|
-| [report](#jk-test-report) | Show aggregated test results | — |
+| [report](#jk-test-report) | Show aggregated test results | `--failed` |
 
 ## jk test report
 
@@ -23,6 +23,12 @@ Show aggregated test results
 ```
 jk test report <jobPath> <buildNumber> [flags]
 ```
+
+### Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--failed` |  | Show only FAILED and REGRESSION cases; retain overall counts |
 
 ### Inherited Flags
 

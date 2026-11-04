@@ -186,6 +186,13 @@ of the resolved workspace and work target, the shift policy, why each entry serv
 objective, overlaps removed, rejected alternatives, and the stopping rule.
 This is the last look before anything is armed. Write nothing before approval.
 
+With the preview, ask the same one planning-menu question the plan room asks: "Before I write
+these, want any of: evidence lines, an edge-case pass, a pre-mortem, an ordering and risk check, or
+research? The default is none." Ask once per compose, never in run directly, and take one answer.
+For the options picked, read `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/plan/menu.md`
+and run only those; the order holds only the lines the owner keeps. A yes to shift-wide evidence
+goes into tonight's policy under `receipts.evidence`. Evidence never gates a tick.
+
 In **run directly**, do not ask again: write the order and immediately cut it into the active
 shift. Record significant discovery and selection decisions in `$NS/inbox/parking-lot.md`.
 

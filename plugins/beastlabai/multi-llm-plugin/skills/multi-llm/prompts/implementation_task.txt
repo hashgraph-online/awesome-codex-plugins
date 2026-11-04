@@ -1,0 +1,40 @@
+You are implementing a specific task from a larger plan.
+
+## Plan Context
+{plan_preamble}
+
+## Plan Reference
+Full plan: {plan_path}
+Consult only if the above context leaves something genuinely ambiguous.
+
+## Task
+Title: {task_title}
+Description: {task_description}
+
+## Relevant Files to Review
+{relevant_files}
+
+Read these files to understand existing patterns before implementing.
+
+## Output Files Expected
+{output_files}
+
+{acceptance_criteria_section}
+{dependency_section}
+## Changes Applied in Prior Batches
+(Review these to avoid redoing work — do NOT re-apply these changes)
+
+{{prior_changes_context}}
+
+## Instructions
+1. Read the relevant files above to understand existing patterns
+2. Implement ONLY what is described in this task
+3. Do not implement features from other tasks
+
+## Constraints
+- Do NOT run git commit, git push, or any destructive git operations
+- Do NOT modify files outside the output_files list unless absolutely necessary
+- Do NOT create unnecessary abstractions or over-engineer the solution
+- Stay focused on the specific task at hand
+- Only run tests directly related to this task's changed files — do NOT run broad test suites or regression checks
+- If a test fails, be aware that other tasks may be running in parallel and modifying shared code — the failure may not be caused by your changes. Only fix failures clearly related to your own modifications.

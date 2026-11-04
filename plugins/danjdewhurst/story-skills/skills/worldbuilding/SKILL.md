@@ -25,9 +25,10 @@ A story project must already exist (created via the story-init skill). Verify by
    - Notable features characters will interact with
    - Current state at story's timeline
    - Routes to other locations: travel time in hours and mode (see `references/maps-and-routes.md`)
+   - Geography, when the story has a map or known distances: `coordinates` on the story's map, or `distances` to other locations (see `references/maps-and-routes.md`)
    - Pronunciation, if the name is invented or easily misread (`pronunciation: "KEL-ah-mar"`)
 5. Before settling an invented name, run `story names '{Candidate}'` to catch clashes and look-alikes (see `references/naming-languages.md`)
-6. Create it with `story add location '{Location Name}' --type '{type}'` when the CLI is available (add `--region`, `--population`, `--controlled-by`, and `--character` as known); it writes `worldbuilding/locations/{name-kebab}.md` and lists it in `worldbuilding/_index.md`. Then fill the body from `references/location-template.md`
+6. Create it with `story add location '{Location Name}' --type '{type}'` when the CLI is available (add `--region`, `--population`, `--controlled-by`, `--character`, and `--coordinates x,y` as known); it writes `worldbuilding/locations/{name-kebab}.md` and lists it in `worldbuilding/_index.md`. Then fill the body from `references/location-template.md`
 7. Without the CLI, write the file from `references/location-template.md` to `worldbuilding/locations/{name-kebab}.md`
 8. Leave the locations table in `worldbuilding/_index.md` to `story reindex .`, even without the CLI; never add a row by hand
 9. If notable characters are listed, verify those character files exist and add this location's kebab-case identifier to each character file's `locations` frontmatter list
@@ -53,6 +54,27 @@ routes:
 - `story diagram locations` prints the route network as a Mermaid map-graph with edges labelled in hours; add `--out dist/locations.mmd` to save it. Use it to spot unreachable places and implausible shortcuts.
 
 Use the travel speeds table in `references/economy-logistics.md` to set plausible hours, and `references/maps-and-routes.md` for the full workflow.
+
+### Distances and travel modes
+
+When the user has a map or knows how far apart places are, record geography instead of, or as well as, route hours. Ask which distance unit the world uses (miles, km, leagues, days' walk) and never assume Earth. In `story.md`, list how people travel:
+
+```yaml
+distance-unit: leagues
+map-scale: 4
+travel-modes:
+  - mode: on foot
+    speed: 1
+    per-day: 8
+  - mode: horse
+    speed: 3
+    per-day: 15
+```
+
+- `speed` is distance units an hour while moving; `per-day` (optional) is the most one day of travel covers.
+- `map-scale` is how many distance units one map unit spans. Give each location `coordinates: [x, y]` read off the user's map (squares, centimetres, or pixels), or `distances` to other locations (`- to: greyhaven` then `distance: 30`), or both. A listed distance wins over the straight line on the map.
+- On each scene that follows a journey, set `travel-hours` and `travel-mode` (one of the modes). `story continuity .` warns (`travel-too-far`) when the hours cannot cover the distance from the previous scene at that mode's speed, or at the fastest mode when the scene names none. It judges only the characters who were in both scenes.
+- Nothing is checked until `story.md` lists at least one travel mode.
 
 ## Creating a System
 
@@ -133,10 +155,11 @@ progressions:
 ```
 
 - `from` is the first chapter where the new value holds. It may be a planned `chapter-NN` with no file yet
-- `field` is a kebab-case single-value field, existing (`status`, `controlled-by`, `region`) or new (`ruler`, `population-note`). List fields (`notable-characters`, `routes`, `members`, `locations`, `tags`) cannot change this way
+- `field` is a kebab-case single-value field, existing (`status`, `controlled-by`, `region`) or new (`ruler`, `population-note`). List fields (`notable-characters`, `routes`, `coordinates`, `distances`, `members`, `locations`, `tags`) cannot change this way
 - `value` is one value. A faction's `type` and `status` must stay within their allowed values
 - Keep entries in story order, and read the progressions up to the chapter being drafted before describing the place or faction in it
 - Artifacts and systems do not take progressions; track an artifact's changes with `object-state` and scene `state-changes` (see the revision-continuity skill)
+- The body of the file is prose for the writer. Describe a change in story terms ("from Festival night the city is occupied"), and do not name `progressions` or other frontmatter fields there
 
 After adding or editing progressions, run `story reindex .`, `story wordcount . --write`, and `story check .`.
 
@@ -148,6 +171,7 @@ After adding or editing progressions, run `story reindex .`, `story wordcount . 
 - Artifacts reference an owner character or faction and a current location
 - Systems reference practitioners via character tags
 - Location `routes` reference other locations by id
+- Location `distances` reference other locations by id
 - Invented names across characters, locations, systems, factions, artifacts, and glossary terms may carry a `pronunciation`; `story build --format narration` gathers them into a pronunciation guide for audiobook narrators
 - When a location is used in a chapter, the chapter's frontmatter `locations` field links back
 - Keep the `worldbuilding/_index.md` world overview section current as elements are added
@@ -163,7 +187,7 @@ Use the Story CLI when it is available. If `story` is not installed, use the bun
 - **`references/faction-template.md`** - Template for faction files
 - **`references/artifact-template.md`** - Template for artifact/object files
 - **`references/world-element-types.md`** - Detailed prompts for each system type (magic, political, technology, religion, economic, military, social)
-- **`references/maps-and-routes.md`** - Recording `routes`, the `story diagram locations` map-graph, and the continuity travel check
+- **`references/maps-and-routes.md`** - Recording `routes`, geography (`coordinates`, `distances`, and `story.md` travel modes), the `story diagram locations` map-graph, and the continuity travel checks
 - **`references/calendars.md`** - Adding a custom `calendar` to `story.md`, dating scenes in it, and recording seasons and moons as a system file
 - **`references/naming-languages.md`** - Phonology sketches, naming rules per culture, pronunciation, and the `story names` collision check
 - **`references/economy-logistics.md`** - Prices and wages, supply lines, magic and technology costs, and a travel speeds table by mode

@@ -17,10 +17,11 @@ git log <window> --format= --name-only -- <path> | sort | uniq -c | sort -rn | h
 
 # Co-change: file pairs that land in the same commit (pairs seen 3+ times).
 # The pathspec selects commits; --full-diff keeps every file they touched,
-# so partners outside <path> show up.
+# so partners outside <path> show up. Commits touching more than cap files
+# (sweeps, mass renames) are skipped.
 git log <window> --full-diff --format='@%h' --name-only -- <path> \
-  | awk 'function flush(){for(i in f)for(j in f)if(i<j)p[i" "j]++; delete f}
-         /^@/{flush(); next} NF{f[$0]=1}
+  | awk -v cap=30 'function flush(){if(n<=cap)for(i in f)for(j in f)if(i<j)p[i" "j]++; delete f; n=0}
+         /^@/{flush(); next} NF{f[$0]=1; n++}
          END{flush(); for(k in p)if(p[k]>2)print p[k], k}' | sort -rn | head -20
 
 # Fix clusters: files touched by commits whose subject starts with fix.
@@ -28,8 +29,9 @@ git log <window> --format='@%s' --name-only -- <path> \
   | awk '/^@/{fix = tolower($0) ~ /^@fix/; next} fix && NF' | sort | uniq -c | sort -rn | head -20
 ```
 
-Read the numbers as leads. Generated files, lockfiles, changelogs and mass
-renames inflate churn and co-change; exclude them and say so. A pair that
+Read the numbers as leads, and report the co-change cap with the window.
+Generated files, lockfiles and changelogs inflate churn and co-change; drop
+them with `grep -v` before `sort` or `awk` and say so. A pair that
 co-changes because one is the test of the other is expected locality, not
 leakage. A commit subject is a weak label for a fix; open the commits before
 calling something a defect cluster.

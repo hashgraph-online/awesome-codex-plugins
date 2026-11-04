@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agentops.local/schemas/council-report.v1.schema.json",
   "title": "Council Report",
-  "description": "Advisory council report. scripts/validate-output.sh also checks what JSON Schema cannot: consensus methodologies and models must come from judges[].methodology and judges[].model_identity.",
+  "description": "Advisory council report. scripts/validate-output.sh also checks what JSON Schema cannot: consensus methodologies and models must come from judges[].methodology and judges[].model_identity, and when every judge records model_identity every consensus point names its models.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "question", "subject_digest", "judges", "synthesis"],

@@ -48,15 +48,15 @@ The plugin ships two Agent Skills, both of which run entirely locally, need no b
 
 ## Supported clients
 
-This is a skill written in the open [Agent Skills](https://agentskills.io/specification) format. It includes native manifests for Cursor-compatible Agent Plugins, Codex, and Claude Code:
+This is a skill written in the open [Agent Skills](https://agentskills.io/specification) format. It includes native manifests for Cursor-compatible Agent Plugins, Google Antigravity, Codex, and Claude Code:
 
-- [`plugin.json`](plugin.json) for the portable [Agent Plugins](https://agent-plugins.org/specification) format used by Cursor;
+- [`plugin.json`](plugin.json) for the portable [Agent Plugins](https://agent-plugins.org/specification) format used by Cursor and Google Antigravity;
 - [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) for ChatGPT and Codex;
 - [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) for Claude Code.
 
 The three packages point to the same skills and require no backend or MCP server.
 
-Clients that read the Agent Skills format directly, including Gemini CLI, Antigravity, Zed, Warp, Windsurf and Amp, load each skill from its folder under `skills/` with no conversion. A [`gemini-extension.json`](gemini-extension.json) manifest is present for Gemini CLI's extension installer.
+Clients that read the Agent Skills format directly, including Google Antigravity, Zed, Warp, Windsurf and Amp, load each skill from its folder under `skills/` with no conversion.
 
 ## Installation
 
@@ -79,16 +79,18 @@ To try it without adding a marketplace, clone the repository and load it directl
 
 Public installation will be available after OpenAI review and publication. The native Codex package is already present in the repository for submission and local packaging.
 
-### Gemini CLI
+### Google Antigravity
+
+Install the plugin from GitHub with the Antigravity CLI:
 
 ```sh
-gemini extensions install https://github.com/exadel-inc/agentic-readiness-assessment
+agy plugin install https://github.com/exadel-inc/agentic-readiness-assessment
 ```
 
-Or install the skill on its own, without the extension manifest:
+Or from a local clone:
 
 ```sh
-gemini skills install https://github.com/exadel-inc/agentic-readiness-assessment --path skills/agentic-readiness-assessment
+agy plugin install /path/to/agentic-readiness-assessment
 ```
 
 ### GitHub Copilot CLI
@@ -209,7 +211,7 @@ It reads session history read-only and never changes or deletes it. The call rec
 
 ## Versioning
 
-The `version` field in [`plugin.json`](plugin.json) is the canonical source of truth. Platform marketplaces require self-contained manifests, so the same value is mirrored in [`gemini-extension.json`](gemini-extension.json), [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) and [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json). The skill reads the portable root manifest and records that value as `prompt_version` in every generated report.
+The `version` field in [`plugin.json`](plugin.json) is the canonical source of truth. Platform marketplaces require self-contained manifests, so the same value is mirrored in [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) and [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json). The skill reads the portable root manifest and records that value as `prompt_version` in every generated report.
 
 The current version is the `version` field of [`plugin.json`](plugin.json). `MAJOR.MINOR` continues the assessment prompt's own revision history, which predates this repository, so reports produced here stay on one timeline with reports produced by earlier revisions of the prompt. `PATCH` covers packaging changes that leave the prompt untouched.
 

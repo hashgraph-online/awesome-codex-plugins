@@ -1,7 +1,7 @@
 {
   "name": "liendeadline",
-  "version": "1.4.4",
-  "description": "Supplier notice and mechanics lien baselines: supplier-events-v2 for Florida and Kansas private projects; additional v3 scope support comes from authenticated live discovery. Statute-cited guides cover all 50 states and DC.",
+  "version": "1.4.5",
+  "description": "Jurisdiction-specific supplier notice and mechanics lien baselines with live discovery for the exact project scope. Calculations require a customer API key and use plan allowance; statute-cited guides for all 50 states and DC remain public.",
   "author": {
     "name": "LienDeadline",
     "url": "https://liendeadline.com"
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "LienDeadline",
     "shortDescription": "Lien and notice deadlines",
-    "longDescription": "A lien deadline playbook for US construction material suppliers. The agent asks for the facts that matter, gets each date from LienDeadline, and cites the statute behind it. Calculated deadlines cover Florida and Kansas private projects today; other cases come back as \"needs review\" with the reason, never a made-up date. Lien guides cover all 50 states and DC. Read-only, with no account or key. Not legal advice.",
+    "longDescription": "A lien deadline playbook for US construction material suppliers. The agent discovers current support for the exact project scope, asks the jurisdiction-specific questions, and reports verified dates with statutes, warnings and review flags. Supplier discovery and calculations require a dedicated customer API key; completed calculations consume API plan allowance. Lien guides for all 50 states and DC remain public. It sends no notices and files no liens. Not legal advice.",
     "developerName": "LienDeadline",
     "category": "Productivity",
     "websiteURL": "https://liendeadline.com",

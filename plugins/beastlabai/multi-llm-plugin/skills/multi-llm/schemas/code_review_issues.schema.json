@@ -1,0 +1,48 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Code Review Issues",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["title", "desc", "importance", "file", "type"],
+    "properties": {
+      "title": { "type": "string" },
+      "desc": { "type": "string" },
+      "importance": { "type": "string", "enum": ["high", "medium", "low"] },
+      "file": { "type": "string" },
+      "line_range": {
+        "type": ["array", "null"],
+        "items": { "type": "integer" },
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "type": {
+        "type": "string",
+        "enum": ["bug", "missing", "improvement", "style", "scope"]
+      },
+      "anchor_text": { "type": "string" },
+      "introduced_by": {
+        "type": ["string", "null"],
+        "description": "Commit reviews only: the short SHA of the commit that introduced the issue, as the prompt's commit list shows it (the merge for code a merge brought in), or null. A claim the plugin checks against the range and git blame (plans/review-commits.md §2.6)."
+      },
+      "scope_relation": {
+        "description": "Optional: the reviewer's provisional scope classification of the issue's proposed action, \"in_scope\" | \"scope_extension\" | \"unclear\" (plans/scope-policy-and-report-tags.md §3). Deliberately untyped: a missing or malformed value reads \"unclear\" (utils/scope_policy.normalize_scope_fields) and never discards the issue."
+      },
+      "scope_reason": {
+        "description": "Optional: one short line saying why, against the scope baseline."
+      },
+      "scope_reference": {
+        "description": "Optional: the baseline section or text the classification rests on, or \"\"."
+      },
+      "suggested_fix": {
+        "type": "object",
+        "properties": {
+          "format": { "type": "string", "enum": ["unified_diff", "before_after"] },
+          "before": { "type": "string" },
+          "after": { "type": "string" },
+          "diff": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "id": "smoke-ring-loader",
+  "label": "Smoke ring loader",
+  "shader": "SmokeRing",
+  "page": "https://shaders.paper.design/smoke-ring",
+  "paperShaders": "0.0.82",
+  "use": "A smoky ring around a countdown, a loading state or a small logo.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {
+    "colorBack": "base",
+    "colors": [
+      "accent",
+      "accent-light",
+      "highlight"
+    ]
+  },
+  "params": {
+    "colorBack": "#070708",
+    "colors": [
+      "#ff5315",
+      "#ff9a5c",
+      "#ffffff"
+    ],
+    "noiseScale": 3,
+    "noiseIterations": 8,
+    "radius": 0.25,
+    "thickness": 0.65,
+    "innerShape": 0.7,
+    "fit": "contain",
+    "scale": 0.8,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0
+  }
+}

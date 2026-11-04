@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="SteinWall">
+  <rect width="64" height="64" rx="14" fill="#1f2a37"/>
+  <g fill="#e8b04a">
+    <rect x="10" y="14" width="20" height="10" rx="2"/>
+    <rect x="34" y="14" width="20" height="10" rx="2"/>
+    <rect x="10" y="27" width="9" height="10" rx="2"/>
+    <rect x="22" y="27" width="20" height="10" rx="2"/>
+    <rect x="45" y="27" width="9" height="10" rx="2"/>
+    <rect x="10" y="40" width="20" height="10" rx="2"/>
+    <rect x="34" y="40" width="20" height="10" rx="2"/>
+  </g>
+</svg>

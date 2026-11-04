@@ -126,7 +126,7 @@ For each major figure or table, develop this logic without forcing stock sentenc
 
 Use varied transitions that make the analysis cumulative. Avoid repeating canned phrases such as "Figure X shows," "It is observed that," or "Physically, this can be attributed to" in every paragraph.
 
-Refer to a subfigure directly as `Fig. 8b`, not as "panel (b)," "the second panel," or `Fig. 8(b)`. Do not use the word "panel" in manuscript text or captions. A substantive figure discussion should identify the horizontal and vertical variables, the operating conditions or data source, the observed relationship, and the physical interpretation or limitation. Do not rely on a brief statement such as "Fig. 8b compares the frequencies."
+Refer to a subfigure directly as `Fig. 8b`, not as "panel (b)," "the second panel," or `Fig. 8(b)`. Do not use the word "panel" in manuscript text or captions. A substantive figure discussion should identify the horizontal and vertical variables, the operating conditions or data source, the observed relationship, and the physical interpretation or limitation. That discussion belongs in the text: the caption describes the figure and does not repeat the finding, the interpretation, or the reason a series is drawn the way it is. Do not rely on a brief statement such as "Fig. 8b compares the frequencies."
 
 Do not present plots as isolated results. Each figure should either answer a question, motivate the next analysis, or close a gap from the introduction.
 
@@ -233,6 +233,7 @@ Before finalizing a paper draft, check:
 - Does every paragraph have one developed central topic, with no avoidable one-sentence paragraphs?
 - Are headings short noun phrases rather than sentences or conclusions?
 - Are subfigures cited as `Fig. 8b`, with no use of "panel" in text or captions?
+- Does each caption describe the figure only, with results, interpretation, and plotting-choice justification in the text?
 - Are casual, prompt-like, meta-writing, colon-heavy, semicolon-heavy, and formulaic AI expressions absent?
 - Does the abstract report the principal quantitative findings when the evidence supports them?
 - Does the literature review distinguish adjacent approaches from the specific remaining technical gap?

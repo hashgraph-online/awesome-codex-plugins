@@ -52,7 +52,7 @@ Current `EXTRACTION_VERSION`: **2** (in `datasheet_extract_cache.py`). Bump this
 
 ## Category Values
 
-Use these exact strings — they match `_classify_ic_function()` in `analyze_schematic.py`.
+Use these exact strings. They are the datasheet skill's own category vocabulary, not the labels of any kicad classifier.
 
 | Category | Typical parts |
 |----------|--------------|

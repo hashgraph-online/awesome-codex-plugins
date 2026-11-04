@@ -1,0 +1,104 @@
+{
+  "id": "found-footage-website-trailer",
+  "name": "Found-footage website trailer",
+  "use": "A 25 s analog-horror teaser that browses a fictional website as a screen recording or a camcorder pointed at a CRT, escalates, and ends on a title.",
+  "formats": ["16:9", "9:16"],
+  "duration_s": 25,
+  "fonts": [
+    { "family": "VT323", "weights": [400], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/VT323", "role": "camcorder HUD" },
+    { "family": "Courier Prime", "weights": [400, 700], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Courier+Prime", "role": "slates, typed lines, title" },
+    { "family": "Gelasio", "weights": [400, 700], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Gelasio", "role": "period web body text (Georgia metrics)" },
+    { "family": "Arimo", "weights": [400, 700], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Arimo", "role": "period web UI (Arial metrics)" }
+  ],
+  "beats": [
+    { "t": [0.0, 2.0], "beat": "cold open: black, tape lock-in (tracking band 15 frames), hum only" },
+    { "t": [2.0, 7.0], "beat": "mundane: URL typed at 12-18 chars/s, page loads in 3-5 bands of 0.4 s, scroll 120-180 px/s" },
+    { "t": [7.0, 14.0], "beat": "escalation: 3 wrong details, shots 2.5 -> 1.6 -> 1.0 s, 2-4 frame glitch + low hit on each; telegraph one sound" },
+    { "t": [14.0, 20.0], "beat": "loss of control: the cursor moves by itself; push-in 1.0 -> 1.6 over 3 s; 1-2 single-frame flashes; the page types a warning" },
+    { "t": [20.0, 21.0], "beat": "silence 18-30 frames on a frozen frame" },
+    { "t": [21.0, 23.5], "beat": "title on black with a hit, held for at least 2 s" },
+    { "t": [23.5, 25.0], "beat": "button: an 8-12 frame sting, then cut to black on the sound" }
+  ],
+  "shot_list": ["black + lock-in", "address bar typing", "page load wide", "scroll detail (counter)", "guestbook close-up", "photo loading", "cursor moves itself", "push-in on photo", "title + button"],
+  "presets": [
+    {
+      "id": "found-footage-website-trailer.camcorder-crt",
+      "label": "Camcorder filming a CRT",
+      "look": "Late-90s monitor in a dark room, filmed handheld on tape",
+      "params": {
+        "canvas_px": [1920, 1080],
+        "fps": 30,
+        "monitor_aspect": "4:3",
+        "virtual_viewport_px": [800, 600],
+        "room_bg_hex": "#050608",
+        "screen_glow_hex": "#CFE3FF",
+        "handheld": { "drift_pct_frame_w": 0.3, "drift_hz": [0.5, 1.0], "jitter_px": 1, "registry": "camera-shake (handheld profile)" },
+        "hud": { "rec_dot_hex": "#FF2A2A", "rec_blink_hz": 1, "font": "VT323", "size_pct_frame_h": 5.5, "colour": "#FFFFFF", "shadow": "2px #000000", "inset_pct": 6, "date_position": "lower-right" },
+        "cursor_human": { "speed_px_s": [400, 900], "jitter_px": [1, 3], "jitter_hz": [8, 12], "hover_pause_s": [0.3, 1.0], "hesitation_freeze_s": [0.5, 1.0] },
+        "cursor_possessed": { "speed_px_s": 600, "path": "straight lines", "jitter_px": 0 },
+        "push_in": { "scale_from": 1.0, "scale_to": 1.6, "duration_s": 3, "ease": "power1.in" },
+        "ntsc_rs": { "tape_speed": "LP", "head_switching_height_lines": 8, "tracking_height_lines": 12, "snow_intensity": 0.025, "chroma_noise_intensity": 0.1 },
+        "ntsc_rs_reveal_spike": { "frames": [2, 4], "tracking_height_lines": 24, "snow_intensity": 0.08 },
+        "sound": "diegetic computer sounds only + one telegraphed sound"
+      },
+      "sources": [1, 20, 21, 23, 24]
+    },
+    {
+      "id": "found-footage-website-trailer.screen-capture",
+      "label": "Clean screen capture that corrupts",
+      "look": "Early-2000s desktop capture; damage appears only on reveal beats",
+      "params": {
+        "canvas_px": [1920, 1080],
+        "fps": 30,
+        "browser_chrome": "browser-device-stage",
+        "page_load_bands": [3, 5],
+        "band_s": 0.4,
+        "scroll_px_s": [120, 180],
+        "typing_chars_s": [12, 18],
+        "typing_gap_ms": [60, 180],
+        "link_hex": "#0000EE",
+        "visited_hex": "#551A8B",
+        "page_bg_hex": "#FFFFFF",
+        "glitch_frames_on_reveal": [2, 4],
+        "flash_frames": 1
+      },
+      "sources": [21, 23, 24]
+    },
+    {
+      "id": "found-footage-website-trailer.broadcast-slate",
+      "label": "Broadcast-slate interruptions",
+      "look": "Hard cuts to full-screen alert slates between browsing shots",
+      "params": {
+        "slate_bg_hex": ["#000000", "#0000AA"],
+        "slate_text_hex": "#FFFFFF",
+        "slate_font": "Courier Prime 700, all caps",
+        "slate_text_height_pct": 6,
+        "slate_hold_s": [1.5, 2.5],
+        "music_under_slates": "cheerful easy-listening, contrasting the image",
+        "cut": "hard cut, no transition"
+      },
+      "sources": [20, 21]
+    },
+    {
+      "id": "found-footage-website-trailer.vertical",
+      "label": "9:16",
+      "look": "Monitor crop for Shorts and Reels",
+      "params": { "canvas_px": [1080, 1920], "monitor_width_pct": 90, "caption_band_top_pct": 20, "inherits": "found-footage-website-trailer.camcorder-crt" },
+      "sources": [23]
+    }
+  ],
+  "rights": "Fictional websites, domains and names only (.example). Platform UIs are mockups; their marks belong to the platforms. No real people.",
+  "registry_blocks": ["browser-device-stage", "filmed-screen", "typewriter", "typed-prompt", "scroll-camera-story", "cursor-zoom-follow", "cursor-text-select", "agent-cursor", "camera-shake", "camcorder-hud", "scan-band", "glitch", "rgb-glitch-text", "flash-through-white", "grain-overlay"],
+  "sources": [
+    { "n": 1, "name": "ntsc-rs parameter reference (MLT Framework plugin docs)", "url": "https://mltframework.org/plugins/FilterOpenfx-wtf-vala^ntscrs/" },
+    { "n": 3, "name": "Finn McKenty on X — NTSC → downscale → CRT order", "url": "https://x.com/thefinnmckenty/status/2078469612786847903" },
+    { "n": 6, "name": "Kazuya Kanehisa on X — ntsc-rs AE plugin", "url": "https://x.com/kane_hisa/status/2089547611653181655" },
+    { "n": 7, "name": "Aoi Aiue on X — ntsc-rs in a music video", "url": "https://x.com/aiue_aoi_/status/2066505023367028766" },
+    { "n": 20, "name": "Wikipedia — Analog horror", "url": "https://en.wikipedia.org/wiki/Analog_horror" },
+    { "n": 21, "name": "Jordan Maison — analog horror genre (Videomaker)", "url": "https://www.videomaker.com/how-to/directing/film-history/everything-there-is-to-know-about-the-analog-horror-genre/" },
+    { "n": 22, "name": "Jason Hellerman — What is analog horror (No Film School)", "url": "https://nofilmschool.com/what-is-analog-horror" },
+    { "n": 23, "name": "Timur Bekmambetov — Rules of the Screenmovie (MovieMaker)", "url": "https://moviemaker.com/unfriended-rules-of-the-screenmovie-a-manifesto-for-the-digital-age/" },
+    { "n": 24, "name": "Jonny Elwyn — Inside Professional Trailer Editing", "url": "https://jonnyelwyn.co.uk/film-and-video-editing/inside-professional-trailer-editing/" },
+    { "n": 25, "name": "cinesthetic. on X — horror needs to show little", "url": "https://x.com/TheCinesthetic/status/2113398995305504810" }
+  ]
+}

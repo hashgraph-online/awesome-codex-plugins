@@ -6,6 +6,8 @@ argument-hint: "[URL]"
 
 # /digital-marketing-pro:landing-page-audit
 
+> **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
+
 ## Purpose
 
 Evaluate a landing page across six key conversion dimensions and deliver a scored assessment with specific, actionable recommendations to improve conversion rate.
@@ -31,6 +33,22 @@ The user must provide (or will be prompted for):
 7. **Mobile experience** (score 1-10): Responsive design, tap targets, scroll depth, mobile-specific CTAs
 8. Calculate overall score and benchmark against industry averages
 9. Prioritize recommendations by expected conversion impact
+
+## How you'll know it worked
+
+Every recommendation gets a metric it should move, the direction it should move in, and a date to check it. Add this table to the report, one row per recommendation:
+
+| Recommendation | Metric | Expected direction | Check by |
+|---|---|---|---|
+| Cut the form from 9 fields to 4 | Form completion rate | Up | 2026-12-15 |
+
+Then record the rows so the continuous-improvement loop checks them when they fall due:
+
+```bash
+python "${CLAUDE_PLUGIN_ROOT}/scripts/recommendation-tracker.py" --brand {slug} --action add --source landing-page-audit --data '[{"recommendation": "...", "metric": "...", "direction": "up", "check_by": "YYYY-MM-DD"}]'
+```
+
+A recommendation without a metric, a direction (up or down) and a future check-by date is refused (exit 2): if you can't say how you'd know it worked, rewrite it until you can.
 
 ## Output
 

@@ -12,7 +12,7 @@ fingerprints of the dbt project and of the semantic layer.
 - **The two project layers are fingerprinted independently.** The transform
   layer comes from the dbt project; the semantic layer comes from whichever vendor
   `semantic.vendor` names, which may be dbt's own or a native format such as
-  Apache Ossie or SLayer. A repository with a semantic layer and no dbt project still gets
+  Apache Ossie, SLayer or Cube. A repository with a semantic layer and no dbt project still gets
   a baseline and runs every free axis: `transform_layer` comes back null. The
   warning that no project was fingerprinted is reserved for the case where
   neither layer answered.
@@ -69,6 +69,14 @@ temporal), `declared_relation_missing` (a table gone since the baseline), and
 Each carries the model's whole removal under `data.removal`, which is what
 `maintain reconcile` plans.
 
+Under `semantic.vendor: cube` the same four codes hold the cubes and views to
+the warehouse by Dex's own rules (Cube compares a model only inside a Cube
+server, which Dex never starts): a member whose `sql`, filter or segment reads a
+column the table no longer has, a `time` dimension on a column that is not
+temporal or a `number` dimension or summing measure on text, a cube's table gone
+since the baseline, and a member, join or view include lost to another drop.
+Each carries its cube's or view's removal under `data.removal`.
+
 ## `maintain volume [<objects>]`: freshness drift
 
 Row counts that collapsed, spiked, or went to zero: the "is the data still
@@ -103,8 +111,13 @@ complete composite, never one column at a time. Aggregates only.
 - Finding codes: `key_lost_uniqueness` (proven unique at baseline, not now),
   `declared_grain_not_unique` (declared, never held), and
   `join_cardinality_exceeded` (a join whose declared arity, SLayer's
-  `cardinality`, does not hold: the side it says is unique is not).
+  `cardinality` or Cube's `relationship`, does not hold: the side it says is
+  unique is not).
 - A join that declares no cardinality is named in `warnings` as unchecked.
+- A key or join whose table nothing counted (no free row count, and a scan
+  that does not count, as on Databricks) is named in `warnings` as not
+  verified, never passed. Where the scan counts (Postgres, Trino), the check
+  runs without a free count.
 
 ## `maintain semantic [<objects>]`: definition drift
 
@@ -114,8 +127,10 @@ is gone; a relationship whose endpoint or column pairs no longer resolve, which
 is `high` because a join nothing can resolve is a broken layer; and categorical
 dimensions whose set of values widened or narrowed underneath their metrics.
 
-The cardinality half needs a semantic model that names a transformation model.
-Ossie names none, so on an Ossie layer this command is free and offers no scan.
+The cardinality half needs a semantic model that names a table, through a
+transformation model (dbt) or directly (SLayer's `sql_table`, a Cube's
+`sql_table`), and categorical dimensions recorded against it. Ossie records
+none, so on an Ossie layer this command is free and offers no scan.
 
 **Declaration drift** is the third free focus of this axis. A declaration
 records what a model means, so changing it changes what the model's numbers
@@ -165,10 +180,21 @@ Needs no baseline. The classes of finding:
 - **Row population**: `row_loss` where a model holds materially fewer rows than
   its **driving parent** (the relation in its FROM clause, followed through the
   CTE chain, as distinct from anything it joins) and nothing in its SQL accounts
-  for the shortfall; `row_fanout` where it holds materially more. Each names the
-  join and its key and states both counts. A model with a `WHERE`, `GROUP BY`,
+  for the shortfall; `row_fanout` where it holds materially more. Each names
+  every join beside its own key and states both counts. A fan-out on a model
+  whose declared grain (a declaration, a `unique` or
+  `unique_combination_of_columns` test, or a primary entity, never the naming
+  guess) the same run proved unique is capped at `low`, with
+  `data.grain_proven`: the extra rows are the grain the model declares (anchors
+  times windows, a date spine times entities), not duplicates. A fan-out
+  through joins whose key Dex cannot read (a range or inequality join) is
+  capped at `medium`, with `data.join_key_read: false`. Both caps name
+  themselves in `data.severity_cap_applied`, and the finding stays listed. A
+  model with a `WHERE`, `GROUP BY`,
   `DISTINCT`, `QUALIFY`, `LIMIT`, a semi or anti join, or a set operation is never
-  reported for loss, and an incremental model is skipped outright. A model that
+  reported for loss, and an incremental model is skipped outright (on
+  `transform build --full-refresh --verify`, only one the build did not rebuild,
+  or a microbatch model). A model that
   generates its rows in SQL, such as `range(...)` or a `VALUES` clause, has no
   parent relation. That is named in `notes`. A real parent relation that is
   absent from the warehouse is still a warning.
@@ -180,8 +206,49 @@ Needs no baseline. The classes of finding:
   `unique_combination_of_columns` test, a semantic model's primary entity,
   then a naming guess. `data.source` says which one. A declared grain is
   counted in the declared-fact statement below, so it is priced with it.
-- **Join contract**: `join_zero_overlap` and `join_orphans`, every equality
-  join's measured overlap.
+- **Join contract** (#228, #857): every equality join's coverage, measured
+  with one aggregate probe per driving relation and recorded under
+  `data.join_coverage`, one record per join:
+  - `declared`: what the declaration says about the join. It is `required` when
+    a column it supplies is declared `null_rule: never` on a LEFT join, or the
+    column carrying the driving key is a `foreign_key` whose `references`
+    names the joined relation. `optional` is set when every column it supplies
+    states a NULL rule other than `never`. NULL keys are `excluded`, or
+    counted `unmatched` where the key's column is `null_rule: never`.
+  - `measured` and `coverage`: eligible, matched and unmatched rows and
+    distinct keys, NULL-key rows apart. Coverage is `null` when nothing is
+    eligible.
+  - `key_conversion` (#861), on a join that compares a key through a cast or a
+    `lower`, `upper` or `trim` (`try_cast(a.k as int) = b.k`): each side's keys
+    as the probe applied them, a hard cast measured as its safe form. Keys the
+    conversion fails on stay eligible and unmatched, and are counted apart as
+    `measured.conversion_failed_rows` and `conversion_failed_keys`, so a failed
+    cast reads differently from a missing parent.
+  - `status`: `satisfied`, `contradicted` (with the finding), `not_applicable`
+    (an empty input or all-NULL keys: no coverage, which is not full coverage)
+    or `unchecked`, with a `reason_code`: `non_equality_join`,
+    `unsupported_key_expression` (a key rewritten by a function other than a
+    cast, `lower`, `upper` or `trim`), `no_safe_cast_on_connector` (a cast key
+    on Postgres, which has no cast that returns NULL, to a type other than
+    `smallint`, `integer` or `bigint`: those are measured through a guarded cast), `key_and_filter_condition`, `ambiguous_using`, `unresolved_column`,
+    `set_operation_cte` (a column read through a UNION CTE, which is not a
+    warehouse table), `filtered_cte`, `unparseable_sql`, `relation_not_found`,
+    `probe_refused` or `scan_offered`.
+
+  Findings:
+  - `join_no_match` (high): a nonempty eligible population matched nothing.
+    No threshold. `low` when every column the join supplies is declared as
+    allowed to be NULL.
+  - `join_orphans` and `join_zero_overlap`: on a required join any unmatched
+    row (`threshold_source: contract`, high). Otherwise the stated defaults,
+    0.2 and 0.9 of eligible rows (`threshold_source: default`). On a LEFT join
+    with no requirement, unmatched rows are the optional relationship the join
+    writes: no `join_orphans`, and `join_zero_overlap` at medium.
+  - `join_field_all_null` (high): a column the join supplies, declared
+    `null_rule: never`, NULL on every row. `join_field_newly_null` (medium):
+    one with no rule, NULL on every row, where the exploration cache profiled
+    the same relation with values in it. Otherwise the column is listed on the
+    record as `derived_columns_all_null`, not reported.
 - **Declared facts** (#496), each an aggregate-only statement against the
   built relation:
   - `unit_out_of_range` (medium): a column declared `fraction` with values
@@ -195,9 +262,28 @@ Needs no baseline. The classes of finding:
   - `population_contradicted` (high): a value a `population.filters` entry
     excludes still present (for `includes`, any other value or NULL), as a
     count and never as rows.
+  - `parent_population_missing` (high) and `parent_population_unexpected`
+    (high), for a model declaring `population.parent` (#857): eligible parent
+    keys with no row in the model, and model keys the parent does not have,
+    as distinct-key counts. A population filter whose column the parent also
+    has is applied to the parent first (`excluded_by_filters`); one it lacks is
+    named in `filters_unapplied` and drops the missing finding to medium.
+    Unexpected keys are never the population. Each declared parent has a
+    record under `data.parent_population` with the same statuses as a join.
+  - `temporal_transition_count_mismatch`, `temporal_latest_transition_mismatch`
+    and `temporal_first_attainment_mismatch` (high), `temporal_population_missing`
+    and `temporal_population_unexpected` (high), and
+    `temporal_provenance_contradicted` (medium), for a model declaring `history`
+    (#1027): its columns against what the snapshot's versions and the declared
+    policy give, as entity counts. Each contract has a record under
+    `data.temporal_contracts`, keeping the snapshot's execution, the assertions
+    checked, and what stayed unchecked apart. `no_history_observed` and every
+    `unchecked` reason are not clean: see the transform skill's `declarations.md`,
+    "Temporal contracts".
 
   `null_rule: never` is not checked here: it renders as a `not_null` test.
-  `data.suppressed` names `unit`, `additivity` and `population` whenever one
+  `data.suppressed` names `unit`, `additivity`, `population`,
+  `parent_population` and `temporal` whenever one
   did not run: nothing declares it, the relation is empty, the column is all
   NULL or aggregated away, too few observations to call, or the scan is
   offered.
@@ -234,6 +320,32 @@ proposed as though nothing declared it.
   connector's own spelling (Snowflake reports `NUMBER(38,0)` and `NUMBER(10,2)`
   both as `FIXED`), so the proposal names both spellings.
 
+## Cube layers (`semantic.vendor: cube`)
+
+Every axis runs on a Cube layer, beside a dbt project or with none, and none
+starts a Cube server or Node: each reads the configured model files and the
+metadata Dex captured through its own connection. The wrapper installs the
+`[cube]` extra for every `maintain` command where the vendor is `cube`.
+
+| Axis | On Cube |
+|---|---|
+| `snapshot` | fingerprints each cube and view, each measure (as `cube.member`), each primary key (a composite one whole), and each join with its ordered pairs and arity; records `vendor: cube` and the validator release. Each compiled-only definition is recorded by its content (`opaque_definitions`) |
+| `schema` | adds the four `declared_*` codes on Dex's metadata: `declared_relation_missing` (a cube's table gone since the baseline), `declared_column_missing` (a member whose `sql`, filter or segment reads a column the table no longer has), `declared_type_conflict` (a `time` dimension on a column that is not temporal, a `number` dimension or a summing measure on text), and `declared_dependency_dropped` (a member, join or view include that reads something that goes). A table neither the connection nor the baseline lists is a note, not a finding, and an expression Dex cannot read is named in `warnings` as unchecked |
+| `volume` | unchanged: it reads the warehouse, not the layer |
+| `grain` | measures every `primary_key` (a composite one whole) and every join's `relationship` (`join_cardinality_exceeded`; a `one_to_many` join is checked on its one side). Cube requires a `relationship`, so a join without one does not load; a join whose `sql` is not an equality of columns is named in `warnings` as unverified |
+| `semantic` | definition drift free as everywhere, with `definition_changed` on a cube naming its table; a compiled-only definition whose content changed is `compiled_only_changed`; the dimension-cardinality half re-counts every non-time dimension that is one column (offered as a scan on a billed connector) |
+| `reconcile` | stores the `declared_*` removals as a second plan, `data.semantic_plan_id`, through `semantic cube update`, cutting only the entries that go. A cube whose table is gone is never removed, and a view source whose join path walks a removed join, and the join it walks, stay advisory |
+| `verify` | checks the dbt project only; Cube's keys and joins are measured by `grain`, not here |
+
+A compiled-only file or element (JS, Jinja, `extends`) is compared by its content
+alone, never structurally: a change is reported as `compiled_only_changed`, what
+changed is not read, and the warning saying so rides every `maintain semantic`
+and `maintain check` while the layer holds one, so the layer never reads clean.
+
+A measure whose `filters` read a dropped column goes with the column rather than
+losing its filter, because a filter removed quietly changes what the number
+counts.
+
 ## SLayer layers (`semantic.vendor: slayer`)
 
 Every axis runs on a SLayer layer, and none opens a SLayer datasource or SLayer
@@ -248,13 +360,13 @@ with `reason: prerequisite` and names the install.
 | `schema` | adds the four `declared_*` codes, SLayer's `validate-models` rules on Dex's metadata. A model backed by `sql` or `source_queries` is named as not compared |
 | `volume` | unchanged: it reads the warehouse, not the layer |
 | `grain` | measures every `primary_key` (a composite one whole) and `unique` column, and every join's declared `cardinality` (`join_cardinality_exceeded`); a join with none is named in `warnings` as unchecked |
-| `semantic` | definition drift free as everywhere; the dimension-cardinality half needs a `model_ref`, which SLayer has none of, so it is free and offers no scan |
+| `semantic` | definition drift free as everywhere; the dimension-cardinality half re-counts every non-temporal column on the model's `sql_table` (offered as a scan on a billed connector) |
 | `reconcile` | stores the `declared_*` removals as a second plan, `data.semantic_plan_id`, through `semantic slayer update`. A whole model is never removed; that and a type conflict's alternative stay advisory |
 | `verify` | checks the dbt project only; SLayer's declared keys are measured by `grain`, not here |
 
 What SLayer does not declare is not drift: it has no entities, no measures in
 MetricFlow's sense (a saved measure is a formula), no per-measure time
-dimension, and no `model_ref`. Read `unavailable` rather than reporting an
+dimension, and no `model_ref` (a model names its table directly). Read `unavailable` rather than reporting an
 absent element kind.
 
 Two things look like drift and are not:

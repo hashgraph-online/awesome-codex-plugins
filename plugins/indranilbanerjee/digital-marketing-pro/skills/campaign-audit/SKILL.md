@@ -7,6 +7,8 @@ allowed-tools: Read Bash Glob Grep
 
 # /digital-marketing-pro:campaign-audit — Cross-Channel Current-State Audit
 
+> **Metrics:** mention rate, citation rate, share of model, share of AI voice, sentiment and the AI Visibility Score are defined, with formulas, in `skills/context-engine/ai-visibility-metrics.md`. Report every score with its formula and its sample size (n).
+
 > **Script location.** If your host does not set `${CLAUDE_PLUGIN_ROOT}`, the scripts are in this plugin's `scripts/` folder, next to `skills/`. Run them with Python 3.10 or newer: `python`, or `python3` where `python` is not found (macOS, many Linux systems).
 
 This skill produces a single document describing **everything currently running for a brand across every channel** — what's live, what's spending, what's performing, what's leaking budget, what's quietly broken. It's the prerequisite for any informed `/digital-marketing-pro:campaign-plan`, `/digital-marketing-pro:performance-report`, or `/digital-marketing-pro:competitor-analysis` refresh.
@@ -40,7 +42,7 @@ This skill produces the third option: a single audit document that captures the 
 | **Content / SEO** | Pages publishing in last 90 days, ranking keywords (top 50), schema markup state, internal-link density | Indexation health (GSC), Core Web Vitals, AI-Overview citation rate, technical-debt items |
 | **AEO / GEO** | Brand mention rate across Google AI Mode, Perplexity, ChatGPT search, Claude search, Copilot, Gemini App | Mention rate vs top 5 competitors, citation share, recommendation share |
 | **CRM + automation** | Live workflows in HubSpot / Salesforce / Pipedream / Zapier / Make, segments in use, lifecycle stage mappings | Orphaned workflows (no recent execution), broken connectors, duplicate-contact rate |
-| **Web analytics** | GA4 properties + GSC properties wired to which domains, conversion events configured, consent-mode state | Tag-firing health, event-naming consistency, attribution model selected |
+| **Web analytics** | GA4 properties + GSC properties wired to which domains, key events configured (GA4 calls them key events; Google Ads conversions are created from them), consent-mode state | Tag-firing health, event-naming consistency, attribution model selected |
 | **Influencer / PR** | Active creator deals (live + paused), contracted deliverables, FTC-disclosure compliance | Cost per engagement, creator-audience-authenticity check, disclosure completeness |
 | **Compliance posture** | Active brand-level claims, EU AI Act Article 50 disclosure state on AI content, C2PA signing state, cookie/consent banner version | Each regulated claim mapped to a primary source; missing disclosures escalated |
 
@@ -107,7 +109,7 @@ For each item discovered, apply the **scoring rubric** (4-tier, conservative):
 
 | Tier | Meaning | Examples |
 |---|---|---|
-| **🟢 Healthy** | Performing within benchmark, no action needed | Email automation with >25% open rate; Google Ads campaign with QS ≥ 7; SEO page in top 10 for primary keyword |
+| **🟢 Healthy** | Performing within benchmark, no action needed | Email automation with click and complaint rates within benchmark (opens are inflated by Apple Mail Privacy Protection); Google Ads campaign with QS ≥ 7; SEO page in top 10 for primary keyword |
 | **🟡 Quick win** | Small fix unlocks meaningful gain (<2hr effort) | Ad copy missing a sitelink extension; email template with broken merge tag; landing page with no schema markup |
 | **🟠 Strategic gap** | Needs a real intervention (workshop, asset, decision) | No active retargeting audience; no negative-keyword list; no AEO disclosure on AI-generated content |
 | **🔴 Red flag / leak** | Actively losing money OR creating compliance risk | Campaign spending with conversion tracking broken; email list with no GDPR provenance; CRM workflow firing on duplicate contacts |
@@ -173,9 +175,17 @@ Bulleted list. Each item: the specific issue · cost or risk in concrete numbers
 ## 9. Channels NOT running that probably should be
 Bulleted list. Each item: channel · why it's missing · what minimum viable activation looks like.
 
+## 10. How you'll know it worked
+One row per quick win and strategic gap:
+
+| Recommendation | Metric | Expected direction | Check by |
+|---|---|---|---|
+| Pause the three ad sets above target CPA | Blended CPA (Meta) | Down | 2026-12-01 |
+
 ---
 
 **Next steps:**
+- Record section 10's rows: `python "${CLAUDE_PLUGIN_ROOT}/scripts/recommendation-tracker.py" --brand {slug} --action add --source campaign-audit --data '[...]'` (each row needs metric, direction and check_by; the continuous-improvement loop checks them when due).
 - Take the quick-wins backlog into a 30-min triage with the account lead.
 - Bring the strategic gaps to the next `/digital-marketing-pro:campaign-plan` conversation.
 - Resolve every 🔴 red flag before the next routine work cycle.

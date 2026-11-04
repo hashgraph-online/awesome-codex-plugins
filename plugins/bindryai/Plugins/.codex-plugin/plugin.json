@@ -1,0 +1,45 @@
+{
+  "name": "bindry",
+  "version": "0.3.1",
+  "description": "Compile a bound Bindry Binder into Codex skills, so instructions load only when they're relevant instead of sitting in every prompt. Supports pinned (compiled snapshot) or live (always current via MCP) per Binder.",
+  "skills": "./skills/",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "Bindry",
+    "shortDescription": "Versioned AI agent skills",
+    "longDescription": "Compile public or workspace Binders into local agent skills, use pinned snapshots, check installed instructions for drift, and opt in to MCP-based live mode. Intended for local Codex and ChatGPT desktop threads with Node.js available. Public Binder compilation does not require an account. Private Binders and live mode require a Bindry account and workspace API key. This plugin runs local scripts and requires a local executor.",
+    "developerName": "Bindry",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Compile Binder skills",
+      "Check instruction drift",
+      "Configure optional MCP live mode"
+    ],
+    "websiteURL": "https://bindry.ai/plugins/codex",
+    "privacyPolicyURL": "https://bindry.ai/privacy",
+    "termsOfServiceURL": "https://bindry.ai/terms",
+    "defaultPrompt": [
+      "Compile a public Binder into skills for this project.",
+      "Check whether this project's installed Binder instructions have changed."
+    ],
+    "brandColor": "#B22222",
+    "brandColorDark": "#D9524A",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  },
+  "author": {
+    "name": "Bindry",
+    "url": "https://bindry.ai"
+  },
+  "homepage": "https://bindry.ai/plugins/codex",
+  "repository": "https://github.com/bindryai/Plugins",
+  "license": "MIT",
+  "keywords": [
+    "bindry",
+    "instructions",
+    "skills",
+    "guardrails",
+    "mcp",
+    "live"
+  ]
+}

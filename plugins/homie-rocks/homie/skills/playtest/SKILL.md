@@ -19,7 +19,7 @@ A local review is labelled local, not independent. If a fresh reviewer was reque
 
 The question is never "does it run". It is: **would a stranger who pressed Play stay for a whole
 round, and come back?** Instruments measure what can be measured; a fresh reviewer who never saw
-the code answers the rest. A builder never grades its own work.
+the code answers the rest when the person asks for one.
 
 One script: `scripts/playtest.mjs` in this skill's folder (Claude Code:
 `node "${CLAUDE_PLUGIN_ROOT}/skills/playtest/scripts/playtest.mjs" <command>`), run from inside the
@@ -196,7 +196,7 @@ test, and the traps that make an instrument lie.
 
 ## Never
 
-- Never call a game good, fixed or finished from the code, a build that passed, or your own look at it.
+- Never call a game good, fixed or finished from the code or a build that passed: play it first, and label your own look as local.
 - Never report a local review as a blind one, and never read a BLOCKED or N/A row, or a missing review, as a pass.
 - Never turn one scripted round into a rule ("people cannot win", "input does not matter"): say what was measured, and run it again.
 - Never call the builder's local verdict an independent review: an independent reviewer is fresh every time.

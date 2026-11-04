@@ -1,0 +1,301 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "Lato";
+      font-weight: 400;
+      src: url("assets/fonts/lato-400-latin.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Lato";
+      font-weight: 700;
+      src: url("assets/fonts/lato-700-latin.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Lato";
+      font-weight: 900;
+      src: url("assets/fonts/lato-900-latin.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "Noto Color Emoji";
+      src: url("assets/fonts/noto-color-emoji-subset.woff2") format("woff2");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+      font-family: "Lato", sans-serif;
+    }
+    /* team-chat-channel.conversation + reactions, app scale 1.6 (15 px text -> 24 px) */
+    #ch-window {
+      position: absolute;
+      left: 160px;
+      top: 96px;
+      width: 1600px;
+      height: 888px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 40px 120px rgba(0, 0, 0, 0.55);
+      color: #1d1c1d;
+    }
+    #ch-side {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 352px; /* 22% */
+      background: #4a154b;
+      color: rgba(255, 255, 255, 0.78);
+      padding: 28px 0;
+      font-size: 24px;
+      line-height: 44px;
+    }
+    #ch-ws {
+      padding: 0 28px 20px;
+      font-weight: 900;
+      font-size: 28px;
+      color: #ffffff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      margin-bottom: 18px;
+    }
+    .ch-sec {
+      padding: 8px 28px 0;
+      font-size: 21px;
+      color: rgba(255, 255, 255, 0.74);
+    }
+    .ch-item {
+      margin: 0 12px;
+      padding: 0 16px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .ch-item.on {
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      font-weight: 700;
+    }
+    #ch-main {
+      position: absolute;
+      left: 352px;
+      right: 0;
+      top: 0;
+      bottom: 0;
+    }
+    #ch-head {
+      height: 80px;
+      border-bottom: 1px solid #dddddd;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    #ch-head b {
+      font-weight: 900;
+      font-size: 28px;
+    }
+    #ch-head span {
+      font-size: 21px;
+      color: #616061;
+    }
+    #ch-msgs {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 81px;
+      bottom: 132px;
+      overflow: hidden;
+    }
+    #ch-col {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 12px;
+    }
+    .ch-msg {
+      position: relative;
+      height: 104px;
+      padding: 14px 32px 0 112px;
+    }
+    .ch-av {
+      position: absolute;
+      left: 32px;
+      top: 18px;
+      width: 58px;
+      height: 58px;
+      border-radius: 13px;
+      color: #ffffff;
+      font-weight: 900;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ch-name {
+      font-weight: 900;
+      font-size: 24px;
+      line-height: 36px;
+    }
+    .ch-time {
+      font-weight: 400;
+      font-size: 21px;
+      color: #616061;
+      margin-left: 10px;
+    }
+    .ch-text {
+      font-size: 24px;
+      line-height: 36px;
+    }
+    #ch-reacts {
+      height: 52px;
+      padding: 4px 32px 0 112px;
+      display: flex;
+      gap: 10px;
+    }
+    .ch-pill {
+      height: 38px;
+      padding: 0 14px 0 10px;
+      border-radius: 19px;
+      background: #e8f5fa;
+      border: 1.5px solid #1d9bd1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 21px;
+      color: #1264a3;
+    }
+    .ch-emoji {
+      font-family: "Noto Color Emoji", sans-serif;
+      font-size: 22px;
+      line-height: 1;
+    }
+    .ch-count {
+      display: grid;
+      font-variant-numeric: tabular-nums;
+    }
+    .ch-count span {
+      grid-area: 1 / 1;
+    }
+    #ch-compose {
+      position: absolute;
+      left: 32px;
+      right: 32px;
+      bottom: 32px;
+      height: 84px;
+      border: 1.5px solid #bbbdbf;
+      border-radius: 13px;
+      padding: 0 22px;
+      display: flex;
+      align-items: center;
+      font-size: 24px;
+      color: #8d8d8f;
+    }
+    #ch-tag {
+      position: absolute;
+      left: 48px;
+      bottom: 40px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+  <div id="root" data-composition-id="chat" data-width="1920" data-height="1080">
+    <div id="ch-window">
+      <div id="ch-side">
+        <div id="ch-ws">Lumen Labs</div>
+        <div class="ch-sec">Channels</div>
+        <div class="ch-item"># general</div>
+        <div class="ch-item on"># launch</div>
+        <div class="ch-item"># design</div>
+        <div class="ch-item"># support</div>
+        <div class="ch-sec" style="margin-top: 14px">Direct messages</div>
+        <div class="ch-item">Ana Ruiz</div>
+        <div class="ch-item">Marco Bianchi</div>
+        <div class="ch-item">Tomas Keller</div>
+        <div class="ch-item">Priya Nair</div>
+      </div>
+      <div id="ch-main">
+        <div id="ch-head"><b># launch</b><span>12 members</span></div>
+        <div id="ch-msgs">
+          <div id="ch-col">
+            <div class="ch-msg">
+              <div class="ch-av" style="background: #2bac76">AR</div>
+              <div class="ch-name">Ana Ruiz<span class="ch-time">9:41 AM</span></div>
+              <div class="ch-text">Morning! The launch checklist is pinned to the channel.</div>
+            </div>
+            <div class="ch-msg">
+              <div class="ch-av" style="background: #7c5cbf">TK</div>
+              <div class="ch-name">Tomas Keller<span class="ch-time">9:53 AM</span></div>
+              <div class="ch-text">Pricing page and changelog are live on staging.</div>
+            </div>
+            <div class="ch-msg">
+              <div class="ch-av" style="background: #2bac76">AR</div>
+              <div class="ch-name">Ana Ruiz<span class="ch-time">10:02 AM</span></div>
+              <div class="ch-text">Release notes are in the doc. Last pass welcome.</div>
+            </div>
+            <div class="ch-msg">
+              <div class="ch-av" style="background: #e8912d">MB</div>
+              <div class="ch-name">Marco Bianchi<span class="ch-time">10:04 AM</span></div>
+              <div class="ch-text">Read them. Fixed two typos, the rest looks good.</div>
+            </div>
+            <div class="ch-msg" id="ch-m3">
+              <div class="ch-av" style="background: #1264a3">PN</div>
+              <div class="ch-name">Priya Nair<span class="ch-time">10:11 AM</span></div>
+              <div class="ch-text">Staging is green. Ship 0.9 at 3pm?</div>
+            </div>
+            <div id="ch-reacts">
+              <div class="ch-pill" id="ch-r1">
+                <span class="ch-emoji">🚀</span>
+                <span class="ch-count"><span id="ch-r1-1">1</span><span id="ch-r1-2">2</span><span id="ch-r1-3">3</span></span>
+              </div>
+              <div class="ch-pill" id="ch-r2">
+                <span class="ch-emoji">✅</span>
+                <span class="ch-count"><span id="ch-r2-1">1</span><span id="ch-r2-2">2</span></span>
+              </div>
+            </div>
+            <div class="ch-msg" id="ch-m4">
+              <div class="ch-av" style="background: #e8912d">MB</div>
+              <div class="ch-name">Marco Bianchi<span class="ch-time">10:12 AM</span></div>
+              <div class="ch-text">Yes. Ship it.</div>
+            </div>
+          </div>
+        </div>
+        <div id="ch-compose">Message #launch</div>
+      </div>
+    </div>
+    <div id="ch-tag">team-chat-channel · conversation + reactions</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const ROW = 104; // message row height
+    const REACT = 52; // reactions row height
+    tl.fromTo("#ch-tag", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.1);
+    tl.fromTo("#ch-window", { y: 24, opacity: 0 }, { y: 0, opacity: 1, duration: 0.35, ease: "power2.out" }, 0);
+
+    // column starts pushed down by the rows still to come
+    tl.set(["#ch-m3", "#ch-reacts", "#ch-m4", "#ch-r1", "#ch-r2"], { opacity: 0 }, 0);
+    tl.set(["#ch-r1-2", "#ch-r1-3", "#ch-r2-2"], { opacity: 0 }, 0);
+    tl.set("#ch-col", { y: ROW * 2 + REACT }, 0);
+
+    // a row lands: column push and row entrance in the same 0.3 s power2.out window, y 12 px
+    const land = (sel, push, at) => {
+      tl.to("#ch-col", { y: push, duration: 0.3, ease: "power2.out" }, at);
+      tl.fromTo(sel, { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }, at);
+    };
+    land("#ch-m3", ROW + REACT, 0.35);
+    // reactions 0.5 s after their message: pill pop 0.18 s back.out(2), count ticks every 0.12 s
+    land("#ch-reacts", ROW, 0.85);
+    tl.fromTo("#ch-r1", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.18, ease: "back.out(2)" }, 0.85);
+    tl.set("#ch-r1-1", { opacity: 0 }, 0.97);
+    tl.set("#ch-r1-2", { opacity: 1 }, 0.97);
+    tl.set("#ch-r1-2", { opacity: 0 }, 1.09);
+    tl.set("#ch-r1-3", { opacity: 1 }, 1.09);
+    tl.fromTo("#ch-r2", { opacity: 0, scale: 0.4 }, { opacity: 1, scale: 1, duration: 0.18, ease: "back.out(2)" }, 1.15);
+    tl.set("#ch-r2-1", { opacity: 0 }, 1.27);
+    tl.set("#ch-r2-2", { opacity: 1 }, 1.27);
+    land("#ch-m4", 0, 2.0);
+
+    tl.to(["#ch-window", "#ch-tag"], { opacity: 0, duration: 0.2, ease: "power2.in" }, 3.1);
+    window.__timelines["chat"] = tl;
+  </script>
+</template>

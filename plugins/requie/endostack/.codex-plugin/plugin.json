@@ -1,0 +1,44 @@
+{
+  "name": "endostack",
+  "version": "1.0.1",
+  "description": "Security-first agent workflows for coding agents: route work through tested playbooks, review with multiple subagents, and verify before you ship.",
+  "author": {
+    "name": "Tarique Smith",
+    "url": "https://github.com/requie"
+  },
+  "homepage": "https://github.com/requie/endostack",
+  "repository": "https://github.com/requie/endostack",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "security",
+    "code-review",
+    "subagents",
+    "workflow",
+    "verification"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "EndoStack",
+    "shortDescription": "Security-first agent workflows",
+    "longDescription": "EndoStack makes the agent read code before changing it, compare more than one design, and check its result by running what a user would run. When a change touches a trust boundary, such as input parsing, file paths, auth or secrets, it threat-models the change before building it and runs a security review on the diff before shipping. Text the agent reads from issues, web pages and logs is treated as data, never as instructions.\n\nType $try-endostack for a five-minute demo: the agent fixes a bug whose obvious one-line fix would leak the demo app's .env file, and a check script shows the difference. Type $tarique-mode with an issue link or a one-sentence bug description to use the same workflow on your own code.\n\nEndoStack collects no data and has no telemetry. Its scripts run on your machine.",
+    "developerName": "Tarique Smith",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/requie/endostack",
+    "supportURL": "https://github.com/requie/endostack/issues",
+    "privacyPolicyURL": "https://github.com/requie/endostack/blob/main/docs/privacy.md",
+    "termsOfServiceURL": "https://github.com/requie/endostack/blob/main/LICENSE",
+    "defaultPrompt": [
+      "Run $try-endostack for the five-minute demo",
+      "Threat model the changes on this branch before I merge",
+      "Run a security review on this branch's diff"
+    ],
+    "brandColor": "#0F172A",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  }
+}

@@ -46,7 +46,10 @@ exist.
 | `unit` | `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`, or a plain unit such as `days` |
 | `null_rule` | `never`, or a sentence saying what NULL means in this column |
 | `references` | `<model>.<column>`, a model, seed or snapshot the project has |
-| `evidence` | `request` (what the user asked for), `contract` (the project's declared columns, tests or metric filters), `precedent` (how sibling models decide the same thing), `data` (what profiling showed), `default` (the conventional analytics-engineering choice) |
+| `population.parent` | `{"model": <model, seed or snapshot>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it, and the plan warns when the SQL is driven from a relation unrelated to it (`check: population_parent`). A population that only has a `rule` is `prose` under `population_contract`: nothing can run it |
+| `evidence` | `request` (what the request settles), `contract` (what the project's declared columns, tests or metric filters settle), `precedent` (how sibling models decide the same thing), `data` (what profiling showed about the data, never the intended population or NULL policy), `default` (the conventional analytics-engineering choice, including a reasonable choice where wording leaves the question open). Name `request` or `contract` only when that source settles the choice: "per account" alone does not say whether accounts without events belong, so that choice is a `default` |
+
+| `assumptions[].column` | optional: the output or source column the decision governs. `data.identifier_conversions` reads it: a conversion that drops, merges or respells identifiers of a column an assumption names is `declared` rather than `undeclared` (#861). Use it when a repair excludes identifiers of a second scheme or merges `7` and `007` on purpose, with the evidence that settles it |
 
 A field Dex does not know is refused by name, so a typo cannot silently drop
 part of a declaration.
@@ -69,7 +72,8 @@ model, which dbt refuses.
 
 A test the column already lists is kept as written, under the key it already
 uses. Declaring again merges: a key the new declaration states replaces the old
-one, and a key it leaves out is kept. Every byte outside the keys above, comments
+one, and a key it leaves out is kept. `population` merges one level further, so
+adding a `parent` keeps the `rule` and `filters` declared earlier. Every byte outside the keys above, comments
 included, stays where it was.
 
 ## What is checked
@@ -82,9 +86,13 @@ Refused, with the fix named:
 - a `references` target that is not `<model>.<column>`, names nothing, or names
   a column the target does not produce;
 - an unknown `role`, `additivity` or `evidence`, or an unknown field;
-- a population filter listing values on a column that looks like personal data.
+- a population filter listing values on a column that looks like personal data;
+- a `population.parent` naming no model, seed or snapshot, naming the model
+  itself, mapping an output column the model does not produce, or a parent
+  column the parent does not produce.
 
-Warned, never refused: a missing description, grain, population, assumptions or
+Warned, never refused: a `population.parent` key that is not the declared
+grain, a missing description, grain, population, assumptions or
 column role (one warning per missing field), a measure without its aggregation,
 additivity or unit, an assumption missing its decision, chosen value or evidence,
 and a model the plan writes SQL for with no declaration at all. Where the SQL
@@ -130,14 +138,15 @@ on any connector.
  "missing": ["assumptions", "columns.amount.unit"]}
 ```
 
-`drafted` is never written into the project. Each fact carries the `evidence` it
-rests on, and a fact the cache cannot support is left out rather than guessed:
+`transform plan` never writes `drafted` into the project; only `transform declare`
+does, and only the subset described under "Declaring models that already exist".
+Each fact carries the `evidence` it rests on, and a fact the cache cannot support is left out rather than guessed:
 
 | Drafted | When |
 |---|---|
 | `grain` | the `GROUP BY` keys when the model aggregates; otherwise a key the driving relation's profile *proved* unique, selected unchanged, with every join an equality on a key proven unique on its joined side. Any other join, a right or full join, a set operation or an `UNNEST` gives `{"value": null, "withheld": "<why>"}` |
 | `columns.<c>.from` | the upstream `relation.column` a column passes through from unchanged, followed through CTEs |
-| `columns.<c>.role` | `key` for a single-column drafted grain; `foreign_key`, with `references`, for a column carrying a join `explore relationships --verify` measured with no orphans. A join measured with orphans would fail the `relationships` test a `references` renders, so it is `references: {"value": null, "withheld": "<the orphan rate>"}` instead |
+| `columns.<c>.role` | `key` for a single-column drafted grain; `foreign_key`, with `references`, for a column carrying a join `explore relationships --verify` measured with no orphans. A join measured with orphans would fail the `relationships` test a `references` renders, so it is `references: {"value": null, "withheld": "<the orphan rate>"}` instead. Where the column joins cleanly to several relations (the raw table, its staging model, a dimension), a parent whose column is not unique and the model itself are passed over, a model of this project wins over a seed or snapshot and those over a raw table, and the model nearest this one in the project tree breaks a tie; `evidence` names the other clean parents. A warehouse that reports `STG_CUSTOMERS` resolves to the project's `stg_customers`. The joins read are the input column's; where those reach only raw tables (a staging model over a source, on a warehouse whose build lives in another schema) and the model is already built and profiled, the built relation's own clean joins are read instead, so `stg_orders.customer_id` references `stg_customers` |
 | `columns.<c>.pii` | the upstream column's PII flag, category and confidence |
 | `columns.<c>.nullable` | `true` on the outer side of a left, right or full join whatever the upstream NULL rate; otherwise from the upstream NULL fraction |
 | `columns.<c>.additivity` | `semi_additive` where `explore profile --check-cumulative` found the upstream column never decreasing |
@@ -195,8 +204,9 @@ filter on a value that does not exist yet is sometimes the intent.
 
 On a model that already exists, `data.declarations.<model>.contradictions` lists
 each declared rule this plan's SQL and the post-change declaration disagree on.
-Each entry is also a warning. A new model carries no key; an empty list means
-nothing was contradicted.
+Each entry is also a warning. A new model has no prior to compare, so only
+`population_parent` applies to it and it carries the key only when that rule
+reports something; an empty list means nothing was contradicted.
 
 ```json
 {"check": "population", "status": "contradicted",
@@ -208,6 +218,7 @@ nothing was contradicted.
 | `check` | Fires when |
 |---|---|
 | `population` | the predicate implementing a declared `population.filters` entry is removed or changes the values it keeps. `excludes` is met by `<>`/`NOT IN` on exactly those values, or by an `IN` list that leaves them out; `includes` by `=`/`IN` on exactly those values |
+| `population_parent` | the model declares `population.parent` and the relation driving it has no `ref()` lineage to that parent, in either direction. Fires on a new model too. A RIGHT, FULL or CROSS join that keeps the parent's rows is silent. `authored` names the driver and `parent` the parent. A driver or lineage dex cannot read (a macro, `{% if %}`, a set operation, a literal name, a package model) is `unchecked` |
 | `grain` | the drafted grain (the `GROUP BY` keys, or a carried key) differs from the declared grain, or a declared grain column leaves the SELECT list |
 | `columns` | a column whose declaration states a role, unit, additivity or another `config.meta.dex` field leaves the SELECT list. It names what the column was declared as, beside the plain `schema.yml` divergence warning |
 | `additivity` | the model takes `SUM` of an upstream column its own model declares `semi_additive` or `non_additive`, or `AVG` of one declared `non_additive` with a `fraction` or `percent` unit. `declared_on` names that upstream model. A running total the cumulative check found and nothing declares fires too, without `declared_on`; a column declared `additive` never does |
@@ -237,6 +248,71 @@ cost handshake on a billed connector), `row_delta` is its delta and the warning
 cites it; where it did not, the warning carries attribution's reason. Nothing
 here runs a query of its own, refuses a plan, or blocks apply.
 
+## Declaring models that already exist: `transform declare`
+
+A plan declares the models it creates or edits. Models written before
+declarations existed have none, and dex never adds them unasked. To adopt them,
+select some and let one plan propose what dex already measured:
+
+```bash
+dex transform declare stg_orders,stg_customers fct_orders
+dex transform declare --edits-file intent.json   # every model, with intent
+```
+
+The selector is the one `maintain verify` takes: model names, repeatable and
+comma-separated, case-insensitive, and none for every model. It is read from the
+repository, so nothing is compiled.
+
+**What is proposed.** Per model, only the fields its YAML does not already state:
+
+| Drafted fact | Written as | Only when |
+| --- | --- | --- |
+| `grain` | `config.meta.dex.grain`, plus `unique` and `not_null` on a single column | no grain is declared |
+| `role: key` | the column's `role` | the column has no role |
+| `role: foreign_key` | the column's `role` | the column has no role |
+| `references` | `references` and a `relationships` test | the column's role is absent or `foreign_key`, and the parent is a model, seed or snapshot of this project (a join verified to a raw table stays in `drafted`) |
+| `additivity: semi_additive` | the column's `additivity` | no additivity is declared |
+
+The unit shape, NULL facts, PII flags and value domains are evidence, not
+declarations. They stay in `data.declarations.<model>.drafted` and are never
+written. Intent (`description`, `population`, `assumptions`) is never drafted.
+
+**Supplied intent.** The payload is the `transform plan` payload with
+`declarations` only (`edits` are refused; SQL changes go through `transform plan`).
+A supplied declaration wins over the draft field by field, and its model is
+considered first. A supplied model the selector does not select is refused, and
+so is a malformed one, exactly as in `transform plan`.
+
+**Each model is accounted for.** `data.proposed` lists each model in the plan with
+`fields` (every drafted fact written, with its evidence) and `supplied` (the
+paths the payload stated). `data.skipped` lists every other selected model:
+
+| `reason` | Meaning |
+| --- | --- |
+| `not_a_model` | no `.sql` model of that name under the model paths |
+| `python_model` | a Python model; dex drafts from SQL only |
+| `versioned` | a model with `versions:`; declare each version by hand |
+| `sql_unreadable` | the SQL could not be read statically (`detail` says why) |
+| `unprofiled_inputs` | the cache has not profiled what it reads; `commands` holds an `explore profile` call that can reach each one: `explore profile <dev namespace>.<model> --target dev` for a project model whose dev namespace the source allowlist does not reach, and none (the reason says why) for a name that matches several profiled relations, which no profile run settles. Nothing is scanned |
+| `nothing_drafted` | the cache proves no key, verified join or running total for it |
+| `complete` | it already declares every fact dex can draft |
+| `not_writable` | its YAML cannot be spliced predictably (a flow-style entry), or a drafted fact does not fit the SELECT list; the rest of the batch still plans |
+
+A skipped model also carries `missing`, the intent it still owes.
+
+**The cap.** At most 25 models are proposed per plan; `--limit N` narrows that and
+never widens it. Skipped models do not count. The models left over are counted in
+`data.elided_count` and in `notes`. Apply the plan and run the same command again:
+the models just declared are now `complete`, so the next batch is proposed.
+
+**Nothing to propose** returns `ok` with `plan_id: null`, no diff, and a note.
+
+Otherwise the declarations go through the same path as a `transform plan`
+declaration: rendered into the existing entry (shared files included, every
+other byte kept), gated by dbt's parse, and drafted, with `data.declarations`,
+`data.decisions` and, for a declared mart, `data.semantic_proposal`. Free on
+every connector: it reads the repository and the cache and opens no connection.
+
 ## Checked against the built relation
 
 `transform build --verify` and `maintain verify` hold each declaration to the
@@ -250,6 +326,11 @@ warehouse):
 | `unit: percent` with every value within 0 to 1 | `unit_out_of_range`; a question rather than proof, since small percentages land here too | medium |
 | `additivity: additive` on a running total | `additivity_contradicted`, with the entity, the ordering column and the decrease fraction | medium |
 | `population.filters` value still present | `population_contradicted`, with the count of contradicting rows, never the rows | high |
+| `population.parent`, eligible parent keys absent from the model | `parent_population_missing`, distinct-key counts, `excluded_by_filters` for parents a declared filter rules out | high (medium when a declared filter's column is not on the parent) |
+| `population.parent`, model keys the parent does not have | `parent_population_unexpected`; these keys are never the population | high |
+| `history`, a measure disagreeing with the declared policy | `temporal_transition_count_mismatch`, `temporal_latest_transition_mismatch`, `temporal_first_attainment_mismatch`; entity counts, never values | high |
+| `history`, entities differing from its `population` | `temporal_population_missing`, `temporal_population_unexpected` | high |
+| `history.time.provenance` its column and the snapshot's strategy cannot satisfy | `temporal_provenance_contradicted` | medium |
 
 `null_rule: never` needs no check of its own: it renders as a `not_null` test,
 which the build runs. A single-column `grain` renders as a `unique` test, so the
@@ -261,14 +342,361 @@ columns: a composite grain naming both, else the `foreign_key` (or `key`) and
 `time` roles, else the relation's first id-shaped and temporal columns. Declare
 the roles where that guess would be wrong.
 
+Each declared parent also gets a record under `data.parent_population`: the
+declaration, the counts and a `status` (`satisfied`, `contradicted`,
+`not_applicable` when the parent and the model are both empty, or `unchecked`
+with a `reason_code`). A column a join supplies is judged by its `null_rule`
+too (`join_field_all_null`), with the join's coverage beside it; see the
+maintain skill's `axes.md`, "Join contract".
+
+A model derived from a dbt snapshot's status history declares its temporal
+contract in `history`; see "Temporal contracts: `history`" below.
+
 A check that could not run is named in `data.suppressed` (`unit`, `additivity`,
-`population`, and `grain` on the build path) with the reason: nothing in scope
+`population`, `parent_population`, `temporal`, and `grain` on the build path) with the reason: nothing in scope
 declares it, the relation is empty, the column is all NULL, the column was
 aggregated away (a rollup cannot carry its population rule's column, so the rule
 is checked upstream or not at all), too few observations, or the scan is offered.
 A population filter's values are compared as text when the declared values and
 the column's type disagree. A unit's range is withheld for a column that looks
 like personal data.
+
+### Temporal contracts: `history`
+
+A snapshot can build and hold the right rows while a model over it disagrees
+about what the history means. Its own tests adopt its own conventions, so they
+cannot settle that. A `history` block states the conventions, and verification
+derives each entity's expected values from the snapshot's versions and that policy
+alone, without reading the model's SQL:
+
+```json
+"history": {
+  "snapshot": "hosts_snapshot",
+  "entity": {"host_id": "host_id"},
+  "status": {"column": "is_superhost", "target": true},
+  "initial_observation": "baseline",
+  "null_status": "ignore",
+  "population": "ever_target",
+  "time": {"column": "dbt_valid_from", "provenance": "capture"},
+  "measures": {"transition_count": "status_change_count",
+               "latest_target_transition_at": "last_status_change_at",
+               "first_target_at": "first_superhost_at"}
+}
+```
+
+| Field | Values | Meaning |
+|---|---|---|
+| `snapshot` | a snapshot of this project | where the versions come from; a SQL block or a YAML-defined snapshot |
+| `entity` | `{<output column>: <snapshot column>}` | the key the model holds one row per |
+| `status` | `{column, target}` | the status column of the snapshot, and the value of interest. The target is committed to git, so a column that looks like personal data is refused |
+| `initial_observation` | `baseline` | the first observation establishes a starting point and is not a transition |
+| | `transition` | a first observation at the target counts as one. This assumes a prior non-target state, so select it only when that is the intent |
+| `null_status` | `ignore` | a NULL version is not an observation: true, NULL, true is no change |
+| | `state` | NULL is a state: true, NULL, true is two changes |
+| `population` | `ever_target`, `all_observed` | the entities the model holds |
+| `time` | `{column, provenance}` | the snapshot column the time fields read. `provenance` is `business` (the source recorded it) or `capture` (the snapshot observed it) |
+| `measures` | `transition_count`, `latest_target_transition_at`, `first_target_at` | the output columns each expected value is compared with |
+
+`snapshot`, `entity` and `status` are required. A status change is the status
+value differing between consecutive versions, ordered by the snapshot's own
+validity column, so an edit to another attribute is never a transition. A policy
+left out is a plan warning, and whatever rests on it is reported as
+`policy_missing`: Dex assumes none. `first_target_at` rests only on `time`.
+A `transition_count` needs `initial_observation` and `null_status`, and
+`latest_target_transition_at` needs those and `time`.
+
+Under the `timestamp` strategy dbt copies the source's `updated_at` into its
+validity column, so that column is source time. Under `check` it is the time the
+snapshot ran. `temporal_provenance_contradicted` reports a declaration that says
+otherwise, and a column dbt does not write declared as `capture`.
+
+`transform plan` also warns when a model refs a snapshot and walks its versions
+(`lag`, `lead`, `row_number`, `dbt_valid_from`, `dbt_updated_at`) with no `history`
+declared. It is a text heuristic, and only ever a warning.
+
+Each contract gets one record under `data.temporal_contracts`
+(`data.verification.temporal_contracts` on a build), keeping three things apart:
+
+- `snapshot_execution`: dbt's status for the snapshot and its strategy. A snapshot
+  that built establishes nothing about what a model made of its versions.
+- `assertions`: per measure, `population` and `time_provenance`, each with its own
+  status and, for a measure, `compared` and `mismatched_entities`.
+- `unchecked`: what was not established, with a count of the entities it covers.
+
+| `status` | Means |
+|---|---|
+| `satisfied` | every assertion held, and at least one entity made a transition |
+| `contradicted` | a finding to fix |
+| `not_applicable` | `no_history_observed` (the columns agree, and no entity made a transition, so transitions were not exercised), or `empty_input` |
+| `unchecked` | not clean; `reason_code` says why |
+
+| `reason_code` | Why it is unchecked |
+|---|---|
+| `policy_missing` | the declaration leaves out a policy this assertion rests on |
+| `business_order_conflict` | a declared business timestamp runs backwards across a status change, so business and capture order give different sequences. Those entities are excluded from every comparison and counted, never guessed |
+| `business_timestamp_unreliable` | a declared business timestamp is NULL or stands still at a status change. Those entities' time fields are not compared; their counts are, since capture order is intact |
+| `ambiguous_version_order` | an entity's versions share one validity timestamp |
+| `hard_delete_records` | the snapshot uses `hard_deletes: new_record`, whose records are versions that do not observe the status |
+| `snapshot_not_ancestor` | the manifest does not show the model descending from the declared snapshot, directly or through other models, so nothing was compared. `reason` names the snapshot and any other snapshot the model descends from. Correct `history.snapshot`, or read the snapshot through `ref()`: the manifest cannot see a hard-coded relation. This is reachability, not column lineage: a snapshot reached only through an unrelated join passes it |
+| `lineage_unavailable` | the manifest cannot say whether the model descends from the snapshot (no recorded dependencies, or a parent it does not hold), so nothing was compared |
+| `snapshot_not_built` | the snapshot failed or was skipped in the last run |
+| `malformed_declaration` | a hand-written block does not parse |
+| `column_missing`, `relation_not_found`, `probe_refused`, `scan_offered`, `no_entity_comparable`, `nothing_to_compare` | the check could not reach or compare what it needs |
+
+**Limits.** One snapshot, one status column, one output row per entity. Not a
+general SCD verifier: history built on anything but a dbt snapshot, a model holding
+one row per period, and any policy not listed here are out of scope, and no policy
+is inferred. Nothing here repairs a snapshot or a model. A source timestamp that
+merely equals a creation timestamp is not evidence either way, so it is not flagged;
+only a failure observed at a status change is. `explore --use-project` does not
+carry `history` yet, `semantic ossie|slayer|cube` refuse it, and a derived semantic
+definition lists it under `not_carried`.
+
+The statements are aggregate-only, priced with `(declared facts)`, and go through
+the same handshake and session ceiling. They return counts, never a row or a value.
+
+## Read back by `explore --use-project`
+
+`explore profile` and `explore map` with `--use-project` return each declared
+model's declaration as `declaration` on the relation it builds: grain (with
+`grain_status` comparing it with the measured keys), population (a declared
+`parent` as `model`, `columns` and `parent_columns`), and each column's role,
+unit, additivity and `references`. A `references` is also a declared join,
+`declared_by: declaration <model>.<column>`. It is read from the YAML on every run and never cached, so a later session reads the rule the
+project records rather than one remembered from the conversation that wrote it.
+
+A native layer is read back the same way, so `semantic ossie|slayer|cube plan`
+with `declarations` reaches `explore --use-project` with no dbt project present.
+The grain comes from the layer's own `primary_key`, and the rest from the `dex`
+metadata below. A definition with a primary key and no metadata still reports
+`declaration`, with its grain. A document annotated by an earlier release stored
+no `role` or `references`, so it reports neither until it is annotated again.
+Where a dbt model and a layer declare one relation, the dbt declaration is
+reported whole, since the layer's was derived from it, and `notes` says so.
+
+## Derived semantic model: `data.semantic_proposal`
+
+When `transform plan`, `transform declare` or `semantic define|update|plan` creates,
+edits or declares a model under `transform.marts_paths` (`.dex/config.yml`, default
+`[models/marts]`, relative to the dbt project, subfolders included) and the model's
+post-change YAML carries a declaration, the engine derives the semantic definition
+the declaration already states, **in whichever semantic layer the repository
+reads** (`semantic.vendor`). Every vendor sits behind one hook
+(`SemanticDerivationSource`), so the envelope has one shape with a `vendor` field:
+
+| `semantic.vendor` | What a declared mart gets |
+| --- | --- |
+| `dbt` (default) | a MetricFlow semantic model, spliced into the dbt plan |
+| `slayer` | a SLayer model file, stored as a plan of its own beside the dbt plan |
+| `cube` | a Cube model file, stored as a plan of its own beside the dbt plan |
+| `ossie` | an Ossie dataset, appended to the configured document holding its parents and stored as a plan of its own beside the dbt plan |
+
+Three rules hold for every vendor. Metrics are never derived: a measure is what a
+column holds, a metric is a business definition, and it stays the author's. Nothing
+is guessed or renamed: an aggregation with no equivalent, a composite grain a layer
+cannot key on, a name already declared are each named. And **a population is
+metadata, never a filter**: the derived definition sits on the mart, whose SQL
+already enforces the population, so a filter would apply the rule twice and diverge
+silently the day the two disagree. It is carried structured under the vendor's
+metadata key `dex`, and as one sentence at the end of the description
+(`Population: <rule>; status is one of 'paid' or 'shipped'.`), where an agent
+reading the catalog meets it.
+
+Per model, `carried` lists every declared field that reached the definition
+(`grain`, `population`, `columns.amount.unit`) and `not_carried` names every one
+that did not, with why. A declared field never disappears without a word.
+
+### MetricFlow (`semantic.vendor: dbt`)
+
+| Declaration | Semantic model |
+| --- | --- |
+| a single-column `grain` | the primary entity (`order_id` becomes entity `order`) |
+| a composite `grain`, or none | no primary entity, and none guessed: MetricFlow needs one for any dimension or measure, so the derivation is `failed` with the limitation named. Add `primary_entity:` and pass it to `semantic plan` yourself |
+| `foreign_key` | a foreign entity. With `references`, it takes the entity name the referenced model's semantic model already gives that column, so the join resolves; otherwise the column's name less `_id`, with a note |
+| `dimension` | a categorical dimension |
+| `time` | a time dimension: `day` for a date, `day` for a timestamp (noted, since finer is the author's choice), the truncated grain where the SQL truncates (`date_trunc('month', ...)`), `day` with a note where the type cannot be read. A column whose type is known not to be temporal is left out. The first time column is `defaults.agg_time_dimension`, and a note names the others |
+| `measure` with `aggregation` | a measure: `sum`, `count`, `count_distinct`, `min`, `max`, `average` (`avg`, `mean`), `median`, `sum_boolean`. Anything else (`percentile` needs parameters a declaration does not carry), a missing aggregation, or `non_additive` with a summing aggregation is left out and named. A model with no time column carries no measure, since MetricFlow aggregates over one |
+| `semi_additive` | `non_additive_dimension: {name: <default time dimension>, window_choice: max}`: each period reports its last value, which suits a balance or a season-to-date total. MetricFlow's own default is `min`; the note asks you to confirm |
+| `non_additive` | `config.meta.dex.additivity: non_additive` on the measure, since MetricFlow reads any measure as one it may add up |
+| `description` | carried onto the semantic model, dimensions and measures (MetricFlow's schema has no entity description, and `not_carried` says so) |
+| `population`, `assumptions` | the semantic model's `config.meta.dex`, and the population sentence in its description |
+| `unit`, `null_rule` | the entity's, dimension's or measure's `config.meta.dex` |
+
+What happens to the derivation depends on the project:
+
+- **With a dbt semantic layer** (a semantic model is declared and a time spine
+  is present), a derivation that passes every check is added to the same plan,
+  spliced into the project's one semantic-model file (or
+  `<mart folder>/<model>_semantic.yml` where there is none, or several) with
+  every other byte untouched. `mode` is `included`, and a warning names the file.
+- **Without one**, nothing is added. `mode` is `proposed`, `time_spine` says
+  whether a spine exists, and `definitions` holds each derivation ready to pass:
+  save the whole `data.semantic_proposal` object as a file and run
+  `semantic plan --definitions-file <file>`. Adopting MetricFlow and a time spine
+  is the project owner's decision, so the engine never bootstraps either.
+
+Before a derivation is offered or included it passes MetricFlow's schemas, the
+metric-input check, and dbt's parse of a throwaway copy of the project. In a
+project with no time spine, that copy alone gets a temporary spine so dbt can
+parse it at all; the project never sees it. The parse runs for a derivation even
+under `semantic plan --no-parse`, which still applies to the rest of the plan,
+because a semantic YAML dbt cannot parse breaks every dbt command in the project.
+
+```json
+"semantic_proposal": {
+  "vendor": "dbt",
+  "mode": "proposed",
+  "time_spine": "missing",
+  "definitions": [{"kind": "semantic_model", "path": "models/marts/fct_orders_semantic.yml", "content": "name: fct_orders\n..."}],
+  "models": {
+    "fct_orders": {
+      "status": "proposed",
+      "semantic_model": "fct_orders",
+      "path": "models/marts/fct_orders_semantic.yml",
+      "content": "name: fct_orders\n...",
+      "validation": {"schema": {"result": "passed"}, "references": {"result": "passed"}, "parse": {"result": "passed", "detail": "parsed with a throwaway time spine in the copy only; the project has none"}},
+      "notes": ["..."],
+      "limitations": [],
+      "carried": ["description", "grain", "population", "columns.order_total.unit"],
+      "not_carried": {}
+    }
+  },
+  "next": "save this object as a file and pass it to `semantic plan --definitions-file <file>` ...",
+  "notes": ["the project has no dbt semantic layer and no MetricFlow time spine ..."]
+}
+```
+
+### SLayer (`semantic.vendor: slayer`)
+
+One model file per mart, `models/<data_source>/<mart>.yaml` under
+`semantic.slayer.base_dir`:
+
+| Declaration | SLayer model |
+| --- | --- |
+| `grain` | `primary_key: true` on each grain column, a composite grain included |
+| any role | a column, typed from the SQL's casts or the cache's profile (`INT`, `DOUBLE`, `BOOLEAN`, `DATE`, `TIMESTAMP`, `TEXT`); a summed measure of unknown type is `DOUBLE`, with a note |
+| the first `time` column | `default_time_dimension` (only where its type is known to be a date or a timestamp) |
+| `foreign_key` with `references` | a `many_to_one` join to the SLayer model already sitting on the parent's table; where none does, no join and a note |
+| `measure` with `aggregation` | a saved measure named `<column>_<agg>`, formula `<column>:<agg>`: `sum`, `avg` (`average`, `mean`), `min`, `max`, `count`, `count_distinct`, `median`. SLayer keeps columns and measures in one namespace, so a name a column already holds fails the derivation rather than being renamed |
+| `semi_additive` | no saved measure, named in `limitations`: SLayer's `last` reports one row's value on the last period, not the total across entities on it, so `<column>:last` is the author's call |
+| `description` | the model's and each column's `description` |
+| `population`, `assumptions` | the model's `meta.dex`, and the population sentence in its description |
+| `unit`, `null_rule`, `additivity`, `role`, `references` | the column's `meta.dex`, beside any native construct a role or a reference also renders |
+
+`data_source` is the one the configured models share; models over more than one
+are not guessed between (`failed`). `sql_table` is, in order: the `database.schema`
+that the SLayer models on this dbt project's other models already read (so a mart
+lands where its siblings do); else the relation the compiled manifest names, with a
+note, since that is whatever target last compiled the project (often dev); else the
+bare table name, as a limitation, since dex's catalog then claims no relation. A
+model already on the mart's table is `skipped`; one holding its name on another
+table is `failed`.
+
+Whether it is included depends on the write surface:
+
+- **The path is already listed under `semantic.slayer.models`**: the model is
+  validated by exactly the checks `semantic slayer define` runs, read back through
+  the SLayer catalog, and stored as **a plan of its own** on the SLayer layer,
+  beside the dbt plan, because a plan holds one edit target. `mode` is `included`,
+  `plan_id` names that plan, and the hint names both:
+  `transform apply <dbt plan>` and `transform apply <plan_id>`. A bare
+  `transform apply` takes only the latest, which is the SLayer one.
+- **It is not**: `mode` is `proposed`, after the same checks. Listing a file is a
+  configuration change with its own confirmation, so `next` names it:
+  `dex config set semantic.slayer.models '[..., models/wh/fct_orders.yaml]'`, then
+  pass `data.semantic_proposal.definitions` (an edits payload) to
+  `semantic slayer define --edits-file`, or re-run the plan to include it.
+
+### Cube (`semantic.vendor: cube`)
+
+One file per mart, `<dir>/<mart>.yml`, where `<dir>` is the one directory the
+configured YAML files share (`model/cubes` where they share none):
+
+| Declaration | Cube |
+| --- | --- |
+| `grain` | `primary_key: true` on each grain dimension, a composite grain included |
+| any role but `measure` | a dimension, `sql: "{CUBE}.<column>"`, typed `time`, `number`, `boolean` or `string` from the SQL's casts or the cache's profile; a `time` role is always `time` (with a note where the type could not be read) |
+| `measure` with `aggregation` | a measure named after the column, `sql: "{CUBE}.<column>"`: `sum`, `avg` (`average`, `mean`), `min`, `max`, `count`, `count_distinct`. The column is not also a dimension, as MetricFlow does not make it one |
+| `median`, `semi_additive` | no measure, named in `limitations` and `not_carried`: Cube has no median type, and no measure that sums across entities but not across time |
+| `foreign_key` with `references` | a `many_to_one` join, `{CUBE}.<column> = {<parent>}.<parent column>`, to the cube already on the parent's table; none, or a second key to the same cube, means no join and a note |
+| `description` | the cube's and each member's `description` |
+| `population`, `assumptions` | the cube's `meta.dex`, and the population sentence in its description; never a measure filter or a segment |
+| `unit`, `null_rule`, `additivity`, `role`, `references` | the member's `meta.dex`, beside any native construct a role or a reference also renders |
+
+`sql_table` follows the SLayer order (the siblings' `database.schema`, else the
+manifest relation, else the bare name as a limitation), and `data_source` is
+written only where `semantic.cube.data_source` is not `default`. A cube already on
+the mart's table is `skipped`; a cube or view holding its name is `failed`.
+Included and proposed work as for SLayer, against `semantic.cube.files`: listed
+paths are stored as a plan of their own (`plan_id`; apply both), others are
+proposed with the `dex config set semantic.cube.files '[...]'` that adds them.
+
+### Ossie (`semantic.vendor: ossie`)
+
+One dataset per mart, appended as a new list item to a configured document:
+
+| Declaration | Ossie dataset |
+| --- | --- |
+| each declared column | a field of the same name, `expression: {sql: <column>}` |
+| a column's type, where the SQL or the cache knows it | the field's `datatype` (`Integer`, `Decimal`, `Float`, `Boolean`, `Date`, `DateTime`, `DateTimeTz`, `Time`, `String`) |
+| `time` role | `dimension: {is_time: true}` |
+| `grain` | `primary_key`, every grain field, a composite grain included |
+| `foreign_key` with `references` | a relationship `<mart>_to_<parent>` to the dataset in the same document whose field exposes the referenced column; none means no relationship and a note |
+| `measure` with `aggregation` | a dataset-scoped metric `<column>_<agg>`: `SUM`, `AVG` (`average`, `mean`), `MIN`, `MAX`, `COUNT`, `COUNT(DISTINCT ...)`. A measure is also a field, since a dataset metric aggregates its dataset's fields |
+| `median`, `semi_additive` | no metric, named in `limitations` and `not_carried` |
+| `description` | the dataset's and each field's `description` |
+| `population`, `assumptions` | the dataset's `ai_context`: the population sentence as `instructions`, and the declaration under a structured `dex` key; the sentence also closes the description. Never a filter, and never `custom_extensions`, whose opaque string a diff cannot review |
+| `unit`, `null_rule`, `additivity`, `role`, `references` | the field's `ai_context.dex`, beside any native construct a role or a reference also renders |
+
+A relationship joins datasets of one model, and a model is one document, so where
+it goes follows the foreign keys: the configured document holding the datasets
+they reference, or, with no foreign key and one configured document, that one. It
+is spliced in, so every other byte of the document stays, and stored as a plan of
+its own on the Ossie layer (`plan_id`; apply both). Where the parents span
+documents or none holds them, it is `proposed` as a document of its own,
+`<dir>/<mart>.ossie.yaml`, with the `dex config set semantic.ossie.files '[...]'`
+that adopts it. `source` follows the SLayer order (the siblings' `database.schema`,
+else the manifest relation, else the bare name as a limitation). A dataset already
+on the mart's table is `skipped`; one holding its name in the target document is
+`failed`.
+
+### Declarations on `semantic slayer`, `semantic cube` and `semantic ossie`
+
+`semantic slayer define|update|plan` take the same `declarations` key beside
+`edits`. There a declaration **annotates** a SLayer model the payload's edits or
+the layer already define (`model` is the SLayer model's name): the declared grain
+becomes `primary_key`, descriptions and the population sentence are written, a
+`references` adds a `many_to_one` join where none to that model exists, a declared
+aggregation adds its `<column>_<agg>` saved measure, and `population`,
+`assumptions`, `unit`, `null_rule` and `additivity` land in `meta.dex`. The
+declaration wins field by field and nothing else moves; a declaration naming no
+defined model is refused. `edits` may be omitted. The result is validated by the
+layer's own checks before the plan is stored. `semantic cube` does the same for a
+cube (`model` is the cube's name; a view is refused, since it has no table of its
+own): grain to `primary_key` on its dimensions, a declared aggregation adds a
+measure named after the column, a `references` adds a `many_to_one` join, and
+only that cube's entry in its file is rewritten, so every other cube, view and
+comment keeps its bytes. `semantic ossie` does the same for a dataset (`model` is
+the dataset's name): the grain becomes `primary_key` on the **fields** exposing the
+grain columns (a grain column no field exposes is refused by name, since a key
+names fields; author the field first), a declared aggregation adds a dataset
+metric `<field>_<agg>`, a `references` adds a relationship to the parent dataset's
+field in the same document, and the rest lands in `ai_context` as above. Only that
+dataset's list item is rewritten, and a relationship is appended, so every other
+byte of the document is kept.
+
+Per model, `status` is one of:
+
+| `status` | Meaning |
+| --- | --- |
+| `included` | in this plan, or for a native layer in the plan named by `plan_id` |
+| `proposed` | passed every check; in `definitions` |
+| `failed` | a check failed, the grain is composite (MetricFlow), a name is already declared (renaming is yours, never the engine's), or the data source is ambiguous (SLayer); `reason` or `validation` says which. `content` is kept for you to fix, never offered |
+| `unvalidated` | a check could not run (dbt absent, or the plan's own edits do not parse), so it is neither offered nor included |
+| `skipped` | an authored definition already sits on the mart (never overwritten), or the declaration names nothing a definition carries |
+
+The key is absent when the plan touches no declared mart. Under a vendor whose
+layer does not implement the hook nothing is derived and a warning says so.
 
 ## `data.decisions`
 

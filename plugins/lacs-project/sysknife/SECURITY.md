@@ -7,10 +7,14 @@ matter.
 
 Please do not open a public issue for security-sensitive problems.
 
-Use GitHub's private vulnerability reporting flow for this repository
-if it is available.
-If a private report is not available in your environment, contact the
-maintainers privately before publishing details.
+Report it through GitHub's private vulnerability reporting:
+<https://github.com/lacs-project/sysknife/security/advisories/new>. The report
+reaches the repository's maintainers and nobody else; Vladimir Rotariu
+(`vladimirrott` on GitHub) reads every one.
+
+If you cannot use that form, open a public issue that says you have a security
+report and how to reach you, with no details of the problem, and a maintainer
+will contact you privately.
 
 ## What to Include
 
@@ -23,12 +27,76 @@ maintainers privately before publishing details.
 
 ## What We Will Do
 
-We will:
+| Step | Target |
+|---|---|
+| Acknowledge the report | within 3 days |
+| Triage: reproduce it, rate its severity with CVSS, and tell you whether we accept it | within 7 days |
+| Release a fix for a critical or high severity issue | within 30 days of triage |
+| Release a fix for a medium or low severity issue | in a scheduled release; the advisory names the version |
 
-- acknowledge the report
-- triage the issue
-- work on a fix
-- coordinate disclosure timing with the reporter
+Days are calendar days. We agree the disclosure date with you, publish a GitHub
+security advisory (with a CVE) when the fix ships, and credit you in it unless
+you ask us not to. If a target slips, we tell you why and when to expect it.
+
+## Supported Versions
+
+The latest release on the
+[releases page](https://github.com/lacs-project/sysknife/releases) gets
+security fixes. A release stops getting them the day the next one ships, and
+while SysKnife stays in the `0.y` series a fix ships as a new release, never as
+a backport. Upgrade by running `npx sysknife-setup` again, or `make install`
+from the new tag. The CHANGELOG's Security sections name every advisory and the
+release that fixed it.
+
+## Dependencies, Static Analysis and Secrets
+
+These are the thresholds CI enforces today, written down so a change to one is a
+visible change to policy. A pull request cannot merge while any of them fails.
+
+**Dependencies.** The required `security-audit` job runs `cargo audit` over
+`Cargo.lock` and fails on any RustSec vulnerability advisory. The unmaintained
+and unsound warnings it reports without failing are listed, with their reach,
+in [docs/security/audit-advisories.md](docs/security/audit-advisories.md). The
+required `dependency-review` job fails a pull request that adds a dependency
+with a known vulnerability of high or critical severity. `cargo-audit.yml` and
+`npm-audit.yml` rerun the audits on a daily schedule, so an advisory published
+after a merge shows up on `main`. A release does not ship while an advisory
+affects a released binary; the fix follows the targets in
+[What We Will Do](#what-we-will-do). An advisory that does not affect a
+released binary gets an [OpenVEX](https://openvex.dev) statement in
+[vex/](vex/sysknife.openvex.json), and `tests/release/vex.test.sh` rechecks each
+"component not present" claim against `Cargo.lock` on every pull request.
+[docs/dependencies.md](docs/dependencies.md) covers how a dependency gets chosen,
+pinned, watched and removed.
+
+**Static analysis.** CodeQL analyses the Rust and JavaScript code on every pull
+request, and the main branch ruleset blocks a merge while CodeQL reports an
+`error` alert or a security alert of high or critical severity.
+ClusterFuzzLite fuzzes the trust-boundary parsers on pull requests that touch
+`crates/`. A maintainer may dismiss an alert in two cases: the code runs only in
+tests, or the alert is a false positive. Either way the dismissal records the
+reason on the alert. Everything else gets fixed.
+
+**Secrets.** The repository holds no secrets: trufflehog scans every pull
+request and push, GitHub secret scanning with push protection is on, and the
+opt-in pre-commit hook runs `scripts/check_no_secrets.sh` before a commit
+exists. Running that script in CI as well is
+[#653](https://github.com/lacs-project/sysknife/issues/653). The project's credentials
+are:
+
+| Secret | Where it lives | Used by |
+|---|---|---|
+| `CARGO_REGISTRY_TOKEN`, a crates.io API token | repository Actions secret | `release.yml`, to publish the crates |
+| npm publishing | no stored token; npm trusts the release workflow's OIDC identity | `release.yml`, to publish `sysknife-setup` |
+| Sigstore signing | no stored key; keyless, from the workflow's OIDC identity | `release.yml`, for provenance and SBOM attestations |
+| SSH key that signs release tags | the maintainer's machine, never CI | `git tag -s` |
+
+Repository admins can replace an Actions secret; nobody can read one back.
+Workflows read secrets through the environment and never put one on a command
+line. On any suspected exposure, or when someone with access leaves, the
+maintainer revokes the token on crates.io, issues a new one limited to
+publishing updates of SysKnife's crates, and replaces the secret. If a release
+could have been affected, a security advisory says so.
 
 ## Rules for Contributors
 
@@ -39,6 +107,9 @@ We will:
 ---
 
 ## Security Model
+
+[docs/assurance-case.md](docs/assurance-case.md) argues requirement by
+requirement that this model holds, with the code and test behind each claim.
 
 SysKnife uses a layered enforcement model. Each layer gates a different
 stage of one request path: intent validation, action-name allowlisting,
@@ -52,10 +123,13 @@ The layers are sequential gates, not independent walls. They all run inside
 one process, and that process runs as the `sysknife` service account
 (`User=sysknife` in `packaging/sysknife-daemon.service`), which is
 root-equivalent by design. That account holds `NOPASSWD` grants for
-`env DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a /usr/bin/apt-get *`,
-`/usr/bin/snap install *` and `/usr/bin/rpm-ostree install *`, each of which
-reaches root on its own: apt through `-o APT::Update::Pre-Invoke::`, snap and
-rpm-ostree through the install hooks and scriptlets they run as root. A compromise of the daemon process is
+`/usr/bin/snap install *`, which reaches root on its own through the install
+hooks it runs as root, and for the `apt` and `rpm-ostree` verbs of
+`/usr/lib/sysknife/action-steps`, which install packages whose maintainer
+scripts and scriptlets run as root. There is no grant on `apt-get`, and none on
+an `rpm-ostree` call that takes an operand, because their own options can name
+a command, a local package or a kernel argument. A
+compromise of the daemon process is
 therefore a compromise of root on that host. An operator sizing the blast
 radius of a daemon compromise should read the grants in
 `packaging/sysknife-sudoers` alongside this model.
@@ -380,7 +454,14 @@ Every daemon execution — previewed, approved, running, succeeded, failed, or
 rolled back — is recorded in the configured transaction database. SQLite is
 the default at `SYSKNIFE_DATABASE_PATH` (packaged default:
 `/var/lib/sysknife/daemon.sqlite`); PostgreSQL is available for centralized,
-off-host durability. Both backends store the same signed hash-chain fields.
+off-host durability. Both backends store the same signed hash-chain fields
+and chain every status change as a signed `status_*` event in the same database
+transaction, and `sysknife audit verify` compares the live `status` column with
+those events on both. Through 0.26.1 the PostgreSQL backend chained no status
+event and did not run that comparison, so a rewritten outcome there went
+unreported. PostgreSQL rows written before the upgrade carry no status event
+and verify as inconclusive (exit `2`) rather than intact; see
+[`docs/the-audit-chain.md`](docs/the-audit-chain.md#execution-status-verification).
 
 The transaction database is authoritative. Query it with `sysknife history`
 and verify its chain with `sysknife audit verify`. See
@@ -455,9 +536,16 @@ Two controls exist today:
 
 1. **Signed tags.** Release tags are SSH-signed from `v0.2.15` onward, so the
    commit a release was built from can be verified independently of the release
-   assets:
+   assets. The signing key is registered on GitHub as `vladimirrott`'s SSH
+   signing key, fingerprint
+   `SHA256:30ExrquE9/4d/ogwB1wd8XXG195EKLkZn8SaOhrNjAs`. Build an allowed-signers
+   file from it, then verify:
    ```sh
-   git verify-tag v0.2.15
+   curl -fsS https://api.github.com/users/vladimirrott/ssh_signing_keys \
+     | python3 -c 'import json, sys; [print("sysknife-development@protonmail.com", k["key"]) for k in json.load(sys.stdin)]' \
+     > allowed_signers
+   ssh-keygen -lf allowed_signers   # compare the fingerprint with the one above
+   git -c gpg.ssh.allowedSignersFile=allowed_signers verify-tag v0.28.0
    ```
 2. **Out-of-band digest pinning.** Point `SYSKNIFE_PINNED_SHA256SUMS` at a
    checksum file you obtained independently — from a signed tag, an internal

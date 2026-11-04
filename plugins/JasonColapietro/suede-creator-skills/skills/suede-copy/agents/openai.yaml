@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Copy Skills"
+  short_description: "Conversion copy, docs, and explainers, answer-first"
+  default_prompt: "Use $suede-copy to write [surface type and subject]. Pick the mode, persona, and framework, lead with a direct answer, generate labeled variants, run Suede Slop Stop while preserving facts and house style, and deliver the 70-point score."
+policy:
+  allow_implicit_invocation: true

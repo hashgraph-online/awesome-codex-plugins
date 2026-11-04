@@ -1,0 +1,231 @@
+{
+  "id": "subscriber-counter",
+  "name": "Follower counter and goal bar",
+  "use": "Subscriber/follower number rolls up to a milestone, or a goal bar fills.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 3,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        700,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Roboto",
+      "weights": [
+        500,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Roboto"
+    }
+  ],
+  "rules": [
+    "3 significant figures, rounded down above 1,000 [13][12]",
+    "Real numbers only [21]",
+    "expo.out roll + landing pulse [40]",
+    "Tabular numerals"
+  ],
+  "format_fn": "n<1000 ? n : floor(n/1000^p to 3 sig figs) + ['','K','M','B'][p]; stripZeros default true (unverified, check screenshot)",
+  "presets": [
+    {
+      "id": "subscriber-counter.channel-counter",
+      "label": "Channel counter",
+      "look": "Avatar + name + big rolling number",
+      "params": {
+        "number_px": 120,
+        "number_weight": 800,
+        "numerals": "tabular-nums",
+        "label_px": 34,
+        "label_opacity": 0.65,
+        "card_px": [
+          840,
+          360
+        ],
+        "radius_px": 40,
+        "avatar_px": 120,
+        "roll": [
+          0.25,
+          1.85
+        ],
+        "roll_ease": "expo.out",
+        "land_pulse": {
+          "scale": [
+            1,
+            1.06,
+            1
+          ],
+          "s": 0.25,
+          "ease": "power2.out"
+        },
+        "in_s": 0.35,
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)"
+      },
+      "sources": [
+        13,
+        26,
+        40
+      ]
+    },
+    {
+      "id": "subscriber-counter.milestone-pop",
+      "label": "Milestone pop",
+      "look": "Roll, land, ring pulse",
+      "params": {
+        "ring": "#FF0033",
+        "ring_scale": [
+          1,
+          1.6
+        ],
+        "ring_opacity": [
+          0.5,
+          0
+        ],
+        "ring_s": 0.6,
+        "hold_min_s": 1.5
+      },
+      "sources": [
+        14
+      ]
+    },
+    {
+      "id": "subscriber-counter.goal-bar",
+      "label": "Goal bar",
+      "look": "Road to target, bar fill synced with number",
+      "params": {
+        "bar_px": [
+          720,
+          28
+        ],
+        "radius_px": 14,
+        "track": "rgba(255,255,255,0.2)",
+        "fill": "accent",
+        "fill_s": 1.8,
+        "fill_ease": "power3.out",
+        "shared_progress": true
+      },
+      "sources": []
+    },
+    {
+      "id": "subscriber-counter.stream-goal",
+      "label": "Stream goal",
+      "look": "Compact purple follower goal for 16:9 corner",
+      "params": {
+        "fill": "#9147FF",
+        "card": "rgba(24,24,27,0.85)",
+        "font": "Inter 700"
+      },
+      "sources": [
+        15
+      ]
+    }
+  ],
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 12,
+      "name": "Tubefilter: YouTube abbreviated subscriber counts (2019)",
+      "url": "https://www.tubefilter.com/2019/05/21/youtube-display-abbreviated-subscriber-counts/amp/"
+    },
+    {
+      "n": 13,
+      "name": "Rival IQ Help: Why YouTube subscriber counts are rounded",
+      "url": "https://help.rivaliq.com/en/articles/9788197-why-youtube-subscriber-counts-are-rounded"
+    },
+    {
+      "n": 14,
+      "name": "YouTube Brand Resources: Color",
+      "url": "https://brand.youtube/color/"
+    },
+    {
+      "n": 15,
+      "name": "shadcn.io DESIGN.md: Twitch tokens (third-party)",
+      "url": "https://www.shadcn.io/design/twitch/raw"
+    },
+    {
+      "n": 16,
+      "name": "shadcn.io DESIGN.md: TikTok tokens (third-party) + ColorFYI",
+      "url": "https://www.shadcn.io/design/tiktok/raw"
+    },
+    {
+      "n": 21,
+      "name": "FTC: Final rule banning fake reviews and testimonials (2024)",
+      "url": "https://www.ftc.gov/news-events/news/press-releases/2024/08/federal-trade-commission-announces-final-rule-banning-fake-reviews-testimonials"
+    },
+    {
+      "n": 26,
+      "name": "Material Design 3 motion tokens (material-components-android Motion.md)",
+      "url": "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

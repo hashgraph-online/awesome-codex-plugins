@@ -2,7 +2,7 @@
 
 ## Scope
 
-This repository contains a Codex plugin: a skill (`SKILL.md`), an MCP server declaration that starts the published npm package [`@wavespeed/mcp`](https://github.com/WaveSpeedAI/mcp-server) with `npx`, and two helper shell scripts that install and check the [`@wavespeed/cli`](https://github.com/WaveSpeedAI/wavespeed-cli). No secrets are stored here. Authentication is handled by the CLI's `wavespeed login` or the `WAVESPEED_API_KEY` environment variable; the skill instructs the agent never to ask a user to paste a key into the chat.
+This repository contains a Codex plugin: a skill (`SKILL.md`), an MCP server declaration that connects to the hosted endpoint `https://api.wavespeed.ai/mcp`, and two helper shell scripts that install and check the [`@wavespeed/cli`](https://github.com/WaveSpeedAI/wavespeed-cli). No secrets are stored here. The hosted MCP connection is authorized in the browser. CLI authentication is separate, via `wavespeed login` or the `WAVESPEED_API_KEY` environment variable; the skill instructs the agent never to ask a user to paste a key into the chat.
 
 Vulnerabilities in the MCP server or the CLI themselves should be reported against their own repositories, linked above.
 

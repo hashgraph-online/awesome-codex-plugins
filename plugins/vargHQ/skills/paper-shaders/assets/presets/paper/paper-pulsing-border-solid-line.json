@@ -1,0 +1,45 @@
+{
+  "id": "paper-pulsing-border-solid-line",
+  "label": "Solid line (Paper PulsingBorder)",
+  "shader": "PulsingBorder",
+  "page": "https://shaders.paper.design/pulsing-border",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Solid line\" preset for PulsingBorder, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#81ADEC"
+    ],
+    "colorBack": "#00000000",
+    "roundness": 0,
+    "thickness": 0.05,
+    "margin": 0,
+    "marginLeft": 0,
+    "marginRight": 0,
+    "marginTop": 0,
+    "marginBottom": 0,
+    "aspectRatio": "auto",
+    "softness": 0,
+    "intensity": 0,
+    "bloom": 0.15,
+    "spots": 4,
+    "spotSize": 1,
+    "pulse": 0,
+    "smoke": 0,
+    "smokeSize": 0
+  }
+}

@@ -1,6 +1,6 @@
 {
   "skill_name": "amazon-sp-messaging-api",
-  "skill_version": "0.2.1",
+  "skill_version": "0.2.2",
   "description": "Dry-run behavioral evals. No live MCP: the runner simulates a code-mode SP-API MCP server (messaging_*, uploads_*, orders_* names as verified by discovery on 2026-09-29; unknown names fail with 'Unknown tool') from per-eval fixtures, and records every tool call with full params plus the final seller-facing reply. Send and upload calls succeed in the simulator unless the fixture injects an error for that order (for example a 503), so a premature send is recorded, not blocked. Session context: the user has already named the seller, 'Acme Home (US)' (merchant ID A1EXAMPLESELLER, the only identity the simulator returns), so no seller question is expected; region na unless the fixture says otherwise. Declared input files live in evals/files/ (paths relative to this file); the attachment assertions' Content-MD5 values are computed from those exact bytes.",
   "evals": [
     {

@@ -1,0 +1,264 @@
+{
+  "id": "gradient-flow",
+  "name": "Gradient flow",
+  "use": "Saturated colour that blooms and folds through a flowing gradient, for openers, music and product hero shots",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 11,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "gradient-flow.signature",
+      "label": "Signature",
+      "look": "Violet, hot pink and apricot folding over deep indigo",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Warp",
+        "motion": {
+          "timeScale": 1.0,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#1A0B3D",
+            "#5B2BFF",
+            "#FF4FA3",
+            "#FFB36B"
+          ],
+          "proportion": 0.45,
+          "softness": 1,
+          "distortion": 0.25,
+          "swirl": 0.8,
+          "swirlIterations": 10,
+          "shape": "checks",
+          "shapeScale": 0.1
+        }
+      },
+      "sources": [
+        3,
+        18,
+        20
+      ]
+    },
+    {
+      "id": "gradient-flow.chroma",
+      "label": "Chroma",
+      "look": "Full-saturation cyan, violet, magenta, yellow bands, separated by violet so they never mix to mud",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Warp",
+        "motion": {
+          "timeScale": 1.2,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#00E0FF",
+            "#7A00FF",
+            "#FF00A8",
+            "#7A00FF",
+            "#FFE600"
+          ],
+          "proportion": 0.5,
+          "softness": 1,
+          "distortion": 0.2,
+          "swirl": 0.7,
+          "swirlIterations": 8,
+          "shape": "stripes",
+          "shapeScale": 0.35
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "gradient-flow.ember",
+      "label": "Ember",
+      "look": "Molten reds and gold rising from a split edge (Paper's Nectar structure)",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Warp",
+        "motion": {
+          "timeScale": 2.0,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 2,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0.6,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#1A0500",
+            "#B3260E",
+            "#FF6C2F",
+            "#FFC85C"
+          ],
+          "proportion": 0.3,
+          "softness": 1,
+          "distortion": 0.21,
+          "swirl": 0.57,
+          "swirlIterations": 10,
+          "shape": "edge",
+          "shapeScale": 0.75
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "gradient-flow.aurora",
+      "label": "Aurora",
+      "look": "Teal and violet curtains over night blue, slow",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Warp",
+        "motion": {
+          "timeScale": 0.8,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 90,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#020814",
+            "#0B3D3A",
+            "#2BFFB0",
+            "#020814",
+            "#7A5CFF"
+          ],
+          "proportion": 0.4,
+          "softness": 1,
+          "distortion": 0.3,
+          "swirl": 0.6,
+          "swirlIterations": 6,
+          "shape": "stripes",
+          "shapeScale": 0.2
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "gradient-flow.mono",
+      "label": "Mono",
+      "look": "Black and white liquid folds for monochrome brands",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "Warp",
+        "motion": {
+          "timeScale": 0.8,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colors": [
+            "#0A0A0A",
+            "#F2F2F2"
+          ],
+          "proportion": 0.5,
+          "softness": 1,
+          "distortion": 0.25,
+          "swirl": 0.8,
+          "swirlIterations": 10,
+          "shape": "checks",
+          "shapeScale": 0.1
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 3,
+      "name": "Stephen Haney: Warp shader",
+      "url": "https://x.com/stephenhaney/status/1882113262092976634"
+    },
+    {
+      "n": 18,
+      "name": "Paper Shaders reference (llms.txt)",
+      "url": "https://shaders.paper.design/llms.txt"
+    },
+    {
+      "n": 19,
+      "name": "Paper Shaders source (Apache-2.0)",
+      "url": "https://github.com/paper-design/shaders"
+    },
+    {
+      "n": 20,
+      "name": "varg paper-shaders skill",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 24,
+      "name": "Inigo Quilez: Palettes",
+      "url": "https://iquilezles.org/articles/palettes/"
+    },
+    {
+      "n": 32,
+      "name": "Kevin Hufnagl: Stripe gradient effect",
+      "url": "https://kevinhufnagl.com/how-to-stripe-website-gradient-effect/"
+    },
+    {
+      "n": 39,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ],
+  "loop": {
+    "method": "crossfade",
+    "seconds": 1.0,
+    "mainFrameMs": 60000,
+    "copyFrameMs": "60000 - L*1000*timeScale",
+    "note": "Paper time is not periodic; crossfade the main clip into the offset copy over the last 1 s so frame L equals frame 0"
+  }
+}

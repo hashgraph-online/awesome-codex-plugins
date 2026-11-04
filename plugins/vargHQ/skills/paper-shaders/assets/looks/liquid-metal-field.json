@@ -1,0 +1,204 @@
+{
+  "id": "liquid-metal-field",
+  "name": "Liquid metal field",
+  "use": "Full-frame flowing chrome behind a title, product or end card",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 10,
+  "fonts": [],
+  "presets": [
+    {
+      "id": "liquid-metal-field.signature",
+      "label": "Signature",
+      "look": "Bright silver chrome with a thin RGB fringe on the stripe edges",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "LiquidMetal",
+        "motion": {
+          "timeScale": 0.5,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#AAAAAC",
+          "colorTint": "#FFFFFF",
+          "shape": "none",
+          "repetition": 2,
+          "softness": 0.1,
+          "shiftRed": 0.3,
+          "shiftBlue": 0.3,
+          "distortion": 0.07,
+          "contour": 0.4,
+          "angle": 70,
+          "image": ""
+        }
+      },
+      "sources": [
+        7,
+        18,
+        20
+      ]
+    },
+    {
+      "id": "liquid-metal-field.chrome",
+      "label": "Chrome",
+      "look": "Wider, smoother chrome bands, more liquid",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "LiquidMetal",
+        "motion": {
+          "timeScale": 0.7,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#AAAAAC",
+          "colorTint": "#FFFFFF",
+          "shape": "none",
+          "repetition": 1.5,
+          "softness": 0.05,
+          "shiftRed": 0.3,
+          "shiftBlue": 0.3,
+          "distortion": 0.1,
+          "contour": 0.4,
+          "angle": 90,
+          "image": ""
+        }
+      },
+      "sources": [
+        7,
+        18,
+        20
+      ]
+    },
+    {
+      "id": "liquid-metal-field.noir",
+      "label": "Noir",
+      "look": "Graphite on black, no colour fringe, soft",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "LiquidMetal",
+        "motion": {
+          "timeScale": 0.4,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#000000",
+          "colorTint": "#606060",
+          "shape": "none",
+          "repetition": 1.5,
+          "softness": 0.45,
+          "shiftRed": 0,
+          "shiftBlue": 0,
+          "distortion": 0,
+          "contour": 0,
+          "angle": 90,
+          "image": ""
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    },
+    {
+      "id": "liquid-metal-field.gold",
+      "label": "Gold",
+      "look": "Warm gold burned into the chrome over near-black",
+      "params": {
+        "engine": "paper-shaders@0.0.82",
+        "shader": "LiquidMetal",
+        "motion": {
+          "timeScale": 0.5,
+          "frame": 0
+        },
+        "paper": {
+          "fit": "contain",
+          "scale": 1,
+          "rotation": 0,
+          "offsetX": 0,
+          "offsetY": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "worldWidth": 0,
+          "worldHeight": 0,
+          "colorBack": "#1A1206",
+          "colorTint": "#D9A441",
+          "shape": "none",
+          "repetition": 2,
+          "softness": 0.15,
+          "shiftRed": 0.15,
+          "shiftBlue": -0.15,
+          "distortion": 0.08,
+          "contour": 0.3,
+          "angle": 60,
+          "image": ""
+        }
+      },
+      "sources": [
+        18,
+        20
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "Stephen Haney: Paper Shaders open source",
+      "url": "https://x.com/stephenhaney/status/2072369858638233843"
+    },
+    {
+      "n": 6,
+      "name": "Ksenia Kondrashova: liquid metal workflow",
+      "url": "https://x.com/uuuuuulala/status/2003848893965193406"
+    },
+    {
+      "n": 7,
+      "name": "Ksenia Kondrashova: LiquidMetal shape none + scale 1",
+      "url": "https://x.com/uuuuuulala/status/2044099750241415655"
+    },
+    {
+      "n": 18,
+      "name": "Paper Shaders reference (llms.txt)",
+      "url": "https://shaders.paper.design/llms.txt"
+    },
+    {
+      "n": 20,
+      "name": "varg paper-shaders skill",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    },
+    {
+      "n": 39,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

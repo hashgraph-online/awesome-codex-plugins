@@ -1,0 +1,38 @@
+{
+  "id": "paper-halftone-dots-led-screen",
+  "label": "LED screen (Paper HalftoneDots)",
+  "shader": "HalftoneDots",
+  "page": "https://shaders.paper.design/halftone-dots",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"LED screen\" preset for HalftoneDots, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "cover",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colorFront": "#29ff7b",
+    "size": 0.5,
+    "radius": 1.5,
+    "contrast": 0.3,
+    "originalColors": false,
+    "inverted": false,
+    "grainMixer": 0,
+    "grainOverlay": 0,
+    "grainSize": 0.5,
+    "grid": "square",
+    "type": "soft",
+    "image": ""
+  }
+}

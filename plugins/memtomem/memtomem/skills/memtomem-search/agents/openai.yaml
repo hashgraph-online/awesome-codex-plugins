@@ -1,0 +1,6 @@
+interface:
+  display_name: "memtomem Search"
+  short_description: "Search indexed memories by topic"
+  default_prompt: "Use $memtomem-search to find past decisions about authentication."
+policy:
+  allow_implicit_invocation: true

@@ -93,11 +93,13 @@ The analyzer's `findings[]` array automatically identifies most subcircuits (fil
 
 **Datasheets are mandatory for verification — not optional reference material.** Without datasheets, you cannot confirm that the schematic's pin assignments match reality. Every IC pinout verification in Step 2 requires the datasheet's pin table as ground truth.
 
-**Automated sync (preferred):** If the `digikey` skill is installed, run `sync_datasheets.py` on the schematic. This should have been done in the workflow's Step 3 (see SKILL.md). If not done yet, run it now:
+**Automated sync (preferred):** If the `digikey` skill is installed, run `sync_datasheets_digikey.py` on the schematic. This should have been done in the workflow's Step 3 (see SKILL.md). If not done yet, run it now:
 
 ```bash
-python3 <digikey-skill-path>/scripts/sync_datasheets.py <file.kicad_sch>
+python3 <digikey-skill-path>/scripts/sync_datasheets_digikey.py <file.kicad_sch>
 ```
+
+The mouser, element14 and lcsc skills ship the same command as `sync_datasheets_<provider>.py`.
 
 **Check for existing datasheets:** Before downloading, look for:
 - `<project>/datasheets/` with `manifest.json` (legacy name `index.json`) from a previous sync

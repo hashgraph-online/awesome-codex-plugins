@@ -37,6 +37,22 @@ CENTRAL_SPEC.loader.exec_module(CENTRAL)
 
 
 class BranchQualifiedContributionTests(unittest.TestCase):
+    def test_manual_pull_request_number_skips_closed_pull_requests(self) -> None:
+        def payload(state: str) -> dict[str, object]:
+            return {
+                "number": 7,
+                "state": state,
+                "title": "Add example plugin",
+                "user": {"login": "octocat"},
+                "head": {"ref": "add-plugin", "sha": "a" * 40, "repo": {"full_name": "octocat/awesome-codex-plugins"}},
+                "base": {"ref": "main", "sha": "b" * 40},
+            }
+
+        for state, expected in (("open", [7]), ("closed", [])):
+            with patch.object(VALIDATOR, "github_json", return_value=payload(state)):
+                pull_requests = VALIDATOR.list_open_pull_requests("hashgraph-online/awesome-codex-plugins", 7)
+            self.assertEqual([pull.number for pull in pull_requests], expected)
+
     def parse_added_entry(self, url: str):
         base = "## Community Plugins\n"
         head = f"{base}\n- [WTFM]({url}) - Example plugin.\n"
@@ -94,6 +110,98 @@ class BranchQualifiedContributionTests(unittest.TestCase):
         entries = VALIDATOR.get_new_readme_entries_from_diff(diff, base, head)
 
         self.assertEqual([entry.source_ref for entry in entries], ["main"])
+
+    def test_existing_listing_description_change_is_scanned(self) -> None:
+        base = (
+            "## Community Plugins\n"
+            "- [spec-superflow](https://github.com/MageByte-Zero/spec-superflow) "
+            "- Existing version 2.0.1.\n"
+        )
+        head = base.replace("version 2.0.1.", "version 2.1.0.")
+        diff = "".join(
+            difflib.unified_diff(
+                base.splitlines(keepends=True),
+                head.splitlines(keepends=True),
+                fromfile="README.md",
+                tofile="README.md",
+                n=0,
+            )
+        )
+
+        entries = VALIDATOR.get_new_readme_entries_from_diff(diff, base, head)
+
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0].owner, "MageByte-Zero")
+        self.assertEqual(entries[0].repo, "spec-superflow")
+        self.assertIn("2.1.0", entries[0].description)
+
+    def test_existing_listing_name_change_is_scanned(self) -> None:
+        base = (
+            "## Community Plugins\n"
+            "- [Old Name](https://github.com/example/plugin) - Same source.\n"
+        )
+        head = base.replace("[Old Name]", "[New Name]")
+        diff = "".join(
+            difflib.unified_diff(
+                base.splitlines(keepends=True),
+                head.splitlines(keepends=True),
+                fromfile="README.md",
+                tofile="README.md",
+                n=0,
+            )
+        )
+
+        entries = VALIDATOR.get_new_readme_entries_from_diff(diff, base, head)
+
+        self.assertEqual([entry.display_name for entry in entries], ["New Name"])
+
+    def test_unchanged_listings_reordered_do_not_trigger_new_scan(self) -> None:
+        base = (
+            "## Community Plugins\n"
+            "- [Alpha](https://github.com/example/alpha) - Alpha plugin.\n"
+            "- [Beta](https://github.com/example/beta) - Beta plugin.\n"
+        )
+        head = (
+            "## Community Plugins\n"
+            "- [Beta](https://github.com/example/beta) - Beta plugin.\n"
+            "- [Alpha](https://github.com/example/alpha) - Alpha plugin.\n"
+        )
+        diff = "".join(
+            difflib.unified_diff(
+                base.splitlines(keepends=True),
+                head.splitlines(keepends=True),
+                fromfile="README.md",
+                tofile="README.md",
+                n=0,
+            )
+        )
+
+        self.assertEqual(VALIDATOR.get_new_readme_entries_from_diff(diff, base, head), [])
+
+    def test_listing_moved_from_other_section_requires_scan(self) -> None:
+        base = (
+            "## Official Plugins\n"
+            "- [Mover](https://github.com/example/moved-plugin) - Already listed.\n"
+            "\n"
+            "## Community Plugins\n"
+        )
+        head = (
+            "## Official Plugins\n"
+            "\n"
+            "## Community Plugins\n"
+            "- [Mover](https://github.com/example/moved-plugin) - Already listed.\n"
+        )
+        diff = "".join(
+            difflib.unified_diff(
+                base.splitlines(keepends=True),
+                head.splitlines(keepends=True),
+                fromfile="README.md",
+                tofile="README.md",
+                n=0,
+            )
+        )
+        entries = VALIDATOR.get_new_readme_entries_from_diff(diff, base, head)
+        self.assertEqual([entry.repo for entry in entries], ["moved-plugin"])
 
     def test_unresolvable_source_ref_fails_before_scanning(self) -> None:
         entry = self.parse_added_entry(

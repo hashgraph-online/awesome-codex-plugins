@@ -83,9 +83,11 @@ human is still generic.
 
 - `get_voice_profile` gives the actual register to aim at: your tone, your
   rhythm, your vocabulary and the phrases you never use.
-- `score_voice_match` scores the rewrite from 0 to 100 against that profile.
-  This is the part that matters: text can read perfectly human and still score
-  low because it is somebody else's human.
+- `score_voice_match` checks the rewrite against that profile: Style, how
+  many of your measurable habits it matches (N of M checks), and Stance,
+  whether what it says fits your views. The assistant may show it as a card.
+  This is the part that matters: text can read perfectly human and still miss
+  your Style checks because it is somebody else's human.
 - `improve_post` runs a deeper pass on a real draft when the problem is
   structural rather than cosmetic.
 

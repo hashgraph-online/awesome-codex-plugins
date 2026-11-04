@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "human_decision_verdicts.schema.json",
+  "title": "Human-decision judge verdict file (human_decision_batch_<n>.json)",
+  "description": "The file a human-decision judging subagent's reply is persisted to at output_path. The wrapper object (rather than a bare array) is what lets the ingest distinguish a truncated write from a legitimately empty verdict set. `decision` is a wire vocabulary: the ingest translates approve -> approved, skip -> skipped, salvage -> approved plus the judge_auto_decide_salvage markers.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "verdicts"],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "judge": {"type": "string", "description": "Optional: the model the judging agent says it is. Names a native (host-agent) judge in the report; an executor-run judge is named by its runner instead."},
+    "verdicts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/verdict"}
+    }
+  },
+  "$defs": {
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["group_id", "decision", "reason"],
+      "properties": {
+        "group_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The stable group id (= group_hash) the verdict belongs to. Verdicts are mapped by this id, never by batch or list position."
+        },
+        "decision": {"enum": ["approve", "salvage", "skip"]},
+        "reason": {"type": "string"},
+        "salvaged_description": {
+          "type": ["string", "null"],
+          "description": "The rewritten description that gets applied. Non-null iff decision == salvage."
+        },
+        "dropped": {
+          "type": ["string", "null"],
+          "description": "What was intentionally left out. Non-null iff decision == salvage."
+        }
+      },
+      "allOf": [
+        {
+          "if": {"required": ["decision"], "properties": {"decision": {"const": "salvage"}}},
+          "then": {
+            "required": ["salvaged_description", "dropped"],
+            "properties": {
+              "salvaged_description": {"type": "string", "minLength": 1},
+              "dropped": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        {
+          "if": {"required": ["decision"], "properties": {"decision": {"enum": ["approve", "skip"]}}},
+          "then": {
+            "properties": {
+              "salvaged_description": {"type": "null"},
+              "dropped": {"type": "null"}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

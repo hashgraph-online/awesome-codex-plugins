@@ -5,29 +5,31 @@
 
 [English](README.md) | [한국어](README.ko.md)
 
-> A Claude Code skill for picking CSS values, layout and motion by looking at them.
+> A Claude Code and Codex skill for seeing design options before changing your code.
 
 > [!NOTE]
 > Replies and every string on the comparison sheet are in **Korean**. See [Language](#language) to change that.
 
+**1. "Show me five options": Compare them while your project code stays untouched.**
+
 ![Comparison sheet: the card's shadow blur in five versions, A–E](assets/launch-before.png)
 
-*"C 로 갈게" (go with C) — one line changes in your code:*
+**2. "Go with C": Apply the chosen value to the code.**
 
 ![After picking C: the card with blur 12px and the tokens.css diff](assets/launch-after.png)
 
 ## Why
 
-Asked in chat, "12px or 16px padding?" is hard to answer. Few people can picture a
-shape from a number, so you end up putting one in the code, reloading, and trying again.
+Ask an agent to "show me five options" and it may edit your product code before you
+have chosen one. Then you have to undo changes just to keep comparing. Judging CSS
+values from numbers alone also leads to repeated edits and reloads.
 
-design-helper draws every candidate instead and puts them side by side in your browser.
-You look and pick.
+design-helper **separates seeing options from applying one**. It creates comparison
+files outside your project and puts the candidates side by side in your browser. Your
+project code changes after you pick an option.
 
-Use it when, for example:
-
-- you want to try a component with a few different borders
-- you want to settle the base layout of a page
+Use it to compare borders, spacing, shadows or layouts in an existing UI before you
+commit to a change.
 
 ## What it does
 
@@ -44,6 +46,7 @@ you   Show me the card's shadow blur in 5 versions
         (token as-is · edits --shadow-md in 23 places · new token)
       → under the cards, notes where the differences stop showing and which
         one it recommends, and why
+      → leaves project code untouched so far
 
 you   C is better, but a bit darker
 
@@ -51,8 +54,8 @@ you   C is better, but a bit darker
 
 you   Go with G
 
-      → checks what else it touches, applies it to the real card, checks the
-        computed style and a screenshot, and reports back
+      → checks what else it touches, applies it to the real card, verifies
+        the result, and reports back
 
 you   Done
 
@@ -62,21 +65,22 @@ you   Done
 Only one property changes at a time and everything else stays put, so any difference
 you see comes from that property. Each value you pick carries into the next comparison.
 
-- **You don't copy values.** Say a letter in chat and the skill edits the code.
+- **Your code stays untouched while you compare.** The sheet, server, notes and
+  screenshots live in a temporary folder outside your project. Ask for more options
+  and the comparison continues there.
+- **Your pick is the apply command.** Say "Go with G" and the skill checks the impact
+  before editing the code. You don't need to copy values yourself.
 - **The sheet explains itself.** Each section starts with what to decide, where to look
   and how to answer. Each specimen shows its value and cost, plus what it gains and
   loses when that matters. A table of contents on the left lists every request, so you
   can jump back to an earlier comparison.
 - **You don't refresh.** When the sheet changes, the skill reloads the tab and brings it
   to the front. If the agent can't control a browser, it says so and gives you the URL.
-- **Your conversation stays light.** A subagent reads the code, draws the sheet, checks
-  it and applies your pick. The main conversation only passes messages, so a long
+- **Your conversation stays light.** A subagent reads the code, draws the sheet and
+  checks it. The main conversation passes messages and applies your pick, so a long
   comparison doesn't crowd out the rest of your work. In a test run the main agent grew
   by about 5k tokens over four rounds. Where subagents aren't available, the main agent
   does the work itself.
-- **Your project stays clean.** The sheet, server, notes and screenshots live in a
-  temporary folder outside the project. The only thing left behind is the code for the
-  values you chose.
 - **It draws in your style system.** Tailwind and CSS variables are drawn with your real
   classes and tokens. The browser can't read SCSS variables or CSS-in-JS themes, so their
   values are copied into the sheet as CSS variables. With no style system, it writes
@@ -93,6 +97,9 @@ you see comes from that property. Each value you pick carries into the next comp
   be judged by eye, so they're out of scope.
 - **You judge motion.** Screenshots only capture a still frame, so animation is settled
   by what you see in the browser and tell it.
+- **It doesn't automatically check that code stayed untouched before your pick.** Its
+  instructions keep comparison files outside the project, but there is no `git diff`
+  check for unexpected product code changes yet.
 
 ## Requirements
 
@@ -151,6 +158,9 @@ To remove it, delete the symlink (`rm ~/.claude/skills/design-helper`). The clon
 
 Talk as you normally would while building or changing UI. Requests like these trigger it:
 
+"Show me," "compare," and "C is better, but darker" keep you in comparison mode.
+Project code stays untouched until you choose a specimen.
+
 - "Show me 5 versions of the button radius"
 - "Which is better, A or B?"
 - "Compare the card padding"
@@ -204,7 +214,7 @@ already decided on should have**. They work well together.
 - Difference: the output is images (PNG), not code, so another skill has to apply it, and it needs an image-generation tool. design-helper draws in CSS with no extra tools.
 - Use it when: you don't know yet what you want and want to see many directions.
 
-**What design-helper does differently**: one-property ladders side by side, the impact of each specimen written next to it, trade-offs and a recommendation under the specimens, the pick applied to code and checked, and working files kept outside the project.
+**What design-helper does differently**: it keeps comparison files outside the project until you choose. It shows one-property ladders side by side with impact labels and a recommendation, then applies and checks your pick.
 
 **Where design-helper falls short**: it doesn't propose a finished design direction, doesn't detect anti-patterns, compares on a separate sheet rather than in the live app, and replies only in Korean by default.
 
@@ -226,7 +236,8 @@ and so on) need to change too.
 - [`references/`](skills/design-helper/references/): detailed instructions read when needed
   - [`clarification.md`](skills/design-helper/references/clarification.md): asking about a vague request
   - [`sweeping.md`](skills/design-helper/references/sweeping.md): candidate values, captions and the recommendation, background and size, starting from a blank slate, wireframes
-  - [`sheet.md`](skills/design-helper/references/sheet.md): the sheet page's section guide, request dividers, table of contents, layout and style
+  - [`writing.md`](skills/design-helper/references/writing.md): how every Korean sentence the user reads is written: short sentences, no symbol shorthand, attached particles, the caption layout
+  - [`sheet.md`](skills/design-helper/references/sheet.md): the sheet page's request dividers, table of contents, layout and style
   - [`stylesystems.md`](skills/design-helper/references/stylesystems.md): detecting the style system and drawing in each one
   - [`controls.md`](skills/design-helper/references/controls.md): optional sliders: when to add one and the rules it has to follow
   - [`motion.md`](skills/design-helper/references/motion.md): comparing animation

@@ -1,0 +1,258 @@
+{
+  "id": "vector-route-map",
+  "name": "Vector route map",
+  "use": "A route draws itself across a flat vector map with a traveller riding the line and stops popping in.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 8,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        500,
+        600,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "beats_s": {
+      "map_in": [
+        0.0,
+        0.6
+      ],
+      "start_pin": [
+        0.6,
+        1.0
+      ],
+      "draw": [
+        1.0,
+        5.8
+      ],
+      "arrive": [
+        5.8,
+        6.4
+      ],
+      "hold": [
+        6.4,
+        8.0
+      ]
+    },
+    "draw_ease": "cubic-bezier(0.37, 0, 0.63, 1)",
+    "enter_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+    "draw_speed_frame_width_per_s": [
+      0.25,
+      0.45
+    ],
+    "route_px": [
+      5,
+      6
+    ],
+    "casing_extra_px": 2,
+    "borders_px": 1,
+    "traveller": {
+      "size_pct_h": [
+        3.5,
+        4.5
+      ],
+      "autoRotate": true,
+      "alignOrigin": [
+        0.5,
+        0.5
+      ]
+    },
+    "labels": {
+      "city_pct_h": [
+        2.4,
+        2.8
+      ],
+      "title_pct_h": [
+        5,
+        6
+      ],
+      "min_contrast": 4.5
+    },
+    "arrive_ring": {
+      "scale": [
+        1,
+        1.8
+      ],
+      "duration_s": 0.6
+    },
+    "ant_path": {
+      "dasharray_px": [
+        14,
+        10
+      ],
+      "crawl_px_per_s": 40,
+      "driven_by": "timeline"
+    },
+    "projection": {
+      "world": "Equal Earth / Natural Earth",
+      "country": "Albers / LCC",
+      "city": "Web Mercator"
+    },
+    "credit": "© OpenStreetMap contributors if OSM-derived; none for Natural Earth"
+  },
+  "presets": [
+    {
+      "id": "vector-route-map.clean-light",
+      "label": "Clean light",
+      "look": "Light grey land, white water, one bold accent route",
+      "params": {
+        "water": "#F4F6F8",
+        "land": "#E3E7EB",
+        "borders": "#C9D0D6",
+        "route": "#2F6BFF",
+        "route_px": 6,
+        "stops": "12px white, 3px route-colour ring",
+        "label_font": "Inter 600",
+        "label_color": "#1D232B"
+      },
+      "sources": [
+        5,
+        17,
+        34,
+        35,
+        46
+      ]
+    },
+    {
+      "id": "vector-route-map.night-transit",
+      "label": "Night transit",
+      "look": "Dark navy map, glowing route, ant-path crawl on hold",
+      "params": {
+        "water": "#0B1220",
+        "land": "#16213A",
+        "borders": "#26355A",
+        "route": "#4FD1C5",
+        "route_px": 5,
+        "glow": "12px @ 30%",
+        "ant_dash": "14 10",
+        "label_color": "#E8EEF8"
+      },
+      "sources": [
+        8,
+        17,
+        34
+      ]
+    },
+    {
+      "id": "vector-route-map.multi-stop",
+      "label": "Multi-stop itinerary",
+      "look": "Numbered stops drawn leg by leg with leg labels",
+      "params": {
+        "leg_s": [
+          0.8,
+          1.4
+        ],
+        "dwell_s": [
+          0.3,
+          0.5
+        ],
+        "max_legs_per_10s": 8,
+        "badge_px": 28,
+        "badge_font": "Inter 700",
+        "leg_label_pct_h": 2.4
+      },
+      "sources": [
+        35,
+        46
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 5,
+      "name": "Joshua Stevens on X: make maps in SVG",
+      "url": "https://x.com/jscarto/status/2114826779596599409"
+    },
+    {
+      "n": 8,
+      "name": "John Nelson (Esri) on X: subtle map animation",
+      "url": "https://x.com/John_M_Nelson/status/2027406545420493180"
+    },
+    {
+      "n": 13,
+      "name": "d3-geo math",
+      "url": "https://d3js.org/d3-geo/math"
+    },
+    {
+      "n": 14,
+      "name": "Mapbox: Building Cinematic Route Animations",
+      "url": "https://www.mapbox.com/blog/building-cinematic-route-animations-with-mapboxgl"
+    },
+    {
+      "n": 15,
+      "name": "Mapbox example: free camera path",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/example/free-camera-path/"
+    },
+    {
+      "n": 17,
+      "name": "Mapbox example: ant path",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/example/animate-ant-path/"
+    },
+    {
+      "n": 18,
+      "name": "Mapbox Style Spec: layers",
+      "url": "https://docs.mapbox.com/style-spec/reference/layers/"
+    },
+    {
+      "n": 20,
+      "name": "Mapbox guide: Projections",
+      "url": "https://docs.mapbox.com/mapbox-gl-js/guides/projections/"
+    },
+    {
+      "n": 21,
+      "name": "Mapbox attribution guide",
+      "url": "https://docs.mapbox.com/help/dive-deeper/attribution/"
+    },
+    {
+      "n": 22,
+      "name": "OSMF Attribution Guidelines",
+      "url": "https://osmfoundation.org/wiki/Licence/Attribution_Guidelines"
+    },
+    {
+      "n": 24,
+      "name": "Natural Earth terms of use",
+      "url": "https://www.naturalearthdata.com/about/terms-of-use/"
+    },
+    {
+      "n": 34,
+      "name": "GSAP DrawSVGPlugin",
+      "url": "https://gsap.com/docs/v3/Plugins/DrawSVGPlugin/"
+    },
+    {
+      "n": 35,
+      "name": "GSAP MotionPathPlugin",
+      "url": "https://gsap.com/docs/v3/Plugins/MotionPathPlugin/"
+    },
+    {
+      "n": 43,
+      "name": "Lisa Charlotte Muth: colors in data vis style guides",
+      "url": "https://www.datawrapper.de/blog/colors-for-data-vis-style-guides"
+    },
+    {
+      "n": 46,
+      "name": "Heer & Robertson: Animated Transitions in Statistical Data Graphics",
+      "url": "https://idl.cs.washington.edu/files/2007-AnimatedTransitions-InfoVis.pdf"
+    },
+    {
+      "n": 52,
+      "name": "Material 3 motion tokens",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 53,
+      "name": "easings.net easings.yml",
+      "url": "https://github.com/ai/easings.net/blob/master/src/easings.yml"
+    }
+  ],
+  "notes": "Numbers marked house in the reference file are defaults, not quotes. Platform UIs and map/imagery credits belong to their owners."
+}

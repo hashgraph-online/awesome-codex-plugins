@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --ground: #0b0b0f;
+        --ink: #ffffff;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--ground);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        font-family: "Inter", sans-serif;
+      }
+      /* Calm studio backdrop around the phone-shaped panel */
+      #backdrop {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse 900px 620px at 50% 52%, rgba(120, 120, 150, 0.16), rgba(0, 0, 0, 0) 70%),
+          linear-gradient(180deg, #111117 0%, #0b0b0f 100%);
+      }
+      /* Bezel: the 9:16 panel is 540x960 at (690, 60); a 1080x1920 canvas scaled 0.5 */
+      #bezel {
+        position: absolute;
+        left: 682px;
+        top: 52px;
+        width: 556px;
+        height: 976px;
+        border-radius: 44px;
+        background: #050507;
+        border: 1.5px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 40px 120px rgba(0, 0, 0, 0.65);
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="15"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div id="backdrop"></div>
+      <div id="bezel"></div>
+
+      <div
+        id="cta"
+        data-composition-id="cta"
+        data-composition-src="compositions/cta.html"
+        data-start="0"
+        data-duration="3.4"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 2"
+      ></div>
+      <div
+        id="follow"
+        data-composition-id="follow"
+        data-composition-src="compositions/follow.html"
+        data-start="3.4"
+        data-duration="3.8"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 2"
+      ></div>
+      <div
+        id="review"
+        data-composition-id="review"
+        data-composition-src="compositions/review.html"
+        data-start="7.2"
+        data-duration="4.3"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 2"
+      ></div>
+      <div
+        id="live"
+        data-composition-id="live"
+        data-composition-src="compositions/live.html"
+        data-start="11.5"
+        data-duration="3.5"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 2"
+      ></div>
+
+      <!-- Universal 9:16 safe box (x 120-888, y 288-1248, x <= 780 below y 840), drawn once -->
+      <div
+        id="safe-box"
+        data-composition-id="safe-box"
+        data-composition-src="compositions/safe-box.html"
+        data-start="0.1"
+        data-duration="3.1"
+        data-track-index="2"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+        style="z-index: 5"
+      ></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

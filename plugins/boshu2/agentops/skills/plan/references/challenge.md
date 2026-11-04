@@ -15,7 +15,9 @@ unknowns need observations, and caller choices need the caller.
    authorization, same-family default, explicit cross-model selection and real
    remaining bounds. Method selection itself grants no dispatch authority.
    Without it, do not stand in as your own challenger: mark the claim as
-   inference and return it with the check that would settle it.
+   inference and return it with the check that would settle it. A requested
+   Premortem instead runs its checks and states that the independence leg is
+   missing ([its workflow](../../premortem/SKILL.md#workflow), step 2).
 2. The challenger gives the strongest counterexample or contrary evidence,
    identifies the assumption it attacks, and names what would change its view.
    Unsupported possibilities remain hypotheses; seek a concrete defeating

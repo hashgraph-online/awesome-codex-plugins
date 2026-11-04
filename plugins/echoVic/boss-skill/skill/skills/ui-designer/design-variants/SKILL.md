@@ -1,4 +1,5 @@
 ---
+
 name: ui-designer/design-variants
 description: 设计变体模式，产出2-3个设计方案及 tradeoff 分析，供用户选择后确定最终方案
 version: 1.0.0
@@ -7,13 +8,14 @@ type: workflow
 user-invocable: false
 agent-invocable: true
 dependencies:
-  - ui-designer/design-system
-triggers:
-  - PRD 中明确要求提供多个设计方案对比时
-  - 用户显式要求"给几个方案选"或"设计变体"时
-  - 设计方向存在明显分歧需要决策时
-metadata:
+- ui-designer/design-system
+  triggers:
+- PRD 中明确要求提供多个设计方案对比时
+- 用户显式要求"给几个方案选"或"设计变体"时
+- 设计方向存在明显分歧需要决策时
+  metadata:
   internal: true
+
 ---
 
 # 设计变体模式
@@ -29,19 +31,18 @@ metadata:
 
 分析 PRD 后确定变体差异维度。常见维度组合：
 
-| 策略 | 维度 | 适用场景 |
-|------|------|----------|
-| 风格变体 | 简约 vs 丰富 vs 极简 | 品牌/调性不确定 |
-| 布局变体 | 单栏 vs 双栏 vs 卡片 | 内容组织方式不确定 |
-| 交互变体 | 步骤式 vs 单页式 vs 对话式 | 用户流程不确定 |
-| 复杂度变体 | MVP vs 标准 vs 豪华 | 功能范围不确定 |
+| 策略       | 维度                       | 适用场景           |
+| ---------- | -------------------------- | ------------------ |
+| 风格变体   | 简约 vs 丰富 vs 极简       | 品牌/调性不确定    |
+| 布局变体   | 单栏 vs 双栏 vs 卡片       | 内容组织方式不确定 |
+| 交互变体   | 步骤式 vs 单页式 vs 对话式 | 用户流程不确定     |
+| 复杂度变体 | MVP vs 标准 vs 豪华        | 功能范围不确定     |
 
 **原则：每个变体应该有清晰的设计理念差异，而非仅仅是颜色/字体的不同。**
 
 ### 步骤 2：变体设计
 
 为每个变体（2-3个）产出：
-
 1. **设计理念**：一句话说明这个方案的核心思路
 2. **视觉方案**：基于 design-system 的具体实现
 3. **组件选择**：使用哪些组件、如何组合
@@ -52,14 +53,14 @@ metadata:
 
 生成结构化对比，帮助用户快速决策：
 
-| 维度 | 方案 A | 方案 B | 方案 C |
-|------|--------|--------|--------|
-| 视觉复杂度 | 高/中/低 | - | - |
-| 开发成本 | X 天 | - | - |
-| 用户学习曲线 | 陡/平/无 | - | - |
-| 可扩展性 | 高/中/低 | - | - |
-| 品牌一致性 | 高/中/低 | - | - |
-| 移动端适配 | 优/良/差 | - | - |
+| 维度         | 方案 A   | 方案 B | 方案 C |
+| ------------ | -------- | ------ | ------ |
+| 视觉复杂度   | 高/中/低 | -      | -      |
+| 开发成本     | X 天     | -      | -      |
+| 用户学习曲线 | 陡/平/无 | -      | -      |
+| 可扩展性     | 高/中/低 | -      | -      |
+| 品牌一致性   | 高/中/低 | -      | -      |
+| 移动端适配   | 优/良/差 | -      | -      |
 
 ### 步骤 4：推荐与等待
 
@@ -67,11 +68,7 @@ metadata:
 2. 将变体输出到 `.boss/<feature>/ui-design-variants.json`
 3. 设置状态为 `NEEDS_CONTEXT`，等待用户选择
 4. 用户选择后：
-   - 记录选择（供跨项目偏好聚合，走事件流、可重放）：
-     ```bash
-     boss runtime record-user-choice <feature> --choice-type design-variant \
-       --selected "<选中方案>" --options "<方案A,方案B,方案C>" --reason "<用户理由>"
-     ```
+   - 在 `ui-design-variants.json` 中记录选择（`selectedVariantId` 字段）
    - 将选中方案写入正式的 `ui-design.json` 和 `ui-spec.md`
 
 ## 输出要求
@@ -106,10 +103,15 @@ metadata:
     }
   ],
   "comparison": {
-    "dimensions": ["视觉复杂度", "开发成本", "用户学习曲线", "可扩展性", "品牌一致性", "移动端适配"],
-    "matrix": [
-      {"dimension": "视觉复杂度", "A": "中", "B": "低", "C": "高"}
-    ]
+    "dimensions": [
+      "视觉复杂度",
+      "开发成本",
+      "用户学习曲线",
+      "可扩展性",
+      "品牌一致性",
+      "移动端适配"
+    ],
+    "matrix": [{ "dimension": "视觉复杂度", "A": "中", "B": "低", "C": "高" }]
   },
   "recommendation": {
     "variantId": "A",
@@ -121,9 +123,11 @@ metadata:
 
 ### 状态报告
 
-```bash
-boss runtime report-agent-status <feature> <stage> boss-ui-designer NEEDS_CONTEXT \
-  --reason "已产出 N 个设计变体，等待用户选择最终方案（方案A/B/C）"
+```markdown
+## 状态
+
+**STATUS**: NEEDS_CONTEXT
+**REASON**: 已产出 N 个设计变体，等待用户选择最终方案（方案A/B/C）
 ```
 
 ### 用户选择后的行为

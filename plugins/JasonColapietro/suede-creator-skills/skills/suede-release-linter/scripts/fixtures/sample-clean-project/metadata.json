@@ -1,0 +1,41 @@
+{
+  "title": "Paper Moons",
+  "artist": "Nova Ember",
+  "release_date": "2026-08-14",
+  "genre": "Indie Pop",
+  "language": "en",
+  "explicit": false,
+  "description": "A synthetic fixture release used to sanity-check the suede-release-linter script. Not a real song.",
+  "contributors": [
+    {
+      "name": "Nova Ember",
+      "role": "writer, performer, producer",
+      "master_percent": 70,
+      "publishing_percent": 70,
+      "confirmed": true
+    },
+    {
+      "name": "Kai Rivers",
+      "role": "co-producer, mixer",
+      "master_percent": 30,
+      "publishing_percent": 30,
+      "confirmed": true
+    }
+  ],
+  "rights": {
+    "owner_claim": "Nova Ember",
+    "ownership_status": "confirmed",
+    "contains_samples": "no",
+    "sample_clearance_status": "not-needed",
+    "cover_or_interpolation": "no",
+    "release_history": "unreleased",
+    "ai_involvement": "none"
+  },
+  "suede": {
+    "intended_services": ["rights-review", "mastering", "registry-readiness"],
+    "wallet_address": "example-fixture-wallet-0000",
+    "provenance_notes": "Written and recorded entirely by the fixture contributors in a home studio session for linter testing purposes; no third-party material used.",
+    "registry_status": "not-registered",
+    "agent_commerce": false
+  }
+}

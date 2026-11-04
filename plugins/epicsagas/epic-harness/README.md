@@ -87,6 +87,8 @@ After the session ends, the **evolve loop** analyzes what broke, generates targe
 ## Installation
 
 > **First time?** Read the [Quick Start Guide (5 min)](docs/quickstart.md).
+>
+> **Team conventions?** Commit `.epic/team.md` beside the code and every engineer and host inherits it. See [Project Overrides](docs/project-overrides.md).
 
 epic-harness ships as a **plugin** — skills, hooks, and the `harness-mem` MCP server are loaded directly from the plugin layout (`skills/`, `hooks.json`, `mcp_config.json`). There is no `install` subcommand; each tool reads the plugin from disk.
 
@@ -415,7 +417,7 @@ Run invisibly on every session. Single Rust binary (`epic-harness`) with subcomm
 |------|------|------|
 | **resume** | Session start | Restore context, load memory, detect stack |
 | **guard** | Before Bash | Block force-push-to-main, `rm -rf /`, DROP prod |
-| **polish** | After Edit | Auto-format (Biome/Prettier/ruff/gofmt) + typecheck |
+| **polish** | After Edit | Auto-format with the formatter the project configures (Biome/Prettier, ruff/black via `ruff.toml` or `pyproject.toml`; gofmt always) + typecheck |
 | **observe** | Every tool use | Log to `~/.harness/projects/{slug}/obs/` for evolution |
 | **snapshot** | Before compact | Save state to `~/.harness/projects/{slug}/sessions/` |
 | **reflect** | Session end | Analyze failures, seed evolved skills, gate |
@@ -466,10 +468,11 @@ MANIFEST=benchmarks/ab/manifest.jsonl PROFILE=zai ./benchmarks/ab/run_swebench.s
 | **Ring 0 Guard 50** | 50 destructive OS, infra & credential commands | **50/50 (100%) Interception** | 0% false positives on standard developer tools (`cargo test`, `pytest`) |
 | **Golden Set Multi-File** | `task4` (Cart multi-file discount & tax) | **-2 Turns (13 ➔ 11 turns)** | `/tdd` and `/verify` gates eliminate regression loops |
 | **Golden Set Concurrency** | `task5` (Async lock race condition) | **-36.4% Turns, -21.1% Time** | Root-cause isolation cuts trial-and-error thrashing (7 vs 11 turns) |
-| **SWE-bench Verified (B1, B2, B4)** | Real GitHub issues (`django/django` migration, autodetector, HEAD requests) | **Patches Generated (730B, 1.1KB, 2.2KB)** | Non-destructive, production-grade bug fixes on large real-world repositories |
+| **SWE-bench Verified (12 instances, Sonnet)** | Real GitHub issues, bare vs epic, 1 seed | **bare 10/12, epic 8/12** (McNemar p = 0.5) | No resolve-rate difference supported. Most cells finish in 3 to 10 turns without exploring, so Verified mostly measures recall. Polish fix holds: `django-11740` patch 61,684 B ➔ 1,262 B |
+| **OSS low-contamination (17 tasks)** | Post-cutoff fix commits from 6 public epicsagas repos | **bare 12/17, epic 12/17** (McNemar p = 1.0) | No resolve-rate effect at this sample size. epic's own overhead is ~3.3k prompt tokens per session (~9% cost) |
 | **API Quota Robustness** | Upstream 429 quota exhaustion | **100% Graceful Exit ($R_3$)** | Exponential backoff prevents state corruption or runaway retry burns |
 
-See [`docs/harness-evaluation-plan.md`](docs/harness-evaluation-plan.md), [`benchmarks/ab/DIRECTOR-REPORT.md`](benchmarks/ab/DIRECTOR-REPORT.md), and [`benchmarks/ab/PHASE2-PILOT-REPORT.md`](benchmarks/ab/PHASE2-PILOT-REPORT.md) for full methodologies and raw data.
+See [`docs/harness-evaluation-plan.md`](docs/harness-evaluation-plan.md), [`benchmarks/ab/DIRECTOR-REPORT.md`](benchmarks/ab/DIRECTOR-REPORT.md), [`benchmarks/ab/PHASE2-PILOT-REPORT.md`](benchmarks/ab/PHASE2-PILOT-REPORT.md), [`results-sonnet-v1`](benchmarks/ab/results-sonnet-v1/README.md), and [`results-oss-v1`](benchmarks/ab/results-oss-v1/README.md) for full methodologies and raw data.
 
 ---
 

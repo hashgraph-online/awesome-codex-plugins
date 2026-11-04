@@ -1,0 +1,110 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Consolidation Batch Output",
+  "description": "Validates each consolidation_batch_N.json file produced by consolidation subagents",
+  "type": "object",
+  "required": ["verification", "clusters", "singletons"],
+  "properties": {
+    "verification": {
+      "type": "string",
+      "description": "Self-verification result — must be 'passed' if all constraints were satisfied"
+    },
+    "clusters": {
+      "type": "array",
+      "description": "Groups of related suggestions clustered into a single consolidated suggestion",
+      "items": {
+        "type": "object",
+        "required": [
+          "title",
+          "description",
+          "importance",
+          "type",
+          "underlying_group_ids",
+          "underlying_group_indices",
+          "reasoning"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "maxLength": 120,
+            "description": "New consolidated title (max 120 characters)"
+          },
+          "description": {
+            "type": "string",
+            "description": "Synthesized description preserving nuance from all underlying suggestions"
+          },
+          "importance": {
+            "type": "string",
+            "enum": ["HIGH", "MEDIUM", "LOW"],
+            "description": "Highest importance level among underlying groups"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["addition", "modification", "deletion", "clarification"],
+            "description": "Most actionable type among underlying groups (addition > modification > deletion > clarification)"
+          },
+          "underlying_group_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "description": "group_id values from input groups — must contain at least 2 (use singletons for single groups)"
+          },
+          "underlying_group_indices": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 2,
+            "description": "index values from input groups — must match underlying_group_ids in count"
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "1-2 sentences explaining why these groups belong together"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "singletons": {
+      "type": "array",
+      "description": "Groups that do not relate to any other group in this batch",
+      "items": {
+        "type": "object",
+        "required": ["group_id", "group_index", "reasoning"],
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "description": "group_id from input — must match exactly"
+          },
+          "group_index": {
+            "type": "integer",
+            "description": "index from input — must match exactly"
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "1-2 sentences explaining why this group stands alone"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "error": {
+      "type": "string",
+      "description": "Present only when subagent failed — indicates the error type (e.g., invalid_json, timeout)"
+    },
+    "fallback": {
+      "type": "string",
+      "description": "Present only when subagent failed — indicates fallback strategy (e.g., all_singletons)"
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Present only when subagent failed — list of group_ids that fell back to singletons"
+    }
+  },
+  "additionalProperties": false
+}

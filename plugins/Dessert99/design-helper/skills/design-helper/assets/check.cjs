@@ -26,11 +26,18 @@ const ver = d => { try { return require(path.join(d, 'package.json')).version.sp
 const newer = (a, b) => { for (let i = 0; i < 3; i++) if ((b[i] || 0) !== (a[i] || 0)) return (b[i] || 0) - (a[i] || 0); return 0; };
 const dirs = p => { try { return fs.readdirSync(p).map(f => path.join(p, f)); } catch { return []; } };
 
-// Playwright modules: the project's, then global, then the npx cache (newest first).
+// Playwright modules: the project's, then global, the Codex runtime, then the npx cache
+// (newest first).
 function modules() {
   const out = [];
   for (const name of ['playwright', 'playwright-core', '@playwright/test']) {
     try { out.push(path.dirname(require.resolve(name + '/package.json', { paths: [process.cwd()] }))); } catch {}
+  }
+  for (const rt of dirs(path.join(os.homedir(), '.cache', 'codex-runtimes'))) {
+    for (const name of ['playwright', 'playwright-core']) {
+      const d = path.join(rt, 'dependencies', 'node', 'node_modules', name);
+      if (fs.existsSync(d)) out.push(d);
+    }
   }
   try {
     const g = execSync('npm root -g', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
@@ -92,6 +99,9 @@ async function launch() {
         sections: [...document.querySelectorAll('section')].map(s => ({
           id: s.id, specs: s.querySelectorAll('.spec').length,
           overflowX: [...s.querySelectorAll('.grid')].some(g => g.scrollWidth > g.clientWidth + 1),
+          // Frames that end inside one window from the section's top, where the reloader lands.
+          firstScreen: [...s.querySelectorAll('.spec .frame')].filter(f =>
+            f.getBoundingClientRect().bottom - s.getBoundingClientRect().top <= innerHeight).length,
         })),
         pageOverflowX: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
       };

@@ -1,0 +1,32 @@
+{
+  "id": "paper-perlin-noise-default",
+  "label": "Default (Paper PerlinNoise)",
+  "shader": "PerlinNoise",
+  "page": "https://shaders.paper.design/perlin-noise",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for PerlinNoise, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#632ad5",
+    "colorFront": "#fccff7",
+    "proportion": 0.35,
+    "softness": 0.1,
+    "octaveCount": 1,
+    "persistence": 1,
+    "lacunarity": 1.5
+  }
+}

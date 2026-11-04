@@ -1,0 +1,44 @@
+{
+  "id": "paper-color-panels-default",
+  "label": "Default (Paper ColorPanels)",
+  "shader": "ColorPanels",
+  "page": "https://shaders.paper.design/color-panels",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for ColorPanels, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.8,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colors": [
+      "#ff9d00",
+      "#fd4f30",
+      "#809bff",
+      "#6d2eff",
+      "#333aff",
+      "#f15cff",
+      "#ffd557"
+    ],
+    "colorBack": "#000000",
+    "angle1": 0,
+    "angle2": 0,
+    "length": 1.1,
+    "edges": false,
+    "blur": 0,
+    "fadeIn": 1,
+    "fadeOut": 0.3,
+    "gradient": 0,
+    "density": 3
+  }
+}

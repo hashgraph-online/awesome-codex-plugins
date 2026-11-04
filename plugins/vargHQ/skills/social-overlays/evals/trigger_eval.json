@@ -1,0 +1,27 @@
+{
+  "skill": "social-overlays",
+  "should_trigger": [
+    "how to add a call to action button to a TikTok video",
+    "TikTok Reels Shorts safe zone for text and CTA 1080x1920",
+    "how to make an animated subscribe button with bell for YouTube",
+    "how to show customer reviews in a video ad legally",
+    "how to make a reply-to-comment video with the comment sticker",
+    "how to animate an iPhone notification popping up in a video",
+    "how to make a seamless looping photo wall for Instagram",
+    "how to animate a subscriber count milestone or goal bar"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Write 10 fake 5-star reviews to put in the ad",
+      "use_instead": "nothing: fake reviews are not allowed"
+    },
+    {
+      "query": "Check my ad for TikTok Shop policy problems",
+      "use_instead": "ai-ad-compliance-check"
+    },
+    {
+      "query": "Generate a UGC creator talking about the product",
+      "use_instead": "ai-ugc-ad-video"
+    }
+  ]
+}

@@ -78,13 +78,17 @@ phase boundaries, and finish with changes and verification.
 - Urgent messages labeled `interrupt` trigger an interrupt notice when wake is
   running. The label never enables Ctrl+C by itself; real SIGINT requires the
   explicit destructive opt-in `--interrupt-cmd ctrl-c`.
-- Input injection can activate a focused permission or approval dialog. Payload
-  text alone may match single-key shortcuts, so removing Enter is not safe.
+- The default wake is a plain doorbell, so input injection can activate a
+  focused permission or approval dialog. Payload text alone may match
+  single-key shortcuts, so removing Enter is not safe. The dialog guard is
+  opt-in: `amq wake install-dialog-hook --harness claude|codex|cursor` (Codex
+  also needs the entries trusted in `/hooks`); `amq coop exec` prints
+  `dialog guard: plain` or `dialog guard: proper (<harness>)`.
 - `--defer-while-input` reduces collisions with recent typing but cannot detect
   modal state; an idle dialog looks like an idle composer.
-- Cursor and Grok show no signal AMQ can read for their approval prompts, so
-  their seats keep the full doorbell, and a doorbell during an approval prompt
-  can answer it (known limit).
+- Grok shows no signal AMQ can read for its approval prompt, and Cursor runs
+  no hook for prompts it shows before any tool call, so a doorbell during
+  such a prompt can answer it (known limit).
 - For an AMQ-enforced zero-input watcher, run `amq wake --inject-mode none` or
   `amq coop exec --require-wake --wake-inject-mode none <agent>`. This mode
   writes notices to wake stderr, turns urgent interrupts into one bell plus the

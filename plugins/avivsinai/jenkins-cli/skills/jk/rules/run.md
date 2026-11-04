@@ -18,7 +18,9 @@ jk run <command> [flags]
 | [rerun](#jk-run-rerun) | Rerun a job using the previous parameters | `--follow`, `--follow-interval`, `--interval`, `--result` |
 | [search](#jk-run-search) | Search Jenkins jobs and runs across folders | `--filter`, `--folder`, `--job-glob`, `--limit` |
 | [start](#jk-run-start) | Trigger a job run | `--follow`, `--follow-interval`, `--fuzzy`, `--interval` |
+| [steps](#jk-run-steps) | Inspect Pipeline stage and step IDs, labels and state | — |
 | [view](#jk-run-view) | View run details | `--exit-status`, `--interval`, `--result`, `--summary` |
+| [watch](#jk-run-watch) | Wait for a commit's build, then follow it to completion | `--commit`, `--exit-status`, `--interval`, `--timeout` |
 
 ## jk run cancel
 
@@ -268,6 +270,28 @@ jk run start <jobPath> [flags]
 | `--template` | `-t` | Format output using Go template (requires --json or --format=json) |
 | `--yaml` |  | Output in YAML format when supported |
 
+## jk run steps
+
+Inspect stages and steps using the optional Pipeline Graph View plugin. Use a node ID with jk log --step to fetch its isolated log.
+
+### Usage
+
+```
+jk run steps <jobPath> <buildNumber> [flags]
+```
+
+### Inherited Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--context` | `-c` | Active Jenkins context name (or set JK_CONTEXT env var) |
+| `--format` |  | Output format: json, yaml |
+| `--jq` |  | Filter JSON output using jq expression (requires --json or --format=json) |
+| `--json` |  | Output in JSON format when supported |
+| `--quiet` | `-q` | Suppress non-essential output |
+| `--template` | `-t` | Format output using Go template (requires --json or --format=json) |
+| `--yaml` |  | Output in YAML format when supported |
+
 ## jk run view
 
 View run details
@@ -300,3 +324,41 @@ jk run view <jobPath> <buildNumber> [flags]
 | `--quiet` | `-q` | Suppress non-essential output |
 | `--template` | `-t` | Format output using Go template (requires --json or --format=json) |
 | `--yaml` |  | Output in YAML format when supported |
+
+## jk run watch
+
+Watch the newest retained build of a full source commit SHA. Wait for a build if none exists yet, then follow that build number to completion. Queue entries before a matching build exists are job-level context and are not attributed to the commit.
+
+### Usage
+
+```
+jk run watch <jobPath> --commit <sha> [flags]
+```
+
+### Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--commit` |  | Full source commit SHA to watch (required) |
+| `--exit-status` |  | Exit with the final build result code |
+| `--interval` |  | Polling interval |
+| `--timeout` |  | Maximum total discovery and execution wait (0 = no timeout) |
+
+### Inherited Flags
+
+| Flag | Short | Description |
+|---|---|---|
+| `--context` | `-c` | Active Jenkins context name (or set JK_CONTEXT env var) |
+| `--format` |  | Output format: json, yaml |
+| `--jq` |  | Filter JSON output using jq expression (requires --json or --format=json) |
+| `--json` |  | Output in JSON format when supported |
+| `--quiet` | `-q` | Suppress non-essential output |
+| `--template` | `-t` | Format output using Go template (requires --json or --format=json) |
+| `--yaml` |  | Output in YAML format when supported |
+
+### Examples
+
+```bash
+jk run watch team/app/main --commit 0123456789012345678901234567890123456789 --exit-status
+  jk run watch team/app/main --commit 0123456789012345678901234567890123456789 --timeout 20m --json
+```

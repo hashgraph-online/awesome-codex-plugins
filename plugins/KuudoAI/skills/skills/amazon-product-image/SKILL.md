@@ -4,7 +4,8 @@ description: Use when creating, editing, auditing, or troubleshooting Amazon lis
 compatibility: Audits require viewable source images and listing context. Generation or editing requires a client-provided image tool. Uploads and live status checks require the user's configured Amazon connection.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
-  version: "1.2.0"
+  display-name: "Amazon Product Images"
+  version: "1.2.1"
 ---
 
 # Amazon product images

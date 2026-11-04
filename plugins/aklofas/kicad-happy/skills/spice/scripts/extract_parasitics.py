@@ -20,6 +20,9 @@ import json
 import math
 import sys
 
+import _core_path  # noqa: F401
+from kicad_core.cli import add_output_arg
+
 
 # Physical constants
 RHO_CU = 1.68e-8       # Copper resistivity at 20°C (Ω·m)
@@ -259,7 +262,7 @@ def extract_parasitics(pcb_json, net_filter=None):
     return result
 
 
-def main():
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Extract PCB parasitic R/L/C from PCB analysis JSON"
     )
@@ -267,22 +270,19 @@ def main():
         "input",
         help="Path to PCB analysis JSON (from analyze_pcb.py --full)",
     )
-    parser.add_argument(
-        "--output", "-o",
-        help="Path to write parasitics JSON (default: stdout)",
-    )
+    add_output_arg(parser, help="Path to write parasitics JSON (default: stdout)")
     parser.add_argument(
         "--nets",
         help="Comma-separated list of net names to process (default: all)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     try:
         with open(args.input) as f:
             pcb_json = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Error reading {args.input}: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     # Check for trace segment data
     net_lengths = pcb_json.get("net_lengths", [])
@@ -313,7 +313,8 @@ def main():
             f.write(output)
     else:
         print(output)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

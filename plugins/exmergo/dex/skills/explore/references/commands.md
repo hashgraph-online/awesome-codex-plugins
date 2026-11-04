@@ -53,12 +53,26 @@ found the way every command finds it, by walking up to the git root.
   under a credential-like name. The diff shows such a value as `<withheld>`, on a
   context line as on a changed one.
 
+## `procedure [--block] [--check <file>...]`
+
+The procedure at the top of `SKILL.md`, as the engine holds it. Like `config`,
+it runs before the engine is built: no project, no connection, no connector
+extra. `data.text` is the procedure and `data.digest` fingerprints it.
+`--block` adds `data.block`, the same text between its two markers, which is
+what a person or a harness pastes into a repository's `CLAUDE.md` or
+`AGENTS.md`; Dex never writes either file, so offer the block rather than
+editing one. `--check <file>` reports each file's copy as `current`, `stale`,
+`missing` or `malformed` under `data.copies`, or the file itself as `absent` (no
+such file) or `unreadable` (it exists but could not be read), and the envelope is
+an error when any copy is not current.
+
 ## `explore profile <objects>`
 
 Objects are space- or comma-separated. Each profile carries column profiles, PII
 flags recorded as (column, category, confidence) and never example values, ranked
 candidate keys, the likely grain, `key_evidence`, and data-quality warnings (for
-example an id unique on all but 110 rows, which will fan out on joins).
+example an id unique on all but 110 rows, which will fan out on joins, or a
+column named `window`, which DuckDB reserves and dbt must quote).
 
 - `candidate_keys` is ordered, tightest proven key first.
 - `key_evidence` holds one entry per combination considered, with its `status`
@@ -81,6 +95,34 @@ example an id unique on all but 110 rows, which will fan out on joins).
 - By default each dataset's `columns` is summarized to the ones carrying a
   finding, with the rest counted in `elided_column_count`; `--columns all`
   restores every column.
+- With `--use-project`, a dataset a model's declaration resolves to carries
+  `declaration`: the declared `grain` and `grain_status`, the `population` (its
+  `rule` and `filters`), and each declared column's `role`, `unit`, `additivity`
+  and `references`. This is how a new session recovers what a model means
+  without the conversation that declared it. The declared grain is reported as
+  `grain`; `candidate_keys` stays measured, and `grain_status` (`proven`,
+  `contradicted`, `unmeasured`, `missing_columns`, `unprofiled`) says how they
+  compare. It is read from the repository each run, never cached, so a cache hit
+  is annotated too. Declared columns are capped at 12 unless `--columns all`.
+  Values-free mode withholds the rule and all population filter values. In full
+  mode, any PII-flagged filter withholds the entire rule and that filter's values,
+  at any confidence, named in `withheld_fields`.
+- A native semantic layer (Ossie, SLayer, Cube) answers `--use-project` the same
+  way, with no dbt project in the repository. Its `primary_key` is the declared
+  grain at either arity, overriding a measured key; a `unique_keys` entry or a
+  `unique` flag is measured and never reported as the grain. The rest comes from
+  its `dex` metadata (`ai_context.dex`, `meta.dex`), which is untrusted text: a
+  malformed part is left out and named in `notes`, never raised. Where a dbt
+  model and a layer declare one relation, the dbt declaration is reported whole,
+  and `notes` names both and any grain they disagree on.
+- `--target dev` also reads the dev namespace for this one command, as
+  `maintain verify --target dev` does. Use it when a model's only build is the
+  dev one and the source allowlist does not reach the namespace dbt writes into:
+  `transform declare` and `transform plan` name exactly this command for such an
+  input (`explore profile <dev namespace>.<model> --target dev`). `--scope` still
+  only narrows, nothing is written to `.dex/config.yml`, and the scan is priced
+  as usual. On DuckDB the dev target is the file already read, so the flag
+  widens nothing and a note says so.
 - A requested object whose cached profile is still fresh (same connector, schema
   unchanged, within `profile_freshness_hours`, default 24) is served from the
   cache (`cache_hit_count`) instead of re-scanned. `--refresh` forces a re-scan
@@ -92,12 +134,26 @@ Returns inferred and declared joins with confidences, plus notes on what the
 inference examined, so an empty list is meaningful. `--verify` measures each join
 with an aggregate overlap probe (orphan fraction, confidence adjusted).
 
+With a dev or replica schema in scope beside its sources, each foreign key keeps
+its join to the parent in its own schema: a built mart joins `stg_customers` and
+`dim_customers` beside it, not the raw `customers` table. The same join to a
+parent of that entity in another schema, and a join between copies of one entity
+across schemas (raw `customers` to `stg_customers`), is folded and counted in the
+notes. A raw join is kept only where
+nothing was built for that entity.
+
 A declared join has two sources: a `relationships` test, and (with
 `--use-project`) an entity two semantic models share, which the layer states
 outright with the key named per model. `declared_by` on an edge names that
 entity, `semantic_join_count` says how many came that way, and the notes call out
 the ones name-based inference did not find. That is the interesting set: a
 semantic layer routinely joins columns that share no name at all.
+
+A model's declaration is a third source under `--use-project`: a column declared
+with `references: <model>.<column>` is a declared join whose `declared_by` reads
+`declaration <model>.<column>`. When a `relationships` test states the same join,
+which is the usual case since a declared `references` renders one, it is one edge
+with both sources in `declaration_sources`.
 
 ## `explore map [--detail] [--verify] [--use-project] [--full]`
 
@@ -107,7 +163,9 @@ Writes or updates the `.dex/` cache and returns the map. Alongside the counts:
   best-ranked candidate key, notable columns (each with the role that earned it a
   place: `grain`, `key`, `join`, or a PII flag), and data-quality findings. With
   `--use-project`, each also carries `semantic_models`, the semantic models that
-  sit on that relation.
+  sit on that relation, and `declaration` where a model's declaration resolves
+  to it (see `explore profile` above; its columns are capped at 12 here in every
+  mode).
 - `data.edges`: the join edges, in the same shape `explore relationships`
   returns.
 
@@ -450,6 +508,21 @@ it as `execution` (`dex` or `vendor`).
   carries its `semantic_model`, that model carries its `relation`, and
   `explore profile` then `explore query` reach the values. `--api` is refused
   too, since Ossie has no hosted deployment.
+- `semantic.vendor: cube` reads the plain-YAML Cube model files named in
+  `semantic.cube.files` statically (needs the `[cube]` extra; no Node, no Cube
+  server, no warehouse connection), each validated by Dex's own port of Cube's
+  model rules. `list` and `--for-dimension` answer: a dimension token is
+  `cube.member`, an aggregating measure is a measure and a metric named
+  `cube.member`, and a view is a semantic model with no relation whose members
+  carry their source in `vendor_params.source`. A JS model, a templated YAML
+  file and an `extends` are named under `data.compiled_only` and never
+  translated. `query` and `values` run with `execution: dex`: the Cube server at
+  `semantic.cube.url` renders the SQL over `/v1/sql` and Dex executes it under
+  the PII gate and the cost guard (needs `[cube]` and `[semantic-api]`, and
+  `CUBEJS_API_SECRET` in the environment). Members are `cube.member`; a time
+  grouping is `--group-by orders.ordered_at__month`; `--where` is Cube's JSON
+  filter (`'{"member": "orders.status", "operator": "equals", "values":
+  ["paid"]}'`).
 - `semantic.vendor: slayer` reads the SLayer model files named in
   `semantic.slayer.models` (needs the `[slayer]` extra). `list` and
   `--for-dimension` answer: a metric is a saved measure named `model.measure`,

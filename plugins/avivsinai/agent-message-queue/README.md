@@ -91,10 +91,14 @@ backend, it prints one command per agent and exits with code `6` (action
 required). Paste each complete command into a separate terminal; do not
 shorten or rebuild it.
 
+By default the wake rings a plain doorbell (text and Enter) on every harness,
+so it always rings; a doorbell that lands on an open dialog can answer it.
 Optional, for Claude Code: `amq wake install-dialog-hook` keeps the wake from
 typing into an open AskUserQuestion, plan, or permission dialog. Add
-`--harness codex` or `--harness cursor` (or `--harness all`) for their
-approval prompts.
+`--harness codex` (then trust the entries in Codex `/hooks`) or
+`--harness cursor` (or `--harness all`) for their approval prompts.
+`amq coop exec` prints `dialog guard: plain` or
+`dialog guard: proper (<harness>)` to show which one a seat gets.
 
 Start both agents before sending the first message. Messages that arrive
 before a recipient's wake starts remain unread but do not trigger that new
@@ -155,8 +159,9 @@ each host keeps control of its own queue.
 ## Remote control
 
 The optional [remote companion](cmd/amq-remote/README.md) gives a running
-Claude Code or Codex session its own Buzz agent, so you can DM that session
-from the Buzz app or Buzz Desktop. Inside the session, type `/amq-remote`
+Claude Code or Codex session its own private Buzz channel, so you can write to
+that session from the Buzz app or Buzz Desktop. One Buzz agent per machine,
+imported once, makes each channel. Inside the session, type `/amq-remote`
 (in Codex, `$amq-remote`); `/amq-remote off` disconnects it. Setup, commands,
 and the trust model are in that README.
 

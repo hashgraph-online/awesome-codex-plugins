@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Influencer Outreach Skills"
+  short_description: "Pitch creators with messages they answer"
+  default_prompt: "Use $suede-influencer-outreach on [creator]. The user is pitching one vetted creator, newsletter writer, or podcaster, or their creator outreach gets no replies. Ground the opener in a named post or audience fact, state the real compensation by model, fit the message to the contact the creator publishes, keep to one ask, and return the pitch package with a bounded follow-up plan."
+policy:
+  allow_implicit_invocation: true

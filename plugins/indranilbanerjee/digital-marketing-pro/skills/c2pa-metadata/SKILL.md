@@ -11,16 +11,17 @@ Wraps `scripts/embed-c2pa.py` to add a **C2PA (Coalition for Content Provenance 
 
 This is the technical mechanism brands use to comply with:
 
-- **EU AI Act Article 50** (applicable 2 August 2026) — generative-AI marketing content must be marked in a machine-readable format using open, interoperable standards. C2PA is the emerging backbone. Penalty for non-compliance: up to **€15 million or 3% global annual turnover**.
-- **NY synthetic-performer disclosure law** (effective June 2026) — $1K–$5K per violation, $10K repeat; applies to synthetic influencers and AI-generated endorsements.
-- **FTC May 2026 endorsement guidance** — covers AI testimonials and synthetic creator content.
+- **EU AI Act Article 50** (has applied since 2 August 2026; generative systems that existed before then have until 2 December 2026 to mark their output under Article 50(2)) — generative-AI marketing content must be marked in a machine-readable format using open, interoperable standards. C2PA is the emerging backbone. Penalty for non-compliance: up to **€15 million or 3% global annual turnover**.
+- **NY synthetic-performer disclosure law** (S.8420-A, signed 2025-12-11, in force 2026-06-09: an ad that uses an AI-generated synthetic performer must disclose it conspicuously; $1,000 for a first violation and $5,000 for each later one; applies to ads reaching New York audiences ([Governor's release](https://www.governor.ny.gov/news/governor-hochul-signs-legislation-protect-consumers-and-boost-ai-transparency-film-industry), 2025-12-11; the effective date and penalties as reported by law-firm summaries)).
+- **FTC rules on endorsements and reviews**: the Endorsement Guides (16 CFR Part 255, revised 2023) and the Consumer Reviews and Testimonials Rule (16 CFR Part 465, in force 2024-10-21), which bans fake reviews and testimonials, AI-generated ones included; the FTC's Q&A says an AI avatar can still be a testimonial and can deceive ([FTC Q&A](https://www.ftc.gov/business-guidance/resources/consumer-reviews-testimonials-rule-questions-answers)).
 - **Australia Online Safety Act / UK Online Safety Act** — emerging deepfake disclosure requirements.
 
 The resulting asset can be inspected by any C2PA-aware viewer (Adobe Photoshop, Lightroom, Truepic, [contentcredentials.org/verify](https://contentcredentials.org/verify)).
 
 ### C2PA spec versions to be aware of (June 2026)
 
-- **Content Credentials 2.3** (released 9 February 2026 — [launch post](https://c2pa.org/the-c2pa-launches-content-credentials-2-3-and-celebrates-5-years-of-impact-across-the-digital-ecosystem/)) added format support for: **live video** (broadcast/streaming), **plain text documents**, **OGG Vorbis audio**, **large AVI video files**, and **EXIF Original Preservation Images**. If a brand is signing live-stream video or text-based assets for the first time, 2.3 is the floor version to target.
+- **C2PA 2.3** (December 2025 in the spec's version history; announced 9 February 2026 — [launch post](https://c2pa.org/the-c2pa-launches-content-credentials-2-3-and-celebrates-5-years-of-impact-across-the-digital-ecosystem/)) added format support for: **live video** (broadcast/streaming), **plain text documents**, **OGG Vorbis audio**, **large AVI video files**, and **EXIF Original Preservation Images**. If a brand is signing live-stream video or text-based assets for the first time, 2.3 is the floor version to target.
+- **C2PA 2.5 is the current specification** (October 2026, spec.c2pa.org, read 2026-10-27). Whether the pinned c2pa-python reads 2.5 manifests is unverified; check `embed-c2pa.py --verify` on a 2.5 file before relying on it.
 - **C2PA Spec 2.4** (April 2026 — [spec.c2pa.org/specifications/specifications/2.4](https://spec.c2pa.org/specifications/specifications/2.4/specs/C2PA_Specification.html)) introduces the **AI Disclosure Assertion (`c2pa.ai-disclosure`)** for machine-readable AI transparency info — this is the assertion the EU AI Act Article 50 deployer pathway will rely on. The final Code of Practice on Transparency of AI-Generated Content (published 10 June 2026) references C2PA-style assertions as the canonical machine-readable marking mechanism for both providers and deployers. See `skills/context-engine/eu-code-of-practice.md` for the full Article 50 context.
 - The **C2PA Trust List** is now handled via the public C2PA Conformance Program (any CA meeting the Certificate Policy can join). Production signing certificates should come from a Conformance-Program-listed CA, not an ad-hoc cert.
 
@@ -31,7 +32,7 @@ The resulting asset can be inspected by any C2PA-aware viewer (Adobe Photoshop, 
 - Right after any AI image / video / audio generation step in the engagement workflow (Part 11 — AI Creative Instructions output)
 - Before handing a generated asset to the design team for review
 - As a pre-publish gate in `/digital-marketing-pro:check` for EU-targeted assets
-- Bulk-applying to a backlog of AI-generated assets before EU AI Act enforcement on 2 Aug 2026
+- Bulk-applying to a backlog of AI-generated assets for EU publication (Article 50 applies since 2 Aug 2026; content made before that date needs no retroactive label)
 
 ## Quick examples
 

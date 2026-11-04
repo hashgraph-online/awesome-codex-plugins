@@ -1,0 +1,41 @@
+{
+  "id": "paper-static-radial-gradient-radial",
+  "label": "Radial (Paper StaticRadialGradient)",
+  "shader": "StaticRadialGradient",
+  "page": "https://shaders.paper.design/static-radial-gradient",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Radial\" preset for StaticRadialGradient, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#264653",
+    "colors": [
+      "#9c2b2b",
+      "#f4a261",
+      "#ffffff"
+    ],
+    "radius": 1,
+    "focalDistance": 0,
+    "focalAngle": 0,
+    "falloff": 0,
+    "mixing": 1,
+    "distortion": 0,
+    "distortionShift": 0,
+    "distortionFreq": 12,
+    "grainMixer": 0,
+    "grainOverlay": 0
+  }
+}

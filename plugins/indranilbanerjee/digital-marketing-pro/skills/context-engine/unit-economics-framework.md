@@ -126,7 +126,7 @@ Skills that make recommendations without showing this check produce gut-feel sug
 
 The plugin includes scripts that compute and track unit economics:
 
-- `scripts/roi-calculator.py` — campaign-level ROI with attribution model selection
+- `scripts/roi-calculator.py` — campaign-level ROI from each channel's reported revenue (its `--attribution` label moves no revenue)
 - `scripts/clv-calculator.py` — cohort-based and probabilistic LTV models
 - `scripts/budget-optimizer.py` — channel budget reallocation honoring LTV:CAC constraints
 - `scripts/revenue-forecaster.py` — revenue forecasting with seasonality

@@ -10,7 +10,7 @@ The user's explicit instructions take priority over these guidelines, except the
 ## What you need before creating an order
 
 - **Recipient**: name, street address (plus apartment or unit), city, two-letter state, ZIP. US addresses only, including Puerto Rico, US territories and APO/FPO/DPO.
-- **Return address**: the sender's name and full address. Required, because it is printed on the piece.
+- **Return address**: the sender's name and full address. Required, because it is printed on the piece. It can be in any country: for a sender outside the US, set `from.country` to the two-letter code (e.g. `GB`) and put the region in `state` and the postcode in `zip` (both optional). Never invent a US state or ZIP for a foreign address. Mention that returned mail may not reach an address abroad, so a US return address is safer if getting it back matters.
 - **Product**:
   - `create_postcard` with `size` `4x6`: the default for short notes.
   - `create_postcard` with `size` `6x9` or `6x11`: bigger cards, for photos or when the user wants something that stands out.
@@ -47,7 +47,7 @@ Ask for everything that's missing in one message. Never invent an address, a ZIP
 
 ## Stop or decline
 
-- **Not US**: explain that Sendpaper mails only to US addresses, and don't create an order.
+- **Recipient not in the US**: explain that Sendpaper mails only to US addresses, and don't create an order. (A sender abroad is fine; see Return address.)
 - **Not paper**: emails, texts and packages aren't this skill.
 - **Bulk**: up to 25 recipients per group with `recipients`, with personal content. Confirm the recipient count and the total cost before creating it. For more people, create more groups only after confirming again. Decline mass marketing.
 - **Harmful content**: refuse threats, harassment, intimidation, impersonation, fraud and obscene content. Don't create the order, even if asked again.

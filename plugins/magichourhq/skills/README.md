@@ -54,6 +54,8 @@ Prefer a native plugin? See [Claude Code and Codex plugin installation, plus Cur
 | Keep a character consistent across scenes   | [magic-hour-character-consistency](skills/magic-hour-character-consistency) | Separate identity from pose/style references and review continuity across shots                   |
 | Make a thumbnail or episode cover           | [magic-hour-thumbnails](skills/magic-hour-thumbnails)                       | Build a truthful visual hook, preserve references and judge readability at feed size              |
 | Make a product shot or website hero         | [magic-hour-product-visuals](skills/magic-hour-product-visuals)             | Preserve geometry and labels, plan copy space and inspect the delivered file                      |
+| Make new hooks or angle variants of an ad | [magic-hour-ad-variants](skills/magic-hour-ad-variants) | Reuse accepted footage, change deliberate variables and finish named variants |
+| Make a creator-style product ad | [magic-hour-ugc-ad-video](skills/magic-hour-ugc-ad-video) | Ground the script, preserve presenter/product references and assemble the finished ad |
 | Finish an ad or matching campaign set       | [magic-hour-campaign-kit](skills/magic-hour-campaign-kit)                   | Reuse a brand reference, compose exact copy and deliver finished placements                       |
 | Build or apply a brand kit                  | [magic-hour-brand-kit](skills/magic-hour-brand-kit)                         | Deliver exact identity rules, editable sources and finished applications                          |
 | Create a product listing image set          | [magic-hour-marketplace-images](skills/magic-hour-marketplace-images)       | Preserve the actual product and compose useful images from verified facts                         |
@@ -98,6 +100,16 @@ Use your actual saved character name; the agent should inspect the matching refe
 
 > Make a visual for this chorus using my artist reference. Keep the full musical phrase. Choose a direction and the right route within my budget, handle the setup you can access, and tell me precisely if a web step is needed. Save the video and references so we can make the next cut without starting over.
 
+**My approved ad → new hooks**
+
+> Make three new openings for this approved product ad. Keep its body, voice and offer. Choose truthful hooks that lead into the body, reuse accepted footage, and deliver clean and captioned variants within my budget.
+
+**My product → creator-style ad**
+
+> Use this product page and my approved images to make a short creator-style ad. Ground every claim, show the actual product, finish speech, footage, captions and CTA, and save the clean sources for the next version.
+
+These ad workflows are production instructions, not published end-to-end quality or performance benchmarks. They do not imply ad-account access or permission to publish.
+
 **My person + a destination → scene photo**
 
 > Put me into this scene. Keep my identity and outfit, make the pose, size and lighting fit, and inspect hands and contact with the scene. Use my existing budget and deliver the image. Animate it only if I ask for video.
@@ -119,6 +131,9 @@ These are instructions for real jobs, with inputs, creative decisions, recovery 
 | A recurring cast, new angles and continuity at cuts             | [Characters across a series](skills/magic-hour-character-consistency/references/series.md)                                                                 |
 | A readable cover with editable headline and deliberate variants | [Thumbnail direction](skills/magic-hour-thumbnails/references/cover-design.md)                                                                             |
 | Presenter series, pronunciation and language versions           | [Speech and localization](skills/magic-hour-talking-video/references/localization.md)                                                                      |
+| Keep the product faithful through motion or an unboxing | [Product motion and fidelity](skills/magic-hour-image-to-video/references/product-fidelity.md) |
+| Design an original character for repeat use | [Character design](skills/magic-hour-character-consistency/references/design.md) |
+| Trim, join, caption and mix accepted footage | [Finishing recipes](skills/magic-hour-video-editing/references/finishing-recipes.md) |
 | Turn existing footage into multiple finished placements         | [Repurpose a master](skills/magic-hour-video-editing/references/repurpose.md)                                                                              |
 | Exact copy, finished ads and next month's campaign              | [Finishing](skills/magic-hour-campaign-kit/references/finishing.md) · [Reusable brand brief](skills/magic-hour-campaign-kit/references/brand-reference.md) |
 

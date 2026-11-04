@@ -1,0 +1,34 @@
+Agents that don’t stop when you close your laptop , you can now run jobs for hours or days, or be ‘always on,’ unlocking a plethora of new ways to leverage AI. This is more than a product update, it’s the beginning of the third chapter in the AI story.
+It’s gone from prompting, to agentic, now persistence. Early 26’ we saw agentic go mainstream with normal people starting to use programs like Code and Codex for agentic tools. Sumer brought us better models and multi agent workflows, but unless you went the lengths to set them up on sandboxed burner computers, you’ve been tethered to the wake state of your computer.
+
+To summarize, Grok is furthest ahead on letting one agent run indefinitely without you. OpenAI’s got the most ambitious version, they just haven’t shipped it. Anthropic has shipped pieces one at a time, they haven’t done a good job marketing persistence.
+Regardless, start playing with what you can do by running agents across ‘forever’ timelines, it changes the way you think about use.
+
+Plainly: it is not significantly smarter, but it is much better at finishing. Gains are on working for hours and recovering from mistakes.
+
+Scope with 5.1, hand the plan to something cheap, then bring 5.1 back for the final pass. The last mile is where the recovery behaviour earns its price.
+Before execution, I currently run 2x second opinions, all from Claude code, which runs Codex and GrokBuild straight through the terminal. Before I execute on any build they beat up the plan and improve it. Read shortcuts 03 to set up a codex second opinion, to do the same with grok steal the prompt below.
+
+If you run two reviewers, move the first one’s write-up out of the folder before you start the second. Mine read the other’s report and started agreeing with it.
+
+Feed it a handful of ground-level shots and it rebuilds the space in 3D, including angles not captured. Twenty-four frames of phone video, about a second of walking, is enough to build an environment.
+
+I set this up two weeks ago, the day to day interaction with Code has been amazing. It is not for writing. Spoken sentences are longer, looser and more repetitive than written ones, good writing requires sitting and thinking, but ideation and capturing thoughts is where transcription excels.
+Talking to an agent, describing what you want built, pushing a half-formed idea back and forth, catching something while you are walking. All faster, measurably.
+The average adult types 52 words a minute at a desk, 36 on a phone, measured across two Aalto University studies of 168,000 and 37,000 volunteers. Dictation studies clock people between 90 and 160 words a minute, two to three times faster (Testing caveat, most of those measures are people reading prepared text aloud on a phone).
+They’re all so similar, like no-one could ideate outside ‘whisper’ so it’s easy to get confused.
+Whisper is a speech-recognition model OpenAI released for free in 2022. It is not an app. Anyone can run it on their own machine.
+Wispr Flow is a paid app from a different company. It runs in the cloud.
+MacWhisper is a paid Mac app that runs Whisper locally on your own machine.
+
+Apple’s dictation is already on your Mac, it costs nothing, and it is good enough to find out whether you like working this way. Turn it on in System Settings / Keyboard / Dictation, and set a shortcut you can hit without thinking about it.
+
+Big files break the pipe. Claude Code caps a single MCP tool response at 25,000 tokens by default, a full design pull on a real file hits that easily. It’s just a default, you can raise it with the MAXMCPOUTPUTTOKENS environment variable.
+Ask for the outline first, then pull only the frames you need.
+
+I started by building the things I needed, social assets and layouts, and it was so iterative on the smallest details that it was slower than doing it myself. The fix is to build the templates first.
+Template library
+Point Claude at your best previous work alongside your references and have it build templates from both, iterating for variety. You’ll now have a whole folder to pull from.
+Every INTAKE issue now turns into social assets for LinkedIn, stories and Pinterest, three sets of dimensions, in minutes. Work that used to take me a few hours.
+
+Use it for decks. Slides is writable now, decks are a huge waste of time that now become a cleanup pass.

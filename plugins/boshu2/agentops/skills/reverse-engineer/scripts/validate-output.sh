@@ -98,7 +98,8 @@ if [[ "$phase" == complete ]]; then
     exit 1
   }
   # Every row of the steal-map table: both cells filled, one valid verdict, a
-  # source tag in the capability cell, and no steal without code evidence.
+  # source tag in the capability cell, no steal without code evidence, and a
+  # backticked search behind every "none" on our side.
   awk -F'|' -v header='| Their capability | Our surface today | Verdict |' '
     function trim(s) { gsub(/^[[:space:]]+|[[:space:]]+$/, "", s); return s }
     function bad(msg) { printf "error: steal-map.md line %d: %s\n", NR, msg > "/dev/stderr"; errors++ }
@@ -115,6 +116,7 @@ if [[ "$phase" == complete ]]; then
       else if (verdict !~ /^(have|gap|steal|park|reject)$/) bad("verdict must be have, gap, steal, park or reject")
       else if (!code && capability !~ /\((docs|hosted)[:)]/) bad("tag the capability (code: <file:line>), (docs) or (hosted)")
       else if (verdict == "steal" && !code) bad("steal needs code evidence; a docs or hosted row is gap, park or reject")
+      else if (tolower(ours) ~ /^none/ && ours !~ /`[^`]+`/) bad("a \"none\" surface needs the backticked search that proved it")
     }
     END {
       if (rows == 0) { print "error: steal-map.md table has no rows" > "/dev/stderr"; exit 1 }

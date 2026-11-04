@@ -1,0 +1,894 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "host_capabilities.schema.json",
+  "title": "Host capability data (D5b)",
+  "description": "The verb->mechanism map the host-neutral instruction core defers to. Every field is required except a small, closed set of optional keys (`shim_max_lines`, `headless_invocation`, `package`), and they share one admission rule: an optional key may govern a lint or a generated document, and may never affect a dispatch decision. A defaulted *capability* is exactly the silent guess this schema exists to remove, which is why the rule is about the class of key rather than about a count. There is no 'omit it and inherit'. `next_command` is required although it decides no dispatch: Python reads it at run time to build output (the next-phase command a finished phase prints), and a host with no template would silently print no command, so it fails the optional-key admission rule and is required like `invocation`. Consumed by multi_llm.py, install-host, hosts/render_capabilities.py, utils/next_phase.py and the tests; never by an agent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "hosts"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "hosts": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/host"
+      }
+    }
+  },
+  "definitions": {
+    "provenance_value": {
+      "description": "verified = a recorded live smoke observed it; documented = host docs only; unknown = the shipping default. A documented-only value never selects the non-conservative path.",
+      "enum": [
+        "verified",
+        "documented",
+        "unknown"
+      ]
+    },
+    "nested_state": {
+      "enum": [
+        "allowed",
+        "needs-config",
+        "denied",
+        "unknown"
+      ]
+    },
+    "env_name": {
+      "description": "A literal environment variable name. Wildcards are rejected: a '*' would strip the runner's own credentials along with the host's guard.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "override_channel": {
+      "description": "The key/variable the timeout ceiling is raised through, 'none' when the host has no such surface, or 'unknown' until it is confirmed. The installer only ever writes through a non-'none' channel.",
+      "type": "string",
+      "minLength": 1
+    },
+    "install_path": {
+      "description": "One directory an installer may write into: rooted at a supported token ($HOME, ${HOME}, %USERPROFILE%, ~, $XDG_CONFIG_HOME, ${XDG_CONFIG_HOME}) or relative to the project root, with forward slashes and no '..' segment. Absolute and parent-relative entries are rejected because the expansion normalizes through abspath, so either one silently writes outside the root the entry names; host_install.checked_entry enforces the same rule at expansion, this is CI's half of it.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?:(?:\\$HOME|\\$\\{HOME\\}|%USERPROFILE%|\\$XDG_CONFIG_HOME|\\$\\{XDG_CONFIG_HOME\\}|~)(?:/(?!\\.\\.(?:/|$))[^/\\\\]+)*|(?!\\.\\.(?:/|$))[^/\\\\]+(?:/(?!\\.\\.(?:/|$))[^/\\\\]+)*)$"
+    },
+    "next_command_template": {
+      "description": "One route's spelling of a next-phase command: the text a user types into this host's chat composer to start a phase, with `{args}` standing for the mode flag and the plan path. It ends with `{args}` and carries no other brace, so the text before `{args}` is always defined and is the route's invocation prefix (the host-neutrality lint forbids that prefix in the instruction core).",
+      "type": "string",
+      "pattern": "^[^{}]+\\{args\\}$"
+    },
+    "host": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "shim",
+        "installable",
+        "install_paths",
+        "reload",
+        "arguments",
+        "invocation",
+        "next_command",
+        "multi_turn",
+        "subagents",
+        "ask",
+        "detach",
+        "native_tool",
+        "session_runner_provider",
+        "default_subagent_runner",
+        "subagent_tiers",
+        "runners",
+        "nested_exec",
+        "env_guards",
+        "max_concurrent_subagents",
+        "timeout_ceiling_s",
+        "timeout_override",
+        "provenance"
+      ],
+      "properties": {
+        "shim": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "template",
+            "installed",
+            "format"
+          ],
+          "properties": {
+            "template": {
+              "description": "Repo-relative .tmpl path, or null for the one host nobody renders (Claude Code, whose shim path the host fixes for us).",
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^hosts/[a-z0-9-]+/shim\\.md\\.tmpl$"
+            },
+            "installed": {
+              "type": "string",
+              "minLength": 1
+            },
+            "format": {
+              "enum": [
+                "markdown",
+                "markdown+frontmatter",
+                "toml"
+              ]
+            }
+          }
+        },
+        "shim_max_lines": {
+          "description": "Absent means the ~100 rendered-line budget; present (with a rationale comment) only for a host whose mandatory frontmatter cannot fit inside it. It governs a lint, never a dispatch decision, which is what makes it optional \u2014 see the top-level description for the admission rule the optional keys share.",
+          "type": "integer",
+          "minimum": 40,
+          "maximum": 400
+        },
+        "headless_invocation": {
+          "description": "Optional. The exact headless command line for this host when it differs from the obvious one \u2014 a measured fact, not a convention. Present only where getting it wrong fails confusingly rather than loudly (OpenCode's yargs swallows an argument list that starts with a flag and prints its own help instead of running). Absent means the host's documented headless form needs no correction. Governs generated documentation only, never a dispatch decision.",
+          "type": "string",
+          "minLength": 1
+        },
+        "package": {
+          "description": "How this skill is distributed to this host as a *package*, when a package route exists at all. It is optional because most hosts have none, and it is deliberately NOT a second host id: `reload`, `subagents`, `ask`, `detach`, `max_concurrent_subagents` and `timeout_ceiling_s` are properties of the harness, not of how the skill got installed, so an `opencode-plugin` host would duplicate all of them and split the matrix. It governs generated documentation and `install-host --check`'s route-detection note; no consumer branches on it for a dispatch decision, which is what makes it admissible as an optional key at all. The route's own command spelling is not in this block but in the host's `next_command.package`, because a runtime consumer (`utils/next_phase.py`) reads it.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "registry",
+            "name",
+            "config_key",
+            "provides",
+            "update",
+            "min_host_version",
+            "invocation"
+          ],
+          "properties": {
+            "registry": {
+              "description": "Where the package comes from, and the discriminator for everything else: it picks the install-command template the generated docs render and the route probe `--check` runs.",
+              "enum": [
+                "npm",
+                "codex-marketplace"
+              ]
+            },
+            "name": {
+              "description": "The package name as a user types it into the host's config. The cache directory a host computes is the *normalized spec*, which is not always this string.",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^(@[a-z0-9-][a-z0-9._-]*/)?[a-z0-9-][a-z0-9._-]*$"
+            },
+            "version": {
+              "description": "The published version, required exactly when `update` is `pinned-spec` \u2014 that route is literally 'the pin is the upgrade', so the pin must exist. A `reinstall` route has no number to give and must not be forced to invent one. It is a COPY, not a source: the number is owned by skills/multi-llm/pyproject.toml and `test_version_source_is_singular` asserts they agree. It exists here so the generated 'Install via' paragraph can render the pinned spelling rather than a hand-typed version in a byte-compared document, until `provenance.package` is `verified`; from then on the paragraph pins `public_version`, and this keeps naming the candidate.",
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([-+][0-9A-Za-z.-]+)?$"
+            },
+            "public_version": {
+              "description": "The last version whose registry install check passed: the version a user is told to pin, kept apart from `version` because `version` is the CANDIDATE. `version` follows the shared version at every bump, so a recommendation built from it would name a version the registry does not serve yet, from the bump through publication and the registry check, and for as long as either fails. This one moves only after that version's registry record validates. It is the release boundary for a `pinned-spec` route, so it is legal on no other one, and it moves as a pair with `provenance.package`: forbidden until that row is `verified`, required once it is (the host-level `allOf` below). It must never be newer than `version`. No JSON Schema keyword compares two versions, so that half is `utils/host_capabilities.package_spec_version`'s, which the renderer calls and the tests assert. The generated install paragraph renders the pinned spec from this value at `verified` and from `version` before it.",
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+([-+][0-9A-Za-z.-]+)?$"
+            },
+            "config_key": {
+              "description": "The key in the host's own config file that the package spec is listed under.",
+              "type": "string",
+              "minLength": 1
+            },
+            "provides": {
+              "description": "What the package contributes once loaded. It also selects the worked-example fence style the generated pages render, which is what lets that fence come from data instead of a prose sniff.",
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "command",
+                  "skill",
+                  "tool"
+                ]
+              }
+            },
+            "min_host_version": {
+              "description": "The lowest host version the package declares support for \u2014 and the lowest one actually RUN, never the lowest that might work. A floor asserted from an assumption either admits a version that then fails somewhere less legible, or gets defended by a claim no evidence backs.",
+              "type": "string",
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+            },
+            "update": {
+              "description": "How a user moves to a newer version. `pinned-spec`: the cache never re-resolves, so bumping the pin IS the upgrade. `reinstall`: re-run the host's install command. `range`: the host re-resolves a semver range on its own.",
+              "enum": [
+                "pinned-spec",
+                "reinstall",
+                "range"
+              ]
+            },
+            "marketplace": {
+              "description": "The marketplace the package is published to. Required exactly when `registry` is `codex-marketplace`, and forbidden otherwise, so a stray key on an npm block fails validation rather than rendering nowhere. `repo`, `ref`, `sparse` and `write_posture` follow the same rule.",
+              "type": "string",
+              "minLength": 1
+            },
+            "repo": {
+              "description": "The Git source the marketplace is added from, as the `owner/repo` slug the first install command takes. A cell rather than a literal in the renderer's registry row, which every later `codex-marketplace` package would otherwise inherit. Required exactly when `registry` is `codex-marketplace`, forbidden otherwise.",
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$"
+            },
+            "ref": {
+              "description": "The Git ref the marketplace is pinned to (`--ref`): the release boundary, which only the publish workflow moves, never the default branch. Required exactly when `registry` is `codex-marketplace`, forbidden otherwise.",
+              "type": "string",
+              "minLength": 1
+            },
+            "sparse": {
+              "description": "The repository paths the marketplace checkout is narrowed to, one `--sparse <path>` per element, in order. Data rather than a literal for the same reason as `repo`. Required exactly when `registry` is `codex-marketplace`, forbidden otherwise.",
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "write_posture": {
+              "description": "What the package's tool does about writes under a read-only session posture. `refuses-under-readonly`: the tool's server runs outside the host's exec sandbox, so write-capable modes are refused before the spawn unless the user opts in through the environment. Rendered into the generated install paragraph so a user meets it before installing. Required exactly when `registry` is `codex-marketplace`, forbidden otherwise.",
+              "enum": [
+                "refuses-under-readonly"
+              ]
+            },
+            "invocation": {
+              "description": "How a user invokes the skill once the package is installed, as a sentence fragment the generated pages append after \"Invoke it \". Required on every route: one that ships without naming its own invocation is undescribed.",
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\.$"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "update": {
+                    "const": "pinned-spec"
+                  }
+                },
+                "required": [
+                  "update"
+                ]
+              },
+              "then": {
+                "required": [
+                  "version"
+                ]
+              }
+            },
+            {
+              "$comment": "A public pin needs a pinned route and a candidate it trails: a `reinstall` or `range` route has no number to recommend.",
+              "if": {
+                "required": [
+                  "public_version"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "update": {
+                    "const": "pinned-spec"
+                  }
+                },
+                "required": [
+                  "update",
+                  "version"
+                ]
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "registry": {
+                    "const": "codex-marketplace"
+                  }
+                },
+                "required": [
+                  "registry"
+                ]
+              },
+              "then": {
+                "required": [
+                  "marketplace",
+                  "repo",
+                  "ref",
+                  "sparse",
+                  "write_posture"
+                ]
+              },
+              "else": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "marketplace"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "repo"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "ref"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "sparse"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "write_posture"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "installable": {
+          "type": "boolean"
+        },
+        "install_paths": {
+          "description": "Per-scope lists in the host's own discovery-precedence order, with $HOME / %USERPROFILE% / $XDG_CONFIG_HOME left as tokens. D7's path matrix is generated from this, never hand-written.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "project",
+            "global",
+            "legacy"
+          ],
+          "properties": {
+            "project": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/install_path"
+              }
+            },
+            "global": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/install_path"
+              }
+            },
+            "legacy": {
+              "description": "Compatibility locations: detected and reported, never written. Unlike the writable scopes, an entry here names the FILE rather than the directory \u2014 a deprecated layout's file name is the host's own old convention, not ours, so composing shim.installed's basename onto it would probe a path no install ever created. List a location only where an install of an older vintage really loads; a directory the host does not scan would rank ahead of the real install in host_install.locations() and report it shadowed.",
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/install_path"
+              }
+            }
+          }
+        },
+        "reload": {
+          "enum": [
+            "none",
+            "new-session",
+            "restart"
+          ]
+        },
+        "arguments": {
+          "enum": [
+            "placeholder",
+            "trailing-text",
+            "none"
+          ]
+        },
+        "invocation": {
+          "description": "How a reader invokes the installed shim on THIS host, written as the predicate of the generated sentence 'Invoke it \u2026' and ending in its own full stop. Required for every host and never defaulted: the two installable hosts do not take the same spelling, which a hard-coded sentence hid until it was measured \u2014 opencode installs a command its composer resolves, while codex installs a skill that is model-invoked rather than typed and answers `/multi-llm` with 'Unrecognized command'. A fourth host must therefore state its own before any page can claim one for it. Governs generated documentation only, never a dispatch decision, which is why the value is prose rather than an enum.",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\.$"
+        },
+        "next_command": {
+          "description": "The next-phase command template per install route, keyed by the route vocabulary: `default` (the route the host's `invocation` cell documents: the plugin on claude-code, the file shim on codex and opencode), `package` (the host's distribution route, whatever the host calls it; required exactly when the host has a `package:` block and forbidden otherwise) and `skill` (a plain-skill install under `install_paths`; claude-code only today). `utils/next_phase.py` reads it at run time to build user-facing output: the command a finished phase ends its report with. It never decides a dispatch. It is host-level rather than a field of the `package:` block because a runtime consumer reads it, and that block is admissible only because nothing does. Each value is shown to the user as display text whatever its provenance.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "default"
+          ],
+          "properties": {
+            "default": {
+              "$ref": "#/definitions/next_command_template"
+            },
+            "package": {
+              "$ref": "#/definitions/next_command_template"
+            },
+            "skill": {
+              "$ref": "#/definitions/next_command_template"
+            }
+          }
+        },
+        "multi_turn": {
+          "description": "Whether this host leaves the driving agent able to act on a dispatcher command's output: after that command returns, does the agent get another turn in which to read it and do something. True covers either mechanism that produces one \u2014 further tool calls inside the same invocation, or a conversation the next invocation resumes \u2014 because every consumer asks the same single question ('is an agent still there to act on this?') and either mechanism answers it yes. False means the invocation ends with the command it ran, so this run's output is read by a human and by nobody else. It decides whom a failed batch's recovery instruction is addressed to (subagent_executor.continue_past_marker: 're-invoke to retry the failures' is unfollowable where no turn follows) and the D3b host-driven vs. self-contained default.",
+          "type": "boolean"
+        },
+        "subagents": {
+          "description": "native -> the tool named in native_tool.subagents, executor unused; executor -> --exec-subagents; none -> --exec-subagents, or the run is refused when nested_exec denies the spawn.",
+          "enum": [
+            "native",
+            "executor",
+            "none"
+          ]
+        },
+        "ask": {
+          "description": "structured -> the ask tool named in native_tool.ask; free-text -> the numbered-option block, and only under --interactive; none -> the documented --yes default, --interactive rejected with exit 3.",
+          "enum": [
+            "structured",
+            "free-text",
+            "none"
+          ]
+        },
+        "detach": {
+          "description": "native -> the host's own background mechanism; python -> --detach available, foreground still legal; required -> --detach on every fan-out mode.",
+          "enum": [
+            "native",
+            "python",
+            "required"
+          ]
+        },
+        "native_tool": {
+          "description": "The host's own tool name, per verb, wherever that verb resolves to a native mechanism. THE ONLY PLACE a host tool name is allowed to exist anywhere in this skill (outside a shim, which bakes these strings in). Modelled per verb rather than as one string because the three verbs resolve to three different tools on a host like Claude Code.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "subagents": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ask": {
+              "type": "string",
+              "minLength": 1
+            },
+            "detach": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "session_runner_provider": {
+          "description": "The provider whose CLI can be pointed at the model the HOST SESSION is itself running on, or null where this host has no such rung. It is required rather than optional precisely because it affects dispatch: `resolve_subagent_runner` reads it together with $MULTI_LLM_HOST_SESSION_MODEL and, when both are present, resolves a runner at layer `session` \u2014 below every explicit driver.* layer and above `default_subagent_runner`. An omission would be a silent guess about which CLI may serve a session model, which is the class of defaulting this schema exists to remove; `null` states 'no session rung' out loud. The named provider must be a key of this entry's own runners map, for the same reason `default_subagent_runner`'s provider must be.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[a-z][a-z0-9-]*$"
+        },
+        "default_subagent_runner": {
+          "description": "A provider:model spec that must appear in this entry's own runners map.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*:.+$"
+        },
+        "subagent_tiers": {
+          "description": "The native-host tier->model map (D2e): present when subagents == native, explicit null when that host's native tool takes no model parameter, and forbidden outright otherwise since an executor host reads its tiers from providers.yaml.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "full"
+              ],
+              "properties": {
+                "full": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "cheap": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          ]
+        },
+        "runners": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "bundled",
+              "needs_auth",
+              "login_cmd",
+              "profiles",
+              "usage"
+            ],
+            "properties": {
+              "bundled": {
+                "type": "boolean"
+              },
+              "needs_auth": {
+                "type": "boolean"
+              },
+              "login_cmd": {
+                "type": "string"
+              },
+              "profiles": {
+                "type": "array",
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "generate",
+                    "agent-readonly",
+                    "agent-write"
+                  ]
+                }
+              },
+              "usage": {
+                "enum": [
+                  "full",
+                  "partial",
+                  "none"
+                ]
+              }
+            }
+          }
+        },
+        "nested_exec": {
+          "description": "Whether a third-party agent CLI can actually be exec'd from inside this host's shell with network and auth intact (D3c).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "spawn",
+            "network",
+            "credentials",
+            "notes"
+          ],
+          "properties": {
+            "spawn": {
+              "$ref": "#/definitions/nested_state"
+            },
+            "network": {
+              "$ref": "#/definitions/nested_state"
+            },
+            "credentials": {
+              "$ref": "#/definitions/nested_state"
+            },
+            "notes": {
+              "type": "string"
+            }
+          }
+        },
+        "env_guards": {
+          "description": "The HOST-INJECTED variables the executor strips from every dispatched runner's environment. Empty lists are legal and mean 'audited, found nothing'; the field is required precisely so an unaudited host cannot look identical to a clean one \u2014 its provenance stays unknown until the diff has run. The runner-side half of the strip list lives in each adapter's get_remove_env(), because it travels with the binary rather than with the host.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "guards",
+            "session_scoped",
+            "passthrough"
+          ],
+          "properties": {
+            "guards": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/env_name"
+              }
+            },
+            "session_scoped": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/env_name"
+              }
+            },
+            "passthrough": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/env_name"
+              }
+            }
+          }
+        },
+        "max_concurrent_subagents": {
+          "description": "The host-side ceiling in D3i's three-way minimum.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "timeout_ceiling_s": {
+          "description": "Seconds a single shell command may run; 0 means no documented cap.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "timeout_override": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "frontmatter",
+            "env",
+            "config"
+          ],
+          "properties": {
+            "frontmatter": {
+              "$ref": "#/definitions/override_channel"
+            },
+            "env": {
+              "$ref": "#/definitions/override_channel"
+            },
+            "config": {
+              "$ref": "#/definitions/override_channel"
+            }
+          }
+        },
+        "provenance": {
+          "description": "One key per field above (shim_max_lines excepted, being optional). Missing keys fail the completeness test. Every row is one provenance value except `next_command`, which is a map with exactly the keys of the host's own `next_command`, one value per route, so one route can be promoted while another stays `documented`.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "shim",
+            "installable",
+            "install_paths",
+            "reload",
+            "arguments",
+            "invocation",
+            "next_command",
+            "multi_turn",
+            "subagents",
+            "ask",
+            "detach",
+            "native_tool",
+            "session_runner_provider",
+            "default_subagent_runner",
+            "subagent_tiers",
+            "runners",
+            "nested_exec",
+            "env_guards",
+            "max_concurrent_subagents",
+            "timeout_ceiling_s",
+            "timeout_override"
+          ],
+          "properties": {
+            "shim": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "shim_max_lines": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "headless_invocation": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "package": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "installable": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "install_paths": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "reload": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "arguments": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "invocation": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "next_command": {
+              "description": "One provenance value per `next_command` route, with the same keys as the host's `next_command`. A route becomes `verified` only when a recorded run typed its printed command into that host and route and it dispatched; the ledger names it by its dotted path (`next_command.package`).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "default"
+              ],
+              "properties": {
+                "default": {
+                  "$ref": "#/definitions/provenance_value"
+                },
+                "package": {
+                  "$ref": "#/definitions/provenance_value"
+                },
+                "skill": {
+                  "$ref": "#/definitions/provenance_value"
+                }
+              }
+            },
+            "multi_turn": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "subagents": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "ask": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "detach": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "native_tool": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "session_runner_provider": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "default_subagent_runner": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "subagent_tiers": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "runners": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "nested_exec": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "env_guards": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "max_concurrent_subagents": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "timeout_ceiling_s": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "timeout_override": {
+              "$ref": "#/definitions/provenance_value"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "$comment": "An optional key and its provenance row move as a pair. Without this the pairing is enforced only by pytest \u2014 a real guard, but one that fires in CI rather than for any consumer validating this document.",
+          "if": {
+            "required": [
+              "package"
+            ]
+          },
+          "then": {
+            "properties": {
+              "provenance": {
+                "required": [
+                  "package"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "$comment": "`package.public_version` moves as a pair with `provenance.package`. On a `pinned-spec` route it is required once that row is `verified`, because the generated paragraph then recommends a spec and the only version it may name is one a registry install was observed to serve. Before then it is forbidden: no such install exists yet, and the paragraph says so with the candidate `version`. Every other route forbids it at any provenance (the package-level rule says why). Whether it trails `version` is not expressible here: see the property's description.",
+          "if": {
+            "required": [
+              "package",
+              "provenance"
+            ],
+            "properties": {
+              "package": {
+                "required": [
+                  "update"
+                ],
+                "properties": {
+                  "update": {
+                    "const": "pinned-spec"
+                  }
+                }
+              },
+              "provenance": {
+                "required": [
+                  "package"
+                ],
+                "properties": {
+                  "package": {
+                    "const": "verified"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "package": {
+                "required": [
+                  "public_version"
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "package": {
+                "not": {
+                  "required": [
+                    "public_version"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "$comment": "The package route's spelling moves with the package block: a host with a `package:` block must spell that route's next-phase command, and a host without one must not carry a `package` template that no install route can reach.",
+          "if": {
+            "required": [
+              "package"
+            ]
+          },
+          "then": {
+            "properties": {
+              "next_command": {
+                "required": [
+                  "package"
+                ]
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "next_command": {
+                "not": {
+                  "required": [
+                    "package"
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          "$comment": "A next_command route and its provenance row move as a pair, as `package` does above.",
+          "if": {
+            "properties": {
+              "next_command": {
+                "required": [
+                  "package"
+                ]
+              }
+            },
+            "required": [
+              "next_command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "provenance": {
+                "properties": {
+                  "next_command": {
+                    "required": [
+                      "package"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "$comment": "The same pairing for the `skill` route.",
+          "if": {
+            "properties": {
+              "next_command": {
+                "required": [
+                  "skill"
+                ]
+              }
+            },
+            "required": [
+              "next_command"
+            ]
+          },
+          "then": {
+            "properties": {
+              "provenance": {
+                "properties": {
+                  "next_command": {
+                    "required": [
+                      "skill"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

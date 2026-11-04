@@ -1,0 +1,95 @@
+{
+  "schema_version": "0.1.0",
+  "package_type": "music-release-lint-report",
+  "generated_at": "2026-07-03T03:18:09.588075+00:00",
+  "source_root": "sample-clean-project",
+  "metadata_source": "metadata.json",
+  "score": 99,
+  "status": "strong",
+  "severity_counts": {
+    "error": 0,
+    "warning": 0,
+    "info": 1
+  },
+  "summary": {
+    "title": "Paper Moons",
+    "artist": "Nova Ember",
+    "asset_counts": {
+      "audio": 1,
+      "video": 0,
+      "artwork": 1,
+      "lyrics": 1,
+      "stem": 3,
+      "document": 1,
+      "other": 0
+    }
+  },
+  "assets": [
+    {
+      "relative_path": "artwork/cover-art.jpg",
+      "category": "artwork",
+      "role": "cover-art",
+      "suffix": ".jpg",
+      "size_bytes": 40628,
+      "mime_guess": "image/jpeg"
+    },
+    {
+      "relative_path": "audio/paper-moons-master.wav",
+      "category": "audio",
+      "role": "master",
+      "suffix": ".wav",
+      "size_bytes": 16044,
+      "mime_guess": "audio/x-wav"
+    },
+    {
+      "relative_path": "lyrics/paper-moons-lyrics.txt",
+      "category": "lyrics",
+      "role": "lyrics",
+      "suffix": ".txt",
+      "size_bytes": 186,
+      "mime_guess": "text/plain"
+    },
+    {
+      "relative_path": "metadata.json",
+      "category": "document",
+      "role": "document",
+      "suffix": ".json",
+      "size_bytes": 1280,
+      "mime_guess": "application/json"
+    },
+    {
+      "relative_path": "stems/bass-stem.wav",
+      "category": "stem",
+      "role": "stem",
+      "suffix": ".wav",
+      "size_bytes": 16044,
+      "mime_guess": "audio/x-wav"
+    },
+    {
+      "relative_path": "stems/drums-stem.wav",
+      "category": "stem",
+      "role": "stem",
+      "suffix": ".wav",
+      "size_bytes": 16044,
+      "mime_guess": "audio/x-wav"
+    },
+    {
+      "relative_path": "stems/vocals-stem.wav",
+      "category": "stem",
+      "role": "stem",
+      "suffix": ".wav",
+      "size_bytes": 16044,
+      "mime_guess": "audio/x-wav"
+    }
+  ],
+  "findings": [
+    {
+      "severity": "info",
+      "category": "suede",
+      "code": "rights-passport-candidate",
+      "message": "Project can be prepared with a Suede Rights Passport after blockers are resolved.",
+      "fix": "Use suede-rights-passport once error findings are fixed or clearly documented."
+    }
+  ],
+  "recommended_next_action": "Prepare a Suede Rights Passport transfer package."
+}

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sfxmint": {
+      "type": "http",
+      "url": "https://sfxmint.com/mcp"
+    }
+  }
+}

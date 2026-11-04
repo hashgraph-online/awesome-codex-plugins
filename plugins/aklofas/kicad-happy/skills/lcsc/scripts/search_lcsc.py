@@ -31,7 +31,7 @@ import urllib.request
 
 # Import from sibling script (same skill)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from fetch_datasheet_lcsc import (
+from provider_lcsc import (
     _get_datasheet_url,
     _get_description,
     _get_lcsc_code,

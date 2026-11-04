@@ -1,0 +1,36 @@
+{
+  "id": "paper-liquid-metal-stripes",
+  "label": "Stripes (Paper LiquidMetal)",
+  "shader": "LiquidMetal",
+  "page": "https://shaders.paper.design/liquid-metal",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Stripes\" preset for LiquidMetal, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colorTint": "#2c5d72",
+    "softness": 0.8,
+    "repetition": 6,
+    "shiftRed": 1,
+    "shiftBlue": -1,
+    "distortion": 0.4,
+    "contour": 0.4,
+    "shape": "circle",
+    "angle": 0,
+    "image": ""
+  }
+}

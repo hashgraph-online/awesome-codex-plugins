@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Site Alchemy Skills"
+  short_description: "Evidence-led page conversion and experiment design"
+  default_prompt: "Use $suede-site-alchemy on [URL or page]. Identify the funnel stage, inventory friction with evidence, verify conversion instrumentation, and generate at most three falsifiable hypotheses. Read the experiment-design reference; pre-register primary metric, guardrails, MDE, sample/duration, and SRM checks in the CRO hypothesis ledger when a test is warranted. Label unknowns and scenarios, never invent benchmark lift, then close with rendered QA and a ship gate."
+policy:
+  allow_implicit_invocation: true

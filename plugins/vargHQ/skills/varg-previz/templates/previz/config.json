@@ -1,0 +1,15 @@
+{
+ "title": "Sample · Morning Drop",
+ "storyboard": "sample/storyboard.json",
+ "audio": null,
+ "aspect": "9:16",
+ "stills": null,
+ "scenes": {
+  "A_room": {"label": "A · café table", "color": "#ff7a2f"},
+  "B_street": {"label": "B · street", "color": "#2ee6ff"},
+  "C_studio": {"label": "C · studio", "color": "#8a5cff"}
+ },
+ "scale": {"human": 1.8, "car": 4.5, "product": 0.28},
+ "hud": [{"text": "POV: the drop is live", "from": 0, "to": 2, "pos": "top"}],
+ "planFile": "camera_plan.md"
+}

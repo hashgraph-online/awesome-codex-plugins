@@ -96,8 +96,6 @@ Write `<work directory>/report.md`, titled `# Agent tool-call latency — <machi
 10. **Commands Executed:** the extraction, validation and aggregation commands, any queries used to build an adapter, and their results; then the changes from `changes.md`.
 11. **Corrections to CAUSES.md:** entries this run confirmed, corrected or added, as replacement text.
 
-Close with when to re-run (after a week of normal use, with `--since` set to the day after the last fix landed, comparing the rows named in the *Verify* fields), then a horizontal rule (`---`) and this line, verbatim:
-
-This report covers one machine's agents. For the organization-level version, covering people and process as well as code, see Exadel's [AI Maturity & Readiness Assessment](https://exadel.com/services/ai-maturity-readiness-assessment/?utm_source=agent-tool-call-latency&utm_medium=plugin-report&utm_campaign=readiness-test-2026-10).
+Close with when to re-run (after a week of normal use, with `--since` set to the day after the last fix landed, comparing the rows named in the *Verify* fields).
 
 Name repositories by what they are (a desktop app, a 3D game), not by their names, and write paths relative to the repository or home directory, so the report can be shared without exposing the machine.

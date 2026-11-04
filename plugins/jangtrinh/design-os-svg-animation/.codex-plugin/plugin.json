@@ -1,0 +1,42 @@
+{
+  "name": "design-os-svg-animation",
+  "description": "Deterministic vector motion engine, virtual-clock studio player, and 1080p 60fps MP4/WebM launch-video compiler for AI agents.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Jang Trinh",
+    "url": "https://github.com/jangtrinh"
+  },
+  "homepage": "https://jangtrinh.github.io/design-os-svg-animation/",
+  "repository": "https://github.com/jangtrinh/design-os-svg-animation",
+  "license": "LicenseRef-PolyForm-Shield-1.0.0",
+  "keywords": [
+    "svg-animation",
+    "motion-design",
+    "launch-video",
+    "virtual-clock",
+    "anti-flop-gate",
+    "design-os"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "DESIGN:OS SVG Animation Engine",
+    "shortDescription": "Deterministic vector motion engine, virtual-clock studio player, and 1080p 60fps MP4/WebM launch-video compiler for AI agents.",
+    "longDescription": "Author frame-exact UI walkthroughs, decoupled camera/pointer choreography, and 2:1 axonometric vector animations governed by a 10-gate Anti-Flop verification suite.",
+    "developerName": "DESIGN:OS",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://jangtrinh.github.io/design-os-svg-animation/",
+    "privacyPolicyURL": "https://github.com/jangtrinh/design-os-svg-animation/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Create a 60fps SaaS product launch walkthrough with decoupled camera punch-ins, concentric cursor click ripples, and StudioPlayer controls.",
+      "Compile our SVG motion timeline into a self-contained HTML deliverable and run the 10-gate anti-flop verification audit.",
+      "Verify that all cursor click hotspots align within <= 1.0px of target interactive bounds across 16:9 and 9:16 safe zones."
+    ],
+    "brandColor": "#202020",
+    "composerIcon": "./docs/images/composer-icon.svg",
+    "logo": "./docs/images/cover.png"
+  }
+}

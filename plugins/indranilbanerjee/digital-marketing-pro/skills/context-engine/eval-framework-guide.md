@@ -8,13 +8,13 @@ This guide covers the full architecture, when to use each eval type, how to inte
 
 ## 1. Eval System Architecture
 
-Eight scripts work together to form the evaluation pipeline. Each script is a standalone Python tool (stdlib only, zero external dependencies) that can run independently or be orchestrated by the master runner.
+Eight scripts work together to form the evaluation pipeline. Each script is a standalone Python tool that can run independently or be orchestrated by the master runner. Most are stdlib only; content-scorer and readability-analyzer need `textstat` and brand-voice-scorer needs `nltk` (`setup.py --install lite`).
 
 ### Script Inventory
 
 | Script | Role | Input | Output |
 |--------|------|-------|--------|
-| `eval-runner.py` | Master orchestrator | Content text/file + options | Composite report with weighted scores, grade, pass/fail |
+| `eval-runner.py` | Master orchestrator | Content text/file + options | Composite report: weighted scores, grade, `decision` (PASS / WARN / BLOCKED; exit 3 when BLOCKED), every flagged item in `issues` |
 | `hallucination-detector.py` | Fabrication detection | Content text/file | Hallucination risk score + flagged items |
 | `claim-verifier.py` | Evidence cross-check | Content + evidence JSON | Claim verification score + per-claim status |
 | `output-validator.py` | Structure validation | Content + schema name | Structure score + missing sections/format issues |
@@ -60,7 +60,7 @@ The eval-runner calls each script via subprocess, collects JSON output from each
 
 ### Key Design Decisions
 
-- **Subprocess isolation**: Each evaluator runs in its own process. A failure in one dimension does not block the others. The eval-runner captures errors and reports partial results.
+- **Subprocess isolation**: Each evaluator runs in its own process. A failure in one dimension does not block the others. The eval-runner captures errors and reports the result as partial: `"partial": true`, the failed dimensions in `missing_dimensions`, and a grade of "incomplete" (fewer than two dimensions ran) or at most B. A dimension that doesn't apply (no evidence file, no schema, no brand) is skipped without making the result partial.
 - **JSON-in, JSON-out**: Every script reads arguments from CLI flags and writes structured JSON to stdout. This makes them composable and testable.
 - **Brand-aware**: All scripts resolve the active brand from `~/.claude-marketing/brands/_active-brand.json` when no `--brand` flag is provided. This means eval config, quality history, and A/B tests are all scoped per brand.
 

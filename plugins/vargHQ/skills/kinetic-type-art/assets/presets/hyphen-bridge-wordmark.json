@@ -1,0 +1,162 @@
+{
+  "id": "hyphen-bridge-wordmark",
+  "name": "Hyphen bridge wordmark",
+  "use": "Two words joined by a hyphen that grows, stands up and shrinks back",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "presets": [
+    {
+      "id": "hyphen-bridge-wordmark.paper",
+      "label": "Paper",
+      "look": "Black grotesque on paper",
+      "params": {
+        "font": "Inter",
+        "weight": 800,
+        "ink": "#111111",
+        "bg": "#F2EFE8",
+        "rest_mark": "U+002D hyphen, unspaced",
+        "bar_thickness": "measured from the font's hyphen",
+        "phases_f": {
+          "in": [
+            0,
+            12
+          ],
+          "hold": [
+            12,
+            24
+          ],
+          "anticipate": [
+            24,
+            27
+          ],
+          "grow": [
+            27,
+            45
+          ],
+          "stand": [
+            45,
+            63
+          ],
+          "return": [
+            63,
+            81
+          ],
+          "hold_end": [
+            81,
+            120
+          ]
+        },
+        "anticipate_scale": 0.9,
+        "grow_to_pct_width": [
+          45,
+          60
+        ],
+        "grow_ease": "expo.out",
+        "stand_to_pct_height": [
+          70,
+          80
+        ],
+        "stand_ease": "power3.inOut",
+        "return_ease": "back.out(1.4)",
+        "word_lag_f": [
+          2,
+          3
+        ],
+        "lockup_width_pct_16x9": [
+          55,
+          70
+        ]
+      },
+      "sources": [
+        24,
+        39,
+        21
+      ]
+    },
+    {
+      "id": "hyphen-bridge-wordmark.night",
+      "label": "Night",
+      "look": "White on black, accent bar",
+      "params": {
+        "ink": "#F2EFE8",
+        "bg": "#0B0B0D",
+        "bar": "#FF5A1F"
+      },
+      "sources": [
+        21
+      ]
+    },
+    {
+      "id": "hyphen-bridge-wordmark.riso",
+      "label": "Riso",
+      "look": "Blue words, pink bar, overprint",
+      "params": {
+        "words": "#3255A4",
+        "bar": "#FF48B0",
+        "paper": "#F4F1EA",
+        "blend": "multiply",
+        "offset_px": 2
+      },
+      "sources": [
+        30,
+        5
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 5,
+      "name": "@natAndrewson, three-ink riso print",
+      "url": "https://x.com/natAndrewson/status/1262744907355058186"
+    },
+    {
+      "n": 21,
+      "name": "GSAP Eases docs",
+      "url": "https://gsap.com/docs/v3/Eases/"
+    },
+    {
+      "n": 22,
+      "name": "Butterick, Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 24,
+      "name": "Butterick, Hyphens and dashes",
+      "url": "https://practicaltypography.com/hyphens-and-dashes.html"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 39,
+      "name": "Netguru, 12 principles of animation (Agnieszka Koniuszek)",
+      "url": "https://www.netguru.com/blog/illustrators-eye-12-principles-of-animation"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 42,
+      "name": "vargHQ/skills paper-shaders",
+      "url": "https://github.com/vargHQ/skills/tree/main/paper-shaders"
+    }
+  ]
+}

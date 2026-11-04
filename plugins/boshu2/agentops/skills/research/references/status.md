@@ -10,7 +10,8 @@ corruption or unavailable sources, and shows evidence recency. Without
 `--evidence-root` it reads `.agents/ao/intents/sha256` and
 `.agents/ao/verdicts/sha256`; a count is not a per-artifact digest inventory.
 Inspect a specific digest or timestamp only when that artifact is part of the
-requested question.
+requested question. If `ao` is not on PATH (the plugin does not ship it),
+report the snapshot as not run (tool unavailable).
 
 Report caller-supplied subject manifests from their named location. Otherwise
 mark manifests, runtime phase, elapsed execution, tool-call activity and

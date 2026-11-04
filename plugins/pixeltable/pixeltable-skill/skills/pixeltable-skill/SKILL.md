@@ -1,18 +1,11 @@
 ---
 name: pixeltable
-description: >
-  Build multimodal AI apps with Pixeltable. One application file (app.py)
-  declares TableModel tables and FastAPIRouter routes. Create tables with
-  pxt schema update. Start HTTP with pxt service update. Insert a row or
-  POST to try the app. Use computed columns instead of LangChain,
-  pandas-as-store, or a separate vector DB. Use when building RAG or
-  tool-calling agents, processing images/video/audio/documents, or serving an
-  API. Do NOT use for general Python or direct PostgreSQL administration.
+description: "Multimodal RAG over PDFs, web pages, Office files, images, and video; video search; image similarity search; frames, detection, captions; embeddings and vector search stored with your data; audio transcription, podcast summaries; a multimodal agent with tools; agent memory; incremental ML and data pipelines; dataset versioning. One Python backend: tables, computed columns that call models, embedding indexes, incremental updates, versioning, and HTTP. Create tables with pxt schema update. Serve with pxt service update. Use instead of LangChain, pandas-as-store, or a separate vector DB. Use when building RAG or a multimodal agent with tools, processing images/video/audio/documents, or serving an API. Do NOT use for general Python or direct PostgreSQL administration."
 license: Apache-2.0
 allowed-tools: []
 metadata:
   author: Pixeltable
-  version: 2.12.0
+  version: 2.14.0
   type: documentation
   executes-code: false
   category: data-infrastructure
@@ -24,7 +17,7 @@ metadata:
   importPatterns: ["pixeltable", "import pixeltable as pxt", "from pixeltable"]
   bashPatterns: ['^\s*pxt(?:\s|$)']
   promptSignals:
-    phrases: ["pixeltable", "computed column", "embedding index", "add_embedding_index", "TableModel", "create_view", "document_splitter", "invoke_tools", "pxt schema", "pxt service", "pxt shell", "pxt errors", "pxt dashboard"]
+    phrases: ["pixeltable", "multimodal rag", "pdf rag", "video search", "image similarity", "image semantic search", "audio transcription search", "agent memory", "vector database", "embeddings with your data", "incremental pipeline", "dataset versioning", "computed column", "embedding index", "add_embedding_index", "TableModel", "create_view", "document_splitter", "invoke_tools", "pxt schema", "pxt service", "pxt shell", "pxt errors", "pxt dashboard"]
     minScore: 6
 ---
 
@@ -79,7 +72,7 @@ pxt service update app.py pxt://org:db -f
 
 Provider calls retry on their own (rate limits, 503s, timeouts, with backoff) and reach a proxy through `OPENAI_BASE_URL`: do not wrap a model call in your own retry loop or client ([providers.md](references/providers.md#retries-and-proxies)). Under a coding agent, ask the user to run `pxt login` in their own terminal, and never ask for a secret's value in the chat.
 
-Since Pixeltable 0.7.20, a command refused for want of `-f` or `--allow-destructive` exits 3 and ends with `next: <command>  # <what it does>`; `pxt errors` prints the same for each recomputable failed column (a snapshot column never changes, so it names no recompute). Run that command when it does what the user asked; ask first when it drops data, stops or restarts what others call, or recomputes rows the user did not mention. When Pixeltable cannot do what the task needs, or you work around it, show the user `pxt feedback --kind gap '<what was needed, what you tried, what happened>'`, which prints a preview and sends nothing; add `--send` only once they agree. Single quotes keep the shell from running anything in the text. Use placeholder data, never customer names, hosts, paths or secrets.
+Since Pixeltable 0.7.20, a command refused for want of `-f` or `--allow-destructive` exits 3 and ends with `next: <command>  # <what it does>`; `pxt errors` prints the same for each recomputable failed column (a snapshot column never changes, so it names no recompute). A hosted wait stopped with SIGTERM (0.7.22+) exits 143, prints `next: pxt db status ...`, and the change continues in Cloud -- run that line. Run a `next:` command when it does what the user asked; ask first when it drops data, stops or restarts what others call, or recomputes rows the user did not mention. When Pixeltable cannot do what the task needs, or you work around it, show the user `pxt feedback --kind gap '<what was needed, what you tried, what happened>'`, which prints a preview and sends nothing; add `--send` only once they agree. Single quotes keep the shell from running anything in the text. Use placeholder data, never customer names, hosts, paths or secrets.
 
 Provider keys on Cloud: `pxt secret set pxt://org OPENAI_API_KEY=...`, never in `pixeltable.toml`. Cloud handle: `pxt.get_table('pxt://org:db/docs')`. Media goes to the database's managed home bucket unless a column sets `destination=`; share a file by link or `/sign` (`references/cli.md`, Cloud). Try the app with a dashboard insert plus `pxt schema diff`; read failures with `pxt service logs` / `pxt db logs`.
 
@@ -137,6 +130,7 @@ RAG, views, and search: [workflows.md](references/workflows.md). Do not add Hugg
 |------|------|
 | `pxt schema`, `pxt service`, inspect | [cli.md](references/cli.md) |
 | Types, views, UDFs, UDAs, tool calling | [core-api.md](references/core-api.md) |
+| Versions, snapshots, time travel | [core-api.md](references/core-api.md#versioning) |
 | Provider import, arguments, and output shape | [providers.md](references/providers.md) |
 | Serving, FastAPIRouter, routes | [workflows.md](references/workflows.md) |
 | Wrong stack | [anti-patterns.md](references/anti-patterns.md) |
@@ -164,8 +158,15 @@ Add video, audio, agents, or a UI by editing `app.py`. A view is either a filter
 | `EmbeddingIndex(frame, image_embed=clip)` | `embedding=clip` (covers text and image). Or both `string_embed=` and `image_embed=`. `image_embed=` alone cannot answer `similarity(string=...)` |
 | `uuid.astype(pxt.String)` | `uuid.to_string()` (`from pixeltable.functions.uuid import to_string`). `astype` does not cast UUID to String |
 | `json_col.astype(pxt.String)` on a dict or list | Fails at insert: `Expected string, got dict`. Serialize with `pxtf.json.dumps(json_col)` |
+| `add_query_route(..., one_row=True)` / `@pxt.query(return_scalar=...)` | Gone (0.7.22+). Shape follows the query: ungrouped aggregate or literal `limit(1)` is single-row (0 rows is a 404). A single unnamed expression returns values |
 
 Extract the field (`.text`, `.choices[0].message.content`). The field is Json holding a string: `.astype(pxt.String)` it before concatenating or embedding.
+
+## Troubleshooting
+
+- After API keys change, run `pxt daemon restart`. The daemon reads the environment and `config.toml` once at startup; then `pxt service restart NAME` so running services pick it up.
+- Define `@pxt.udf` and `@pxt.query` in an importable module (the file `pxt schema update` loads), not a script run as `__main__`.
+- `order_by` on a Python UDF expression raises `AttributeError` when descending (`asc=False`) and does not sort when ascending. Order by a stored column instead.
 
 ## Notebook / REPL appendix
 

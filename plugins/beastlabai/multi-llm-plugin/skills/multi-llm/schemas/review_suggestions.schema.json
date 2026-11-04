@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Plan / Task Review Suggestions",
+  "format_version": 1,
+  "description": "The JSON array `review-plan` and `review-tasks` ask each model for. Transcribed verbatim from the shipped prompt contracts (prompts/plan_review.txt and prompts/task_review.txt, whose 'Output Format' sections are byte-identical in field set, enum values and the 'exactly these fields' rule) — it is NOT an invented shape. One file serves both phases because the document is the same document; splitting it would create two copies free to drift. `format_version` is carried as a schema-level annotation rather than a document property because the document is an array and has nowhere in-band to put one (consolidated.schema.json, an object, carries its own as a property).",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["title", "desc", "importance", "reference", "type"],
+    "properties": {
+      "title": {
+        "type": "string",
+        "description": "5-10 word summary of the issue"
+      },
+      "desc": {
+        "type": "string",
+        "description": "Text explaining the issue, in the form the phase's prompt asks for"
+      },
+      "importance": {
+        "type": "string",
+        "enum": ["high", "medium", "low"]
+      },
+      "reference": {
+        "type": "string",
+        "description": "Which section of the plan this affects (review-plan), or the task id / plan section (review-tasks)"
+      },
+      "type": {
+        "type": "string",
+        "enum": ["addition", "modification", "deletion", "clarification"]
+      },
+      "scope_relation": {
+        "description": "Optional: the reviewer's provisional scope classification of the finding's proposed action, \"in_scope\" | \"scope_extension\" | \"unclear\" (plans/scope-policy-and-report-tags.md §3). Deliberately untyped: a missing or malformed value reads \"unclear\" (utils/scope_policy.normalize_scope_fields) and never discards the finding. Validation returns the authoritative group classification; this one is a provisional report label."
+      },
+      "scope_reason": {
+        "description": "Optional: one short line saying why, against the scope baseline. A definite scope_relation without a reason reads \"unclear\"."
+      },
+      "scope_reference": {
+        "description": "Optional: the baseline section or text the classification rests on, or \"\"."
+      }
+    },
+    "additionalProperties": false
+  }
+}

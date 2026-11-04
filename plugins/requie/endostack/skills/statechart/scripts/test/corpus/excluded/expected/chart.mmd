@@ -1,0 +1,23 @@
+stateDiagram-v2
+  state Legend {
+    legend0: breaks NeverThree
+    legend1: path to the NeverThree bug
+  }
+  s0: 0
+  s1: 1
+  s2: 2
+  s3: 3 (excluded step)
+  s4: 3
+  [*] --> s0
+  s0 --> s1: Fwd
+  s1 --> s0: Back
+  s1 --> s2: Fwd
+  s1 --> s3: Jump
+  s2 --> s1: Back
+  s2 --> s4: Fwd
+  s4 --> s2: Back
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 breaks
+  class legend1 bugPath
+  class s3,s4 breaks
+  class s0,s1 bugPath

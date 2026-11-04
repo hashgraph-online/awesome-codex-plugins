@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Ship Copy Skills"
+  short_description: "Copy DAG with shared Slop Stop cleanup"
+  default_prompt: "Use $suede-ship-copy for [piece] on [surface]. Ask for the agent budget before launching. Capture the live baseline, carry requester facts as given, research and audit agent-generated claims, plan message ownership, draft, assemble, review, and refute. Never audit, hedge, or gate on a given. Use shared Suede Slop Stop cleanup with the supplied houseStyle, preserve exact source spans and author placeholders, and run deterministic checks plus the read-only readiness gate. Return the draft and evidence record. Never invent missing facts or publish."
+policy:
+  allow_implicit_invocation: true

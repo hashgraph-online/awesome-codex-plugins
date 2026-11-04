@@ -1,0 +1,38 @@
+{
+  "id": "paper-swirl-opening",
+  "label": "Opening (Paper Swirl)",
+  "shader": "Swirl",
+  "page": "https://shaders.paper.design/swirl",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Opening\" preset for Swirl, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.5,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": -0.4,
+    "offsetY": 1,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#ff8b61",
+    "colors": [
+      "#fefff0",
+      "#ffd8bd",
+      "#ff8b61"
+    ],
+    "bandCount": 2,
+    "twist": 0.3,
+    "center": 0.2,
+    "proportion": 0.5,
+    "softness": 0,
+    "noiseFrequency": 0,
+    "noise": 0
+  }
+}

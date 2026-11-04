@@ -9,6 +9,12 @@ edits) · **minor** = behavioral additions (new sections, rules, triggers) ·
 **major** = contract changes (response shape, output format, scope).
 Every bump also updates `evals/evals.json` `skill_version`.
 
+## [0.2.1] - 2026-10-28
+
+### Added
+- `metadata.display-name` "Amazon Profitability Calculator": a human-readable label for catalogs
+  and skill pickers. Instructions and triggering are unchanged.
+
 ## [0.2.0] - 2026-10-17
 
 ### Added

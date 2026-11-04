@@ -1,0 +1,149 @@
+<template>
+  <style>
+    #root {
+      position: absolute;
+      inset: 0;
+    }
+    /* code-slab-3d.github-dark: slab #0d1117, bevel 10 px, rim #79c0ff @20%, 62% of frame width */
+    #sl-bg {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 1200px 800px at 50% 46%, #131a24 0%, #07090c 78%);
+    }
+    #sl-shadow {
+      position: absolute;
+      left: 425px;
+      top: 716px;
+      width: 1070px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(0, 0, 0, 0.9), rgba(0, 0, 0, 0));
+    }
+    #sl-cam {
+      position: absolute;
+      inset: 0;
+      perspective: 2200px;
+      perspective-origin: 50% 46%;
+    }
+    #sl-dolly {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+    }
+    #sl-slab {
+      position: absolute;
+      left: 365px;
+      top: 268px;
+      width: 1190px;
+      height: 536px;
+      transform-style: preserve-3d;
+    }
+    .sl-layer {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background: #04060a;
+      border: 1px solid rgba(121, 192, 255, 0.1);
+    }
+    #sl-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 18px;
+      background: linear-gradient(135deg, #3a4656 0%, #161c25 30%, #0d1117 55%, #05070a 100%);
+      box-shadow: 0 0 0 1px rgba(121, 192, 255, 0.2), 0 0 40px rgba(121, 192, 255, 0.08);
+      overflow: hidden;
+    }
+    #sl-inner {
+      position: absolute;
+      inset: 10px;
+      border-radius: 10px;
+      background: #0d1117;
+      padding: 54px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 34px;
+      line-height: 1.45;
+      color: #f0f6fc;
+      white-space: pre;
+    }
+    #sl-sheen {
+      position: absolute;
+      top: -20%;
+      left: 0;
+      width: 360px;
+      height: 140%;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(200, 225, 255, 0.09) 50%, rgba(255, 255, 255, 0) 100%);
+    }
+    .k { color: #ff7b72; }
+    .s { color: #a5d6ff; }
+    .f { color: #d2a8ff; }
+    .c { color: #79c0ff; }
+    .v { color: #ffa657; }
+    .m { color: #9198a1; }
+    #sl-tag {
+      position: absolute;
+      left: 48px;
+      bottom: 40px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+  <div id="root" data-composition-id="slab" data-width="1920" data-height="1080">
+    <div id="sl-bg"></div>
+    <div id="sl-shadow"></div>
+    <div id="sl-cam">
+      <div id="sl-dolly">
+        <div id="sl-slab">
+          <div class="sl-layer" style="transform: translateZ(-28px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-26px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-24px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-22px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-20px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-18px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-16px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-14px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-12px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-10px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-8px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-6px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-4px)"></div>
+          <div class="sl-layer" style="transform: translateZ(-2px)"></div>
+          <div id="sl-face">
+            <div id="sl-inner"><span class="k">export async function</span> <span class="f">upload</span>(<span class="v">file</span>, <span class="v">tries</span> <span class="k">=</span> <span class="c">3</span>) {
+  <span class="k">for</span> (<span class="k">let</span> <span class="v">i</span> <span class="k">=</span> <span class="c">0</span>; i <span class="k">&lt;</span> tries; i<span class="k">++</span>) {
+    <span class="k">const</span> <span class="c">res</span> <span class="k">=</span> <span class="k">await</span> <span class="f">put</span>(<span class="c">URL</span>, file);
+    <span class="k">if</span> (res.<span class="c">ok</span>) <span class="k">return</span> res.<span class="f">json</span>();
+    <span class="k">await</span> <span class="f">sleep</span>(<span class="c">250</span> <span class="k">*</span> <span class="c">2</span> <span class="k">**</span> i); <span class="m">// backoff</span>
+  }
+  <span class="k">throw new</span> <span class="f">Error</span>(<span class="s">"upload failed"</span>);
+}</div>
+            <div id="sl-sheen"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="sl-tag">code-slab-3d · github-dark</div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#sl-tag", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.1);
+    // 0-0.4 s: fade and scale in 0.94 -> 1
+    tl.fromTo("#sl-slab", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power2.out" }, 0);
+    // camera dolly 115% -> 100%
+    tl.fromTo("#sl-dolly", { scale: 0.94 * 1.15 }, { scale: 1, duration: 2.6, ease: "power4.out" }, 0);
+    // turn from rotateY -38, rotateX 16, rotateZ -4 to face-on, power4.out (the preset's alternative to expo.out)
+    tl.fromTo(
+      "#sl-slab",
+      { rotationY: -38, rotationX: 16, rotationZ: -4 },
+      { rotationY: 0, rotationX: 0, rotationZ: 0, duration: 2.6, ease: "power4.out" },
+      0.2,
+    );
+    // shadow tightens as the slab settles
+    tl.fromTo("#sl-shadow", { opacity: 0, scaleX: 0.8, x: -60 }, { opacity: 0.45, scaleX: 1, x: 0, duration: 1.6, ease: "expo.out" }, 0.2);
+    // one specular sweep across the face during the turn, 0.8 s
+    tl.fromTo("#sl-sheen", { x: -400 }, { x: 1300, duration: 0.8, ease: "power2.inOut" }, 0.45);
+        tl.to(["#sl-cam", "#sl-shadow", "#sl-tag"], { opacity: 0, duration: 0.2, ease: "power2.in" }, 2.8);
+    window.__timelines["slab"] = tl;
+  </script>
+</template>

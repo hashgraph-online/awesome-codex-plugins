@@ -46,17 +46,7 @@ Hick's law and progressive disclosure push hardest on the consumer side; in expe
 
 ## Landing Pages
 
-A SaaS landing page has seconds to earn a scroll. Attention is front-loaded: in NN/g's 2018 eyetracking study ("Scrolling and Attention"), 57% of viewing time was above the fold and 74% within the first two screenfuls, and Liu, White & Dumais 2010 (SIGIR) found visitors are most likely to leave in the first moments of a visit.
-
-- **Answer "why would they care?" first** — the problem the product solves or the outcome it gives, for this audience. Settle it before writing the page; every section after it is evidence for that answer, and a section that supports nothing is cut (`rules/cognitive-load.md`)
-- **The top section states it** — what it is, who it is for, why they would care, and the one next step — in the user's words, not a slogan (`rules/microcopy.md`, `rules/aesthetic-usability.md`)
-- **One primary call to action**, repeated down the page; a secondary action ("See a demo") styled quieter (`rules/von-restorff.md`)
-- **Benefits before features** — each section leads with the outcome for the user, then the feature that delivers it (`rules/scanning.md`)
-- **Show the real product** — screenshots or short recordings of the actual UI, not abstract illustrations, so visitors see what they are signing up for
-- **Real proof next to the call to action** — customer logos, attributed testimonials, real usage numbers (`rules/social-proof.md`); invented ones are `rules/deceptive-patterns.md`
-- **No auto-rotating hero carousels** — NN/g (Nielsen 2013) found users miss content in them, and they read as ads (banner blindness). Anything that moves for more than 5 seconds needs a pause control (WCAG 2.2.2, Pause, Stop, Hide)
-- **Short path to value** — sign-up with the fewest fields, or a way to try the product first (`rules/reciprocity.md`, `rules/defaults.md`)
-- **Link to pricing** from the navigation — hidden pricing makes visitors assume the worst
+Landing, marketing, and launch pages have their own guide — load `references/landing-pages.md`.
 
 ## Pricing and Plan Choice
 

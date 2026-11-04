@@ -4,6 +4,21 @@ All notable changes to this skill are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com); versions are semver and
 must match `metadata.version` in SKILL.md.
 
+## [0.5.4] - 2026-11-02
+
+### Fixed
+
+- Step 1 no longer treats the profile list inside `list_identities` as
+  complete. On 2026-11-02 it held fewer than half of what `ac_listProfiles`
+  returned, so choose from `ac_listProfiles`. With one identity, use it and
+  say which. With several, ask unless the user named one.
+
+## [0.5.3] - 2026-10-28
+
+### Added
+- `metadata.display-name` "Amazon Ads Sponsored Products Search Term Explorer": a human-readable label for catalogs
+  and skill pickers. Instructions and triggering are unchanged.
+
 ## [0.5.2] - 2026-10-20
 
 ### Fixed

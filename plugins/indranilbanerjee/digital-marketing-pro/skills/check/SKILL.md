@@ -2,7 +2,7 @@
 name: check
 description: "Run the scored pre-publish gate via eval-runner.py: claims, brand voice, compliance, AI tells. \"check this before we publish\""
 user-invocable: true
-argument-hint: "<file-or-content> [--full|--compliance] [--brand <slug>] [--evidence <path>] [--schema <name>]"
+argument-hint: "<file-or-content> [--full|--compliance|--goldfish] [--brand <slug>] [--evidence <path>] [--schema <name>]"
 allowed-tools: Read Bash Glob Grep
 ---
 
@@ -34,7 +34,7 @@ The check delegates to `scripts/eval-runner.py` (the master eval orchestrator) w
 | **Claims** | `claim-verifier.py` (when `--evidence` provided) | Cross-checks specific claims against a user-provided evidence file |
 | **Brand voice** | `brand-voice-scorer.py` (when `--brand` provided) | Scores content against the active brand's voice profile (formality, energy, humor, authority, prefer/avoid words) |
 | **Structure** | `output-validator.py` (when `--schema` provided) | Validates content matches expected schema (blog_post, email, ad_copy, social_post, landing_page, press_release, content_brief, campaign_plan) |
-| **C2PA provenance** (compliance) | `embed-c2pa.py` (presence check) | When the brand's `target_markets` include an EU/EEA jurisdiction AND an accompanying asset is AI-generated: verifies a C2PA provenance manifest is present and valid. Missing or invalid manifest → **CRITICAL / BLOCKED** (EU AI Act Article 50, applies from 2 Aug 2026) |
+| **C2PA provenance** (compliance) | `embed-c2pa.py` (presence check) | When the brand's `target_markets` include an EU/EEA jurisdiction AND an accompanying asset is AI-generated: verifies a C2PA provenance manifest is present and valid. Missing or invalid manifest → **CRITICAL / BLOCKED** (EU AI Act Article 50, in force since 2 August 2026) |
 
 Plus content quality and readability scoring (always run).
 
@@ -46,7 +46,7 @@ Plus content quality and readability scoring (always run).
 /digital-marketing-pro:check <file-path-or-content>
 ```
 
-Runs the **quick eval**: hallucination detection + content quality + readability. Fast (~2 seconds), zero external dependencies. Use this for routine checks.
+Runs the **quick eval**: hallucination detection + content quality + readability. Fast (a few seconds). Content quality and readability need `textstat` (`python "${CLAUDE_PLUGIN_ROOT}/scripts/setup.py" --install lite`); without it they are skipped, the result says `"partial": true` with `missing_dimensions`, and the grade is "incomplete" (one dimension) or at most B. Use this for routine checks.
 
 ### Full eval (run-full)
 
@@ -99,7 +99,7 @@ The check will extract every claim from the content and flag any that don't matc
 /digital-marketing-pro:check <file-path> --schema blog_post
 ```
 
-Validates the content matches the structural requirements of the named schema. Available schemas: `blog_post`, `email`, `ad_copy`, `social_post`, `landing_page`, `press_release`, `content_brief`, `campaign_plan`. Use `--schema list` to see all schemas with their requirements.
+Validates the content matches the structural requirements of the named schema. Available schemas: `blog_post`, `email`, `ad_copy`, `social_post`, `landing_page`, `press_release`, `content_brief`, `campaign_plan`. `--schema list` prints all schemas with their requirements; an unknown name stops with exit 2 and the valid list.
 
 ### With brand voice check
 
@@ -140,9 +140,35 @@ If any CRITICAL issue is found, decision = **BLOCKED** and the user is asked to 
 
 ### Decision rules
 
-- **PASS** — no CRITICAL issues and the composite score is above the auto-reject threshold (`auto_reject_threshold`, default 40)
-- **WARN** — no CRITICAL issues but at least one WARNING; the user should address it before publishing
-- **BLOCKED** — at least one CRITICAL issue (e.g. placeholder URL, fabricated statistic in a headline, missing required disclaimer for a regulated industry, missing C2PA provenance manifest on an AI-generated asset in an EU-targeted campaign); the content cannot publish until fixed
+eval-runner.py returns the decision itself, in `decision`, with every flagged item in `issues` (dimension, severity, value, reason):
+
+- **PASS** — no CRITICAL or WARNING issue, no dimension below its minimum, every dimension that applies ran, and the composite is at or above the brand's `auto_reject_threshold` (default 40). Exit 0.
+- **WARN** — no CRITICAL issue, but at least one high or medium issue, a dimension below its minimum (`dimension_alerts`), or a dimension that failed to run (`partial`). Exit 0; the user should address it before publishing.
+- **BLOCKED** — at least one CRITICAL issue (for example a placeholder URL in a call to action, or a fabricated statistic in a headline), or the composite below the auto-reject threshold. Exit 3; the content cannot publish until fixed. A missing or invalid C2PA manifest on an AI-generated asset for an EU-targeted brand (the gate below) is also CRITICAL.
+
+The brand's thresholds, minimums and weights come from `/digital-marketing-pro:eval-config` and apply to every run. No script checks for a regulated industry's required disclaimer: review that by hand against the brand's guidelines.
+
+## Zero-context review of a client deliverable (`--goldfish`)
+
+The scored gate reads the text; it can't tell what a plan quietly depends on, because whoever wrote the plan knows. A reviewer that has seen nothing else, a goldfish, reads it the way the client will. Use this for proposals, plans, reports and summaries before they leave the agency.
+
+1. **Pack.** Write the review's whole input to one file:
+   ```bash
+   python "${CLAUDE_PLUGIN_ROOT}/scripts/goldfish-review.py" --action pack --deliverable plan.md --brief brief.md --brand {slug}
+   ```
+   The packet holds exactly three things: the deliverable, the brief it answers and the brand profile. No conversation summary, notes or other files go in. No brief? Ask for one; a few lines of what the client asked for will do.
+2. **Check.** `--action check --packet <path>` reads only the packet and lists, with line numbers:
+   - `unstated_figure`: a money figure (a budget, fee or forecast) that the brief and profile never state;
+   - `uncited_benchmark`: a benchmark rate (CTR, CPC, ROAS, conversion rate, "industry average") with no source on its line and no match in the brief or profile.
+
+   A figure the document marks as an assumption, an estimate or the plan's own target is stated, not hidden, and passes. Exit `3` means findings; `0` means none.
+3. **Review.** `--action prompt --packet <path>` returns the reviewer's prompt.
+   - On a host with subagents (Claude Code, Codex, Cursor, Copilot CLI), give it unchanged to the **quality-assurance** agent. Add nothing: no summary and no "for context". A reviewer handed anything but the packet is no longer zero-context.
+   - On a host without subagents (Hermes, OpenClaw), add `--no-subagents` and run the prompt in a fresh turn. Label the result **same-session review (weaker)**: the model has seen the work and may fill gaps from memory.
+   - The reviewer returns assumptions, unsourced numbers, contradictions with the brief or profile, and the client's likely first questions, each quoted exactly.
+4. **Answer in the document.** Fix each finding where the client will see it: state the assumption for the client to confirm, cite the source and its date, or cut the figure. Then pack and check again, so the packet matches what will be sent.
+
+What it proves, and what it doesn't: the check is deterministic, so it finds the same figures every run. The reviewer is a model, so its findings are a sample. "No findings" means it found none, not that there are none.
 
 ## AI-tell scans (advisory section, never scored)
 
@@ -180,7 +206,7 @@ The skill follows this flow:
    ```
    python "${CLAUDE_PLUGIN_ROOT}/scripts/eval-runner.py" --action run-quick --file <input> [--brand <slug>] [--evidence <path>] [--schema <name>]
    ```
-5. **Parse the JSON output.** Extract composite score, grade, dimension scores, alerts, auto-reject decision.
+5. **Parse the JSON output.** Read `decision` (PASS / WARN / BLOCKED; exit 3 means BLOCKED), `issues`, composite score, grade, dimension scores, `dimension_alerts`, `auto_rejected`, and `partial` with `missing_dimensions`. Never upgrade the decision the script returned.
 6. **Format for the user.** Present the human-readable report shown above. Lead with the decision (PASS / WARN / BLOCKED).
 7. **If BLOCKED, refuse to recommend publishing.** Always require the user to address CRITICAL issues before they proceed.
 
@@ -195,7 +221,7 @@ The skill follows this flow:
 - `scripts/readability-analyzer.py` — invoked by eval-runner
 - `scripts/embed-c2pa.py` — presence/verify check for the EU AI Act Article 50 C2PA gate (only when an EU-targeted brand has an AI-generated asset)
 
-All scripts use stdlib only (except brand-voice-scorer which optionally uses nltk). No external API calls, no internet required.
+No external API calls, no internet required. hallucination-detector, claim-verifier and output-validator are stdlib only; content-scorer and readability-analyzer need `textstat`, and brand-voice-scorer needs `nltk` (both installed by `setup.py --install lite`). A dimension whose package is missing is skipped and named in `missing_dimensions`, never scored as a pass.
 
 ## Examples
 
@@ -239,7 +265,7 @@ User: /digital-marketing-pro:check drafts/healthcare-ad.md --full --brand health
 Skill:
 1. Read drafts/healthcare-ad.md
 2. Run python "${CLAUDE_PLUGIN_ROOT}/scripts/eval-runner.py" --action run-full --file drafts/healthcare-ad.md --brand healthfirst --evidence facts/q2-claims.json --schema ad_copy
-3. Parse JSON output. Composite: 58.4, grade: D+, auto_rejected: true
+3. Parse JSON output. Composite: 58.4, grade: C-, auto_rejected: true (the brand's auto-reject line is 60), decision: BLOCKED
 4. Format report with CRITICAL issues highlighted
 5. Decision: BLOCKED. Two unattributed health claims need substantiation before this can publish.
 ```
@@ -259,17 +285,17 @@ Skill:
 ### Example 4: Quick check on inline content
 
 ```
-User: /digital-marketing-pro:check "Our amazing product boosts conversion by 347% — visit example.com today!"
+User: /digital-marketing-pro:check "Our product boosts conversion by 347%. Buy now at https://example.com/offer"
 
 Skill:
 1. Detect inline content (not a file path)
-2. Write content to a temp file
-3. Run quick eval
+2. Run the quick eval with --text
+3. eval-runner exits 3: "decision": "BLOCKED", one critical item in "issues"
 4. Report:
-   CRITICAL: 2
-     - Placeholder URL "example.com" — replace with real URL before publishing
-     - Unattributed statistic "347%" — fabricated stat or missing citation
+   CRITICAL (1):
+     - Placeholder URL "https://example.com/offer" in a call to action — replace it with the real URL before publishing
    Decision: BLOCKED
+   Also ask for the source of "347%": the detector does not flag every statistic, so read the draft as well.
 ```
 
 ## When to use which mode

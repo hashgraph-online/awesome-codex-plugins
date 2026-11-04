@@ -1887,7 +1887,6 @@ def main() -> int:
 
     ap.add_argument("--security-audit", action="store_true")
     ap.add_argument("--sbom", action="store_true")
-    ap.add_argument("--fuzz", action="store_true")
     ap.add_argument(
         "--materialize-archives",
         action="store_true",

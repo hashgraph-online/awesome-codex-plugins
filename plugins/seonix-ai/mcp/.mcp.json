@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "seonix": {
+      "type": "http",
+      "url": "https://api.seonix.ai/mcp"
+    }
+  }
+}

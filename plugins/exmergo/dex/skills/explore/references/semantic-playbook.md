@@ -161,13 +161,60 @@ format rather than a missing feature:
 - **A metric with no `semantic_models` is a metric whose lineage did not resolve**,
   not one that reads nothing. Ossie carries no metric-to-dataset reference, so Dex
   reports only what a qualified reference in the expression proved, and reports
-  nothing when none did.
+  nothing when none did. A metric named `dataset.metric` is dataset-scoped
+  (`datasets[].metrics`): it aggregates that one dataset's fields, and its lineage
+  is that dataset.
+
+A declared key or join names **fields**, and dex follows each field to the column
+its expression names, so `explore relationships --use-project --verify` probes
+the columns even where a field is named differently. A key or join on a field
+with no column (computed, quoted, non-SQL) is named in a note and never probed.
 
 An element with no `column` is also normal here and the notes say which of four
 reasons applies: a computed expression, a quoted identifier, a query-backed
 dataset source, or a field written only in a non-SQL dialect. In every one of them
 Dex declined to guess a column rather than failed to find one, so do not go looking
 for the column yourself and do not treat the absence as a data problem.
+
+## When the layer is Cube models
+
+`vendor: cube` means the layer is Cube YAML model files in the repository, read
+statically with no Cube server. `list` reads the same shape as anywhere else:
+
+- **A dimension token is `cube.member`**, and a view's member is
+  `view.member`. A view has no `relation`; each of its members carries the cube
+  member it exposes in `vendor_params.source`, and that cube's `relation` is the
+  table to profile.
+- **A measure is listed twice on purpose.** An aggregating measure (`sum`,
+  `count`, ...) is a `measure` and a `simple` metric named `cube.member`. A
+  calculated `number` measure is a `ratio` or `derived` metric only. Measure
+  names are scoped to their cube, so two cubes may each have `count`: read
+  `semantic_model` with the name.
+- **There are no entities.** `primary_key` and joins reach `explore map`,
+  `explore relationships` and `explore profile` through `--use-project`.
+- **`compiled_only` lists what Dex did not read**: a JS model, a templated
+  (Jinja) YAML file, or a cube using `extends`. Those definitions exist; do not
+  report them as missing, and do not guess at their contents.
+- **`query` and `values` need a Cube server, as a renderer.** Dex asks the
+  server at `semantic.cube.url` for the SQL and runs it itself, so
+  `CUBEJS_API_SECRET` must be exported (never put it in config), and a host
+  other than this machine must be named in `DEX_CUBE_ALLOWED_HOSTS`. No Cube
+  server running, or the wrong secret, is an error naming the fix; with none
+  available, use `explore profile` and `explore query` on the relations the
+  catalog names instead.
+- **Speak Cube's dialect.** Metrics and dimensions are `cube.member` (or
+  `view.member`). Cube has no `metric_time`: group by the time dimension with
+  its grain, `--group-by orders.ordered_at__month` (custom granularities work
+  the same way). `--where` takes Cube's JSON filter, one object, a list, or
+  `and`/`or` groups; a date range on the grouped time dimension
+  (`inDateRange`) also bounds a rolling window. `--order-by` names only the
+  query's own members, `--order-by=-orders.revenue` for descending.
+- **A stale-renderer refusal means restart Cube, not fix the query.** Cube
+  outside dev mode never reloads an edited model file, so after a
+  `semantic cube update` the server serves the old model until restarted, and
+  Dex refuses rather than run SQL from a model nobody reviewed. A refusal naming
+  a pre-aggregation means Cube would answer from a rollup table; query members
+  it does not cover.
 
 ## When the layer is SLayer models
 

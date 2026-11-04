@@ -176,43 +176,6 @@ def assign_deep_review_ids(findings):
     return findings
 
 
-_SEVERITY_NORMALIZE = {
-    # Legacy uppercase pre-v1.3 taxonomy
-    "CRITICAL": "error",
-    "HIGH": "error",
-    "MEDIUM": "warning",
-    "LOW": "info",
-    "INFO": "info",
-    # Lowercase legacy variants
-    "critical": "error",
-    "high": "error",
-    "medium": "warning",
-    "low": "info",
-    # v1.4 normalized vocab (pass-through)
-    "error": "error",
-    "warning": "warning",
-    "info": "info",
-}
-
-
-def normalize_severity(sev):
-    """Map any severity string to the v1.4 normalized vocabulary.
-
-    Accepts legacy uppercase (CRITICAL/HIGH/MEDIUM/LOW/INFO) and v1.4
-    lowercase (error/warning/info). Returns one of {"error", "warning",
-    "info"}. Returns "info" for None, non-string, or unknown input.
-
-    Use this anywhere a consumer reads `finding["severity"]` — analyzer
-    outputs may carry either taxonomy depending on the producer code
-    path (EMC + voltage_derating still emit legacy uppercase via
-    _normalize_severity, schematic+pcb+thermal emit v1.4 lowercase).
-    """
-    if not isinstance(sev, str):
-        return "info"
-    return _SEVERITY_NORMALIZE.get(
-        sev, _SEVERITY_NORMALIZE.get(sev.upper(), "info"))
-
-
 def make_finding(
     detector: str,
     rule_id: str,
@@ -231,16 +194,12 @@ def make_finding(
     impact: str | None = None,
     standard_ref: str | None = None,
     source: str | None = None,
-    design_context: dict | None = None,
     **extra,
 ) -> dict:
     """Build a rich finding dict with consistent structure.
 
     Required fields: detector, rule_id, category, summary, description.
     All other fields have sensible defaults.
-
-    design_context: accepted for call-site compatibility; severity tuning
-        retired in v2.0 (spec §5) — the value is ignored.
 
     Extra kwargs are merged into the finding (e.g., domain-specific data).
     """
@@ -701,11 +660,8 @@ def is_old_schema(data):
 def strip_llm_overlays(data):
     """Recursively remove all keys starting with 'llm_'. Phase 4 spec §3.4 / HI-3.
 
-    Canonical implementation lives in
-    skills/kicad/review/scripts/merge_annotations.py; this is a duplicate
-    so analyzers/consumers don't need to take a dep on the review
-    sub-component to compute the deterministic baseline. Both
-    implementations are byte-equivalent; harness B-test asserts.
+    This is the canonical copy; skills/kicad/review/scripts/merge_annotations.py
+    imports it from here.
     """
     if isinstance(data, dict):
         return {k: strip_llm_overlays(v) for k, v in data.items()

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Operations Architecture Skills"
+  short_description: "Suede schema, write-path, and automation-versus-agent decisions"
+  default_prompt: "Use $suede-ops-architecture on [target]. The user is scoping an automation or agent build and needs the system's shape fixed before anyone writes code. Name the entities and their write paths, route every unit of work to a deterministic automation, an agent, or a human decision, mark each existing tool absorb, keep, or kill with a proof path, choose the migration path, and return the phase plan with the command that proves each gate."
+policy:
+  allow_implicit_invocation: true

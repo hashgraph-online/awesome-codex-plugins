@@ -51,7 +51,7 @@ def scan_open_pull_requests(
     report_output: Path | None,
     status_output: Path | None,
 ) -> int:
-    """Parse open catalog PRs and queue every valid contribution for central scan."""
+    """Queue new and revised Community Plugins rows for centralized scanning."""
 
     pull_requests = VALIDATOR.list_open_pull_requests(repository, pull_request_number)
     matrix: list[dict[str, object]] = []
@@ -98,7 +98,7 @@ def scan_open_pull_requests(
                     "failure_reasons": [],
                 }
             )
-            report_lines.append(f"- **{prefix}: PASS** - no new Community Plugins entries")
+            report_lines.append(f"- **{prefix}: PASS** - no new or revised Community Plugins entries")
             continue
 
         contributions: list[dict[str, str]] = []
@@ -212,7 +212,7 @@ def main() -> int:
         return 1
 
     if not entries:
-        print("No new Community Plugins entries found; contribution checks are complete.")
+        print("No new or revised Community Plugins entries found; contribution checks are complete.")
         if args.matrix_output:
             VALIDATOR.write_matrix(args.matrix_output, [])
         return 0

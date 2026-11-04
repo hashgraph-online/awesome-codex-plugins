@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Programmatic SEO Skills"
+  short_description: "Suede quality-gated search page systems"
+  default_prompt: "Use $suede-programmatic-seo on [target]. The user wants many templated pages targeting keyword, location, integration, or comparison patterns. Pick the playbook, rank the data, write the literal template, run the index-worthiness and doorway gates on a bounded sample, plan hub-and-spoke links and per-type sitemaps, and return the rollout phases with the KPIs that decide whether to expand."
+policy:
+  allow_implicit_invocation: true

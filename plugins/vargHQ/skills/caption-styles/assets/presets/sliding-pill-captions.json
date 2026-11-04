@@ -1,0 +1,257 @@
+{
+  "id": "sliding-pill-captions",
+  "name": "Sliding pill word tracker",
+  "use": "A coloured pill slides from word to word behind white outlined text, marking the word being spoken while the text stays still.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 7,
+  "fonts": [
+    {
+      "family": "Montserrat",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Montserrat",
+      "weights": [
+        800,
+        900
+      ]
+    },
+    {
+      "family": "Poppins",
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Poppins",
+      "weights": [
+        800
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "id": "sliding-pill-captions.electric-blue",
+      "label": "Electric blue",
+      "look": "Blue pill under white Montserrat with black outline",
+      "params": {
+        "font_family": "Montserrat",
+        "font_weight": 900,
+        "font_size_px": 84,
+        "font_size_pct_h": 4.4,
+        "text_color": "#FFFFFF",
+        "stroke_px": 9,
+        "stroke_color": "#000000",
+        "paint_order": "stroke fill",
+        "pill_color": "#1F5BFF",
+        "pill_padding_em": [
+          0.06,
+          0.22
+        ],
+        "pill_radius_em": 0.5,
+        "slide_frames": 5,
+        "slide_ease": "cubic-bezier(0.2,0,0,1)",
+        "lead_frames": 1,
+        "words_per_page": [
+          3,
+          5
+        ],
+        "page_combine_ms": 1200,
+        "max_width_px": 696,
+        "block_center_y_pct_h": 60,
+        "pill_box": "1em box centred on the glyphs (not the line box), plus pill_padding_em"
+      },
+      "sources": [
+        8,
+        15,
+        16,
+        18,
+        24
+      ]
+    },
+    {
+      "id": "sliding-pill-captions.brand-pill",
+      "label": "Brand pill",
+      "look": "Pill in the brand colour, text colour chosen for >= 4.5:1",
+      "params": {
+        "pill_color": "{brand}",
+        "active_text_color": "auto_max_contrast(#111111,#FFFFFF)",
+        "slide_frames": 6,
+        "min_contrast": 4.5
+      },
+      "sources": [
+        8
+      ]
+    },
+    {
+      "id": "sliding-pill-captions.soft-pill",
+      "label": "Soft pill",
+      "look": "Smaller, 85% opacity pill and a slower slide for calm podcasts",
+      "params": {
+        "pill_color": "rgba(31,91,255,0.85)",
+        "pill_padding_em": [
+          0.04,
+          0.16
+        ],
+        "slide_frames": 7,
+        "slide_ease": "cubic-bezier(0.2,0,0,1)",
+        "words_per_page": [
+          4,
+          6
+        ],
+        "pill_box": "1em box centred on the glyphs (not the line box), plus pill_padding_em"
+      },
+      "sources": [
+        18
+      ]
+    }
+  ],
+  "shared": {
+    "fps": 30,
+    "safe_box_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "centered_max_width": 696
+    },
+    "safe_area_16x9_pct": {
+      "vertical": 90,
+      "horizontal": 75,
+      "max_line_width_pct_w": 68
+    },
+    "reading_rate_wpm": [
+      160,
+      180
+    ],
+    "active_word_lead_frames": [
+      1,
+      2
+    ],
+    "min_contrast": 4.5
+  },
+  "sources": [
+    {
+      "n": 1,
+      "name": "Netflix — English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 3,
+      "name": "Netflix — Timed Text Style Guide: Subtitle Timing Guidelines",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/360051554394-Timed-Text-Style-Guide-Subtitle-Timing-Guidelines"
+    },
+    {
+      "n": 4,
+      "name": "BBC — BBC Subtitle Guidelines",
+      "url": "https://www.bbc.co.uk/accessibility/forproducts/guides/subtitles/"
+    },
+    {
+      "n": 6,
+      "name": "DCMP — Captioning Key: Text",
+      "url": "https://dcmp.org/learn/597-captioning-key---text"
+    },
+    {
+      "n": 8,
+      "name": "W3C WAI — Understanding WCAG 2.2 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 10,
+      "name": "Meta — Instagram Reels video ad specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 11,
+      "name": "Socialync — Social media safe zones",
+      "url": "https://www.socialync.io/tools/safe-zones"
+    },
+    {
+      "n": 12,
+      "name": "TikTok — TikTok Auction In-Feed Ads",
+      "url": "https://ads.tiktok.com/help/article/tiktok-auction-in-feed-ads?lang=en"
+    },
+    {
+      "n": 13,
+      "name": "Google — Safe zones for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 15,
+      "name": "Randy Hoffner / ITU-R BT.1359 — AV synchronization: how bad is bad?",
+      "url": "https://www.tvtechnology.com/opinions/av-synchronization-how-bad-is-bad"
+    },
+    {
+      "n": 16,
+      "name": "Remotion — createTikTokStyleCaptions()",
+      "url": "https://www.remotion.dev/docs/captions/create-tiktok-style-captions"
+    },
+    {
+      "n": 18,
+      "name": "Google Material Design 3 — md-sys-motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 19,
+      "name": "GreenSock (GSAP) — Eases docs + gsap-core.js 3.12.5",
+      "url": "https://gsap.com/docs/v3/Eases/"
+    },
+    {
+      "n": 24,
+      "name": "MDN — paint-order",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/paint-order"
+    },
+    {
+      "n": 27,
+      "name": "SIL Open Font License — OFL-FAQ",
+      "url": "https://openfontlicense.org/ofl-faq/"
+    },
+    {
+      "n": 28,
+      "name": "Meryl K. Evans — Why captioned videos are important",
+      "url": "https://meryl.net/why-captioned-videos-are-important/"
+    },
+    {
+      "n": 29,
+      "name": "@merylkevans (Meryl Evans) — Side-by-side: best-practice captions vs styled short-form captions",
+      "url": "https://x.com/merylkevans/status/1643366339409584132"
+    },
+    {
+      "n": 31,
+      "name": "@merylkevans (Meryl Evans) — Reply: karaoke-style captions",
+      "url": "https://x.com/merylkevans/status/1821233367712711088"
+    },
+    {
+      "n": 32,
+      "name": "@merylkevans (Meryl Evans) — Post: highlighted current word",
+      "url": "https://x.com/merylkevans/status/1556278998405103617"
+    },
+    {
+      "n": 35,
+      "name": "@JoshuaGilmer (Josh, Luau) — Reply: attention vs accessibility",
+      "url": "https://x.com/JoshuaGilmer/status/1643406838111645696"
+    },
+    {
+      "n": 39,
+      "name": "@wayofzorro (Zorro) — Shorts production checklist",
+      "url": "https://x.com/wayofzorro/status/2105523352261542050"
+    },
+    {
+      "n": 41,
+      "name": "@finnardley (Finn) — Stickman thriller recipe",
+      "url": "https://x.com/finnardley/status/2115786060231770351"
+    },
+    {
+      "n": 44,
+      "name": "Derek Coleman (OpusClip) — Video caption design and placement",
+      "url": "https://www.opus.pro/blog/video-caption-design-placement"
+    },
+    {
+      "n": 45,
+      "name": "HeyGen HyperFrames registry — Caption components (registry-item.json descriptions)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components"
+    }
+  ]
+}

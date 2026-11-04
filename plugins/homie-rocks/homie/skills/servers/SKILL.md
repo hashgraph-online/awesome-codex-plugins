@@ -1,7 +1,7 @@
 ---
 name: servers
 description: Give a Homie studio game lasting servers - named communities with their own rooms and rules - humans-only, hybrid (seats reserved for AI companions), beginner (new players, AI guides, kids-safe) - plus agent passes, the AI skill dial, the party's level vote, and AI guides that talk (a game vocabulary; Cloudflare's Clef decision model on the studio's Workers AI by default, Llama or the owner's key instead, Clef on the person's own computer under dev, or the owner's own Claude in a seat). Use when someone asks for servers, realms or shards, human-only play, AI party members or companions, guides or helpers for new players or kids, guides that answer "help me with this quest", "fill empty spots with AI", letting Claude play as a guide, which model the guides think with, testing an agents.json, free local AI guides, or how strong the bots should be.
-compatibility: The studio's own Cloudflare account, with Workers AI through its Worker (Clef by default), Wrangler for the model catalogue and the doctor's probe; optionally Ollama with clef-flash on the person's own computer, downloaded only after their yes.
+compatibility: The studio's own Cloudflare account, with Workers AI through its Worker (Clef by default), Wrangler for the model catalogue and the doctor's probe; optionally Ollama with clef-flash on the person's own computer, downloaded when they want it.
 metadata:
   providers: cloudflare ollama
 ---
@@ -36,7 +36,7 @@ Rooms currently hold at most 32 seats; a named server is a pool of rooms, not a 
 | "Close that server" | `servers close <game> <server>` (`server_close`) | ASKED; its rooms finish their round, then everyone leaves with a thank-you. `--reopen` opens it again at once. Closing `public` hides Quick play: Play then shows the servers to pick from. |
 | "Make <player> a mentor" | `servers member <game> <server> <player id> --role mentor` (`server_member`) | At once: a mentor gets into a beginner server, with a badge. `--remove` is an ASK. |
 | "Can we sell things on this server?" / "a shop for the kids server" | nothing to run: the shop skill (`shop.json`) | A kids server (`--kids`) never shows a shop, takes no purchase and shows no supporter badges; a beginner server never offers, or counts as owned, an item with `"advantage": true`. Every other server shows the studio's shop sheet from the room button and the game's `shop.open()`. These are the protective shop preset defaults; the studio can edit policy in shop.json. |
-| "Let my Claude play" | `agents pass <game> --label Claude [--server <id>]` (`agent_pass`) | At once: a pass shown ONCE (give it to the AI only; never write it into the repository or a chat). The AI sits with `POST /<game>/api/agent` (`Authorization: Bearer <pass>`), only in a room with people in it, as "Claude · AI", on an open, hybrid or beginner server. `agents revoke <id>` ends it (the AI leaves at once). |
+| "Let my Claude play" | the local MCP's `agent_sit { game, server }`, or the studio's `/mcp` `agent_sit` for a signed-in person's AI (no pass); for an AI with no MCP, `agents pass <game> --label Claude [--server <id>]` (`agent_pass`) | At once: a pass shown ONCE (give it to the AI only; never write it into the repository or a chat). The AI sits with `POST /<game>/api/agent` (`Authorization: Bearer <pass>`), only in a room with people in it, as "Claude · AI", on an open, hybrid or beginner server. `agents revoke <id>` ends it (the AI leaves at once). |
 
 ## Guides that talk (0.17.0)
 
@@ -66,9 +66,9 @@ signed in). Pick one that is not marked Workers Paid; the doctor's Workers AI ro
 **Under `homie-studio dev`** guides, chat review and game decisions think with Clef on this computer when Ollama (0.35.1 or
 later) has `clef-flash` (free, nothing sent to Cloudflare; `dev --no-local-ai` turns it off), else from the script;
 `dev --remote-ai` uses the real Workers AI (billed). The doctor's "Clef on this computer" row says what is there.
-**Ask first.** Nothing downloads a model by itself: before `ollama pull clef-flash`, tell the person it downloads about
-11 GB (`clef`, the 27B, about 18 GB) and wait for their yes. Never pull it to make a test pass; the Homie mod (Claude Code) and
-Homie's hooks (Codex) hold the pull until they say Proceed.
+**Pull it when they want it.** `ollama pull clef-flash` downloads about 11 GB (`clef`, the 27B, about 18 GB): pull it
+when the person wants Clef on this computer, saying the size in the same line, not to make a test pass. Homie's hooks
+show the size as a one-line note; they do not hold the pull.
 **Adopting guides in an existing RPG** (zones, quests, a party): `node_modules/@homie-rocks/studio/agents/GUIDES.md`
 is the short path, in the game's own repository and with its owner's say.
 

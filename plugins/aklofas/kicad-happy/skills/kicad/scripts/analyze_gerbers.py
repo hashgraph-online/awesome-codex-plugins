@@ -32,6 +32,8 @@ from envelopes.gerber import GerberEnvelope  # noqa: E402
 from schema_codec import emit_schema  # noqa: E402
 from inputs_builder import build_inputs, build_compat  # noqa: E402
 from capability_mode import get_capability_mode_ref  # noqa: E402
+from kicad_core.cli import (add_compact_arg, add_only_deterministic_arg, add_output_arg,  # noqa: E402
+                            add_schema_arg, add_stage_audience_args, add_text_arg, utf8_text_stdout)
 
 ANALYZER_SOURCE = "gerber"
 
@@ -1550,30 +1552,23 @@ def _build_gerber_findings(completeness, alignment, drill_classification,
     return findings
 
 
-def main():
+def main(argv: list[str] | None = None) -> int:
     import argparse
     parser = argparse.ArgumentParser(description="KiCad Gerber & Drill File Analyzer")
     parser.add_argument("directory", nargs="?", help="Path to gerber/drill file directory")
-    parser.add_argument("--output", "-o", help="Output JSON file (default: stdout)")
+    add_output_arg(parser)
     parser.add_argument("--analysis-dir",
                         help="Write gerbers.json to this directory (analysis folder convention)")
-    parser.add_argument("--compact", action="store_true", help="Compact JSON output")
+    add_compact_arg(parser)
     parser.add_argument("--full", action="store_true",
                         help="Include full pin-to-net connectivity data")
-    parser.add_argument("--text", action="store_true",
-                        help="Print human-readable text summary")
-    parser.add_argument("--schema", action="store_true",
-                        help="Print JSON output schema and exit")
-    parser.add_argument('--stage', default=None,
-                        choices=['schematic', 'layout', 'pre_fab', 'bring_up'],
-                        help='Filter findings by review stage')
-    parser.add_argument('--audience', default=None,
-                        choices=['designer', 'reviewer', 'manager'],
-                        help='Audience level for summaries and --text output')
-    parser.add_argument('--only-deterministic', action='store_true',
-                        help='Accepted for consistency; analyzers never write llm_* fields. '
-                             'Honored by downstream consumers (Phase 4 spec §3.4).')
-    args = parser.parse_args()
+    add_text_arg(parser, help="Print human-readable text summary")
+    add_schema_arg(parser)
+    add_stage_audience_args(parser)
+    add_only_deterministic_arg(parser)
+    args = parser.parse_args(argv)
+    if args.text:
+        utf8_text_stdout()
 
     if args.schema:
         emit_schema(GerberEnvelope)
@@ -1591,6 +1586,8 @@ def main():
                     ".g2l", ".g3l", ".g4l", ".g5l", ".g6l",
                     ".gtp", ".gbp"}
     _gerber_files = []
+    if not _gerber_dir.exists():
+        parser.error(f"directory {args.directory}: no such file or directory")
     if _gerber_dir.is_dir():
         for p in sorted(_gerber_dir.iterdir()):
             if not p.is_file():
@@ -1620,6 +1617,7 @@ def main():
     # Inject provenance.
     result["inputs"] = inputs
     result["compat"] = compat
+    result["diagnostics"] = []
 
     from output_filters import apply_output_filters
     apply_output_filters(result, args.stage, args.audience)
@@ -1639,22 +1637,8 @@ def main():
     output_json = json.dumps(result, indent=indent, default=str)
 
     if not output_path and args.analysis_dir:
-        # Route into the current run folder via the manifest. Use the
-        # canonical filename (gerber.json) so the manifest tracks it.
-        import tempfile
-        from analysis_cache import overwrite_current, CANONICAL_OUTPUTS, get_current_run
-        analysis_dir = args.analysis_dir
-        if not os.path.isabs(analysis_dir):
-            analysis_dir = os.path.abspath(analysis_dir)
-        filename = CANONICAL_OUTPUTS.get('gerber', 'gerber.json')
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            Path(os.path.join(tmp_dir, filename)).write_text(output_json)
-            overwrite_current(analysis_dir, tmp_dir, source_hashes=None)
-        current = get_current_run(analysis_dir)
-        if current:
-            out_path = os.path.join(current[0], filename)
-        else:
-            out_path = os.path.join(analysis_dir, filename)
+        from output_io import write_derived_output
+        out_path = write_derived_output(args.analysis_dir, output_json, analyzer='gerber')
         print(f"Written to {out_path}", file=sys.stderr)
     elif output_path:
         Path(output_path).write_text(output_json)
@@ -1664,7 +1648,8 @@ def main():
         print(format_text(result.get('findings', []), args.audience or 'designer', args.stage))
     else:
         print(output_json)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

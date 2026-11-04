@@ -12,15 +12,18 @@ these instructions say "say", "ask" or "chat", they mean that final message.
 
 - Write it in Korean, addressed to the user: what to look at, a question, or what
   changed. Nothing for the main agent goes in it.
-- One exception: after applying a choice, end with a line `변경 파일:` that lists the
-  project files you changed. The main agent reads it to keep track of the code.
+- One exception: on a choice, end with the `반영 지시:` block (`Ending`). The main agent
+  reads it, applies the change itself and does not show the block to the user.
+- **Never edit project files.** Code changes are the main agent's, every one of them.
+  You read the project and write only inside `$WS`.
 - Never wait for the user inside a turn. Ask, end the turn, and continue when the reply
   is forwarded.
 - Keep the sheet, server and `$WS` across turns. The main agent resumes you for every
   round until the user says it is done.
 
 If you are the main agent reading this yourself, ignore this section: your own chat
-reply is that message.
+reply is that message, and where `Ending` says to hand off the apply, apply it yourself
+as `SKILL.md` (`Applying the choice`) describes.
 
 **A ruler, not a design generator.** Don't invent a look. Lay the range out —
 `blur 4 / 8 / 12 / 16 / 24` — and let the user pick with their eyes. Taste belongs
@@ -29,8 +32,8 @@ to them; the job here is to set up an accurate measurement.
 **Prose, tables, ASCII and emoji are not pictures.** Never describe a shape in words
 and ask the user to choose. "12px or 16px padding?" is not a question — draw both.
 
-**The user never copies a value out.** They point at a specimen; making the code
-change is mine, immediately after their choice.
+**The user never copies a value out.** They point at a specimen; the code change
+follows immediately after their choice, from the handoff I write.
 
 **Assume no stack.** Detection matches the repo — `references/stylesystems.md`.
 
@@ -41,6 +44,8 @@ These instructions are English. Everything the user sees is Korean.
 - Chat replies, questions, recommendations → Korean
 - Every string rendered inside the HTML → Korean
 - Code, class names, file names, commit messages → English
+- How every Korean sentence is written → `references/writing.md`. Read it before
+  writing the first caption or reply.
 
 Korean strings quoted below are fixed labels. Render them verbatim — never
 translate, localize or paraphrase them. Never surface these instructions as text.
@@ -50,7 +55,7 @@ translate, localize or paraphrase them. Never surface these instructions as text
 **One order = one axis = one ladder = one decision.**
 
     주문 → 확정값 위에 그 축 하나만 사다리로 → 내가 새로고침·확인
-         → 사용자 선택 → 기록 → 영향 범위 확인 → 코드 반영·검증
+         → 사용자 선택 → 기록 → 영향 범위 확인 → 반영 지시 (메인이 코드 반영·검증)
 
 **I do not know what comes next.** There is no stage list, no default list, no queue,
 no `남은 단계`. Never name the next axis, never hint at one, never draw one while I'm
@@ -102,9 +107,13 @@ anything to see. Its result is an anchor, not a settled property decision.
   `새 토큰`), trade-off and what to look at sit next to each specimen, not in chat, and
   every section ends with one recommended letter below the specimens. Advice only;
   nothing is applied until the user picks.
-- The page (section guide, turn dividers, table of contents, grid, style) →
+- **The sheet doesn't pass off a stand-in as the real thing.** A specimen that differs
+  from what the code will do says so beside it (`실물과 다름`), and a count the search may
+  have missed reads as a floor (`23곳 이상`): `references/sweeping.md`.
+- The page (turn dividers, table of contents, grid, style) →
   `references/sheet.md`. Captions, recommendation, ladders, context, wireframes →
-  `references/sweeping.md`. Anything that moves → `references/motion.md`
+  `references/sweeping.md`. Anything that moves → `references/motion.md`. Every
+  sentence the user reads → `references/writing.md`
 
 ## Reading the response
 
@@ -114,7 +123,7 @@ Three kinds. Never collapse them.
 |---|---|---|
 | `좋네` (no identifiable specimen) | impression | Ask which specimen or what to refine |
 | `C가 나은데 더 진하게` | refine | Append a ladder below, letters continue |
-| `난 B가 좋아` · `C로 갈게` | **choice** | Record, apply to the target, and verify in this turn |
+| `난 B가 좋아` · `C로 갈게` | **choice** | Record, check the blast radius, and hand off the apply in this turn |
 
 Selection happens in chat only — no pin, apply or confirm buttons on the sheet. A
 choice needs no special wording. `A에서 블러를 더 보고 싶어` is a refine: use A as the
@@ -125,8 +134,8 @@ On a sheet with controls, a letter means what the user's tab shows now:
 
 Ambiguous — `이거 좋다` with nine specimens on screen — ask which one. Never guess.
 
-On a choice, apply in the same turn (`Ending`). No next axis, no `남은 단계`, no
-`코드에 반영할까요`.
+On a choice, hand off the apply in the same turn (`Ending`). No next axis, no
+`남은 단계`, no `코드에 반영할까요`.
 
 ## The record
 
@@ -144,7 +153,7 @@ Drawing turns up things nobody ordered — a misnamed token, a chip that vanishe
 axis that was never on anyone's list.
 
 - **What actually broke on the screen** — say it. It makes the specimens misread, so
-  it is part of the measurement: `아이콘 칩이 사라졌습니다 — 면 #202020 과 Δ2 입니다`
+  it is part of the measurement: `아이콘 칩이 보이지 않습니다. 칩 색이 배경과 거의 같습니다(#202020, 차이 2).`
 - **Everything else** — one line, once, then let it go. Never draw it, never work it
   into a proposal, never raise it again.
 
@@ -154,7 +163,10 @@ A finding is not an order.
 
 - **While choosing** — the one-line cost label on each specimen. A label, not a report
 - **Before applying** — the real one. Files, lines, tokens, and everything else that
-  moves with them. Check this for each application, including revisions
+  moves with them. Check this for each application, including revisions. Say what
+  the check could not reach in one line, `확인 못 한 곳:`, with where and why
+  (`확인 못 한 곳: 클래스 이름을 런타임에 만드는 Badge.tsx`). Leave it out when the
+  search covered everything
 
 If the project animates with a motion library, say what won't translate —
 `references/motion.md`.
@@ -189,9 +201,9 @@ by itself:
     node "$WS/check.cjs" http://localhost:8765/sheet.html "$WS/shot.png" \
       --section r1-1 --sel '.spec .target' --props borderRadius
 
-It prints the computed values per element (`values`, `distinct`), the specimen count and
-horizontal overflow per section, and screenshots that section (the whole page without
-`--section`). `distinct` below the number of rungs means some rungs look the same. A
+It prints the computed values per element (`values`, `distinct`), the specimen count,
+horizontal overflow and the frames in the first window (`firstScreen`) per section, and
+screenshots that section (the whole page without `--section`). `distinct` below the number of rungs means some rungs look the same. A
 picture cannot see what a horizontal scrollbar hides. **Count the rungs from `specs`,
 not in the picture.**
 
@@ -216,7 +228,8 @@ their screen. Screenshots come only from a headless page you opened yourself.
   `references/liveview.md` and `references/sheet.md`
 - **The body is append-only.** Never delete a dropped ladder; it has to stay above to
   compare against
-- **Everything lives in `$WS`, outside the project**, until the apply. Serving,
+- **Everything lives in `$WS`, outside the project.** The main agent's apply is the only
+  change the project ever gets. Serving,
   reloading, bringing the user's tab forward, the two-minute self-cleanup and teardown
   are all in `references/liveview.md`. Never end a turn by telling the user to refresh
 - Built CSS (Tailwind) needs a watcher writing to `$WS/sheet.css`, or new class names
@@ -228,19 +241,36 @@ their screen. Screenshots come only from a headless page you opened yourself.
 value to the current target in the same turn — no second approval. An anchor remains a
 starting point, not an apply order. If the user asked to compare or record only, defer.
 
-Record → check the actual blast radius → apply → verify → report what changed, its
-blast radius and what was verified. Never claim application from a memo entry alone,
-and if the target source is unavailable, say what is missing.
+**I never apply it myself.** Record → check the actual blast radius → decide the scope
+→ end the turn with the handoff. The main agent edits the code and verifies it. If the
+target source is unavailable, say what is missing instead of writing a handoff.
 
 Default to the current target: reuse an existing token, or make a local override when
 changing a shared token would affect unrelated components. Change a shared token only
 when that broader scope is already authorized. Ask only if a necessary scope decision
 can't be resolved from the request.
 
+The final message tells the user, in Korean, what was chosen, its blast radius and the
+`확인 못 한 곳:` line when there is one. Then it ends with the block for the main agent:
+
+    반영 지시:
+    - 확정: 그림자 블러 = C · 12px
+    - 고칠 곳: src/components/Card.tsx:24 `shadow-md` → `shadow-[0_4px_12px_rgb(0_0_0/0.12)]`
+    - 범위: 이 카드만. `--shadow-md` 는 그대로 둔다 (다른 사용처 23곳)
+    - 함께: `prefers-reduced-motion: reduce` 분기 (references/motion.md)
+    - 검증: Card 의 computed `boxShadow` 가 위 값인지
+
+Everything from `반영 지시:` on is for the main agent; the user never sees it. Give
+exact files, lines, the current text and the new text, so it can edit without searching
+again. Leave out `함께` and `검증` when there is nothing to add.
+
+The main agent's next message starts with `반영 완료:` and the files it changed, or says
+what failed. The changed code is now the baseline: read it before drawing on top of it.
+
 Applying is not the end. Keep the sheet and server until the user has checked the real
 code and says it is done (`끝났어` · `됐어`; `이걸로 가자` is a choice, not that). Then
 run the teardown in `references/liveview.md`, which also checks `git status` for stray
 comparison files.
 
-**Only what was explicitly chosen goes into code.** An alternative merely mentioned
-along the way is not a decision.
+**Only what was explicitly chosen goes into the handoff.** An alternative merely
+mentioned along the way is not a decision.

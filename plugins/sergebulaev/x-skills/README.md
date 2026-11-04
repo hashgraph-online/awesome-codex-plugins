@@ -155,7 +155,7 @@ Every skill shows you a draft first and waits for your OK. Nothing gets posted w
 
 X caps a standard tweet at **280 characters** (emoji count as 2 each), or **25,000** on X Premium. For anything longer, you build a thread. Doing that on the native X API means posting tweet 1, capturing its id, posting tweet 2 as a reply to it, and handling partial failures.
 
-This bundle hands the whole chain to [Publora](https://publora.com). You write the thread as one block (or split it with `---`), and Publora auto-splits it into a numbered `(1/N)` thread at sentence boundaries, reserves room for the marker, and posts it in one call. The Thread Builder and Post Writer skills use this on approval.
+This bundle hands the whole chain to [Publora](https://publora.com/?utm_source=github&utm_medium=readme&utm_campaign=x-skills). You write the thread as one block (or split it with `---`), and Publora auto-splits it into a numbered `(1/N)` thread at sentence boundaries, reserves room for the marker, and posts it in one call. The Thread Builder and Post Writer skills use this on approval.
 
 ## Optional: auto-post with Publora
 
@@ -163,13 +163,13 @@ By default, the skills draft content for you to copy-paste into X. If you want C
 
 ### What is Publora?
 
-[Publora](https://publora.com) is a publishing API that turns one `create-post` call into a full X thread (and can cross-post the same content to LinkedIn, Threads, and more).
+[Publora](https://publora.com/?utm_source=github&utm_medium=readme&utm_campaign=x-skills) is a publishing API that turns one `create-post` call into a full X thread (and can cross-post the same content to LinkedIn, Threads, and more).
 
 Publora also ships [official MCP skills](https://github.com/publora/skills) (`npx skills add publora/skills`): one skill per platform, covering the publish side only. This bundle is the layer above them, adding the reading, the writing craft and the approval flow.
 
 ### Setup (2 minutes)
 
-**Step 1.** Sign up at https://app.publora.com/signup (free)
+**Step 1.** Sign up at https://app.publora.com/signup?utm_source=github&utm_medium=readme&utm_campaign=x-skills (free)
 
 **Step 2.** Connect X: click **Channels** in the left sidebar, then **Add Channel**, pick **X / Twitter**, authorize.
 
@@ -333,7 +333,7 @@ LinkedIn flattens reply threads to 2 levels and needs the top-level comment URN 
 
 ## References
 
-- [Publora API docs](https://docs.publora.com) - endpoint reference for the publishing layer
+- [Publora API docs](https://docs.publora.com/?utm_source=github&utm_medium=readme&utm_campaign=x-skills) - endpoint reference for the publishing layer
 - [The X recommendation algorithm](https://github.com/twitter/the-algorithm) - the open-sourced ranker behind the 2026 heuristics
 
 ## Who builds this
@@ -346,7 +346,7 @@ This repo is the thin top layer of that stack, open-sourced. The engine undernea
 
 ## License
 
-MIT. Powered by [Publora](https://publora.com).
+MIT. Powered by [Publora](https://publora.com/?utm_source=github&utm_medium=readme&utm_campaign=x-skills).
 
 ## Related open-source skill bundles
 

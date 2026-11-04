@@ -18,7 +18,7 @@ metadata:
   graph_root: true
   tier: judgment
   dependencies: []
-  triggers: ["one judge", "challenge this plan"]
+  triggers: ["what could go wrong", "poke holes", "challenge this plan"]
 output_contract: schemas/premortem-plan-review.v1.schema.json
 ---
 
@@ -28,10 +28,12 @@ Premortem is an optional plan-challenge strategy. It asks one fresh context to
 identify concrete ways the resolved bead or caller intent could fail before implementation.
 It is not part of the required RPI sequence and does not authorize readiness.
 [Plan's shared challenge method](../plan/references/challenge.md) owns optional
-exchange, independence and stopping rules; Premortem owns the three checks
-below. Neighbours: general advice is [Review](../review/SKILL.md), acceptance
-of a finished change is [Validate](../validate/SKILL.md), and several
-independent views are [Council](../council/SKILL.md).
+exchange, dispatch and stopping rules; when no fresh context can be started,
+step 2's labelled self-judged fallback replaces its no-stand-in rule here.
+Premortem owns the three checks below. Neighbours: general advice is
+[Review](../review/SKILL.md), acceptance of a finished change is
+[Validate](../validate/SKILL.md), and several independent views are
+[Council](../council/SKILL.md).
 
 Run the checks in this order and report findings in the same order: a finding
 from the first or second check outranks any single technical risk the third
@@ -124,9 +126,10 @@ Observable in the output:
 Emit advisory findings, no verdict of any version, readiness, admission or
 permission. Do not implement, validate the candidate, retry, repair, schedule,
 claim, change acceptance, operate Git, close work, release or deliver. Council
-or Dueling Idea Genies may be caller-supplied evidence, but Premortem requires
-neither and cannot turn consensus into approval. Any plan edit creates a new
-subject for a later caller-initiated Premortem.
+or [Idea Genie](../idea-genie/SKILL.md#duel-mode) duel mode may be
+caller-supplied evidence, but Premortem requires neither and cannot turn
+consensus into approval. Any plan edit creates a new subject for a later
+caller-initiated Premortem.
 
 ## Output
 
@@ -153,12 +156,14 @@ script is unavailable and check the review's fields by hand against its
 
 When the caller requests a durable review, return `premortem-plan-review.v1`
 and check it with `bash "<skill-dir>/scripts/validate-output.sh" <review.json>`. Its
-`intent_digest` is the SHA-256 of the exact intent text as supplied (for
-example `shasum -a 256 plan.md`); `author_context_id` names who wrote the plan
-(the caller, or that session's ID) and `judge_context_id` names this context.
-The form has no fields for verifiers or step marks: record them in `checked`,
-and put each finding's construction or blocking fact in its `evidence`. The
-validator rejects identical author and judge IDs but checks only that the
-strings differ, not that an independent judge ran, so a review without one
-stays inline. An empty finding set means only that this optional challenge
-found no concrete defect; it is never a lifecycle gate.
+`intent_digest` is the 64-hex SHA-256 of the exact intent text as supplied:
+`shasum -a 256 plan.md | cut -d' ' -f1` for a file, or
+`printf '%s' "$TEXT" | shasum -a 256 | cut -d' ' -f1` for pasted text.
+`author_context_id` names who wrote the plan (the caller, or that session's ID)
+and `judge_context_id` names this context. The form has no fields for verifiers
+or step marks, so it is lossy: record each inline `Verifiers:` and `Steps:` line
+verbatim in `checked`, and put each finding's construction or blocking fact in
+its `evidence`. The validator rejects identical author and judge IDs but
+checks only that the strings differ, not that an independent judge ran, so a
+review without one stays inline. An empty finding set means only that this
+optional challenge found no concrete defect; it is never a lifecycle gate.

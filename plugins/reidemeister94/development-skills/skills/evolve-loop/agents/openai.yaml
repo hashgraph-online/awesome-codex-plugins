@@ -1,0 +1,7 @@
+interface:
+  display_name: "Evolve loop"
+  short_description: "Add features and improvements that change behavior, each change recorded and proven"
+policy:
+  # A long autonomous loop that commits on its own branch starts only from an
+  # explicit $mention by a person.
+  allow_implicit_invocation: false

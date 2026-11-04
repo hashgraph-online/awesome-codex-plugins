@@ -1,0 +1,41 @@
+{
+  "id": "paper-gem-smoke-fluorescent",
+  "label": "Fluorescent (Paper GemSmoke)",
+  "shader": "GemSmoke",
+  "page": "https://shaders.paper.design/gem-smoke",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Fluorescent\" preset for GemSmoke, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000000",
+    "colorInner": "#000000",
+    "colors": [
+      "#2fb64c",
+      "#cdff61",
+      "#ffffff"
+    ],
+    "outerGlow": 0,
+    "innerGlow": 1,
+    "innerDistortion": 1,
+    "outerDistortion": 0.8,
+    "offset": 0,
+    "angle": 0,
+    "size": 0.8,
+    "shape": "diamond",
+    "image": ""
+  }
+}

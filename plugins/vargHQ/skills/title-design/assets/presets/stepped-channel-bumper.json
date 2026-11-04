@@ -1,0 +1,231 @@
+{
+  "id": "stepped-channel-bumper",
+  "name": "Stepped channel bumper",
+  "use": "A channel bumper animated on twos: streak panels, a name plate, a topic card with a ghosted wipe.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 7,
+  "fonts": [
+    {
+      "family": "Archivo Black",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Archivo+Black"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        600,
+        700,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        500,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "stepped-channel-bumper.classic",
+      "label": "Classic",
+      "look": "Three diagonal streak panels, name plate, topic card with stepped ghost wipe.",
+      "params": {
+        "fps": 24,
+        "step_fps": 12,
+        "quantize": "tq = floor(t*12)/12 for the stepped layer",
+        "motion_blur": false,
+        "panels": {
+          "count": 3,
+          "angle_deg": -14,
+          "widths": [
+            "38%",
+            "24%",
+            "12%"
+          ],
+          "colors": [
+            "#FF4D2E",
+            "#FFD23F",
+            "#1E1E24"
+          ],
+          "cross_s": [
+            0.5,
+            0.7
+          ],
+          "ease": "expo.out",
+          "starts_s": [
+            0.0,
+            0.12,
+            0.32
+          ]
+        },
+        "name": {
+          "font": "Archivo Black caps",
+          "size": "13% H",
+          "tracking_em": 0.02,
+          "plate": "#1E1E24",
+          "wipe_s": 0.4,
+          "settle_steps": [
+            1.06,
+            0.99,
+            1.0
+          ]
+        },
+        "topic": {
+          "wipe_s": 0.5,
+          "ghosts": [
+            {
+              "lag_steps": 1,
+              "opacity": 0.5
+            },
+            {
+              "lag_steps": 2,
+              "opacity": 0.25
+            }
+          ],
+          "kicker": "JetBrains Mono caps 2.2% H +0.12em",
+          "title": "Inter 800 8% H"
+        },
+        "texture": {
+          "grain_opacity": [
+            0.06,
+            0.08
+          ],
+          "boil_every_f": 2
+        },
+        "timeline_s": {
+          "panels": [
+            0,
+            1.2
+          ],
+          "plate": [
+            1.2,
+            3.2
+          ],
+          "topic": [
+            3.4,
+            6.4
+          ],
+          "out": [
+            6.4,
+            7.0
+          ]
+        }
+      },
+      "sources": [
+        41,
+        32,
+        42,
+        19,
+        33
+      ]
+    },
+    {
+      "id": "stepped-channel-bumper.sting-3s",
+      "label": "Sting 3 s",
+      "look": "Panels and name only.",
+      "params": {
+        "fps": 24,
+        "step_fps": 12,
+        "total_s": 3.0,
+        "name_hold_s": 1.4
+      },
+      "sources": [
+        20,
+        41
+      ]
+    },
+    {
+      "id": "stepped-channel-bumper.threes",
+      "label": "On threes",
+      "look": "Rougher, more hand-made stepping.",
+      "params": {
+        "fps": 24,
+        "step_fps": 8,
+        "hold_frames": 3,
+        "boil_every_f": 3,
+        "grain_opacity": 0.1
+      },
+      "sources": [
+        42,
+        19,
+        43
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 11,
+      "name": "GSAP docs — SteppedEase",
+      "url": "https://gsap.com/docs/v3/Eases/SteppedEase"
+    },
+    {
+      "n": 17,
+      "name": "Joey Korenman — Kinetic typography in After Effects, part 1 (School of Motion)",
+      "url": "https://schoolofmotion.com/blog/kinetic-typography-after-effects-part-1"
+    },
+    {
+      "n": 19,
+      "name": "Lesterbanks — Ben Marriott's paper cut-out stop-motion look in AE",
+      "url": "https://lesterbanks.com/2020/02/an-easy-way-to-get-a-paper-cutout-stop-motion-look-in-ae/"
+    },
+    {
+      "n": 20,
+      "name": "Hadiyah Woods — How long should a YouTube intro be? (Marmoset)",
+      "url": "https://www.marmosetmusic.com/journal/how-long-should-a-youtube-intro-be/"
+    },
+    {
+      "n": 22,
+      "name": "FFmpeg Filters Documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 32,
+      "name": "CG Spectrum — Spider-Man: Into the Spider-Verse, how they got that look",
+      "url": "https://cgspectrum.com/blog/spider-man-into-the-spider-verse-how-they-got-that-mind-blowing-look"
+    },
+    {
+      "n": 33,
+      "name": "@jakeinmotion (Jake Bartlett)",
+      "url": "https://x.com/jakeinmotion/status/2104022458865218019"
+    },
+    {
+      "n": 40,
+      "name": "@ohey_official (OHEY | Top Effects)",
+      "url": "https://x.com/ohey_official/status/1846868254595469793"
+    },
+    {
+      "n": 41,
+      "name": "@TrevElViz (Trev El. Viz)",
+      "url": "https://x.com/TrevElViz/status/1833544353991516503"
+    },
+    {
+      "n": 42,
+      "name": "@HoodyPisDed (HoodyP)",
+      "url": "https://x.com/HoodyPisDed/status/2099406048742588424"
+    },
+    {
+      "n": 43,
+      "name": "@_TyRogers_ (Ty Rogers)",
+      "url": "https://x.com/_TyRogers_/status/1178882014675701761"
+    },
+    {
+      "n": 45,
+      "name": "@niqteh (niqte)",
+      "url": "https://x.com/niqteh/status/2079011658467266574"
+    }
+  ]
+}

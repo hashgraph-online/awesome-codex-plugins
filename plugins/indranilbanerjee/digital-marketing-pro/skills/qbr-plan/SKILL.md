@@ -57,6 +57,10 @@ A structured QBR presentation package containing:
 - **Action items with owners and deadlines**: Specific next steps from the QBR with assigned owner (agency/client), due date, and success criteria
 - **Account health score (1-10)**: Composite score based on performance, relationship health, growth trajectory, and risk factors with scoring rationale
 
+## Before it goes to the client
+
+Run the zero-context review in `/digital-marketing-pro:check` (`--goldfish`). `goldfish-review.py` packs the deliverable, the brief and the brand profile into one file and nothing else, flags money figures and benchmark rates that nothing in the brief or profile supports, and writes the prompt for a reviewer that sees only that file. Answer each finding in the document itself (state the assumption for the client to confirm, cite the source, or cut the figure) before it is sent.
+
 ## Agents Used
 
 - **analytics-analyst** — Performance data aggregation, goal vs actual analysis, ROI calculations, benchmarking, budget efficiency analysis, scorecard design, and appendix data compilation

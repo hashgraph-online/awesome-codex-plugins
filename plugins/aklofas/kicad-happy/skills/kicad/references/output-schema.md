@@ -54,6 +54,9 @@ in `analyzer_envelope.py`. Breaking changes bump the analyzer's
   `config_hash`, `upstream_artifacts`.
 - `compat` — `CompatBlock`. `minimum_consumer_version`,
   `deprecated_fields`, `experimental_fields`.
+- `diagnostics` — `list[Diagnostic]`. Guarded failures that degraded
+  the run (`source`, `exception`, `message`, `effect`); `[]` when
+  nothing degraded.
 
 ### Tier 2 — Analyzer-specific body
 
@@ -94,6 +97,7 @@ Output of `python3 skills/kicad/scripts/analyze_schematic.py <file>.kicad_sch`.
 | `schema_version` | `string` | yes | Semver. Value: '1.4.0' at Track 1.1 landing. |
 | `inputs` | `InputsBlock` | yes | Source files, hashes, run_id, config_hash, upstream artifacts for this run. |
 | `compat` | `CompatBlock` | yes | Schema compatibility metadata: minimum consumer version + deprecated/experimental field lists. |
+| `diagnostics` | `list[Diagnostic]` | no | Guarded failures that degraded this run (section omitted, fallback model used). Empty when nothing degraded. |
 | `summary` | `SchematicSummary` | yes | Roll-up summary (total + by_severity). |
 | `trust_summary` | `TrustSummary` | yes | Trust posture rollup (confidence + evidence source + optional BOM coverage). |
 | `kicad_version` | `string` | yes | KiCad generator version string, e.g. '9.0' or '5 (legacy)'. |
@@ -169,6 +173,7 @@ Output of `python3 skills/kicad/scripts/analyze_pcb.py <file>.kicad_pcb`.
 | `schema_version` | `string` | yes | Semver. Value: '1.4.0' at Track 1.1 landing. |
 | `inputs` | `InputsBlock` | yes | Source files, hashes, run_id, config_hash, upstream artifacts for this run. |
 | `compat` | `CompatBlock` | yes | Schema compatibility metadata: minimum consumer version + deprecated/experimental field lists. |
+| `diagnostics` | `list[Diagnostic]` | no | Guarded failures that degraded this run (section omitted, fallback model used). Empty when nothing degraded. |
 | `summary` | `PCBSummary` | yes | Roll-up summary (total + by_severity). |
 | `trust_summary` | `TrustSummary` | yes | Trust posture rollup (confidence + evidence source). |
 | `kicad_version` | `string` | yes | KiCad generator version string, e.g. '9.0'. |
@@ -227,6 +232,7 @@ Output of `python3 skills/kicad/scripts/analyze_gerbers.py <gerber_dir>/`.
 | `schema_version` | `string` | yes | Semver. Value: '1.4.0' at Track 1.1 landing. |
 | `inputs` | `InputsBlock` | yes | Source files, hashes, run_id, config_hash, upstream artifacts for this run. |
 | `compat` | `CompatBlock` | yes | Schema compatibility metadata: minimum consumer version + deprecated/experimental field lists. |
+| `diagnostics` | `list[Diagnostic]` | no | Guarded failures that degraded this run (section omitted, fallback model used). Empty when nothing degraded. |
 | `summary` | `GerberSummary` | yes | Roll-up summary (total + by_severity). |
 | `trust_summary` | `TrustSummary` | yes | Trust posture rollup (confidence + evidence source). |
 | `directory` | `string` | yes | Resolved absolute path of the scanned gerber directory. |
@@ -262,6 +268,7 @@ Output of `python3 skills/kicad/scripts/analyze_thermal.py --schematic ... --pcb
 | `schema_version` | `string` | yes | Schema semver. Value: '1.4.0' at Track 1.1 landing. |
 | `inputs` | `InputsBlock` | yes | Source JSON inputs, sha256s, run_id, plus upstream artifact metadata (schematic, pcb). |
 | `compat` | `CompatBlock` | yes | Schema compatibility metadata: minimum consumer version + deprecated/experimental field lists. |
+| `diagnostics` | `list[Diagnostic]` | no | Guarded failures that degraded this run (section omitted, fallback model used). Empty when nothing degraded. |
 | `summary` | `ThermalSummary` | yes | Roll-up summary of thermal analysis. |
 | `findings` | `list[Finding]` | yes | All thermal findings: TS-001..005, TP-001..002. |
 | `assessments` | `list[Assessment]` | yes | TH-DET entries — per-component junction-temperature estimates. Informational (not findings). |
@@ -281,6 +288,7 @@ Output of `python3 skills/emc/scripts/analyze_emc.py --schematic ... --pcb ...`.
 | `schema_version` | `string` | yes | Semver. Value: '1.4.0' at Track 1.1 landing. |
 | `inputs` | `InputsBlock` | yes | Source JSON inputs, sha256s, run_id, plus upstream artifact metadata (schematic, pcb). |
 | `compat` | `CompatBlock` | yes | Schema compatibility metadata: minimum consumer version + deprecated/experimental field lists. |
+| `diagnostics` | `list[Diagnostic]` | no | Guarded failures that degraded this run (section omitted, fallback model used). Empty when nothing degraded. |
 | `target_standard` | `string` | yes | Target EMC standard key (e.g. 'fcc-class-b', 'cispr-class-b', 'cispr-25'). |
 | `summary` | `EMCSummary` | yes | EMC roll-up summary (counts + risk score). |
 | `findings` | `list[Finding]` | yes | All EMC findings. |
@@ -306,6 +314,7 @@ Output of `python3 skills/kicad/scripts/cross_analysis.py --schematic ... --pcb 
 | `schema_version` | `string` | yes | Semver. Value: '1.4.0' at Track 1.1 landing. |
 | `inputs` | `InputsBlock` | yes | Source JSON inputs, sha256s, run_id, plus upstream artifact metadata (schematic, pcb). |
 | `compat` | `CompatBlock` | yes | Schema compatibility metadata: minimum consumer version + deprecated/experimental field lists. |
+| `diagnostics` | `list[Diagnostic]` | no | Guarded failures that degraded this run (section omitted, fallback model used). Empty when nothing degraded. |
 | `elapsed_s` | `float` | yes | Analysis wall-clock time in seconds. |
 | `summary` | `CrossAnalysisSummary` | yes | Roll-up summary (total + by_severity). |
 | `findings` | `list[Finding]` | yes | All cross-domain findings. |
@@ -315,3 +324,14 @@ Output of `python3 skills/kicad/scripts/cross_analysis.py --schematic ... --pcb 
 | `capability_mode_ref` | `dict \| null` | no | Pointer to canonical analysis/capability_mode.json run-level record. Shape: {source, run_id}. See Phase 4 spec §3.3. |
 | `audience_summary` | `dict \| null` | no | Designer/reviewer/manager summary views. Added by apply_output_filters whenever findings[] is non-empty. |
 | `stage_filter` | `dict \| null` | no | Stage-filtered findings rollup. Present only when --stage is passed. |
+
+## Diagnostic
+
+One entry of the Tier 1 `diagnostics` list, shared by every envelope.
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `source` | `string` | yes | Where the guard sits: '<module>.<function>'. |
+| `exception` | `string` | yes | Exception class name, e.g. 'KeyError'. |
+| `message` | `string` | yes | str(exception), truncated to 200 characters. |
+| `effect` | `string` | yes | What the run did instead, e.g. 'power_rails config not applied'. |

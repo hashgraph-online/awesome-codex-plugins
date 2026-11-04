@@ -47,7 +47,7 @@ If your brand is in any of these 4 verticals, agentic booking is now a high-leve
 2. **`AvailabilityFeed` structured data must be served** so the AI agent can reason about open slots without making the call. See `skills/context-engine/schema-templates.json` for the `LocalBusiness` + `Reservation` + `AvailabilityFeed` pairing.
 3. **Pricing transparency in Service catalog** — agents prefer businesses that list price ranges; opaque pricing pushes the agent to the next option.
 
-Source: [blog.google/search-io-2026](https://blog.google/products-and-platforms/products/search/search-io-2026/). Combine with Google Ads API v24.2's new `AssetGroup.google_local_services_info` field (see `skills/paid-advertising/google-ads.md`) for the paid-side complement.
+Source: [blog.google/search-io-2026](https://blog.google/products-and-platforms/products/search/search-io-2026/). Combine with the Google Ads API's `AssetGroup.google_local_services_info` field (added in v24.2) (see `skills/paid-advertising/google-ads.md`) for the paid-side complement.
 
 ## Brand Context (Auto-Applied)
 

@@ -21,7 +21,6 @@ import json
 import math
 import os
 import sys
-from pathlib import Path
 
 
 def cross_verify(sch: dict, pcb: dict,
@@ -292,7 +291,7 @@ def check_diff_pair_routing(sch: dict, pcb: dict) -> list[dict]:
             entry["intra_pair_skew"] = {
                 "skew_mm": round(intra_skew, 2),
                 "tolerance_mm": intra_tol,
-                "severity": "HIGH" if intra_skew > intra_tol * 2 else "MEDIUM",
+                "severity": "error" if intra_skew > intra_tol * 2 else "warning",
                 "detail": (f"Differential pair {pos_net}/{neg_net} intra-pair "
                            f"skew {intra_skew:.1f}mm exceeds {protocol} "
                            f"tolerance ({intra_tol}mm)"),

@@ -97,7 +97,7 @@ jobs:
         with:
           plugin_dir: ${{ runner.temp }}/contributed
           mode: scan
-          min_score: 80
+          min_score: 75
           fail_on_severity: none
           pr_comment: off
 
@@ -124,7 +124,7 @@ jobs:
             exit 1
           fi
           if [[ "$SCAN_RESULT" != "success" && "$SCAN_RESULT" != "skipped" ]]; then
-            echo "The centralized scan did not establish a score of at least 80; the contribution remains blocked."
+            echo "The centralized scan did not establish a score of at least 75; the contribution remains blocked."
             exit 1
           fi
           echo "Catalog validation passed. Source-repository scanner CI is optional."

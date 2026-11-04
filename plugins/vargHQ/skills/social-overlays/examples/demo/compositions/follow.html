@@ -1,0 +1,258 @@
+<template>
+  <style>
+    @font-face {
+      font-family: "TikTok Sans";
+      font-weight: 700;
+      src: url("assets/fonts/tiktok-sans-700-latin.woff2") format("woff2");
+    }
+    @font-face {
+      font-family: "TikTok Sans";
+      font-weight: 400;
+      src: url("assets/fonts/tiktok-sans-400-latin.woff2") format("woff2");
+    }
+    #root {
+      position: absolute;
+      inset: 0;
+    }
+    .fol-screen {
+      position: absolute;
+      left: 690px;
+      top: 60px;
+      width: 1080px;
+      height: 1920px;
+      transform: scale(0.5);
+      transform-origin: 0 0;
+      border-radius: 72px;
+      overflow: hidden;
+      background: #0c2a35;
+    }
+    #fol-sky,
+    #fol-glints {
+      position: absolute;
+      left: -60px;
+      top: 0;
+      width: 1200px;
+      height: 1920px;
+    }
+    /* follow-tap-prompt.tiktok-style: card 720x176, radius 32, #000 @70% */
+    #fol-card {
+      position: absolute;
+      left: 144px;
+      top: 652px;
+      width: 720px;
+      height: 176px;
+      border-radius: 32px;
+      background: rgba(0, 0, 0, 0.7);
+      font-family: "TikTok Sans", "Inter", sans-serif;
+      color: #ffffff;
+    }
+    #fol-avatar {
+      position: absolute;
+      left: 32px;
+      top: 32px;
+      width: 112px;
+      height: 112px;
+      border-radius: 56px;
+      background: linear-gradient(140deg, #3fd1b4 0%, #1a7f8f 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 52px;
+      color: #ffffff;
+    }
+    #fol-name {
+      position: absolute;
+      left: 168px;
+      top: 40px;
+      font-weight: 700;
+      font-size: 40px;
+      line-height: 48px;
+      white-space: nowrap;
+    }
+    #fol-handle {
+      position: absolute;
+      left: 168px;
+      top: 94px;
+      font-weight: 400;
+      font-size: 30px;
+      line-height: 38px;
+      opacity: 0.7;
+      white-space: nowrap;
+    }
+    #fol-btn {
+      position: absolute;
+      left: 488px;
+      top: 52px;
+      width: 200px;
+      height: 72px;
+    }
+    #fol-btn-fill,
+    #fol-btn-done {
+      position: absolute;
+      inset: 0;
+      border-radius: 36px;
+    }
+    #fol-btn-fill {
+      background: #fe2c55;
+    }
+    #fol-btn-done {
+      background: rgba(255, 255, 255, 0.16);
+    }
+    .fol-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 32px;
+      white-space: nowrap;
+    }
+    #fol-ripple {
+      position: absolute;
+      left: 704px; /* centred on the button (732, 740) */
+      top: 712px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      border: 4px solid #ffffff;
+    }
+    #fol-finger {
+      position: absolute;
+      left: 704px;
+      top: 712px;
+      width: 56px;
+      height: 56px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.85);
+      box-shadow: 0 2px 2px rgba(0, 0, 0, 0.35);
+    }
+    #fol-tag {
+      position: absolute;
+      left: 48px;
+      bottom: 40px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      color: rgba(255, 255, 255, 0.6);
+    }
+  </style>
+  <div
+    id="root"
+    data-composition-id="follow"
+    data-width="1920"
+    data-height="1080"
+    data-composition-variables='[{"id":"folName","type":"string","label":"Name","default":"Northwind"},{"id":"folHandle","type":"string","label":"Handle","default":"@northwind.studio"}]'
+  >
+    <div class="fol-screen">
+      <svg id="fol-sky" data-layout-allow-overflow viewBox="0 0 1200 1920" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="fol-sky-g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#0d2d3b" />
+            <stop offset="0.5" stop-color="#2b7783" />
+            <stop offset="0.56" stop-color="#7fb7b0" />
+            <stop offset="0.565" stop-color="#1d5563" />
+            <stop offset="1" stop-color="#061822" />
+          </linearGradient>
+          <radialGradient id="fol-glow-g" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stop-color="#e4f3e8" stop-opacity="0.85" />
+            <stop offset="1" stop-color="#9fd0c4" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="fol-streak-g" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stop-color="#bfe3d8" stop-opacity="0" />
+            <stop offset="0.5" stop-color="#bfe3d8" stop-opacity="0.5" />
+            <stop offset="1" stop-color="#bfe3d8" stop-opacity="0" />
+          </linearGradient>
+          <linearGradient id="fol-fade-g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#fff" stop-opacity="1" />
+            <stop offset="1" stop-color="#fff" stop-opacity="0" />
+          </linearGradient>
+          <mask id="fol-fade-m" maskUnits="userSpaceOnUse" x="0" y="1085" width="1200" height="835">
+            <rect x="0" y="1085" width="1200" height="835" fill="url(#fol-fade-g)" />
+          </mask>
+        </defs>
+        <rect width="1200" height="1920" fill="url(#fol-sky-g)" />
+        <circle cx="430" cy="1060" r="300" fill="url(#fol-glow-g)" />
+        <path d="M395 1085 H465 L560 1920 H300 Z" fill="url(#fol-streak-g)" mask="url(#fol-fade-m)" />
+      </svg>
+      <svg id="fol-glints" data-layout-allow-overflow viewBox="0 0 1200 1920" preserveAspectRatio="none">
+        <g stroke="#cfeee4" stroke-linecap="round" opacity="0.35">
+          <line x1="300" y1="1180" x2="560" y2="1180" stroke-width="4" />
+          <line x1="250" y1="1280" x2="600" y2="1280" stroke-width="5" />
+          <line x1="330" y1="1400" x2="520" y2="1400" stroke-width="5" />
+          <line x1="210" y1="1540" x2="650" y2="1540" stroke-width="7" />
+          <line x1="300" y1="1700" x2="560" y2="1700" stroke-width="8" />
+          <line x1="700" y1="1330" x2="820" y2="1330" stroke-width="4" />
+          <line x1="80" y1="1460" x2="180" y2="1460" stroke-width="4" />
+        </g>
+      </svg>
+
+      <div id="fol-card">
+        <div id="fol-avatar">N</div>
+        <div id="fol-name" data-var-text="folName">Northwind</div>
+        <div id="fol-handle" data-var-text="folHandle">@northwind.studio</div>
+        <div id="fol-btn">
+          <div id="fol-btn-done"></div>
+          <div id="fol-btn-fill"></div>
+          <div id="fol-label-follow" class="fol-label">Follow</div>
+          <div id="fol-label-following" class="fol-label">Following</div>
+        </div>
+      </div>
+      <div id="fol-ripple"></div>
+      <div id="fol-finger"></div>
+    </div>
+    <div id="fol-tag">follow-tap-prompt · tiktok-style</div>
+  </div>
+  <script>
+    const bez = (x1, y1, x2, y2) => (t) => {
+      const cx = (u) => 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u * u * u;
+      let lo = 0, hi = 1, u = t;
+      for (let i = 0; i < 24; i++) {
+        u = (lo + hi) / 2;
+        if (cx(u) < t) lo = u; else hi = u;
+      }
+      return 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u * u * u;
+    };
+    const ENTER = bez(0.05, 0.7, 0.1, 1);
+    const EXIT = bez(0.3, 0, 0.8, 0.15);
+    const F = 1 / 30;
+    const tl = gsap.timeline({ paused: true });
+
+    // footage drift
+    tl.fromTo("#fol-sky", { x: 0 }, { x: -30, duration: 3.8, ease: "none" }, 0);
+    tl.fromTo("#fol-glints", { x: 0 }, { x: -70, duration: 3.8, ease: "none" }, 0);
+    tl.fromTo("#fol-tag", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.1);
+
+    // card rises 48 px + fade, 0.45 s, emphasized decelerate
+    tl.fromTo("#fol-card", { y: 48, opacity: 0 }, { y: 0, opacity: 1, duration: 0.45, ease: ENTER }, 0.15);
+    tl.set("#fol-label-following", { opacity: 0, y: 8 }, 0);
+    tl.set("#fol-ripple", { scale: 0, opacity: 0 }, 0);
+
+    // finger enters from off-frame bottom-right along a slight arc, 0.7 s
+    tl.fromTo("#fol-finger", { x: 420, opacity: 0 }, { x: 0, opacity: 1, duration: 0.7, ease: "power2.inOut" }, 0.6);
+    tl.fromTo("#fol-finger", { y: 760 }, { y: 0, duration: 0.7, ease: "power3.out" }, 0.6);
+
+    // press at 1.40 s: button 1 -> 0.94 in 3 f, finger 1 -> 0.9; release 4 f back.out(1.7)
+    const press = 1.4;
+    tl.to("#fol-btn", { scale: 0.94, duration: 3 * F, ease: "power2.out" }, press);
+    tl.to("#fol-finger", { scale: 0.9, duration: 3 * F, ease: "power2.out" }, press);
+    tl.to("#fol-btn", { scale: 1, duration: 4 * F, ease: "back.out(1.7)" }, press + 3 * F);
+    tl.to("#fol-finger", { scale: 1, duration: 4 * F, ease: "back.out(1.7)" }, press + 3 * F);
+    // tap ripple 0 -> 2.2x over 0.4 s, opacity 0.35 -> 0
+    tl.fromTo("#fol-ripple", { scale: 0, opacity: 0.35 }, { scale: 2.2, opacity: 0, duration: 0.4, ease: "power2.out" }, press);
+
+    // state flip at 1.50 s: fill cross-fade 0.2 s, label swap with an 8 px slide
+    const flip = 1.5;
+    tl.to("#fol-btn-fill", { opacity: 0, duration: 0.2, ease: "power1.inOut" }, flip);
+    tl.to("#fol-label-follow", { opacity: 0, y: -8, duration: 0.2, ease: "power2.out" }, flip);
+    tl.to("#fol-label-following", { opacity: 1, y: 0, duration: 0.2, ease: "power2.out" }, flip + 0.04);
+    // finger parks 40 px below the button
+    tl.to("#fol-finger", { y: 40 + 36, duration: 0.35, ease: "power2.out" }, flip + 0.1);
+
+    // exit: card down 32 px + fade, 8 f, emphasized accelerate
+    tl.to("#fol-card", { y: 32, opacity: 0, duration: 0.25, ease: EXIT }, 3.3);
+    tl.to("#fol-finger", { opacity: 0, duration: 0.2, ease: EXIT }, 3.25);
+    window.__timelines["follow"] = tl;
+  </script>
+</template>

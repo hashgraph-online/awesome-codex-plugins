@@ -1,0 +1,221 @@
+{
+  "id": "typeface-strobe",
+  "name": "Typeface strobe",
+  "use": "One word cut through many typefaces on a fast beat, landing on the brand face",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4.5,
+  "fonts": [
+    {
+      "family": "Anton",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Anton"
+    },
+    {
+      "family": "Bodoni Moda",
+      "weights": [
+        900
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Bodoni+Moda"
+    },
+    {
+      "family": "UnifrakturMaguntia",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/UnifrakturMaguntia"
+    },
+    {
+      "family": "Big Shoulders Stencil",
+      "weights": [
+        900
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Big+Shoulders+Stencil"
+    },
+    {
+      "family": "Alfa Slab One",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Alfa+Slab+One"
+    },
+    {
+      "family": "Michroma",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Michroma"
+    },
+    {
+      "family": "Monoton",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Monoton"
+    },
+    {
+      "family": "Rubik Mono One",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Rubik+Mono+One"
+    },
+    {
+      "family": "Pacifico",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Pacifico"
+    }
+  ],
+  "presets": [
+    {
+      "id": "typeface-strobe.beat",
+      "label": "Per beat",
+      "look": "One face per beat, 9 faces, ends on the anchor",
+      "params": {
+        "bpm": 120,
+        "frames_per_face": 15,
+        "faces": [
+          "Anton",
+          "Bodoni Moda",
+          "UnifrakturMaguntia",
+          "Big Shoulders Stencil",
+          "Alfa Slab One",
+          "Michroma",
+          "Monoton",
+          "Rubik Mono One",
+          "Pacifico"
+        ],
+        "anchor": "Anton",
+        "final_hold_beats": 2,
+        "transition": "hard cut",
+        "cap_height_pct_16x9": [
+          28,
+          35
+        ],
+        "fixed_baseline": true,
+        "normalise": "cap height, not font-size",
+        "ink": "#FFFFFF",
+        "bg": "#000000"
+      },
+      "sources": [
+        50,
+        38,
+        27
+      ]
+    },
+    {
+      "id": "typeface-strobe.frames",
+      "label": "Strobe",
+      "look": "New face every 2-3 frames, then lock",
+      "params": {
+        "sequence_frames": [
+          [
+            3,
+            6
+          ],
+          [
+            2,
+            12
+          ],
+          [
+            3,
+            4
+          ]
+        ],
+        "land_hold_f": [
+          20,
+          30
+        ],
+        "alternate": "wide/narrow and serif/sans",
+        "background": "constant"
+      },
+      "sources": [
+        50,
+        51
+      ]
+    },
+    {
+      "id": "typeface-strobe.color",
+      "label": "Colour pairs",
+      "look": "Face and background colour change together",
+      "params": {
+        "frames_per_face": 4,
+        "pairs": [
+          [
+            "#FF48B0",
+            "#3255A4"
+          ],
+          [
+            "#FFE800",
+            "#000000"
+          ],
+          [
+            "#F65058",
+            "#F4F1EA"
+          ],
+          [
+            "#00A95C",
+            "#000000"
+          ]
+        ]
+      },
+      "sources": [
+        30,
+        51
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 8,
+      "name": "@sarah_edo, title sequences as practice",
+      "url": "https://x.com/sarah_edo/status/1231665606895624192"
+    },
+    {
+      "n": 27,
+      "name": "google/fonts METADATA (licenses, axes)",
+      "url": "https://github.com/google/fonts"
+    },
+    {
+      "n": 30,
+      "name": "risoinks colour table",
+      "url": "https://rdrr.io/github/anfederico/risoinks/src/R/color.R"
+    },
+    {
+      "n": 38,
+      "name": "Silverman Sound, BPM to FPS calculator",
+      "url": "https://www.silvermansound.com/bpm-to-fps-calculator"
+    },
+    {
+      "n": 41,
+      "name": "HyperFrames registry",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 50,
+      "name": "Art of the Title, Enter the Void (Tom Kan)",
+      "url": "https://www.artofthetitle.com/title/enter-the-void"
+    },
+    {
+      "n": 51,
+      "name": "Fonts In Use, Enter the Void title sequence (Pedro Teles)",
+      "url": "https://fontsinuse.com/uses/61211/enter-the-void-title-sequence"
+    }
+  ]
+}

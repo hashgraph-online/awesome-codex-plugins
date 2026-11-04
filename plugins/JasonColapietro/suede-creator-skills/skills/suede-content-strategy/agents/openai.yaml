@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Content Strategy Skills"
+  short_description: "Decide what to publish and why"
+  default_prompt: "Use $suede-content-strategy on [target]. The user does not know what to write about, or needs a content plan, editorial calendar, or topic strategy. Work through content pillars, topic clusters, AI answer gaps, original-data assets, cadence, distribution, and what to stop writing; ground every topic in evidence the user can check and name the KPI each one should move."
+policy:
+  allow_implicit_invocation: true

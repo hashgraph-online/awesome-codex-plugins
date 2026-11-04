@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Pricing Skills"
+  short_description: "Value metrics, tiers, price moves, and pricing pages"
+  default_prompt: "Use $suede-pricing on [target]. The user is deciding what to charge, restructuring plans, pricing AI features, weighing a free tier or trial, raising prices, or fixing a pricing page. Work through value metric, tiers, willingness-to-pay research, and migration, or run the two-axis teardown for buyer clarity and search and AI readability, and return the Pricing Decision Brief or teardown with assumptions and what to measure next."
+policy:
+  allow_implicit_invocation: true

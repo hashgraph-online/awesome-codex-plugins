@@ -48,7 +48,10 @@ Read the Requirements and Acceptance Criteria sections.
 ```bash
 git diff --stat $(git merge-base HEAD main)
 git diff --name-only $(git merge-base HEAD main)
+git diff --numstat $(git merge-base HEAD main)
 ```
+
+**Over-edit signal.** From `--numstat`, flag any file whose added+removed lines exceed 100 while the spec has 2 or fewer Requirements, or any file the spec never mentions. Flagged files get the Diff minimality check in audit:code. Typical cause: a formatter the project never adopted rewrote the whole file (quote style, line wrapping, import splitting).
 
 ### Step 2: Scope Detection
 
@@ -89,6 +92,7 @@ This ensures each mode forms independent conclusions. Results are combined only 
 4. **Tests**: Changes covered by tests? Tests meaningful?
 5. **Naming**: Do names clearly convey intent?
 6. **Spec coverage**: Each Requirement addressed in the diff?
+7. **Diff minimality**: Every hunk traces to a Requirement. Hunks that only reformat, re-wrap, re-quote, or reorder untouched code are WARN; list them and revert before ship.
 
 ### Output Format
 

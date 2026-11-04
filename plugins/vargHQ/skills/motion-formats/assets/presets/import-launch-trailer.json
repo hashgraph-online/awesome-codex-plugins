@@ -1,0 +1,104 @@
+{
+  "id": "import-launch-trailer",
+  "name": "Import-from-any-editor launch trailer",
+  "use": "18 s feature launch film: project files from other editors are dropped onto the app and the timeline rebuilds on the beat, ending on the logo.",
+  "formats": ["16:9", "1:1", "9:16"],
+  "duration_s": 18,
+  "notes": "Name other editors only through generic interchange formats (FCP XML, AAF, CMX 3600 EDL, OTIO); no third-party logos; their trademarks belong to their owners. Show only formats the product really imports.",
+  "fonts": [
+    { "family": "Geist", "weights": [500, 700], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Geist" },
+    { "family": "Geist Mono", "weights": [600], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Geist+Mono" },
+    { "family": "Inter", "weights": [800], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Inter" }
+  ],
+  "beat_math": {
+    "beat_s": "60 / BPM",
+    "example_120bpm": { "beat_s": 0.5, "beat_frames_30fps": 15, "beat_frames_60fps": 30, "bar_s": 2.0, "beats_in_18s": 36 }
+  },
+  "presets": [
+    {
+      "id": "import-launch-trailer.drop-and-rebuild",
+      "label": "Drop and rebuild",
+      "look": "Off-white canvas, dark app window; a format chip is dragged in, the camera punches into the timeline on the drop, tracks rebuild one per beat, logo lockup.",
+      "params": {
+        "bpm": 120,
+        "camera_ease": "cubic-bezier(.25,0,.11,1)",
+        "camera_cut_in": { "scale_from": 1.5, "scale_to": 1.0, "settle_s": 1.2 },
+        "headline": { "font": "Geist 700", "size": "7.5% of frame height", "tracking": "-2%", "word_drop_px": 56, "word_fade_frames": 10, "words_per_beat": 1, "zoom": false },
+        "chips": { "height_px": 64, "font": "Geist Mono 600 22px", "pop": "scale 0 -> 1.08 -> 1.0 over 9 frames", "stagger_s": 0.25 },
+        "cursor": { "size_px": 28, "press_scale": 0.9, "press_frames": 3, "ring_px": 40, "ring_frames": 10, "drag_tilt_deg": 6, "drop_settle_frames": 8 },
+        "rebuild": { "tracks_per_beat": 1, "clip_in_frames": 6, "clip_stagger_frames": 2, "clip_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)", "clip_offset_px": -40 },
+        "end": { "zoom_out": "1.0 -> 0.6 over 0.8 s", "icon_morph_s": 0.4, "wordmark_cascade_s": 0.5, "hold_still_s": 1.5 },
+        "colors": { "canvas": "#F5F4F0", "chrome": "#0F0F12", "panel": "#17171B", "chip_stroke": "#D4D4D8", "chip_label": "#18181B" },
+        "audio": { "music_starts_on": "downbeat", "drop_at_beat": 13, "loudness_lufs": -14 }
+      },
+      "sources": [107, 108, 110, 111, 112, 115]
+    },
+    {
+      "id": "import-launch-trailer.format-rain",
+      "label": "Format rain",
+      "look": "Dark canvas; six interchange-format chips rain in on 8th notes and funnel into a single app icon, which floods into the app.",
+      "params": {
+        "canvas": "#0B0B0D",
+        "chip_labels": ["FCP XML", "FCPX XML", "AAF", "EDL", "OTIO"],
+        "chips_per_8th": 1,
+        "funnel": { "duration_s": 0.5, "ease": "power3.in" },
+        "flood": { "duration_s": 0.3, "overscale": 1.15 },
+        "chip_glow": "0 0 24px rgba(255,255,255,0.18)"
+      },
+      "sources": [107, 116]
+    },
+    {
+      "id": "import-launch-trailer.one-take-loop",
+      "label": "One-take loop",
+      "look": "One continuous take, each scene grown from the previous one; last frame equals first frame for a landing-page loop.",
+      "params": {
+        "fps": 60,
+        "subframes": 4,
+        "cuts": 0,
+        "crossfades": 0,
+        "max_hold_s": 1.0,
+        "zoom_lands_on": "music drop",
+        "loop": "last frame == first frame",
+        "banned": ["crossfade", "blur-in", "3D flip", "particles", "glow"]
+      },
+      "sources": [107]
+    },
+    {
+      "id": "import-launch-trailer.vertical-cut",
+      "label": "Vertical cutdown",
+      "look": "9:16 cut from the same scenes with a tighter camera on the app window.",
+      "params": {
+        "canvas": "1080x1920",
+        "camera_zoom": 1.35,
+        "headline_zone": "top 30%",
+        "safe_bottom": "20%",
+        "end_card": "centered wordmark, hold 1.5 s",
+        "same_composition": true
+      },
+      "sources": [113, 114]
+    }
+  ],
+  "shot_list_18s_120bpm": [
+    { "n": 1, "beats": "1-4", "t": [0.0, 2.0], "shot": "headline word per beat" },
+    { "n": 2, "beats": "5-8", "t": [2.0, 4.0], "shot": "format chips pop on 8ths" },
+    { "n": 3, "beats": "9-12", "t": [4.0, 6.0], "shot": "cursor drags a chip onto the app" },
+    { "n": 4, "beats": "13", "t": [6.0, 6.0], "shot": "drop = camera cut-in 1.5x -> 1.0x" },
+    { "n": 5, "beats": "13-24", "t": [6.0, 12.0], "shot": "timeline rebuilds one track per beat" },
+    { "n": 6, "beats": "25-30", "t": [12.0, 15.0], "shot": "3 proof cuts, 2 beats each" },
+    { "n": 7, "beats": "31-32", "t": [15.0, 16.0], "shot": "zoom out to full app" },
+    { "n": 8, "beats": "33-36", "t": [16.0, 18.0], "shot": "window -> icon -> wordmark, hold" }
+  ],
+  "sources": [
+    { "n": 107, "name": "@twoclipping on X — one-take launch film prompt", "url": "https://x.com/twoclipping/status/2103835273813496100" },
+    { "n": 108, "name": "@RajAdonis on X — motion settings", "url": "https://x.com/RajAdonis/status/2113906813020344579" },
+    { "n": 109, "name": "Screen Studio guide — Animations", "url": "https://screen.studio/guide/animations" },
+    { "n": 110, "name": "Screen Studio guide — Auto zoom", "url": "https://screen.studio/guide/auto-zoom" },
+    { "n": 111, "name": "@bohdanmotion on X — launch film breakdown (6 stages)", "url": "https://x.com/bohdanmotion/status/2080610655237751033" },
+    { "n": 112, "name": "@bohdanmotion on X — launch film breakdown (5 stages)", "url": "https://x.com/bohdanmotion/status/2079974237893456071" },
+    { "n": 113, "name": "@ArchiveExplorer on X — launch video pipeline", "url": "https://x.com/ArchiveExplorer/status/2105023417716191488" },
+    { "n": 114, "name": "@Voxyz_ai on X — motion video team prompt", "url": "https://x.com/Voxyz_ai/status/2104194355556671987" },
+    { "n": 115, "name": "Material Design 3 motion tokens (material-web)", "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss" },
+    { "n": 116, "name": "OpenTimelineIO — Adapters", "url": "https://opentimelineio.readthedocs.io/en/latest/tutorials/adapters.html" },
+    { "n": 117, "name": "Moonb — How to make the perfect demo video", "url": "https://www.moonb.io/blog/perfect-demo-video" }
+  ]
+}

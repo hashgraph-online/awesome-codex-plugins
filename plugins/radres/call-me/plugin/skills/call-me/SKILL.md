@@ -1,13 +1,13 @@
 ---
 name: call-me
-description: Ring the user's iPhone with a question and get their spoken answer back as text, or send them a text, through the Call Me MCP server. Use when the user says "call me", "ring me", "text my phone", "phone me if something comes up", asks you to keep working while they are away from the keyboard, or when a long task is blocked on a decision only they can make.
+description: Ring the user's phone with a question and get their spoken answer back as text, or send them a text, through the Call Me MCP server. Use when the user says "call me", "ring me", "text my phone", "phone me if something comes up", asks you to keep working while they are away from the keyboard, or when a long task is blocked on a decision only they can make.
 license: MIT
 ---
 
 # Call Me
 
 Call Me is a voice relay, not a voice assistant. You do all the thinking. Call
-Me rings the user's iPhone, reads your text aloud word for word, and hands
+Me rings the user's phone, reads your text aloud word for word, and hands
 their spoken reply back to you as text. The text can be a question, a status
 update or a summary of the day ahead. Use it to keep a task moving while the user is
 driving, at the gym or away from the desk.
@@ -17,13 +17,14 @@ The tools come from the `call-me` MCP server in this plugin: `call`,
 
 ## The number
 
-Every `call` and `text` needs `to`: the 10-digit number the Call Me iPhone app
+Every `call` and `text` needs `to`: the 10-digit number the Call Me app
 shows under **My Number**. It is the only credential. There is no login, OAuth
 or API key.
 
 1. If `~/.aiphone/config.json` exists, use its `user_number`.
 2. Otherwise ask the user for the number. If they do not have the app yet, call
-   `setup` and show this link: [Download Call Me from the App Store](https://callmemcp.com/go/agent-plugin).
+   `setup` and show these links: [Download Call Me from the App Store](https://callmemcp.com/go/agent-plugin)
+   or [get it on Google Play](https://callmemcp.com/go/play-agent-plugin).
 3. With the user's permission, save it to `~/.aiphone/config.json` as
    `{"user_number": "<10 digits>"}` (directory mode 700, file mode 600) so the
    next session does not ask again.
@@ -65,4 +66,4 @@ everything lands in one thread on the phone, and name that thread once with
 - If you are about to end your turn with a question the user has not answered,
   call or text it first. Once your turn ends, nobody will ask it.
 - If a result says the number is not active, tell the user: reaching a real
-  phone needs the subscription in the iPhone app, and you cannot fix that.
+  phone needs the subscription in the Call Me app, and you cannot fix that.

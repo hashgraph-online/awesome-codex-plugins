@@ -1,0 +1,299 @@
+<!doctype html>
+<!--
+  Preset reel: the nine presets of the paper-shaders skill, 2.5 s each, 1920×1080 at 30 fps.
+  Scaffold and render it with:
+    node scripts/new-project.mjs ./preset-reel --example preset-reel
+    cd preset-reel && npm run render -- --output preset-reel.mp4
+  The posters and the logo are drawn in code, so the reel uses no outside media.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      :root {
+        --base: #070708;
+        --ink: #ffffff;
+        --paper: #f4efe6;
+        --accent: #ff5315;
+        --display: system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--base);
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        font-family: var(--display);
+        color: var(--ink);
+      }
+      .scene,
+      .fg {
+        position: absolute;
+        inset: 0;
+      }
+      .fg {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .headline {
+        position: absolute;
+        left: 120px;
+        bottom: 270px;
+        margin: 0;
+        font-size: 128px;
+        font-weight: 800;
+        line-height: 0.95;
+        letter-spacing: -0.04em;
+      }
+      .sub {
+        position: absolute;
+        left: 124px;
+        bottom: 200px;
+        margin: 0;
+        font: 500 30px/1 var(--mono);
+        opacity: 0.85;
+      }
+      .quote {
+        position: absolute;
+        left: 140px;
+        top: 390px;
+        width: 700px;
+        font-size: 76px;
+        font-weight: 800;
+        line-height: 1.02;
+        letter-spacing: -0.035em;
+      }
+      .quote small {
+        display: block;
+        margin-top: 32px;
+        font: 500 28px/1 var(--mono);
+        letter-spacing: 0;
+        opacity: 0.7;
+      }
+      .big {
+        margin: 0;
+        font-size: 180px;
+        font-weight: 900;
+        letter-spacing: -0.05em;
+        text-shadow: 0 8px 40px rgba(7, 7, 8, 0.6);
+      }
+      .mark {
+        width: 300px;
+        height: 300px;
+      }
+      .wordmark {
+        position: absolute;
+        bottom: 190px;
+        margin: 0;
+        font-size: 64px;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+      }
+      .count {
+        position: absolute;
+        margin: 0;
+        font: 800 150px/1 var(--display);
+        opacity: 0;
+      }
+      .meta {
+        position: absolute;
+        left: 72px;
+        bottom: 56px;
+        padding: 14px 22px;
+        border-radius: 14px;
+        background: rgba(7, 7, 8, 0.72);
+        color: var(--ink);
+        font: 500 28px/1.2 var(--mono);
+        white-space: pre;
+      }
+      #counter {
+        position: absolute;
+        right: 72px;
+        bottom: 56px;
+        padding: 14px 22px;
+        border-radius: 14px;
+        background: rgba(7, 7, 8, 0.72);
+        font: 500 28px/1.2 var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="reel" data-start="0" data-duration="22.5" data-width="1920" data-height="1080" data-fps="30">
+      <!-- Track 0: one frame source per preset. -->
+      <div id="s1" class="clip scene" data-layout-allow-overflow data-composition-id="s1" data-start="0" data-duration="2.5" data-track-index="0" data-no-timeline></div>
+      <div id="s2" class="clip scene" data-layout-allow-overflow data-composition-id="s2" data-start="2.5" data-duration="2.5" data-track-index="0" data-no-timeline></div>
+      <div id="s3" class="clip scene" data-layout-allow-overflow data-composition-id="s3" data-start="5" data-duration="2.5" data-track-index="0" data-no-timeline></div>
+      <div id="s4" class="clip scene" data-layout-allow-overflow data-composition-id="s4" data-start="7.5" data-duration="2.5" data-track-index="0" data-no-timeline></div>
+      <div id="s5" class="clip scene" data-layout-allow-overflow data-composition-id="s5" data-start="10" data-duration="2.5" data-track-index="0" data-no-timeline></div>
+      <div id="s6" class="clip scene" data-layout-allow-overflow data-composition-id="s6" data-start="12.5" data-duration="2.5" data-track-index="0" data-no-timeline></div>
+      <div id="s7" class="clip scene" data-layout-allow-overflow data-composition-id="s7" data-start="15" data-duration="2.5" data-track-index="0" data-no-timeline></div>
+      <div id="s8" class="clip scene" data-layout-allow-overflow data-composition-id="s8" data-start="17.5" data-duration="2.5" data-track-index="0" data-no-timeline></div>
+      <div id="s9" class="clip scene" data-layout-allow-overflow data-composition-id="s9" data-start="20" data-duration="2.5" data-track-index="0" data-no-timeline></div>
+
+      <!-- Track 1: what each preset sits behind. -->
+      <div id="f1" class="clip fg" data-start="0" data-duration="2.5" data-track-index="1">
+        <h1 class="headline">Paper Shaders,<br />frame-exact</h1>
+        <p class="sub">speed 0 · frame = t × 1000 × timeScale</p>
+        <div class="meta"></div>
+      </div>
+      <div id="f2" class="clip fg" data-start="2.5" data-duration="2.5" data-track-index="1">
+        <div class="quote">Every frame is a pure function of time.<small>the determinism contract</small></div>
+        <div class="meta"></div>
+      </div>
+      <div id="f3" class="clip fg" data-start="5" data-duration="2.5" data-track-index="1">
+        <p class="big">Two inks.</p>
+        <div class="meta"></div>
+      </div>
+      <div id="f4" class="clip fg" data-start="7.5" data-duration="2.5" data-track-index="1">
+        <div class="meta"></div>
+      </div>
+      <div id="f5" class="clip fg" data-start="10" data-duration="2.5" data-track-index="1">
+        <svg class="mark" viewBox="0 0 512 512" aria-hidden="true">
+          <path d="M104 120 L256 392 L408 120" fill="none" stroke="#ffffff" stroke-width="76" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <div class="meta"></div>
+      </div>
+      <div id="f6" class="clip fg" data-start="12.5" data-duration="2.5" data-track-index="1">
+        <p class="wordmark">varg</p>
+        <div class="meta"></div>
+      </div>
+      <div id="f7" class="clip fg" data-start="15" data-duration="2.5" data-track-index="1">
+        <p class="count">3</p>
+        <p class="count">2</p>
+        <p class="count">1</p>
+        <div class="meta"></div>
+      </div>
+      <div id="f8" class="clip fg" data-start="17.5" data-duration="2.5" data-track-index="1">
+        <div class="meta"></div>
+      </div>
+      <div id="f9" class="clip fg" data-start="20" data-duration="2.5" data-track-index="1">
+        <div class="meta"></div>
+      </div>
+
+      <!-- Track 2: a frame counter, itself a frame source, to show seeks land on exact frames. -->
+      <div id="counter" class="clip" data-composition-id="counter" data-start="0" data-duration="22.5" data-track-index="2" data-no-timeline></div>
+    </div>
+
+    <script type="module">
+      import * as PS from "https://cdn.jsdelivr.net/npm/@paper-design/shaders@0.0.82/dist/index.js";
+      import { paperFrameSource } from "./paper-preset.js";
+      import brandMesh from "./presets/brand-mesh.json" with { type: "json" };
+      import grainBlob from "./presets/grain-blob.json" with { type: "json" };
+      import retroDither from "./presets/retro-dither.json" with { type: "json" };
+      import warpTransition from "./presets/warp-transition.json" with { type: "json" };
+      import godRays from "./presets/god-rays-reveal.json" with { type: "json" };
+      import liquidMetal from "./presets/liquid-metal-sting.json" with { type: "json" };
+      import smokeRing from "./presets/smoke-ring-loader.json" with { type: "json" };
+      import halftone from "./presets/halftone-overlay.json" with { type: "json" };
+      import paperFinish from "./presets/paper-finish.json" with { type: "json" };
+
+      const FPS = 30;
+      const { registerFrameSource } = window.__hyperframes;
+      const $ = (id) => document.getElementById(id);
+
+      // The logo, drawn as SVG: white on transparent, as LiquidMetal expects.
+      const logo =
+        "data:image/svg+xml;charset=utf-8," +
+        encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 512 512">' +
+            '<path d="M104 120 L256 392 L408 120" fill="none" stroke="#fff" stroke-width="76" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+        );
+
+      // A poster drawn in code, standing in for a still the user has rights to.
+      function poster(title, { ground, ink, sun, band }) {
+        const c = document.createElement("canvas");
+        c.width = 1920;
+        c.height = 1080;
+        const g = c.getContext("2d");
+        g.fillStyle = ground;
+        g.fillRect(0, 0, 1920, 1080);
+        const glow = g.createRadialGradient(1340, 420, 40, 1340, 420, 520);
+        glow.addColorStop(0, sun);
+        glow.addColorStop(1, "rgba(0,0,0,0)");
+        g.fillStyle = glow;
+        g.fillRect(0, 0, 1920, 1080);
+        g.fillStyle = band;
+        g.beginPath();
+        g.moveTo(0, 760);
+        g.lineTo(1920, 520);
+        g.lineTo(1920, 700);
+        g.lineTo(0, 940);
+        g.closePath();
+        g.fill();
+        g.fillStyle = ink;
+        g.font = "900 230px system-ui, -apple-system, Helvetica, Arial, sans-serif";
+        g.fillText(title, 120, 420);
+        return c.toDataURL("image/png");
+      }
+
+      const ramp = (t, start, length) => {
+        const k = Math.min(Math.max((t - start) / length, 0), 1);
+        return 1 - Math.pow(1 - k, 3);
+      };
+
+      const scenes = [
+        ["s1", "f1", brandMesh],
+        // A per-scene override: move the blob right so the quote sits on the dark side.
+        ["s2", "f2", { ...grainBlob, params: { ...grainBlob.params, offsetX: 0.45, scale: 0.85 } }],
+        ["s3", "f3", retroDither],
+        ["s4", "f4", warpTransition],
+        // Rays grow from nothing as the mark appears: params as a pure function of time.
+        ["s5", "f5", godRays, { paramsAt: (t) => ({ intensity: 0.8 * ramp(t, 0, 1.2), midIntensity: 0.45 * ramp(t, 0.2, 1), bloom: 0.4 * ramp(t, 0, 1.2) }) }],
+        ["s6", "f6", liquidMetal, { image: logo }],
+        ["s7", "f7", smokeRing],
+        ["s8", "f8", halftone, { image: poster("PRINT", { ground: "#f4efe6", ink: "#070708", sun: "#070708", band: "#5a5a5a" }) }],
+        ["s9", "f9", paperFinish, { image: poster("PAPER", { ground: "#ff5315", ink: "#070708", sun: "#ffd2b3", band: "#24124f" }) }],
+      ];
+
+      scenes.forEach(([host, fg, preset, options], i) => {
+        registerFrameSource(paperFrameSource(PS, $(host), preset, options));
+        $(fg).querySelector(".meta").textContent = `${String(i + 1).padStart(2, "0")}/09  ${preset.id} · ${preset.shader}`;
+      });
+
+      // The counter reads the same clock as the shaders.
+      const counter = $("counter");
+      registerFrameSource({
+        element: counter,
+        render: (t) => {
+          const frame = Math.round(t * FPS);
+          counter.textContent = `frame ${String(frame).padStart(3, "0")}  ·  ${(frame / FPS).toFixed(2).padStart(5, "0")} s`;
+        },
+      });
+    </script>
+
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      const at = (scene) => (scene - 1) * 2.5;
+
+      tl.fromTo("#f1 .headline", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, at(1) + 0.15);
+      tl.fromTo("#f1 .sub", { opacity: 0 }, { opacity: 0.85, duration: 0.5 }, at(1) + 0.5);
+      tl.fromTo("#f2 .quote", { opacity: 0, scale: 0.96 }, { opacity: 1, scale: 1, duration: 0.6, ease: "power2.out" }, at(2) + 0.1);
+      tl.fromTo("#f3 .big", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.5, ease: "power3.out" }, at(3) + 0.2);
+      tl.fromTo("#s4", { opacity: 0 }, { opacity: 1, duration: 0.35, ease: "power1.out" }, at(4));
+      tl.fromTo("#f5 .mark", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }, at(5) + 0.1);
+      tl.fromTo("#f6 .wordmark", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, at(6) + 0.9);
+      ["3", "2", "1"].forEach((_, i) => {
+        tl.fromTo(`#f7 .count:nth-of-type(${i + 1})`, { opacity: 0, scale: 1.2 }, { opacity: 1, scale: 1, duration: 0.25, ease: "power2.out" }, at(7) + 0.3 + i * 0.65);
+        tl.to(`#f7 .count:nth-of-type(${i + 1})`, { opacity: 0, duration: 0.15 }, at(7) + 0.8 + i * 0.65);
+      });
+      tl.fromTo("#s8", { scale: 1.06 }, { scale: 1, duration: 2.5, ease: "none" }, at(8));
+      tl.fromTo("#s9", { scale: 1.06 }, { scale: 1, duration: 2.5, ease: "none" }, at(9));
+
+      window.__timelines["reel"] = tl;
+    </script>
+  </body>
+</html>

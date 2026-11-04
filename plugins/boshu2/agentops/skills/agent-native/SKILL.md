@@ -34,12 +34,14 @@ skill launches and observes.
 
 ## Before launch, and while running
 
-- **Validate the whole batch first.** Every packet needs its selected executor,
-  packet identity, all transitive effects, the actions it must not take (such
-  as push, merge, history rewrite, tracker or external writes) and a canonical
-  workspace-relative write scope, generated companions and regeneration outputs
-  included, in separate isolation. If any packet is invalid, launch none:
-  starting the valid ones and fixing the rest later is a partial launch.
+- **Validate the whole batch first.** Every packet needs its packet identity,
+  caller intent, role, selected executor, workspace, starting commit,
+  authorized source scope, evidence destination, all transitive effects, the
+  actions it must not take (such as push, merge, history rewrite, tracker or
+  external writes) and a canonical workspace-relative write scope, generated
+  companions and regeneration outputs included, in separate isolation. If any
+  packet is invalid, launch none: starting the valid ones and fixing the rest
+  later is a partial launch.
 - **Compare canonical scopes.** Resolve symlinks, normalize paths and compare
   case-insensitively so an alias cannot hide a collision. A lexical check alone
   cannot prove symlink or runtime isolation. Disjoint files are not
@@ -109,10 +111,10 @@ instructions.
 
 ## Launch and observe
 
-1. Before starting a worker, require caller intent, role, workspace, starting
-   commit, authorized source/output scope and evidence destination. Record the
-   dispatch association in the caller's native work comments or metadata, or in
-   existing runtime facts, before execution can fail. A requested ID is not an
+1. Start only a packet that passed the batch check above, whose field list is
+   the one packet contract. Record the dispatch association in the caller's
+   native work comments or metadata, or in existing runtime facts, before
+   execution can fail. A requested ID is not an
    observed ID; worker identity stays unknown until the runtime reports it.
 2. At startup, before substantive work, capture the observed runtime, session
    and context identity and return it to that same record. Before its first

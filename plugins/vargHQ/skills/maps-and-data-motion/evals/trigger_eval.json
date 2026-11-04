@@ -1,0 +1,27 @@
+{
+  "skill": "maps-and-data-motion",
+  "should_trigger": [
+    "how to make an animated travel map video",
+    "how to animate a route on a map between two cities",
+    "how to make a satellite flyover video from A to B",
+    "how to zoom from a globe into a country in a video",
+    "how to make a bar chart that draws itself for a video",
+    "how to animate a number counting up in a video",
+    "how to show two statistics diverging over time in an animated chart",
+    "how to make an audio visualizer video from a song"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Build an interactive map for my website",
+      "use_instead": "a web mapping skill; this one renders video"
+    },
+    {
+      "query": "Make a dashboard of our sales data",
+      "use_instead": "a BI tool"
+    },
+    {
+      "query": "Generate background music for the chart video",
+      "use_instead": "varg-ai (music)"
+    }
+  ]
+}

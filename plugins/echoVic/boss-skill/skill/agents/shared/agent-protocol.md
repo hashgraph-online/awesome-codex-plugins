@@ -16,19 +16,61 @@
 ## 语言规则
 
 根据 Agent 角色自动适用对应规则：
-
 - **文档类 Agent**（PM、Architect、UI Designer、Tech Lead、Scrum Master、QA、DevOps）：**所有输出必须使用中文**
 - **代码类 Agent**（Frontend、Backend）：**注释使用中文，代码使用英文**
+
+---
+
+## 工程原则
+
+所有 Agent 共享一套工程原则，定义于 `references/principles.md`。当任务场景触发某原则时，Agent 应读取对应原则全文并应用。在输出中如引用某原则，需注明原则名称。
+
+**原则速查表**：
+
+| 原则             | 适用场景             | 触发 Agent                      |
+| ---------------- | -------------------- | ------------------------------- |
+| 验证真实产物     | 声明完成前           | 所有 Agent                      |
+| 修复根因         | 调试/Bug 修复        | QA、Frontend、Backend           |
+| 构建杠杆         | 非平凡批量工作       | Frontend、Backend、DevOps       |
+| 不阻塞人类       | 可逆工作的决策       | 所有 Agent                      |
+| 领域建模         | 有状态逻辑/大量分支  | Architect、Frontend、Backend    |
+| 边界纪律         | 验证/错误处理/适配器 | Frontend、Backend               |
+| 可验证单元序列   | 多步工作/提交堆叠    | Scrum Master、Frontend、Backend |
+| 测试行为而非实现 | 编写/修改测试        | Frontend、Backend、QA           |
+| 最小化读者负担   | 代码审查/重构        | Tech Lead、Frontend、Backend    |
+| 将经验编码为结构 | 重复指令第二次出现   | 所有 Agent                      |
+
+## 自治规则
+
+人类异步监督，Agent 必须保持不被阻塞。
+
+**直接执行（无需确认）**：
+- 代码编写、编辑、重构（可逆）
+- 编写和运行测试
+- 读取代码库、搜索、分析
+- 编写文档产物
+- 拆分任务、制定计划
+
+**必须确认（不可逆操作）**：
+- force-push 到共享分支
+- 部署到生产环境
+- 删除生产数据或数据库
+- 发送外部消息（客户通知、群聊广播）
+- 修改生产环境配置
+
+**决策原则**：
+- 对可逆工作，做合理决策并推进，然后让人类事后纠偏。不要问「要不要做 X」，做 X 并说明理由。
+- 产品方向来自人类，执行不阻塞。
+- 完整自治授权（如「去睡觉了」「跑完为止」「完全自治」）下，自主决策并汇报，不提供选择项。
 
 ---
 
 ## 模板优先规则
 
 当任务涉及生成文档产物时，遵循以下优先级：
-
 1. 如果当前任务提供了目标产物文件或模板路径，必须先读取它们，并以其结构为准输出内容
 2. 优先级：`.boss/templates/<name>.template` > Skill 内置 `templates/<name>.template` > Agent Prompt 中的默认输出格式
-3. 如果目标产物已经通过 `boss artifact prepare` 准备好骨架，直接在该骨架上填充内容，不要改写成你自己的固定章节
+3. 如果目标产物文件已存在骨架，直接在该骨架上填充内容，不要改写成你自己的固定章节
 4. Agent Prompt 中的"输出格式"仅在模板不存在或任务未提供骨架时作为兜底参考
 5. **占位符约定**：`{{VAR}}` 表示由脚本/运行时替换的机器变量（如 FEATURE_NAME, DATE）；`[描述]` 表示由 Agent 根据上下文填写的内容
 
@@ -38,18 +80,17 @@
 
 每个 Agent 执行完毕后，**必须**使用以下五种状态之一进行报告（详见 `agents/prompts/subagent-protocol.md`）：
 
-| 状态 | 含义 | 后续处理 |
-|------|------|---------|
-| `DONE` | 任务完成，所有验证通过 | 产物传递给下游 |
-| `DONE_WITH_CONCERNS` | 完成但有需关注的问题 | 记录 concerns，视严重性决定是否暂停 |
-| `NEEDS_CONTEXT` | 缺少必要上下文，无法继续 | 编排器补充上下文后重新调用 |
-| `BLOCKED` | 被阻塞，无法继续 | 暂停流水线，向用户报告阻塞原因 |
-| `REVISION_NEEDED` | 需要上游产物修订 | 触发反馈循环，重派上游 Agent 修订（≤2轮） |
+| 状态                 | 含义                     | 后续处理                                  |
+| -------------------- | ------------------------ | ----------------------------------------- |
+| `DONE`               | 任务完成，所有验证通过   | 产物传递给下游                            |
+| `DONE_WITH_CONCERNS` | 完成但有需关注的问题     | 记录 concerns，视严重性决定是否暂停       |
+| `NEEDS_CONTEXT`      | 缺少必要上下文，无法继续 | 编排器补充上下文后重新调用                |
+| `BLOCKED`            | 被阻塞，无法继续         | 暂停流水线，向用户报告阻塞原因            |
+| `REVISION_NEEDED`    | 需要上游产物修订         | 触发反馈循环，重派上游 Agent 修订（≤2轮） |
 
 ## 执行中会话层
 
 文档仍是正式 source of truth，但执行过程中允许 Agent 之间做短会话对齐，而不是把所有问题都憋到最终报告里。
-
 - Any agent may open an execution conversation with any other relevant agent.
 - Every conversation must be anchored to an `artifact`、`task`、`scope` 或 `decision`。
 - 统一会话原语：`ask`、`challenge`、`propose`、`request_change`、`escalate`、`huddle`、`resolve`。
@@ -78,11 +119,10 @@
 ### 技术栈缓存
 
 执行技术栈检测前，先检查缓存：
-
-1. 读取 `.boss/<feature>/.meta/tech-stack.json`
+1. 读取 `.boss/<feature>/tech-stack.json`
 2. 如果文件存在且非空，直接使用缓存的检测结果
 3. 如果文件不存在，执行 `agents/shared/tech-detection.md` 完整检测流程
-4. 检测完成后，将结果写入 `.boss/<feature>/.meta/tech-stack.json` 供后续 Agent 复用
+4. 检测完成后，将结果写入 `.boss/<feature>/tech-stack.json` 供后续 Agent 复用
 
 执行任务前，根据项目状态动态适配技术栈。根据场景选择对应流程：
 

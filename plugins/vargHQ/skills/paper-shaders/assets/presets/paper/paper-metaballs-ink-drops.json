@@ -1,0 +1,31 @@
+{
+  "id": "paper-metaballs-ink-drops",
+  "label": "Ink Drops (Paper Metaballs)",
+  "shader": "Metaballs",
+  "page": "https://shaders.paper.design/metaballs",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Ink Drops\" preset for Metaballs, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 2,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#ffffff00",
+    "colors": [
+      "#000000"
+    ],
+    "count": 18,
+    "size": 0.1
+  }
+}

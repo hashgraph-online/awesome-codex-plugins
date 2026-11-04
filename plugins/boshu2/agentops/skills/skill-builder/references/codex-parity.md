@@ -2,10 +2,11 @@
 
 Codex loads the canonical `skills/<name>/` package directly. The Codex plugin
 manifest points at `./skills`; a source checkout can instead link the same
-directories into `~/.codex/skills` with `ao skills link`. Use one route per
-host, since both together list every skill twice. There is no generated Codex
-copy, no override layer and no `prompt.md`, so one source package has to read
-correctly on every host.
+directories with `ao skills link --dest ~/.codex/skills`. The bare
+`ao skills link` links into every detected runtime, `~/.claude` and `~/.agents`
+included. Use the link instead of the plugin, never alongside it: both together
+list every skill twice. There is no generated Codex copy, no override layer and
+no `prompt.md`, so one source package has to read correctly on every host.
 
 ## What Codex reads
 

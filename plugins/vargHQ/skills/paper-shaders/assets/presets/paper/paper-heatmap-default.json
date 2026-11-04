@@ -1,0 +1,41 @@
+{
+  "id": "paper-heatmap-default",
+  "label": "Default (Paper Heatmap)",
+  "shader": "Heatmap",
+  "page": "https://shaders.paper.design/heatmap",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for Heatmap, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 0.75,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "contour": 0.5,
+    "angle": 0,
+    "noise": 0,
+    "innerGlow": 0.5,
+    "outerGlow": 0.5,
+    "colorBack": "#000000",
+    "colors": [
+      "#11206a",
+      "#1f3ba2",
+      "#2f63e7",
+      "#6bd7ff",
+      "#ffe679",
+      "#ff991e",
+      "#ff4c00"
+    ],
+    "image": ""
+  }
+}

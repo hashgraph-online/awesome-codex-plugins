@@ -27,33 +27,10 @@ import json
 import sys
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
+from extraction_schema import validate_against_schema
 
 
-REPO_ROOT = Path(__file__).resolve().parents[3]
-SCHEMA_DIR = REPO_ROOT / "skills/datasheets/schemas"
-
-
-def _build_registry() -> Registry:
-    registry = Registry()
-    for schema_path in SCHEMA_DIR.glob("*.schema.json"):
-        schema = json.loads(schema_path.read_text(encoding="utf-8"))
-        uri = schema.get("$id")
-        if uri:
-            registry = registry.with_resource(uri, Resource.from_contents(schema))
-    return registry
-
-
-def _validate(data, schema: dict) -> "str | None":
-    registry = _build_registry()
-    validator = Draft202012Validator(schema, registry=registry)
-    errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
-    if not errors:
-        return None
-    e0 = errors[0]
-    path = "/".join(str(p) for p in e0.absolute_path) or "<root>"
-    return f"{path}: {e0.message}"
+SCHEMA_DIR = Path(__file__).resolve().parents[1] / "schemas"
 
 
 def _resolve_schema(task_type: str) -> Path:
@@ -83,7 +60,7 @@ def validate_result(result_file: Path, task_type: str) -> "tuple[int, str]":
         return 1, "result wrapper has no 'data' field"
 
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
-    err = _validate(wrapper["data"], schema)
+    err = validate_against_schema(wrapper["data"], schema)
     if err:
         return 1, f"schema validation: {err}"
 

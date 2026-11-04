@@ -48,6 +48,10 @@ A structured campaign plan document containing:
 - KPI dashboard framework with targets and measurement approach
 - Risk register with mitigation strategies
 
+## Before it goes to the client
+
+Run the zero-context review in `/digital-marketing-pro:check` (`--goldfish`). `goldfish-review.py` packs the deliverable, the brief and the brand profile into one file and nothing else, flags money figures and benchmark rates that nothing in the brief or profile supports, and writes the prompt for a reviewer that sees only that file. Answer each finding in the document itself (state the assumption for the client to confirm, cite the source, or cut the figure) before it is sent.
+
 ## Agents Used
 
 - **marketing-strategist** — Campaign architecture, audience strategy, objective setting

@@ -8,7 +8,7 @@ This is a regional context module. Equivalent modules can be added for other mar
 
 ### Digital Personal Data Protection Act (DPDP Act)
 
-India's primary data protection law, enacted 2023, with implementation rules rolling out through 2025–2026.
+India's primary data protection law, enacted 2023. The DPDP Rules 2025 were notified on 13 Nov 2025 and phase in: Consent Manager registration from 13 Nov 2026, and the core obligations (notice, security, breach notification, children's verifiable consent, rights) from 13 May 2027. Dates and penalties: `compliance-rules.md` section 1.11.
 
 Key implications for marketing:
 

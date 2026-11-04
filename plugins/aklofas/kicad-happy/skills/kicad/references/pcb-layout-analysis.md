@@ -302,15 +302,15 @@ Flag as **Warning** if components violate the minimums above. Flag as **Info** f
 
 ## Writing Analysis Scripts
 
-When the analyzer doesn't cover a specific check, build a custom script. The `analyze_pcb.py` script uses the `sexp_parser.py` shared parser — import it directly rather than writing regex-based parsing.
+When the analyzer doesn't cover a specific check, build a custom script. The `analyze_pcb.py` script uses the `kicad_core/sexp.py` shared parser — import it directly rather than writing regex-based parsing.
 
 ### Using the Shared Parser
 
 ```python
 import sys
 sys.path.insert(0, '<skill-path>/scripts')
-from sexp_parser import parse_file, find_all, find_first, get_value, get_property, get_at
-from analyze_pcb import extract_footprints, extract_tracks, extract_vias, extract_nets
+from kicad_core.sexp import parse_file, find_all, find_first, get_value, get_property, get_at
+from pcb.reader import extract_footprints, extract_tracks, extract_vias, extract_nets
 
 # Parse and extract in one shot
 tree = parse_file('board.kicad_pcb')

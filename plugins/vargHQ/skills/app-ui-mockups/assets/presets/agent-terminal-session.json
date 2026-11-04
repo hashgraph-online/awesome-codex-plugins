@@ -1,0 +1,253 @@
+{
+  "id": "agent-terminal-session",
+  "name": "Coding-agent terminal session",
+  "use": "One AI coding-agent turn (Claude Code-style) in a terminal: prompt, tool calls, diff, spinner, summary.",
+  "formats": [
+    "16:9",
+    "1:1",
+    "9:16"
+  ],
+  "duration_s": 12,
+  "fonts": [
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        400,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    }
+  ],
+  "trademark_note": "Claude and Claude Code are Anthropic trademarks. Look-alike transcript only: no logo or wordmark, invented repos and files, no fake benchmarks.",
+  "presets": [
+    {
+      "id": "agent-terminal-session.prompt-tools",
+      "label": "Prompt and tool calls",
+      "look": "Prompt typed, 3 tool lines tick to done, summary",
+      "params": {
+        "beats_s": {
+          "window_in": [
+            0,
+            0.4
+          ],
+          "prompt": [
+            0.4,
+            3.0
+          ],
+          "enter_beat": [
+            3.0,
+            3.4
+          ],
+          "tools": [
+            3.4,
+            8.5
+          ],
+          "result": [
+            8.5,
+            10.0
+          ],
+          "summary_hold": [
+            10.0,
+            12.0
+          ]
+        },
+        "prompt_typing": {
+          "cps": 16,
+          "gap_table_ms": [
+            100,
+            33,
+            200,
+            133,
+            200,
+            33,
+            67,
+            33,
+            100,
+            67,
+            33,
+            67,
+            67,
+            67,
+            133,
+            67,
+            33,
+            67,
+            100,
+            100,
+            67,
+            133,
+            100,
+            33,
+            100,
+            33,
+            167,
+            33,
+            100,
+            100
+          ],
+          "extra_at_space_ms": 120,
+          "extra_before_flag_ms": 250,
+          "seed": "demo"
+        },
+        "agent_stream_cps": [
+          40,
+          80
+        ],
+        "agent_burst_ms": [
+          50,
+          80
+        ],
+        "tool_line_every_s": 0.5,
+        "tool_spinner_s": 0.6,
+        "spinner_frame_ms": [
+          80,
+          120
+        ],
+        "bg": "#282C34",
+        "text": "#E6E6E6",
+        "dim": "#8A8F98",
+        "accent": "#d97757",
+        "font_px_1080p": [
+          28,
+          34
+        ],
+        "line_height": 1.4,
+        "max_columns": 96
+      },
+      "sources": [
+        15,
+        16,
+        17,
+        19,
+        20,
+        62,
+        10
+      ]
+    },
+    {
+      "id": "agent-terminal-session.code-edit",
+      "label": "Code edit",
+      "look": "Proposed edit, diff, accepted",
+      "params": {
+        "diff_open": {
+          "duration_s": 0.35,
+          "ease": "power2.out"
+        },
+        "added": {
+          "fg": "#98C379",
+          "bg": "rgba(152,195,121,0.12)"
+        },
+        "removed": {
+          "fg": "#E06C75",
+          "bg": "rgba(224,108,117,0.12)"
+        },
+        "diff_hold": "clamp(0.6 + chars/15, 1.0, 6.0) s",
+        "camera_push": {
+          "zoom": [
+            1.4,
+            1.6
+          ],
+          "ease": "power3.inOut",
+          "duration_s": 0.8,
+          "lead_s": 1.0
+        }
+      },
+      "sources": [
+        1,
+        63,
+        12
+      ]
+    },
+    {
+      "id": "agent-terminal-session.still-working",
+      "label": "Still working",
+      "look": "Spinner, sped-up elapsed counter, tip line",
+      "params": {
+        "spinner_frame_ms": 100,
+        "elapsed_counter_speed": 8,
+        "tip_line_opacity": 0.7,
+        "mode_badge": [
+          "Manual",
+          "accept edits",
+          "plan"
+        ],
+        "task_list_max": 5
+      },
+      "sources": [
+        18,
+        19
+      ]
+    },
+    {
+      "id": "agent-terminal-session.huge-type",
+      "label": "Huge type",
+      "look": "9:16 transcript column",
+      "params": {
+        "font_pct_frame_h": 3.4,
+        "columns": 30,
+        "tool_lines_on_screen": 1
+      },
+      "sources": [
+        16
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "Adam Pietrasiak (@pie6k), Screen Studio",
+      "url": "https://x.com/pie6k/status/1586636942879645696"
+    },
+    {
+      "n": 10,
+      "name": "Dhakal et al., CHI 2018 typing study",
+      "url": "https://www.eurekalert.org/news-releases/569762"
+    },
+    {
+      "n": 12,
+      "name": "Netflix English (USA) Timed Text Style Guide",
+      "url": "https://partnerhelp.netflixstudios.com/hc/en-us/articles/217350977-English-USA-Timed-Text-Style-Guide"
+    },
+    {
+      "n": 15,
+      "name": "VHS best-practice skill",
+      "url": "https://cdn.jsdelivr.net/npm/@marcfargas/skills@0.5.1/vhs/SKILL.md"
+    },
+    {
+      "n": 16,
+      "name": "Thorsten Ball, How to Demo",
+      "url": "https://thorstenball.com/how-to-demo"
+    },
+    {
+      "n": 17,
+      "name": "Ghostty source (MIT)",
+      "url": "https://github.com/ghostty-org/ghostty"
+    },
+    {
+      "n": 18,
+      "name": "Claude Code docs, Interactive mode",
+      "url": "https://code.claude.com/docs/en/interactive-mode"
+    },
+    {
+      "n": 19,
+      "name": "Claude Code docs, Settings",
+      "url": "https://code.claude.com/docs/en/settings"
+    },
+    {
+      "n": 20,
+      "name": "Anthropic brand-guidelines skill",
+      "url": "https://github.com/anthropics/skills/blob/main/skills/brand-guidelines/SKILL.md"
+    },
+    {
+      "n": 62,
+      "name": "HyperFrames notes-typing",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components/notes-typing"
+    },
+    {
+      "n": 63,
+      "name": "HyperFrames cursor-zoom-follow",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components/cursor-zoom-follow"
+    }
+  ]
+}

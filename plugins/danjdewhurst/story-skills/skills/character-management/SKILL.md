@@ -66,6 +66,7 @@ progressions:
 - `field` is kebab-case. It can be an existing single-value field (`status`, `role`, `arc`) or a new one (`scar`, `title`). List fields (`aliases`, `relationships`, `locations`, `tags`, voice lists) cannot change this way; record a shifted relationship as a progression on its own field, such as `field: standing-with-kael` with `value: estranged` under `progressions`, never as a top-level field (that would show from chapter 1)
 - `value` is one value. `role` and `status` values must be ones the character file allows
 - Keep entries in story order. Do not use a progression alone for a death: set `died-in` (see below). A `status` progression is still checked against the story: `story continuity` warns when a progression to `deceased` with no `died-in` is followed by the character in a cast or learning something, when a status progression brings them back between `died-in` and `revived-in`, and when a progression to `deceased` still holds at `revived-in`
+- The body of the file is prose for the writer. Describe a change in story terms ("from Festival night she carries the scar"), and do not name `progressions` or other frontmatter fields there
 - Before drafting or revising a chapter, run `story knowledge {id} --at chapter-NN`. It lists what the character knows at that chapter in story time (by date when both chapters are dated, otherwise by chapter number), the same rule as `story context`, and which progressions already apply. Write to that state rather than the opening frontmatter alone
 - A line marked `reader-knowledge` is already on the page, or known before the book, and may appear in the prose. A line marked `character-knowledge` and `do not reveal` is something the character knows from a flashback the reader has not reached: the character may act on it, and the fact itself must not be stated. Do not drop those lines, and do not write them in as if the reader had already learned them
 
@@ -86,9 +87,10 @@ Without `--prose`, `rename` leaves the chapter text alone, for when the user wan
 
 To kill a character off:
 
-1. Set `status: deceased` and `died-in: chapter-NN` in the character file
-2. In every later chapter and scene, move the id from `characters` (and `pov`) to `mentions` where they appear only in memory, letters, or flashback
-3. Run `story continuity .`: it reports any later chapter or scene that still lists them in its cast
+1. Test the death first: `story impact die {id} chapter-NN --path .` sets `died-in` and `status` on a scratch copy, runs the checks, and lists only what the death would break, such as each later chapter and scene that still lists them, writing nothing. Show the user that list; when they are choosing between chapters, run it for each. `story impact remove character {id} --path .` does the same for cutting a character
+2. Set `status: deceased` and `died-in: chapter-NN` in the character file
+3. In every later chapter and scene, move the id from `characters` (and `pov`) to `mentions` where they appear only in memory, letters, or flashback
+4. Run `story continuity .`: it reports any later chapter or scene that still lists them in its cast
 
 Variants:
 

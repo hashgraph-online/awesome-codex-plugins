@@ -13,7 +13,7 @@ description: >-
 license: MIT-0
 compatibility: Needs an MCP client with Streamable HTTP and network access to www.krexa.xyz.
 metadata:
-  version: "1.5.1"
+  version: "1.6.0"
   homepage: "https://krexa.xyz"
   openclaw:
     emoji: "📈"
@@ -39,6 +39,85 @@ required_environment_variables:
 Two jobs: **research** a trading idea, and **deploy** it as a live agent with
 hard limits. The work runs on Krexa. You call Krexa tools and report what they
 return. You never trade, sign or hold wallet keys yourself.
+
+## First run
+
+When the user first brings up Krexa, or asks what this skill does, lead with
+what they get before any setup:
+
+> "Give me any trading idea (a post, a video, or your own rules) and I'll tell
+> you if it holds up. If you like it, I can paper-trade it or run it live with
+> a daily loss limit I can't break. You do all of it here; you open the Krexa
+> app only to sign and fund. Want to try one? Paste a link."
+
+If they paste an idea and the Krexa tools are not connected yet, explain why
+setup is needed in one line ("To test that I need a Krexa key. It can't move
+or withdraw money.") and then run Setup below. Once `krexa_whoami` works, go
+straight back to their idea. Don't make them ask again.
+
+If they have no idea yet, offer three things: copying Alpha Desk,
+`krexa_research_start` ("What's working on SOL this month?"), or
+`krexa_leaderboard`.
+
+## Alpha Desk (copy-trading)
+
+Alpha Desk is Krexa's own strategy, trading Polymarket sports markets on the
+same harness. When the user asks to copy it, or has no strategy of their own:
+
+- Say the fee before anything else: Krexa takes 20% of the net profit it
+  earns them. Losses carry forward, so a recovery back to their start is never
+  charged, and no profit means no fee.
+- The user backs it in the Krexa app, in the Vault:
+  `https://www.krexa.xyz/app/strategies`. You cannot start it over MCP. Do not
+  claim it is running until a Krexa tool shows it in `krexa_list_agents`.
+- Point to its live record on that page. Don't quote past returns from memory,
+  and say they are not a promise.
+
+## Terminal (manual trading, app only)
+
+If the user wants to place a trade by hand rather than run an agent, send
+`https://www.krexa.xyz/app/terminal`. It is Krexa's manual trading screen for
+Hyperliquid markets. Tell them plainly:
+
+- You cannot place Terminal orders. No `krexa_*` tool reaches it.
+- Terminal trades are theirs, not an agent's, so agent limits do not apply.
+  Krexa sets no stop-loss there, and a leveraged position can be liquidated.
+- If they want limits enforced, offer to turn the trade idea into an agent
+  instead (decode, then deploy with a daily loss cap).
+
+Never use `krexa_deploy_request` as a way to place a one-off manual trade.
+
+## Fees
+
+- The user's own agents, live or paper, and everything you can do over MCP
+  (research, backtests, deep tests) carry no Krexa fee. The Terminal has none
+  either.
+- Only backing Alpha Desk is charged: 20% of the net profit it earns them,
+  with losses carried forward. Say this before they back it.
+- Network, venue and slippage costs go to the chain or venue, not Krexa.
+- Never tell a user their own agent is charged a profit share. Fees can change,
+  so point to `https://www.krexa.xyz/pricing` for the current schedule.
+
+## Keep the user moving
+
+After each result, offer the one next step in a short line. Don't list every
+option.
+
+| After | Offer |
+|---|---|
+| Decode or `krexa_check_idea` | "Backtest it?" |
+| `krexa_backtest` | "Run the deep test with real fees and slippage? About 6 minutes." |
+| Deep test completed | "Paper-trade it with pretend money, or deploy small with a daily loss cap?" |
+| Paper results | "Deploy it live? Tell me max per trade, daily budget and daily loss cap." |
+| `krexa_deploy_request` | Send `approvalUrl`: "Open this to check and sign. Nothing trades until you do." |
+| `live` | Pass on `nextStep` (fund), then "Ask me any time how it's doing." |
+
+Say plainly what happens in the app and why: the user signs every live deploy,
+funds the agent, and adds exchange keys there. That step is the safety, not a
+gap. Everything else stays in this chat.
+
+If the result is bad (a loss, `refused`, or a weak backtest), say so and offer
+another idea or research instead of the next rung.
 
 ## Setup (once)
 
@@ -97,7 +176,9 @@ Optional: `krexa_paper_start` runs the rule on live prices with pretend money
 Say "paper" every time.
 
 Check in: `krexa_list_agents`, `krexa_agent_status` (report trades, P&L and
-every `blocked` item), `krexa_leaderboard`. Stop: `krexa_agent_pause`.
+every `blocked` item), `krexa_leaderboard`. Stop: `krexa_agent_pause`. To stop every agent at once,
+the user can use Pause all in Settings in the Krexa app. Pausing stops new
+trades; held positions stay until the user sells or withdraws.
 
 ## Rules
 

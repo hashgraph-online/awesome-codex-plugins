@@ -77,8 +77,7 @@ repository; say the bundled script is unavailable and build the inventory and
 steal-map by hand as in docs-only mode below.
 
 With an authorized clone or binary, the script clones (pinned), scans the
-CLI/config/artifact surface, writes the inventory, registry and specs, and
-validates the teardown:
+CLI/config/artifact surface and validates the teardown:
 
 ```bash
 python3 "<skill-dir>/scripts/reverse_engineer.py" <product> --mode=repo \
@@ -86,11 +85,17 @@ python3 "<skill-dir>/scripts/reverse_engineer.py" <product> --mode=repo \
   --output-dir=".agents/scratch/reverse-engineer/<product>/"
 ```
 
+A passing teardown is not a populated one. The inventory and registry index
+the target's docs pages (`--docs-sitemap-url`, else its `docs/**/*.md`); with
+no docs they are empty. `spec-architecture.md` and `spec-code-map.md` are
+templates you fill. The code anchors are in `contracts/repo-contract.json` and
+`spec-cli-surface.md`.
+
 The clone lands in `.tmp/<product>/` under the current directory unless
 `--local-clone-dir` names another place; keep it out of your commits. Binary
-mode requires `--authorized`; without authorization for a real binary, run
-`bash "<skill-dir>/scripts/self_test.sh"`, which builds a demo binary (needs Go). Flags, the full
-output list, fixtures and tests are in [the invocation reference](references/invocation.md).
+mode requires `--authorized`; without written authorization, do not run binary
+mode; use docs-only mode below. Flags, the full output list, fixtures and tests
+are in [the invocation reference](references/invocation.md).
 
 Without code access (only a README, docs site or landing page), skip the
 script: build the inventory and steal-map by hand with each row tagged `docs`
@@ -109,7 +114,7 @@ incomplete skill result, not a script success relabelled as a decision.
 
 | Their capability | Our surface today | Verdict |
 |---|---|---|
-| `<feature>` (code: `<file:line>`), (docs) or (hosted) | `<our file / skill / CLI>`, or "none" plus the search that proved it | **have** / **gap** / **steal** / **park** / **reject** |
+| `<feature>` (code: `<file:line>`), (docs) or (hosted) | `<our file / skill / CLI>`, or "none: `<search command>`" (the search that proved it) | **have** / **gap** / **steal** / **park** / **reject** |
 
 Each row gets exactly one verdict:
 
@@ -142,10 +147,12 @@ bash "<skill-dir>/scripts/validate-output.sh" \
   --upstream-ref-set "$upstream_ref_set"
 ```
 
-It fails any table row without a source tag or one of the five verdicts, and
-any `steal` without `code` evidence; with an upstream ref it requires the
-resolved commit in `clone-metadata.json`. It must exit 0 before handoff, or the
-report says it did not run (docs-only mode).
+It fails any table row without a source tag or one of the five verdicts, any
+`steal` without `code` evidence, and any `none` without a backticked search;
+with an upstream ref it requires the resolved commit in `clone-metadata.json`.
+With `--security-audit 1`, first fill every `_TBD` under `security/`; each
+finding in `findings.md` needs `Evidence:` and `Fix:` lines. It must exit 0
+before handoff, or the report says it did not run (docs-only mode).
 
 If adopting a steal is a **one-way door** (an architecture fork, a new bounded
 context, a storage or data migration), do not decide it here: hand the
@@ -158,4 +165,5 @@ evidence; neither grants readiness or continuation authority. Ordinary `have`,
 For general exploration rather than one external system, use
 [Research](../research/SKILL.md). The scenarios in
 [reverse-engineer.feature](references/reverse-engineer.feature) document the
-behavior; this skill's `scripts/validate.sh` and `scripts/self_test.sh` check it.
+behavior; [the invocation reference](references/invocation.md#tests-and-fixtures)
+lists the tests that check it.

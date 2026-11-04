@@ -139,8 +139,7 @@ Safety checks:
 
 - rule out reflection, string dispatch, interfaces, plugins, build tags, generated callers, and external packages;
 - search source, shell, workflows, docs, skills, and tests;
-- exclude historical release material only when the removal checker documents that policy;
-- keep any remaining hit blocking unless an explicit exclusion is justified in the summary;
+- the checker already excludes `CHANGELOG.md`, `docs/releases/**`, `.agents/**`, `worktrees/**` and `.worktrees/**`; keep any remaining hit blocking, and add no `--exclude` without justifying it in the summary;
 - an alias, adapter or old field that only bridges a shape from earlier in the current unmerged work is not a public interface when the base branch and every release lack that shape and no dependent branch or stored data uses it. Remove it when every caller update fits the scope; otherwise report it. A shape that ever merged or shipped keeps its compatibility contract.
 
 ### Complexity

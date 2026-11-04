@@ -50,7 +50,7 @@ The user must provide (or will be prompted for):
    warning (<70%, increase bids or expand targeting or reallocate), underspend info (70-85%, monitor).
 8. **Pull efficiency metrics**: For each platform, retrieve CPA, ROAS, conversion volume, and cost per conversion
    so reallocation decisions are performance-informed, not just pacing-based.
-9. **Recommend reallocations**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/budget-optimizer.py"` with current spend
+9. **Recommend reallocations**: Execute `python "${CLAUDE_PLUGIN_ROOT}/scripts/budget-optimizer.py" --channels '[{"name":"google_ads","spend":10000,"conversions":120,"revenue":42000}]' --total-budget {amount}` (each channel needs spend, conversions and revenue) with current spend
    efficiency data to suggest specific dollar-amount shifts from underspending or low-efficiency platforms to
    high-performing ones with room to scale. Include rationale for each recommended move.
 10. **Save budget snapshot**: Persist the current pacing snapshot via

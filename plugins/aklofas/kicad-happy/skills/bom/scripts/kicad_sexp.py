@@ -43,6 +43,33 @@ def find_matching_paren(text: str, start: int) -> int:
     return i - 1
 
 
+def iter_placed_symbol_blocks(text: str) -> list[tuple[int, int, str]]:
+    """Find all placed symbol blocks (not lib_symbols) in a .kicad_sch file.
+
+    Returns list of (start_pos, end_pos, block_text) tuples, in file order.
+    """
+    symbols = []
+
+    # Find end of lib_symbols section to skip it
+    lib_match = re.search(r'\(lib_symbols\b', text)
+    search_start = 0
+    if lib_match:
+        lib_end = find_matching_paren(text, lib_match.start())
+        search_start = lib_end + 1
+
+    # Placed symbols have (lib_id ...) as first child; lib symbols have a
+    # quoted name string instead. We look for the pattern:
+    #   (symbol\n\t\t(lib_id   or   (symbol (lib_id
+    pattern = re.compile(r'\(symbol\s*\n?\s*\(lib_id\s+')
+    for match in pattern.finditer(text, search_start):
+        sym_start = match.start()
+        sym_end = find_matching_paren(text, sym_start)
+        block = text[sym_start:sym_end + 1]
+        symbols.append((sym_start, sym_end, block))
+
+    return symbols
+
+
 def escape_kicad_string(s: str) -> str:
     """Escape a string for use in a KiCad S-expression property value."""
     return s.replace('\\', '\\\\').replace('"', '\\"')

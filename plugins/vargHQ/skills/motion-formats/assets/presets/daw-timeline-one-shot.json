@@ -1,0 +1,95 @@
+{
+  "id": "daw-timeline-one-shot",
+  "name": "DAW timeline one-shot",
+  "use": "One continuous camera move over a mock music-app arrangement view; a bracket tracker locks onto every clip the playhead hits on the beat, the drop pulls back to the whole arrangement.",
+  "formats": ["16:9", "9:16"],
+  "duration_s": 30,
+  "notes": "Generic DAW mockup only; DAW names and trademarks belong to their owners. Do not name or use a real artist's track without rights.",
+  "fonts": [
+    { "family": "Inter", "weights": [600, 800], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/Inter" },
+    { "family": "JetBrains Mono", "weights": [500], "license": "OFL-1.1", "url": "https://fonts.google.com/specimen/JetBrains+Mono" }
+  ],
+  "beat_math": {
+    "beat_s": "60 / BPM",
+    "bar_s": "4 * 60 / BPM (4/4)",
+    "example_140bpm": { "beat_s": 0.4286, "beat_frames_30fps": 12.86, "beat_frames_60fps": 25.71, "bar_s": 1.714, "beats_in_30s": 70 },
+    "rule": "event_t = t0 + n * beat_s from the beat index (or audiomap beats_sec); never accumulate rounded frames"
+  },
+  "presets": [
+    {
+      "id": "daw-timeline-one-shot.follow-cam",
+      "label": "Follow cam",
+      "look": "Dark arrangement view, camera rides the playhead at 1.6x, bracket lock-on on every beat, punch on phrase downbeats.",
+      "params": {
+        "fps": 60,
+        "px_per_beat_at_1x": 96,
+        "camera_zoom": 1.6,
+        "playhead_screen_x": "38% of frame width",
+        "lockon": { "bracket_arm_px": 18, "stroke_px": 3, "snap_from_scale": 1.4, "snap_frames": 2, "snap_ease": "expo.out", "hold_beats": 0.75, "fade_out_frames": 4, "lead_frames": 1 },
+        "downbeat_punch": { "every_bars": 4, "scale_from": 1.0, "scale_peak": 1.12, "in_frames": 2, "settle_s": 1.2, "ease": "cubic-bezier(.25,0,.11,1)" },
+        "motion_blur": { "subframes": 4, "applies_to": ["camera pan", "camera zoom"] },
+        "colors": { "bg": "#121214", "lane_a": "#18181B", "lane_b": "#1C1C20", "grid_bar": "#2A2A30", "grid_beat": "#202026", "playhead": "#FFFFFF", "clips": ["#FF5A5F", "#FFB020", "#4ADE80", "#38BDF8", "#A78BFA", "#F472B6"] },
+        "type": { "track_name": "Inter 600 16px@1x", "ruler": "JetBrains Mono 500 13px@1x", "title": "Inter 800 6.5% of frame height" }
+      },
+      "sources": [101, 105, 106, 107, 108, 109]
+    },
+    {
+      "id": "daw-timeline-one-shot.drop-reveal",
+      "label": "Build and drop reveal",
+      "look": "Tight follow through the build, riser zoom-in, whip pull-back to the full arrangement exactly on the drop.",
+      "params": {
+        "build_zoom": 2.4,
+        "riser_zoom": { "from": 2.4, "to": 3.0, "over_bars": 2, "ease": "power2.in" },
+        "drop": { "pull_to_zoom": 1.0, "pull_s": 0.3, "flash": { "frames": 1, "color": "#FFFFFF", "opacity": 0.35 }, "all_clips_pulse": { "brightness": 1.35, "decay_s": 0.4 }, "shake_px": 3, "shake_decay_s": 0.35 },
+        "lead_frames_on_transients": 1,
+        "seam_if_needed": { "type": "whip pan", "frames": 5, "blur": true }
+      },
+      "sources": [104, 106, 107, 108]
+    },
+    {
+      "id": "daw-timeline-one-shot.vertical-follow",
+      "label": "Vertical follow",
+      "look": "9:16 crop of the same composition: tighter follow cam, playhead centered.",
+      "params": {
+        "canvas": "1080x1920",
+        "camera_zoom": 2.2,
+        "playhead_screen_x": "50%",
+        "lane_height_px": 92,
+        "safe_zone": { "top": "12%", "bottom": "20%", "sides": "6%" },
+        "caption": "Inter 800, 5.5% of frame height, above the bottom safe band"
+      },
+      "sources": [103, 109]
+    },
+    {
+      "id": "daw-timeline-one-shot.light-studio",
+      "label": "Light studio",
+      "look": "Light-theme timeline for brand or education posts.",
+      "params": {
+        "colors": { "bg": "#F4F4F2", "lane_a": "#ECECEA", "lane_b": "#E6E6E3", "grid_bar": "#CFCFCB", "playhead": "#FF3B30", "label": "#1A1A1A" },
+        "clip_saturation": "70%",
+        "camera_zoom": 1.4,
+        "focused_settle_frames": 12
+      },
+      "sources": [101, 109]
+    }
+  ],
+  "structure_30s_140bpm": [
+    { "bars": "1-2", "t": [0.0, 3.43], "beat": "establish", "camera": "1.0x wide, playhead enters, title in empty lane" },
+    { "bars": "3-6", "t": [3.43, 10.29], "beat": "drums", "camera": "push to 1.6x, follow, lock-ons on kick/snare clips" },
+    { "bars": "7-8", "t": [10.29, 13.71], "beat": "build", "camera": "1.6x to 3.0x, lock every 8th" },
+    { "bars": "9", "t": [13.71, 13.71], "beat": "drop", "camera": "0.3 s pull to 1.0x, flash, all clips light" },
+    { "bars": "9-14", "t": [13.71, 24.0], "beat": "groove", "camera": "follow 1.6x, punch every 4 bars, pan to melody lane" },
+    { "bars": "15-17.5", "t": [24.0, 30.0], "beat": "outro", "camera": "push to 1.2x, playhead stops on last clip, title lock-on, hold 1.0 s" }
+  ],
+  "sources": [
+    { "n": 101, "name": "Ableton Live Reference Manual — Arrangement View", "url": "https://www.ableton.com/en/manual/arrangement-view/" },
+    { "n": 102, "name": "Ableton Learning Music — Tempo and genre", "url": "https://learningmusic.ableton.com/make-beats/tempo-and-genre.html" },
+    { "n": 103, "name": "Simon Gilbert, RouteNote — video content for beatmakers", "url": "https://create.routenote.com/blog/5-ways-video-content-creation-can-boost-your-beatmaking-potential/" },
+    { "n": 104, "name": "No Film School / Fandor — The art of the artificial long take", "url": "https://nofilmschool.com/2017/05/watch-art-artificial-long-take" },
+    { "n": 105, "name": "No Film School on Tony Zhou — The Spielberg Oner", "url": "https://nofilmschool.com/2014/05/study-steven-spielbergs-cinematography-help-you-master-long-take" },
+    { "n": 106, "name": "EOSHD forum — Editing (Hans Zimmer on cutting a frame ahead / 6–12 frames late)", "url": "https://www.eoshd.com/comments/topic/46696-editing/" },
+    { "n": 107, "name": "@twoclipping on X — one-take launch film prompt", "url": "https://x.com/twoclipping/status/2103835273813496100" },
+    { "n": 108, "name": "@RajAdonis on X — motion settings", "url": "https://x.com/RajAdonis/status/2113906813020344579" },
+    { "n": 109, "name": "Screen Studio guide — Animations", "url": "https://screen.studio/guide/animations" }
+  ]
+}

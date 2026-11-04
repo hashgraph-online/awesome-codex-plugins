@@ -1,0 +1,421 @@
+# .multi-llm/providers.yaml — per-project provider/model selection override
+# =============================================================================
+# This file is OPTIONAL. When absent, multi-llm uses its built-in defaults and
+# behaves exactly as it would without it. It lets THIS repository pick which
+# providers/models the multi-llm skill selects, without editing the installed
+# plugin (which is global and gets clobbered on update).
+#
+# It lives at:   <git-root>/.multi-llm/providers.yaml
+# Scaffold it:   use the `--init` flag (see `docs/configuration.md` in the
+#                repository), or run init_config.py directly.
+#
+# ----------------------------------------------------------------------------
+# HOW `--init` BUILDS THIS FILE (auto-detect, zero prompts)
+# ----------------------------------------------------------------------------
+# `--init` scans PATH for the supported provider CLIs and UNCOMMENTS the lines
+# belonging to the ones it finds — the matching `providers:` sub-blocks, the
+# `defaults.models` / `quick_models` entries for detected providers, and
+# `default_provider`. Undetected providers stay commented. There are NO prompts
+# and NO model-listing subprocess calls. Re-run `--init --force` to refresh the
+# detection (e.g. after installing a CLI or updating the plugin).
+#
+# ----------------------------------------------------------------------------
+# HOW MERGING WORKS (read this before editing)
+# ----------------------------------------------------------------------------
+# Your file is deep-merged ON TOP OF the built-in base config:
+#   base providers.yaml  →  THIS file  →  MULTI_LLM_PROVIDERS_CONFIG (if set)
+#
+#  * Only set what you want to change. Everything you omit is INHERITED.
+#  * LISTS REPLACE, THEY DO NOT APPEND. If you set `defaults.models`, you get
+#    EXACTLY that list — the base list is discarded, not extended.
+#  * Nested dicts (maps) deep-merge; only list/scalar VALUES replace wholesale.
+#
+# ----------------------------------------------------------------------------
+# BLANK vs. CLEAR vs. OMIT (the three states of a key)
+# ----------------------------------------------------------------------------
+#  * OMIT a key entirely        → inherit the base value.
+#  * Leave a key BLANK / null   → ALSO inherit the base value (a blank value is
+#       e.g.  `models:`            skipped, NOT treated as "clear"). Uncommenting
+#                                  a key but leaving it empty is therefore inert.
+#  * Set an EXPLICIT EMPTY LIST  → deliberately WIPE OUT the inherited list.
+#       e.g.  `quick_models: []`   `quick_models: []` means "use NO quick models
+#                                  here" — under --quick that ERRORS; an empty
+#                                  `defaults.models` falls back to interactive
+#                                  selection (and fails in unattended runs).
+#                                  `[]` is a FOOTGUN, not a no-op — use only when
+#                                  you truly mean "none".
+#
+# You CANNOT unset an inherited SCALAR back to "absent": you can overwrite it
+# with a new value, but `key:` (blank) just keeps the base. There is no deletion
+# sentinel. Likewise you cannot PRUNE an inherited `defaults.modes.<mode>` entry
+# (only overwrite its list, e.g. `<mode>: []`) — see the modes note below.
+#
+# ----------------------------------------------------------------------------
+# TRUST MODEL — provider definitions DO merge, but no layer picks the binary
+# ----------------------------------------------------------------------------
+# An UNCOMMENTED `providers:` block here deep-merges OVER the base, exactly like
+# the MULTI_LLM_PROVIDERS_CONFIG env layer: `default_timeout`, `max_concurrent`
+# and each `models:` list all take effect (lists replace). Those are the only
+# provider keys that DO anything — a key the base does not declare merges and is
+# then ignored, so writing one is a no-op, not a setting.
+#  * `models:` IS THE `--interactive` PICKER'S MENU, NOT AN ALLOWLIST: a model
+#    named directly in `defaults.models` / `defaults.quick_models` /
+#    `defaults.modes.<mode>` (or on `--models`) is DISPATCHED whether or not it
+#    appears in this provider's `models:` list — pruning a model here only
+#    removes it from the interactive picker.
+# `--init` writes a full block for each detected provider so the file is a
+# complete, self-describing snapshot.
+#  * NO layer can choose the BINARY. Provider binaries are hardcoded in the
+#    plugin (utils/providers/); a `command:` value in ANY layer merges as inert
+#    metadata and can never make the tool run a different program. (The base
+#    config no longer declares one — it had zero readers.)
+#  * A provider name with no hardcoded adapter (e.g. one a newer plugin removed
+#    or renamed) still merges but is IGNORED at runtime — it lists no models and
+#    can never be selected.
+#  * DRIFT: a copied block pins base's scalar/model values AT INIT TIME and the
+#    SET of provider keys to whatever the plugin shipped then. Re-run
+#    `--init --force` after a plugin update to refresh pinned metadata AND prune
+#    providers the new base dropped.
+#  * NO LAYER SETS ENVIRONMENT FOR A PROVIDER, so there is no `env:` key here —
+#    not even a commented one. Endpoint/credential wiring (e.g. pointing
+#    claude-code at GLM/Z.ai or at OpenRouter) is SHELL configuration this plugin
+#    neither owns nor validates. An `env:` block written here would merge and
+#    then be ignored — it would fail SILENTLY, which is worse than not existing.
+#    The recipes live in `docs/providers.md` in the repository, under "Pointing a
+#    provider CLI at a different endpoint".
+#
+# ----------------------------------------------------------------------------
+# ONE OVERRIDE PER REPO
+# ----------------------------------------------------------------------------
+# Discovery anchors at the git ROOT, so a repository has exactly ONE
+# .multi-llm/providers.yaml shared repo-wide. A monorepo CANNOT set per-package
+# or per-subdirectory defaults via auto-discovery — use MULTI_LLM_PROVIDERS_CONFIG
+# per-invocation for that. There are no per-plan or per-subdirectory overrides.
+#
+# ----------------------------------------------------------------------------
+# MODE SHADOWING — these globals do NOT cover modes that set their own list
+# ----------------------------------------------------------------------------
+# The `default_provider` / `defaults.models` / `defaults.quick_models` in the
+# managed block below are GLOBAL defaults. They apply to a mode (review-plan,
+# code-review, review-tasks, ask) ONLY when that mode has no
+# `defaults.modes.<mode>` entry here or in an inherited layer — a mode-specific
+# list still WINS for that mode. `--init` sets only these globals; to change a
+# specific mode, add a `defaults.modes.<mode>` block here yourself (see the modes
+# example below).
+# =============================================================================
+
+
+# <<< multi-llm:init-managed >>>
+## Everything BETWEEN these two markers is the SELECTION block, REGENERATED on
+## every `--init --force` (it re-detects installed CLIs and re-uncomments their
+## lines). Everything OUTSIDE the markers — the comments above and below — is
+## preserved verbatim across a re-init; put any hand-maintained keys there.
+## Hand-edits INSIDE the markers are overwritten by the next `--init --force`.
+
+## --- providers --------------------------------------------------------------
+## Full provider definitions. `--init` uncomments the block for each DETECTED
+## CLI; an uncommented block deep-merges OVER the base (lists replace).
+## No key here picks a binary — provider binaries are hardcoded in the plugin.
+# providers:
+#   claude-code:
+#     default_timeout: 1800
+#     max_concurrent: 2
+#     models:
+#       - sonnet
+#       - opus
+#       - fable
+#       - haiku
+#       - claude-sonnet-5-5
+#       - claude-opus-5-5
+#       - claude-fable-5-1
+#       - claude-haiku-5-5
+#     fallback_models: {}
+#     strip_vendor_keys: auto
+#     vendor_backend: auto
+
+#   cursor-agent:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     isolate_profile: auto
+#     models:
+#       - auto
+#       - composer-2.5
+#       - gpt-5.6-sol-xhigh
+#       - gpt-5.6-terra-xhigh
+#       - gpt-5.6-luna-high
+#       - gemini-4-argon-high
+#       - gemini-3.8-flash-high
+#       - kimi-k3-high
+#       - kimi-k3-max
+#       - glm-5.2-high
+#       - glm-5.2-max
+#       - grok-4.7-high
+#       - claude-sonnet-5-5-xhigh
+#       - claude-opus-5-5-xhigh
+#       - claude-fable-5-1-high
+#       - claude-haiku-5-5-thinking-high
+#       - muse-wonder-1.0-xhigh
+#       - muse-spark-1.3-xhigh
+
+#   gemini:
+#     default_timeout: 1200
+#     models:
+#       - gemini-4-argon
+#       - gemini-3.8-flash
+#       - gemini-3.5-flash-lite
+#       - gemini-flash-latest
+
+#   grok:
+#     default_timeout: 1200
+#     models:
+#       - grok-4.6:high
+
+#   fx:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     models:
+#       - openai/gpt-6-luna
+
+#   opencode:
+#     default_timeout: 1200
+#     max_version_exclusive: 
+#     hermetic: on
+#     models:
+#       - opencode/big-pickle
+#       - opencode/nemotron-3-ultra-free
+#       - google/gemini-4-argon
+#       - openai/gpt-6.1-sol
+#       - openai/gpt-6-astra
+#       - openrouter/deepseek/deepseek-v4.1-flash-1017
+
+#   codex:
+#     default_timeout: 1800
+#     models:
+#       - gpt-6.1-sol
+#       - gpt-6.1-sol:xhigh
+#       - gpt-6-astra
+#       - gpt-6-astra:xhigh
+#       - gpt-6-luna
+#     sandbox_fallback: auto
+
+#   kilocode:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     models:
+#       - openrouter/moonshotai/kimi-k3:max
+#       - openrouter/nvidia/nemotron-3-ultra-550b-a55b
+#       - openrouter/z-ai/glm-5.3:max
+#       - kilo/z-ai/glm-5.3
+#       - openrouter/minimax/minimax-m3.1-flash
+#       - openrouter/x-ai/grok-4.7
+#       - openrouter/arcee-ai/trinity-large-thinking
+#       - openrouter/xiaomi/mimo-v2.6-pro
+#       - openrouter/qwen/qwen3.8-max-0902:xhigh
+#       - openrouter/tencent/hy4-preview:high
+#       - openrouter/stepfun/step-5-preview:high
+#       - openrouter/openai/gpt-6-astra-pro
+#       - openai/gpt-6-astra
+#       - openrouter/nex-agi/nex-n2.5-pro
+#       - openrouter/google/gemini-3.8-flash
+#       - openrouter/google/gemini-4-argon
+#       - google/gemini-4-argon
+#       - openrouter/deepseek/deepseek-v4-pro-0813
+#       - openrouter/anthropic/claude-sonnet-5.5
+#       - openrouter/anthropic/claude-fable-5.1
+
+#   cline:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     models:
+#       - openrouter/z-ai/glm-5.3
+#       - openrouter/moonshotai/kimi-k3
+#       - openrouter/openai/gpt-6-astra
+
+#   goose:
+#     default_timeout: 1200
+#     models:
+#       - openrouter/z-ai/glm-5.3
+#       - openrouter/moonshotai/kimi-k3
+#       - openrouter/openai/gpt-6-astra
+
+#   aider:
+#     default_timeout: 1200
+#     models:
+#       - openrouter/z-ai/glm-5.3
+#       - openrouter/moonshotai/kimi-k3
+#       - openrouter/openai/gpt-6-astra
+
+#   agy:
+#     default_timeout: 1200
+#     models:
+#       - Gemini 4 Argon (High)
+#       - Gemini 4 Argon (Medium)
+#       - Gemini 4 Argon (Low)
+#       - Gemini 3.8 Flash (High)
+#       - Gemini 3.8 Flash (Medium)
+#       - Gemini 3.8 Flash (Low)
+#       - Claude Opus 5.5 (High)
+#       - Claude Opus 5.5 (Medium)
+#       - Claude Opus 5.5 (Low)
+#       - Claude Sonnet 5.5 (High)
+#       - Claude Sonnet 5.5 (Medium)
+#       - Claude Sonnet 5.5 (Low)
+#       - GPT-OSS 120B (Medium)
+
+#   muse:
+#     default_timeout: 1800
+#     models:
+#       - muse-wonder-1.0
+#       - muse-wonder-1.0:xhigh
+#       - muse-wonder-full-1.0
+#       - muse-spark-1.3
+#       - muse-spark-1.3:xhigh
+
+#   pi:
+#     default_timeout: 1200
+#     models:
+#       - openrouter/z-ai/glm-5.3
+#       - openrouter/moonshotai/kimi-k3
+#       - openrouter/openai/gpt-6-astra
+
+#   kimi:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     models:
+#       - moonshotai/kimi-k3
+
+#   qwen-code:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     models:
+#       - qwen/qwen3.8-27b
+#       - qwen/qwen3.8-max-0902
+
+#   copilot:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     models:
+#       - openai/gpt-6-luna
+
+#   vibe:
+#     default_timeout: 1200
+#     max_concurrent: 2
+#     models:
+#       - openai/gpt-6-luna
+
+#   omp:
+#     default_timeout: 1200
+#     models:
+#       - openrouter/openai/gpt-6-luna
+#       - openrouter/z-ai/glm-5.3
+#       - openrouter/moonshotai/kimi-k3
+#       - openrouter/openai/gpt-6-astra
+
+## --- default_provider -------------------------------------------------------
+## Provider used when a model spec has no `provider:` prefix (e.g. bare `opus`).
+## `--init` sets it to the first detected provider; left commented when nothing
+## is detected (inherits the base default).
+# default_provider: cursor-agent
+
+## --- driver -----------------------------------------------------------------
+## How `--exec-subagents` dispatches materialized subagent prompts. Only
+## consulted when the Python executor is the invoker — a host with native
+## subagents (Claude Code, Cursor) never reads these on a default run, because
+## the key configures the EXECUTOR's runner, not the session's model.
+## NOT written by `--init`: uncomment a line to override it. The block merges
+## key-by-key (set one field, inherit the rest), a BLANK value keeps the base,
+## and an unknown key under `driver:` is REJECTED at load time rather than
+## silently ignored. In a repo driven from several hosts, leaving
+## `subagent_runner` unset is the healthy arrangement: each host then resolves
+## its own CLI instead of one host's choice being pinned for all of them.
+## `verify_command` is the exception worth setting per project: it is THIS
+## repo's own check (`pnpm typecheck && pnpm lint:fix`, `cargo check`, `make
+## test`), run once after a code-editing phase applied its batches. Left unset
+## the phase says so in one line rather than completing unchecked; a non-zero
+## exit rolls nothing back and ends the phase at exit 3.
+# driver:
+#   subagent_runner: claude-code:sonnet
+#   subagent_runner_cheap: claude-code:haiku
+#   max_concurrent_subagents: 4
+#   max_concurrent_write_subagents: 1
+#   subagent_timeout_s: null
+#   subagent_retries: 1
+#   verify_command: null
+#   verify_timeout_s: 600
+#   write_paths:
+#     allow:
+#       - '**'
+#     deny:
+#       - .git/**
+#       - .multi-llm/**
+#       - '**/.env'
+#       - '**/.env.*'
+#       - '**/*.pem'
+#       - '**/id_rsa*'
+#       - '**/.ssh/**'
+#       - '**/.aws/**'
+#       - '**/.npmrc'
+#       - '**/node_modules/**'
+
+## --- progress ---------------------------------------------------------------
+## How often a running fan-out says it is still alive. TWO knobs, because one
+## interval cannot serve two cadences: `interval_s` is the `[PROGRESS]` ticker's
+## stdout cadence (priced in log readability — a print and nothing else),
+## while `poll_s` is the host's poll cadence and the resolved `--wait` default
+## (priced in TOOL TURNS, one per poll). The run's `.status.json` is a third
+## cadence and is deliberately not configurable.
+## NOT written by `--init`: uncomment a line to override it. `interval_s: 0` is
+## the documented disable form — it silences the ticker LINES only, and the
+## status file still records every transition. `poll_s` has no disable form (`0`
+## is rejected) and is clamped under the host's shell cap. `progress:` is a
+## CLOSED key set: an unknown key is REJECTED at load time rather than silently
+## keeping the shipped cadence.
+# progress:
+#   interval_s: 30
+#   poll_s: 90
+
+
+## --- defaults ---------------------------------------------------------------
+defaults:
+
+  ## --- defaults.models ------------------------------------------------------
+  ## The model panel for normal (non-quick) runs. REPLACES the base list.
+  ## `--init` uncomments the candidates whose provider is detected; with none
+  ## uncommented the (blank) list inherits the base.
+  models:
+#     - cursor-agent:gemini-4-argon-high
+#     - cursor-agent:grok-4.7-high
+#     - opencode:openrouter/deepseek/deepseek-v4.1-flash-1017
+#     - kilocode:openrouter/moonshotai/kimi-k3:max
+#     - kilocode:openrouter/nvidia/nemotron-3-ultra-550b-a55b:high
+#     - kilocode:openrouter/z-ai/glm-5.3:max
+#     - kilocode:openrouter/minimax/minimax-m3.1-flash
+#     - kilocode:openrouter/xiaomi/mimo-v2.6-pro:high
+#     - kilocode:openrouter/qwen/qwen3.8-max-0902:xhigh
+#     - codex:gpt-6-astra:xhigh
+#     - claude-code:claude-fable-5-1:high
+
+  ## --- defaults.quick_models ------------------------------------------------
+  ## Lightweight subset used with --quick / -q. REPLACES the base list. Same
+  ## uncommenting rule as defaults.models.
+  quick_models:
+#     - cursor-agent:grok-4.7-high
+#     - codex:gpt-6-astra:xhigh
+#     - claude-code:claude-fable-5-1:high
+
+  ## --- defaults.modes -------------------------------------------------------
+  ## Per-mode overrides (NOT written by `--init`). A mode's `models` (and optional
+  ## `quick`) win over the globals above FOR THAT MODE. Authored with `##` so the
+  ## toggler never uncomments these example lines — copy one down by hand to use
+  ## it (and see the MODE SHADOWING note in the header).
+  ## modes:
+  ##   review-plan:
+  ##     models:
+  ##       - claude-code:opus
+  ##       - cursor-agent:gemini-3.1-pro
+  ##     quick:
+  ##       - claude-code:opus
+  ##   code-review:
+  ##     models:
+  ##       - cursor-agent:gpt-5.5-extra-high
+# <<< /multi-llm:init-managed >>>

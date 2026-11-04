@@ -17,7 +17,8 @@ description: >-
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Requires an SP-API MCP server exposing the Messaging API v1 operations, plus Orders to look up orders. Attachments also need the Uploads API createUploadDestinationForResource and a host shell (curl, openssl) to upload the file to the returned URL. The seller's app needs the Buyer Communication role. Without a server the skill can only draft and explain.
 metadata:
-  version: "0.2.1"
+  display-name: "Amazon SP Buyer Messaging"
+  version: "0.2.2"
 ---
 
 # Amazon buyer messaging

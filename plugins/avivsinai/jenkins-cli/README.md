@@ -132,8 +132,45 @@ jk run ls team/app/pipeline --filter result=SUCCESS --since 7d --limit 5 --json 
 jk run ls team/app/pipeline --include-queued   # include queued builds (shown as qN)
 jk run params team/app/pipeline                    # inspect inferred parameter metadata
 jk log team/app/pipeline 128 --follow              # stream logs until completion
+jk log team/app/pipeline 128 --tail 40 --plain      # last 40 lines of a completed console
+jk log team/app/pipeline 128 --grep '(?i)error|fail' --tail 20 --json # last 20 matching lines
 jk artifact download team/app/pipeline 128 -p "**/*.xml" -o out/
 ```
+
+### Source revisions in run output
+
+`run ls`, `run view`, and `search` prefer the job's `SCMRevisionAction`
+revision over shared-library checkouts. For GitHub pull requests built with a
+merge strategy, `commit` is the PR head, not Jenkins' synthetic merge commit.
+Branch and repository metadata are omitted when no current checkout can be
+matched to that revision; a matching branch name or historical checkout alone
+is insufficient. Controllers whose SCM revision exposes neither `hash` nor
+`pullHash` (including some Bitbucket/GitLab PR revisions) retain legacy checkout
+selection. A failed source-revision lookup is reported as an error.
+
+### Watch a commit's build
+
+```bash
+jk run watch team/app/main --commit <full-source-sha> --exit-status --timeout 20m
+jk run watch team/app/main --commit <full-source-sha> --json --timeout 20m
+```
+
+`run watch` scans retained build history in newest-first pages for an exact full
+40- or 64-character hexadecimal source SHA. If no build exists yet, it polls and
+shows queue reasons for the job without claiming that those queue entries belong
+to the commit. Once it finds a build, it pins that build number even if another
+build of the same commit starts later. Executor waits are correlated by the
+queue task's build URL, not by its display name.
+
+Progress goes to stderr and is printed only when the state changes; ETA-only
+changes are suppressed. JSON/YAML stdout contains one final result, including on
+timeout or cancellation. `--interval` defaults to `2s`; `--timeout 0` waits without
+a deadline. A timeout covers discovery and execution and exits 124; cancellation
+exits 130. With `--exit-status`, build results use the same codes as `run view`
+(SUCCESS 0, UNSTABLE 10, FAILURE 11, ABORTED 12, NOT_BUILT 13); an unknown terminal
+result exits 1. See the [watch output contract](docs/api.md#29-commit-watch-jk-run-watch---json).
+
+Log filters use Go regular expressions and apply `--grep` before `--tail`. They scan the complete console of a **completed** build; running builds and `--follow` cannot use these filters. Selected output is limited to 2 MiB: if the requested result does not fit, JSON/YAML reports `truncated: true` and `complete: false`. A line larger than 1 MiB fails explicitly. `--plain` keeps output free of headings and notices; use structured output when completeness matters.
 
 ### Jenkins SSO / Google OAuth
 
@@ -186,6 +223,33 @@ By default, `jk` stores API tokens in the OS keychain. `--allow-insecure-store` 
 
 For noninteractive file-backend use, set `JK_KEYRING_PASSPHRASE` before running `jk`; compatible fallback variables are `KEYRING_FILE_PASSWORD` and `KEYRING_PASSWORD`.
 
+### Headless authentication
+
+Set `JK_TOKEN` to supply the API token for the selected context without opening
+the keyring or storing the token. Context selection stays `--context` >
+`JK_CONTEXT` > active context. Empty environment variables are treated as unset.
+
+With no selected context, provide `JK_URL`, `JK_USER` (the Jenkins user ID) and
+`JK_TOKEN` together to use an ephemeral connection. For example, after your
+secrets manager supplies `JK_TOKEN`:
+
+```bash
+export JK_URL=https://jenkins.example.com
+export JK_USER=automation
+jk run ls team/app/main --json
+jk auth status
+```
+
+Nothing is written to config or the keyring. `auth status` reports
+`Credential source: environment` and never prints the token.
+
+`JK_URL` and `JK_USER` require the complete three-variable tuple. When a stored
+context is selected, those values must match its URL and user; they cannot
+silently redirect its credential to another controller. An explicitly selected
+missing context is an error. `JK_TOKEN` alone requires an existing selected
+context. Unset all three variables before `auth login` or `auth logout` to manage
+stored credentials; these commands do not persist or remove environment tokens.
+
 Structured `jk search` output already includes lightweight search metadata; `--with-meta` is only needed for `jk run ls` (`jk search` accepts it as a no-op for flag parity).
 
 Add `--json`, `--yaml`, or `--format json|yaml` to supported commands for machine-readable output. Use `--jq` or `--template` to select or reshape JSON results.
@@ -197,6 +261,18 @@ jk run view team/app/pipeline 128 --format json --jq '.result'
 # Custom formatting with Go templates
 jk run view team/app/pipeline 128 --format json --template 'Result={{.result}}'
 ```
+
+## Pipeline Stage and Step Logs
+
+With the optional [Pipeline Graph View plugin](https://plugins.jenkins.io/pipeline-graph-view/), inspect native Pipeline stages and labelled steps without parsing the combined console:
+
+```bash
+jk run steps team/app/main 128
+jk run steps team/app/main 128 --json
+jk log team/app/main 128 --step 23 --plain
+```
+
+Use the returned node IDs, since parallel branches and repeated labels can have the same name. `--step` accepts a stage or step ID and reads only that node's log, capped at 2 MiB. JSON/YAML includes `stepId`, `truncated` and `complete`; `complete` is false for an unfinished build or capped response. Step logs cannot currently be combined with `--follow`, `--tail` or `--grep`. An absent plugin or unsupported run produces an explicit capability error; ordinary console logs keep working without the plugin. These endpoints require only read access to the run.
 
 ## Job Commands
 
@@ -229,6 +305,22 @@ jk job configure platform/services/auth-relay --script-path services/auth-relay/
 # Trigger a multibranch rescan
 jk job scan platform/services/auth-relay
 ```
+
+## Test reports
+
+Inspect JUnit results with `jk test report <job> <build>` or show only failing
+cases with `jk test report <job> <build> --failed`. The filter includes both
+`FAILED` and `REGRESSION` cases and keeps aggregate counts for the whole report.
+Human case names and error details are single lines with control characters
+removed, capped at 160 and 1,024 Unicode characters respectively (plus an ellipsis).
+Add `--json` or `--yaml` for case failure details, full stack traces, `age` and
+`failedSince` when Jenkins supplies them.
+
+`jk run view <job> <build> --summary` includes at most five failed cases with
+their failure history and a short error detail. Names and details are bounded to
+160 and 240 Unicode characters respectively (plus an ellipsis when truncated);
+stack traces remain available through `test report --failed --json`. When
+Jenkins omits `totalCount`, totals are derived from pass, fail and skip counts.
 
 ## Documentation
 

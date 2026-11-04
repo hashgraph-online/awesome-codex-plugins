@@ -22,7 +22,9 @@ Only the latest release (see CHANGELOG.md) receives security fixes.
 ## Known limits
 - An agent that attaches a pseudo-terminal could in principle answer the approval prompt. Keep
   your agent's own permission prompts on for the two live-write commands.
-- Live Google and Meta write paths are covered by mocked tests; they have not been run against a
-  real ad account yet.
+- Live writes are covered by mocked tests. One real-account check has been done (28 Oct 2026, Meta): a budget
+  change on a paused, zero-spend campaign was refused on wrong approval text (exit 3, no change), applied with the
+  correct key (10 to 11), verified on Meta, reverted (11 to 10), and a 50% change was blocked by the 20% cap.
+  Not yet run on a real account: `live pause` and every Google Ads write.
 - The engine runs locally and sends no telemetry. `core/engine/agent_shim.py` is the only part that
   calls an LLM provider, and only when you configure a key.

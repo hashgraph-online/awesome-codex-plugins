@@ -1,0 +1,169 @@
+{
+  "id": "chromatic-aberration",
+  "name": "Chromatic aberration",
+  "use": "Split real footage's red, green and blue into a fringe that grows toward the frame edges (lens), across the frame (digital), or pulsing (psychedelic).",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 7,
+  "fonts": [],
+  "ffmpeg_note": "Chains target 1920x1080 at 30 fps: [0:v] is the footage, generated inputs are 1..n, output label [v]. For 9:16 swap 1920x1080 -> 1080x1920 in sizes and crops. Generated lavfi inputs never end, so always cap the output with -t <clip duration> (ffprobe format=duration). Encode with -c:v libx264 -crf 16 -preset slow -pix_fmt yuv420p and keep audio with -map '0:a?' -c:a copy.",
+  "presets": [
+    {
+      "id": "chromatic-aberration.lens-subtle",
+      "label": "Lens (subtle)",
+      "look": "Real-lens lateral CA: zero at centre, ~4 px red/blue fringe at the corners, invisible on faces.",
+      "params": {
+        "model": "radial (lateral) — scale R and B planes around the centre",
+        "radial_scale_a": 0.002,
+        "corner_offset_px_1080p": 4.4,
+        "edge_offset_px_1080p": 3.8,
+        "duration_s": "whole shot",
+        "animate": "static",
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp[s];[s]split=3[cr][cg][cb];[cr]extractplanes=r,scale=iw*1.0040:ih*1.0040:flags=bicubic,crop=1920:1080[caR];[cg]extractplanes=g,scale=iw*1.0020:ih*1.0020:flags=bicubic,crop=1920:1080[caG];[cb]extractplanes=b[caB];[caG][caB][caR]mergeplanes=0x001020:gbrp[ca];[ca]format=yuv420p[v]"
+        },
+        "remotion": "no radial mode in @remotion/effects chromaticAberration (linear only): use custom WebGL radial shader, offset 0.002 UV per channel",
+        "hyperframes": {
+          "data-color-grading": {
+            "effects": {
+              "chromaticAberration": 0.04,
+              "chromaticAngle": 0
+            }
+          }
+        }
+      },
+      "sources": [
+        11,
+        16,
+        1
+      ]
+    },
+    {
+      "id": "chromatic-aberration.radial-strong",
+      "label": "Radial (strong)",
+      "look": "Obvious rainbow fringe growing toward the edges; centre stays clean for the subject.",
+      "params": {
+        "model": "radial",
+        "radial_scale_a": 0.006,
+        "corner_offset_px_1080p": 13.2,
+        "keep_subject_within": "central 40% of the frame (offset there < 5 px)",
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp[s];[s]split=3[cr][cg][cb];[cr]extractplanes=r,scale=iw*1.0120:ih*1.0120:flags=bicubic,crop=1920:1080[caR];[cg]extractplanes=g,scale=iw*1.0060:ih*1.0060:flags=bicubic,crop=1920:1080[caG];[cb]extractplanes=b[caB];[caG][caB][caR]mergeplanes=0x001020:gbrp[ca];[ca]format=yuv420p[v]"
+        },
+        "glsl": "for 10 samples i in 0..1: uv_i = mix(uv, vec2(0.5), (i-0.5)*0.012); weight = vec3(i, 1-abs(2i-1), 1-i); accumulate color^2*weight, output sqrt(sum/weightSum)",
+        "hyperframes": {
+          "data-color-grading": {
+            "effects": {
+              "chromaticAberration": 0.12,
+              "chromaticAngle": 0
+            }
+          }
+        }
+      },
+      "sources": [
+        11,
+        16,
+        2
+      ]
+    },
+    {
+      "id": "chromatic-aberration.linear-split",
+      "label": "Linear RGB split",
+      "look": "Flat horizontal red/blue offset across the whole frame: graphic, digital, glitch-adjacent.",
+      "params": {
+        "model": "linear",
+        "red_shift_px": -6,
+        "blue_shift_px": 6,
+        "angle_deg": 0,
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,rgbashift=rh=-6:bh=6:edge=smear,format=yuv420p[v]"
+        },
+        "remotion": "chromaticAberration({amount: 6, angle: 0})",
+        "glsl_hack": "col.rgb += dFdx(col.rgb) * vec3(3, 0, -3);  // derivative trick, edges only",
+        "hyperframes": {
+          "data-color-grading": {
+            "effects": {
+              "chromaticAberration": 0.1,
+              "chromaticAngle": 0
+            }
+          }
+        }
+      },
+      "sources": [
+        1,
+        11,
+        27,
+        10
+      ]
+    },
+    {
+      "id": "chromatic-aberration.acid-trip",
+      "label": "Acid trip",
+      "look": "Breathing radial split (R and B pulse in opposite directions every 1.5 s) with trails and a slow hue cycle.",
+      "params": {
+        "model": "animated radial + temporal",
+        "r_scale": "1.012 + 0.012*sin(2*pi*t/1.5)",
+        "b_scale": "0.988 - 0.012*sin(2*pi*t/1.5)",
+        "corner_offset_px_1080p_peak": 53,
+        "pulse_period_s": 1.5,
+        "trail_decay": 0.82,
+        "hue_rotation_deg_per_s": 72,
+        "saturation": 1.25,
+        "max_shot_length_s": 4,
+        "ffmpeg": {
+          "inputs": [],
+          "filter_complex": "[0:v]format=gbrp,split=3[pr][pg][pb];[pr]extractplanes=r,perspective=x0='W/2-W/2/(1.012+0.012*sin(in*2*PI/45))':y0='H/2-H/2/(1.012+0.012*sin(in*2*PI/45))':x1='W/2+W/2/(1.012+0.012*sin(in*2*PI/45))':y1='H/2-H/2/(1.012+0.012*sin(in*2*PI/45))':x2='W/2-W/2/(1.012+0.012*sin(in*2*PI/45))':y2='H/2+H/2/(1.012+0.012*sin(in*2*PI/45))':x3='W/2+W/2/(1.012+0.012*sin(in*2*PI/45))':y3='H/2+H/2/(1.012+0.012*sin(in*2*PI/45))':eval=frame[aR];[pg]extractplanes=g[aG];[pb]extractplanes=b,perspective=x0='W/2-W/2/(0.988-0.012*sin(in*2*PI/45))':y0='H/2-H/2/(0.988-0.012*sin(in*2*PI/45))':x1='W/2+W/2/(0.988-0.012*sin(in*2*PI/45))':y1='H/2-H/2/(0.988-0.012*sin(in*2*PI/45))':x2='W/2-W/2/(0.988-0.012*sin(in*2*PI/45))':y2='H/2+H/2/(0.988-0.012*sin(in*2*PI/45))':x3='W/2+W/2/(0.988-0.012*sin(in*2*PI/45))':y3='H/2+H/2/(0.988-0.012*sin(in*2*PI/45))':eval=frame[aB];[aG][aB][aR]mergeplanes=0x001020:gbrp,lagfun=decay=0.82,format=yuv420p,hue=h='t*72':s=1.25[v]"
+        },
+        "note": "lagfun keeps the brighter of (current, previous*decay): bright trails only, which is the point."
+      },
+      "sources": [
+        11,
+        2,
+        10
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "Xor (@XorDev) — easy chromatic aberration hack",
+      "url": "https://x.com/XorDev/status/1831738521935360079"
+    },
+    {
+      "n": 2,
+      "name": "Xor (@XorDev) — types of blur shaders",
+      "url": "https://x.com/XorDev/status/1762944762787647954"
+    },
+    {
+      "n": 10,
+      "name": "FFmpeg Filters Documentation",
+      "url": "https://ffmpeg.org/ffmpeg-filters.html"
+    },
+    {
+      "n": 11,
+      "name": "Xor — GM Shaders Mini: Chromatic Aberration",
+      "url": "https://mini.gmshaders.com/p/gm-shaders-mini-chromatic-aberration"
+    },
+    {
+      "n": 16,
+      "name": "Wikipedia — Chromatic aberration",
+      "url": "https://en.wikipedia.org/wiki/Chromatic_aberration"
+    },
+    {
+      "n": 27,
+      "name": "Remotion — chromaticAberration()",
+      "url": "https://www.remotion.dev/docs/effects/chromatic-aberration"
+    },
+    {
+      "n": 29,
+      "name": "HyperFrames — media-treatment recipes",
+      "url": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/skills/media-use/references/media-treatment-recipes.md"
+    }
+  ]
+}

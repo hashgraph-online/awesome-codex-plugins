@@ -1,0 +1,29 @@
+---
+title: "Sign-in"
+---
+stateDiagram-v2
+  state Legend {
+    legend0: signed in
+    legend1: signed out
+    legend2: breaks NeverLocked
+    legend3: path to the NeverLocked bug
+  }
+  s0: Sign-in form
+  s1: Checking password
+  s2: Home page
+  s3: Account locked
+  [*] --> s0
+  s0 --> s1: submit password
+  s1 --> s0: password wrong #91;0 earlier failures#93; or password wrong #91;1 earlier failures#93; or password wrong #91;2 earlier failures#93;
+  s1 --> s2: password correct
+  s1 --> s3: too many failures
+  s2 --> s0: sign out
+  classDef breaks fill:#fde2e1,stroke:#c0392b,color:#7b1d14
+  class legend0 teal
+  class legend1 yellow
+  class legend2 breaks
+  class legend3 bugPath
+  class s2 teal
+  class s0,s1,s3 yellow
+  class s3 breaks
+  class s0,s1 bugPath

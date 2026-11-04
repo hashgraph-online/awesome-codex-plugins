@@ -26,9 +26,12 @@ The model resolution cascade:
 
 import json
 import os
-import re
+import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
+import _core_path  # noqa: F401
+from kicad_core.diagnostics import record
 from spice_part_library import lookup_part_specs
 from spice_model_generator import (
     generate_opamp_model,
@@ -39,30 +42,55 @@ from spice_model_generator import (
 )
 
 
+_PROCESS_CACHE_DIR = None  # per-process fallback root, created lazily
+
+
+def project_dir_from_analysis(analysis_json):
+    """Return the directory of the first source file the analysis JSON names
+    ("file", else inputs.source_files[0]), or None when it names none."""
+    if not isinstance(analysis_json, dict):
+        return None
+    source_file = analysis_json.get("file")
+    if not (isinstance(source_file, str) and source_file):
+        inputs = analysis_json.get("inputs")
+        sources = inputs.get("source_files") if isinstance(inputs, dict) else None
+        source_file = sources[0] if isinstance(sources, list) and sources else None
+    if isinstance(source_file, str) and source_file:
+        return Path(source_file).parent
+    return None
+
+
 def resolve_cache_dir(analysis_json, override_dir=None):
     """Determine the spice/models/ directory for this project.
 
-    Derives the project directory from the analyzer JSON's "file" field
-    (the source .kicad_sch path), then places spice/models/ alongside it.
+    Resolution, first match wins:
+        1. override_dir, when given
+        2. beside the first source file the analysis JSON names
+           ("file", or "inputs.source_files[0]")
+        3. one per-process temp directory, created on first use, so two
+           processes never share a manifest and no model leaks across projects
+
+    simulate_subcircuits passes its workdir as override_dir when the analysis
+    names no source file, so step 3 is reached only by other callers.
 
     Args:
-        analysis_json: Parsed analyzer JSON dict (needs "file" key)
+        analysis_json: Parsed analyzer JSON dict ("file" / "inputs" optional)
         override_dir: If set, use this directory instead of deriving
 
     Returns:
         Path to spice/models/ directory (may not exist yet)
     """
+    global _PROCESS_CACHE_DIR
     if override_dir:
         return Path(override_dir) / "spice" / "models"
 
-    source_file = analysis_json.get("file", "")
-    if source_file:
-        project_dir = Path(source_file).parent
+    project_dir = project_dir_from_analysis(analysis_json)
+    if project_dir is not None:
         return project_dir / "spice" / "models"
 
-    # Fallback: temp directory
-    import tempfile
-    return Path(tempfile.gettempdir()) / "kicad-happy-spice" / "models"
+    if _PROCESS_CACHE_DIR is None:
+        _PROCESS_CACHE_DIR = Path(tempfile.mkdtemp(prefix="kicad-happy-spice-"))
+    return _PROCESS_CACHE_DIR / "spice" / "models"
 
 
 # In-memory cache for manifest.json to avoid re-reading on every call.
@@ -169,9 +197,20 @@ def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
         "created": datetime.datetime.now().astimezone().isoformat(timespec='seconds'),
     }
 
+    # Write beside the target and swap it in, so a reader never sees a half-written manifest
     write_path = cache_dir / MANIFEST_FILENAME
-    with open(write_path, "w") as f:
-        json.dump(index, f, indent=2)
+    tmp = tempfile.NamedTemporaryFile(dir=cache_dir, prefix="manifest.", suffix=".tmp",
+                                      delete=False, mode="w", encoding="utf-8")
+    try:
+        with tmp:
+            json.dump(index, tmp, indent=2)
+        os.replace(tmp.name, write_path)
+    except BaseException:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+        raise
 
     # Remove legacy file after successful migration
     old_path = cache_dir / LEGACY_MANIFEST_FILENAME
@@ -210,12 +249,26 @@ _GENERATORS = {
 }
 
 
-def get_model_for_part(mpn, component_type=None, context=None):
+@dataclass(frozen=True)
+class ModelOptions:
+    """CLI-level model resolution options.
+
+    cache_dir: directory under which spice/models/ is read and written
+               (default: beside the first source file the analysis JSON names,
+               "file" or "inputs.source_files[0]")
+    offline:   never query distributor APIs or datasheets; cache + lookup table only
+    """
+    cache_dir: str | None = None
+    offline: bool = False
+
+
+def get_model_for_part(mpn, component_type=None, context=None, options=None, *, diagnostics=None):
     """Resolve a SPICE model for a component, using the full cascade.
 
     Resolution order:
         1. Project cache — previously resolved models (instant)
         2. Distributor API parametric data — LCSC, DigiKey, element14, Mouser
+           (skipped when options.offline)
         3. Structured datasheet extraction — from datasheets/extracted/ cache
         4. Heuristic PDF regex extraction — from datasheets/ PDFs
         5. Built-in lookup table — ~100 common parts with verified specs
@@ -229,6 +282,9 @@ def get_model_for_part(mpn, component_type=None, context=None):
         mpn: Manufacturer part number (from det["value"])
         component_type: Hint — "opamp", "ldo", "comparator", "vref"
         context: Analysis JSON dict (for cache dir and project dir)
+        options: Optional ModelOptions; cache_dir overrides the cache location,
+                 offline skips the API/datasheet tier (cache + lookup table only)
+        diagnostics: Optional list sink; a failed API/datasheet tier is recorded there
 
     Returns:
         (subckt_string, source_note, specs_or_None)
@@ -238,45 +294,52 @@ def get_model_for_part(mpn, component_type=None, context=None):
     if not mpn or len(mpn) < 2:
         return None, "ideal", None
 
+    opts = options or ModelOptions()
+    use_cache = bool(context or opts.cache_dir)
+
     # --- Tier 0: Project cache ---
-    if context:
-        cache_dir = resolve_cache_dir(context)
+    if use_cache:
+        cache_dir = resolve_cache_dir(context or {}, override_dir=opts.cache_dir)
         cached_subckt, cached_specs = get_cached_model(cache_dir, mpn)
         if cached_subckt:
             return cached_subckt, f"cache:{mpn}", cached_specs
 
     # --- Tier 1: Distributor API parametric specs ---
-    try:
-        from spice_spec_fetcher import fetch_specs
-        # Derive project dir from context for datasheet fallback
-        project_dir = None
-        if context:
-            source_file = context.get("file", "")
-            if source_file:
-                from pathlib import Path
-                project_dir = str(Path(source_file).parent)
+    if not opts.offline:
+        try:
+            from spice_spec_fetcher import fetch_specs
+            # Derive project dir from context for datasheet fallback
+            project_dir = project_dir_from_analysis(context)
+            if project_dir is not None:
+                project_dir = str(project_dir)
 
-        api_specs, api_source = fetch_specs(mpn, component_type, project_dir)
-        if api_specs:
-            # Determine component type from the specs we got
-            resolved_type = component_type
-            if not resolved_type:
-                if api_specs.get("gbw_hz"):
-                    resolved_type = "opamp"
-                elif api_specs.get("dropout_mv") or api_specs.get("iout_max_ma"):
-                    resolved_type = "ldo"
-            generator = _GENERATORS.get(resolved_type)
-            if generator:
-                subckt = generator(mpn, api_specs)
-                if context:
-                    cache_dir = resolve_cache_dir(context)
-                    cache_model(cache_dir, mpn, subckt, api_specs,
-                                api_source, resolved_type)
-                return subckt, f"{api_source}", api_specs
-    except ImportError:
-        pass  # spice_spec_fetcher not available
-    except Exception:
-        pass  # API/datasheet extraction failed — fall through
+            api_specs, api_source = fetch_specs(mpn, component_type, project_dir,
+                                                diagnostics=diagnostics)
+            if api_specs:
+                # Determine component type from the specs we got
+                resolved_type = component_type
+                if not resolved_type:
+                    if api_specs.get("gbw_hz"):
+                        resolved_type = "opamp"
+                    elif api_specs.get("dropout_mv") or api_specs.get("iout_max_ma"):
+                        resolved_type = "ldo"
+                generator = _GENERATORS.get(resolved_type)
+                if generator:
+                    subckt = generator(mpn, api_specs)
+                    if use_cache:
+                        cache_dir = resolve_cache_dir(context or {}, override_dir=opts.cache_dir)
+                        try:
+                            cache_model(cache_dir, mpn, subckt, api_specs,
+                                        api_source, resolved_type)
+                        except OSError as exc:
+                            record(diagnostics, "spice_model_cache.cache_model", exc,
+                                   "model not cached")
+                    return subckt, f"{api_source}", api_specs
+        except ImportError:
+            pass  # spice_spec_fetcher not available
+        except Exception as exc:  # API/datasheet extraction failed — fall through
+            record(diagnostics, "spice_model_cache.get_model_for_part", exc,
+                   f"API/datasheet model tier skipped for {mpn}")
 
     # --- Tier 2: Built-in lookup table (offline fallback) ---
     specs, resolved_type = lookup_part_specs(mpn, component_type)
@@ -284,9 +347,12 @@ def get_model_for_part(mpn, component_type=None, context=None):
         generator = _GENERATORS.get(resolved_type)
         if generator:
             subckt = generator(mpn, specs)
-            if context:
-                cache_dir = resolve_cache_dir(context)
-                cache_model(cache_dir, mpn, subckt, specs, "lookup", resolved_type)
+            if use_cache:
+                cache_dir = resolve_cache_dir(context or {}, override_dir=opts.cache_dir)
+                try:
+                    cache_model(cache_dir, mpn, subckt, specs, "lookup", resolved_type)
+                except OSError as exc:
+                    record(diagnostics, "spice_model_cache.cache_model", exc, "model not cached")
             return subckt, f"lookup:{mpn}", specs
 
     # --- Fallback: ideal model ---

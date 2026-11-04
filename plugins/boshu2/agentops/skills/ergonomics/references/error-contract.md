@@ -61,7 +61,8 @@ creating duplicates. Findings: channel (failure reported as success), what
 on side effects), unknown outcome (no way to check), code, context (no version
 or config).
 
-Repaired, exit 75, with the next step on the last line:
+Repaired, exit 75 (EX_TEMPFAIL: transient, but retry only after the status
+check), with the next step on the last line:
 
 ```text
 notes push: batch 41 (12 files) timed out after 30s while uploading to notes.example.net [PUSH_TIMEOUT]

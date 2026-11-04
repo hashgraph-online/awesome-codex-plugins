@@ -1,6 +1,7 @@
 # X (Twitter) scraper API & Twitter MCP server by Xquik
 
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13731/badge)](https://www.bestpractices.dev/projects/13731)
+[![Convex Component](https://www.convex.dev/components/badge/convex-xquik)](https://www.convex.dev/components/convex-xquik)
 
 <p align="center">
   <strong>English</strong> ·
@@ -244,8 +245,9 @@ Xquik omits unavailable optional fields. It never invents missing content.
 ## Package and MCP details
 
 `x-developer` v2.7.1 bundles Skills and plugin metadata. The hosted MCP server
-exposes `docs`, `search`, and `execute`. Current clients negotiate MCP protocol
-version `2026-07-28` through `server/discover`.
+exposes `docs`, `search`, `execute`, and `whoami`. `whoami` returns the connected
+Xquik account's `id`, which never changes. Current clients negotiate MCP
+protocol version `2026-07-28` through `server/discover`.
 
 The live OpenAPI spec documents every public REST operation. The `x-developer` package contains this Skill and plugin bundle. The separate `x-twitter-scraper` package is the TypeScript SDK.
 

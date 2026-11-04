@@ -9,7 +9,7 @@ Public API:
     Pin, AltFunction, Pinout — pinout types
     BaseBlock, Package, ComplianceMark, PinRelationship — base block types
     Regulator, StabilityConditions, Sequencing — regulator category
-    lookup — resolve MPN to DatasheetFacts (lazy re-export from scripts/)
+    lookup — resolve MPN to DatasheetFacts (cache_reader)
     best, trusted, has_data — trust-gating helpers (Track 2.4)
 
 Consumers import:
@@ -36,6 +36,7 @@ from .base_block import (
 from .regulator import Regulator, StabilityConditions, Sequencing
 from .extraction import DatasheetFacts, Source, ExtractionMeta, SchemaVersion
 from .trust_gating import best, trusted, has_data
+from .cache_reader import lookup
 
 __all__ = [
     "DatasheetFacts",
@@ -62,19 +63,3 @@ __all__ = [
     "has_data",
 ]
 
-
-# Lazy re-export of lookup() from the sibling scripts/ module. Kept lazy
-# so `import datasheet_types` does not require skills/datasheets/scripts/
-# on sys.path. Consumers that access datasheet_types.lookup get it on
-# first touch.
-def __getattr__(name: str):
-    if name == "lookup":
-        import sys
-        from pathlib import Path
-        scripts_dir = Path(__file__).resolve().parent.parent / "scripts"
-        if str(scripts_dir) not in sys.path:
-            sys.path.insert(0, str(scripts_dir))
-        from datasheet_lookup import lookup  # noqa: E402
-        globals()["lookup"] = lookup  # Cache so subsequent accesses skip __getattr__.
-        return lookup
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

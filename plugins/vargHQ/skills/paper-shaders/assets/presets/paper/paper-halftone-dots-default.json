@@ -1,0 +1,38 @@
+{
+  "id": "paper-halftone-dots-default",
+  "label": "Default (Paper HalftoneDots)",
+  "shader": "HalftoneDots",
+  "page": "https://shaders.paper.design/halftone-dots",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for HalftoneDots, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "cover",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#f2f1e8",
+    "colorFront": "#2b2b2b",
+    "size": 0.5,
+    "radius": 1.25,
+    "contrast": 0.4,
+    "originalColors": false,
+    "inverted": false,
+    "grainMixer": 0.2,
+    "grainOverlay": 0.2,
+    "grainSize": 0.5,
+    "grid": "hex",
+    "type": "gooey",
+    "image": ""
+  }
+}

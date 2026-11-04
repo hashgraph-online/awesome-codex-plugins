@@ -80,12 +80,12 @@ should appear in the slash command list.
 #### agy
 
 ```bash
-git clone https://github.com/villagesql/villagesql-skills.git ~/code/villagesql-skills
-mkdir -p ~/.gemini/antigravity-cli/plugins
-ln -s ~/code/villagesql-skills ~/.gemini/antigravity-cli/plugins/villagesql
+agy plugin install https://github.com/villagesql/villagesql-skills
 ```
 
-agy reads `plugin.json` and discovers skills from the `skills/` subdirectory.
+agy reads `plugin.json`, discovers skills from the `skills/` subdirectory, and
+adds the VillageSQL docs MCP server from `mcp_config.json`. Check it with
+`agy plugin list`.
 
 #### OpenCode
 

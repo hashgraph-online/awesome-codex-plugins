@@ -134,7 +134,7 @@ No need to re-prove an unchanged healthy runner on each edit.
    tests call (a time, randomness or external-boundary seam excepted), mock no
    collaborator inside the unit, and move to the interface any test you write
    here that a behavior-preserving rewrite would break; list existing ones under
-   `not_checked` as rewrite candidates ([suite audit](references/suite-audit.md)).
+   `rewrite` ([suite audit](references/suite-audit.md)).
    In `tdd` mode run it before implementation and require the expected
    missing-behavior failure, then implement and refactor under green, one test
    at a time, each next case chosen from what the last cycle showed.
@@ -172,6 +172,7 @@ commands:    <exact command> -> <result>
 harness:     <runner completed; how many ran; skips or exclusions>
 coverage:    <before -> after, command> (coverage mode only)
 defects:     <discovered defect and reproducer, or none>
+rewrite:     <existing test a behavior-preserving change would break>
 not_checked: <material behavior no test covers>
 ```
 

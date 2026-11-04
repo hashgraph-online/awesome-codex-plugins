@@ -1,0 +1,155 @@
+{
+  "id": "acid-photocopy",
+  "name": "Acid photocopy",
+  "use": "Turn real footage into a stuttering two-ink photocopy (teal, red, cream) or a black-toner zine copy on scanned paper.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1",
+    "4:5"
+  ],
+  "duration_s": 8,
+  "fonts": [
+    {
+      "family": "Archivo Black",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Archivo+Black"
+    }
+  ],
+  "ffmpeg_note": "Chains target 1920x1080 at 30 fps: [0:v] is the footage, generated inputs are 1..n, output label [v]. For 9:16 swap 1920x1080 -> 1080x1920 in sizes and crops. Generated lavfi inputs never end, so always cap the output with -t <clip duration> (ffprobe format=duration). Encode with -c:v libx264 -crf 16 -preset slow -pix_fmt yuv420p and keep audio with -map '0:a?' -c:a copy.",
+  "presets": [
+    {
+      "id": "acid-photocopy.stutter-flyer",
+      "label": "Stutter flyer",
+      "look": "8 fps stuttering two-ink copy: teal shadows, red mid-tones jumping out of register, cream scanned paper.",
+      "params": {
+        "hold_fps": 8,
+        "inks_hex": {
+          "teal": "#00838A",
+          "red": "#FF665E"
+        },
+        "paper_hex": "#F2EAD3",
+        "thresholds": "teal below the 25th percentile of luma, red below the 60th (measure with signalstats YLOW/YAVG/YHIGH; 70/140 on 8-bit for well-exposed footage)",
+        "toner_noise": 28,
+        "paper_noise_static": 14,
+        "misregistration_px": "±5 x, ±2.5 y, re-rolled every held frame (8 Hz)",
+        "contrast": 1.5,
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=0xF2EAD3:s=1920x1080:r=30,format=gbrp,noise=alls=14:allf=u,gblur=sigma=0.8,trim=end_frame=1,loop=-1:size=1"
+          ],
+          "filter_complex": "[0:v]fps=8,fps=30,format=gray,eq=contrast=1.5:brightness=0.04,noise=alls=28:allf=t+u,gblur=sigma=1.2,split=2[k1][k2];[k1]lutyuv=y='if(lt(val,70),0,255)',format=gbrp,lutrgb=r='if(lt(val,128),0x00,255)':g='if(lt(val,128),0x83,255)':b='if(lt(val,128),0x8A,255)'[ink1];[k2]lutyuv=y='if(lt(val,140),0,255)',format=gbrp,lutrgb=r='if(lt(val,128),0xFF,255)':g='if(lt(val,128),0x66,255)':b='if(lt(val,128),0x5E,255)',crop=w=iw-14:h=ih-14:x='7+0+10*((sin((floor(t*8))*12.9898)*43758.5453-floor(sin((floor(t*8))*12.9898)*43758.5453))-0.5)':y='7+0+5*((sin((floor(t*8))*12.9898)*43758.5453-floor(sin((floor(t*8))*12.9898)*43758.5453))-0.5)',pad=iw+14:ih+14:7:7:white[ink2];[ink2][ink1]blend=all_mode=multiply:shortest=1[ink];[ink][1:v]blend=all_mode=multiply:shortest=1,format=yuv420p[v]"
+        },
+        "hyperframes": {
+          "data-color-grading": {
+            "effects": {
+              "dither": 1,
+              "ditherSize": 0.3
+            },
+            "palette": [
+              "#00838A",
+              "#FF665E",
+              "#F2EAD3"
+            ]
+          },
+          "note": "or the fixed vermilion/teal Two-Ink Editorial Print: twoInkPrint 1, twoInkPrintSize 0.42; pre-render the 8 fps hold with ffmpeg"
+        },
+        "remotion": "<Freeze frame={Math.floor(frame / 4) * 4}> around <Video effects={[duotone({darkColor: '#00838A', lightColor: '#F2EAD3', threshold: 0.3})]}> plus a second red duotone layer at mix-blend-mode multiply, offset 5 px"
+      },
+      "sources": [
+        41,
+        42,
+        43,
+        29,
+        8
+      ]
+    },
+    {
+      "id": "acid-photocopy.still-print",
+      "label": "Still print",
+      "look": "Slow 2 fps print: finer toner, fixed 6 px misregistration, reads like a poster pinned to the wall.",
+      "params": {
+        "hold_fps": 2,
+        "inks_hex": {
+          "teal": "#00838A",
+          "red": "#FF665E"
+        },
+        "paper_hex": "#F2EAD3",
+        "toner_noise": 18,
+        "misregistration_px": "fixed 6 px right and down, no jitter",
+        "contrast": 1.4,
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=0xF2EAD3:s=1920x1080:r=30,format=gbrp,noise=alls=14:allf=u,gblur=sigma=0.8,trim=end_frame=1,loop=-1:size=1"
+          ],
+          "filter_complex": "[0:v]fps=2,fps=30,format=gray,eq=contrast=1.4:brightness=0.04,noise=alls=18:allf=t+u,gblur=sigma=1.2,split=2[k1][k2];[k1]lutyuv=y='if(lt(val,70),0,255)',format=gbrp,lutrgb=r='if(lt(val,128),0x00,255)':g='if(lt(val,128),0x83,255)':b='if(lt(val,128),0x8A,255)'[ink1];[k2]lutyuv=y='if(lt(val,140),0,255)',format=gbrp,lutrgb=r='if(lt(val,128),0xFF,255)':g='if(lt(val,128),0x66,255)':b='if(lt(val,128),0x5E,255)',crop=w=iw-16:h=ih-16:x='8+6+0':y='8+6+0',pad=iw+16:ih+16:8:8:white[ink2];[ink2][ink1]blend=all_mode=multiply:shortest=1[ink];[ink][1:v]blend=all_mode=multiply:shortest=1,format=yuv420p[v]"
+        }
+      },
+      "sources": [
+        41,
+        43,
+        42
+      ]
+    },
+    {
+      "id": "acid-photocopy.mono-toner",
+      "label": "Mono toner",
+      "look": "Single black toner on off-white at 12 fps with vertical drum streaks; zine copy.",
+      "params": {
+        "hold_fps": 12,
+        "ink_hex": "#1A1A1A",
+        "paper_hex": "#EDE8DC",
+        "threshold": "45th percentile (110 on 8-bit)",
+        "toner_noise": 32,
+        "drum_streaks": "1 px vertical lines, 0-18% darkening, static",
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=0xEDE8DC:s=1920x1080:r=30,format=gbrp,noise=alls=14:allf=u,gblur=sigma=0.8,trim=end_frame=1,loop=-1:size=1",
+            "-f lavfi -i color=c=white:s=1920x1:r=30,format=gray,noise=alls=60:allf=u,scale=1920:1080:flags=neighbor,curves=all='0/0.82 1/1',format=gbrp,trim=end_frame=1,loop=-1:size=1"
+          ],
+          "filter_complex": "[0:v]fps=12,fps=30,format=gray,eq=contrast=1.6:brightness=0.04,noise=alls=32:allf=t+u,gblur=sigma=1.2,split=2[k1][k2];[k1]lutyuv=y='if(lt(val,110),0,255)',format=gbrp,lutrgb=r='if(lt(val,128),0x1A,255)':g='if(lt(val,128),0x1A,255)':b='if(lt(val,128),0x1A,255)'[ink1];[k2]nullsink;[ink1]null[ink];[ink][1:v]blend=all_mode=multiply:shortest=1[pp];[pp][2:v]blend=all_mode=multiply:shortest=1,format=yuv420p[v]"
+        }
+      },
+      "sources": [
+        41,
+        42,
+        4
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 4,
+      "name": "Xor (@XorDev) — dithering for stylization",
+      "url": "https://x.com/XorDev/status/1883915548502995174"
+    },
+    {
+      "n": 8,
+      "name": "Steve Yedlin (@steveyedlin) — grain and noise as texture, not defect",
+      "url": "https://x.com/steveyedlin/status/1610040392296337409"
+    },
+    {
+      "n": 29,
+      "name": "HyperFrames — media-treatment recipes (Two-Ink, Ordered Palette Dither)",
+      "url": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/skills/media-use/references/media-treatment-recipes.md"
+    },
+    {
+      "n": 41,
+      "name": "Monika Zagrobelna (Envato Tuts+) — How to create photocopy and xerox textures",
+      "url": "https://design.tutsplus.com/tutorials/how-to-create-photocopy-and-xerox-textures--cms-109034"
+    },
+    {
+      "n": 42,
+      "name": "Photoshop Roadmap — Colorful xerox photocopy effect",
+      "url": "https://www.photoshoproadmap.com/create-a-colorful-xerox-photocopy-effect-in-photoshop/"
+    },
+    {
+      "n": 43,
+      "name": "Matt DesLauriers — riso-colors (Riso inks from stencil.wiki)",
+      "url": "https://github.com/mattdesl/riso-colors"
+    }
+  ]
+}

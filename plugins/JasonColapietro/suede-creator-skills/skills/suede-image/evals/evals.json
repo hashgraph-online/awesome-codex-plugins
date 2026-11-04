@@ -1,0 +1,89 @@
+{
+  "skill_name": "suede-image",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need a hero image for a blog post about email deliverability. Make it visually striking.",
+      "expected_output": "Should check product context, propose a relevant visual metaphor, discover the currently callable image or design surface, and verify its current documentation, rights boundary, and maximum cost before generation. Should confirm dimensions from the actual site component and current preview requirements, provide a structured prompt, and offer a prompt/layout/export package if no renderer is callable without claiming an image was generated.",
+      "assertions": [
+        "Checks product context",
+        "Proposes a visual metaphor",
+        "Discovers a currently callable production surface",
+        "Verifies rights and cost",
+        "Confirms placement dimensions",
+        "Provides a truthful no-renderer fallback"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Generate me an image of our app's dashboard.",
+      "expected_output": "Should not generate a fictional product interface. Should request or capture the real authorized interface using a currently callable browser or local capture surface, preserve source truth, add deterministic annotations, and verify that no protected or personal data appears. If capture is unavailable, should ask for a supplied screenshot or provide exact manual capture instructions rather than inventing UI.",
+      "assertions": [
+        "Rejects fictional product UI",
+        "Uses a real authorized screenshot",
+        "Discovers callable capture tooling",
+        "Uses deterministic annotations",
+        "Checks protected data",
+        "Provides a truthful fallback"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Need a Twitter/X header banner for our company. We just want to show our product and tagline.",
+      "expected_output": "Should verify the platform's current official dimensions, cropping, safe zones, file limits, and formats with a source date. Should use real product imagery and exact deterministic tagline text, preserve approved brand assets, discover an authorized design surface, and test at actual display sizes. Should not hard-route an unverified vendor or remembered model capability.",
+      "assertions": [
+        "Verifies current official platform specs",
+        "Uses real product imagery",
+        "Uses deterministic exact text",
+        "Preserves approved brand assets",
+        "Discovers an authorized design surface",
+        "Tests at display size"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "I need 5 versions of the same hero image for Twitter, LinkedIn, Instagram feed, Instagram stories, and Facebook. What's the fastest way?",
+      "expected_output": "Should verify each platform's current official specifications, start from a high-quality approved source, discover a callable resize or template workflow, create crops per safe zone rather than blindly stretching, add exact text deterministically, and export only after review. Should treat remembered pixel values and named resize features as planning cues, not current guarantees.",
+      "assertions": [
+        "Verifies every current platform spec",
+        "Uses an approved source image",
+        "Discovers callable resize tooling",
+        "Crops per safe zone",
+        "Adds exact text deterministically",
+        "Avoids unverified vendor routing"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "What's the best image format for our website?",
+      "expected_output": "Should inspect the target browser matrix, transparency, animation, quality needs, and measured byte budget before selecting WebP, AVIF, JPEG, PNG, or SVG. Should recommend responsive dimensions, lazy loading where appropriate, explicit width and height, descriptive alt text, and visual/performance testing. Any command example should first check that the named local utility is installed.",
+      "assertions": [
+        "Inspects target browser and asset needs",
+        "Chooses format conditionally",
+        "Uses a measured byte budget",
+        "Mentions responsive sizing and lazy loading",
+        "Mentions explicit dimensions and alt text",
+        "Checks local utility availability"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "We're a SaaS that just launched. Need OG images for every blog post we ship — about 2 per week. Doing it manually is killing us.",
+      "expected_output": "Should inspect the current project framework, installed packages, runtime, existing metadata, and deployment path before recommending a programmatic image route. Should propose a deterministic branded template using post data, verify current social preview specifications, test rendered metadata and images, preserve approved assets, and avoid assuming a specific vendor package or external media service is installed or writable.",
+      "assertions": [
+        "Inspects the current project and runtime",
+        "Uses a deterministic template",
+        "Verifies current preview specifications",
+        "Tests rendered metadata and image",
+        "Preserves approved assets",
+        "Avoids unverified provider assumptions"
+      ],
+      "files": []
+    }
+  ]
+}

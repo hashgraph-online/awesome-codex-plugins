@@ -4,17 +4,17 @@
 
 | Version | Supported |
 |---------|-----------|
-| 3.x | Yes |
-| 2.x and earlier | No |
+| 5.x | Yes |
+| 4.x and earlier | No |
 
-Only the latest 3.x minor receives fixes. See [CHANGELOG.md](CHANGELOG.md) for the
+Only the latest 5.x minor receives fixes. See [CHANGELOG.md](CHANGELOG.md) for the
 current release.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Session Orchestrator, please report it responsibly.
+If you discover a security vulnerability in Session Orchestrator, please report it responsibly and privately.
 
-**Email:** [security@gotzendorfer.at](mailto:security@gotzendorfer.at)
+**Report it through GitHub Private Vulnerability Reporting:** [open a private report](https://github.com/Kanevry/session-orchestrator/security/advisories/new) (repository tab *Security* → *Report a vulnerability*). This is the only channel; please do not open a public issue for a vulnerability.
 
 Please include:
 - Description of the vulnerability
@@ -39,7 +39,7 @@ What it **does** touch:
   `CLANK_EVENT_SECRET` (event-bus bearer token), and `NPM_TOKEN` from a gitignored
   `.env.local` (publish flow only). It never persists them; `CLANK_EVENT_SECRET` is
   transmitted as a bearer token when the event bus is configured. See
-  [.env.example](.env.example).
+  `.env.example` in the source repository.
 - **Outbound network, all opt-in and off by default** — event-bus webhook POSTs
   (only when `CLANK_EVENT_URL` *and* `CLANK_EVENT_SECRET` are set), GitLab API
   baseline fetches (only with `GITLAB_TOKEN`), and anonymous usage telemetry

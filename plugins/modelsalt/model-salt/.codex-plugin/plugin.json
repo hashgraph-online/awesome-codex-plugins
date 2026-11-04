@@ -1,0 +1,41 @@
+{
+  "name": "model-salt",
+  "version": "1.0.0",
+  "description": "Varied results for creative requests that are still exactly what was asked: the model calls model_salt before a creative task and follows what it returns.",
+  "author": {
+    "name": "Chris Benjaminsen",
+    "url": "https://chrisbenjaminsen.com"
+  },
+  "homepage": "https://modelsalt.com",
+  "repository": "https://github.com/modelsalt/model-salt",
+  "license": "MIT",
+  "keywords": [
+    "creative",
+    "variety",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": {
+    "model-salt": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelsalt/model-salt",
+        "openai"
+      ],
+      "omit_tools_from": [
+        "deferred"
+      ]
+    }
+  },
+  "interface": {
+    "displayName": "Model Salt",
+    "shortDescription": "Varied, faithful results for creative requests",
+    "developerName": "Model Salt",
+    "websiteUrl": "https://modelsalt.com",
+    "longDescription": "Ask a model for the same thing ten times and you often get the same answer. Model Salt gives the model randomness from outside it: before a creative task it calls model_salt, gets a few things to settle this time, and then does your request as you asked it.",
+    "category": "Productivity",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

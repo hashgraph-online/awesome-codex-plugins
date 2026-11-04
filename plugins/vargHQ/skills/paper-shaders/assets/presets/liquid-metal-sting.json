@@ -1,0 +1,43 @@
+{
+  "id": "liquid-metal-sting",
+  "label": "Liquid metal logo sting",
+  "shader": "LiquidMetal",
+  "page": "https://shaders.paper.design/liquid-metal",
+  "paperShaders": "0.0.82",
+  "use": "A 1–2 s logo sting: the logo itself turns to liquid metal. Without an image the shader fills `shape`.",
+  "image": {
+    "role": "logo",
+    "required": false,
+    "note": "PNG or SVG with a transparent background, served from the project (same origin)"
+  },
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {
+    "colorBack": "base",
+    "colorTint": "highlight"
+  },
+  "params": {
+    "image": "",
+    "colorBack": "#070708",
+    "colorTint": "#ffffff",
+    "repetition": 4,
+    "softness": 0.1,
+    "shiftRed": 0.3,
+    "shiftBlue": 0.3,
+    "distortion": 0.1,
+    "contour": 0.6,
+    "angle": 70,
+    "shape": "circle",
+    "fit": "contain",
+    "scale": 0.6,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0
+  }
+}

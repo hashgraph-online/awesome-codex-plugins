@@ -1,0 +1,35 @@
+{
+  "id": "paper-grain-gradient-wave",
+  "label": "Wave (Paper GrainGradient)",
+  "shader": "GrainGradient",
+  "page": "https://shaders.paper.design/grain-gradient",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Wave\" preset for GrainGradient, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 1,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "none",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#000a0f",
+    "colors": [
+      "#c4730b",
+      "#bdad5f",
+      "#d8ccc7"
+    ],
+    "softness": 0.7,
+    "intensity": 0.15,
+    "noise": 0.5,
+    "shape": "wave"
+  }
+}

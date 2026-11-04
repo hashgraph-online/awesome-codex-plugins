@@ -1,0 +1,11 @@
+{
+  "name": "endostack-tarique-mode-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Bundled tools for the tarique-mode router skill. No dependencies.",
+  "main": "run-tests.mjs",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test ."
+  }
+}

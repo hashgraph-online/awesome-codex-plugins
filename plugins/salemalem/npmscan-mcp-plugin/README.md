@@ -18,6 +18,7 @@ this plugin points at the same public service.
 - **TensorBlock MCP Index**: [tensorblock.co/mcp](https://github.com/TensorBlock/awesome-mcp-servers)
 - **Awesome Gemini CLI**: [Piebald-AI/awesome-gemini-cli](https://github.com/Piebald-AI/awesome-gemini-cli)
 - **Awesome Gemini CLI Extensions**: [Piebald-AI/awesome-gemini-cli-extensions](https://github.com/Piebald-AI/awesome-gemini-cli-extensions)
+- **Awesome Codex Plugins**: [hashgraph-online/awesome-codex-plugins](https://github.com/hashgraph-online/awesome-codex-plugins)
 - **Setup docs for other clients**: [npmscan.com/mcp](https://npmscan.com/mcp)
 
 Pending:

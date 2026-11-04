@@ -1,0 +1,39 @@
+{
+  "name": "bulk-bg-remove",
+  "version": "0.1.3",
+  "description": "Remove image backgrounds locally and in bulk: one photo or whole folders, with BiRefNet. No uploads, no API keys, originals untouched.",
+  "author": {
+    "name": "Btike",
+    "url": "https://github.com/Btike"
+  },
+  "homepage": "https://github.com/Btike/bulk-bg-remove",
+  "repository": "https://github.com/Btike/bulk-bg-remove",
+  "license": "MIT",
+  "keywords": [
+    "background-removal",
+    "remove-background",
+    "transparent-png",
+    "birefnet",
+    "bulk",
+    "images"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Bulk BG Remove",
+    "shortDescription": "Remove image backgrounds locally, in bulk",
+    "longDescription": "Cut out the subject of one photo or whole folders on your own machine with BiRefNet. Lossless transparent PNG or WebP in a new <name>-no-bg folder; originals are never touched.",
+    "developerName": "Btike",
+    "category": "Productivity",
+    "capabilities": [
+      "Instructions"
+    ],
+    "websiteURL": "https://github.com/Btike/bulk-bg-remove",
+    "defaultPrompt": [
+      "Remove the background from every photo in this folder.",
+      "Make a transparent PNG of this product photo.",
+      "Cut out the people in these HEIC photos."
+    ],
+    "brandColor": "#0d1117",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

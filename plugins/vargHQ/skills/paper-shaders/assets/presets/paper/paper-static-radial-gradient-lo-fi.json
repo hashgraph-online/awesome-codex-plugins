@@ -1,0 +1,41 @@
+{
+  "id": "paper-static-radial-gradient-lo-fi",
+  "label": "Lo-Fi (Paper StaticRadialGradient)",
+  "shader": "StaticRadialGradient",
+  "page": "https://shaders.paper.design/static-radial-gradient",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Lo-Fi\" preset for StaticRadialGradient, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#2e1f27",
+    "colors": [
+      "#d72638",
+      "#3f88c5",
+      "#f49d37"
+    ],
+    "radius": 1,
+    "focalDistance": 0,
+    "focalAngle": 0,
+    "falloff": 0.9,
+    "mixing": 0.7,
+    "distortion": 0,
+    "distortionShift": 0,
+    "distortionFreq": 12,
+    "grainMixer": 1,
+    "grainOverlay": 0.5
+  }
+}

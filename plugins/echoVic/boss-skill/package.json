@@ -1,6 +1,6 @@
 {
   "name": "@blade-ai/boss-skill",
-  "version": "5.0.3",
+  "version": "5.0.4",
   "private": true,
   "description": "BMAD Harness Engineer — auditable multi-agent pipeline skill for coding agents. Distributed via skill marketplaces (Claude Code, Codex, skills.sh) — no npm install required.",
   "author": {
@@ -37,7 +37,7 @@
   ],
   "type": "module",
   "scripts": {
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit --ignoreConfig --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --noUncheckedIndexedAccess --skipLibCheck --allowImportingTsExtensions --erasableSyntaxOnly --types node,vitest/globals test/bin/boss-skill.test.ts test/helpers/run-cli.ts vitest.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit --ignoreConfig --target ES2022 --module NodeNext --moduleResolution NodeNext --strict --noUncheckedIndexedAccess --skipLibCheck --allowImportingTsExtensions --erasableSyntaxOnly --types node,vitest/globals vitest.config.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:faults": "vitest run test/faults",
@@ -58,7 +58,7 @@
     "node": ">=22.18"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
+    "@biomejs/biome": "^2.6.2",
     "@playwright/test": "^1.64.0",
     "@types/node": "^26.6.5",
     "@vitest/coverage-v8": "^5.0.3",

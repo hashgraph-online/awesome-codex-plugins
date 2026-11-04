@@ -1,6 +1,6 @@
 # OSS Doc Pack — scaffold/audit open-source documentation
 
-> Scaffold and audit the standard documentation pack for an open-source release. This is optional reference guidance for the Doc skill's OSS mode; it absorbed the former `/oss-docs` skill. Output contract: `CONTRIBUTING.md`, `CHANGELOG.md`, `AGENTS.md`, and the rest of the OSS doc tiers.
+> Audit an open-source repository's documentation and scaffold the requested missing files. This is optional reference guidance for the Doc skill's OSS mode.
 
 ## Overview
 
@@ -33,6 +33,10 @@ The script checks three tiers by file presence only:
 - **Tier 1 (required):** `LICENSE`, `README.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`.
 - **Tier 2 (standard):** `SECURITY.md`, `CHANGELOG.md`, `AGENTS.md`, `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md`.
 - **Tier 3 (enhanced):** `docs/QUICKSTART.md`, `docs/ARCHITECTURE.md`, `docs/CLI_REFERENCE.md` (or `docs/CRD_REFERENCE.md` for an operator), `docs/CONFIG.md`, `docs/TROUBLESHOOTING.md`, `examples/`.
+
+`CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` and `SECURITY.md` pass in the root,
+`docs/` or `.github/` (where GitHub reads them), and the report names the path
+found. Do not create a second copy at the root.
 
 Why each file matters, a Tier 4 for specialized docs, and an adoption order:
 [oss-documentation-tiers.md](oss-documentation-tiers.md).
@@ -128,6 +132,5 @@ decide completion; repository policy and the caller own those transitions.
 | Problem | Cause | Solution |
 |---------|-------|----------|
 | Generated docs feel generic | Project signals too sparse | Add concrete repo context (commands, architecture, workflows) |
-| Existing docs conflict | Legacy text diverges from current behavior | Reconcile with current code/process and mark obsolete sections |
+| Existing docs conflict | Legacy text diverges from current behavior | Correct facts in place; ask before removing a section |
 | Contributor path unclear | Missing setup/testing guidance | Add explicit quickstart and validation commands |
-| Open-source handoff incomplete | Session-end workflow not reflected | Add landing-the-plane and release hygiene steps |

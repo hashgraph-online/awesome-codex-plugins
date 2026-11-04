@@ -11,7 +11,7 @@ metadata:
 
 Turn a brand brief into reusable source files and finished applications. A mood board or image of a brand book is not a usable brand kit.
 
-Use the connected Magic Hour creation MCP at `https://mcp.magichour.ai/`; otherwise follow the [connection guide](https://github.com/magichourhq/skills/blob/main/docs/quickstart.md#connect-once) or the project's existing [API integration](https://docs.magichour.ai/api-reference). Read the current tool schema and verify `account_retrieve` before paid work. Never request an API key in a public message or commit it.
+Use the connected Magic Hour creation MCP at `https://mcp.magichour.ai/`; otherwise follow the [connection guide](https://github.com/magichourhq/skills/blob/main/docs/quickstart.md#connect-once) or the project's existing [API integration](https://docs.magichour.ai/api-reference). Read the current tool schema and verify `get_account_info` before paid work. Never request an API key in a public message or commit it.
 
 ## Start from what the user has
 
@@ -19,7 +19,7 @@ Use the connected Magic Hour creation MCP at `https://mcp.magichour.ai/`; otherw
 - **Extend:** keep approved assets; propose only the missing decisions needed for this job.
 - **Create:** infer a coherent direction from audience, product, positioning and references. When the user delegates design choices, select a direction and proceed. Present alternatives only if requested or a consequential decision is unresolved.
 
-For a named saved brand kit or moodboard, use `saved_items_list` (or authenticated `GET /v1/saved-items` through the existing API) with `type: brand_kit` or `type: moodboard`. Match the name, paginate with `next_cursor` as needed and disambiguate multiple matches. Inspect the returned assets and reuse compatible durable `file_path` values without reuploading. Saved images are references, not proof of exact palette values, font licenses or editable logo sources; retain the supplied brand guide as authoritative.
+For a named saved brand kit or moodboard, use `list_saved_items` (or authenticated `GET /v1/saved-items` through the existing API) with `type: brand_kit` or `type: moodboard`. Match the name, paginate with `next_cursor` as needed and disambiguate multiple matches. Inspect the returned assets and reuse compatible durable `file_path` values without reuploading. Saved images are references, not proof of exact palette values, font licenses or editable logo sources; retain the supplied brand guide as authoritative.
 
 Extract requirements from supplied files and prior context. Ask for missing source assets or a blocking business fact, not a questionnaire of technical parameters. Show the intended deliverables and generation allowance briefly; existing authorization covers work within that allowance.
 

@@ -1,0 +1,229 @@
+{
+  "id": "terminal-command-run",
+  "name": "Terminal command run",
+  "use": "A command typed and run in a modern GPU terminal (Ghostty-style), with output, a progress render or a git log.",
+  "formats": [
+    "16:9",
+    "1:1",
+    "9:16"
+  ],
+  "duration_s": 9,
+  "fonts": [
+    {
+      "family": "JetBrains Mono",
+      "weights": [
+        400,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/JetBrains+Mono"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        400,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    },
+    {
+      "family": "Geist Mono",
+      "weights": [
+        400,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Geist+Mono"
+    }
+  ],
+  "trademark_note": "Ghostty is MIT open source; no logo is used. Never show real tokens, hostnames or usernames.",
+  "presets": [
+    {
+      "id": "terminal-command-run.command-output",
+      "label": "Command and output",
+      "look": "Prompt, typed command, 4-8 output lines, new prompt",
+      "params": {
+        "typing": {
+          "cps": 16,
+          "gap_table_ms": [
+            100,
+            33,
+            200,
+            133,
+            200,
+            33,
+            67,
+            33,
+            100,
+            67,
+            33,
+            67,
+            67,
+            67,
+            133,
+            67,
+            33,
+            67,
+            100,
+            100,
+            67,
+            133,
+            100,
+            33,
+            100,
+            33,
+            167,
+            33,
+            100,
+            100
+          ],
+          "extra_at_space_ms": 120,
+          "extra_before_flag_ms": 250,
+          "seed": "demo"
+        },
+        "enter_beat_s": [
+          0.3,
+          0.45
+        ],
+        "think_s": [
+          0.2,
+          0.8
+        ],
+        "output_burst_lines": [
+          3,
+          6
+        ],
+        "output_line_every_ms": [
+          40,
+          80
+        ],
+        "result_line_beat_s": 0.25,
+        "hold_after_s": 3,
+        "bg": "#282C34",
+        "fg": "#FFFFFF",
+        "cursor": "block, blink 1.0 s idle, solid while typing",
+        "font_px_1080p": [
+          28,
+          34
+        ],
+        "padding_px": [
+          32,
+          48
+        ],
+        "line_height": 1.35,
+        "max_columns_16x9": 100,
+        "window_radius_px": [
+          12,
+          14
+        ],
+        "dots": [
+          "#FF4F4D",
+          "#FEBB00",
+          "#00CC1D"
+        ],
+        "shadow": "0 30px 80px rgba(0,0,0,0.45)"
+      },
+      "sources": [
+        10,
+        14,
+        15,
+        16,
+        17,
+        62
+      ]
+    },
+    {
+      "id": "terminal-command-run.render-progress",
+      "label": "Render with progress",
+      "look": "Command, progress bar 0-100%, done line",
+      "params": {
+        "bar_cells": 40,
+        "bar_glyph": "█",
+        "update_every_ms": 100,
+        "overall_ease": "power1.inOut",
+        "duration_s": [
+          2.0,
+          3.0
+        ],
+        "done_color": "#98C379",
+        "hold_after_s": 3
+      },
+      "sources": [
+        15
+      ]
+    },
+    {
+      "id": "terminal-command-run.git-log",
+      "label": "Git log",
+      "look": "Coloured one-line history with a graph",
+      "params": {
+        "commits": [
+          8,
+          12
+        ],
+        "line_every_ms": 40,
+        "hash": "#E5C07B",
+        "branch": "#98C379",
+        "head": "#56B6C2",
+        "message": "#ABB2BF",
+        "graph": "#5C6370"
+      },
+      "sources": [
+        27,
+        15
+      ]
+    },
+    {
+      "id": "terminal-command-run.huge-type",
+      "label": "Huge type",
+      "look": "Giant monospace for 9:16 and 1:1",
+      "params": {
+        "font_pct_frame_h": 3.6,
+        "columns": 34,
+        "command_max_chars": 30,
+        "wrap": false
+      },
+      "sources": [
+        16
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 10,
+      "name": "Dhakal et al., CHI 2018 typing study",
+      "url": "https://www.eurekalert.org/news-releases/569762"
+    },
+    {
+      "n": 14,
+      "name": "Charm VHS source (MIT)",
+      "url": "https://github.com/charmbracelet/vhs"
+    },
+    {
+      "n": 15,
+      "name": "VHS best-practice skill",
+      "url": "https://cdn.jsdelivr.net/npm/@marcfargas/skills@0.5.1/vhs/SKILL.md"
+    },
+    {
+      "n": 16,
+      "name": "Thorsten Ball, How to Demo",
+      "url": "https://thorstenball.com/how-to-demo"
+    },
+    {
+      "n": 17,
+      "name": "Ghostty source (MIT)",
+      "url": "https://github.com/ghostty-org/ghostty"
+    },
+    {
+      "n": 27,
+      "name": "Atom one-dark-syntax (MIT)",
+      "url": "https://github.com/atom/one-dark-syntax"
+    },
+    {
+      "n": 62,
+      "name": "HyperFrames notes-typing",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry/components/notes-typing"
+    }
+  ]
+}

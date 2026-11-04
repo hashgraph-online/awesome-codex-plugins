@@ -54,7 +54,7 @@
 1. **Hook** (first line — shown before "...more"): Strong statement or question
 2. **Value** (body): 3-5 tips, story, or insight
 3. **CTA** (end): Ask a question, prompt saves/shares
-4. **Hashtags** (after): 5-15 relevant hashtags
+4. **Hashtags** (after): 3-5 relevant hashtags; Instagram allows 5 (platform_specs.json: instagram.hashtags_cap)
 
 ### Hashtag Tiers
 | Tier | Volume | Example |

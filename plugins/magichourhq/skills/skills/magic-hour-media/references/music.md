@@ -6,8 +6,8 @@ Read this for music videos, a singing character, beat-driven scenes or an audio-
 | --------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | Portrait performs the supplied audio                | Talking Photo; inspect singing and mouth shapes on a short excerpt                      |
 | Existing performer matches replacement audio        | Lip Sync; preserve the accepted performance and full selected audio phrase              |
-| New visuals guided by a soundtrack                  | `audio_to_video_create_video`, with optional reference image and supported style prompt |
-| Evolving animation with an audio-sync camera effect | `animation_create_video`; choose its supported art style, effect and prompt mode        |
+| New visuals guided by a soundtrack                  | `create_video_from_audio`, with optional reference image and supported style prompt |
+| Evolving animation with an audio-sync camera effect | `create_animation`; choose its supported art style, effect and prompt mode        |
 | A planned sequence cut to musical moments           | Measure the audio, generate the needed shots, assemble in an available compositor       |
 
 For the complete web song-to-scene workflow with optional singing shots, use [Music Video Generator](https://magichour.ai/products/ai-music-video-generator). Its dedicated workflow is not exposed in the current public MCP/OpenAPI. Prepare the user's phrase, reference images, direction and lip-sync choice for that handoff; do not claim Audio-to-Video or Animation is the same backend. The [focused music skill](https://github.com/magichourhq/skills/tree/main/skills/magic-hour-music-video) covers route selection and recovery.

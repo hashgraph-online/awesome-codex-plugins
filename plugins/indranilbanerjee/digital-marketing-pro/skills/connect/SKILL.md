@@ -48,13 +48,15 @@ The user must provide (or will be prompted for):
    Never add any of them to the shipped `.mcp.json`; the user copies the entry into their own config.
    - If the user asks for Asana, Webflow or Make.com, use the current Streamable HTTP URLs in the catalog. The old `/sse` URLs use the HTTP+SSE transport that MCP spec 2026-07-28 deprecates; Asana's V1 `/sse` server was shut down on 11 May 2026. Replicate's catalog entry is flagged because its vendor page still lists only `/sse`.
 
-   **For npx connectors** (Google Ads, Meta, Salesforce, Twilio, etc.):
+   **For connectors without a hosted server** (Google Ads, Meta, Salesforce, Twilio, etc.):
+   - When the setup guide returns `transport: unavailable` with the "no vendor-verified connector" note, read the note to the user and show **no** `npx` command and **no** environment block. Point them to the vendor's own docs, the vendor's hosted HTTP server if the catalog has one, or an aggregator entry for Cowork. A package name the vendor does not publish could be registered by anyone, who would then receive the keys.
+   - Only when the guide returns `transport: npx` (a vendor-published package, pinned to an exact version):
    - List the specific environment variables needed with clear descriptions
    - Provide platform-specific instructions for obtaining credentials:
      - Where to go in the platform's dashboard to create API keys
      - What permissions/scopes are needed
      - Any prerequisites (developer accounts, app creation, etc.)
-   - Show the exact `.mcp.json` entry to add (from the setup guide)
+   - Show the exact `.mcp.json` entry to add, copied from the setup guide with its `@version` pin intact
    - Offer two setup paths:
      1. **Quick**: "Set the environment variables and run `/digital-marketing-pro:add-integration <name>` to configure automatically"
      2. **Manual**: Show the JSON block to add to `.mcp.json` directly
@@ -62,12 +64,13 @@ The user must provide (or will be prompted for):
 
 4. **Handle unknown connectors**: If the connector name isn't in the registry:
    - Search for close matches and suggest them
-   - If no match found, explain that it's a custom integration and guide them to `/digital-marketing-pro:add-integration` which handles npm package discovery and custom MCP server setup
+   - If no match found, explain that it's a custom integration and guide them to `/digital-marketing-pro:add-integration`, which accepts only the vendor's own server (hosted, or a vendor-published npm package pinned to an exact version) or a custom server they build
    - List the categories of connectors available so they can explore alternatives
 
 5. **Verify after setup** (for npx connectors): After the user confirms they've set up credentials, offer to verify connectivity:
    - Check that all required environment variables are set and non-empty
-   - Suggest running a read-only test via the connector to confirm it works
+   - Prove it with one read: `python "${CLAUDE_PLUGIN_ROOT}/scripts/connector-status.py" --action probe --name <connector>`. It makes a single read-only GET with the key (Slack auth.test, one HubSpot contact, the Klaviyo account, the SendGrid key's scopes, the Brevo account, Customer.io campaigns, Mailchimp ping, Ahrefs usage limits), never writes, and returns only the HTTP status and a count. Ask the user before running it: it sends their key to the vendor.
+   - A connector that runs through the host's MCP connection or OAuth (Google Ads, Meta, LinkedIn, TikTok and the rest) returns `not_probeable`: say so, and ask the user to run one read in the MCP tool, instead of calling it connected
    - Report success or diagnose failure with specific guidance
 
 ## Output

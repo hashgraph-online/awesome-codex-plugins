@@ -72,6 +72,10 @@ A structured paid media plan containing:
 - **Cross-channel synergy map**: Retargeting flows between channels, sequential messaging paths, and audience progression logic from awareness to conversion
 - **Risk scenarios with budget reallocation triggers**: Defined scenarios (platform outage, CPM spikes, underperformance, budget cuts) with pre-approved reallocation responses
 
+## Before it goes to the client
+
+Run the zero-context review in `/digital-marketing-pro:check` (`--goldfish`). `goldfish-review.py` packs the deliverable, the brief and the brand profile into one file and nothing else, flags money figures and benchmark rates that nothing in the brief or profile supports, and writes the prompt for a reviewer that sees only that file. Answer each finding in the document itself (state the assumption for the client to confirm, cite the source, or cut the figure) before it is sent.
+
 ## Agents Used
 
 - **media-buyer** — Channel allocation, budget pacing, auction dynamics, platform setup, reach/frequency modeling, competitive spending analysis, and creative rotation planning

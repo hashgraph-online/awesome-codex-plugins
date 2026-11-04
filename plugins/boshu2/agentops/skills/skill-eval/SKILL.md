@@ -68,11 +68,14 @@ and its native results own the measurements.
 - **Small samples are directional.** Report uncertainty with every difference.
   A difference without it shows neither benefit nor equivalence, and a
   zero-crossing interval is not equivalence. For two unpaired success rates,
-  give each arm a Wilson interval, the difference with its own interval and
-  Fisher's exact test, not a normal approximation, which breaks at 0/n, n/n and
-  a handful of runs. AgentOps ships no tool for this; the stock calls are
-  `scipy.stats.binomtest(k, n).proportion_ci(method="wilson")` and
-  `scipy.stats.fisher_exact`. Beside an inconclusive result, state the runs per
+  give each arm a Wilson interval, the difference with a Newcombe hybrid score
+  interval and Fisher's exact test, not a normal approximation, which breaks at
+  0/n, n/n and a handful of runs. AgentOps ships no tool for this; the stock
+  calls need the third-party scipy and statsmodels Python packages:
+  `scipy.stats.binomtest(k, n).proportion_ci(method="wilson")`,
+  `statsmodels.stats.proportion.confint_proportions_2indep(k1, n1, k2, n2, method="newcomb")`
+  and `scipy.stats.fisher_exact`. If they are absent, say so; do not fall back
+  to a normal approximation. Beside an inconclusive result, state the runs per
   arm needed to detect the smallest effect that would change the decision, and
   return insufficient evidence; running them is a new measurement with its own
   fixed stop and the caller's authorization, never an extension of this one.
@@ -81,8 +84,8 @@ and its native results own the measurements.
 - **Know the noise before cutting.** Before trimming or retuning skill text for
   a new model, measure how much identical arms differ on the same cases. A cut
   must clear a bar fixed before the run, above that spread. A static read of
-  the text is not a behavioral result. Saving a result means keeping the
-  completed run; rerunning to save it adds another sample and more spend.
+  the text is not a behavioral result. If a run's output was lost, a rerun is
+  a new sample that spends the same limits; it does not restore the lost one.
 
 ## Choose the question
 
@@ -193,7 +196,11 @@ installing or starting a replacement.
    A repeated helper is a candidate bundled script under
    [Skill Builder](../skill-builder/SKILL.md)'s occurrence rule. A reproduced
    defect with clean controls supports a provisional narrow repair; general
-   improvement needs a held-out comparison. Do not auto-publish a lesson.
+   improvement needs a held-out comparison. Remove needs treatment runs where
+   the skill loaded, cases with headroom drawn from use, and a difference
+   interval whose upper bound stays below the A/A bar fixed before the run,
+   weighed against the context each load costs; a skill that never loads gets
+   revise (loading), not remove. Do not auto-publish a lesson.
 
 Raw trials and new proof go to caller-selected protected storage outside Git;
 only sanitized public fixtures cleared for that destination belong in Git

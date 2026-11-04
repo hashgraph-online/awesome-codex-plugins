@@ -1,0 +1,8 @@
+# Local artifacts that never belong in the Codex plugin bundle.
+__pycache__/
+.pytest_cache/
+*.pyc
+node_modules/
+.claude/.guard_state.json
+.vidbyte-memory/
+*.vidbyte-memory-backup

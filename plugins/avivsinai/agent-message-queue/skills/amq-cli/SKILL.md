@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.113.5 # x-release-please-version
+version: 0.126.1 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -55,9 +55,13 @@ follows the interrupt path.
 Use `--priority urgent` on `send` or `reply` for time-critical verdicts and
 unblocking requests. Other review responses remain normal by default.
 
-In Claude Code, `amq wake install-dialog-hook` makes the wake hold its doorbell
-while AskUserQuestion, ExitPlanMode, or a permission dialog is open; the held
-doorbell arrives after you answer, or when that turn ends.
+By default the wake rings a plain doorbell (text and Enter, never held for a
+dialog); `amq coop exec` prints `dialog guard: plain` or
+`dialog guard: proper (<harness>)`. In Claude Code,
+`amq wake install-dialog-hook` makes the wake hold its doorbell while
+AskUserQuestion, ExitPlanMode, or a permission dialog is open; the held
+doorbell arrives after you answer, or when that turn ends. Codex needs
+`--harness codex` and the entries trusted in `/hooks`.
 
 Wake settings (hold, debounce, preview, bell, input deferral, interrupt notice)
 apply to a running wake without a restart: `amq wake config --me <handle>`
@@ -81,6 +85,21 @@ Send status when work starts, a state, decision, or result changes, or an agreed
 escalation is due. Avoid file-by-file completion notices and unchanged check-ins.
 Automated callers own duplicate suppression by item, revision, and event;
 AMQ threads correlate messages, but do not deduplicate repeated sends.
+
+A reply to a `todo` defaults to `--kind status`; an explicit `--kind todo`
+opens another request. Progress uses `--kind status`;
+completion uses `--kind status --labels done`; cancellation uses
+`--kind decision --labels withdrawn`. State the result or cancellation
+honestly: withdrawing a request does not mean its feature shipped.
+The last `--refs` entry is the direct reply target; a list of refs is lineage,
+not a batch-close operation. Close independent requests separately.
+
+An unanswered message is a reply obligation, not evidence that work started.
+Use the host harness's task and turn records when activity matters. Keep
+declared task state, actual execution, approval waits, and delivery presence
+separate. A live wake, a recent message, or an assigned tracker item does not
+prove a task is running. Do not create work items from old coordination
+messages without confirming an actual requested outcome and remaining gap.
 
 ## Route the task
 

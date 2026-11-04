@@ -4,7 +4,8 @@ description: Use when requests involve Amazon Ads unified/v1 reporting, CreateRe
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Offline request generation needs no integration; live operations require access to an Amazon Ads API client with unified/v1 reporting capabilities.
 metadata:
-  version: "0.4.3"
+  display-name: "Amazon Ads Reporting"
+  version: "0.4.4"
 ---
 
 # Amazon Ads Reporting

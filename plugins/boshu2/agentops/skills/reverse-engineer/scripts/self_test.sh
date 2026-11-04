@@ -1,22 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+# Maintainer test, AgentOps source checkout only: it clones file://$ROOT below,
+# so it refuses an installed plugin (no Git there) before writing anything.
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
 SKILL="$ROOT/skills/reverse-engineer"
 
+if [[ "$(git -C "$ROOT" rev-parse --show-toplevel 2>/dev/null)" != "$ROOT" ]]; then
+  echo "error: self_test.sh runs only from an AgentOps source checkout; $ROOT is not a Git checkout (validate.sh covers the hermetic checks)" >&2
+  exit 2
+fi
 if ! command -v go >/dev/null 2>&1; then
   echo "error: go is required to build the demo binary (validate.sh covers the Go-free checks)" >&2
   exit 2
 fi
 
-TMP="$ROOT/.tmp/reverse-engineer-self-test"
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/reverse-engineer-self-test.XXXXXX")"
+trap 'rm -rf "$TMP"' EXIT
+# Physical path: the script refuses symlinked components (macOS /var -> /private/var).
+TMP="$(cd "$TMP" && pwd -P)"
 OUT1="$TMP/out-core"
 OUT2="$TMP/out-sec"
 SRC="$TMP/fixture-src"
 BIN="$TMP/demo_bin"
 SITEMAP="$TMP/sitemap.xml"
 
-rm -rf "$TMP"
 mkdir -p "$SRC" "$OUT1" "$OUT2"
 
 HELP="$(python3 "$SKILL/scripts/reverse_engineer.py" --help)"

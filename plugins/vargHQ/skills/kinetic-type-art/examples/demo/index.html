@@ -1,0 +1,96 @@
+<!doctype html>
+<!--
+  kinetic-type-art preview reel: four templates cut on one 120 BPM grid (1 beat = 0.5 s = 15 frames at 30 fps).
+    0.0 - 3.0 s   typeface-strobe · frames        (6 beats)
+    3.0 - 7.0 s   red-beat-words · punch + invert  (8 beats)
+    7.0 - 11.0 s  word-corridor · night            (8 beats)
+   11.0 - 15.5 s  photocopy-explainer · zine       (9 beats)
+  Render: npx --yes hyperframes@0.8.206 render --fps 30 --crf 22 --output kinetic-type-art.mp4
+-->
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #000000;
+      }
+      #root {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: #000000;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="main"
+      data-start="0"
+      data-duration="15.5"
+      data-width="1920"
+      data-height="1080"
+    >
+      <div
+        id="strobe"
+        data-composition-id="strobe"
+        data-composition-src="compositions/strobe.html"
+        data-start="0"
+        data-duration="3"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="slam"
+        data-composition-id="slam"
+        data-composition-src="compositions/slam.html"
+        data-start="3"
+        data-duration="4"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="corridor"
+        data-composition-id="corridor"
+        data-composition-src="compositions/corridor.html"
+        data-start="7"
+        data-duration="4"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+      <div
+        id="zine"
+        data-composition-id="zine"
+        data-composition-src="compositions/zine.html"
+        data-start="11"
+        data-duration="4.5"
+        data-track-index="1"
+        data-track-kind="graphics"
+        data-width="1920"
+        data-height="1080"
+      ></div>
+    </div>
+    <script>
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>

@@ -134,7 +134,7 @@ Competitor job postings reveal strategy 3-6 months in advance:
 | Jurisdiction | Law | Key Requirements | Penalties |
 |-------------|------|-----------------|-----------|
 | EU/EEA | GDPR | Explicit consent, data minimization, right to erasure, DPO required | Up to 4% global revenue or 20M EUR |
-| California | CCPA/CPRA | Opt-out of sale/sharing, right to delete, privacy policy requirements | $2,500-$7,500 per violation |
+| California | CCPA/CPRA | Opt-out of sale/sharing, right to delete, privacy policy requirements | $2,663-$7,988 per violation (inflation-adjusted from 1 Jan 2025) |
 | Canada | PIPEDA | Meaningful consent, purpose limitation, retention limits | Up to $100K CAD |
 | Brazil | LGPD | Consent or legitimate interest, DPO required, data portability | Up to 2% revenue or 50M BRL |
 | China | PIPL | Separate consent for cross-border transfers, data localization | Up to 5% annual revenue |

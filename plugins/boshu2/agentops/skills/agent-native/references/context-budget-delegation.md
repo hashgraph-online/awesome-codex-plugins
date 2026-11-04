@@ -1,6 +1,6 @@
 # Context-Budget Delegation (Reader / Writer)
 
-Re-checked on 2026-10-25 against Claude Code 2.1.309, codex-cli 0.163.0, AGY 1.4.7, gc edge 97503b2 (with Gas City v1.5.1 docs and source), bd 1.3.1 and ao 3.11.0. Hook calls, linked-worktree hook discovery and standalone role discovery were not re-run on 0.163.0; the body marks each of those claims with what would verify it.
+Re-checked on 2026-10-25 against Claude Code 2.1.309, codex-cli 0.163.0, AGY 1.4.7, gc edge 97503b2 (with Gas City v1.5.1 docs and source), bd 1.3.1 and ao 3.11.0. Hook calls, linked-worktree hook discovery, standalone role discovery and the spawn tool's field names were not re-run on 0.163.0; the body marks each of those claims unverified on 0.163.0.
 
 Keep large file bytes out of the working context by delegating reads and
 patterned writes to bounded cheap contexts that return line-referenced bullets
@@ -84,8 +84,7 @@ Restart Codex to load the roles, and review the exact hook in `/hooks` before
 trusting it. Installing files does not activate an untrusted hook. The guard is
 inert in the plugin and its default hook manifest remains unchanged. The
 0.154 CLI resolves project hooks from the primary checkout even when launched
-in a linked worktree (Would verify: re-run the linked-worktree hooks-discovery
-audit from docs/design/codex-context-budget.md on 0.163.0). The hook installer
+in a linked worktree (unverified on 0.163.0). The hook installer
 rejects `--project` there before writing anything; install personally or run
 it in the primary checkout.
 Project trust must be saved in Codex config, and does not replace hook trust.
@@ -104,9 +103,8 @@ installer copies the source templates to the runtime's personal or project
 agent directory and registers `agents.<name>.description` and `config_file`
 using the installed Codex config editor. The checkout has equivalent explicit
 registrations in `.codex/config.toml`; standalone file discovery did not work
-in the measured CLI, while registered roles ran successfully (Would verify:
-spawn agent_type=bulk-reader on 0.163.0 with only .codex/agents/bulk-reader.toml
-present and no config.toml registration). Installation requires Node and the
+in the measured CLI, while registered roles ran successfully (unverified on
+0.163.0). Installation requires Node and the
 installed Codex runtime. They do not add skills to the menu.
 
 - `bulk-reader` (`agents/bulk-reader.toml`): one question and one file, slices
@@ -128,8 +126,8 @@ spawn tool exposes `agent_type`, select that name. On a facade that exposes
 only a task name, message, model and context inheritance, pass the role's
 instructions to a fresh child, explicitly select `gpt-5.6-luna` and the role's
 effort, and disable history inheritance (`fork_turns: "none"`). The subagents
-docs do not list `agent_type` or `fork_turns`; these are observed names (Would
-verify: inspect the spawn tool schema in a live 0.163.0 session). That fallback
+docs do not list `agent_type` or `fork_turns`; these are observed names,
+unverified on 0.163.0. That fallback
 is a native delegated prompt; do not claim that the facade loaded a named role.
 Never replace either route with a subprocess model invocation. [Codex subagent contract](https://learn.chatgpt.com/docs/agent-configuration/subagents).
 

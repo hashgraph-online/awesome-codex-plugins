@@ -1,0 +1,84 @@
+First, a stat, a16z published State of Markets II, 100+ charts on the first half of 2026. One stood out: as of April, only about 2% of US households were paying for an AI subscription.
+
+If you're reading this, you're likely in that 2%, and it's easy to forget how small that is. Learn these tools well now; it's still early.
+
+Write for yourself, at length. Then let a tool find the hooks, break the piece down by platform, and hand you a plan and a checklist you can see.
+
+Three weeks in, I'm posting on a schedule instead of from memory. Since September 12 I've logged 47 posts, about 14 a week, against about 9 a week since May. More than anything, it's taken the remembering out of it.
+
+Every issue I write has ten or more sections, and every section could be its own post.
+
+That's the compounding: I put the effort into one long, careful piece, and the tool chops it into a steady run of short posts, which cuts the time I spend writing short-form from scratch.
+
+It doesn't post for me. The point is to remove the remembering, not the judgment.
+
+One timing note for X. On September 30, X changed its ranking code to lift smaller accounts. Under 50,000 followers, one eligible new post per feed load can be placed near the top of some feeds, but only in its first two hours and until it passes about 200 views.
+
+Early reactions decide how far it goes from there, and X's ranking code weights a reply ten times a like. So answer replies for those two hours.
+
+I'm a visual person, this changed my behavior. The dashboard shows every issue, section, and where each has been posted, with a tick and a link for logging. At a glance I can see my progress across each issue.
+
+Once everything was logged, I could ask: how much of my writing have I posted, and where?
+
+On October 1 the dashboard read 144 sections across my last 8 issues. 35 had been posted. 109 never had. That's 76% of my work that only ever lived inside a newsletter.
+
+That backlog matters more for SHORTCUTS than INTAKE. INTAKE covers the news, so a section has about a week before it's stale; nobody wants a news item from two months ago.
+
+SHORTCUTS is mostly tools and methods that keep, so issues #01 through #06 are a stockpile.
+
+If your writing is more 'evergreen' you'll find this dashboard very helpful.
+
+Then the data. When I post, I log the link, and my Sunday engagement tracking reads it. In a couple of months I'll see what fuller coverage does to engagement and follower growth. I'll report back.
+
+Since #01 I've ended working sessions with a /retro: whatever went wrong becomes a rule future sessions are supposed to follow, a memory of your own mistakes. I've run well over 120 retros this year, and they've grown to 394 rules.
+
+I found out the hard way, most of my rules never reached the agent at all.
+
+Two days later, Claude Code shipped its own version, /doctor prompt-audit. While it ran, it discovered my rules hook was printing 43,808 characters into every session causing only a fraction of it to be read.
+
+The problem is accumulation. The more your setup learns, the longer its instructions get. Claude caps what a hook can load at 10,000 characters; past that, the model gets a 2,000-character preview and a file path, the rest sits unread.
+
+Of 394 rules, about 15 reached a session at startup. Between July and late September, 41 of 111 retros, 37%, rediscovered a lesson already in the file. One lesson had been written down five separate times. 67% of the rules had never been cited once.
+
+In the week since, 322 of the 394 rules have reached the model at least once, up from about 15. The script has surfaced a rule 1,534 times across 47 sessions. Lessons that hadn't been seen in months showed up the moment they were relevant. The cost: about two-thirds of a second per message, before Claude starts its answer. I haven't noticed it.
+
+If you load anything into an agent at the start (a rules file, a project brief, a style guide), keep what a hook prints under 10,000 characters and put the rest somewhere the agent can search.
+
+Green lights on broken work. In one week I found four monitors saying everything was fine when it wasn't. One machine sat frozen for about 42 hours with every light green. A data collector reported success while every request was being refused. A check that only confirms a job ran is not a check. Make it confirm the job delivered.
+
+Delivery is now fixed; whether it made anything better, a week in, is too early to say.
+
+What I can count now is delivery: which rules reached the model, and how often. What matters is how often I repeat a mistake I've already written a rule for.
+
+Fixing delivery took a day. By next quarter I'll know the impact.
+
+Jev is a decision model, not a writer. TechCrunch called it a model for "calibrated decisions"; one developer called it "a really smart switch statement." You give it an item (an email, a lead, a contract clause, a support ticket, a social post) and one of three kinds of question:
+
+It hands back the answer and a confidence number.
+
+Each decision costs a fraction of a cent and usually takes under a second. This is something best used on large databases and thousand of decisions.
+
+I tested it on my own work over the past two weeks:
+
+We tested the strongest against my own past data. One kind of task passed and three failed. Time after time, the answer was: don't use it here.
+
+Eligibility. I run a scan of art open calls, and the tedious part is the fine print: age limits, region, medium, career stage.
+
+In a test on 2,545 past listings, where Jev confidently rejected a listing my filter had passed, it was right 96% of the time (I checked 47 by hand). It now shadow-runs on every new listing, 1,210 listings so far, agreeing with my filter 78% of the time.
+
+Taste. Picking which posts in my feed were worth my time. Replayed over 51 days of my feed, it essentially tied the keyword score I already use.
+
+Why it failed: the information it needed can't be written. Taste lives in my head. Judgment needs context from elsewhere. A sorter can't go get it. Where it was confident, it was mostly on the easy calls I didn't need help with. Eligibility lives in the listing and runs at volume, so it worked.
+
+Instinct is a personal assistant you text or call. Say "I need to be in New York tonight" and it books the flight, hotel and ride, updates your calendar and uses any travel credit you have. It also answers email, chases refunds and argues with customer support. It's invite-only, five invites per user (Fortune).
+
+40% of users handed it a credit card within three weeks, Shinn said on Patrick O'Shaughnessy's podcast.
+
+When agents hold your card, can access your accounts and know your preferences to decide where you buy, it opens a whole new arms race for customer acquisition.
+
+If you sell, your next customer may be an agent reading your page: price, stock, shipping and returns it can understand, or it moves on. Making pages readable to AI agents and answer engines (often called AEO, answer engine optimization) is becoming a massive business.
+
+The terms put the risk on you. What Instinct agrees to for you is "binding on you as if entered into directly by you," so a nonrefundable booking it makes counts as one you made.
+
+Limits shrink the damage, but you still need to check the work.
+

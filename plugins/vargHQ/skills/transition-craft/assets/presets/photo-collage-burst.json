@@ -1,0 +1,291 @@
+{
+  "id": "photo-collage-burst",
+  "name": "Photo collage burst",
+  "use": "Photos, shapes or words thrown in from the edges pile into a churning collage that covers a hidden cut to the next shot.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 4,
+  "fonts": [
+    {
+      "family": "Anton",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Anton"
+    },
+    {
+      "family": "Archivo Black",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Archivo+Black"
+    },
+    {
+      "family": "Inter",
+      "weights": [
+        500,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    }
+  ],
+  "presets": [
+    {
+      "id": "photo-collage-burst.photos",
+      "label": "Photos",
+      "look": "Bordered photos thrown from every edge, pile, last photo zooms to full frame as the next shot",
+      "params": {
+        "duration_s": 4.0,
+        "fps": 30,
+        "card_count": 80,
+        "card_width_pct_of_frame_w": [
+          24,
+          34
+        ],
+        "card_width_pct_9x16": [
+          45,
+          70
+        ],
+        "border_pct_of_card": 3,
+        "border_color": "#FAFAF7",
+        "shadow": "0 12px 30px rgba(0,0,0,0.35)",
+        "rotation_flight_deg": [
+          -45,
+          45
+        ],
+        "rotation_settled_deg": [
+          -10,
+          10
+        ],
+        "card_entry_s": 0.45,
+        "card_entry_ease": "expo.out",
+        "spawn_stagger": {
+          "amount_s": 2.0,
+          "from": "edges",
+          "ease": "power2.in"
+        },
+        "z_order": "spawn index",
+        "full_cover_at_s": 2.6,
+        "hidden_cut_at_s": 2.6,
+        "cut_on": "downbeat",
+        "reveal": "hero card exponential scale to full frame",
+        "reveal_s": 0.5,
+        "reveal_ease": "cubic-bezier(.25,0,.11,1)",
+        "churn": {
+          "share_of_cards": 0.08,
+          "freq_hz": [
+            0.5,
+            1
+          ],
+          "amp_px": [
+            4,
+            12
+          ]
+        },
+        "motion_blur": {
+          "shutter_deg": 180,
+          "samples": 6
+        },
+        "seeded_random": true
+      },
+      "sources": [
+        1,
+        4,
+        7,
+        9,
+        15,
+        21,
+        29,
+        42
+      ]
+    },
+    {
+      "id": "photo-collage-burst.shapes",
+      "label": "Shapes",
+      "look": "Flat paper shapes in a 4-colour palette, stop-motion steps",
+      "params": {
+        "duration_s": 4.0,
+        "card_count": 120,
+        "shape_size_pct_of_frame_h": [
+          6,
+          18
+        ],
+        "palette": [
+          "#F2542D",
+          "#F5DFBB",
+          "#0E9594",
+          "#127475"
+        ],
+        "posterize_fps": 12,
+        "rotation_flight_deg": [
+          -30,
+          30
+        ],
+        "card_entry_s": 0.3,
+        "spawn_stagger": {
+          "amount_s": 1.8,
+          "from": "edges",
+          "ease": "power2.in"
+        },
+        "paper_edge": "2px white drop shadow"
+      },
+      "sources": [
+        21,
+        30
+      ]
+    },
+    {
+      "id": "photo-collage-burst.words",
+      "label": "Words",
+      "look": "Bold words pile up like stickers",
+      "params": {
+        "duration_s": 4.0,
+        "word_count": 60,
+        "font": "Anton",
+        "size_pct_of_frame_h": [
+          4,
+          12
+        ],
+        "colors": [
+          "#111111",
+          "#FFFFFF",
+          "#FF3B30"
+        ],
+        "rotation_deg": [
+          -12,
+          12
+        ],
+        "card_entry_s": 0.35,
+        "card_entry_ease": "back.out(1.4)",
+        "spawn_stagger": {
+          "amount_s": 2.0,
+          "from": "random",
+          "ease": "power2.in"
+        },
+        "sticker_outline_px": 6
+      },
+      "sources": [
+        21,
+        22,
+        42
+      ]
+    },
+    {
+      "id": "photo-collage-burst.mixed",
+      "label": "Mixed",
+      "look": "Photos, shapes and words; editorial scrapbook with tape",
+      "params": {
+        "duration_s": 4.5,
+        "photos": 50,
+        "shapes": 40,
+        "words": 20,
+        "tape_on_share_of_photos": 0.3,
+        "posterize_fps_shapes_only": 12,
+        "lift": "scale 1.00→1.04 with shadow distance 8→20 px",
+        "spawn_stagger": {
+          "amount_s": 2.4,
+          "from": "edges",
+          "ease": "power2.in"
+        }
+      },
+      "sources": [
+        29,
+        30
+      ]
+    },
+    {
+      "id": "photo-collage-burst.polaroid-drop",
+      "label": "Polaroid drop (3D)",
+      "look": "Slower 3D drop of polaroids onto a table, perspective camera with DOF",
+      "params": {
+        "duration_s": 5.0,
+        "count": 24,
+        "frame_px": [
+          350,
+          425
+        ],
+        "photo_px": [
+          300,
+          312
+        ],
+        "cadence_frames": 10,
+        "start_z_px": -2700,
+        "z_offset_per_index_px": 4,
+        "rotation_deg": [
+          -45,
+          45
+        ],
+        "shadow_darkness": 0.5,
+        "dof_blur_px_lower_layers": 6,
+        "perspective_px": 1200
+      },
+      "sources": [
+        24,
+        29
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "Filmdaft — Walter Murch's Rule of Six",
+      "url": "https://filmdaft.com/walter-murchs-rule-of-six-the-editors-formula-for-choosing-the-right-cut/"
+    },
+    {
+      "n": 4,
+      "name": "Tony Zhou, Every Frame a Painting — Satoshi Kon: Editing Space & Time (transcript)",
+      "url": "https://voicetube.com/videos/32481"
+    },
+    {
+      "n": 7,
+      "name": "StudioBinder — 180-degree shutter rule",
+      "url": "https://www.studiobinder.com/blog/what-is-the-180-degree-shutter-rule/"
+    },
+    {
+      "n": 9,
+      "name": "Jason Boone, School of Motion — camera shake",
+      "url": "https://schoolofmotion.com/blog/how-to-simulate-camera-shake-adobe-after-effects"
+    },
+    {
+      "n": 15,
+      "name": "Remotion — CameraMotionBlur",
+      "url": "https://www.remotion.dev/docs/motion-blur/camera-motion-blur"
+    },
+    {
+      "n": 21,
+      "name": "GSAP — Staggers",
+      "url": "https://gsap.com/docs/v3/Staggers/"
+    },
+    {
+      "n": 22,
+      "name": "GSAP — Eases",
+      "url": "https://gsap.com/docs/v3/Eases/"
+    },
+    {
+      "n": 24,
+      "name": "David DeSandro — Perspective",
+      "url": "https://3dtransforms.desandro.com/perspective"
+    },
+    {
+      "n": 29,
+      "name": "Evan Abrams, PremiumBeat — Falling Polaroids photo montage",
+      "url": "https://www.premiumbeat.com/blog/after-effects-photo-montage-tutorial"
+    },
+    {
+      "n": 30,
+      "name": "Tom Graham, Envato Tuts+ — Collage animation in After Effects",
+      "url": "https://photography.tutsplus.com/articles/collage-animation-in-after-effects--cms-93666"
+    },
+    {
+      "n": 42,
+      "name": "Raptor (@RajAdonis) on X",
+      "url": "https://x.com/RajAdonis/status/2113906813020344579"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "skill": "motion-formats",
+  "should_trigger": [
+    "how to make an authentic VHS bouncing logo screensaver",
+    "how to make an analog horror found-footage trailer of a website",
+    "how to animate a pixel-art runner with a CRT effect",
+    "how to animate a wave through a logo wordmark",
+    "how to make a beat breakdown video that follows the DAW playhead",
+    "how to make a product launch video for an import feature",
+    "how to make a kinetic lyric video synced to vocals",
+    "how to time lyrics to the beat for TikTok"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Generate the song for my lyric video",
+      "use_instead": "varg-ai (music)"
+    },
+    {
+      "query": "Make an AI music video with a consistent singer",
+      "use_instead": "varg-music-video"
+    },
+    {
+      "query": "Add a VHS grade to my wedding footage",
+      "use_instead": "footage-effects"
+    }
+  ]
+}

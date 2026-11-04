@@ -4,7 +4,8 @@ description: Use when analyzing Amazon Seller Central Sales & Traffic Business R
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 compatibility: Requires Python 3.10+ and a writable filesystem to run the bundled analyzer and create report artifacts.
 metadata:
-  version: "0.5.1"
+  display-name: "Amazon SP Sales and Traffic Analyzer"
+  version: "0.5.2"
 ---
 
 # Sales & traffic analyzer (Amazon Business Reports)

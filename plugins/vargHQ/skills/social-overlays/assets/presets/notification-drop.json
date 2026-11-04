@@ -1,0 +1,216 @@
+{
+  "id": "notification-drop",
+  "name": "Notification drop",
+  "use": "System-style notification banner or achievement toast that lands a beat.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 3,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Roboto",
+      "weights": [
+        400,
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Roboto"
+    }
+  ],
+  "rules": [
+    "Short specific title, title case, no ending punctuation; no app name in text [31]",
+    "Fictional data only [24]",
+    "One banner per beat [24]",
+    "Short distinctive sound on landing [31]",
+    "Rest y>=300 in 9:16 [1][5]"
+  ],
+  "presets": [
+    {
+      "id": "notification-drop.ios-banner",
+      "label": "iOS-style banner",
+      "look": "Light frosted banner",
+      "params": {
+        "bg": "rgba(245,245,247,0.78)",
+        "backdrop_blur_px": 30,
+        "radius_px": 40,
+        "size_px": [
+          960,
+          184
+        ],
+        "rest_y_px": 320,
+        "icon_px": 88,
+        "title_px": 36,
+        "body_px": 34,
+        "time_px": 28,
+        "in_s": 0.45,
+        "in_ease": "back.out(1.4)",
+        "remotion_spring": {
+          "damping": 16,
+          "stiffness": 210,
+          "mass": 1
+        },
+        "from_y_px": -140,
+        "hold_until_s": 2.55,
+        "out_s": 0.25,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+        "sfx_frame": 11
+      },
+      "sources": [
+        27,
+        30,
+        26,
+        31
+      ]
+    },
+    {
+      "id": "notification-drop.dark-banner",
+      "label": "Dark banner",
+      "look": "Dark frosted for bright footage",
+      "params": {
+        "bg": "rgba(28,28,30,0.72)",
+        "backdrop_blur_px": 30,
+        "title": "#FFFFFF",
+        "body": "rgba(235,235,245,0.6)"
+      },
+      "sources": []
+    },
+    {
+      "id": "notification-drop.android-style",
+      "label": "Android-style",
+      "look": "Flatter card, app-name row",
+      "params": {
+        "radius_px": 28,
+        "font": "Roboto 500/400",
+        "in_s": 0.4,
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)"
+      },
+      "sources": [
+        26
+      ]
+    },
+    {
+      "id": "notification-drop.achievement",
+      "label": "Achievement",
+      "look": "Dark pill, trophy disc pops, text slides out",
+      "params": {
+        "pill": "rgba(17,17,17,0.9)",
+        "icon_disc_px": 96,
+        "icon_in_s": 0.25,
+        "icon_ease": "back.out(2)",
+        "expand_s": 0.3,
+        "expand_ease": "power3.out",
+        "expand_delay_s": 0.15,
+        "text_delay_s": 0.1
+      },
+      "sources": [
+        27
+      ]
+    }
+  ],
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 3,
+      "name": "TikTok Ads Help: Creative best practices for performance ads",
+      "url": "https://ads.tiktok.com/help/article/creative-best-practices?lang=en"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 24,
+      "name": "Apple: App Store marketing guidelines",
+      "url": "https://developer.apple.com/app-store/marketing/guidelines/"
+    },
+    {
+      "n": 26,
+      "name": "Material Design 3 motion tokens (material-components-android Motion.md)",
+      "url": "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md"
+    },
+    {
+      "n": 27,
+      "name": "GSAP source gsap-core.js (back/elastic defaults)",
+      "url": "https://github.com/greensock/GSAP/blob/master/src/gsap-core.js"
+    },
+    {
+      "n": 30,
+      "name": "Remotion docs: spring()",
+      "url": "https://www.remotion.dev/docs/spring"
+    },
+    {
+      "n": 31,
+      "name": "Apple HIG: Notifications",
+      "url": "https://developer.apple.com/design/human-interface-guidelines/notifications"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    }
+  ]
+}

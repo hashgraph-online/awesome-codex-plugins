@@ -107,7 +107,7 @@ profile: Warrior stays extra-high, Samurai stays high, and Knight stays medium.
 ### Prerequisites
 
 - Node.js 22.12+
-- Python 3.10+
+- Python 3.11+
 - Git
 - At least one supported local CLI installed and signed in: Codex (default),
   Claude Code, Gemini CLI, or xAI Grok CLI. See [runtime setup](docs/RUNTIMES.md).

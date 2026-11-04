@@ -1,0 +1,197 @@
+{
+  "id": "caption-bar-overlay",
+  "name": "Story caption bar",
+  "use": "Full-width translucent caption strip or big outlined text, Snapchat-story style.",
+  "formats": [
+    "9:16",
+    "1:1",
+    "16:9"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Public Sans",
+      "weights": [
+        500,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Public+Sans"
+    },
+    {
+      "family": "Arimo",
+      "weights": [
+        400,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Arimo"
+    }
+  ],
+  "rules": [
+    "Full-width bar, fixed size, only vertical position moves [19]",
+    "<=40 chars per line, contrast >=4.5:1, ~1 s per 5 words [20]",
+    "Snap ad safe zone 150 top / 330 bottom [6]",
+    "No Snap font or logo [18][19]"
+  ],
+  "presets": [
+    {
+      "id": "caption-bar-overlay.classic",
+      "label": "Classic bar",
+      "look": "Full-width black @55% bar, white one-line text",
+      "params": {
+        "bar": "rgba(0,0,0,0.55)",
+        "bar_opacity_note": "house starting value; raise to 0.65 on bright footage",
+        "bar_h_px": 76,
+        "width": "100%",
+        "font": "Public Sans 500",
+        "text_px": 40,
+        "text": "#FFFFFF",
+        "align": "center",
+        "lines": 1,
+        "max_chars": 40,
+        "center_y_px_crosspost": 1190,
+        "max_center_y_px_snap_only": 1590,
+        "in": "cut or 0.1 s fade",
+        "out": "cut or 0.1 s fade"
+      },
+      "sources": [
+        19,
+        20,
+        6
+      ]
+    },
+    {
+      "id": "caption-bar-overlay.big-text",
+      "label": "Big text",
+      "look": "Large bold white words with black outline",
+      "params": {
+        "font": "Arimo 700 or Public Sans 800",
+        "text_px": 88,
+        "stroke": "4px #000000",
+        "paint_order": "stroke fill",
+        "max_lines": 2,
+        "line_height": 1.1,
+        "in_s": 0.2,
+        "in_ease": "power2.out",
+        "scale_from": 0.9
+      },
+      "sources": [
+        19
+      ]
+    },
+    {
+      "id": "caption-bar-overlay.classic-multi",
+      "label": "Classic multi",
+      "look": "Consecutive one-line bars",
+      "params": {
+        "min_bar_s": 1.2,
+        "words_per_s": 5,
+        "swap": "hard cut on picture cuts"
+      },
+      "sources": [
+        20
+      ]
+    },
+    {
+      "id": "caption-bar-overlay.light-bar",
+      "label": "Light bar",
+      "look": "White @70% bar with dark text",
+      "params": {
+        "bar": "rgba(255,255,255,0.7)",
+        "text": "#000000"
+      },
+      "sources": []
+    }
+  ],
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 6,
+      "name": "Snapchat Business Help: Single Image or Video creative best practices",
+      "url": "https://businesshelp.snapchat.com/s/article/snap-ads-practices?language=en_US"
+    },
+    {
+      "n": 18,
+      "name": "Snap: Brand guidelines",
+      "url": "https://snap.com/en-US/brand-guidelines"
+    },
+    {
+      "n": 19,
+      "name": "Kapwing: A complete guide to Snapchat text fonts",
+      "url": "https://www.kapwing.com/resources/a-complete-guide-to-snapchat-text-fonts/"
+    },
+    {
+      "n": 20,
+      "name": "OpusClip: Snapchat Spotlight caption best practices",
+      "url": "https://www.opus.pro/blog/snapchat-spotlight-caption"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 41,
+      "name": "Google Fonts repo METADATA (licences)",
+      "url": "https://github.com/google/fonts"
+    }
+  ]
+}

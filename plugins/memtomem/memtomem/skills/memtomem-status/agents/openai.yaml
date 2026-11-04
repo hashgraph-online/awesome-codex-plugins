@@ -1,0 +1,6 @@
+interface:
+  display_name: "memtomem Status"
+  short_description: "Check memory index health and coverage"
+  default_prompt: "Use $memtomem-status to inspect the current memory index."
+policy:
+  allow_implicit_invocation: true

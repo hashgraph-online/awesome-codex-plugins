@@ -1,6 +1,6 @@
 {
-  "name": "off-the-wall",
-  "version": "0.2.0",
+  "name": "dude-toldya",
+  "version": "0.3.1",
   "description": "Recalls relevant, origin-tagged correction excerpts within the same working directory, reports model-labelled correction patterns, and guides subagent model selection. Claude Code and Codex.",
   "author": {
     "name": "Junebeom Seo",
@@ -9,8 +9,28 @@
   "type": "module",
   "license": "MIT",
   "bin": {
+    "duto": "bin/duto.mjs",
     "otw": "bin/otw.mjs"
   },
+  "files": [
+    "bin",
+    "src",
+    "bench",
+    "hooks",
+    "examples",
+    ".claude-plugin",
+    ".codex-plugin",
+    ".agents",
+    "README.md",
+    "README.ko.md",
+    "README.ja.md",
+    "README.zh-CN.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "VERIFICATION.md",
+    "PRIVACY-VERIFICATION.md"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -20,7 +40,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/toranalytics/off-the-wall.git"
+    "url": "https://github.com/toranalytics/dude-toldya.git"
   },
   "keywords": [
     "claude-code",

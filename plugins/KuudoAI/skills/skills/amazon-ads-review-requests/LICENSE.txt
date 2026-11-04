@@ -1,0 +1,9 @@
+PolyForm Shield License 1.0.0
+https://polyformproject.org/licenses/shield/1.0.0
+
+Required Notice: Copyright 2026 KuudoAI (https://github.com/KuudoAI)
+
+This skill is part of KuudoAI Skills (https://github.com/KuudoAI/skills).
+The full license text and KuudoAI's additional permission for customers are
+in LICENSE.md and licenses/PolyForm-Shield-1.0.0.md in the source repository.
+Keep this file with the skill when you copy or redistribute it.

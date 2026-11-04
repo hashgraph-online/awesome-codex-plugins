@@ -10,6 +10,8 @@ allowed-tools: Glob, Read, Bash, Grep, AskUserQuestion
 Use deterministic repository tests first. Stop when the target has no behavioral diff.
 
 Resolve the plugin from the argument or cwd. Its catalog is `evals/evals.json`; the runner is `scripts/run_evals.py` in this skill.
+The runner can load the operator's settings and other installed plugins. Its results do not isolate this plugin's effect.
+For the native Claude routing cases, use `claude plugin eval` with `--no-publish` and an agreed case and run count.
 Require the user to choose agent, model, and effort. Never select a costly model or high effort silently.
 
 ## Normal check

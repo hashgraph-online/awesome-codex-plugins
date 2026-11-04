@@ -1,0 +1,185 @@
+{
+  "id": "crt-screen",
+  "name": "CRT screen",
+  "use": "Put real footage (or a chat/UI scene) on a curved CRT: phosphor mask, scanlines, bloom, rounded corners, optional afterglow.",
+  "formats": [
+    "16:9",
+    "4:3",
+    "1:1"
+  ],
+  "duration_s": 8,
+  "fonts": [
+    {
+      "family": "VT323",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/VT323"
+    }
+  ],
+  "ffmpeg_note": "Chains target 1920x1080 at 30 fps: [0:v] is the footage, generated inputs are 1..n, output label [v]. For 9:16 swap 1920x1080 -> 1080x1920 in sizes and crops. Generated lavfi inputs never end, so always cap the output with -t <clip duration> (ffprobe format=duration). Encode with -c:v libx264 -crf 16 -preset slow -pix_fmt yuv420p and keep audio with -map '0:a?' -c:a copy.",
+  "presets": [
+    {
+      "id": "crt-screen.consumer-tv",
+      "label": "Consumer TV",
+      "look": "360-line picture on a curved tube: RGB stripe mask, 3 px scanline period, soft bloom, rounded dark corners.",
+      "params": {
+        "source_lines": 360,
+        "scanline_period_px": 3,
+        "scanline_dark_level": 0.47,
+        "mask": "RGB stripe triad 3 px, off-phosphor 0.6",
+        "curvature_k1": 0.1,
+        "curvature_k2": 0.04,
+        "bloom_sigma_px": 12,
+        "bloom_gain": 0.5,
+        "corner_feather_px": 14,
+        "vignette": "PI/5",
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=white:s=1920x1080:r=30,format=gbrp,geq=r='if(lt(mod(Y,3),3-1),255,120)*if(eq(mod(X,3),0),1,0.6)':g='if(lt(mod(Y,3),3-1),255,120)*if(eq(mod(X,3),1),1,0.6)':b='if(lt(mod(Y,3),3-1),255,120)*if(eq(mod(X,3),2),1,0.6)',trim=end_frame=1,loop=-1:size=1",
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip(min(min(X,W-1-X),min(Y,H-1-Y))/14,0,1)',trim=end_frame=1,loop=-1:size=1,format=gbrp"
+          ],
+          "filter_complex": "[0:v]scale=640:360:flags=area,scale=1920:1080:flags=bicubic,eq=contrast=1.1:saturation=1.15,format=gbrp[lo];[lo][1:v]blend=all_mode=multiply:shortest=1,colorlevels=rimax=0.82:gimax=0.82:bimax=0.82[masked];[masked]split[m1][m2];[m2]gblur=sigma=12,colorchannelmixer=rr=0.5:gg=0.5:bb=0.5[bl];[m1][bl]blend=all_mode=screen:shortest=1[lit];[lit][2:v]blend=all_mode=multiply:shortest=1,lenscorrection=k1=0.1:k2=0.04:i=bilinear:fc=black,format=yuv420p,vignette=angle=PI/5[v]"
+        },
+        "hyperframes": {
+          "data-color-grading": {
+            "intensity": 1,
+            "effects": {
+              "crtCurvature": 0.2,
+              "scanlines": 0.35,
+              "scanlineCount": 0.17,
+              "scanlineSoftness": 1,
+              "chromaticAberration": 0.08,
+              "chromaticAngle": 0
+            }
+          }
+        },
+        "remotion": "[barrelDistortion({amount: 0.2}), scanlines({amount: 0.35, spacing: 3, thickness: 1}), glow({radius: 12, threshold: 0.5, intensity: 0.5})]"
+      },
+      "sources": [
+        17,
+        18,
+        19,
+        29,
+        6
+      ]
+    },
+    {
+      "id": "crt-screen.arcade-grille",
+      "label": "Arcade aperture grille",
+      "look": "270-line low-res picture, heavy 4 px scanlines, strong grille, flatter tube, punchier bloom.",
+      "params": {
+        "source_lines": 270,
+        "scanline_period_px": 4,
+        "scanline_dark_level": 0.35,
+        "mask": "aperture-grille stripes 3 px, off-phosphor 0.55",
+        "curvature_k1": 0.06,
+        "curvature_k2": 0.02,
+        "bloom_sigma_px": 10,
+        "bloom_gain": 0.65,
+        "lottes_equivalents": {
+          "hardScan": -8,
+          "hardPix": -3,
+          "warpX": 0.031,
+          "warpY": 0.041,
+          "maskDark": 0.5,
+          "maskLight": 1.5,
+          "shadowMask": 2,
+          "bloomAmount": 0.15
+        },
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=white:s=1920x1080:r=30,format=gbrp,geq=r='if(lt(mod(Y,4),4-1),255,90)*if(eq(mod(X,3),0),1,0.55)':g='if(lt(mod(Y,4),4-1),255,90)*if(eq(mod(X,3),1),1,0.55)':b='if(lt(mod(Y,4),4-1),255,90)*if(eq(mod(X,3),2),1,0.55)',trim=end_frame=1,loop=-1:size=1",
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip(min(min(X,W-1-X),min(Y,H-1-Y))/14,0,1)',trim=end_frame=1,loop=-1:size=1,format=gbrp"
+          ],
+          "filter_complex": "[0:v]scale=480:270:flags=area,scale=1920:1080:flags=bicubic,eq=contrast=1.1:saturation=1.15,format=gbrp[lo];[lo][1:v]blend=all_mode=multiply:shortest=1,colorlevels=rimax=0.82:gimax=0.82:bimax=0.82[masked];[masked]split[m1][m2];[m2]gblur=sigma=10,colorchannelmixer=rr=0.65:gg=0.65:bb=0.65[bl];[m1][bl]blend=all_mode=screen:shortest=1[lit];[lit][2:v]blend=all_mode=multiply:shortest=1,lenscorrection=k1=0.06:k2=0.02:i=bilinear:fc=black,format=yuv420p,vignette=angle=PI/5[v]"
+        }
+      },
+      "sources": [
+        18,
+        17,
+        19
+      ]
+    },
+    {
+      "id": "crt-screen.green-terminal",
+      "label": "Green phosphor terminal",
+      "look": "Monochrome P1-green terminal for chat/UI scenes: no colour mask, afterglow trails, glowing text.",
+      "params": {
+        "phosphor_hex": "#33FF66",
+        "source_lines": 360,
+        "scanline_period_px": 3,
+        "persistence_decay": 0.85,
+        "curvature_k1": 0.12,
+        "curvature_k2": 0.04,
+        "bloom_sigma_px": 14,
+        "bloom_gain": 0.7,
+        "min_text_size_px_1080p": 36,
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=white:s=1920x1080:r=30,format=gbrp,geq=r='if(lt(mod(Y,3),3-1),255,110)':g='if(lt(mod(Y,3),3-1),255,110)':b='if(lt(mod(Y,3),3-1),255,110)',trim=end_frame=1,loop=-1:size=1",
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip(min(min(X,W-1-X),min(Y,H-1-Y))/14,0,1)',trim=end_frame=1,loop=-1:size=1,format=gbrp"
+          ],
+          "filter_complex": "[0:v]scale=640:360:flags=area,scale=1920:1080:flags=bicubic,eq=contrast=1.1:saturation=1.15,hue=s=0,format=gbrp,colorchannelmixer=rr=0.2:rg=0.2:rb=0.2:gr=1:gg=1:gb=1:br=0.4:bg=0.4:bb=0.4,lagfun=decay=0.85[lo];[lo][1:v]blend=all_mode=multiply:shortest=1,colorlevels=rimax=0.82:gimax=0.82:bimax=0.82[masked];[masked]split[m1][m2];[m2]gblur=sigma=14,colorchannelmixer=rr=0.7:gg=0.7:bb=0.7[bl];[m1][bl]blend=all_mode=screen:shortest=1[lit];[lit][2:v]blend=all_mode=multiply:shortest=1,lenscorrection=k1=0.12:k2=0.04:i=bilinear:fc=black,format=yuv420p,vignette=angle=PI/5[v]"
+        }
+      },
+      "sources": [
+        19,
+        6,
+        17
+      ]
+    },
+    {
+      "id": "crt-screen.amber-terminal",
+      "label": "Amber terminal",
+      "look": "Amber monochrome monitor; same build as the green terminal, warmer and calmer.",
+      "params": {
+        "phosphor_hex": "#FFB000",
+        "persistence_decay": 0.8,
+        "curvature_k1": 0.1,
+        "curvature_k2": 0.03,
+        "bloom_sigma_px": 12,
+        "bloom_gain": 0.6,
+        "ffmpeg": {
+          "inputs": [
+            "-f lavfi -i color=c=white:s=1920x1080:r=30,format=gbrp,geq=r='if(lt(mod(Y,3),3-1),255,110)':g='if(lt(mod(Y,3),3-1),255,110)':b='if(lt(mod(Y,3),3-1),255,110)',trim=end_frame=1,loop=-1:size=1",
+            "-f lavfi -i color=c=black:s=1920x1080:r=30,format=gray,geq=lum='255*clip(min(min(X,W-1-X),min(Y,H-1-Y))/14,0,1)',trim=end_frame=1,loop=-1:size=1,format=gbrp"
+          ],
+          "filter_complex": "[0:v]scale=640:360:flags=area,scale=1920:1080:flags=bicubic,eq=contrast=1.1:saturation=1.15,hue=s=0,format=gbrp,colorchannelmixer=rr=1:rg=1:rb=1:gr=0.69:gg=0.69:gb=0.69:br=0:bg=0:bb=0,lagfun=decay=0.8[lo];[lo][1:v]blend=all_mode=multiply:shortest=1,colorlevels=rimax=0.82:gimax=0.82:bimax=0.82[masked];[masked]split[m1][m2];[m2]gblur=sigma=12,colorchannelmixer=rr=0.6:gg=0.6:bb=0.6[bl];[m1][bl]blend=all_mode=screen:shortest=1[lit];[lit][2:v]blend=all_mode=multiply:shortest=1,lenscorrection=k1=0.1:k2=0.03:i=bilinear:fc=black,format=yuv420p,vignette=angle=PI/5[v]"
+        }
+      },
+      "sources": [
+        19,
+        17
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 6,
+      "name": "komm64 (@komm64) — CRT shader: NTSC signal path then display",
+      "url": "https://x.com/komm64/status/2073558529097834584"
+    },
+    {
+      "n": 17,
+      "name": "libretro — crt-geom.glsl",
+      "url": "https://raw.githubusercontent.com/libretro/glsl-shaders/master/crt/shaders/crt-geom.glsl"
+    },
+    {
+      "n": 18,
+      "name": "libretro — crt-lottes.glsl (Timothy Lottes)",
+      "url": "https://raw.githubusercontent.com/libretro/glsl-shaders/master/crt/shaders/crt-lottes.glsl"
+    },
+    {
+      "n": 19,
+      "name": "libretro forums — CRT effects list",
+      "url": "https://forums.libretro.com/t/crt-effects-list/49051"
+    },
+    {
+      "n": 29,
+      "name": "HyperFrames — media-treatment recipes (CRT Display)",
+      "url": "https://raw.githubusercontent.com/heygen-com/hyperframes/main/skills/media-use/references/media-treatment-recipes.md"
+    }
+  ]
+}

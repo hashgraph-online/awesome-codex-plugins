@@ -43,7 +43,7 @@ The user must provide (or will be prompted for):
    - Corrective actions: what was already done and what is recommended for next period
 8. **Generate strategic recommendations**: Based on performance data, formulate 3-5 actionable recommendations — what to scale, what to pause, what to test next, where budget should shift, and what new opportunities to explore
 9. **Write report in agency voice**: Draft the full report using professional, third-person agency voice — NOT the brand's personality. Focus on clarity, data-backed insights, actionable next steps, and a confident but honest tone that builds client trust
-10. **Format for delivery channel**: Run `python "${CLAUDE_PLUGIN_ROOT}/scripts/report-generator.py" --brand {slug} --action format-slack` (or `format-email` / `format-sheets`), passing the report JSON via `--data '{report_json}'`; for a clean markdown artifact use `--action generate-report --data '{report_json}'`
+10. **Save, then format for the delivery channel**: First save the report: `python "${CLAUDE_PLUGIN_ROOT}/scripts/report-generator.py" --brand {slug} --action generate-report --data '{"report_type": "monthly-review", "period": "2026-10", "summary": "...", "metrics": {...}, "highlights": [...], "recommendations": [...]}'`. `report_type` is one of `weekly-pulse`, `monthly-review`, `quarterly-business-review`, `custom`; other keys are listed back as `ignored_keys`, so put the executive summary in `summary`. It returns a `report_id`. Then format it: `--action format-slack --id {report_id}` (or `format-email`); `format-sheets` takes `--data '{"metrics": {...}}'`.
 11. **Create approval checkpoint**: Present the full report preview for review. Risk level: low. Require explicit approval before any external delivery — highlight any sensitive data, unexpected results, or negative findings that may need pre-briefing with the client
 12. **Deliver via MCP if approved**: On approval, send via the appropriate MCP integration (Slack MCP, email MCP, Google Sheets MCP) if a delivery channel was specified. On a delivery error, retry only a write that provably never reached the platform (connection refused, DNS failure, or a 429 rate-limit rejection); after a timeout or a lost reply, look the record up on the platform first (is the report already in the channel or inbox?) and resend only if it is missing
 13. **Log delivery and archive**: Record the report delivery in the execution log with timestamp, recipients, delivery confirmation status, report version, and a reference to the archived report for future comparison
@@ -62,6 +62,10 @@ A structured client report containing:
 - **Upcoming deliverables and timeline**: What the agency will deliver next period with dates, milestones, dependencies, and any client actions required to keep the plan on track
 - **Appendix (if requested)**: Raw data tables, campaign-level breakdowns, full metric exports, creative performance data, and supporting calculations for detailed review
 - **Delivery confirmation**: Channel, timestamp, recipients, delivery status, and report version — or markdown artifact if no external delivery was requested
+
+## Before it goes to the client
+
+Run the zero-context review in `/digital-marketing-pro:check` (`--goldfish`). `goldfish-review.py` packs the deliverable, the brief and the brand profile into one file and nothing else, flags money figures and benchmark rates that nothing in the brief or profile supports, and writes the prompt for a reviewer that sees only that file. Answer each finding in the document itself (state the assumption for the client to confirm, cite the source, or cut the figure) before it is sent.
 
 ## Agents Used
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "News Infographic Generator"
+  short_description: "Generate cover and per-type infographics for AI news reports"
+  default_prompt: "Generate infographic images for the daily AI news report."

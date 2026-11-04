@@ -89,6 +89,11 @@ Read rules:
 7. The executing skill MUST NOT derive a planning target from a dirty branch
    alone.
 
+Target projects: resolve one target project per path in the request, and pass
+`project` on each call that concerns a project other than the session root, per
+`skills/_shared/target-project.md`. The scope line names each target project
+when there is more than one.
+
 Report the inferred scope in one line before the first write. No report prints a
 route name or a size label.
 

@@ -23,7 +23,7 @@ Set up and manage keyword ranking monitoring — and, with `--features`, SERP-fe
   python "${CLAUDE_PLUGIN_ROOT}/scripts/serp-snapshot.py" --file <export.csv|export.json> --brand-domain <brand domain>
   ```
   Its rows supply position, AI Overview presence and citation, People Also Ask and featured-snippet ownership for those queries. The format is in `serp-snapshot-format.md` beside this file. The script reads only that file (no network, no API key, no provider code), exits 1 and lists every bad row if the export is malformed (show the errors and do not use the file), and nothing changes when no file is given.
-- **Moz MCP** (`mcp-moz`) is **optional** — verify the package exists on npm before use (`npm view mcp-moz`); `npx` executes remote code, so don't wire an unverified package. If Moz isn't connected, use GSC + whichever rank-tracker MCP the brand already has.
+- **Moz** is **optional** and has no vendor-verified connector: set it up from Moz's own docs if you use it. If Moz isn't connected, use GSC + whichever rank-tracker MCP the brand already has.
 - **AI Overview presence** in `--features` mode records only *whether* an AI Overview appeared and *whether the brand was cited in it* (a binary SERP-feature signal). For scored AI-visibility measurement across the 6 canonical AI surfaces, use `/digital-marketing-pro:geo-monitor` / `/digital-marketing-pro:aeo-audit` (the canonical AI-visibility scoring standard) and, for actual impressions, `/digital-marketing-pro:gsc-ai-performance`. Do not re-implement AI-visibility scoring here.
 
 ## Input Required

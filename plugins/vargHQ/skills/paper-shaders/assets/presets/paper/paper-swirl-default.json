@@ -1,0 +1,38 @@
+{
+  "id": "paper-swirl-default",
+  "label": "Default (Paper Swirl)",
+  "shader": "Swirl",
+  "page": "https://shaders.paper.design/swirl",
+  "paperShaders": "0.0.82",
+  "origin": "paper",
+  "use": "Paper's built-in \"Default\" preset for Swirl, colors and motion as on shaders.paper.design.",
+  "motion": {
+    "timeScale": 0.32,
+    "frame": 0
+  },
+  "roles": {},
+  "params": {
+    "fit": "contain",
+    "scale": 1,
+    "rotation": 0,
+    "offsetX": 0,
+    "offsetY": 0,
+    "originX": 0.5,
+    "originY": 0.5,
+    "worldWidth": 0,
+    "worldHeight": 0,
+    "colorBack": "#330000",
+    "colors": [
+      "#ffd1d1",
+      "#ff8a8a",
+      "#660000"
+    ],
+    "bandCount": 4,
+    "twist": 0.1,
+    "center": 0.2,
+    "proportion": 0.5,
+    "softness": 0,
+    "noiseFrequency": 0.4,
+    "noise": 0.2
+  }
+}

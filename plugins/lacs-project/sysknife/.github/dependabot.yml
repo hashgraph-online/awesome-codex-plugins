@@ -97,3 +97,68 @@ updates:
     # publish is caught; same cooldown rationale as the other ecosystems.
     cooldown:
       default-days: 5
+
+  # The fuzz crate is its own cargo workspace with its own lockfile (see
+  # fuzz/Cargo.toml), so the root entry above never sees it.
+  - package-ecosystem: "cargo"
+    directory: "/fuzz"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    cooldown:
+      default-days: 5
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      fuzz-cargo:
+        patterns:
+          - "*"
+
+  # ClusterFuzzLite's builder image, pinned by digest.
+  - package-ecosystem: "docker"
+    directory: "/.clusterfuzzlite"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    cooldown:
+      default-days: 5
+
+  # The markdown tools docs-and-hygiene installs with `npm ci`. Each override in
+  # its package.json went in by hand after an advisory; version updates keep the
+  # rest of the tree from aging the same way.
+  - package-ecosystem: "npm"
+    directory: "/tools/ci-node"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    cooldown:
+      default-days: 5
+      semver-major-days: 30
+      semver-minor-days: 7
+      semver-patch-days: 3
+    groups:
+      ci-node:
+        patterns:
+          - "*"
+
+  # yamllint and its dependencies, installed with --require-hashes.
+  - package-ecosystem: "pip"
+    directory: "/tools/ci-python"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    cooldown:
+      default-days: 5
+    groups:
+      ci-python:
+        patterns:
+          - "*"

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Frugal"
+  short_description: "Find the cheaper honest way before anything is paid for"
+policy:
+  allow_implicit_invocation: true

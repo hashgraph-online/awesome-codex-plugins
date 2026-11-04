@@ -5,6 +5,8 @@ description: "Design the analytics layer with script-backed benchmarks: KPI tree
 
 # Analytics & Insights
 
+> **Metrics:** mention rate, citation rate, share of model, share of AI voice, sentiment and the AI Visibility Score are defined, with formulas, in `skills/context-engine/ai-visibility-metrics.md`. Report every score with its formula and its sample size (n).
+
 ## GA4 "AI Assistant" channel group (added 13 May 2026)
 
 Google Analytics 4 added a new **default channel group called "AI Assistant"** on 13 May 2026 ([GA4 channel groups doc](https://support.google.com/analytics/answer/9164320?hl=en)). When a referrer matches a recognized AI Assistant (ChatGPT, Gemini, Claude, etc.), GA4 automatically:

@@ -59,6 +59,8 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Multi-LLM's MCP configuration starts the bundled Python server.
+    "beastlabai/multi-llm-plugin": ("mcp",),
     # Workflow MCP bootstrap loads the sibling control-plane runtime; its MCP
     # App also reads assets/sidebar-icon.svg and Skills reference helper scripts.
     "TohmaN233/codex-agents-workflow": ("control-plane", "scripts", "assets"),
@@ -72,6 +74,9 @@ EXTRA_MIRROR_PATHS = {
     # Cohesivity's .mcp.json starts its local stdio server from
     # ./mcp/project-bootstrap.mjs, which no manifest field references.
     "cohesivity-org/cohesivity-plugin": ("mcp",),
+    # Suede declares its local MCP command inline; keep its server, imported
+    # helpers and catalog data together in the installed bundle.
+    "JasonColapietro/suede-creator-skills": ("mcp",),
     # Espresso inline manifest hooks run src/hooks/*.js, which load the
     # bundled Ponytail runtime from the top-level hooks/ directory.
     "mirkobozzetto/espresso": ("src", "hooks"),
@@ -301,6 +306,24 @@ def collect_selected_paths(
 
     for key in ("skills", "scripts", "mcpServers", "apps", "app", "appConfig", "hooks"):
         value = manifest.get(key)
+        if key == "skills" and value in (".", "./"):
+            # Root-based collections contain sibling skill directories. Keep
+            # their helpers without copying unrelated repository contents.
+            relative_names = {
+                PurePosixPath(name).relative_to(plugin_root)
+                for name in all_names
+                if PurePosixPath(name).is_relative_to(plugin_root)
+                and ".." not in PurePosixPath(name).parts
+            }
+            skill_roots = {
+                path.parent for path in relative_names
+                if path.name == "SKILL.md" and len(path.parts) > 1
+            }
+            selected.update(
+                path.as_posix() for path in relative_names
+                if any(path.is_relative_to(root) for root in skill_roots)
+            )
+            continue
         if isinstance(value, str):
             add_recursive_selection(selected, all_names, plugin_root, value)
 
@@ -427,6 +450,24 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
             )
         else:
             destination_path.write_bytes(archive.read(archive_name))
+
+    # Nested bundles may inherit their license from an enclosing directory.
+    # Keep a bundle-specific license when present; otherwise retain the nearest
+    # ancestor's license verbatim alongside the mirrored files.
+    license_names = {f"{stem}{extension}" for stem in ("license", "licence", "copying")
+                     for extension in ("", ".md", ".txt")}
+    license_files = [PurePosixPath(name) for name in names
+                     if PurePosixPath(name).name.lower() in license_names]
+    for ancestor in (plugin_root, *plugin_root.parents):
+        if ancestor == PurePosixPath("."):
+            break
+        inherited = sorted(path for path in license_files if path.parent == ancestor)
+        if inherited:
+            for source_path in inherited:
+                destination_path = destination_root / source_path.name
+                if not destination_path.exists():
+                    destination_path.write_bytes(archive.read(source_path.as_posix()))
+            break
 
     marketplace_path = f"./plugins/{plugin['owner']}/{plugin['repo']}"
     if use_subpath and plugin_root_relative:

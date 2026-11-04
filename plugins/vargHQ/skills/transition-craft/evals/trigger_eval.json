@@ -1,0 +1,27 @@
+{
+  "skill": "transition-craft",
+  "should_trigger": [
+    "how to make a photo collage transition",
+    "how to do an infinite zoom (Droste) transition into a screen",
+    "how to make a grid tile flip transition between two clips",
+    "how to make a bokeh defocus transition",
+    "how to make a 3D photo gallery fly-through video",
+    "how to add a camera shake transition on the beat",
+    "how to make a shake zoom transition for TikTok/Reels",
+    "how long should a video transition be"
+  ],
+  "should_not_trigger": [
+    {
+      "query": "Add a simple crossfade between all clips",
+      "use_instead": "varg-video-edit-library (ffmpeg xfade)"
+    },
+    {
+      "query": "Cut the silences out of my podcast",
+      "use_instead": "varg-video-editing"
+    },
+    {
+      "query": "Generate a drone shot to use as b-roll",
+      "use_instead": "varg-ai"
+    }
+  ]
+}

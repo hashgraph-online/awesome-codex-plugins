@@ -1,0 +1,249 @@
+{
+  "id": "subscribe-nudge",
+  "name": "Subscribe-and-bell nudge",
+  "use": "Cursor clicks Subscribe, then the bell, as a short reminder overlay.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Roboto",
+      "weights": [
+        500,
+        700
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Roboto"
+    }
+  ],
+  "rules": [
+    "Not in the intro [32]",
+    "Ask at the end or after the payoff [33][34]",
+    "Optional per video; no formula [35]",
+    "Finish before the end-screen window (last 5-20 s) [8]",
+    "Say 'subscribe' on the click frame [11]",
+    "YouTube Red #FF0033, Almost Black #212121 [14]"
+  ],
+  "presets": [
+    {
+      "id": "subscribe-nudge.subscribe",
+      "label": "Subscribe",
+      "look": "Red pill flips to Subscribed",
+      "params": {
+        "button": "#FF0033",
+        "label": "#FFFFFF",
+        "label_px_1080p": 30,
+        "label_weight": 700,
+        "flipped_dark": "#272727 (house)",
+        "flipped_light": "#E5E5E5 (house)",
+        "card_px_16x9": [
+          620,
+          132
+        ],
+        "pos_px_16x9": [
+          96,
+          820
+        ],
+        "button_px_16x9": [
+          236,
+          72
+        ],
+        "in": [
+          0,
+          0.4
+        ],
+        "cursor": [
+          0.4,
+          1.1
+        ],
+        "press_s": 1.2,
+        "flip_s": 1.3,
+        "crossfade_s": 0.2,
+        "out": [
+          4.5,
+          4.75
+        ],
+        "in_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)"
+      },
+      "sources": [
+        14,
+        26,
+        42
+      ]
+    },
+    {
+      "id": "subscribe-nudge.subscribe-bell",
+      "label": "Subscribe and bell",
+      "look": "Plus bell click and decaying wiggle",
+      "params": {
+        "bell_px": 64,
+        "bell_click_s": 2.3,
+        "wiggle_deg": [
+          0,
+          15,
+          -12,
+          8,
+          -4,
+          0
+        ],
+        "wiggle_s": 0.5,
+        "origin": "50% 8%"
+      },
+      "sources": []
+    },
+    {
+      "id": "subscribe-nudge.highlight",
+      "label": "Highlight",
+      "look": "Avatar + name card, glow ring, no cursor",
+      "params": {
+        "glow": [
+          "#FF0033",
+          "#FFB400"
+        ],
+        "glow_s": 1.2,
+        "glow_opacity": [
+          0.6,
+          0
+        ]
+      },
+      "sources": [
+        11
+      ]
+    },
+    {
+      "id": "subscribe-nudge.vertical",
+      "label": "Vertical",
+      "look": "9:16 stacked card, finger tap",
+      "params": {
+        "card_px": [
+          760,
+          150
+        ],
+        "button_px": [
+          280,
+          84
+        ],
+        "label_px": 34,
+        "center_y_px": 1060,
+        "safe": "Shorts 288/672/48/192"
+      },
+      "sources": [
+        5
+      ]
+    }
+  ],
+  "safe_zones": {
+    "universal_9x16_px": {
+      "x": [
+        120,
+        888
+      ],
+      "y": [
+        288,
+        1248
+      ],
+      "below_y_840_max_x": 780
+    },
+    "tiktok_px": {
+      "top": 240,
+      "bottom": 660,
+      "left": 120,
+      "right": 120,
+      "right_rail": {
+        "x": [
+          780,
+          960
+        ],
+        "from_y": 840
+      }
+    },
+    "reels_pct": {
+      "top": 14,
+      "bottom": 35,
+      "sides": 6
+    },
+    "shorts_px": {
+      "top": 288,
+      "bottom": 672,
+      "left": 48,
+      "right": 192
+    },
+    "snap_px": {
+      "top": 150,
+      "bottom": 330
+    },
+    "landscape_margin_pct": 5
+  },
+  "trademark_note": "Platform names, logos and UI looks are trademarks of their owners; presets are generic 'inspired' looks, no logos.",
+  "sources": [
+    {
+      "n": 1,
+      "name": "TikTok In-Feed safe-zone template (Feed.png, 720x1280)",
+      "url": "https://lf-tt4b.tiktokcdn.com/obj/i18nblog/tt4b_cms/en-US/5jqet0ab9qci-10e7f5Vig4uhAscNP8XPB0.zip"
+    },
+    {
+      "n": 4,
+      "name": "Meta Ads Guide: Instagram Reels video specs",
+      "url": "https://www.facebook.com/business/ads-guide/update/video/instagram-reels"
+    },
+    {
+      "n": 5,
+      "name": "Google Ads Help: safe zone for vertical video ads on YouTube",
+      "url": "https://support.google.com/google-ads/answer/9128498?hl=en"
+    },
+    {
+      "n": 8,
+      "name": "YouTube Help: Add end screens to videos",
+      "url": "https://support.google.com/youtube/answer/6388789?hl=en"
+    },
+    {
+      "n": 11,
+      "name": "Tubefilter: YouTube subscribe button glow test (2023)",
+      "url": "https://www.tubefilter.com/2023/09/11/youtube-subscribe-button-glow/"
+    },
+    {
+      "n": 14,
+      "name": "YouTube Brand Resources: Color",
+      "url": "https://brand.youtube/color/"
+    },
+    {
+      "n": 26,
+      "name": "Material Design 3 motion tokens (material-components-android Motion.md)",
+      "url": "https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md"
+    },
+    {
+      "n": 32,
+      "name": "Paddy Galloway (@PaddyG96) on intro subscribe asks",
+      "url": "https://x.com/PaddyG96/status/1518958236480720897"
+    },
+    {
+      "n": 33,
+      "name": "YouTube Creators (@YouTubeCreators): ask to subscribe at the end",
+      "url": "https://x.com/YouTubeCreators/status/1402025908123353088"
+    },
+    {
+      "n": 34,
+      "name": "Nick Nimmin (@NickNimmin): ask where it won't interrupt",
+      "url": "https://x.com/NickNimmin/status/1924991823870656562"
+    },
+    {
+      "n": 35,
+      "name": "Cody Wanner (@codywanner): no formula",
+      "url": "https://x.com/codywanner/status/1159783080695083008"
+    },
+    {
+      "n": 40,
+      "name": "HyperFrames registry (heygen-com/hyperframes)",
+      "url": "https://github.com/heygen-com/hyperframes/tree/main/registry"
+    },
+    {
+      "n": 42,
+      "name": "W3C: Understanding WCAG 2.1 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html"
+    }
+  ]
+}

@@ -259,6 +259,14 @@ team, preorder, launch week, and paid ads with a test budget and stop
 rules. Update the plan as the author reports what happened; never fill in
 results they did not give you.
 
+When the author wants the dates in a calendar app, set `deadline` (and,
+for a serial, `release-every` and `release-start`, or a chapter
+`release-date`) in `story.md`, then run `story build . --format ics`. The
+file in `dist/` holds the deadline, the release dates, and the daily target
+on the writing days, and the author imports it into Google Calendar, Apple
+Calendar, or Outlook. Launch dates that only `publishing/launch-plan.md`
+records, such as the ARC send-out, are not in it.
+
 ### 9. Rights and contracts
 
 1. Keep `publishing/rights.md` from the inventory in

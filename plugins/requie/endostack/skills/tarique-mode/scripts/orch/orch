@@ -1,0 +1,18 @@
+#!/bin/sh
+# Launcher for the endostack orchestration store. Needs Node.js 22 or newer.
+set -e
+self=$0
+# Follow symlinks so the launcher works when linked onto PATH.
+while [ -L "$self" ]; do
+  target=$(readlink "$self")
+  case $target in
+    /*) self=$target ;;
+    *) self=$(dirname "$self")/$target ;;
+  esac
+done
+dir=$(CDPATH= cd -- "$(dirname -- "$self")" && pwd)
+if ! command -v node >/dev/null 2>&1; then
+  echo "error: orch needs Node.js 22 or newer on PATH" >&2
+  exit 127
+fi
+exec node "$dir/orch.mjs" "$@"

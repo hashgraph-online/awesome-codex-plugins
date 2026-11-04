@@ -258,6 +258,10 @@ Managing shared files over MCP (the dashboard's Files page does the same):
   `resume_object_upload` returns what already landed and URLs for only the
   missing parts; run those, then `finalize_object_upload`. Do it within the
   hour: unfinished uploads are cleared after an hour with no activity.
+- Finalizing a big file (hundreds of MB) can take a minute or more. If
+  `finalize_object_upload` times out, or a file comes back with
+  `finalizing: true`, call it again every few seconds until it's ready. Never
+  cancel or re-upload a file that is finalizing.
 - `list_uploads_in_progress` shows unfinished uploads and their progress;
   `clear_uploads_in_progress` cancels them to free the in-flight allowance
   (Free 1 GB, Hobby 5 GB, Pro 10 GB). Ask first.
@@ -387,6 +391,12 @@ one before creating a site, and on `400 workspace_required` ask; never guess.
 `workspaces: "one"` means the connection is limited to one workspace. If they
 need another (`list_workspaces` shows `canUse: false`), they reconnect: in
 Claude Code `/mcp` → webly → re-authenticate, and pick All my workspaces.
+When the owner asks about the "Made with Webly" badge: Hobby and Pro sites go
+without it unless they opt in. `set_workspace_badge` turns it on or off for every
+site, new ones included; `update_website` with `showBadge` sets one site, and that
+always wins (`null` follows the workspace again). Free always shows it: on
+`402 plan_required`, give them `details.upgradeUrl`.
+
 When the owner asks for a team workspace photo, `set_workspace_photo` takes a
 public image `url` or the file as `base64` (PNG, JPEG, WebP or GIF, 2 MB);
 `remove_workspace_photo` clears it. A personal workspace shows the person's own
@@ -495,6 +505,9 @@ versions between the last publish and that one go live with it (newer ones stay
 unpublished); the response's `alsoPublishes` lists the ones other people or
 agents wrote (who, app, message). Tell your person what of theirs went live.
 Publishing an older version puts nothing new live, and `alsoPublishes` is empty.
+To help someone choose a version: `list_changes` and `diff_source_file` (from the
+version before it) show what it changed, and `preview_version` gives a private link
+to how it looked for an hour, changing nothing.
 
 Git: `get_git_access` gives a read-only clone of a signed-in site's source and
 history (one commit per version). Its token lasts one minute, so run its
@@ -527,7 +540,7 @@ Needs a signed-in account (MCP) on Hobby (5 domains) or Pro (25). On Free,
 2. For a bare domain, ask first:
    - **`www.example.com` (recommended).** It works with every DNS provider.
      The person then forwards `example.com` to it at their registrar, which is
-     free and takes a minute.
+     free and takes a minute, but usually http-only (see `apexForward` below).
    - **`example.com` directly.** Only if their DNS provider supports CNAME
      flattening or ALIAS at the root (Cloudflare, Namecheap, Porkbun…).
    For a subdomain such as `shop.example.com`, just add it.
@@ -544,14 +557,25 @@ Needs a signed-in account (MCP) on Hobby (5 domains) or Pro (25). On Free,
    manual records (TXT first) to move without downtime. When you
    `remove_domain` and the response has `dnsCleanup`, ask whether to delete the
    records Webly added too, and if yes give them `dnsCleanup.url`.
-   Otherwise, or as the fallback, give the required `dns.records` **exactly as
-   returned**, as a Type / Name / Value table. For a www domain, also give the
-   `apexForward` forwarding rule. Provider tips:
+   Otherwise (name.com, Squarespace, Google and most other providers), or as
+   the fallback, give **every** required `dns.records` entry **exactly as
+   returned**, as a Type / Name / Value table: the CNAME **and** the
+   `_acme-challenge` TXT records. The TXT issues the HTTPS (SSL) certificate
+   and is always needed; without it HTTPS can take hours. If it isn't in
+   `dns.records` yet, call `verify_domain` a few seconds later and give it then.
+   For a www domain, also give the `apexForward` forwarding rule (URL
+   forwarding at their registrar makes the bare domain work too, usually over
+   plain http only; for `https://` links, a provider with ALIAS can add the
+   bare domain as a second domain on the site: TXT records first, the ALIAS
+   once it's active). Check it with `verify_domain` (`apexForward.ok`,
+   `apexForward.https`), not in a browser: Chrome quietly retries a bare
+   domain with `www`. Provider tips:
    - Type only the Name shown (`www`, or `@` for the root). GoDaddy and
      Namecheap add the domain themselves.
    - On Cloudflare, set the record to "DNS only" (grey cloud).
    - Moving a domain that is live elsewhere? Keep its current record and add
-     only the optional TXT records. Then:
+     only the TXT records (the certificate ones and the optional ownership
+     one). Then:
      1. Poll `verify_domain` until the domain is `active`. That means ownership
         is verified and the certificate is deployed. Step 2 isn't enough.
         `domain-watch` can't show this yet, because the old host still answers.

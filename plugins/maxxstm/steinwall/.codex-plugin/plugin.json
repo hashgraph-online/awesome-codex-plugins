@@ -1,0 +1,34 @@
+{
+  "name": "steinwall",
+  "version": "0.1.1",
+  "description": "Guardian for coding agents: cost brake, blocks or stops risky actions (recursive delete, force push, secrets, curl|sh), rescues stuck loops, hands work over before usage limits, scans skills/plugins/MCP servers before install. Spend less. Break nothing.",
+  "author": {
+    "name": "Maximilian Steinmetz",
+    "url": "https://github.com/maxxstm"
+  },
+  "homepage": "https://github.com/maxxstm/steinwall",
+  "repository": "https://github.com/maxxstm/steinwall",
+  "license": "FSL-1.1-MIT",
+  "keywords": [
+    "cost",
+    "budget",
+    "safety",
+    "guardrails",
+    "hooks",
+    "security",
+    "mcp",
+    "scanner"
+  ],
+  "hooks": "./hooks/codex-hooks.json",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "SteinWall",
+    "shortDescription": "Cost brake, action guard, loop rescue and extension scanner for Codex.",
+    "longDescription": "SteinWall runs locally next to Codex. It stops runaway costs with a daily and monthly budget, blocks risky actions such as recursive deletes, force pushes, reading secrets or piping downloads into a shell, helps a stuck agent change strategy instead of looping, writes a handoff file before a usage limit runs out, and scans skills, plugins and MCP servers for malicious patterns before they are installed. No prompts, code or keys leave the machine.",
+    "developerName": "Maximilian Steinmetz",
+    "category": "Developer Tools",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "websiteURL": "https://github.com/maxxstm/steinwall"
+  }
+}

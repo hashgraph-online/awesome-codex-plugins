@@ -174,7 +174,7 @@ Agencies can extract valuable patterns across their portfolio, but data isolatio
 |---|---|---|
 | **Storage location** | `~/.claude-marketing/credentials/{slug}.json` | Each brand has its own credential file. File permissions should be user-read-only (chmod 600 on Unix). |
 | **Active profile tracking** | `~/.claude-marketing/credentials/_active-profile.json` | Contains the slug of the currently active credential profile. Only one profile can be active at a time. |
-| **Profile switching** | `/digital-marketing-pro:credential-switch` or `setup.py --switch-credentials` | Switches the active credential profile. All subsequent MCP and API calls use the new profile's keys. |
+| **Profile switching** | `/digital-marketing-pro:credential-switch` or `credential-manager.py --action switch-profile` | Switches the active credential profile. All subsequent MCP and API calls use the new profile's keys. |
 | **Env var loading** | Credentials loaded as environment variables at session start | Each profile maps to env vars: e.g., `SENDGRID_API_KEY`, `GOOGLE_ADS_CUSTOMER_ID`. |
 | **Cross-brand isolation** | Hard boundary | Credentials NEVER cross brand boundaries. A request for Brand A's data must use Brand A's credentials. Attempting to use Brand B's credentials for Brand A's operations is a system-level error. |
 

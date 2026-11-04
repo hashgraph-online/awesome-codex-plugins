@@ -1,0 +1,206 @@
+{
+  "id": "place-lower-third",
+  "name": "Place and date lower third",
+  "use": "State where and when a scene happens: place over coordinates, a date or a local time.",
+  "formats": [
+    "16:9",
+    "9:16",
+    "1:1"
+  ],
+  "duration_s": 5,
+  "fonts": [
+    {
+      "family": "Inter",
+      "weights": [
+        400,
+        600,
+        700,
+        800
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Inter"
+    },
+    {
+      "family": "Fraunces",
+      "weights": [
+        500,
+        600
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Fraunces"
+    },
+    {
+      "family": "Instrument Serif",
+      "weights": [
+        400
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/Instrument+Serif"
+    },
+    {
+      "family": "IBM Plex Mono",
+      "weights": [
+        400,
+        500
+      ],
+      "license": "OFL-1.1",
+      "url": "https://fonts.google.com/specimen/IBM+Plex+Mono"
+    }
+  ],
+  "presets": [
+    {
+      "id": "place-lower-third.clean",
+      "label": "Clean",
+      "look": "Cardless place name rises; coordinates count up beneath in tabular mono.",
+      "params": {
+        "place_font": "Inter 700",
+        "place_px_1080p": 56,
+        "coords_font": "IBM Plex Mono 400",
+        "coords_px_1080p": 26,
+        "coords_opacity": 0.8,
+        "numerals": "tabular-nums lining-nums",
+        "decimals": 4,
+        "count_s": 0.6,
+        "count_ease": "power3.out",
+        "format": "38.7223° N · 9.1393° W",
+        "in_s": 0.45,
+        "out_s": 0.28,
+        "hold": "clamp(2 * max(words * 0.36, chars / 20), 3.0, 7.0) s"
+      },
+      "sources": [
+        8,
+        14,
+        10
+      ]
+    },
+    {
+      "id": "place-lower-third.boxed",
+      "label": "Boxed",
+      "look": "Dark plate with accent tab; date line in tracked caps.",
+      "params": {
+        "plate": "#0E0F12",
+        "plate_alpha": 0.8,
+        "tab_w_px": 6,
+        "accent": "#3FA9F5",
+        "date_font": "Inter 600 caps",
+        "date_px_1080p": 22,
+        "date_tracking_em": 0.12,
+        "wipe_s": 0.45,
+        "wipe_ease": "cubic-bezier(0.05, 0.7, 0.1, 1)",
+        "out_s": 0.28,
+        "out_ease": "cubic-bezier(0.3, 0, 0.8, 0.15)",
+        "hold": "clamp(2 * max(words * 0.36, chars / 20), 3.0, 7.0) s"
+      },
+      "sources": [
+        9,
+        7,
+        10,
+        13
+      ]
+    },
+    {
+      "id": "place-lower-third.editorial",
+      "label": "Editorial",
+      "look": "Serif place, italic region, hairline, small coordinates.",
+      "params": {
+        "place_font": "Fraunces 500",
+        "place_px_1080p": 64,
+        "region_font": "Instrument Serif italic",
+        "region_px_1080p": 32,
+        "rule_px": 1,
+        "rule_draw_s": 0.5,
+        "coords_px_1080p": 22,
+        "coords_opacity": 0.7,
+        "hold": "clamp(2 * max(words * 0.36, chars / 20), 3.0, 7.0) s"
+      },
+      "sources": [
+        16,
+        8,
+        7
+      ]
+    },
+    {
+      "id": "place-lower-third.centered",
+      "label": "Centered",
+      "look": "Centered place card for wide establishing shots.",
+      "params": {
+        "center_y_16x9": "72% H",
+        "center_y_9x16": "58% H",
+        "place_px_1080p": 72,
+        "kicker_px_1080p": 22,
+        "kicker_tracking_em": 0.14,
+        "in": "fade + 8 px rise 0.6 s",
+        "drift": "scale 1.0->1.02 over hold",
+        "out_s": 0.35,
+        "hold": "clamp(2 * max(words * 0.36, chars / 20), 3.0, 7.0) s"
+      },
+      "sources": [
+        15,
+        14,
+        3
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "n": 1,
+      "name": "EBU R 095 — Safe areas for 16:9 television production",
+      "url": "https://tech.ebu.ch/publications/r095"
+    },
+    {
+      "n": 3,
+      "name": "HopperHQ — Instagram Reel size: dimensions, aspect ratio and safe zones",
+      "url": "https://www.hopperhq.com/blog/instagram-reel-size/"
+    },
+    {
+      "n": 6,
+      "name": "Clevercast — BBC Subtitling Guidelines (summary)",
+      "url": "https://clevercast.com/bbc-subtitling-guidelines"
+    },
+    {
+      "n": 7,
+      "name": "Matthew Butterick — Practical Typography: Letterspacing",
+      "url": "https://practicaltypography.com/letterspacing.html"
+    },
+    {
+      "n": 8,
+      "name": "Matthew Butterick — Practical Typography: Alternate figures",
+      "url": "https://practicaltypography.com/alternate-figures.html"
+    },
+    {
+      "n": 9,
+      "name": "W3C — Understanding WCAG 2.1 SC 1.4.3 Contrast (Minimum)",
+      "url": "https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html"
+    },
+    {
+      "n": 10,
+      "name": "Material Design 3 motion tokens (material-web)",
+      "url": "https://github.com/material-components/material-web/blob/main/tokens/versions/v0_192/_md-sys-motion.scss"
+    },
+    {
+      "n": 13,
+      "name": "Chris Salters — Sports lower thirds (School of Motion)",
+      "url": "https://schoolofmotion.com/blog/sports-lower-thirds"
+    },
+    {
+      "n": 14,
+      "name": "Jason Boone — How to make lower third titles that don't suck (Frame.io Insider)",
+      "url": "https://blog.frame.io/2017/12/04/create-lower-thirds-titles-that-dont-suck/"
+    },
+    {
+      "n": 15,
+      "name": "Alec Chillingworth — How to get the best lower thirds (Epidemic Sound)",
+      "url": "https://www.epidemicsound.com/blog/lower-thirds/"
+    },
+    {
+      "n": 16,
+      "name": "Mackenzie Scott — A documentarian's guide to lower thirds (Soundstripe)",
+      "url": "https://www.soundstripe.com/blogs/a-documentarians-guide-to-lower-thirds"
+    },
+    {
+      "n": 34,
+      "name": "@YouTubeInsider (YouTube Creator Insider)",
+      "url": "https://x.com/YouTubeInsider/status/1560995909089067010"
+    }
+  ]
+}

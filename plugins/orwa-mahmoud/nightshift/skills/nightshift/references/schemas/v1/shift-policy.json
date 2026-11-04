@@ -321,6 +321,7 @@
               "snags",
               "baseline",
               "changed",
+              "architecture",
               "unsupported",
               "next"
             ]
@@ -399,6 +400,33 @@
             "when-available"
           ],
           "description": "Whether a section records what the item cost. when-available reads only the numbers the host already exposes to the session; where it exposes none, the section says unavailable. Unavailable is never written as zero, and nothing here polls an account, counts tokens itself, or turns a count into a price."
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Shift-wide evidence for item receipts. Everything is off by default: with every field off or empty, receipts are written exactly as they are without this block. Evidence shows the work to a reviewer; it never gates a tick.",
+          "properties": {
+            "fileMap": {
+              "type": "string",
+              "enum": [
+                "off",
+                "on"
+              ],
+              "description": "on writes, at each tick, the item's changed files as a tree in its receipt and the whole shift's in receipts/shift-map.md, built from git by the runtime."
+            },
+            "architecture": {
+              "type": "string",
+              "enum": [
+                "off",
+                "on"
+              ],
+              "description": "on keeps one diagram of the components the shift touched, receipts/architecture.md, updated by the item that changes the structure and snapshotted into that item's evidence folder."
+            },
+            "default": {
+              "type": "string",
+              "description": "The evidence every item should carry when its own Evidence line says nothing. Empty asks for none."
+            }
+          }
         },
         "duration": {
           "type": "string",

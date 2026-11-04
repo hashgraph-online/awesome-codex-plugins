@@ -1,0 +1,99 @@
+---
+name: multi-llm
+description: "Orchestrate plan reviews, task generation, implementation and code reviews across several LLM CLIs in parallel, or ask every model one free-text question about a plan. Use when the user says: review my plan, multi-llm, run a code review, generate tasks from a plan, implement this plan, ask the models about my plan."
+---
+
+# Multi-LLM — Codex entry shim
+
+Rendered for this machine by `install-host`: every path below is already absolute,
+so run the commands as written and **keep the double quotes** (a path may contain
+spaces). The workflow itself lives in the shared host-neutral core, loaded in
+step 3 — never re-derived here.
+
+## 1. Check `uv`, before the first `uv run`
+
+Every command below runs through `uv run`, so a missing `uv` fails the shell with
+`uv: command not found` (exit 127) before any Python that could explain it runs.
+Probe once, as a single standalone command:
+
+```bash
+command -v uv
+```
+
+A printed path means proceed. Otherwise check the locations a fresh shell may not
+have on `PATH` yet, reading **stdout, not the exit status** (this `ls` exits
+non-zero whenever any candidate is missing, which is the normal case):
+
+```bash
+ls "$HOME/.local/bin/uv" "$HOME/.local/bin/uv.exe" "$HOME/.cargo/bin/uv" "$HOME/.cargo/bin/uv.exe" /opt/homebrew/bin/uv /usr/local/bin/uv /opt/local/bin/uv 2>/dev/null
+```
+
+If uv is genuinely absent, print the install message verbatim — its wording lives
+in exactly one place, `hosts/uv-missing.txt` — and **stop with exit 3**: never
+install it, never ask, and never fall back to bare `python`.
+
+```bash
+cat "{{uv_missing_file}}"
+```
+
+## 2. Map the user's flag to a mode word
+
+Flags are position-independent, and the mode flag is the mode word without its `--` (`--review-code` → `review-code`, `--full` → `full`, and so on). **No mode
+flag means `{DEFAULT_MODE}`.** The first positional is the plan path; for `--ask` the next single quoted argument is the question, and `--init` takes no plan path.
+Everything else the user typed passes through verbatim — never add a flag they did not type, never re-join an unquoted multi-word question, never re-type a path you
+could copy, and never infer a plan path from the conversation. One substitution: `--interactive` replaces the baked `--yes` below, never both (exit 3). A missing
+plan path or an empty question is an error: show the usage and stop.
+
+**The three commit modes** (`--review-commits`, `--apply-commit-fixes`, `--improve-commits`) take no plan path, so `"<plan-path>"` never holds a plan there: it holds their optional
+**range** (none means `HEAD`) or a commit brief's path, the bare words right after the mode flag, as typed. Bare words are joined into one range (`last 2 commits` needs no quotes, unlike
+`--ask`'s question), and a `-N` there is a range. One range per call, in that slot only and never after a flag (`[RANGE_AFTER_FLAGS]`); a context plan goes in `--context-plan <path>` among the flags, never in that slot. After the launch, every command you spell takes the brief `[COMMIT_BRIEF]` names as its plan path; a command the run prints keeps the pinned range it prints.
+
+## 3. Load the mode's core instructions, then execute them step by step
+
+```bash
+uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util instructions <mode>
+```
+
+That prints the core with every skill-dir placeholder already substituted.
+
+## 4. Capability verbs — how this host answers each one
+
+The core names three capability verbs and never a tool. These are their one
+concrete resolution here, so nothing is left to decide mid-run:
+
+- {{spawn_subagents}}
+- {{ask_user}}
+- {{run_detached}}
+
+## 5. The one dispatcher command
+
+Every mode is this one command, with `--host codex --yes --exec-subagents` baked in:
+
+```bash
+uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" <mode> "<plan-path>" --host codex --yes --exec-subagents [flags…]
+```
+
+Exit codes are uniform (`0` done, `1` error, `2` nothing to do / already complete,
+`3` needs a human) and the last stdout line is always `MULTI_LLM_RESULT: {…}`: read
+`state`, `artifacts` and `next` from it rather than mining the transcript (on `state: partial`, name the failed models and their reasons from `progress.models`). When it carries a `notice` (a finished run's: what it left out or could not check, such as items it did not apply or that nothing ran this repository's tests), report what it says, every part of it, as plain text. Put it above the closing section, and repeat nothing that section says.
+{NEEDS_HUMAN_RULE} Run `next` as printed, never re-typed: its plan path as printed, no flag added or dropped. Never pipe a dispatcher command through `cut`, `head` or `grep`: they chop the result line. `user_next_step` is the phase after this one, for the user to type: never run it yourself; end your report with its `markdown`, copied as it is (its words and order, each command alone in its fenced block, each why and note plain text, the manual tasks it lists included, no caption of your own). Only that `markdown` says "Workflow complete.": never write those words yourself. Copy it word for word, never wrapped in a fenced block of your own (its commands are fenced already), and say none of it twice: its whys, notes, manual tasks and "Workflow complete." appear only in it, never above it.
+
+A fan-out mode outlives one shell call, so add `--detach`, then poll the command the launcher printed —
+it carries `--host`, `--run-id` on an `ask` run, and `--wait` with no `--timeout` — one call per turn:
+read the **exit code** (`0` finished, `2` still running, `3` needs a human, `1` unreadable), relay the
+view's `progress:` line verbatim, and never sleep in one command. That wait is `progress.poll_s` (90 s) in full — codex documents no shell-command cap for it to sit under:
+
+```bash
+uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" status "<plan-path>" --host codex --view run --wait
+```
+
+## 6. Examples — the argument forms, however this host invokes the skill
+
+```text
+/multi-llm plans/my-feature.md                       # {DEFAULT_MODE} (the default)
+/multi-llm --full plans/my-feature.md                # the whole workflow
+/multi-llm --ask "plans/my plan.md" "Is the rollback strategy sufficient?"
+```
+
+Providers and models come from the skill's own `providers.yaml` (per-repository
+override via `--init`); `docs/providers.md` in the repository has the rest.
