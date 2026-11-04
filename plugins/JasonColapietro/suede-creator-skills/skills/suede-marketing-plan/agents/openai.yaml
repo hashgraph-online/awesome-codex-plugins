@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Marketing Planning Skills"
+  short_description: "Score a tactic shortlist or build a full AARRR plan"
+  default_prompt: "Use $suede-marketing-plan on [target]. If the user is stuck or wants ideas, run Shortlist mode: score up to 8 tactics from the 142-idea library on audience, stage, evidence, capacity, cost, and risk, and return at most 5 with a test, metric, review date, and stop condition plus one tactic not recommended. If they need a plan, write the 13-section AARRR operating plan sized to the real budget, team, and evidence, with owners, skill handoffs, and what to measure next."
+policy:
+  allow_implicit_invocation: true

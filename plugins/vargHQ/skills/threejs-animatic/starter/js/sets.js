@@ -21,13 +21,13 @@ export function buildCafe() {
 
   // room: 8 x 8 m floor, back wall with a window at z = -3.5, a pillar for depth cues
   const room = new THREE.Group(); room.name = 'room'; scene.add(room);
-  room.add(mesh(new THREE.BoxGeometry(8, 0.05, 8), mat(C.floor), [0, -0.025, 0]));
+  room.add(mesh(new THREE.BoxGeometry(8, 0.05, 8), mat(C.floor), [0, -0.025, 0], null, 'floor'));
   const wall = mat(C.wall);
   room.add(mesh(new THREE.BoxGeometry(8, 0.9, 0.15), wall, [0, 0.45, -3.5]));        // sill
   room.add(mesh(new THREE.BoxGeometry(8, 0.5, 0.15), wall, [0, 2.75, -3.5]));        // lintel
   for (const x of [-4, -1.3, 1.3, 4]) room.add(mesh(new THREE.BoxGeometry(0.25, 3, 0.15), wall, [x, 1.5, -3.5]));
-  room.add(mesh(new THREE.BoxGeometry(0.15, 3, 8), wall, [-4, 1.5, 0]));              // left wall
-  room.add(mesh(new THREE.BoxGeometry(0.15, 3, 8), wall, [4, 1.5, 0]));               // right wall
+  room.add(mesh(new THREE.BoxGeometry(0.15, 3, 8), wall, [-4, 1.5, 0], null, 'wallL'));  // left wall
+  room.add(mesh(new THREE.BoxGeometry(0.15, 3, 8), wall, [4, 1.5, 0], null, 'wallR'));   // right wall
   room.add(mesh(new THREE.CylinderGeometry(0.18, 0.18, 3, 12), wall, [2.6, 1.5, 1.4], null, 'pillar'));
   // counter + shelves on the right wall: the background of every shot that looks toward +X
   const counter = new THREE.Group(); counter.name = 'counter'; room.add(counter);
@@ -36,10 +36,11 @@ export function buildCafe() {
   for (let i = 0; i < 12; i++) counter.add(mesh(new THREE.CylinderGeometry(0.04, 0.045, 0.24, 8), mat(i % 3 ? 0x6f7a86 : 0xd9dde4), [3.8, 1.59 + 0.45 * (i % 3), -2 + (i * 0.23) % 2.8]));
   ink(room);
   // outside the window: a few blocks at seeded positions (the street the drone comes from)
+  const street = new THREE.Group(); street.name = 'street'; room.add(street);
   const r = rng(7);
   for (let i = 0; i < 9; i++) {
     const h = 2 + r() * 6;
-    room.add(ink(mesh(new THREE.BoxGeometry(1.5 + r() * 2, h, 1.5), mat(0x5c616c), [-7 + i * 1.9, h / 2 - 1, -9 - r() * 4])));
+    street.add(ink(mesh(new THREE.BoxGeometry(1.5 + r() * 2, h, 1.5), mat(0x5c616c), [-7 + i * 1.9, h / 2 - 1, -9 - r() * 4])));
   }
   for (const [x, z] of [[-3.3, -2.8], [3.3, -2.8], [-3.3, 2.6]]) { const p = makePlant(); p.position.set(x, 0, z); room.add(p); }
 

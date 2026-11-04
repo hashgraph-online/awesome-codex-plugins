@@ -13,6 +13,9 @@ import os
 import sys
 import tempfile
 
+import _core_path  # noqa: F401
+from kicad_core.diagnostics import record
+
 # Add spice skill scripts to path for simulator imports
 _SPICE_SCRIPTS = os.path.join(os.path.dirname(__file__), '..', '..', 'spice', 'scripts')
 if os.path.isdir(_SPICE_SCRIPTS):
@@ -110,7 +113,7 @@ def generate_pdn_netlist(caps, plane_cap_f=0):
 
 def run_pdn_spice(caps, plane_cap_f=0, backend=None,
                   freq_start=1e3, freq_stop=1e9,
-                  points_per_decade=50, timeout=10):
+                  points_per_decade=50, timeout=10, diagnostics=None):
     """Run SPICE AC sweep for PDN impedance and return results.
 
     Args:
@@ -166,11 +169,11 @@ def run_pdn_spice(caps, plane_cap_f=0, backend=None,
     out_file = os.path.join(workdir, 'pdn_results.txt')
 
     try:
-        cir_content = tb.render(backend, out_file)
+        cir_content = tb.render(backend, os.path.basename(out_file))
         with open(cir_file, 'w') as f:
             f.write(cir_content)
 
-        success, stdout, stderr = backend.run(cir_file, timeout=timeout)
+        success, stdout, stderr = backend.run(os.path.basename(cir_file), timeout=timeout, cwd=workdir)
         if not success:
             return False, None
 
@@ -191,7 +194,8 @@ def run_pdn_spice(caps, plane_cap_f=0, backend=None,
 
         return True, sweep
 
-    except Exception:
+    except Exception as exc:
+        record(diagnostics, "emc_spice.run_pdn_spice", exc, "PDN SPICE sweep failed")
         return False, None
     finally:
         # Cleanup
@@ -241,7 +245,7 @@ def generate_filter_netlist(inductor_h, cap_f, esr=0.1, esl=1e-9,
 
 
 def run_filter_spice(inductor_h, cap_f, switching_freq_hz,
-                     esr=0.1, esl=1e-9, backend=None, timeout=10):
+                     esr=0.1, esl=1e-9, backend=None, timeout=10, diagnostics=None):
     """Run SPICE AC sweep for EMI filter and measure insertion loss.
 
     Args:
@@ -286,11 +290,11 @@ def run_filter_spice(inductor_h, cap_f, switching_freq_hz,
     out_file = os.path.join(workdir, 'filter_results.txt')
 
     try:
-        cir_content = tb.render(backend, out_file)
+        cir_content = tb.render(backend, os.path.basename(out_file))
         with open(cir_file, 'w') as f:
             f.write(cir_content)
 
-        success, stdout, stderr = backend.run(cir_file, timeout=timeout)
+        success, stdout, stderr = backend.run(os.path.basename(cir_file), timeout=timeout, cwd=workdir)
         if not success:
             return False, None
 
@@ -304,7 +308,8 @@ def run_filter_spice(inductor_h, cap_f, switching_freq_hz,
             'cutoff_hz': results.get('fc_3db', 0),
         }
 
-    except Exception:
+    except Exception as exc:
+        record(diagnostics, "emc_spice.run_filter_spice", exc, "EMI filter SPICE sweep failed")
         return False, None
     finally:
         import shutil
@@ -354,7 +359,7 @@ def _goertzel_magnitude(samples, sample_rate, target_freq):
 # ---------------------------------------------------------------------------
 
 def run_switching_fft(v_peak, duty_cycle, rise_time_s, switching_freq_hz,
-                      backend=None, n_harmonics=15, timeout=15):
+                      backend=None, n_harmonics=15, timeout=15, diagnostics=None):
     """Run transient simulation of a switching waveform and extract harmonics.
 
     Generates a PULSE source at the switching frequency, runs transient
@@ -409,8 +414,8 @@ def run_switching_fft(v_peak, duty_cycle, rise_time_s, switching_freq_hz,
             f'.tran {_format_eng(t_step)} {_format_eng(t_sim)}\n'
             f'.control\n'
             f'run\n'
-            f'wrdata {raw_file} v(sw)\n'
-            f'echo "done=1" > {out_file}\n'
+            f'wrdata {os.path.basename(raw_file)} v(sw)\n'
+            f'echo "done=1" > {os.path.basename(out_file)}\n'
             f'.endc\n'
             f'.end\n'
         )
@@ -418,7 +423,7 @@ def run_switching_fft(v_peak, duty_cycle, rise_time_s, switching_freq_hz,
         with open(cir_file, 'w') as f:
             f.write(cir_content)
 
-        success, stdout, stderr = backend.run(cir_file, timeout=timeout)
+        success, stdout, stderr = backend.run(os.path.basename(cir_file), timeout=timeout, cwd=workdir)
         # ngspice returns exit code 1 with .control blocks that lack
         # .print/.plot — check for output file instead of exit code
         if not success:
@@ -488,7 +493,8 @@ def run_switching_fft(v_peak, duty_cycle, rise_time_s, switching_freq_hz,
 
         return True, harmonics
 
-    except Exception:
+    except Exception as exc:
+        record(diagnostics, "emc_spice.run_switching_fft", exc, "switching FFT SPICE run failed")
         return False, None
     finally:
         import shutil
@@ -500,7 +506,7 @@ def run_switching_fft(v_peak, duty_cycle, rise_time_s, switching_freq_hz,
 
 def verify_pdn_with_suggested_cap(caps, suggested_cap, plane_cap_f,
                                   z_target, backend, timeout=10,
-                                  sweep_before=None):
+                                  sweep_before=None, diagnostics=None):
     """Re-run PDN SPICE sweep with a suggested cap added and check if the
     anti-resonance peak is resolved.
 
@@ -524,7 +530,8 @@ def verify_pdn_with_suggested_cap(caps, suggested_cap, plane_cap_f,
     if sweep_before:
         sweep1 = sweep_before
     else:
-        ok1, sweep1 = run_pdn_spice(caps, plane_cap_f, backend, timeout=timeout)
+        ok1, sweep1 = run_pdn_spice(caps, plane_cap_f, backend, timeout=timeout,
+                                   diagnostics=diagnostics)
         if not ok1 or not sweep1:
             return False, None, None
 
@@ -537,7 +544,8 @@ def verify_pdn_with_suggested_cap(caps, suggested_cap, plane_cap_f,
 
     # Run with suggested cap added
     augmented = list(caps) + [suggested_cap]
-    ok2, sweep2 = run_pdn_spice(augmented, plane_cap_f, backend, timeout=timeout)
+    ok2, sweep2 = run_pdn_spice(augmented, plane_cap_f, backend, timeout=timeout,
+                               diagnostics=diagnostics)
     if not ok2 or not sweep2:
         return False, peak_before, None
 
@@ -645,7 +653,7 @@ def generate_distributed_pdn_netlist(node, plane_cap_f=0):
 
 def run_distributed_pdn_spice(node, plane_cap_f=0, backend=None,
                               freq_start=1e3, freq_stop=1e9,
-                              points_per_decade=50, timeout=10):
+                              points_per_decade=50, timeout=10, diagnostics=None):
     """Run SPICE AC sweep for distributed PDN impedance at IC load point.
 
     Same pattern as run_pdn_spice() but uses the distributed netlist.
@@ -674,7 +682,7 @@ def run_distributed_pdn_spice(node, plane_cap_f=0, backend=None,
     n_probes = int(decades * probes_per_decade)
     for i in range(n_probes + 1):
         f = freq_start * (10 ** (i * decades / n_probes))
-        measurements.append(('ac', f'z_at_{i}', f'find vr(ic_load) at={_format_eng(f)}'))
+        measurements.append((f'z_at_{i}', 'find', 'vm(ic_load)', f'at={_format_eng(f)}'))
 
     tb = SpiceTestbench(netlist, analyses, measurements)
 
@@ -683,26 +691,38 @@ def run_distributed_pdn_spice(node, plane_cap_f=0, backend=None,
     cir_file = os.path.join(workdir, 'distributed_pdn.cir')
     out_file = os.path.join(workdir, 'distributed_pdn.out')
 
-    cir_content = tb.render(backend, out_file.replace('\\', '/'))
-    with open(cir_file, 'w') as f:
-        f.write(cir_content)
+    try:
+        cir_content = tb.render(backend, os.path.basename(out_file))
+        with open(cir_file, 'w') as f:
+            f.write(cir_content)
 
-    success, stdout, stderr = backend.run(cir_file, timeout=timeout)
-    if not success:
+        success, stdout, stderr = backend.run(os.path.basename(cir_file), timeout=timeout, cwd=workdir)
+        if not success:
+            return False, None
+
+        if hasattr(backend, 'parse_results'):
+            sim_data = backend.parse_results(out_file, stdout, stderr)
+        else:
+            return False, None
+
+        # Build sweep from probe results
+        sweep = []
+        for i in range(n_probes + 1):
+            f = freq_start * (10 ** (i * decades / n_probes))
+            key = f'z_at_{i}'
+            z = sim_data.get(key)
+            if z is not None and isinstance(z, (int, float)) and z > 0:
+                sweep.append({'freq_hz': f, 'impedance_ohm': abs(z)})
+
+        return bool(sweep), sweep if sweep else None
+
+    except Exception as exc:
+        record(diagnostics, "emc_spice.run_distributed_pdn_spice", exc, "distributed PDN SPICE sweep failed")
         return False, None
-
-    if hasattr(backend, 'parse_results'):
-        sim_data = backend.parse_results(out_file, stdout, stderr)
-    else:
-        return False, None
-
-    # Build sweep from probe results
-    sweep = []
-    for i in range(n_probes + 1):
-        f = freq_start * (10 ** (i * decades / n_probes))
-        key = f'z_at_{i}'
-        z = sim_data.get(key)
-        if z is not None and isinstance(z, (int, float)) and z > 0:
-            sweep.append({'freq_hz': f, 'impedance_ohm': abs(z)})
-
-    return bool(sweep), sweep if sweep else None
+    finally:
+        # Cleanup
+        import shutil
+        try:
+            shutil.rmtree(workdir, ignore_errors=True)
+        except Exception:
+            pass

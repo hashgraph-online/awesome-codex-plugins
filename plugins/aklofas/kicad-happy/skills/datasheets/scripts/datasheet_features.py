@@ -244,7 +244,7 @@ def _try_v14_facts(mpn, *, extract_dir=None, analysis_json=None, project_dir=Non
     Resolves extract_dir the same way _load does (via resolve_extract_dir)
     so callers that passed analysis_json / project_dir get the same behavior.
     """
-    from datasheet_lookup import lookup  # Lazy import — scripts-dir sibling.
+    from datasheet_types.cache_reader import lookup  # Lazy import.
 
     if extract_dir is None:
         extract_dir = resolve_extract_dir(

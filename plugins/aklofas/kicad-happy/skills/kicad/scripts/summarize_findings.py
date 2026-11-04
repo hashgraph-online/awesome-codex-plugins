@@ -8,7 +8,7 @@ N lines sorted by (severity rank, count).
 Usage:
     summarize_findings.py <analysis-dir>
     summarize_findings.py <analysis-dir> --top 10
-    summarize_findings.py <analysis-dir> --severity high
+    summarize_findings.py <analysis-dir> --severity error
     summarize_findings.py <analysis-dir> --run 2026-04-14_1939
 
 Works cross-platform: no symlinks, paths are resolved via the manifest
@@ -23,7 +23,10 @@ import os
 import sys
 from collections import defaultdict
 
-_SEV_RANK = {"high": 0, "error": 0, "critical": 0,
+from kicad_core.cli import add_only_deterministic_arg
+from analysis_cache import get_run
+
+_SEV_RANK = {"error": 0, "high": 0, "critical": 0,
              "warning": 1, "medium": 1,
              "info": 2}
 
@@ -40,10 +43,11 @@ def _resolve_run_dir(
     with open(manifest_path, "r", encoding="utf-8") as f:
         manifest = json.load(f)
     run_id = run_override or manifest.get("current")
-    if not run_id or run_id not in manifest.get("runs", {}):
+    run = get_run(analysis_dir, run_id, manifest)
+    if run is None:
         raise SystemExit(
             f"error: manifest has no run {run_id!r}")
-    path = os.path.join(analysis_dir, run_id)
+    path = run[0]
     if not os.path.isdir(path):
         raise SystemExit(
             f"error: run directory missing on disk: {path!r}")
@@ -122,10 +126,10 @@ def _print_assessments_table(by_rule: dict[str, int]) -> None:
 
 
 def _norm(s: str) -> str:
-    """Normalise a severity string to one of: high, warning, info."""
+    """Normalise a severity string to one of: error, warning, info."""
     s = (s or "").lower()
     if s in ("critical", "high", "error"):
-        return "high"
+        return "error"
     if s in ("medium", "warning", "warn"):
         return "warning"
     return "info"
@@ -141,7 +145,7 @@ def _filter_severity(findings: list[dict], severity: str | None) -> list[dict]:
     if severity.lower() not in _KNOWN_SEVERITIES:
         raise SystemExit(
             f"error: unknown --severity {severity!r} — "
-            "accepted: high/critical/error, warning/medium/warn, info")
+            "accepted: error/high/critical, warning/medium/warn, info")
     want = _norm(severity)
     return [f for f in findings if _norm(f.get("severity", "info")) == want]
 
@@ -185,8 +189,8 @@ def _aggregate(findings: list[dict]) -> list[dict]:
     for f in findings:
         rid = f.get("rule_id") or "(unknown)"
         sev_norm = (f.get("severity") or "info").lower()
-        if sev_norm in ("critical", "error"):
-            sev_norm = "high"
+        if sev_norm in ("critical", "high"):
+            sev_norm = "error"
         elif sev_norm in ("medium", "warn"):
             sev_norm = "warning"
         key = (rid, sev_norm)
@@ -252,7 +256,7 @@ def _aggregate_by_confidence(findings: list[dict]) -> list[dict]:
         if conf not in buckets:
             buckets[conf] = {"confidence": conf, "count": 0,
                              "top_rules": defaultdict(int),
-                             "severities": {"high": 0, "warning": 0, "info": 0}}
+                             "severities": {"error": 0, "warning": 0, "info": 0}}
         b = buckets[conf]
         b["count"] += 1
         rid = f.get("rule_id") or "(unknown)"
@@ -278,14 +282,14 @@ def _print_confidence_table(rows: list[dict]) -> None:
         return
     total = sum(r["count"] for r in rows)
     print(f"# {total} findings by confidence level")
-    print(f"{'confidence':<18} {'count':>5} {'pct':>5}  {'high':>4} {'warn':>4} {'info':>4}  top rules")
+    print(f"{'confidence':<18} {'count':>5} {'pct':>5}  {'error':>5} {'warn':>4} {'info':>4}  top rules")
     print("-" * 90)
     for r in rows:
         pct = round(100 * r["count"] / total) if total else 0
         s = r["severities"]
         top = ", ".join(f"{t['rule_id']}({t['count']})" for t in r["top_rules"])
         print(f"{r['confidence']:<18} {r['count']:>5} {pct:>4}%  "
-              f"{s.get('high',0):>4} {s.get('warning',0):>4} {s.get('info',0):>4}  {top}")
+              f"{s.get('error',0):>5} {s.get('warning',0):>4} {s.get('info',0):>4}  {top}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -296,7 +300,7 @@ def main(argv: list[str] | None = None) -> int:
                          "Default 20.")
     ap.add_argument("--severity",
                     help=("Filter to a single severity bucket. Accepts any "
-                          "of: high/critical/error (all → high), "
+                          "of: high/critical/error (all → error), "
                           "warning/medium/warn (→ warning), info. "
                           "Raises if the value is unrecognised."))
     ap.add_argument("--confidence",
@@ -315,10 +319,7 @@ def main(argv: list[str] | None = None) -> int:
                     help="Emit the aggregated table as JSON instead of text.")
     ap.add_argument("--by-confidence", action="store_true",
                     help="Group findings by confidence level instead of rule_id.")
-    ap.add_argument("--only-deterministic", action="store_true",
-                    help="Read raw analysis/<run>/<analyzer>.json instead of "
-                         "analysis/merged/<run>/<analyzer>.json. "
-                         "Strips Layer 2 overlays for CI/offline use (Phase 4 spec §3.4).")
+    add_only_deterministic_arg(ap, consumer=True)
     ap.add_argument("--no-deep-review", action="store_true",
                     help="Exclude analysis/deep_review.json from the summary.")
     args = ap.parse_args(argv)
@@ -377,7 +378,7 @@ def main(argv: list[str] | None = None) -> int:
     rows = _aggregate(findings)
 
     if args.json:
-        severity_totals: dict[str, int] = {"high": 0, "warning": 0, "info": 0}
+        severity_totals: dict[str, int] = {"error": 0, "warning": 0, "info": 0}
         for r in rows:
             severity_totals[r["severity"]] = (
                 severity_totals.get(r["severity"], 0) + r["count"])

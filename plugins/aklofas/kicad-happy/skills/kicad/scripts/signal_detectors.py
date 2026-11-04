@@ -7,20 +7,24 @@ Some detectors also take prior results for cross-references.
 
 import math
 import re
+from dataclasses import dataclass
 
-from kicad_utils import (
+from kicad_core.parts import (
     _LOAD_TYPE_KEYWORDS,
-    classify_jumper_default_state,
-    format_frequency as _format_frequency,
+    lookup_regulator_vref as _lookup_regulator_vref,
+    lookup_switching_freq,
+    default_switching_freq,
+    match_known_switching as _match_known_switching,
+)
+from kicad_core.classify import classify_jumper_default_state
+from kicad_core.values import format_frequency as _format_frequency, parse_value
+from kicad_core.netnames import (
     is_ground_name,
     is_power_net_name,
     is_usb_data_net_name,
-    lookup_regulator_vref as _lookup_regulator_vref,
-    lookup_switching_freq,
-    match_known_switching as _match_known_switching,
-    parse_value,
     parse_voltage_from_net_name as _parse_voltage_from_net_name,
 )
+from kicad_core.netquery import build_bridge_facts, build_ref_pins
 from kicad_types import AnalysisContext
 from finding_schema import make_provenance, make_finding, Det
 from detector_helpers import index_two_pin_components, get_components_by_type, get_unique_ics
@@ -32,42 +36,19 @@ from lookup_helpers import get_facts, has_data, best
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-def _default_switching_freq(topology: str) -> float | None:
-    """Fallback switching frequency estimate when part is unrecognized.
+# Gate-drive bootstrap pins: their supply is a capacitor to the switch node,
+# so having no DC path to a rail is the datasheet circuit, not a fault. Many
+# vendor symbols type them power_in. Same names detect_power_regulators uses.
+_BOOTSTRAP_PIN_TOKENS = frozenset({"BST", "BOOT", "BOOTSTRAP", "CBST"})
 
-    Based on typical ranges for each topology. Conservative (low end)
-    to avoid underestimating harmonic reach.
-    """
-    defaults = {
-        'buck': 500e3,
-        'boost': 500e3,
-        'buck-boost': 300e3,
-        'inverting': 300e3,
-        'sepic': 300e3,
-    }
-    return defaults.get(topology.lower()) if topology else None
+
+# Regulator output pin names (exact parts of a composite pin name).
+_VOUT_PIN_NAMES = frozenset({"VOUT", "VO", "OUT", "OUTPUT"})
 
 
 def _get_net_components(ctx: AnalysisContext, net_name, exclude_ref):
     """Get components on a net excluding the given component."""
-    if ctx.nq:
-        return ctx.nq.components_on_net(net_name, exclude_refs={exclude_ref})
-    if net_name not in ctx.nets:
-        return []
-    result_comps = []
-    for p in ctx.nets[net_name]["pins"]:
-        if p["component"] == exclude_ref:
-            continue
-        comp = ctx.comp_lookup.get(p["component"])
-        if comp:
-            result_comps.append({
-                "reference": p["component"],
-                "type": comp["type"],
-                "value": comp["value"],
-                "pin_name": p.get("pin_name", ""),
-                "pin_number": p["pin_number"],
-            })
-    return result_comps
+    return ctx.nq.components_on_net(net_name, exclude_refs={exclude_ref})
 
 
 def _classify_load(ctx: AnalysisContext, net_name, exclude_ref):
@@ -771,7 +752,7 @@ def detect_lc_filters(ctx: AnalysisContext) -> list[dict]:
                 for p in ctx.nets[cap_other_net]["pins"]:
                     pn = p.get("pin_name", "").upper().rstrip("0123456789").rstrip("_")
                     pn_parts = {pp.strip() for pp in pn.split("/")}
-                    if pn_parts & {"BST", "BOOT", "BOOTSTRAP", "CBST"}:
+                    if pn_parts & _BOOTSTRAP_PIN_TOKENS:
                         is_bootstrap = True
                         break
             if is_bootstrap:
@@ -969,7 +950,7 @@ def detect_crystal_circuits(ctx: AnalysisContext) -> list[dict]:
         # Wiring activates automatically once CrystalBlock lands.
         _cache_dir = getattr(ctx, 'cache_dir', None)
         _xtal_mpn = xtal.get('mpn') or xtal.get('value') or ''
-        _xtal_facts = get_facts(_xtal_mpn, cache_dir=_cache_dir) if _xtal_mpn else None
+        _xtal_facts = get_facts(_xtal_mpn, cache_dir=_cache_dir, diagnostics=getattr(ctx, "diagnostics", None)) if _xtal_mpn else None
         _cl_specs = getattr(getattr(_xtal_facts, 'crystal', None), 'load_capacitance', None)
         if has_data(_cl_specs):
             _cl_sv = best(_cl_specs, min_confidence='medium')
@@ -1553,444 +1534,504 @@ def _infer_rail_voltage(net_name):
     return None
 
 
+@dataclass
+class _RegulatorCandidate:
+    """An IC that passed the regulator screen, with the pin roles and name keys the build phase reads."""
+    ic: dict
+    ref: str
+    ic_pins: dict
+    fb_pin: tuple | None
+    sw_pin: tuple | None
+    vin_pin: tuple | None
+    vout_pin: tuple | None
+    boot_pin: tuple | None
+    lib_part_name: str
+    desc_lower: str
+    lib_val_lower: str
+    has_reg_keyword: bool
+
+
 def detect_power_regulators(ctx: AnalysisContext, voltage_dividers: list[dict]) -> list[dict]:
     """Detect power regulator topology. Takes voltage_dividers for feedback matching."""
     power_regulators: list[dict] = []
 
     # KH-148: Deduplicate multi-unit ICs
     for ic in get_unique_ics(ctx):
-        ref = ic["reference"]
-
-        # KH-089: Skip components with no mapped pins (title blocks, graphics)
-        # KH-124: Allow keyword-matched PMICs through even without pins (legacy format)
-        _no_pins = not ic.get("pins")
-
-        # KH-089: Skip known non-regulator IC families
-        _lib_val_check = (ic.get("lib_id", "") + " " + ic.get("value", "")).lower()
-        _non_reg_exclude = ("eeprom", "flash", "spi_flash", "rtc", "uart",
-                            "usb_uart", "buffer", "logic_", "encoder",
-                            "w25q", "at24c", "24c0", "pcf85", "ht42b", "ch340",
-                            "cp210", "ft232", "74lvc", "74hc",
-                            # KH-100: WiFi/BT modules with filter inductors
-                            "ap6212", "ap6236", "ap6256", "esp32", "esp8266",
-                            "cyw43", "wl18",
-                            # KH-226: Dev board modules (not regulators)
-                            "nucleo", "arduino", "raspberry", "teensy",
-                            "feather", "pico")
-        if any(k in _lib_val_check for k in _non_reg_exclude):
+        cand = _screen_regulator_candidate(ctx, ic)
+        if cand is None:
             continue
+        if isinstance(cand, dict):
+            power_regulators.append(cand)
+            continue
+        power_regulators.append(_build_regulator_record(ctx, cand, voltage_dividers))
 
-        ic_pins = {}  # pin_name -> (net_name, pin_number)
-        for pin_num, (net_name, _) in ctx.ref_pins.get(ref, {}).items():
-            pin_name = ""
-            if net_name and net_name in ctx.nets:
-                for p in ctx.nets[net_name]["pins"]:
-                    if p["component"] == ref and p["pin_number"] == pin_num:
-                        pin_name = p.get("pin_name", "").upper()
-                        break
-            ic_pins[pin_name] = (net_name, pin_num)
+    _cross_reference_feedback_dividers(power_regulators, voltage_dividers)
+    _attach_regulator_capacitors(ctx, power_regulators)
+    _estimate_regulator_dissipation(ctx, power_regulators)
 
-        # Look for regulator pin patterns
-        fb_pin = None
-        sw_pin = None
-        en_pin = None
-        vin_pin = None
-        vout_pin = None
-        boot_pin = None
+    return power_regulators
 
-        for pname, (net, pnum) in ic_pins.items():
-            # Use startswith for pins that may have numeric suffixes (FB1, SW2, etc.)
-            pn_base = pname.rstrip("0123456789").rstrip("_")  # Strip trailing digits and underscores (FB_1→FB)
-            # Split composite pin names like "FB/VOUT" into parts
-            pn_parts = {p.strip() for p in pname.split("/")} | {pn_base}
-            if pn_parts & {"FB", "VFB", "ADJ", "VADJ"}:
-                if not fb_pin:
-                    fb_pin = (pname, net)
-                # Composite names like "FB/VOUT" also set vout_pin
-                if not vout_pin and pn_parts & {"VOUT", "VO", "OUT", "OUTPUT"}:
-                    vout_pin = (pname, net)
-            elif pn_parts & {"SW", "PH", "LX"}:
-                if not sw_pin:
-                    sw_pin = (pname, net)
-            elif pname in ("EN", "ENABLE", "ON", "~{SHDN}", "SHDN", "~{EN}") or \
-                 (pn_base == "EN" and len(pname) <= 4):
-                en_pin = (pname, net)
-            elif pn_parts & {"VIN", "VI", "IN", "PVIN", "AVIN", "INPUT"}:
-                vin_pin = (pname, net)
-            elif pn_parts & {"VOUT", "VO", "OUT", "OUTPUT"}:
+
+def _screen_regulator_candidate(ctx: AnalysisContext, ic: dict) -> _RegulatorCandidate | dict | None:
+    """Reject non-regulators; return the keyword-only PMIC record finished, else the candidate."""
+    ref = ic["reference"]
+
+    # KH-089: Skip components with no mapped pins (title blocks, graphics)
+    # KH-124: Allow keyword-matched PMICs through even without pins (legacy format)
+    _no_pins = not ic.get("pins")
+
+    # KH-089: Skip known non-regulator IC families
+    _lib_val_check = (ic.get("lib_id", "") + " " + ic.get("value", "")).lower()
+    _non_reg_exclude = ("eeprom", "flash", "spi_flash", "rtc", "uart",
+                        "usb_uart", "buffer", "logic_", "encoder",
+                        "w25q", "at24c", "24c0", "pcf85", "ht42b", "ch340",
+                        "cp210", "ft232", "74lvc", "74hc",
+                        # KH-100: WiFi/BT modules with filter inductors
+                        "ap6212", "ap6236", "ap6256", "esp32", "esp8266",
+                        "cyw43", "wl18",
+                        # KH-226: Dev board modules (not regulators)
+                        "nucleo", "arduino", "raspberry", "teensy",
+                        "feather", "pico")
+    if any(k in _lib_val_check for k in _non_reg_exclude):
+        return None
+
+    ic_pins = {}  # pin_name -> (net_name, pin_number)
+    for pin_num, (net_name, _) in ctx.ref_pins.get(ref, {}).items():
+        pin_name = ""
+        if net_name and net_name in ctx.nets:
+            for p in ctx.nets[net_name]["pins"]:
+                if p["component"] == ref and p["pin_number"] == pin_num:
+                    pin_name = p.get("pin_name", "").upper()
+                    break
+        ic_pins[pin_name] = (net_name, pin_num)
+
+    # Look for regulator pin patterns
+    fb_pin = None
+    sw_pin = None
+    en_pin = None
+    vin_pin = None
+    vout_pin = None
+    boot_pin = None
+
+    for pname, (net, pnum) in ic_pins.items():
+        # Use startswith for pins that may have numeric suffixes (FB1, SW2, etc.)
+        pn_base = pname.rstrip("0123456789").rstrip("_")  # Strip trailing digits and underscores (FB_1→FB)
+        # Split composite pin names like "FB/VOUT" into parts
+        pn_parts = {p.strip() for p in pname.split("/")} | {pn_base}
+        if pn_parts & {"FB", "VFB", "ADJ", "VADJ"}:
+            if not fb_pin:
+                fb_pin = (pname, net)
+            # Composite names like "FB/VOUT" also set vout_pin
+            if not vout_pin and pn_parts & _VOUT_PIN_NAMES:
                 vout_pin = (pname, net)
-            elif pn_parts & {"BOOT", "BST", "BOOTSTRAP", "CBST"}:
-                boot_pin = (pname, net)
+        elif pn_parts & {"SW", "PH", "LX"}:
+            if not sw_pin:
+                sw_pin = (pname, net)
+        elif pname in ("EN", "ENABLE", "ON", "~{SHDN}", "SHDN", "~{EN}") or \
+             (pn_base == "EN" and len(pname) <= 4):
+            en_pin = (pname, net)
+        elif pn_parts & {"VIN", "VI", "IN", "PVIN", "AVIN", "INPUT"}:
+            vin_pin = (pname, net)
+        elif pn_parts & _VOUT_PIN_NAMES:
+            vout_pin = (pname, net)
+        elif pn_parts & _BOOTSTRAP_PIN_TOKENS:
+            boot_pin = (pname, net)
 
-        if not fb_pin and not sw_pin and not vout_pin:
-            # KH-124: For pin-less ICs (legacy format), check keywords before
-            # giving up — PMICs like AXP803 won't have pin data
-            if not _no_pins:
-                continue  # Not a regulator
-            _kw_check = (ic.get("lib_id", "") + " " + ic.get("value", "")).lower()
-            _kw_pmic = ("regulator", "ldo", "buck", "boost", "converter", "pmic",
-                        "axp", "mt36", "dd40", "tplp", "hx630", "ip51",
-                        "ams1117", "lm317", "lm78", "lm79", "tps5", "tps6")
-            if not any(k in _kw_check for k in _kw_pmic):
-                continue
-            # Add as minimal keyword-only entry
-            power_regulators.append({
-                "ref": ref,
-                "value": ic.get("value", ""),
-                "lib_id": ic.get("lib_id", ""),
-                "topology": "unknown",
-                "input_rail": None,
-                "output_rail": None,
-                "estimated_vout": None,
-                "feedback_divider": None,
-                "inductor": None,
-                "detector": "detect_power_regulators",
-                "rule_id": "PR-DET",
-                "category": "power_management",
-                "severity": "info",
-                "confidence": "deterministic",
-                "evidence_source": "topology",
-                "summary": f"Regulator {ref} unknown",
-                "description": "Power regulator detected by keyword match (no pin data)",
-                "components": [ref],
-                "nets": [],
-                "pins": [],
-                "recommendation": "",
-                "report_context": {"section": "Power Management", "impact": "", "standard_ref": ""},
-                "provenance": make_provenance("reg_keyword", "heuristic", [ref]),
-            })
-            continue
-
-        # Early lib_id check
-        lib_id_raw = ic.get("lib_id", "")
-        lib_part_name = lib_id_raw.split(":")[-1] if ":" in lib_id_raw else ""
-        desc_lower = ic.get("description", "").lower()
-        lib_val_lower = (lib_id_raw + " " + ic.get("value", "") + " " + lib_part_name).lower()
-        reg_lib_keywords = ("regulator", "regul", "ldo", "vreg", "buck", "boost",
-                           "converter", "dc-dc", "dc_dc", "linear_regulator",
-                           "switching_regulator",
-                           "ams1117", "lm317", "lm78", "lm79", "ld1117", "ld33",
-                           "ap6", "tps5", "tps6", "tlv7", "rt5", "mp1", "mp2",
-                           "sy8", "max150", "max170", "ncp1", "xc6", "mcp170",
-                           "mic29", "mic55", "ap2112", "ap2210", "ap73",
-                           "ncv4", "lm26", "lm11", "78xx",
-                           "79xx", "lt308", "lt36", "ltc36", "lt86", "ltc34",
-                           # KH-118: Asian manufacturer LDOs
-                           "tplp", "hx630",
-                           # KH-124: PMICs and boost converters
-                           "axp", "mt36", "pmic", "dd40", "ip51",
-                           )
-        has_reg_keyword = (any(k in lib_val_lower for k in reg_lib_keywords) or
-                          any(k in desc_lower for k in ("regulator", "ldo", "vreg",
-                                                        "voltage regulator")))
-
-        # Exclude RF amplifiers/LNAs that have VIN/VOUT but aren't regulators
-        _rf_exclude = ("lna", "mmic", "mga-", "bga-", "bgb7", "trf37",
-                       "sga-", "tqp3", "sky67", "gali-", "bfp7", "bfr5")
-        if any(k in lib_val_lower for k in _rf_exclude):
-            continue
-
-        # Exclude power multiplexers/load switches/ideal diode controllers
-        _power_mux_exclude = ("power_mux", "load_switch", "tps211", "tps212",
-                              "tps229", "tps205",  # KH-219: load switches
-                              "ltc441", "ideal_diode",
-                              # KH-108: Ideal diode OR controllers
-                              "lm6620", "lm6610", "ltc435", "ltc430")
-        if any(k in lib_val_lower for k in _power_mux_exclude):
-            continue
-        # KH-219: Exclude components with load/power switch descriptions
-        if any(k in desc_lower for k in ("load switch", "power switch", "power distribution switch")):
-            continue
-
-        # Exclude op-amps, instrumentation amps, and ADCs with FB-like pins
-        _opamp_adc_exclude = ("ada48", "ad8", "opa", "lm358", "lm324",
-                              "lmv3", "tlv9", "mcp60", "mcp61",
-                              "hx711", "ads1", "mcp3", "max11",
-                              "ina21", "ina22", "ina23",
-                              "comparator", "op_amp", "opamp")
-        if any(k in lib_val_lower for k in _opamp_adc_exclude):
-            continue
-
-        if not fb_pin and not boot_pin:
-            if not sw_pin and not has_reg_keyword:
-                # Only VOUT pin, no regulator keywords → check if VIN+VOUT
-                # both connect to distinct power nets (custom-lib LDOs like TC1185)
-                if vin_pin and vout_pin:
-                    in_net = vin_pin[1]
-                    out_net = vout_pin[1]
-                    if not (ctx.is_power_net(in_net) and ctx.is_power_net(out_net)
-                            and in_net != out_net):
-                        continue
-                else:
-                    continue
-            if sw_pin and not has_reg_keyword:
-                # SW pin but check if inductor is connected
-                sw_net_name = sw_pin[1]
-                sw_has_inductor = bool(ctx.nq and ctx.nq.inductors_on_net(sw_net_name, exclude_ref=ref))
-                if not sw_has_inductor and ctx.nq:
-                    # Try 1-hop through connectors/hierarchical pins
-                    for other_net in ctx.nq.trace_through(sw_net_name, ref):
-                        if ctx.nq.inductors_on_net(other_net):
-                            sw_has_inductor = True
-                            break
-                if not sw_has_inductor:
-                    continue
-
-        reg_info = {
+    if not fb_pin and not sw_pin and not vout_pin:
+        # KH-124: For pin-less ICs (legacy format), check keywords before
+        # giving up — PMICs like AXP803 won't have pin data
+        if not _no_pins:
+            return None  # Not a regulator
+        _kw_check = (ic.get("lib_id", "") + " " + ic.get("value", "")).lower()
+        _kw_pmic = ("regulator", "ldo", "buck", "boost", "converter", "pmic",
+                    "axp", "mt36", "dd40", "tplp", "hx630", "ip51",
+                    "ams1117", "lm317", "lm78", "lm79", "tps5", "tps6")
+        if not any(k in _kw_check for k in _kw_pmic):
+            return None
+        # Add as minimal keyword-only entry
+        return {
             "ref": ref,
-            "value": ic["value"],
+            "value": ic.get("value", ""),
             "lib_id": ic.get("lib_id", ""),
+            "topology": "unknown",
+            "input_rail": None,
+            "output_rail": None,
+            "estimated_vout": None,
+            "feedback_divider": None,
+            "inductor": None,
+            "detector": "detect_power_regulators",
+            "rule_id": "PR-DET",
+            "category": "power_management",
+            "severity": "info",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Regulator {ref} unknown",
+            "description": "Power regulator detected by keyword match (no pin data)",
+            "components": [ref],
+            "nets": [],
+            "pins": [],
+            "recommendation": "",
+            "report_context": {"section": "Power Management", "impact": "", "standard_ref": ""},
+            "provenance": make_provenance("reg_keyword", "heuristic", [ref]),
         }
 
-        # Determine topology
-        if sw_pin:
-            # Check if SW pin connects to an inductor
-            sw_net = sw_pin[1]
-            has_inductor = False
-            inductor_ref = None
-            inductors = ctx.nq.inductors_on_net(sw_net, exclude_ref=ref) if ctx.nq else []
-            if not inductors and ctx.nq:
-                # Try 1-hop through connectors for modular designs
-                for other_net in ctx.nq.trace_through(sw_net, ref):
-                    inductors = ctx.nq.inductors_on_net(other_net)
-                    if inductors:
+    # Early lib_id check
+    lib_id_raw = ic.get("lib_id", "")
+    lib_part_name = lib_id_raw.split(":")[-1] if ":" in lib_id_raw else ""
+    desc_lower = ic.get("description", "").lower()
+    lib_val_lower = (lib_id_raw + " " + ic.get("value", "") + " " + lib_part_name).lower()
+    reg_lib_keywords = ("regulator", "regul", "ldo", "vreg", "buck", "boost",
+                       "converter", "dc-dc", "dc_dc", "linear_regulator",
+                       "switching_regulator",
+                       "ams1117", "lm317", "lm78", "lm79", "ld1117", "ld33",
+                       "ap6", "tps5", "tps6", "tlv7", "rt5", "mp1", "mp2",
+                       "sy8", "max150", "max170", "ncp1", "xc6", "mcp170",
+                       "mic29", "mic55", "ap2112", "ap2210", "ap73",
+                       "ncv4", "lm26", "lm11", "78xx",
+                       "79xx", "lt308", "lt36", "ltc36", "lt86", "ltc34",
+                       # KH-118: Asian manufacturer LDOs
+                       "tplp", "hx630",
+                       # KH-124: PMICs and boost converters
+                       "axp", "mt36", "pmic", "dd40", "ip51",
+                       )
+    has_reg_keyword = (any(k in lib_val_lower for k in reg_lib_keywords) or
+                      any(k in desc_lower for k in ("regulator", "ldo", "vreg",
+                                                    "voltage regulator")))
+
+    # Exclude RF amplifiers/LNAs that have VIN/VOUT but aren't regulators
+    _rf_exclude = ("lna", "mmic", "mga-", "bga-", "bgb7", "trf37",
+                   "sga-", "tqp3", "sky67", "gali-", "bfp7", "bfr5")
+    if any(k in lib_val_lower for k in _rf_exclude):
+        return None
+
+    # Exclude power multiplexers/load switches/ideal diode controllers
+    _power_mux_exclude = ("power_mux", "load_switch", "tps211", "tps212",
+                          "tps229", "tps205",  # KH-219: load switches
+                          "ltc441", "ideal_diode",
+                          # KH-108: Ideal diode OR controllers
+                          "lm6620", "lm6610", "ltc435", "ltc430")
+    if any(k in lib_val_lower for k in _power_mux_exclude):
+        return None
+    # KH-219: Exclude components with load/power switch descriptions
+    if any(k in desc_lower for k in ("load switch", "power switch", "power distribution switch")):
+        return None
+
+    # Exclude op-amps, instrumentation amps, and ADCs with FB-like pins
+    _opamp_adc_exclude = ("ada48", "ad8", "opa", "lm358", "lm324",
+                          "lmv3", "tlv9", "mcp60", "mcp61",
+                          "hx711", "ads1", "mcp3", "max11",
+                          "ina21", "ina22", "ina23",
+                          "comparator", "op_amp", "opamp")
+    if any(k in lib_val_lower for k in _opamp_adc_exclude):
+        return None
+
+    if not fb_pin and not boot_pin:
+        if not sw_pin and not has_reg_keyword:
+            # Only VOUT pin, no regulator keywords → check if VIN+VOUT
+            # both connect to distinct power nets (custom-lib LDOs like TC1185)
+            if vin_pin and vout_pin:
+                in_net = vin_pin[1]
+                out_net = vout_pin[1]
+                if not (ctx.is_power_net(in_net) and ctx.is_power_net(out_net)
+                        and in_net != out_net):
+                    return None
+            else:
+                return None
+        if sw_pin and not has_reg_keyword:
+            # SW pin but check if inductor is connected
+            sw_net_name = sw_pin[1]
+            sw_has_inductor = bool(ctx.nq and ctx.nq.inductors_on_net(sw_net_name, exclude_ref=ref))
+            if not sw_has_inductor and ctx.nq:
+                # Try 1-hop through connectors/hierarchical pins
+                for other_net in ctx.nq.trace_through(sw_net_name, ref):
+                    if ctx.nq.inductors_on_net(other_net):
+                        sw_has_inductor = True
                         break
-            if inductors:
-                has_inductor = True
-                inductor_ref = inductors[0]["reference"]
-            if has_inductor:
-                reg_info["topology"] = "switching"
-                reg_info["inductor"] = inductor_ref
-                reg_info["sw_net"] = sw_net
-                if boot_pin:
-                    reg_info["has_bootstrap"] = True
-                # KH-084/KH-087: Trace through inductor to find output rail
-                if inductor_ref and not vout_pin:
-                    ind_n1, ind_n2 = ctx.get_two_pin_nets(inductor_ref)
-                    out_rail = ind_n2 if ind_n1 == sw_net else ind_n1
-                    if out_rail and out_rail != sw_net:
-                        reg_info["output_rail"] = out_rail
-            else:
-                reg_info["topology"] = "switching"  # SW pin but no inductor found
-        elif vout_pin and not sw_pin:
-            # Check if description/lib_id suggests a switching regulator whose
-            # SW pin wasn't found (e.g., pin in different unit or unusual name)
-            _switching_kw = ("buck", "boost", "switching", "step-down", "step-up",
-                             "step down", "step up", "dc-dc", "dc_dc", "smps",
-                             "converter", "synchronous")
-            if any(k in desc_lower for k in _switching_kw) or \
-               any(k in lib_val_lower for k in _switching_kw):
-                reg_info["topology"] = "switching"
-            elif _match_known_switching(ic.get("value", ""), ic.get("lib_id", "")):
-                reg_info["topology"] = "switching"
-            else:
-                reg_info["topology"] = "LDO"
-            # KH-225: Charge pumps — voltage converters, not LDOs
-            _charge_pump_kw = ("charge_pump", "charge pump", "voltage inverter",
-                               "voltage converter", "switched capacitor")
-            if any(k in desc_lower for k in _charge_pump_kw) or \
-               any(k in lib_val_lower for k in ("lm2664", "max660", "icl7660",
-                                                  "tc7660", "ltc1044", "ltc3261",
-                                                  "ltc1144")):
-                reg_info["topology"] = "charge_pump"
-        elif fb_pin and not sw_pin:
-            reg_info["topology"] = "unknown"
+            if not sw_has_inductor:
+                return None
 
-        # Check if this is a complex IC with an internal regulator rather than
-        # a dedicated regulator.  If < 20% of pins are regulator-related, flag it.
-        total_pins = len(ic.get("pins", []))
-        reg_pin_count = sum(1 for pn in ic_pins if pn in (
-            "VIN", "VOUT", "VO", "OUT", "FB", "VFB", "ADJ", "SW", "PH", "LX",
-            "EN", "ENABLE", "BST", "BOOT", "PGOOD", "PG", "SS", "COMP",
-            "INPUT", "OUTPUT",
-        ))
-        if total_pins > 10 and reg_pin_count < total_pins * 0.2:
-            reg_info["topology"] = "ic_with_internal_regulator"
+    return _RegulatorCandidate(
+        ic=ic, ref=ref, ic_pins=ic_pins, fb_pin=fb_pin, sw_pin=sw_pin, vin_pin=vin_pin,
+        vout_pin=vout_pin, boot_pin=boot_pin, lib_part_name=lib_part_name,
+        desc_lower=desc_lower, lib_val_lower=lib_val_lower, has_reg_keyword=has_reg_keyword,
+    )
 
-        # Detect inverting topology from part name/description or output net name
-        inverting_kw = ("invert", "inv_", "_inv", "negative output", "neg_out")
-        is_inverting = any(k in lib_val_lower for k in inverting_kw) or \
-                       any(k in desc_lower for k in inverting_kw)
 
-        # Extract input/output rails
-        if vin_pin:
-            reg_info["input_rail"] = vin_pin[1]
+def _build_regulator_record(ctx: AnalysisContext, cand: _RegulatorCandidate,
+                            voltage_dividers: list[dict]) -> dict:
+    """Topology, rails, Vout estimate, switching frequency and the PR-DET envelope for one candidate."""
+    ref = cand.ref
+    ic = cand.ic
+    ic_pins = cand.ic_pins
+    fb_pin = cand.fb_pin
+    sw_pin = cand.sw_pin
+    vin_pin = cand.vin_pin
+    vout_pin = cand.vout_pin
+    boot_pin = cand.boot_pin
+    desc_lower = cand.desc_lower
+    lib_val_lower = cand.lib_val_lower
+    has_reg_keyword = cand.has_reg_keyword
+
+    reg_info = {
+        "ref": ref,
+        "value": ic["value"],
+        "lib_id": ic.get("lib_id", ""),
+    }
+
+    # Determine topology
+    if sw_pin:
+        # Check if SW pin connects to an inductor
+        sw_net = sw_pin[1]
+        has_inductor = False
+        inductor_ref = None
+        inductors = ctx.nq.inductors_on_net(sw_net, exclude_ref=ref) if ctx.nq else []
+        if not inductors and ctx.nq:
+            # Try 1-hop through connectors for modular designs
+            for other_net in ctx.nq.trace_through(sw_net, ref):
+                inductors = ctx.nq.inductors_on_net(other_net)
+                if inductors:
+                    break
+        if inductors:
+            has_inductor = True
+            inductor_ref = inductors[0]["reference"]
+        if has_inductor:
+            reg_info["topology"] = "switching"
+            reg_info["inductor"] = inductor_ref
+            reg_info["sw_net"] = sw_net
+            if boot_pin:
+                reg_info["has_bootstrap"] = True
+            # KH-084/KH-087: Trace through inductor to find output rail
+            if inductor_ref and not vout_pin:
+                ind_n1, ind_n2 = ctx.get_two_pin_nets(inductor_ref)
+                out_rail = ind_n2 if ind_n1 == sw_net else ind_n1
+                if out_rail and out_rail != sw_net:
+                    reg_info["output_rail"] = out_rail
+        else:
+            reg_info["topology"] = "switching"  # SW pin but no inductor found
+    elif vout_pin and not sw_pin:
+        # Check if description/lib_id suggests a switching regulator whose
+        # SW pin wasn't found (e.g., pin in different unit or unusual name)
+        _switching_kw = ("buck", "boost", "switching", "step-down", "step-up",
+                         "step down", "step up", "dc-dc", "dc_dc", "smps",
+                         "converter", "synchronous")
+        if any(k in desc_lower for k in _switching_kw) or \
+           any(k in lib_val_lower for k in _switching_kw):
+            reg_info["topology"] = "switching"
+        elif _match_known_switching(ic.get("value", ""), ic.get("lib_id", "")):
+            reg_info["topology"] = "switching"
+        else:
+            reg_info["topology"] = "LDO"
+        # KH-225: Charge pumps — voltage converters, not LDOs
+        _charge_pump_kw = ("charge_pump", "charge pump", "voltage inverter",
+                           "voltage converter", "switched capacitor")
+        if any(k in desc_lower for k in _charge_pump_kw) or \
+           any(k in lib_val_lower for k in ("lm2664", "max660", "icl7660",
+                                              "tc7660", "ltc1044", "ltc3261",
+                                              "ltc1144")):
+            reg_info["topology"] = "charge_pump"
+    elif fb_pin and not sw_pin:
+        reg_info["topology"] = "unknown"
+
+    # Check if this is a complex IC with an internal regulator rather than
+    # a dedicated regulator.  If < 20% of pins are regulator-related, flag it.
+    total_pins = len(ic.get("pins", []))
+    reg_pin_count = sum(1 for pn in ic_pins if pn in (
+        "VIN", "VOUT", "VO", "OUT", "FB", "VFB", "ADJ", "SW", "PH", "LX",
+        "EN", "ENABLE", "BST", "BOOT", "PGOOD", "PG", "SS", "COMP",
+        "INPUT", "OUTPUT",
+    ))
+    if total_pins > 10 and reg_pin_count < total_pins * 0.2:
+        reg_info["topology"] = "ic_with_internal_regulator"
+
+    # Detect inverting topology from part name/description or output net name
+    inverting_kw = ("invert", "inv_", "_inv", "negative output", "neg_out")
+    is_inverting = any(k in lib_val_lower for k in inverting_kw) or \
+                   any(k in desc_lower for k in inverting_kw)
+
+    # Extract input/output rails
+    if vin_pin:
+        reg_info["input_rail"] = vin_pin[1]
+    if vout_pin:
+        reg_info["output_rail"] = vout_pin[1]
+        # Also check if output rail name suggests negative voltage
+        out_net_u = vout_pin[1].upper()
+        if re.search(r'[-](\d)', out_net_u) or "NEG" in out_net_u or out_net_u.startswith("-"):
+            is_inverting = True
+    if is_inverting:
+        reg_info["inverting"] = True
+
+    # KH-104: Sanity check — power rails should never be GND
+    if reg_info.get("input_rail") and ctx.is_ground(reg_info["input_rail"]):
+        reg_info["input_rail"] = None
+    if reg_info.get("output_rail") and ctx.is_ground(reg_info["output_rail"]):
+        reg_info["output_rail"] = None
+
+    # KH-087: Trace output rail through inductor (retry after sanitization)
+    if reg_info.get("topology") == "switching" and not reg_info.get("output_rail") and reg_info.get("inductor"):
+        ind_ref = reg_info["inductor"]
+        ind_n1, ind_n2 = ctx.get_two_pin_nets(ind_ref)
+        sw_net_2 = sw_pin[1] if sw_pin else None
+        out_rail = ind_n2 if ind_n1 == sw_net_2 else ind_n1
+        if out_rail and not ctx.is_ground(out_rail):
+            reg_info["output_rail"] = out_rail
+
+    # KH-087: Trace input rail through ferrite bead
+    if not reg_info.get("input_rail") and vin_pin:
+        vin_net = vin_pin[1]
+        if vin_net and vin_net in ctx.nets:
+            for p in ctx.nets[vin_net]["pins"]:
+                fb_comp = ctx.comp_lookup.get(p["component"])
+                if (fb_comp and fb_comp["type"] in ("ferrite_bead", "inductor")
+                        and p["component"] != reg_info.get("inductor")):
+                    fb_n1, fb_n2 = ctx.get_two_pin_nets(p["component"])
+                    other = fb_n2 if fb_n1 == vin_net else fb_n1
+                    if other and ctx.is_power_net(other) and not ctx.is_ground(other):
+                        reg_info["input_rail"] = other
+                        break
+
+    # Check for fixed-output regulator (voltage encoded in part number)
+    fixed_vout, fixed_source = _lookup_regulator_vref(
+        ic.get("value", ""), ic.get("lib_id", ""))
+    if fixed_source == "fixed_suffix" and fixed_vout is not None:
+        reg_info["estimated_vout"] = round(fixed_vout, 3)
+        reg_info["vref_source"] = "fixed_suffix"
+        reg_info["_estimated_vout_provenance"] = {
+            "source": "fixed_suffix",
+            "confidence": "deterministic",
+        }
         if vout_pin:
             reg_info["output_rail"] = vout_pin[1]
-            # Also check if output rail name suggests negative voltage
-            out_net_u = vout_pin[1].upper()
-            if re.search(r'[-](\d)', out_net_u) or "NEG" in out_net_u or out_net_u.startswith("-"):
-                is_inverting = True
-        if is_inverting:
-            reg_info["inverting"] = True
 
-        # KH-104: Sanity check — power rails should never be GND
-        if reg_info.get("input_rail") and ctx.is_ground(reg_info["input_rail"]):
-            reg_info["input_rail"] = None
-        if reg_info.get("output_rail") and ctx.is_ground(reg_info["output_rail"]):
-            reg_info["output_rail"] = None
-
-        # KH-087: Trace output rail through inductor (retry after sanitization)
-        if reg_info.get("topology") == "switching" and not reg_info.get("output_rail") and reg_info.get("inductor"):
-            ind_ref = reg_info["inductor"]
-            ind_n1, ind_n2 = ctx.get_two_pin_nets(ind_ref)
-            sw_net_2 = sw_pin[1] if sw_pin else None
-            out_rail = ind_n2 if ind_n1 == sw_net_2 else ind_n1
-            if out_rail and not ctx.is_ground(out_rail):
-                reg_info["output_rail"] = out_rail
-
-        # KH-087: Trace input rail through ferrite bead
-        if not reg_info.get("input_rail") and vin_pin:
-            vin_net = vin_pin[1]
-            if vin_net and vin_net in ctx.nets:
-                for p in ctx.nets[vin_net]["pins"]:
-                    fb_comp = ctx.comp_lookup.get(p["component"])
-                    if (fb_comp and fb_comp["type"] in ("ferrite_bead", "inductor")
-                            and p["component"] != reg_info.get("inductor")):
-                        fb_n1, fb_n2 = ctx.get_two_pin_nets(p["component"])
-                        other = fb_n2 if fb_n1 == vin_net else fb_n1
-                        if other and ctx.is_power_net(other) and not ctx.is_ground(other):
-                            reg_info["input_rail"] = other
-                            break
-
-        # Check for fixed-output regulator (voltage encoded in part number)
-        fixed_vout, fixed_source = _lookup_regulator_vref(
+    # Check feedback divider for output voltage estimation
+    if fb_pin:
+        fb_net = fb_pin[1]
+        reg_info["fb_net"] = fb_net
+        # Try part-specific Vref lookup first, fall back to heuristic sweep
+        known_vref, vref_source = _lookup_regulator_vref(
             ic.get("value", ""), ic.get("lib_id", ""))
-        if fixed_source == "fixed_suffix" and fixed_vout is not None:
-            reg_info["estimated_vout"] = round(fixed_vout, 3)
-            reg_info["vref_source"] = "fixed_suffix"
-            reg_info["_estimated_vout_provenance"] = {
-                "source": "fixed_suffix",
-                "confidence": "deterministic",
-            }
-            if vout_pin:
-                reg_info["output_rail"] = vout_pin[1]
-
-        # Check feedback divider for output voltage estimation
-        if fb_pin:
-            fb_net = fb_pin[1]
-            reg_info["fb_net"] = fb_net
-            # Try part-specific Vref lookup first, fall back to heuristic sweep
-            known_vref, vref_source = _lookup_regulator_vref(
-                ic.get("value", ""), ic.get("lib_id", ""))
-            # Skip feedback divider analysis for fixed-output parts
-            if vref_source == "fixed_suffix":
-                known_vref = None
-            # Find matching voltage divider
-            for vd in voltage_dividers:
-                if vd["mid_net"] == fb_net:
-                    ratio = vd["ratio"]
-                    if known_vref is not None:
-                        # Use the known Vref from the lookup table
-                        v_out = known_vref / ratio if ratio > 0 else 0
+        # Skip feedback divider analysis for fixed-output parts
+        if vref_source == "fixed_suffix":
+            known_vref = None
+        # Find matching voltage divider
+        for vd in voltage_dividers:
+            if vd["mid_net"] == fb_net:
+                ratio = vd["ratio"]
+                if known_vref is not None:
+                    # Use the known Vref from the lookup table
+                    v_out = known_vref / ratio if ratio > 0 else 0
+                    if 0.5 < v_out < 60:
+                        reg_info["estimated_vout"] = round(v_out, 3)
+                        reg_info["_estimated_vout_provenance"] = {
+                            "source": "divider_plus_" + reg_info.get("vref_source", "lookup"),
+                            "confidence": "deterministic" if reg_info.get("vref_source") == "datasheet" else "heuristic",
+                        }
+                        reg_info["assumed_vref"] = known_vref
+                        reg_info["vref_source"] = "lookup"
+                        reg_info["feedback_divider"] = {
+                            "r_top": {"ref": vd["r_top"]["ref"], "ohms": vd["r_top"]["ohms"], "value": vd["r_top"]["value"]},
+                            "r_bottom": {"ref": vd["r_bottom"]["ref"], "ohms": vd["r_bottom"]["ohms"], "value": vd["r_bottom"]["value"]},
+                            "ratio": ratio,
+                        }
+                else:
+                    # Heuristic: try common Vref values
+                    for vref in [0.6, 0.8, 1.0, 1.22, 1.25]:
+                        v_out = vref / ratio if ratio > 0 else 0
                         if 0.5 < v_out < 60:
                             reg_info["estimated_vout"] = round(v_out, 3)
                             reg_info["_estimated_vout_provenance"] = {
                                 "source": "divider_plus_" + reg_info.get("vref_source", "lookup"),
                                 "confidence": "deterministic" if reg_info.get("vref_source") == "datasheet" else "heuristic",
                             }
-                            reg_info["assumed_vref"] = known_vref
-                            reg_info["vref_source"] = "lookup"
+                            reg_info["assumed_vref"] = vref
+                            reg_info["vref_source"] = "heuristic"
                             reg_info["feedback_divider"] = {
                                 "r_top": {"ref": vd["r_top"]["ref"], "ohms": vd["r_top"]["ohms"], "value": vd["r_top"]["value"]},
                                 "r_bottom": {"ref": vd["r_bottom"]["ref"], "ohms": vd["r_bottom"]["ohms"], "value": vd["r_bottom"]["value"]},
                                 "ratio": ratio,
                             }
-                    else:
-                        # Heuristic: try common Vref values
-                        for vref in [0.6, 0.8, 1.0, 1.22, 1.25]:
-                            v_out = vref / ratio if ratio > 0 else 0
-                            if 0.5 < v_out < 60:
-                                reg_info["estimated_vout"] = round(v_out, 3)
-                                reg_info["_estimated_vout_provenance"] = {
-                                    "source": "divider_plus_" + reg_info.get("vref_source", "lookup"),
-                                    "confidence": "deterministic" if reg_info.get("vref_source") == "datasheet" else "heuristic",
-                                }
-                                reg_info["assumed_vref"] = vref
-                                reg_info["vref_source"] = "heuristic"
-                                reg_info["feedback_divider"] = {
-                                    "r_top": {"ref": vd["r_top"]["ref"], "ohms": vd["r_top"]["ohms"], "value": vd["r_top"]["value"]},
-                                    "r_bottom": {"ref": vd["r_bottom"]["ref"], "ohms": vd["r_bottom"]["ohms"], "value": vd["r_bottom"]["value"]},
-                                    "ratio": ratio,
-                                }
-                                break
-                    break
+                            break
+                break
 
-        # KH-090: Fixed-output LDOs are never inverting
-        if reg_info.get("inverting") and reg_info.get("topology") == "LDO" and not fb_pin:
-            del reg_info["inverting"]
+    # KH-090: Fixed-output LDOs are never inverting
+    if reg_info.get("inverting") and reg_info.get("topology") == "LDO" and not fb_pin:
+        del reg_info["inverting"]
 
-        # Negate Vout for inverting regulators
-        if reg_info.get("inverting") and "estimated_vout" in reg_info:
-            reg_info["estimated_vout"] = -abs(reg_info["estimated_vout"])
+    # Negate Vout for inverting regulators
+    if reg_info.get("inverting") and "estimated_vout" in reg_info:
+        reg_info["estimated_vout"] = -abs(reg_info["estimated_vout"])
 
-        # Estimate switching frequency for switching regulators
-        if reg_info.get("topology") == "switching":
-            sw_f = lookup_switching_freq(ic.get("value", ""))
-            freq_source = "lookup_table" if sw_f else None
-            if sw_f is None:
-                # Try lib_id part name (after colon)
-                lib_part = ic.get("lib_id", "").split(":")[-1] if ":" in ic.get("lib_id", "") else ""
-                if lib_part:
-                    sw_f = lookup_switching_freq(lib_part)
-                    if sw_f:
-                        freq_source = "lookup_table"
-            if sw_f is None:
-                sw_f = _default_switching_freq("buck")  # conservative default for switching
-                freq_source = "topology_default"
-            if sw_f is not None:
-                reg_info["switching_frequency_hz"] = sw_f
-                reg_info["freq_source"] = freq_source
+    # Estimate switching frequency for switching regulators
+    if reg_info.get("topology") == "switching":
+        sw_f = lookup_switching_freq(ic.get("value", ""))
+        freq_source = "lookup_table" if sw_f else None
+        if sw_f is None:
+            # Try lib_id part name (after colon)
+            lib_part = ic.get("lib_id", "").split(":")[-1] if ":" in ic.get("lib_id", "") else ""
+            if lib_part:
+                sw_f = lookup_switching_freq(lib_part)
+                if sw_f:
+                    freq_source = "lookup_table"
+        if sw_f is None:
+            sw_f = default_switching_freq("buck")  # conservative default for switching
+            freq_source = "topology_default"
+        if sw_f is not None:
+            reg_info["switching_frequency_hz"] = sw_f
+            reg_info["freq_source"] = freq_source
 
-        # Only add if we found meaningful regulator features
-        is_regulator = False
-        if fb_pin or sw_pin or boot_pin:
+    # Only add if we found meaningful regulator features
+    is_regulator = False
+    if fb_pin or sw_pin or boot_pin:
+        is_regulator = True
+    elif vin_pin or vout_pin:
+        in_net = vin_pin[1] if vin_pin else ""
+        out_net = vout_pin[1] if vout_pin else ""
+        if ctx.is_power_net(in_net) or ctx.is_power_net(out_net):
             is_regulator = True
-        elif vin_pin or vout_pin:
-            in_net = vin_pin[1] if vin_pin else ""
-            out_net = vout_pin[1] if vout_pin else ""
-            if ctx.is_power_net(in_net) or ctx.is_power_net(out_net):
-                is_regulator = True
-            if has_reg_keyword:
-                is_regulator = True
+        if has_reg_keyword:
+            is_regulator = True
 
-        if is_regulator and any(k in reg_info for k in ("topology", "input_rail", "output_rail", "estimated_vout")):
-            _reg_topo = reg_info.get("topology", "unknown")
-            reg_info["detector"] = "detect_power_regulators"
-            reg_info["rule_id"] = "PR-DET"
-            reg_info["category"] = "power_management"
-            reg_info["severity"] = "info"
-            reg_info["confidence"] = "deterministic"
-            reg_info["evidence_source"] = "topology"
-            reg_info["summary"] = f"Regulator {ref} {_reg_topo}"
-            reg_info["description"] = f"Power regulator ({_reg_topo}) detected"
-            reg_info["components"] = [ref]
-            reg_info["nets"] = []
-            reg_info["pins"] = []
-            reg_info["recommendation"] = ""
-            reg_info["report_context"] = {"section": "Power Management", "impact": "", "standard_ref": ""}
-            # Determine provenance evidence based on classification path
-            if sw_pin and reg_info.get("inductor"):
-                _prov_evidence = "reg_sw_pin_inductor"
-                _prov_confidence = "deterministic"
-            elif reg_info.get("vref_source") == "fixed_suffix":
-                _prov_evidence = "reg_fixed_suffix"
-                _prov_confidence = "deterministic"
-            elif sw_pin:
-                _prov_evidence = "reg_sw_pin_only"
-                _prov_confidence = "heuristic"
-            elif reg_info.get("feedback_divider"):
-                _prov_evidence = "reg_divider_vref"
-                _prov_confidence = "heuristic"
-            elif has_reg_keyword:
-                _prov_evidence = "reg_keyword"
-                _prov_confidence = "heuristic"
-            else:
-                _prov_evidence = "reg_keyword"
-                _prov_confidence = "heuristic"
-            reg_info["provenance"] = make_provenance(_prov_evidence, _prov_confidence, [ref])
-            power_regulators.append(reg_info)
+    if is_regulator and any(k in reg_info for k in ("topology", "input_rail", "output_rail", "estimated_vout")):
+        _reg_topo = reg_info.get("topology", "unknown")
+        reg_info["detector"] = "detect_power_regulators"
+        reg_info["rule_id"] = "PR-DET"
+        reg_info["category"] = "power_management"
+        reg_info["severity"] = "info"
+        reg_info["confidence"] = "deterministic"
+        reg_info["evidence_source"] = "topology"
+        reg_info["summary"] = f"Regulator {ref} {_reg_topo}"
+        reg_info["description"] = f"Power regulator ({_reg_topo}) detected"
+        reg_info["components"] = [ref]
+        reg_info["nets"] = []
+        reg_info["pins"] = []
+        reg_info["recommendation"] = ""
+        reg_info["report_context"] = {"section": "Power Management", "impact": "", "standard_ref": ""}
+        # Determine provenance evidence based on classification path
+        if sw_pin and reg_info.get("inductor"):
+            _prov_evidence = "reg_sw_pin_inductor"
+            _prov_confidence = "deterministic"
+        elif reg_info.get("vref_source") == "fixed_suffix":
+            _prov_evidence = "reg_fixed_suffix"
+            _prov_confidence = "deterministic"
+        elif sw_pin:
+            _prov_evidence = "reg_sw_pin_only"
+            _prov_confidence = "heuristic"
+        elif reg_info.get("feedback_divider"):
+            _prov_evidence = "reg_divider_vref"
+            _prov_confidence = "heuristic"
+        elif has_reg_keyword:
+            _prov_evidence = "reg_keyword"
+            _prov_confidence = "heuristic"
+        else:
+            _prov_evidence = "reg_keyword"
+            _prov_confidence = "heuristic"
+        reg_info["provenance"] = make_provenance(_prov_evidence, _prov_confidence, [ref])
+        # every candidate passed the screen, so this guard holds and the None fall-through is never reached
+        return reg_info
 
+
+def _cross_reference_feedback_dividers(power_regulators: list[dict], voltage_dividers: list[dict]) -> None:
+    """Give each regulator without a feedback divider the divider whose top net is its FB net (FB-at-top),
+    and an output rail when it has none, in place."""
     # KH-084: Cross-reference feedback dividers with regulators.
     # For dividers whose top_net matches a regulator's output_rail, mark as feedback.
     for reg in power_regulators:
@@ -2012,6 +2053,9 @@ def detect_power_regulators(ctx: AnalysisContext, voltage_dividers: list[dict]) 
                     reg["output_rail"] = fb_net
                 break
 
+
+def _attach_regulator_capacitors(ctx: AnalysisContext, power_regulators: list[dict]) -> None:
+    """Attach each regulator's output, input and FB-net compensation capacitors to its record, in place."""
     # Detect output capacitors on each regulator's output rail
     for reg in power_regulators:
         output_rail = reg.get("output_rail")
@@ -2123,6 +2167,9 @@ def detect_power_regulators(ctx: AnalysisContext, voltage_dividers: list[dict]) 
             if comp_caps:
                 reg["compensation_capacitors"] = comp_caps
 
+
+def _estimate_regulator_dissipation(ctx: AnalysisContext, power_regulators: list[dict]) -> None:
+    """Add a power_dissipation estimate to each LDO whose input rail voltage exceeds its Vout, in place."""
     # Estimate power dissipation for LDO regulators
     for reg in power_regulators:
         topology = reg.get("topology", "")
@@ -2208,8 +2255,6 @@ def detect_power_regulators(ctx: AnalysisContext, voltage_dividers: list[dict]) 
                         "basis": f"efficiency_{efficiency:.0%}_assumed",
                     },
                 }
-
-    return power_regulators
 
 
 def detect_integrated_ldos(ctx: AnalysisContext, power_regulators: list[dict]) -> list[dict]:
@@ -2585,7 +2630,7 @@ def detect_opamp_circuits(ctx: AnalysisContext) -> list[dict]:
                          "INV", "INV-IN") or \
                  (pn.startswith("-") and "IN" in pn):
                 neg_in = (pin_name, net, pnum)
-            elif pn in ("OUT", "OUTPUT", "VOUT", "VO"):
+            elif pn in _VOUT_PIN_NAMES:
                 out_pin = (pin_name, net, pnum)
             elif pn in ("V+", "V-", "VCC", "VDD", "VEE", "VSS", "VS+", "VS-"):
                 continue
@@ -3388,8 +3433,12 @@ def postfilter_vd_and_dedup(voltage_dividers: list[dict], feedback_networks: lis
     return deduped_vds, deduped_fns
 
 
-def detect_led_drivers(ctx: AnalysisContext, transistor_circuits: list[dict]) -> None:
-    """Enrich transistor circuits with LED driver info. Modifies transistor_circuits in-place."""
+def enrich_transistor_led_drivers(ctx: AnalysisContext, transistor_circuits: list[dict]) -> None:
+    """Enrich transistor circuits with LED driver info. Modifies transistor_circuits in-place.
+
+    Mutates *transistor_circuits* in place (detector, rule_id, category, summary of
+    matching records); returns None by design.
+    """
     for tc in transistor_circuits:
         is_mosfet = tc.get("type") == "mosfet"
         is_bjt = tc.get("type") == "bjt"
@@ -3456,7 +3505,6 @@ def detect_led_drivers(ctx: AnalysisContext, transistor_circuits: list[dict]) ->
                     break
             if "led_driver" in tc:
                 break
-
 
 
 def detect_design_observations(ctx: AnalysisContext, results: dict) -> list[dict]:
@@ -3977,6 +4025,7 @@ def detect_shorted_two_pin_components(ctx: AnalysisContext) -> list[dict]:
             net=n1,
             component_type=comp.get("type"),
             value=value,
+            schema_era="v3.0",
         ))
 
     # Collapse mass hits per net. When the net map has merged two rails
@@ -4022,6 +4071,7 @@ def detect_shorted_two_pin_components(ctx: AnalysisContext) -> list[dict]:
                 f"wire each listed part to its second node."),
             net=net,
             component_count=len(group),
+            schema_era="v3.0",
         ))
 
     return collapsed
@@ -4157,7 +4207,8 @@ def detect_solder_jumpers(ctx: AnalysisContext) -> list[dict]:
 
 def audit_rail_sources(ctx: AnalysisContext,
                        power_regulators: list[dict] | None = None,
-                       solder_jumpers: list[dict] | None = None) -> list[dict]:
+                       solder_jumpers: list[dict] | None = None,
+                       bridge_facts=None) -> list[dict]:
     """Audit every power-classified net for a declared source.
 
     A rail with no `power_out` pin, no `PWR_FLAG` / `#FLG`, and no
@@ -4186,10 +4237,13 @@ def audit_rail_sources(ctx: AnalysisContext,
 
     # Build a quick map of net → list of (neighbour, state, jumper_ref) tuples
     # for solder jumpers that straddle the net.
+    if bridge_facts is None:
+        bridge_facts = build_bridge_facts(
+            ctx.components or [], build_ref_pins(nets), solder_jumpers)
     jumper_bridges: dict[str, list[tuple[str, str, str]]] = {}
-    for sj in (solder_jumpers or []):
-        state = sj.get("default_state")
-        nets_straddled = sj.get("nets") or []
+    for fact in bridge_facts.jumpers:
+        state = fact.default_state
+        nets_straddled = fact.nets
         # Only 2-net jumpers (standard SolderJumper_2_Bridged / _Open) are
         # amenable to one-hop traversal. 3-pin selector jumpers (e.g.
         # SolderJumper_3_Bridged12 / _Bridged23) encode the actual shorted
@@ -4199,8 +4253,8 @@ def audit_rail_sources(ctx: AnalysisContext,
         if len(nets_straddled) != 2 or state not in ("bridged", "open"):
             continue
         a, b = nets_straddled[0], nets_straddled[1]
-        jumper_bridges.setdefault(a, []).append((b, state, sj.get("reference", "")))
-        jumper_bridges.setdefault(b, []).append((a, state, sj.get("reference", "")))
+        jumper_bridges.setdefault(a, []).append((b, state, fact.ref))
+        jumper_bridges.setdefault(b, []).append((a, state, fact.ref))
 
     def _has_direct_source(net_info: dict, net_name: str) -> bool:
         # Direct power_out pin anywhere on the net, OR an explicit PWR_FLAG
@@ -4218,12 +4272,14 @@ def audit_rail_sources(ctx: AnalysisContext,
         return net_name in reg_output_nets
 
     def _power_rail(net_name: str, net_info: dict) -> bool:
-        # "Power rail" = named like a rail OR has any power_in pin on it.
+        # "Power rail" = named like a rail OR has a power_in pin on it that is
+        # not a bootstrap pin (a BST net is fed by its capacitor, never a source).
         if net_name.startswith("__unnamed_"):
             return False
         if is_power_net_name(net_name, None):
             return True
         return any(p.get("pin_type") == "power_in"
+                   and not _is_bootstrap_pin_name(p.get("pin_name") or "")
                    for p in net_info.get("pins", []))
 
     for net_name, net_info in nets.items():
@@ -4367,6 +4423,7 @@ def audit_rail_sources(ctx: AnalysisContext,
                 "standard_ref": "",
             },
             "provenance": make_provenance("rs_rail_audit", rs_confidence, []),
+            "schema_era": "v3.0",
         })
 
     return findings
@@ -4477,12 +4534,6 @@ def _is_module_internal_rail(net_name: str) -> bool:
     return any(base.startswith(pat) for pat in _MODULE_INTERNAL_RAIL_PATTERNS)
 
 
-# Gate-drive bootstrap pins: their supply is a capacitor to the switch node,
-# so having no DC path to a rail is the datasheet circuit, not a fault. Many
-# vendor symbols type them power_in. Same names detect_power_regulators uses.
-_BOOTSTRAP_PIN_TOKENS = frozenset({"BST", "BOOT", "BOOTSTRAP", "CBST"})
-
-
 def _is_bootstrap_pin_name(pin_name: str) -> bool:
     """True for BST, BOOT, CBST, BOOT1, BST_A, ... (any _ or / token)."""
     tokens = re.split(r"[_/]", (pin_name or "").upper())
@@ -4490,8 +4541,8 @@ def _is_bootstrap_pin_name(pin_name: str) -> bool:
 
 
 def audit_power_pin_dc_paths(ctx: AnalysisContext,
-                             solder_jumpers: list[dict] | None = None
-                             ) -> list[dict]:
+                             solder_jumpers: list[dict] | None = None,
+                             bridge_facts=None) -> list[dict]:
     """For every IC power_in pin, prove a DC path to a power rail exists.
 
     A power_in pin that only reaches ground through a capacitor is
@@ -4511,37 +4562,23 @@ def audit_power_pin_dc_paths(ctx: AnalysisContext,
     components = {c.get("reference"): c for c in (ctx.components or [])}
 
     # Map component ref -> list of (pin_number, net_name, pin_type) for net hops.
-    ref_pins: dict[str, list[tuple[str, str, str]]] = {}
-    for net_name, net_info in nets.items():
-        for p in net_info.get("pins", []):
-            ref = p.get("component") or ""
-            if not ref:
-                continue
-            ref_pins.setdefault(ref, []).append(
-                (str(p.get("pin_number", "")), net_name,
-                 str(p.get("pin_type", ""))))
+    ref_pins = build_ref_pins(nets)
+    if bridge_facts is None:
+        bridge_facts = build_bridge_facts(
+            ctx.components or [], ref_pins, solder_jumpers)
 
     # Component-type-based bridge predicate.
     def _bridges_dc(ref: str) -> bool:
-        c = components.get(ref) or {}
-        t = (c.get("type") or c.get("category") or "").lower()
-        if t in ("inductor", "ferrite_bead", "fuse"):
-            return True
-        if t == "resistor":
-            # Small value resistors count as DC-conductive.
-            v = parse_value(c.get("value", ""), component_type="resistor")
-            if v is None:
-                # 0R / DNP heuristic
-                val = (c.get("value") or "").strip().lower().replace(" ", "")
-                if val in ("0", "0r", "0ohm", "0ohms"):
-                    return True
-                return False
-            return v <= 1.0
-        if t == "jumper":
-            for sj in (solder_jumpers or []):
-                if sj.get("reference") == ref:
-                    return sj.get("default_state") == "bridged"
+        fact = bridge_facts.by_ref.get(ref)
+        if fact is None:
             return False
+        if fact.kind in ("inductor", "ferrite_bead", "fuse"):
+            return True
+        if fact.kind == "resistor":
+            # Small value resistors count as DC-conductive.
+            return fact.resistance is not None and fact.resistance <= 1.0
+        if fact.kind == "jumper":
+            return fact.default_state == "bridged"
         return False
 
     def _is_capacitor(ref: str) -> bool:
@@ -4571,8 +4608,8 @@ def audit_power_pin_dc_paths(ctx: AnalysisContext,
                 break
 
     MAX_HOPS = 2
-    # Track (ref, pin) pairs already checked to avoid duplicate findings.
-    seen: set[tuple[str, str]] = set()
+    # Track (ref, pin, net) triples already checked to avoid duplicate findings.
+    seen: set[tuple[str, str, str]] = set()
 
     for net_name, net_info in nets.items():
         for p in net_info.get("pins", []):
@@ -4598,7 +4635,8 @@ def audit_power_pin_dc_paths(ctx: AnalysisContext,
             if net_name in nets_with_connector:
                 continue
 
-            key = (ref, pin_num)
+            # The net is part of the key: duplicate / unannotated refs (U? x N) share (ref, pin).
+            key = (ref, pin_num, net_name)
             if key in seen:
                 continue
             seen.add(key)
@@ -4717,6 +4755,7 @@ def audit_power_pin_dc_paths(ctx: AnalysisContext,
                     "standard_ref": "",
                 },
                 "provenance": make_provenance("pp_dc_path_audit", "deterministic", [ref]),
+                "schema_era": "v3.0",
             })
 
     return findings

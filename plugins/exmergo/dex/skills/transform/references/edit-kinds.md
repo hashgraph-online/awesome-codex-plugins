@@ -80,7 +80,9 @@ an analysis build no relation and nothing can `ref()` either, so neither enters
 a refactor is one plan rather than a plan plus a manual `rm`.
 
 Deletes are guarded: the plan is refused if any surviving file still `ref()`s a
-deleted model, naming the offenders. Carry the edits that remove those
+deleted model, naming the offenders. Deleting a project override of a package
+model, in the same plan that removes its `+enabled: false`, is accepted: the
+package's model answers the name again. Carry the edits that remove those
 references in the same plan, so the post-change project is validated as one
 unit. A surviving reference Dex cannot resolve statically is warned about rather
 than refused. An unconfirmed delete against a file a human edited after planning

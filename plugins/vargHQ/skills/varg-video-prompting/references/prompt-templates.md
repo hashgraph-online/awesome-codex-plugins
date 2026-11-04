@@ -276,7 +276,9 @@ A retake is a 4 s run of only that shot. Name the exact fault you saw as a posit
 }}
 ```
 
-- About 2.5 words per second of clip; under 10 words per 5 s for clean mouths.
+- About 2.5 words per second of clip for voice-over; lip-synced close-ups under 10 words per 5 s (2 a second) for clean mouths. Size and check every line with the `video-script` skill.
+- Write the line with the five fixes in SKILL.md section 7: punctuation as delivery, short lines with pauses, a
+  small bodily beat between lines (`She sniffles.`), one anchor gesture, and two runs when the line turns.
 - One approved close-up as the first frame keeps the face; several images (reference mode) re-draw it.
 - To keep a separately recorded voice: generate with sound on for the performance, then lip-sync (section 15) or
   retime the clip to the real track. Do not expect `@audio1` to be played verbatim.

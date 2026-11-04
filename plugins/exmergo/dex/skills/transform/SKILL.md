@@ -19,7 +19,9 @@ the `dex` CLI; where it is not installed, run the same command through the
 skill's `scripts/run.py` wrapper. Each command prints one JSON envelope: read
 it and decide the next step from it. Step 1 only reads. Steps 2 to 5 change the
 project, so take them only when the task asks for a change; a question about the
-data stops after step 1 and reports what it found.
+data stops after step 1 and reports what it found. Explore and maintain report
+findings and hand repair work to transform; only the transform workflow performs
+the project edits, migrations and dev builds described below.
 
 1. **Profile what the change reads.** Before writing or fixing SQL against a
    table whose columns, types, grain or join keys you have not verified in this
@@ -164,6 +166,22 @@ declares is `contract`.
   entities.
 - Test logic with `dex transform test --scaffold <model>` (dbt unit tests) and
   measure the tests with `dex transform test --mutate <model>`.
+- Repair the layer the request names, and settle which one before choosing a
+  remedy. "Modify our data" or "fix the source types" asks for an input change;
+  "make it build" or "adapt the project" asks for a project change; otherwise the
+  contract decides who owns the input (a seed the project loads, or a source a
+  loader owns), recorded as an assumption. Explore and maintain report the owner,
+  requested postcondition and supported remedy, then hand off to transform.
+  In transform, a project change does not fulfil an
+  input request, and an input request authorizes no write Dex cannot make:
+  change a project seed through its CSV or `+column_types` and a build; for a
+  loader's source, write any migration as a reviewable file, say it was not run,
+  and report that part incomplete, never reaching for a raw database client. A
+  project request never changes the input. Check the requested postcondition on
+  the original relation (`explore profile` for types, aggregates for rows); for a
+  built project seed use `explore profile <dev namespace>.<seed> --target dev`:
+  `--cold-deps` proves a project repair survives a reinstall, not that the data
+  changed.
 - Never edit installed packages (`dbt_packages/`) and never repair only in the
   warehouse: a reinstall or a reload undoes both. When a prerequisite blocks a
   deliverable, read `data.prerequisites` for its owner, its `plan_relation` and
@@ -513,7 +531,8 @@ a field, flag, or macro you need is not described here.
 - `${CLAUDE_SKILL_DIR}/references/declarations.md`: the `declarations` payload,
   every field and its allowed values, what each renders into, and
   `transform declare` for models that already exist.
-- `${CLAUDE_SKILL_DIR}/references/prerequisite-repairs.md`: a failed prerequisite's
+- `${CLAUDE_SKILL_DIR}/references/prerequisite-repairs.md`: which layer the
+  request asks to change (the input data or the project), a failed prerequisite's
   owner and repair routes, keeping a type repair's meaning, proving it with
   `--cold-deps`, and reporting a deliverable incomplete.
 - `${CLAUDE_SKILL_DIR}/references/feature-retirement.md`: retiring a feature flag

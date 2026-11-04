@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-03",
-  "total": 369,
+  "last_updated": "2026-11-04",
+  "total": 370,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1569,6 +1569,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/lennney/stop-that-shit/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Suede AI Skills",
+      "url": "https://github.com/JasonColapietro/suede-creator-skills",
+      "owner": "JasonColapietro",
+      "repo": "suede-creator-skills",
+      "description": "Open-source Codex plugin with SEO and GEO audits, code review with an A-F ship grade, CI gates, AI evals and app shipping skills.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/JasonColapietro/suede-creator-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Supercov",

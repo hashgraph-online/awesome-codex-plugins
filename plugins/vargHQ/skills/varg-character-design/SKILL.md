@@ -102,6 +102,10 @@ Clothes are the fastest read after the silhouette, and they are what drifts firs
 
 Build every prompt from the card, word for word, so the description never drifts.
 
+For a film with a moodboard, the `character-passport` skill turns the card into one passport paragraph that a
+script pastes into every prompt (and refuses paraphrases), a sheet lit like the board, six expressions written as a
+cause + physical tells, a measured voice line, and passports for props.
+
 ## 5. Lock the look in a sheet
 
 ```

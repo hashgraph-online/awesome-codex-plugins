@@ -2,8 +2,8 @@
 name: varg-video-prompting
 description: >-
   How to prompt varg's video, image, voice and music models so shots come out right on the first or
-  second take: the working loop (look bible, environment master, character sheets, approved stills,
-  animate, QA), which model for which shot (Seedance 2.5, Kling 4, Veo 3.1, Wan 3, Nano Banana 2.1,
+  second take: the working loop (references, look bible, environment master, character sheets, approved
+  stills, audio lock, animate, QA), which model for which shot (Seedance 2.5, Kling 4, Veo 3.1, Wan 3, Nano Banana 2.1,
   GPT Image 2.5, ElevenLabs v4, Lyria, lip sync), prompt anatomy for video, stills and edits, what
   @image1, @video1 and @audio1 references copy, dialogue and voice rules, a frame and audio QA
   checklist, and gotchas from paid runs. Use when someone asks to "prompt Seedance", write a Kling or
@@ -57,14 +57,27 @@ Every step ends at a gate where the person looks at something cheap before anyth
 
 | Step | Make | Gate | Spend |
 |---|---|---|---|
-| 1. Brief | `brief.md`: format, length, platform, the one line to remember, references, budget ceiling in credits, the person's own words verbatim with dates | person confirms | 0 |
-| 2. Look bible | one **look line** (medium, palette, lens, light quality, grain), one **identity paragraph** per character, one **place paragraph** per location, a banned list | person confirms the words | 0 |
+| 1. Brief | `brief.md`: format, length, platform, the one line to remember, references from real films and designers in `refs.md` (where to find them and how to skip the obvious pick: below), budget ceiling in credits, the person's own words verbatim with dates | person confirms | 0 |
+| 2. Look bible | one **look line** (medium, palette, lens, light quality, grain), one **identity paragraph** per character, one **place paragraph** per location, a **Never** list of 5 things this look would never do | person confirms the words | 0 |
 | 3. Environment master | one wide establishing still per location, no hero action, layout written as numbered elements. If several cameras share a set and geometry matters, a 3D blockout render first (`threejs-animatic`, `varg-previz`) | person approves the plate | a few stills |
 | 4. Character sheets | front, 3/4, profile, back + a large face crop on flat grey, no text; product or vehicle sheets with a person for scale (`varg-character-design`) | person approves | a few stills |
 | 5. Approved stills | one still per beat from master + sheets, on a numbered board (`varg-mockups`); fix faults here with surgical edits | every still OK at full size | ~6-16 credits each |
-| 6. Animate | one pilot per shot kind, then the batch; image-to-video from the approved still, or reference / video-to-video runs per location | pilot approved, batch quoted | the main cost |
-| 7. QA | frame sheet + audio check per clip, against its still | every clip passes or is re-rolled | 0 (local) or ~6 per `analyze_video` |
-| 8. Edit | cut, retime, lip-sync pass, text and graphics in code, loudness | person says ship it | lip-sync ~100 per shot |
+| 6. Audio lock | every line written with its pauses, breaths and actions (section 7); 2-3 auditioned voices per character; the music track with its beats measured and marked (`beats.json`); an SFX list with timestamps | person picks each voice and approves the track; the takes are frozen | voice lines (~84 each, ~42 on Turbo) and music (~11 on Lyria, ~25 on Mureka) |
+| 7. Animate | one pilot per shot kind, then the batch, each run as long as its locked audio says; image-to-video from the approved still, or reference / video-to-video runs per location | pilot approved, batch quoted | the main cost |
+| 8. QA | measured checks, then a frame sheet + audio check per clip against its still, written as a defect list (section 9) | every clip passes or is re-rolled | 0 (local) or ~6 per `analyze_video` |
+| 9. Edit | cut, retime, lip-sync pass, text and graphics in code, loudness | person says ship it | lip-sync ~100 per shot |
+
+**Picture is cut to sound, not the other way round.** Lock voice, dialogue and music before any clip is paid for:
+shot lengths come from the frozen takes and the beat grid (section 8), so each run is generated to a known length
+and every cut lands on a measured beat or the end of a line. A dialogue shot is still generated with sound on for
+the mouth (section 7); the locked take then replaces that sound by retime or lip-sync. Let the agent audition and
+shortlist voices; the person picks by ear.
+
+**References.** Left alone, an agent picks the safe, average version of every look. Before the look bible, collect
+real references: film stills from Film-Grab, ShotDeck or Shot Cafe, curated Pinterest boards; name the feeling,
+skip the obvious first pick, and write down what each frame lends (palette, framing, lens, light, texture, motion).
+The look bible's Never list keeps later prompts from drifting back to the average. Sources, search patterns and
+the `refs.md` format: [references/look-references.md](references/look-references.md).
 
 Group shots by location: all coverage of one place comes from the same master and sheets, ideally one multi-shot
 generation with hard cuts, cut back into the timeline afterwards. A retake of one broken shot is a short run of just
@@ -218,6 +231,24 @@ The edit prompt says what stays, then the single change:
 - **Line in the prompt**: `She leans in and whispers: "psst... wanna hear a secret?" A short pause. Then she shouts:
   "<line>"`, with delivery words (whispers, matter-of-factly, calling over wind). For no speech: `No dialogue, no
   lip-sync`, and name the ambience.
+- **Write and direct the line so it does not sound fake.** Five fixes, from a post on AI dialogue
+  (https://x.com/second_bassoon/status/2117307653320007954); they apply to the line in a video prompt and to the
+  `eleven_v4` text alike:
+  1. **Punctuation is delivery.** The model performs what is written: a full stop stops, an ellipsis trails off, a
+     dash breaks, a question mark rises. Punctuate the line the way it should sound and remove what you do not want
+     performed.
+  2. **Short lines with pauses.** Break a long sentence into two or three short ones with an intended pause between
+     them (`A short pause.` in a video prompt, `[pause]` in an `eleven_v4` text). This also keeps the line inside
+     about 2.5 words per second (section 3).
+  3. **Bodily actions as punctuation.** Put a small physical beat between lines: `She sniffles.` `He swallows.`
+     `She exhales through her nose.` The post's author called a sniffle between lines the biggest improvement by
+     far. Keep it small and in place; it is part of the delivery, not a new action.
+  4. **One anchor gesture** tied to a word: `At 1.6 s he lifts his finger as if to say "one sec".` Time it like
+     any other event and keep it the only big movement in the shot (one action per shot, section 3).
+  5. **Split the generation in two** when a line turns (a whisper that becomes a shout, a joke and then the
+     punchline) and one run blurs the turn: generate each half as its own short run, both from the same approved
+     still (or the second from its own approved still, never from a drifted last frame, section 10), and cut on the
+     turn.
 - **Keep the real voice** with one of two routes:
   1. Mute the clip, measure syllable onsets on both tracks (ffmpeg `astats` RMS at 10-20 ms), and retime the video
      piecewise (trim + `setpts` per segment) to the real audio. Body and lip timing then match well.
@@ -251,7 +282,11 @@ The edit prompt says what stays, then the single change:
 
 ## 9. QA checklist (every still and every clip)
 
-Agents cannot watch video, but they can read frames and measure sound. Never ship a clip you have not checked.
+Agents cannot watch video, but they can read frames and measure sound. **Measure, don't grade yourself**: the
+agent that made a clip is the worst judge of it, and "looks great" is not a check. Run the checks that need no
+opinion first (counts, frame scans, durations, transcripts, spelling, loudness, timings), then look, and write what
+you find as a defect list (time or frame, what is wrong, fix: cut, edit or retake), never as a score. Never ship a
+clip you have not checked.
 
 **Stills**
 1. Count people; exactly the people the shot names (an over-the-shoulder angle once drew a second pilot).
@@ -268,10 +303,27 @@ Agents cannot watch video, but they can read frames and measure sound. Never shi
 3. Extra or missing limbs, props that should not exist, faces drifting late in the clip (long clips drift more).
 4. Where the cut or action really lands: models sometimes ignore "cut at 3.6 s". Write the measured in-points into
    the edit, not the requested ones.
-5. Flash frames: scan `signalstats` YAVG for sudden spikes.
+5. Broken frames: scan `signalstats` YAVG for sudden spikes (flash frames) and run `freezedetect` for frozen
+   stretches.
 6. **Listen.** Check every clip's audio track even when you asked for none (see gotchas). `silencedetect` shows
    where speech sits; transcribe and diff against the script.
 7. `ffprobe` duration and resolution match the request.
+
+**The finished edit** (measured first, then looked at)
+1. Spelling: list every on-screen word (titles, captions, names, numbers) and diff it against the script; read them
+   back from frames too, since a typo in code ships as easily as one in a prompt.
+2. Loudness: measure integrated loudness and true peak with `ebur128` and normalise to the platform's target
+   (`ecommerce-video-edit` has a tested two-pass `loudnorm` to -14 LUFS).
+3. Sound hits against cuts: list the cut times, measure each hit's onset (RMS, as in section 7) and move every hit
+   onto its cut or moment. A hit 80 ms after the cut already reads wrong
+   (https://x.com/Asteri_eth/status/2117629600901534024).
+4. Banding after upload: dark scenes and long gradients that are smooth in the master band once X or YouTube
+   re-encode them. Re-encode a test copy at a low bitrate and inspect the darkest frames at full size; if they
+   band, add fine grain or lift the blacks in the edit.
+5. Then look for the faults nobody measures: a graphic pinned to the screen that should sit in the scene, numbers
+   that jiggle while they count (set tabular figures), one soft shot among sharp ones
+   (https://x.com/tetsuoai/status/2115277212824019367). `media-judge` measures all of these, plus
+   upload banding with CAMBI: run it on the finished edit, in a fresh agent.
 
 Artifacts up to about 6 frames can be cut out in the edit; anything longer, or anything the reviewer sees twice,
 is a retake. Keep a jobs file (shot, job id, file URL, billed credits) the moment each job is submitted.
@@ -344,6 +396,7 @@ is a retake. Keep a jobs file (shot, job id, file URL, billed credits) the momen
 
 | File | When |
 |---|---|
+| [references/look-references.md](references/look-references.md) | the brief and look bible: where to find film and design references, how to search past the obvious pick, `refs.md`, the Never list |
 | [references/prompt-templates.md](references/prompt-templates.md) | writing any prompt: bible lines, sheets, masters, scene stills, edits, i2v, multi-shot, v2v, retakes, dialogue, voice, music, lip-sync, ffmpeg helpers |
 | [references/models.md](references/models.md) | choosing a model, durations, aspect limits, references, audio flags, quirks |
 | [references/mcp-tools.md](references/mcp-tools.md) | connecting the varg MCP and calling it: `call_tool`, schemas, estimates, batches, jobs, uploads |

@@ -1,19 +1,16 @@
 ---
 name: video-skills
 description: >-
-  Finds the right agent skill for an AI video, image, voice or music job on varg how to
-  (varg.ai/how-to, 2,000+ checked skills and how-to tutorials: UGC ads, ad variants, product videos, music and lyric videos,
-  captions, talking avatars, podcast videos, faceless channels, explainers, launch and changelog
-  videos, slideshows, chat-story and Notes ads, logo stings, dubbing, thumbnails, shorts from long
-  videos) and shows the person the visual options before anything is generated.
-  Use when someone asks to make, edit, caption, voice, dub or animate a video, asks "which skill
-  should I use", "find a skill for", "how do I make a ... video", or wants images, voiceover or
-  music for a video, and no installed skill already covers that format; use it before writing a
-  pipeline from scratch or searching registries. Not for running a generation itself (use
-  varg-ai), not for formats with their own varg skill (varg-music-video, varg-character-keynote,
+  Finds the right agent skill for an AI video, image, voice or music job on varg how to (varg.ai/how-to,
+  2,000+ checked skills and tutorials: UGC ads, product videos, music videos, captions, talking avatars,
+  podcasts, faceless channels, explainers, launch videos, chat-story ads, dubbing, shorts from long videos)
+  and shows the visual options before anything is generated. Use when someone asks to make, edit, caption,
+  voice, dub or animate a video, asks "which skill should I use", "find a skill for", "how do I make a ...
+  video", or wants images, voiceover or music for a video, and no installed skill already covers that format;
+  use it before writing a pipeline from scratch or searching registries. Not for running a generation itself
+  (use varg-ai), not for formats with their own varg skill (varg-music-video, varg-character-keynote,
   varg-consistent-characters, varg-character-design, varg-podcast-video, varg-product-hook,
-  varg-dropship-reel, varg-previz), and not for
-  non-media coding tasks.
+  varg-dropship-reel, varg-previz), and not for non-media coding tasks.
 license: MIT
 metadata:
   author: vargHQ
@@ -53,6 +50,27 @@ Send one message with the 2–4 decisions that change the result (look, format, 
 
 Use the install command from the page for the agent you are running in. Generation (images, video, voice, music, lip-sync, captions, render) runs on varg with one account: the `varg-ai` skill (`npx skills add vargHQ/skills --skill varg-ai`) or the varg MCP server `https://mcp.varg.ai/mcp` (OAuth sign-in, no key). Quote the cost in credits with varg's estimate (`estimate_cost` in the MCP, `POST /v2/estimate` in the API) before a batch, a long video or a render.
 
+## Whole video, start to finish
+
+One search finds one format skill. That is right for a clip, an ad in a known format, captions or an edit. When the person wants a whole piece made from scratch, properly (several shots, a story, a launch film, an explainer, a music video built from nothing), no single skill covers it: follow this production order instead, and search (step 1 above) only for the format skill a step needs.
+
+Before step 1, set up the project with `video-project-github` (it creates the folders and the private repo, and the person only clicks once), then agree a spend cap and the paid models allowed. Estimate before every paid call and say the running total. Use video models only for what code cannot draw (real people, crowds, weather, physical motion). Each step writes one file; at every **STOP**, show it and wait.
+
+| # | Step | Writes | Goes deeper |
+|---|---|---|---|
+| 1 | References: real film stills and frames, what to take from each | `refs.md` | `find-references`, `varg-mockups` |
+| 2 | Moodboard, in ranked order: references, light, subject lock, framing, palette (hex from a reference), motion, texture, type, sound, "Never"; proved on 3 test stills | `moodboard.md`, `board.html` **STOP** | `video-moodboard`, `varg-mockups`, `varg-video-prompting` |
+| 3 | Script, then storyboard: one promise, beats joined by but/therefore, every line sized to its seconds and checked (`check_script.py`), then the camera per shot | `script.md`, `STORYBOARD.md` **STOP** | `video-script`, `varg-previz` |
+| 4 | Sound first: sound plan, voices cast from candidates, lines with pauses and breaths, music mapped to bars, key SFX, a checked mix | `sound/plan.md`, `cues.json`, `mix.wav`, `beats.json` **STOP** | `video-sound`, `varg-ai`, `varg-music-video`, [earshot](https://github.com/Leonxlnx/earshot) |
+| 5 | Characters and props: one passport paragraph (pasted word for word), a turnaround sheet in the moodboard look, six expressions as cause + tells, a measured voice line; props with materials, wear and motion | `cast/*.md`, sheets **STOP** | `character-passport`, `varg-character-design`, `varg-consistent-characters`, `varg-product-lock` |
+| 6 | Blockout in code: three.js geometry, still vs reference, 3 rounds | blockout stills **STOP** | `threejs-animatic`, `varg-previz` |
+| 7 | Takes in code, timed to `beats.json`; video model only where needed | shots, **STOP** before the first paid video call | `video-animate`, [hyperframes](https://github.com/heygen-com/hyperframes), [remotion-dev/skills](https://github.com/remotion-dev/skills), `varg-video-prompting`, `varg-ai` |
+| 8 | Edit: timestamped notes, approved looks saved as /commands | `cut.mp4`, `notes.md` | `varg-video-editing`, `short-form-ffmpeg-cookbook` |
+| 9 | Review: measure, don't self-grade (ffprobe, broken frames, sync, spelling) | `review.md` **STOP** | QA checklist in `varg-video-prompting` |
+| 10 | Keep it: private GitHub repo from the start, a saved version at every **STOP**, media by hash, undo for anything | `AGENTS.md`, `media.lock.jsonl` | `video-project-github` |
+
+The full prompt to paste, with every step spelled out and `[brackets]` to fill, ships with the `how-to-make-ai-video` skill (`npx skills add vargHQ/skills --skill how-to-make-ai-video`): `references/whole-video-prompt.md`, also at https://github.com/vargHQ/skills/blob/main/how-to-make-ai-video/references/whole-video-prompt.md.
+
 ## If varg how to is unreachable
 
 Start from these, by request:
@@ -81,6 +99,7 @@ Start from these, by request:
 | Launch, changelog, explainer, data video | `hyperframes` (HeyGen) | `hyperframes-registry`, `varg-ai` |
 | Music video / lyric video | `varg-music-video`, `hyperframes`, `motion-graphics-music-video` | `varg-ai` |
 | Plan a multi-shot video, storyboard, camera blocking | `varg-previz` | `varg-ai` |
+| Animate an approved previz or blockout, choose code or AI, Seedance or another model per shot | `video-animate` | `threejs-animatic`, `varg-video-prompting` |
 | Faceless channel video | `krea-faceless-video`, `hyperframes-vox-explainer` | `varg-ai` |
 | Dubbing / translation | `elevenlabs-dubbing` | `media-download` |
 | Thumbnails | `higgsfield-youtube-thumbnail` | |

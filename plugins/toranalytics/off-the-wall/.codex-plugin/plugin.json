@@ -1,5 +1,5 @@
 {
-  "name": "off-the-wall",
+  "name": "dude-toldya",
   "version": "0.3.1",
   "description": "Recalls relevant, origin-tagged correction excerpts within the same working directory, reports model-labelled correction patterns, and guides subagent model selection. Claude Code and Codex.",
   "author": {
@@ -8,7 +8,7 @@
   },
   "hooks": "./hooks/codex.json",
   "interface": {
-    "displayName": "Off the Wall",
+    "displayName": "Dude Toldya",
     "shortDescription": "Recall relevant past corrections in the same workspace",
     "longDescription": "Recalls relevant, origin-tagged correction excerpts from the same working directory. Legacy unscoped records are retained but not automatically recalled. Local history reports are model classifications, not verified outcomes. Subagent model-selection guidance checks missing model arguments; cheaper execution is not guaranteed. Storage is local, but selected answer/reply excerpts are processed by your CLI provider and recalled quotes enter the host model context. No publisher telemetry or API key required.",
     "developerName": "Junebeom Seo",
@@ -16,9 +16,9 @@
     "capabilities": [
       "Hooks"
     ],
-    "websiteURL": "https://github.com/toranalytics/off-the-wall",
-    "privacyPolicyURL": "https://github.com/toranalytics/off-the-wall#privacy",
-    "termsOfServiceURL": "https://github.com/toranalytics/off-the-wall/blob/main/LICENSE",
+    "websiteURL": "https://github.com/toranalytics/dude-toldya",
+    "privacyPolicyURL": "https://github.com/toranalytics/dude-toldya#privacy",
+    "termsOfServiceURL": "https://github.com/toranalytics/dude-toldya/blob/main/LICENSE",
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png",
     "screenshots": [
@@ -27,8 +27,8 @@
     ],
     "brandColor": "#D97757"
   },
-  "homepage": "https://github.com/toranalytics/off-the-wall",
-  "repository": "https://github.com/toranalytics/off-the-wall",
+  "homepage": "https://github.com/toranalytics/dude-toldya",
+  "repository": "https://github.com/toranalytics/dude-toldya",
   "license": "MIT",
   "keywords": [
     "memory",

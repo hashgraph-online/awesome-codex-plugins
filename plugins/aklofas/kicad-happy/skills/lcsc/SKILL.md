@@ -133,7 +133,7 @@ For manufacturer, datasheet URL and price breaks, query LCSC's own endpoint by `
 GET https://wmsc.lcsc.com/ftps/wm/product/detail?productCode=C318884
 ```
 
-Useful `result` fields: `productModel` (MPN), `brandNameEn` (manufacturer), `pdfUrl` (direct datasheet PDF), `encapStandard` (package), `productIntroEn` / `productDescEn` (description), `stockNumber` (LCSC stock), `productPriceList[]` (`ladder` = min qty, `usdPrice`). `fetch_datasheet_lcsc.search_lcsc_direct()` wraps this and normalizes the result to the jlcsearch dict shape (`extra.number`, `extra.mpn`, `extra.manufacturer.name`, `extra.datasheet.pdf`, ladder list in `price`); `search_lcsc.py` uses it for `Cxxxxx` enrichment and as the fallback when jlcsearch has no row.
+Useful `result` fields: `productModel` (MPN), `brandNameEn` (manufacturer), `pdfUrl` (direct datasheet PDF), `encapStandard` (package), `productIntroEn` / `productDescEn` (description), `stockNumber` (LCSC stock), `productPriceList[]` (`ladder` = min qty, `usdPrice`). `provider_lcsc.search_lcsc_direct()` wraps this and normalizes the result to the jlcsearch dict shape (`extra.number`, `extra.mpn`, `extra.manufacturer.name`, `extra.datasheet.pdf`, ladder list in `price`); `search_lcsc.py` uses it for `Cxxxxx` enrichment and as the fallback when jlcsearch has no row.
 
 ### Rate Limits
 

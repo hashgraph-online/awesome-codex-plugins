@@ -214,37 +214,37 @@ function validateFailureFacts(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     throw new Error("failure facts must be a JSON object");
   }
-  const record3 = value;
-  for (const key of Object.keys(record3)) {
+  const record4 = value;
+  for (const key of Object.keys(record4)) {
     if (!FACTS_KEYS.has(key)) throw new Error("failure facts has an unknown field");
   }
   for (const key of FACTS_KEYS) {
-    if (!(key in record3)) throw new Error(`failure facts is missing the field: ${key}`);
+    if (!(key in record4)) throw new Error(`failure facts is missing the field: ${key}`);
   }
-  if (record3["schema_version"] !== "1") throw new Error('failure facts schema_version must be "1"');
-  if (!FAILURE_SOURCES.includes(record3["source"])) {
+  if (record4["schema_version"] !== "1") throw new Error('failure facts schema_version must be "1"');
+  if (!FAILURE_SOURCES.includes(record4["source"])) {
     throw new Error("failure facts source is not in the frozen registry");
   }
-  if (!FAILURE_PHASE_SET.has(record3["phase"])) {
+  if (!FAILURE_PHASE_SET.has(record4["phase"])) {
     throw new Error("failure facts phase is not in the frozen registry");
   }
-  if (!ACCEPTED_STATES.includes(record3["accepted_before_error"])) {
+  if (!ACCEPTED_STATES.includes(record4["accepted_before_error"])) {
     throw new Error("failure facts accepted_before_error must be yes, no, or unknown");
   }
-  if (!FAILURE_CATEGORIES.includes(record3["category"])) {
+  if (!FAILURE_CATEGORIES.includes(record4["category"])) {
     throw new Error("failure facts category is not in the frozen registry");
   }
-  if (!CONFIDENCE_LEVELS.includes(record3["confidence"])) {
+  if (!CONFIDENCE_LEVELS.includes(record4["confidence"])) {
     throw new Error("failure facts confidence is not in the frozen registry");
   }
-  if (!EVIDENCE_BASES.includes(record3["evidence_basis"])) {
+  if (!EVIDENCE_BASES.includes(record4["evidence_basis"])) {
     throw new Error("failure facts evidence_basis is not in the frozen registry");
   }
-  if (typeof record3["evidence_conflict"] !== "boolean") {
+  if (typeof record4["evidence_conflict"] !== "boolean") {
     throw new Error("failure facts evidence_conflict must be a boolean");
   }
-  const retryable2 = record3["runtime_retryable"];
-  const retryableBasis = record3["runtime_retryable_basis"];
+  const retryable2 = record4["runtime_retryable"];
+  const retryableBasis = record4["runtime_retryable_basis"];
   if (retryable2 !== null && typeof retryable2 !== "boolean") {
     throw new Error("failure facts runtime_retryable must be a boolean or null");
   }
@@ -266,7 +266,7 @@ function validateFailureFacts(value) {
     ["result_type", RESULT_TYPE_REGISTRY]
   ];
   for (const [key, registry2] of codeFields) {
-    const item = record3[key];
+    const item = record4[key];
     if (item === null) continue;
     if (key !== "rpc_method" && (typeof item !== "string" || !CODE_PATTERN.test(item))) {
       throw new Error(`failure facts field ${key} is not a bounded code value`);
@@ -275,16 +275,16 @@ function validateFailureFacts(value) {
       throw new Error(`failure facts field ${key} is not a registered value`);
     }
   }
-  if (record3["rpc_code"] !== null && safeIntegerOrNull(record3["rpc_code"]) === null) {
+  if (record4["rpc_code"] !== null && safeIntegerOrNull(record4["rpc_code"]) === null) {
     throw new Error("failure facts rpc_code must be a safe integer or null");
   }
-  if (record3["http_status"] !== null && httpStatusOrNull(record3["http_status"]) === null) {
+  if (record4["http_status"] !== null && httpStatusOrNull(record4["http_status"]) === null) {
     throw new Error("failure facts http_status must be an integer in 100..599 or null");
   }
-  if (record3["process_errno"] !== null && !PROCESS_ERRNOS.includes(record3["process_errno"])) {
+  if (record4["process_errno"] !== null && !PROCESS_ERRNOS.includes(record4["process_errno"])) {
     throw new Error("failure facts process_errno must be ENOENT, EACCES, EPERM, or null");
   }
-  const bytes = Buffer.byteLength(JSON.stringify(record3), "utf8");
+  const bytes = Buffer.byteLength(JSON.stringify(record4), "utf8");
   if (bytes > MAX_FAILURE_FACTS_BYTES) {
     throw new Error(`failure facts snapshot exceeds the ${MAX_FAILURE_FACTS_BYTES}-byte limit (${bytes} bytes)`);
   }
@@ -467,8 +467,8 @@ import path4 from "node:path";
 function isTransientLockFsError(error2) {
   return TRANSIENT_LOCK_FS_CODES.has(error2?.code ?? "");
 }
-function pauseBriefly() {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RETRY_PAUSE_MS);
+function pauseBriefly(delayMs = RETRY_PAUSE_MS) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs);
 }
 function publishSelfIdentity(identity) {
   selfIdentity = identity;
@@ -526,7 +526,7 @@ function tryAcquireProcessLockWithRetry(directory, retries) {
         return acquireExistingLock(directory);
       }
       if (retries < PUBLICATION_RETRY_ATTEMPTS) {
-        pauseBriefly();
+        pauseBriefly(PUBLICATION_RETRY_PAUSE_MS);
         return tryAcquireProcessLockWithRetry(directory, retries + 1);
       }
       throw error2;
@@ -667,14 +667,15 @@ function removeSharedGuard(guard) {
     }
   }
 }
-var selfIdentity, TRANSIENT_LOCK_FS_CODES, DESTINATION_PRESENT_CONTENTION_CODES, PUBLICATION_RETRY_ATTEMPTS, WITHDRAW_RETRY_MS, SHARED_GUARD_RETRY_MS, PRIVATE_CLEANUP_RETRY_MS, RETRY_PAUSE_MS;
+var selfIdentity, TRANSIENT_LOCK_FS_CODES, DESTINATION_PRESENT_CONTENTION_CODES, PUBLICATION_RETRY_ATTEMPTS, PUBLICATION_RETRY_PAUSE_MS, WITHDRAW_RETRY_MS, SHARED_GUARD_RETRY_MS, PRIVATE_CLEANUP_RETRY_MS, RETRY_PAUSE_MS;
 var init_process_lock = __esm({
   "src/store/process-lock.ts"() {
     "use strict";
     selfIdentity = null;
     TRANSIENT_LOCK_FS_CODES = /* @__PURE__ */ new Set(["EEXIST", "EPERM", "EACCES", "EBUSY", "ENOTEMPTY"]);
     DESTINATION_PRESENT_CONTENTION_CODES = /* @__PURE__ */ new Set(["EEXIST", "ENOTEMPTY"]);
-    PUBLICATION_RETRY_ATTEMPTS = 3;
+    PUBLICATION_RETRY_ATTEMPTS = 5;
+    PUBLICATION_RETRY_PAUSE_MS = 50;
     WITHDRAW_RETRY_MS = 5e3;
     SHARED_GUARD_RETRY_MS = 2e3;
     PRIVATE_CLEANUP_RETRY_MS = 1e3;
@@ -1240,8 +1241,8 @@ async function beginJsonWriterDrainUnderManagerLock(dataRoot, durability = defau
     return "draining";
   });
 }
-function writeFence(dataRoot, record3, durability = defaultDurableFileOperations) {
-  writeJsonAtomic(fencePath(dataRoot), record3, durability);
+function writeFence(dataRoot, record4, durability = defaultDurableFileOperations) {
+  writeJsonAtomic(fencePath(dataRoot), record4, durability);
 }
 var FENCE_FILE, ROSTER_DIR, REGISTRY_FILE, GATE_LOCK, ATOMIC_RENAME_RETRY_MS, ATOMIC_RENAME_RETRY_PAUSE_MS, TRANSIENT_ATOMIC_RENAME_CODES, activeWritePermits;
 var init_json_writer_quiescence = __esm({
@@ -1328,7 +1329,7 @@ function isTerminalStatus(status) {
   return status === "completed" || status === "failed" || status === "cancelled" || status === "waiting_for_master";
 }
 function toPublicStatus(status) {
-  const record3 = {
+  const record4 = {
     task_id: status.task_id,
     status: status.status,
     attempt: status.attempt,
@@ -1340,9 +1341,9 @@ function toPublicStatus(status) {
     zcode_session_id: status.zcode_session_id,
     exit_code: status.exit_code
   };
-  if (status.error_code) record3.error_code = status.error_code;
-  if (status.error) record3.error = status.error;
-  return record3;
+  if (status.error_code) record4.error_code = status.error_code;
+  if (status.error) record4.error = status.error;
+  return record4;
 }
 var TASK_ID_PATTERN, DEFAULT_MAX_LOG_BYTES, MAX_INTERACTION_PARAMS_BYTES, LEGACY_INTERACTION_PARAMS_BYTES, SHA256_HEX_PATTERN, InteractionRequestTooLargeError, MAX_CRITICAL_EVENT_RESERVE_BYTES, CRITICAL_EVENT_TYPES, TaskStore;
 var init_task_store = __esm({
@@ -1784,9 +1785,9 @@ var init_task_store = __esm({
         let newest = null;
         for (const file of files) {
           try {
-            const record3 = JSON.parse(readFileSync5(path7.join(directory, file), "utf8"));
-            if (record3.state === "pending" && typeof record3.method === "string" && typeof record3.created_at === "string") {
-              if (!newest || record3.created_at > newest.created_at) newest = { method: record3.method, created_at: record3.created_at };
+            const record4 = JSON.parse(readFileSync5(path7.join(directory, file), "utf8"));
+            if (record4.state === "pending" && typeof record4.method === "string" && typeof record4.created_at === "string") {
+              if (!newest || record4.created_at > newest.created_at) newest = { method: record4.method, created_at: record4.created_at };
             }
           } catch {
           }
@@ -2307,35 +2308,35 @@ var init_task_store = __esm({
           const file = this.interactionFile(taskId, request.request_id);
           return withEventLock(path7.join(this.taskDir(taskId), "interactions.lock"), () => {
             if (existsSync6(file)) {
-              const record4 = this.#readJson(file);
-              if (record4.request_id !== request.request_id || record4.method !== request.method || stableJson(record4.params) !== stableJson(request.params)) {
+              const record5 = this.#readJson(file);
+              if (record5.request_id !== request.request_id || record5.method !== request.method || stableJson(record5.params) !== stableJson(request.params)) {
                 throw new Error("interaction request id collision");
               }
-              return { record: record4, created: false };
+              return { record: record5, created: false };
             }
             const serialized = JSON.stringify(request.params);
             const bytes = Buffer.byteLength(serialized, "utf8");
             if (bytes > MAX_INTERACTION_PARAMS_BYTES) {
               throw new InteractionRequestTooLargeError(bytes, MAX_INTERACTION_PARAMS_BYTES);
             }
-            const record3 = {
+            const record4 = {
               ...request,
               state: "pending",
               created_at: createdAt,
               params_bytes: bytes,
               params_sha256: createHash3("sha256").update(serialized).digest("hex")
             };
-            this.#writeJsonAtomic(file, record3);
-            return { record: record3, created: true };
+            this.#writeJsonAtomic(file, record4);
+            return { record: record4, created: true };
           });
         }, taskId);
       }
       readInteractionRequest(taskId, requestId) {
         const file = this.interactionFile(taskId, requestId);
         if (!existsSync6(file)) return null;
-        const record3 = this.#readJson(file);
-        if (record3.request_id !== requestId) throw new Error("interaction request id hash mismatch");
-        return record3;
+        const record4 = this.#readJson(file);
+        if (record4.request_id !== requestId) throw new Error("interaction request id hash mismatch");
+        return record4;
       }
       /** Absolute path of one attempt's private full-request record; referenced
        * by bounded interaction_requested preview events (ADR-008). */
@@ -2357,16 +2358,16 @@ var init_task_store = __esm({
         const file = this.interactionFile(taskId, requestId);
         try {
           if (!existsSync6(file)) return { ok: false, reason: "the full request record is missing" };
-          const record3 = this.#readJson(file);
-          if (record3.request_id !== requestId) return { ok: false, reason: "the persisted request id does not match this request" };
-          if (record3.state !== "pending" && record3.state !== "answered") return { ok: false, reason: "the persisted request state is unreadable" };
-          const serialized = JSON.stringify(record3.params);
+          const record4 = this.#readJson(file);
+          if (record4.request_id !== requestId) return { ok: false, reason: "the persisted request id does not match this request" };
+          if (record4.state !== "pending" && record4.state !== "answered") return { ok: false, reason: "the persisted request state is unreadable" };
+          const serialized = JSON.stringify(record4.params);
           const bytes = Buffer.byteLength(serialized, "utf8");
           if (bytes > MAX_INTERACTION_PARAMS_BYTES) {
             return { ok: false, reason: `the full request content is ${bytes} UTF-8 bytes, over the ${MAX_INTERACTION_PARAMS_BYTES}-byte persistence limit` };
           }
-          const hasBytes = record3.params_bytes !== void 0;
-          const hasHash = record3.params_sha256 !== void 0;
+          const hasBytes = record4.params_bytes !== void 0;
+          const hasHash = record4.params_sha256 !== void 0;
           if (!hasBytes && !hasHash) {
             if (bytes <= LEGACY_INTERACTION_PARAMS_BYTES) return { ok: true };
             return { ok: false, reason: `the full request record carries no integrity metadata but is ${bytes} UTF-8 bytes, over the legacy ${LEGACY_INTERACTION_PARAMS_BYTES}-byte limit; it cannot be treated as a legacy record` };
@@ -2374,16 +2375,16 @@ var init_task_store = __esm({
           if (!hasBytes || !hasHash) {
             return { ok: false, reason: "the full request record has incomplete integrity metadata (byte count and SHA256 must both be present)" };
           }
-          if (typeof record3.params_bytes !== "number" || !Number.isSafeInteger(record3.params_bytes) || record3.params_bytes < 0) {
+          if (typeof record4.params_bytes !== "number" || !Number.isSafeInteger(record4.params_bytes) || record4.params_bytes < 0) {
             return { ok: false, reason: "the persisted byte count is not a valid non-negative integer" };
           }
-          if (typeof record3.params_sha256 !== "string" || !SHA256_HEX_PATTERN.test(record3.params_sha256)) {
+          if (typeof record4.params_sha256 !== "string" || !SHA256_HEX_PATTERN.test(record4.params_sha256)) {
             return { ok: false, reason: "the persisted SHA256 is not a valid 64-character hex digest" };
           }
-          if (record3.params_bytes !== bytes) {
+          if (record4.params_bytes !== bytes) {
             return { ok: false, reason: "the persisted byte count does not match the full content" };
           }
-          if (record3.params_sha256 !== createHash3("sha256").update(serialized).digest("hex")) {
+          if (record4.params_sha256 !== createHash3("sha256").update(serialized).digest("hex")) {
             return { ok: false, reason: "the persisted SHA256 does not match the full content" };
           }
           return { ok: true };
@@ -2724,16 +2725,28 @@ function verdict(state, reason, now) {
 function failedQuery(reason) {
   return { ok: false, reason, fingerprints: /* @__PURE__ */ new Map() };
 }
-function windowsBatchQuery(pids, timeoutMs) {
+function windowsPowerShellExecutable() {
+  const systemRoot = Object.entries(process.env).find(([key]) => key.toLowerCase() === "systemroot")?.[1];
+  return systemRoot ? `${systemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` : "powershell.exe";
+}
+function windowsBatchQuery(pids, timeoutMs, onFailure) {
   return new Promise((resolve) => {
-    const script = `$ErrorActionPreference = 'Stop'; Get-Process -Id ${pids.join(",")} -ErrorAction SilentlyContinue | ForEach-Object { "{0}|{1}" -f $_.Id, $_.StartTime.Ticks }; 'bridge_probe_complete_v1'`;
-    const child = spawn2("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
+    const script = `$ErrorActionPreference = 'Stop'; foreach ($id in @(${pids.join(",")})) { try { $target = [System.Diagnostics.Process]::GetProcessById($id); try { [Console]::Out.WriteLine(("{0}|{1}" -f $id, $target.StartTime.Ticks)) } finally { $target.Dispose() } } catch [System.ArgumentException] { } }; [Console]::Out.WriteLine('bridge_probe_complete_v1')`;
+    const child = spawn2(windowsPowerShellExecutable(), ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
       shell: false
     });
     let stdout = "";
     let settled = false;
+    const fail2 = (reason) => {
+      if (settled) return;
+      try {
+        onFailure?.(reason);
+      } catch {
+      }
+      finish(failedQuery(reason));
+    };
     const finish = (query) => {
       if (settled) return;
       settled = true;
@@ -2745,7 +2758,7 @@ function windowsBatchQuery(pids, timeoutMs) {
         child.kill("SIGKILL");
       } catch {
       }
-      finish(failedQuery("timeout"));
+      fail2("timeout");
     }, timeoutMs);
     timer.unref();
     child.stdout.setEncoding("utf8");
@@ -2757,19 +2770,27 @@ function windowsBatchQuery(pids, timeoutMs) {
     child.stdout.on("data", (chunk) => {
       if (stdout.length < 1e6) stdout += chunk;
     });
-    child.on("error", () => finish(failedQuery("spawn_error")));
+    child.on("error", () => fail2("spawn_error"));
     child.on("close", (code) => {
       const map = /* @__PURE__ */ new Map();
       const lines = stdout.trim().split(/\r?\n/u);
-      if (code !== 0 || stderrBytes > 0 || lines.pop() !== "bridge_probe_complete_v1") {
-        finish(failedQuery("query_error"));
+      if (code !== 0) {
+        fail2("nonzero_exit");
+        return;
+      }
+      if (stderrBytes > 0) {
+        fail2("stderr");
+        return;
+      }
+      if (lines.pop() !== "bridge_probe_complete_v1") {
+        fail2("missing_completion_marker");
         return;
       }
       for (const line of lines) {
         if (!line.trim()) continue;
         const match = /^(\d+)\|(\d+)$/u.exec(line.trim());
         if (!match || !pids.includes(Number(match[1])) || map.has(Number(match[1]))) {
-          finish(failedQuery("query_error"));
+          fail2("malformed_output");
           return;
         }
         map.set(Number(match[1]), match[2]);
@@ -2845,7 +2866,7 @@ function createPlatformProbe(options = {}) {
     if (requests.length === 0) return [];
     const distinct = [...new Set(requests.map((request) => request.pid).filter((pid) => Number.isInteger(pid) && pid > 0))];
     const query = await schedule(async () => {
-      if (process.platform === "win32") return windowsBatchQuery(distinct, timeoutMs);
+      if (process.platform === "win32") return windowsBatchQuery(distinct, timeoutMs, options.onWindowsQueryFailure);
       if (process.platform === "darwin") return darwinQuery(distinct, timeoutMs);
       if (process.platform === "linux") {
         const map = /* @__PURE__ */ new Map();
@@ -2886,7 +2907,7 @@ function createPlatformProbe(options = {}) {
   };
   const fingerprintOfPid = async (pid) => {
     const query = await schedule(async () => {
-      if (process.platform === "win32") return windowsBatchQuery([pid], timeoutMs);
+      if (process.platform === "win32") return windowsBatchQuery([pid], timeoutMs, options.onWindowsQueryFailure);
       if (process.platform === "darwin") return darwinQuery([pid], timeoutMs);
       if (process.platform === "linux") {
         const map = /* @__PURE__ */ new Map();
@@ -3190,8 +3211,8 @@ async function terminateWindowsProcessTree(pid, expectedRootTicks, killWaitMs, d
         }
       }
       const unconfirmedMembers = members2.filter((m) => {
-        const record3 = killed.get(m.pid);
-        return record3 === void 0 || record3.exitFileTime === null;
+        const record4 = killed.get(m.pid);
+        return record4 === void 0 || record4.exitFileTime === null;
       });
       if (now() >= deadline && unconfirmedMembers.length > 0) {
         throw new WindowsTreeCleanupError(
@@ -4448,8 +4469,8 @@ async function spawnAndBootstrapOnce(spawnChild, source) {
 }
 function validate2(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid launch bootstrap");
-  const record3 = value;
-  if (Object.keys(record3).sort().join("\0") !== [...KEYS].sort().join("\0") || record3.protocol !== "bridge-launch-bootstrap-v1" || !validId(record3.operation_id) || !validId(record3.task_id) || !validId(record3.launch_id) || !validToken(record3.launch_token) || !positive(record3.attempt) || !positive(record3.generation) || !positive(record3.launch_epoch) || record3.authorization_source !== "trusted_local_policy" || !validWorkspace(record3.workspace_ref) || !validId(record3.policy_revision) || !validDigest(record3.policy_digest) || !validId(record3.execution_profile_id) || !validDigest(record3.policy_snapshot_digest) || record3.policy_snapshot_digest !== deriveAdmissionPolicySnapshotDigest(record3)) {
+  const record4 = value;
+  if (Object.keys(record4).sort().join("\0") !== [...KEYS].sort().join("\0") || record4.protocol !== "bridge-launch-bootstrap-v1" || !validId(record4.operation_id) || !validId(record4.task_id) || !validId(record4.launch_id) || !validToken(record4.launch_token) || !positive(record4.attempt) || !positive(record4.generation) || !positive(record4.launch_epoch) || record4.authorization_source !== "trusted_local_policy" || !validWorkspace(record4.workspace_ref) || !validId(record4.policy_revision) || !validDigest(record4.policy_digest) || !validId(record4.execution_profile_id) || !validDigest(record4.policy_snapshot_digest) || record4.policy_snapshot_digest !== deriveAdmissionPolicySnapshotDigest(record4)) {
     throw new TypeError("invalid launch bootstrap fields");
   }
 }
@@ -7387,6 +7408,7 @@ var init_store = __esm({
           const meta2 = this.#db.prepare("SELECT * FROM authority_metadata").all();
           const operations = this.#db.prepare("SELECT * FROM manager_operations ORDER BY operation_id").all();
           const events = this.#db.prepare("SELECT * FROM manager_operation_events ORDER BY operation_id,sequence").all();
+          const taskProjections = this.#db.prepare("SELECT task_id,current_attempt,status,created_at FROM tasks ORDER BY task_id").all();
           const adminAbandonments = this.#adminAbandonments();
           let integrityError = null;
           try {
@@ -7440,6 +7462,7 @@ var init_store = __esm({
             capacity: meta2.length === 1 ? meta2[0] : null,
             operations: operationsWithRecovery,
             events,
+            task_projections: taskProjections,
             verified_event_projection_consistency: !integrityError,
             writes_allowed: false,
             cleanup_performed: false,
@@ -9083,7 +9106,7 @@ function assertBootstrapLockPath(lockPath) {
   }
 }
 async function tryAcquireWindowsBootstrapLock(root, lockPath, databaseFileName, ownerIdentity, processProbe) {
-  const record3 = `${JSON.stringify({
+  const record4 = `${JSON.stringify({
     schema_version: 1,
     state: "held",
     database_file: databaseFileName,
@@ -9113,7 +9136,7 @@ async function tryAcquireWindowsBootstrapLock(root, lockPath, databaseFileName, 
     env: {
       ...process.env,
       ZCODE_BOOTSTRAP_LOCK_FILE: lockPath,
-      ZCODE_BOOTSTRAP_LOCK_RECORD_B64: Buffer.from(record3, "utf8").toString("base64"),
+      ZCODE_BOOTSTRAP_LOCK_RECORD_B64: Buffer.from(record4, "utf8").toString("base64"),
       ZCODE_BOOTSTRAP_LOCK_RELEASE_RECORD_B64: Buffer.from(releaseRecord, "utf8").toString("base64")
     },
     stdio: ["pipe", "pipe", "pipe"],
@@ -9607,24 +9630,24 @@ function parsePreviousBootstrapLockRecord(encoded, databaseFileName) {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new LifecycleGateError("sqlite_bootstrap_lock_record_invalid");
   }
-  const record3 = value;
-  if (record3["schema_version"] !== 1 || record3["database_file"] !== databaseFileName) {
+  const record4 = value;
+  if (record4["schema_version"] !== 1 || record4["database_file"] !== databaseFileName) {
     throw new LifecycleGateError("sqlite_bootstrap_lock_record_invalid");
   }
-  if (record3["state"] === "released") {
-    if (typeof record3["released_at"] !== "string" || Number.isNaN(Date.parse(record3["released_at"]))) {
+  if (record4["state"] === "released") {
+    if (typeof record4["released_at"] !== "string" || Number.isNaN(Date.parse(record4["released_at"]))) {
       throw new LifecycleGateError("sqlite_bootstrap_lock_record_invalid");
     }
-    return record3;
+    return record4;
   }
-  if (record3["state"] !== "held" || typeof record3["acquired_at"] !== "string" || Number.isNaN(Date.parse(record3["acquired_at"])) || typeof record3["token"] !== "string" || !record3["owner_identity"] || typeof record3["owner_identity"] !== "object") {
+  if (record4["state"] !== "held" || typeof record4["acquired_at"] !== "string" || Number.isNaN(Date.parse(record4["acquired_at"])) || typeof record4["token"] !== "string" || !record4["owner_identity"] || typeof record4["owner_identity"] !== "object") {
     throw new LifecycleGateError("sqlite_bootstrap_lock_record_invalid");
   }
-  const identity = record3["owner_identity"];
+  const identity = record4["owner_identity"];
   if (identity["fingerprint_precision"] !== "exact" || typeof identity["fingerprint"] !== "string" || identity["fingerprint"].length === 0 || identity["identity_version"] !== PROCESS_IDENTITY_VERSION || !Number.isSafeInteger(identity["pid"]) || Number(identity["pid"]) < 1 || typeof identity["platform"] !== "string" || typeof identity["captured_at"] !== "string" || Number.isNaN(Date.parse(identity["captured_at"]))) {
     throw new LifecycleGateError("sqlite_bootstrap_lock_record_invalid");
   }
-  return record3;
+  return record4;
 }
 function syncRegularFile(file) {
   const stat2 = lstatSync3(file);
@@ -11131,8 +11154,8 @@ function canonicalJson2(value) {
   if (typeof value === "number" && Number.isSafeInteger(value)) return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonicalJson2).join(",")}]`;
   if (value && Object.getPrototypeOf(value) === Object.prototype) {
-    const record3 = value;
-    return `{${Object.keys(record3).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson2(record3[key])}`).join(",")}}`;
+    const record4 = value;
+    return `{${Object.keys(record4).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson2(record4[key])}`).join(",")}}`;
   }
   throw new LifecycleGateError("cleanup_evidence_not_canonicalizable");
 }
@@ -11250,6 +11273,53 @@ try {
   }
 });
 
+// src/runtime/sqlite-doctor.ts
+function buildSqliteDoctorChecks(value, managerFence) {
+  const snapshot = record3(value);
+  if (snapshot.root_status !== "consistent_read_only" || snapshot.verified_event_projection_consistency !== true || snapshot.writes_allowed !== false || snapshot.cleanup_performed !== false || snapshot.claim_release_performed !== false || snapshot.operation_release_performed !== false || !Array.isArray(snapshot.operations) || !Array.isArray(snapshot.task_projections)) {
+    return [
+      { name: "active_tasks", status: "unknown", summary: "SQLite lifecycle snapshot is unavailable or inconsistent; task occupancy is unknown" },
+      { name: "recovery_lock", status: "error", summary: bounded2(`SQLite Recovery snapshot is not verified: ${String(snapshot.root_status ?? "unavailable")}; ${Array.isArray(snapshot.root_blockers) ? snapshot.root_blockers.join(", ") : "snapshot_invalid"}`) }
+    ];
+  }
+  const operations = snapshot.operations.map(record3);
+  const tasks = snapshot.task_projections.map(record3);
+  const occupied = operations.filter((operation) => operation.capacity_occupied === true);
+  const durableHolds = occupied.filter((operation) => operation.recovery_classification === "hold" || operation.recovery_classification === "quarantine");
+  const queued = tasks.filter((task) => task.status === "queued");
+  const running = tasks.filter((task) => task.status === "running");
+  const cleanupPending = occupied.filter((operation) => operation.phase !== "running" && operation.phase !== "reserved");
+  const occupiedTaskIds = new Set(occupied.map((operation) => operation.task_id));
+  const byAttempt = new Map(operations.map((operation) => [`${operation.task_id}#${operation.attempt}`, operation]));
+  const active = tasks.filter((task) => task.status === "queued" || task.status === "running" || occupiedTaskIds.has(task.task_id));
+  const holdDetails = durableHolds.slice(0, 8).map((operation) => `${operation.operation_id}: ${operation.recovery_classification}`).join("; ");
+  const recovery = durableHolds.length > 0 ? { name: "recovery_lock", status: "error", summary: bounded2(`SQLite persisted Recovery Hold/Quarantine: ${holdDetails}. Existing evidence-bound recovery is required; no automatic unlock`) } : managerFence ? { name: "recovery_lock", status: "warning", summary: bounded2(`SQLite Manager is read-only/fenced: ${managerFence}`) } : { name: "recovery_lock", status: "ok", summary: "SQLite snapshot has no persisted Recovery Hold/Quarantine; this Manager has no recovery fence" };
+  const details = active.slice(0, 32).map((task) => {
+    const operation = byAttempt.get(`${task.task_id}#${task.current_attempt}`);
+    return `${task.task_id}#${task.current_attempt}: ${task.status}${operation ? ` (operation ${operation.operation_id}, phase ${operation.phase}, result ${operation.result_digest ? "committed" : "absent"}, cleanup ${operation.cleanup_state}, recovery ${operation.recovery_classification ?? "none"})` : " (no Operation)"}`;
+  }).join("; ");
+  return [
+    {
+      name: "active_tasks",
+      status: durableHolds.length > 0 || managerFence || queued.length > 0 || cleanupPending.length > 0 ? "warning" : "ok",
+      summary: bounded2(`SQLite: ${running.length} running, ${queued.length} queued, ${occupied.length} occupied, ${cleanupPending.length} cleanup-pending, ${durableHolds.length} recovery-held. ${details}`)
+    },
+    recovery
+  ];
+}
+function record3(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("SQLite diagnostic record is invalid");
+  return value;
+}
+function bounded2(value) {
+  return value.replace(/[\r\n\0]/gu, " ").slice(0, 1200);
+}
+var init_sqlite_doctor = __esm({
+  "src/runtime/sqlite-doctor.ts"() {
+    "use strict";
+  }
+});
+
 // src/manager/sqlite-lifecycle-mcp-authority.ts
 var sqlite_lifecycle_mcp_authority_exports = {};
 __export(sqlite_lifecycle_mcp_authority_exports, {
@@ -11349,8 +11419,8 @@ async function boundedObservationProbe(probe, pid, identity) {
 function canonicalJson3(value) {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map(canonicalJson3).join(",")}]`;
-  const record3 = value;
-  return `{${Object.keys(record3).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson3(record3[key])}`).join(",")}}`;
+  const record4 = value;
+  return `{${Object.keys(record4).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson3(record4[key])}`).join(",")}}`;
 }
 function asRecord5(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TaskManagerError("TASK_STATE", "invalid SQLite lifecycle projection");
@@ -11381,6 +11451,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
     init_lifecycle_gate();
     init_errors();
     init_process_probe();
+    init_sqlite_doctor();
     EXECUTION_OBSERVATION_PROBE_BUDGET_MS = 5e3;
     DEFAULT_HOST_SHUTDOWN_WAIT_MS = 6e4;
     SqliteLifecycleMcpAuthority = class _SqliteLifecycleMcpAuthority {
@@ -11730,6 +11801,11 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
         }
         this.#closed = true;
         this.#driver.close();
+      }
+      /** Read the same SQLite root and Manager fence used by lifecycle mutations. */
+      getDoctorChecks() {
+        this.#assertOpen();
+        return buildSqliteDoctorChecks(this.#driver.readRecoverySnapshot(), this.#recoveryBlocked);
       }
       async recoverTasks() {
         this.#assertOpen();
@@ -17497,8 +17573,8 @@ function rewriteKeyNames(ctx) {
       bySchema.set(entry.schema, entry);
   }
   const rewrites = /* @__PURE__ */ new Map();
-  for (const record3 of pendingRecords.get(ctx) ?? []) {
-    const seen = ctx.seen.get(record3);
+  for (const record4 of pendingRecords.get(ctx) ?? []) {
+    const seen = ctx.seen.get(record4);
     const names = (seen?.def ?? seen?.schema)?.propertyNames;
     if (!names || names === true || rewrites.has(names))
       continue;
@@ -35020,8 +35096,8 @@ var BridgeTaskManager = class _BridgeTaskManager {
       this.#requireTask(input.task_id);
       const status = this.#store.readStatus(input.task_id);
       const observation = this.#safeObservation(input.task_id, status);
-      const bounded2 = Boolean(startCursor) || input.max_bytes !== void 0;
-      const read = bounded2 ? this.#store.readEventsBounded(input.task_id, { afterSeq, limit, view: input.view ?? "raw", maxBytes: input.max_bytes, cursor: startCursor }) : this.#store.readEvents(input.task_id, afterSeq, limit, input.view ?? "raw");
+      const bounded3 = Boolean(startCursor) || input.max_bytes !== void 0;
+      const read = bounded3 ? this.#store.readEventsBounded(input.task_id, { afterSeq, limit, view: input.view ?? "raw", maxBytes: input.max_bytes, cursor: startCursor }) : this.#store.readEvents(input.task_id, afterSeq, limit, input.view ?? "raw");
       const page = {
         task_id: input.task_id,
         status: status.status,
@@ -35031,7 +35107,7 @@ var BridgeTaskManager = class _BridgeTaskManager {
         ...read.omittedEvents ? { omitted_events: read.omittedEvents } : {},
         ...observation ? { observation } : {}
       };
-      if (bounded2) {
+      if (bounded3) {
         const scan = read;
         if (scan.scan_incomplete) page.scan_incomplete = true;
         if (scan.scan_cursor) page.scan_cursor = encodeScanCursor(scan.scan_cursor);
@@ -35122,11 +35198,11 @@ var BridgeTaskManager = class _BridgeTaskManager {
       if (status.status !== "running") {
         throw new TaskManagerError("TASK_STATE", `ZCode interaction can only be answered while the task is running (status: ${status.status})`);
       }
-      let record3;
+      let record4;
       try {
         const read = this.#store.readInteractionRequest(input.task_id, input.request_id);
         if (!read) throw new TaskManagerError("TASK_NOT_FOUND", `unknown ZCode interaction request: ${input.request_id}`);
-        record3 = read;
+        record4 = read;
       } catch (error2) {
         if (error2 instanceof TaskManagerError) throw error2;
         throw new TaskManagerError(
@@ -35134,10 +35210,10 @@ var BridgeTaskManager = class _BridgeTaskManager {
           `ZCode interaction request ${input.request_id} could not be read: the persisted full request is unreadable or corrupt`
         );
       }
-      if (record3.state === "answered") {
+      if (record4.state === "answered") {
         throw new TaskManagerError("TASK_STATE", `ZCode interaction request ${input.request_id} was already answered`);
       }
-      const answer = buildInteractionAnswer(record3, input);
+      const answer = buildInteractionAnswer(record4, input);
       const answered = input.decision === "allow" || input.decision === "accept" ? this.#store.answerInteractionRequestVerified(input.task_id, input.request_id, answer, { requireIntegrity: true }, this.#now().toISOString()) : { state: this.#store.answerInteractionRequest(input.task_id, input.request_id, answer, this.#now().toISOString()) };
       if (answered.state === "already_answered") {
         throw new TaskManagerError("TASK_STATE", `ZCode interaction request ${input.request_id} was already answered`);
@@ -35150,7 +35226,7 @@ var BridgeTaskManager = class _BridgeTaskManager {
       }
       this.#store.appendEvent(input.task_id, "interaction_reply_submitted", "the calling host submitted a response to the ZCode interaction", {
         request_id: input.request_id,
-        method: record3.method,
+        method: record4.method,
         decision: input.decision
       }, this.#now().toISOString());
       return { task_id: input.task_id, request_id: input.request_id, state: "answered" };
@@ -35763,12 +35839,12 @@ var BridgeTaskManager = class _BridgeTaskManager {
       }
     };
     const run = this.#mutex.then(locked, locked);
-    const bounded2 = new Promise((resolve, reject) => {
+    const bounded3 = new Promise((resolve, reject) => {
       rejectTimeout = reject;
       run.then(resolve, reject);
     });
     this.#mutex = run.catch(() => void 0);
-    return bounded2;
+    return bounded3;
   }
   #safeStatus(taskId) {
     try {
@@ -35799,9 +35875,9 @@ function stableJson2(value) {
   if (value && typeof value === "object") return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${stableJson2(item)}`).join(",")}}`;
   return JSON.stringify(value);
 }
-function buildInteractionAnswer(record3, input) {
-  const params = record3.params;
-  if (record3.method === "interaction/requestPermission") {
+function buildInteractionAnswer(record4, input) {
+  const params = record4.params;
+  if (record4.method === "interaction/requestPermission") {
     if (input.decision !== "allow" && input.decision !== "deny") {
       throw new TaskManagerError("TASK_INVALID", "permission requests require decision allow or deny");
     }
@@ -36627,7 +36703,7 @@ function formatDuration(durationMs2) {
 
 // src/mcp/server.ts
 var SERVER_NAME = "codex-zcode-bridge";
-var SERVER_VERSION = "1.4.0"; // x-release-please-version
+var SERVER_VERSION = "1.5.0"; // x-release-please-version
 var EXECUTION_NOT_VERDICT = "Results describe Bridge/ZCode execution only: status 'completed' means the invocation and report normalization finished, NOT that the calling host accepted the work. the calling host must independently review the workspace diff and checks before deciding PASS.";
 function okResult2(data) {
   return {
@@ -37294,15 +37370,25 @@ async function runBridgeDoctor(options = {}) {
   checks.push({
     name: "process_probe",
     status: process.platform === "win32" || process.platform === "linux" ? "ok" : "warning",
-    summary: process.platform === "win32" ? "Windows process identity uses Get-Process StartTime (FileTime creation fingerprint), batched with a bounded timeout" : process.platform === "linux" ? "Linux process identity uses /proc/<pid>/stat starttime plus boot identity" : process.platform === "darwin" ? "macOS process identity uses ps lstart (second precision; coarse, not an absolute unique identity)" : `Process identity probing is not implemented for ${process.platform}; verdicts stay unknown`
+    summary: process.platform === "win32" ? "Windows process identity uses .NET Process.StartTime ticks through a bounded PowerShell query" : process.platform === "linux" ? "Linux process identity uses /proc/<pid>/stat starttime plus boot identity" : process.platform === "darwin" ? "macOS process identity uses ps lstart (second precision; coarse, not an absolute unique identity)" : `Process identity probing is not implemented for ${process.platform}; verdicts stay unknown`
   });
   checks.push({
     name: "codex_host_tokens",
     status: "unknown",
     summary: "Not probed here: use the Master Skill helper with the explicit CODEX_THREAD_ID; codex_rollout values require a report-window baseline and must not be replaced by account quotas or text estimates"
   });
-  const observedRoot = options.observationDataRoot ?? env["ZCODE_BRIDGE_DATA_DIR"]?.trim() ?? null;
-  if (observedRoot && existsSync10(observedRoot)) {
+  const observedRoot = options.observationDataRoot ?? options.dataRoot ?? env["ZCODE_BRIDGE_DATA_DIR"]?.trim() ?? null;
+  if (options.lifecycleChecks) {
+    try {
+      checks.push(...await options.lifecycleChecks());
+    } catch (error2) {
+      checks.push({ name: "active_tasks", status: "unknown", summary: `SQLite lifecycle diagnostics unavailable: ${safeError(error2)}` });
+      checks.push({ name: "recovery_lock", status: "unknown", summary: "SQLite Recovery state is unknown; the bound Authority could not be read" });
+    }
+  } else if (observedRoot && existsSync10(path13.join(observedRoot, "bridge.sqlite"))) {
+    checks.push({ name: "active_tasks", status: "unknown", summary: "SQLite data root is present but no lifecycle Authority diagnostics are bound" });
+    checks.push({ name: "recovery_lock", status: "unknown", summary: "SQLite Recovery state is unknown; JSON recovery locks are not authoritative" });
+  } else if (observedRoot && existsSync10(observedRoot)) {
     try {
       const { TaskStore: Store } = await Promise.resolve().then(() => (init_task_store(), task_store_exports));
       const { buildTaskObservation: buildTaskObservation2, inferExecutionStage: inferExecutionStage2 } = await Promise.resolve().then(() => (init_build(), build_exports));
@@ -37784,8 +37870,8 @@ function toModelRef(value) {
   const ref = asRecord3(value);
   return typeof ref.providerId === "string" && typeof ref.modelId === "string" ? { provider_id: ref.providerId, model_id: ref.modelId } : null;
 }
-function nestedString(record3, keys) {
-  let value = record3;
+function nestedString(record4, keys) {
+  let value = record4;
   for (const key of keys) value = asRecord3(value)[key];
   return typeof value === "string" ? value : null;
 }
@@ -38124,6 +38210,7 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
   }
   const processProbe = createPlatformProbe();
   let manager;
+  let lifecycleChecks;
   const databasePath = path19.join(dataRoot, FRESH_SQLITE_DATABASE_FILE);
   let trustedLocalContext;
   try {
@@ -38146,6 +38233,7 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
       requireAuthorityReceipt: true
     });
     manager = new BridgeTaskManager({ lifecycleAuthority: authority, maxConcurrentWorkers: workerLimit.maxConcurrentWorkers });
+    lifecycleChecks = () => authority.getDoctorChecks();
   } catch (error2) {
     console.error(`[bridge] SQLITE_INITIALIZATION_FAILED: ${error2 instanceof Error ? error2.message : String(error2)}`);
     throw error2;
@@ -38153,7 +38241,7 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
   const modelSettings = new ZCodeModelSettings(process.env, { host });
   const server = createBridgeServer({
     taskManager: manager,
-    doctor: () => runBridgeDoctor({ env: runtimeEnv, dataRoot, resolver: { host } }),
+    doctor: () => runBridgeDoctor({ env: runtimeEnv, dataRoot, resolver: { host }, lifecycleChecks }),
     modelSettings,
     serverInfo: { name: host.name, version: version2 },
     instructions: host.instructions

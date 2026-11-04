@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "package_type": "music-release-lint-report",
+  "generated_at": null,
+  "source_root": "",
+  "metadata_source": "",
+  "score": 0,
+  "status": "blocked",
+  "summary": {
+    "title": "unknown",
+    "artist": "unknown",
+    "asset_counts": {
+      "audio": 0,
+      "video": 0,
+      "artwork": 0,
+      "lyrics": 0,
+      "stem": 0,
+      "document": 0,
+      "other": 0
+    }
+  },
+  "findings": []
+}

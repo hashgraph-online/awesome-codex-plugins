@@ -22,7 +22,7 @@ Prices change: take them only from `estimate_cost` / `list_models` at run time. 
 | Listing loop / 360° | `pixelcut_looping_video` | `minimax_h3_max_camera_controls` | Safest label fidelity |
 | Presenter with speech, one call | `creatify_boreal` | `heygen_video_1` | Post-trained on ads; ~720p class |
 | Recast a winning ad | `minimax_h3_max_recast` | — | New actors, same motion |
-| Voice | `eleven_v4` | `eleven_v4_turbo` | ~3.5 words per second |
+| Voice | `eleven_v4` | `eleven_v4_turbo` | plan ~2.5 words per second (150 wpm), then measure one take; see `video-script` |
 | Lip-sync / re-voice | `sync_v3` | `veed_fabric_1_0`, `minimax_h3_max_lipsync`, `omnihuman_v2` | Fix or translate; native audio is better for new takes |
 | Captions | `whisper_large_v3` + render | — | Safe zone |
 | Music bed | `mureka_9_5` | `eleven_music_v2_5` | Set the duration; licensed per platform |

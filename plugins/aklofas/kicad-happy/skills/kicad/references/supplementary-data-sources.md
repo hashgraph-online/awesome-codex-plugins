@@ -82,10 +82,10 @@ Look for a `.net` file in the project directory, named after the project (e.g., 
 
 ### Parsing the Netlist
 
-The netlist is S-expression format — use the skill's `sexp_parser.py`:
+The netlist is S-expression format — use the skill's `kicad_core/sexp.py`:
 
 ```python
-from sexp_parser import parse_file, find_all, find_first, get_value
+from kicad_core.sexp import parse_file, find_all, find_first, get_value
 
 tree = parse_file('project.net')
 export = tree  # Root is the (export ...) node

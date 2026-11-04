@@ -28,7 +28,7 @@ check.
 ### Per-MPN cache files: `<sanitized_mpn>.json`
 
 `lookup(mpn, cache_dir=...)` resolves to `cache_dir / f"{sanitize_mpn(mpn)}.json"`.
-Sanitization rules (`skills/datasheets/scripts/datasheet_lookup.py`):
+Sanitization rules (`skills/datasheets/datasheet_types/cache_reader.py`):
 
 - Strip leading/trailing whitespace.
 - Replace any character NOT in `[A-Za-z0-9_-]` with `_`.

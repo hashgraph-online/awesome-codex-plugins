@@ -14,7 +14,7 @@ Detection should be thorough — an undetected DFM issue or thermal problem is a
 
 ## 1. Parsing Pipeline
 
-The PCB analyzer uses the same `sexp_parser.py` as the schematic analyzer. A `.kicad_pcb` file is parsed into nested Python lists, then traversed using `find_all`, `find_first`, `get_value`, `get_property`, and `get_at`.
+The PCB analyzer uses the same `kicad_core/sexp.py` as the schematic analyzer. A `.kicad_pcb` file is parsed into nested Python lists, then traversed using `find_all`, `find_first`, `get_value`, `get_property`, and `get_at`.
 
 ### Format Compatibility
 

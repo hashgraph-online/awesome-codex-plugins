@@ -19,6 +19,9 @@ import urllib.request
 import urllib.error
 import urllib.parse
 
+import _core_path  # noqa: F401
+from kicad_core.diagnostics import record
+
 
 # ---------------------------------------------------------------------------
 # Parametric field mapping — each distributor uses different names
@@ -595,7 +598,7 @@ def fetch_specs_from_extraction(mpn, project_dir):
     return None
 
 
-def fetch_specs(mpn, component_type=None, project_dir=None):
+def fetch_specs(mpn, component_type=None, project_dir=None, *, diagnostics=None):
     """Try all available sources for component specs.
 
     Order: LCSC (no auth) → DigiKey → element14 → Mouser →
@@ -624,7 +627,9 @@ def fetch_specs(mpn, component_type=None, project_dir=None):
             if specs:
                 source = specs.pop("_source", f"api:{name}")
                 return specs, source
-        except Exception:
+        except Exception as exc:
+            record(diagnostics, "spice_spec_fetcher.fetch_specs", exc,
+                   f"{name} spec lookup skipped for {mpn}")
             continue
 
     # Try structured datasheet extraction cache
@@ -634,8 +639,9 @@ def fetch_specs(mpn, component_type=None, project_dir=None):
             if specs:
                 source = specs.pop("_source", f"extraction:{mpn}")
                 return specs, source
-        except Exception:
-            pass
+        except Exception as exc:
+            record(diagnostics, "spice_spec_fetcher.fetch_specs", exc,
+                   f"extraction-cache spec lookup skipped for {mpn}")
 
     # Try heuristic datasheet PDF regex extraction (last resort)
     if project_dir:
@@ -644,7 +650,8 @@ def fetch_specs(mpn, component_type=None, project_dir=None):
             if specs:
                 source = specs.pop("_source", f"datasheet:{mpn}")
                 return specs, source
-        except Exception:
-            pass
+        except Exception as exc:
+            record(diagnostics, "spice_spec_fetcher.fetch_specs", exc,
+                   f"datasheet-PDF spec lookup skipped for {mpn}")
 
     return None, None

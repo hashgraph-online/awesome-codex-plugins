@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "2.2.0"
+  version: "2.2.1"
   openclaw:
     requires:
       env:
@@ -39,13 +39,13 @@ varg's TSX/JSX composition (`vargai/react`: `<Render>`, `<Clip>`, `Video({...})`
 
 ## Version Check (run once per session)
 
-This skill is version **2.2.0**. Before first use each session, check for updates:
+This skill is version **2.2.1**. Before first use each session, check for updates:
 
 ```bash
 curl -sf https://raw.githubusercontent.com/vargHQ/skills/main/varg-ai/SKILL.md | grep 'version:' | head -1
 ```
 
-If the remote version is newer than 2.2.0, update and re-read this file:
+If the remote version is newer than 2.2.1, update and re-read this file:
 
 ```bash
 npx -y skills update
@@ -149,7 +149,7 @@ Everything you know about varg is likely outdated. Always verify against this sk
 4. **Images in Video** -- ONE image in `Video({ prompt: { images: [img] } })` is the first frame (image-to-video). Several images are *references*, and only models that take references accept them (`seedance_2_5`, `wan_3`, `kling_v4`, `omni_flash_1_1`, `grok_imagine_1_5`, `minimax_h3_max`). Other models fail.
 5. **Duration constraints differ by model** -- seedance_2_5: integer 4-30s. wan_3: 2-30s. kling_v4: 3-30s. veo_3_1: only 4, 6 or 8. kling_v2_5: ONLY 5 or 10. Check [models.md](references/models.md).
 6. **Native audio = `audio: "native"`** on `Video()`. Provider options must be **namespaced by provider**: `providerOptions: { varg: { fal: { ... } } }`. A flat `providerOptions: { varg: { generate_audio: true } }` is silently dropped by the API, and you get a silent video.
-7. **Renders cost credits** -- a typical 3-clip video costs ~300-800 credits depending on the video model (wan_3 vs seedance_2_5). Iterate with `--preview` (local), cheap draft models (`minimax_h3_max_turbo`, `grok_imagine_1_5_lite`) and 720p. Render 1080p only for the final.
+7. **Renders cost credits** -- a typical 3-clip video costs ~300-800 credits depending on the video model (wan_3 vs seedance_2_5). Iterate with `--preview` (local), cheap draft models (`minimax_h3_max_turbo`, `grok_imagine_1_5_lite`) and 720p. Render 1080p only for the final. Follow the [Spend rules](#spend-rules).
 8. **API key hygiene** -- Never write a raw API key value into a bash command. Load keys into `$VARG_API_KEY` with the setup snippets (from env, `~/.varg/credentials`, or `.env`) and use `$VARG_API_KEY` in all subsequent commands -- never `echo` or `cat` the key itself. This prevents keys from leaking into conversation context and terminal history.
 
 ### Default Models (October 2026)
@@ -288,6 +288,15 @@ Both modes use `varg.*` for all models. The only difference is imports:
 - **Cache saves credits.** Keep unchanged prompts character-for-character identical across iterations.
 - **Preview first** (local mode only): `--preview` generates free placeholders to validate structure.
 - Full pricing: [models.md](references/models.md)
+
+### Spend rules
+
+Without a ceiling and a model list, agents spend quietly. A 36-minute agent film cost $200+ because the agent used a video model nobody asked for (Veo 3.1) plus a lot of image generation, and none of the video model clips made it into the final cut ([post](https://x.com/LLMJunky/status/2106411941497389342)). A one-minute collage short made from one prompt that said "max OpenRouter spend is $10" cost $3.21 in model fees ([post](https://www.reddit.com/r/ClaudeAI/comments/1wogab3/made_entirely_with_opus_55_321_of_openrouter_api/)).
+
+1. **Hard cap in the brief.** Before the first paid call, get a cap from the person and write it at the top of the brief: "max spend N credits". If they give it in money ("max $10"), keep their words and ask what that is in credits on their plan; don't convert it yourself. Keep a running total and stop to ask before any call that would cross the cap.
+2. **Approved models only.** List the models the person approved, per job (stills, video, voice, music), and use only those. Never switch to another model without asking, above all to a video model: a failed call or a "better" option is a reason to ask, not to switch. A shot that code, a still or a slideshow can carry does not need a video model.
+3. **Estimate before every paid call.** `POST /v2/estimate` (same body as the generation, no job created) or `estimate_cost` on the varg MCP; `plan_batch` for many calls at once. Say the estimate, the total so far and the cap, in credits, and wait for a go when the step is new or large.
+4. **Report the billed cost after.** Read `actual_cost_cents` on the finished job (credits; 0 on a cache hit), `GET /v2/jobs/{id}/price` or `get_job_cost` on the MCP. At the end, give the total billed against the cap (`GET /v2/billing/usage` for the session's records).
 
 ## References
 

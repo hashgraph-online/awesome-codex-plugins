@@ -20,20 +20,21 @@ import os
 import sys
 import time
 
-# Add this script's directory and kicad scripts to path for sibling imports
+# Add this script's directory to path for sibling imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-_kicad_scripts = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              '..', '..', 'kicad', 'scripts')
-if os.path.isdir(_kicad_scripts):
-    sys.path.insert(0, os.path.abspath(_kicad_scripts))
+import _core_path  # noqa: F401
 
 from emc_rules import run_all_checks, generate_test_plan, analyze_regulatory_coverage
 from emc_formulas import STANDARDS, MARKET_STANDARDS
 from finding_schema import compute_trust_summary
+from kicad_core.render import summary_or_title
 from emc_envelope import EMCEnvelope
 from schema_codec import emit_schema
 from inputs_builder import build_inputs, build_upstream_artifact, build_compat
 from capability_mode import get_capability_mode_ref
+from kicad_core.cli import (add_compact_arg, add_config_arg, add_only_deterministic_arg, add_output_arg,
+                            add_schema_arg, add_stage_audience_args, add_text_arg, envelope_type_error,
+                            utf8_text_stdout)
 
 ANALYZER_SOURCE = "emc"
 
@@ -234,7 +235,7 @@ def format_text_report(result: dict) -> str:
 
         for f in cat_findings:
             sev = f['severity']
-            lines.append(f'  [{sev}] {f["rule_id"]}: {f["title"]}')
+            lines.append(f'  [{sev}] {f["rule_id"]}: {summary_or_title(f)}')
             # Wrap description
             desc = f.get('description', '')
             for i in range(0, len(desc), 70):
@@ -307,47 +308,38 @@ def format_text_report(result: dict) -> str:
     return '\n'.join(lines)
 
 
-def main():
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description='EMC pre-compliance risk analyzer for KiCad designs')
     parser.add_argument('--schematic', '-s',
                         help='Schematic analyzer JSON. Auto-resolved from --analysis-dir current run when omitted.')
     parser.add_argument('--pcb', '-p',
                         help='PCB analyzer JSON. Auto-resolved from --analysis-dir current run when omitted.')
-    parser.add_argument('--output', '-o', help='Output JSON file path')
+    add_output_arg(parser, help='Output JSON file path')
     parser.add_argument('--severity', default='all',
                         choices=['all', 'low', 'medium', 'high', 'critical'],
                         help='Minimum severity to report (default: all)')
     parser.add_argument('--standard', default='fcc-class-b',
                         choices=list(STANDARDS.keys()),
                         help='Target EMC standard (default: fcc-class-b)')
-    parser.add_argument('--text', action='store_true',
-                        help='Print human-readable text report to stdout')
-    parser.add_argument('--compact', action='store_true',
-                        help='Omit INFO-level findings from output')
+    add_text_arg(parser, help='Print human-readable text report to stdout')
+    add_compact_arg(parser, help='Omit INFO-level findings from output')
     parser.add_argument('--market', default=None,
                         choices=list(MARKET_STANDARDS.keys()),
                         help='Target market — sets applicable standards (us, eu, automotive, medical, military)')
     parser.add_argument('--spice-enhanced', action='store_true',
                         help='Use SPICE simulation for improved PDN/filter analysis (requires ngspice/LTspice/Xyce)')
-    parser.add_argument('--config', default=None,
-                        help='Path to .kicad-happy.json project config file')
+    add_config_arg(parser)
     parser.add_argument('--analysis-dir', default=None,
                         help='Write output into analysis cache directory '
                              '(creates/updates manifest)')
-    parser.add_argument('--schema', action='store_true',
-                        help='Print JSON output schema and exit')
-    parser.add_argument('--stage', default=None,
-                        choices=['schematic', 'layout', 'pre_fab', 'bring_up'],
-                        help='Filter findings by review stage')
-    parser.add_argument('--audience', default=None,
-                        choices=['designer', 'reviewer', 'manager'],
-                        help='Audience level for summaries and --text output')
-    parser.add_argument('--only-deterministic', action='store_true',
-                        help='Accepted for consistency; analyzers never write llm_* fields. '
-                             'Honored by downstream consumers (Phase 4 spec §3.4).')
+    add_schema_arg(parser)
+    add_stage_audience_args(parser)
+    add_only_deterministic_arg(parser)
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.text:
+        utf8_text_stdout()
 
     if args.schema:
         emit_schema(EMCEnvelope)
@@ -375,19 +367,34 @@ def main():
     schematic = None
     pcb = None
 
+    def _load_analyzer_json(flag, path, writer, expected):
+        if not os.path.isfile(path):
+            what = 'a directory' if os.path.isdir(path) else 'not found'
+            parser.error(f'{flag} {path}: {what}; expected the JSON file '
+                         f'{writer} writes (--output)')
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            parser.error(f'{flag} {path}: not JSON ({e}); expected the JSON '
+                         f'file {writer} writes (--output)')
+        type_error = envelope_type_error(flag, path, data, expected, writer)
+        if type_error:
+            parser.error(type_error)
+        return data
+
     if args.schematic:
-        with open(args.schematic, 'r') as f:
-            schematic = json.load(f)
+        schematic = _load_analyzer_json('--schematic', args.schematic,
+                                        'analyze_schematic.py', 'schematic')
         if 'signal_analysis' in schematic and 'findings' not in schematic:
             print(f'Error: {args.schematic} uses the pre-v1.3 '
                   f'signal_analysis wrapper format.\n'
                   f'Re-run analyze_schematic.py to produce the current '
                   f'findings[] format.', file=sys.stderr)
-            sys.exit(1)
+            return 1
 
     if args.pcb:
-        with open(args.pcb, 'r') as f:
-            pcb = json.load(f)
+        pcb = _load_analyzer_json('--pcb', args.pcb, 'analyze_pcb.py', 'pcb')
 
     # Effective severity threshold
     severity = args.severity
@@ -421,6 +428,9 @@ def main():
             config = load_config('.')
     except ImportError:
         config = {'version': 1, 'project': {}, 'suppressions': []}
+
+    _acfg = config.get('analysis')
+    analysis_cfg = _acfg if isinstance(_acfg, dict) else {}
 
     # Apply config defaults to CLI args
     project = config.get('project', {})
@@ -460,7 +470,7 @@ def main():
     elif args.output:
         _analysis_dir = _Path(args.output).parent
     else:
-        _analysis_dir = _Path("analysis")
+        _analysis_dir = _Path(analysis_cfg.get('output_dir') or 'analysis')
 
     # Resolve capability_mode_ref BEFORE build_inputs (audit Highest-Risk #5).
     _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
@@ -475,11 +485,13 @@ def main():
 
     # Run analysis
     t0 = time.time()
+    diagnostics: list = []
     findings = run_all_checks(schematic, pcb,
                               standard=args.standard,
                               severity_threshold=severity,
                               spice_backend=spice_backend,
-                              pdn_transient_a=pdn_transient_a)
+                              pdn_transient_a=pdn_transient_a,
+                              diagnostics=diagnostics)
     elapsed = time.time() - t0
 
     # Apply suppressions
@@ -542,6 +554,7 @@ def main():
         'schema_version': '1.4.0',
         'inputs': inputs,
         'compat': compat,
+        'diagnostics': diagnostics,
         'summary': {
             'total_findings': len(findings),
             'categories_checked': len(category_summary),
@@ -602,57 +615,15 @@ def main():
 
     # Analysis cache integration
     if args.analysis_dir:
-        import tempfile
-        from pathlib import Path
-        # analysis_cache lives in skills/kicad/scripts/ — already on sys.path
-        from analysis_cache import (hash_source_file, should_create_new_run,
-                                    create_run, overwrite_current,
-                                    CANONICAL_OUTPUTS, MANIFEST_FILENAME,
-                                    save_manifest, _empty_manifest, GITIGNORE_CONTENT,
-                                    resolve_analysis_dir)
-
-        # Keep analysis-dir semantics aligned with the core KiCad analyzers.
-        analysis_dir = resolve_analysis_dir(args.analysis_dir)
-
-        os.makedirs(analysis_dir, exist_ok=True)
-        manifest_path = os.path.join(analysis_dir, MANIFEST_FILENAME)
-        if not os.path.isfile(manifest_path):
-            manifest = _empty_manifest()
-            save_manifest(analysis_dir, manifest)
-        gitignore_path = os.path.join(analysis_dir, '.gitignore')
-        if not os.path.isfile(gitignore_path):
-            with open(gitignore_path, 'w') as f:
-                f.write(GITIGNORE_CONTENT)
-
-        # Hash the schematic JSON that was consumed (primary input)
-        source_hashes = {}
-        if args.schematic:
-            h = hash_source_file(os.path.abspath(args.schematic))
-            if h:
-                source_hashes[os.path.basename(args.schematic)] = h
-        if args.pcb:
-            h = hash_source_file(os.path.abspath(args.pcb))
-            if h:
-                source_hashes[os.path.basename(args.pcb)] = h
-
-        # Write result to a temp dir, then let cache module decide
-        with tempfile.TemporaryDirectory() as tmpdir:
-            canonical = CANONICAL_OUTPUTS.get('emc', 'emc.json')
-            tmp_out = os.path.join(tmpdir, canonical)
-            with open(tmp_out, 'w') as f:
-                json.dump(result, f, indent=2)
-
-            if should_create_new_run(analysis_dir, tmpdir):
-                run_id = create_run(analysis_dir, tmpdir,
-                                    source_hashes=source_hashes,
-                                    scripts={'emc': 'analyze_emc.py'})
-                print(f'EMC analysis cached: new run {run_id}',
-                      file=sys.stderr)
-            else:
-                overwrite_current(analysis_dir, tmpdir,
-                                  source_hashes=source_hashes)
-                print('EMC analysis cached: updated current run',
-                      file=sys.stderr)
+        # output_io lives in skills/kicad/scripts/ — already on sys.path
+        from output_io import write_primary_run
+        write_primary_run(args.analysis_dir, json.dumps(result, indent=2), analyzer='emc',
+                          source_path=args.schematic or args.pcb,
+                          extra_source_paths=(args.pcb,) if args.schematic and args.pcb else (),
+                          script_name='analyze_emc.py', script_entry='analyze_emc.py',
+                          record_project=False,
+                          diff_threshold=analysis_cfg.get('diff_threshold', 'major'),
+                          retention=int(analysis_cfg.get('retention', 0) or 0))
 
     # Output
     if args.output:
@@ -679,4 +650,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

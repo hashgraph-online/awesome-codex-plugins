@@ -1,0 +1,37 @@
+{
+  "title": "Example Song",
+  "artist": "Example Artist",
+  "release_date": "2026-06-01",
+  "genre": "Alternative",
+  "language": "en",
+  "explicit": false,
+  "description": "A short public-safe release description.",
+  "contributors": [
+    {
+      "name": "Example Artist",
+      "role": "writer, performer, producer",
+      "master_percent": 100,
+      "publishing_percent": 100,
+      "confirmed": true
+    }
+  ],
+  "rights": {
+    "owner_claim": "Example Artist",
+    "ownership_status": "confirmed",
+    "contains_samples": "no",
+    "sample_clearance_status": "not-needed",
+    "cover_or_interpolation": "no",
+    "release_history": "unreleased",
+    "ai_involvement": "none"
+  },
+  "suede": {
+    "intended_services": [
+      "rights-review",
+      "mastering",
+      "registry-readiness"
+    ],
+    "wallet_address": "",
+    "registry_status": "not-registered",
+    "agent_commerce": false
+  }
+}

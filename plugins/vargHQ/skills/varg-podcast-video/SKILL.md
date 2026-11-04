@@ -61,7 +61,7 @@ Scene 1.3 — Trickster: "Focus is overrated. Real pros do everything at once."
 Scene 1.4 — Host (truth cutaway, to camera): "Truth: every switch costs focus. One thing at a time gets more done."
 ```
 
-Format: `Scene X.Y — Character: "short line"`. Keep lines under 15 words.
+Format: `Scene X.Y — Character: "short line"`. Keep each line to what its shot can say at about 2.5 words a second (a 5 s shot holds about 12 words; under 10 for a lip-synced close-up). Size and check them with the `video-script` skill.
 
 ### Step 2: Generate the studio set (empty)
 

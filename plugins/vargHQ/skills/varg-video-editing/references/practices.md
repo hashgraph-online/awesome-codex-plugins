@@ -82,7 +82,7 @@ Source: https://github.com/poseljacob/agentic-video-editor
 
 ## 14. Judge versions pairwise, not with absolute scores
 
-Model judges are unreliable at absolute scores but reliable at saying which of two edits is better. Compare each new version against the previous one, swap the order and require it to win both times.
+Pairs suit this question better than a score out of 10, which means little across judges. They are not reliable on one edit: agreement with human editors on a single edit is low (kappa .15, https://arxiv.org/abs/2609.35143). Compare each new version against the previous one, swap the order, require it to win both times, and treat anything else as a tie for a person to decide.
 
 Source: https://github.com/YeJe-cpu/SeeCut
 

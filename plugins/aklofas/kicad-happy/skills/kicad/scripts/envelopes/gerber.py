@@ -42,7 +42,7 @@ if _PARENT not in sys.path:
     sys.path.insert(0, _PARENT)
 
 from analyzer_envelope import (  # noqa: E402
-    TrustSummary, Finding, Assessment, BySeverity, InputsBlock, CompatBlock,
+    TrustSummary, Finding, Assessment, BySeverity, InputsBlock, CompatBlock, Diagnostic,
 )
 
 
@@ -231,16 +231,6 @@ class NetAnalysis:
 
 
 @dataclass
-class DrillTool:
-    """One tool from the aggregated drill_tools map."""
-    diameter_mm: float = field(metadata={"description": "Tool diameter in mm."})
-    count: int = field(metadata={"description": "Hole count for this tool."})
-    type: str = field(metadata={
-        "description": "Drill file classification: 'PTH' | 'NPTH' | "
-                       "'mixed' | 'unknown'."})
-
-
-@dataclass
 class GerberEnvelope:
     """Top-level output of analyze_gerbers.py.
 
@@ -264,6 +254,9 @@ class GerberEnvelope:
     compat: CompatBlock = field(metadata={
         "description": "Schema compatibility metadata: minimum consumer "
                        "version + deprecated/experimental field lists."})
+    diagnostics: list[Diagnostic] = field(default_factory=list, kw_only=True, metadata={
+        "description": "Guarded failures that degraded this run (section omitted, "
+                       "fallback model used). Empty when nothing degraded."})
 
     # --- Universal core ---
     summary: GerberSummary = field(metadata={
@@ -308,7 +301,7 @@ class GerberEnvelope:
                        "{filename, type, units, hole_count, layer_span, "
                        "tools (T# -> {diameter_mm, hole_count, "
                        "aper_function}), x2_attributes}."})
-    # TODO(v1.5): tighten to dict[str, DrillTool].
+    # drill_tools values are {diameter_mm, count, type}; kept as an open dict (see output-schema.md).
     drill_tools: dict[str, dict] = field(default_factory=dict, metadata={
         "description": "Aggregated tool map keyed by 'Xmm' diameter label "
                        "with value {diameter_mm, count, type}."})

@@ -35,6 +35,8 @@ Generation (images, video, voice, music, lip-sync, transcription, ffmpeg) runs o
 
 The agent is the crew; the user is the director. Every phase ends at a gate where the user looks at something and says yes before more credits are spent.
 
+A worked example with file formats and ready scripts (song map, frame-exact rough cut, QA contact sheet, small export) is in [references/anime-case-study.md](references/anime-case-study.md): a 99 s, 36-shot anime music video and the fixes from its nine review rounds.
+
 ---
 
 ## 0. Non-negotiables (what every good creator converged on)
@@ -66,7 +68,7 @@ The agent is the crew; the user is the director. Every phase ends at a gate wher
    - Sanity-check the BPM against the drum stem: a half-time or double-time read (80 instead of 120) puts every cut in the wrong place.
    - If a song has drops, build the grid in **sections that reset on the first kick after each drop**; a single grid drifts.
    - Record downbeats, bars, sections and drops.
-   - **Outside varg:** a beat tracker such as librosa or madmom on the drum stem.
+   - **Outside varg:** a beat tracker such as librosa or madmom on the drum stem. A ready script that fits the tempo per 8 s window and finds the bar phase: `songmap.py` ([references/anime-case-study.md](references/anime-case-study.md)).
 3. **Get word timings.**
    - Run Whisper on the **vocal stem**, with the lyric sheet passed as the prompt.
    - Align the lyric sheet to what Whisper heard, giving a start and end for every sung word.
@@ -300,6 +302,7 @@ Staging that helps sync: medium close-ups, simple clear phoneme shapes, and the 
 - Keep 30 fps. **Do not RIFE-interpolate to 60**: it smears fast whips.
 - Upscale soft or murky shots (creators use SeedVR2; on varg: `seedvr_video` or `topaz_video`).
 - The edit script **rejects any cut that is not on a downbeat** and any total that does not equal the song duration.
+- A frame-exact cut script (`rough_cut.py`, with a `place.json` that maps each shot to clip segments, slow-mo and freeze frames) and HyperFrames layer gotchas: [references/anime-case-study.md](references/anime-case-study.md).
 
 ---
 
@@ -310,6 +313,8 @@ Staging that helps sync: medium close-ups, simple clear phoneme shapes, and the 
 - **Phone access.** Serve the page through a tunnel or a hosted link so the director can approve from a phone.
 
 Build both on the same review page as section 5 (in Claude, an Artifact with a shared database holds notes and takes).
+
+How one round runs (free fixes vs paid fixes, a new version file each time) and eleven real notes with the fix that worked: [references/anime-case-study.md](references/anime-case-study.md#director-rounds).
 
 ---
 
@@ -356,7 +361,7 @@ Quote every amount in credits from `estimate_cost` / `POST /v2/estimate`, never 
 | Capability | On varg | Outside varg |
 |---|---|---|
 | Stem separation | — | Demucs |
-| Beat grid / downbeats / sectional reset / BPM sanity | — | librosa, madmom |
+| Beat grid / downbeats / sectional reset / BPM sanity | — | librosa, madmom (`songmap.py` in the case study) |
 | Word timings, lyric forced alignment, onset correction | `transcription` (`whisper_large_v3`, `groq_whisper_large_v3_turbo`) for raw word timings | a forced aligner (e.g. WhisperX) + onset detection |
 | Agent "ears" (describe a take or a mix, check cuts against sound) | — | an audio-understanding model |
 | Song with vocals | `lyria_3_5`, `eleven_music_v2_5` | Suno (persona voice, stems) |

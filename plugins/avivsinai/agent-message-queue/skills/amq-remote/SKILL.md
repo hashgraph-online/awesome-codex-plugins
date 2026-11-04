@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.126.0 # x-release-please-version
+version: 0.126.1 # x-release-please-version
 description: Let the owner reach this running agent from Buzz, on the phone or in Buzz Desktop. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -98,9 +98,14 @@ command's own message. Do not work around a refusal.
    a successful attach). Run `amq-remote doctor --root "$ROOT" --json` and
    read its `failing` list; the exit code is not the signal. When a
    `native_capability` entry says the PermissionRequest hook is not
-   installed, tell the user: "This adds one approval hook so Buzz shows every
-   approval dialog of this session; ✅ allows, ❌ denies, first answer wins.
-   `amq-remote claude uninstall-approval-hook` removes it." Ask once, then run
+   installed, tell the user: "This adds one approval hook. The first approval
+   dialog of each Claude Code session on this machine connects that session
+   to its own Buzz channel, even one that never ran /amq-remote: an AMQ
+   session gets its own binding (the mailbox one /amq-remote writes), any
+   other session a native binding, where chat needs /amq-remote --native. Every dialog of
+   the session then shows there; ✅ allows, ❌ denies, first answer wins.
+   /amq-remote off stops it for that session, and
+   `amq-remote claude uninstall-approval-hook` removes the hook." Ask once, then run
    `amq-remote claude install-approval-hook`. Codex needs no hook: its
    approvals reach Buzz only for a session on the Codex app-server (the
    `--native` Codex path below); a plain `codex` TUI session answers
@@ -111,7 +116,7 @@ command's own message. Do not work around a refusal.
    - `--native`: "A message sent while this session is busy waits. Buzz Stop
      cannot interrupt a Claude turn."
    - Claude with the hook installed: "Every approval dialog of this session
-     shows in Buzz with its options. ✅ or ❌, or a reply with the option
+     shows in its Buzz channel with its options. ✅ or ❌, or a reply with the option
      number, answers it. The first answer, in Buzz or in the terminal,
      wins."
    - Codex on the app-server: the same line. A plain `codex` TUI session:

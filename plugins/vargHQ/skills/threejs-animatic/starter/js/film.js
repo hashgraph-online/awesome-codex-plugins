@@ -7,9 +7,13 @@ import * as THREE from 'three';
 import { buildCafe } from './sets.js';
 import { FILM, BEAT, SHOTS, BLOCKING } from './shots.js';
 import { camFromJSON, evalCam, applyPose } from './camera.js';
+import { LOOK, applyLook } from './look.js';
 
-export function createFilm(edits = {}) {
+// look: true = the optional look blockout (js/look.js) on top of the grey set; await film.ready before
+// the first render. Off by default: the grey film and its Seedance reference never change.
+export function createFilm(edits = {}, { look = false } = {}) {
   const set = buildCafe();
+  const ready = look ? applyLook(set, Array.isArray(look) ? look : LOOK) : Promise.resolve();
   const shots = SHOTS.map((s, i) => {
     const ed = edits.shots?.[s.id] || {};
     return { ...s, i, dur: s.end - s.start, defCam: s.cam, cam: camFromJSON(ed.cam || s.cam), status: ed.status || '', note: ed.note || '' };
@@ -36,7 +40,7 @@ export function createFilm(edits = {}) {
     return { shot: sh, pose: p, T, lt: local };
   }
   const setLabels = v => labels.forEach(l => (l.visible = v));
-  return { FILM, BEAT, set, shots, camera, shotAt, pose, setLabels };
+  return { FILM, BEAT, set, shots, camera, shotAt, pose, setLabels, ready, look: !!look };
 }
 
 // One fixed-size renderer for video: pixel ratio 1, no DPR dependence, readable drawing buffer.
@@ -66,6 +70,7 @@ export function installExportHooks(film, renderer) {
   window.__seek = (t, id, lt) => (render(t, id, lt), true);
   window.__frame = (t, id, lt, type = 'image/png') => (render(t, id, lt), renderer.domElement.toDataURL(type));
   window.__film = {
+    look: film.look,
     title: film.FILM.title, fps: film.FILM.fps, duration: film.FILM.duration, width, height,
     shots: film.shots.map(s => ({ id: s.id, start: s.start, end: s.end })),
   };

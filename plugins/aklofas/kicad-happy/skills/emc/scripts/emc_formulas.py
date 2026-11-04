@@ -11,15 +11,9 @@ References:
 """
 
 import math
-import os
-import sys
 from typing import List, Tuple, Optional, Dict
 
-# Add kicad scripts to path for shared imports
-_kicad_scripts = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                              '..', '..', 'kicad', 'scripts')
-if os.path.isdir(_kicad_scripts) and os.path.abspath(_kicad_scripts) not in sys.path:
-    sys.path.insert(0, os.path.abspath(_kicad_scripts))
+import _core_path  # noqa: F401
 
 # Physical constants
 C_0 = 2.998e8          # Speed of light in vacuum (m/s)
@@ -564,8 +558,8 @@ def cap_value_for_srf(target_srf_hz: float, esl_h: float) -> float:
     return 1.0 / (4 * math.pi**2 * target_srf_hz**2 * esl_h)
 
 
-# E12 standard capacitor values — imported from shared kicad_utils
-from kicad_utils import E12_DECADE as _E12_DECADE, snap_to_e_series
+# E12 standard capacitor values — imported from shared kicad_core
+from kicad_core.values import snap_to_e_series
 
 
 def round_to_e12(value: float) -> float:
@@ -601,29 +595,8 @@ def cap_impedance_at_freq(freq_hz: float, capacitance_f: float,
 # ESR/ESL lookup by package size (typical MLCC values)
 # ---------------------------------------------------------------------------
 
-# Typical ESL values for MLCC by package (Henries)
-MLCC_ESL = {
-    '0201': 0.3e-9,
-    '0402': 0.5e-9,
-    '0603': 0.7e-9,
-    '0805': 0.9e-9,
-    '1206': 1.1e-9,
-    '1210': 1.2e-9,
-    '1812': 1.5e-9,
-    '2220': 1.8e-9,
-}
-
-# Typical ESR values for MLCC by package (Ohms) — X5R/X7R at 1 MHz
-MLCC_ESR = {
-    '0201': 0.5,
-    '0402': 0.3,
-    '0603': 0.1,
-    '0805': 0.05,
-    '1206': 0.03,
-    '1210': 0.02,
-    '1812': 0.02,
-    '2220': 0.015,
-}
+# Typical MLCC ESL (Henries) and ESR (Ohms) by package — imported from shared kicad_core
+from kicad_core.parts import MLCC_ESL, MLCC_ESR
 
 
 def pdn_target_impedance(v_rail: float, ripple_pct: float = 5.0,
@@ -933,7 +906,7 @@ MARKET_STANDARDS = {
 # Full-Board PDN: Power Tree, Trace Parasitics, Distributed Impedance
 # ---------------------------------------------------------------------------
 
-# EQ-042: R_trace = rho * L / (W * T) — DC trace resistance
+# EQ-108: R_trace = rho * L / (W * T) — DC trace resistance
 COPPER_RESISTIVITY_OHM_MM = 1.724e-5  # ohm·mm at 20°C
 
 
@@ -1086,8 +1059,8 @@ def build_power_tree(regulators: list, power_budget: dict,
         topology = reg.get('topology', '').lower()
         if topology not in ('ldo', 'linear', ''):
             # Try to get from value/part number
-            from emc_rules import _estimate_switching_freq
-            sw_freq = _estimate_switching_freq(reg.get('value', ''))
+            from kicad_core.parts import lookup_switching_freq
+            sw_freq = lookup_switching_freq(reg.get('value', ''))
 
         tree[output_rail] = {
             'rail': output_rail,

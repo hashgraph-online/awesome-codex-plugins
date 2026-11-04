@@ -1,0 +1,62 @@
+{
+  "name": "suede-skills",
+  "version": "0.19.3",
+  "description": "Open-source AI skills for SEO, marketing, and business operations in Claude Code and Codex. Includes code review, app delivery, creator tools, and reusable workflows.",
+  "author": {
+    "name": "Jason Colapietro",
+    "url": "https://github.com/JasonColapietro"
+  },
+  "homepage": "https://skills.suedeai.ai/",
+  "repository": "https://github.com/JasonColapietro/suede-creator-skills",
+  "license": "MIT AND BSD-3-Clause",
+  "keywords": [
+    "agent-skills",
+    "codex",
+    "multi-agent",
+    "mcp",
+    "code-review",
+    "seo"
+  ],
+  "skills": "./skills/",
+  "mcpServers": {
+    "suede_skills_mcp": {
+      "title": "Suede AI Skills MCP",
+      "description": "Local read-only MCP access to every Suede skill: discovery, install options, visibility and code grading, SEO copy audits, and QA checklists.",
+      "cwd": ".",
+      "command": "node",
+      "args": [
+        "./mcp/suede-skills-mcp.mjs",
+        "--profile",
+        "all"
+      ]
+    }
+  },
+  "interface": {
+    "displayName": "Suede AI Skills",
+    "shortDescription": "AI skills for SEO and business growth",
+    "longDescription": "Suede AI Skills gives founders, marketers, and small teams reusable workflows for SEO audits, AI search visibility, conversion copy, and business operations. Run them in Claude Code or OpenAI Codex, with instructions you can inspect and adapt to your business. Start with a page or business brief to get prioritized audit findings, positioning and campaign plans, or a map of operational bottlenecks. The pack also includes code review, app delivery, and creator-rights tools. Original work is MIT licensed; adapted components retain their upstream notices.",
+    "developerName": "Suede AI",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Agent Skills",
+      "MCP",
+      "Multi-Agent Workflows",
+      "Code Review"
+    ],
+    "websiteURL": "https://skills.suedeai.ai/",
+    "privacyPolicyURL": "https://suedeai.ai/privacy",
+    "termsOfServiceURL": "https://suedeai.ai/terms",
+    "defaultPrompt": [
+      "Take this authorized outcome through useful lanes and close with concise proof.",
+      "Audit this surface with independent adversarial lanes.",
+      "Find the strongest next move, execute it, and prove it."
+    ],
+    "brandColor": "#C8A96E",
+    "composerIcon": "./docs/assets/favicon-64.png",
+    "logo": "./docs/assets/suede-ai-logo-transparent.png",
+    "screenshots": [
+      "./docs/assets/release-linter-preview.png",
+      "./docs/assets/rights-passport-preview.png"
+    ]
+  }
+}

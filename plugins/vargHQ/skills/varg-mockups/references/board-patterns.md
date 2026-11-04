@@ -66,18 +66,28 @@ For: locking the look, cast and places before key frames. Sections, top to botto
 
 1. **Direction**: four to six short rules, each a bold line plus one sentence ("Quiet, then loud", "Readable
    with the sound off", "Specific, never glossy"). This is what the stills are judged against.
-2. **Characters**: each as a frozen card (model sheet) plus its identity block in a copyable box and a "do not
+2. **References**: the outside frames the look is built from (see Finding references in `SKILL.md`), each with
+   its source link and one "take" line: what it gives the look (palette, framing, lens, light direction, texture,
+   motion), never its characters or logos.
+3. **Never**: five things this look would never do, one line each ("never golden hour", "never a lens flare",
+   "never a posed subject looking at the camera", "never glossy, poreless skin", "never a teal-orange grade").
+   Without it every new still drifts back to the average. Paste the list into every still prompt as its avoid
+   line and check each frame against it before it goes on the board.
+4. **Characters**: each as a frozen card (model sheet) plus its identity block in a copyable box and a "do not
    change between shots" list. Tell the reader: pass these cards as references in every prompt; never
    re-describe the outfit.
-3. **Atmosphere and locations**: one master plate per place, ideally the same place in each look it appears in
+5. **Atmosphere and locations**: one master plate per place, ideally the same place in each look it appears in
    (day and night, natural and stylised), with the same objects in the same spots.
-4. **Key frames, shot by shot**: time, title, still, the refs it was built from, and a build plan line per shot:
+6. **Key frames, shot by shot**: time, title, still, the refs it was built from, and a build plan line per shot:
    "video: image-to-video from this still, 5 s, locked camera" or "build: in code, no generation" or
    "composite: plate generated, label tracked on in the edit".
-5. **Palette** sampled from the approved frames, with names and hex values and where each colour is allowed.
-6. **Type**: the faces for titles and labels, chosen on purpose (no default fonts).
-7. **Test of the hardest move**: one short video test of the riskiest camera move, before committing the rest.
-8. **Prompt pack**: every prompt with Copy.
+7. **Palette** sampled from the approved frames, with names and hex values and where each colour is allowed.
+8. **Type**: the faces for titles and labels, chosen on purpose (no default fonts).
+9. **Test of the hardest move**: one short video test of the riskiest camera move, before committing the rest.
+10. **Prompt pack**: every prompt with Copy.
+
+Keep the same board as words in a `moodboard.md` next to it: palette (hex values, and which one is the accent),
+light, framing, texture, type, motion and the Never list, so every prompt can quote it word for word.
 
 Per image card: ID, role ("Shot 4: the reveal, product large, label area blank"), a verdict chip **use** or **fix** with the
 reason ("head sits mid-frame; the brief wants it in the upper two thirds"), the refs it was made from, the prompt

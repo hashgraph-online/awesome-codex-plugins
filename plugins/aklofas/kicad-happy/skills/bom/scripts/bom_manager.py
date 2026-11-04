@@ -34,16 +34,13 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from kicad_sexp import find_matching_paren, find_sub_sheets
+import _core_path  # noqa: F401
+from kicad_core.diagnostics import record
+from kicad_sexp import find_sub_sheets, iter_placed_symbol_blocks
 
-# Allow importing project_config from kicad skill
-_kicad_scripts = Path(__file__).resolve().parent.parent.parent / 'kicad' / 'scripts'
-if _kicad_scripts.is_dir() and str(_kicad_scripts) not in sys.path:
-    sys.path.insert(0, str(_kicad_scripts))
-
-from kicad_utils import (MPN_FIELD_ALIASES, MPN_FIELD_ALIASES_PRIMARY,
-                         MPN_FIELD_ALIASES_GENERIC, DIGIKEY_FIELD_ALIASES,
-                         normalize_field_name)
+from kicad_core.fields import (MPN_FIELD_ALIASES, MPN_FIELD_ALIASES_PRIMARY,
+                               MPN_FIELD_ALIASES_GENERIC, DIGIKEY_FIELD_ALIASES,
+                               normalize_field_name)
 
 
 # ---------------------------------------------------------------------------
@@ -51,7 +48,7 @@ from kicad_utils import (MPN_FIELD_ALIASES, MPN_FIELD_ALIASES_PRIMARY,
 # ---------------------------------------------------------------------------
 
 FIELD_ALIASES: dict[str, list[str]] = {
-    # KH-414: shared with analyze_schematic / analyze_pcb (kicad_utils), plus
+    # KH-414: shared with analyze_schematic / analyze_pcb (kicad_core.fields), plus
     # the bom-local ambiguous extras the analyzers deliberately exclude.
     "mpn": sorted(MPN_FIELD_ALIASES | {"mp", "mfn"}),
     "manufacturer": [
@@ -158,26 +155,7 @@ def extract_placed_symbols(text: str) -> list[tuple[int, int, str]]:
 
     Returns list of (start_pos, end_pos, block_text) tuples.
     """
-    symbols = []
-
-    # Find end of lib_symbols section to skip it
-    lib_match = re.search(r'\(lib_symbols\b', text)
-    search_start = 0
-    if lib_match:
-        lib_end = find_matching_paren(text, lib_match.start())
-        search_start = lib_end + 1
-
-    # Placed symbols have (lib_id ...) as first child; lib symbols have a
-    # quoted name string instead. We look for the pattern:
-    #   (symbol\n\t\t(lib_id   or   (symbol (lib_id
-    pattern = re.compile(r'\(symbol\s*\n?\s*\(lib_id\s+')
-    for match in pattern.finditer(text, search_start):
-        sym_start = match.start()
-        sym_end = find_matching_paren(text, sym_start)
-        block = text[sym_start:sym_end + 1]
-        symbols.append((sym_start, sym_end, block))
-
-    return symbols
+    return iter_placed_symbol_blocks(text)
 
 
 def extract_properties(symbol_block: str) -> dict[str, str]:
@@ -392,7 +370,7 @@ def generate_bom(symbols: list[dict], convention: dict,
         # Extract canonical field values using the project's actual field names
         def get_canonical(canonical_name: str) -> str:
             if canonical_name == "mpn":
-                # KH-418 round 2: the project's declared MPN field is
+                # KH-418: the project's declared MPN field is
                 # authoritative among manufacturer-specific names when it is
                 # itself primary-tier and populated on this symbol — file
                 # order only breaks ties between OTHER primaries.
@@ -796,7 +774,7 @@ def load_existing_csv(csv_path: Path) -> dict[str, dict]:
         return {}
 
     rows = {}
-    with open(csv_path, newline="", encoding="utf-8") as f:
+    with open(csv_path, newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         for row in reader:
             # Use MPN as key if available, else first reference
@@ -1002,7 +980,7 @@ def generate_order_files(
         return {"error": f"BOM CSV not found: {csv_path}"}
 
     # Read the BOM CSV
-    with open(csv_path, newline="", encoding="utf-8") as f:
+    with open(csv_path, newline="", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
         rows = list(reader)
 
@@ -1224,8 +1202,10 @@ def main():
         cfg = load_config(sch_dir)
         bom_config = cfg.get('bom', {})
         preferred_suppliers_cfg = get_preferred_suppliers(cfg)
-    except (ImportError, Exception):
+    except ImportError:
         pass
+    except Exception as exc:
+        record(None, "bom_manager.main", exc, "project BOM config not loaded; defaults used")
 
     if args.command is None:
         parser.print_help()

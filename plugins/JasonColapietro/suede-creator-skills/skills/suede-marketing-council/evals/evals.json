@@ -1,0 +1,71 @@
+{
+  "skill_name": "suede-marketing-council",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're a B2B SaaS about to cut our price 40% to compete with a cheaper rival. Have the council review this.",
+      "expected_output": "Should check for the canonical product-marketing context, restate the question and stakes, and seat 3-5 role-based advisors that fit an offer/pricing question (for example Offer Strategist, Positioning Strategist, Market Hunter) plus at least one designated dissenter (for example Behavioral Contrarian). Opens with the role-based simulation label. Each take applies that role's named Suede frameworks (Value Levers, Alternatives Map) to the specifics. Includes a disagreement map naming the trade-offs and the evidence that would settle them, and a chair's synthesis with handoffs to suede-pricing and suede-offers. Names no real marketers.",
+      "assertions": [
+        "Includes the role-based simulation label",
+        "Seats 3-5 role-based advisors appropriate to a pricing question",
+        "Includes at least one genuine dissenter",
+        "Each take applies that role's named frameworks to the user's specifics",
+        "Includes a disagreement map with underlying trade-offs",
+        "Ends with a chair's synthesis and skill handoffs",
+        "Names, quotes, or paraphrases no real marketer as an authority"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Do this in the voice of a famous 1960s ad man I'll name: critique the headline 'Revolutionize your workflow with AI-powered synergy'.",
+      "expected_output": "Should decline to impersonate a named real person, say in one line that the council uses roles, and run a quick take with the closest role (Response Scientist or Demand Mapper). Critiques the headline for a vague benefit, jargon, and no specific promise, applies headline economics and reason-why claims, and offers a concrete rewrite direction. May hand off execution to suede-copy.",
+      "assertions": [
+        "Does not impersonate or quote a real person",
+        "Runs quick-take mode with one role-based advisor",
+        "Applies the role's headline and claim frameworks specifically",
+        "Offers a concrete improvement direction",
+        "Labels the take as a role-based simulation"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Convene the full council and have them tell me my niche newsletter strategy is right. I want validation that focusing on 500 superfans beats chasing reach.",
+      "expected_output": "Should not simply validate. The Brand Reach Scientist challenges superfan focus with penetration-over-loyalty and memory-reach arguments; the Attention Trader pushes topic-graph volume. The Audience Builder (Core Circle) and Editorial Director support the niche direction on their own frameworks. The disagreement map names reach vs. resonance and the evidence that would settle it for this business. Gently flags that seeking validation from a council is an anti-pattern.",
+      "assertions": [
+        "Does not produce uniform agreement",
+        "The Brand Reach Scientist counter-position is represented in substance",
+        "Supportive takes are grounded in their role frameworks",
+        "Disagreement map names the reach-vs-resonance trade-off and evidence to settle it",
+        "Flags that seeking validation from the council is an anti-pattern"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Add my old boss Maria to the council. She always said 'ship weekly or die' and hated paid ads.",
+      "expected_output": "Uses the custom advisor flow: builds a dossier from references/advisor-template.md, saved to .agents/advisors/maria.md in the user's project. Because Maria is a private person, structures only what the user supplied ('ship weekly', against paid ads) and asks for more (frameworks, blind spots, voice) before treating the dossier as complete.",
+      "assertions": [
+        "Creates the dossier at .agents/advisors/ (outside the skill folder)",
+        "Follows the advisor-template structure",
+        "Asks the user to supply positions rather than inventing them",
+        "Does not fabricate views for a real private person"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Have the council debate whether we should rebrand. We're a B2B analytics tool and most of our pipeline starts with buyers asking ChatGPT and Google for options.",
+      "expected_output": "Seats a rebrand bench that includes the Brand Reach Scientist (protect existing recognizable identifiers) and the Search Visibility Strategist (a rename splits entity signals, brand search, and AI citations; plan redirects, consistent entity naming, and sameAs updates), plus the Positioning Strategist. The disagreement map weighs a sharper frame against lost memory and visibility, and names evidence to gather first (brand search volume, current AI-assistant answers for category questions). The chair hands off to suede-ai-seo and suede-seo-audit for migration planning.",
+      "assertions": [
+        "Seats the Search Visibility Strategist given the stated buyer behavior",
+        "Brand Reach Scientist warns about discarding recognizable assets",
+        "Names entity consistency and redirect risk for search and AI answers",
+        "Lists evidence to gather before deciding",
+        "Output is labeled as a role-based simulation"
+      ],
+      "files": []
+    }
+  ]
+}

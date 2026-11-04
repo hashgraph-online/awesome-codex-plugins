@@ -40,14 +40,15 @@ The tool operates on pre-analyzed JSON produced by `analyze_schematic.py`, `anal
 
 ```
 python3 diff_analysis.py <base> <head> [options]
+python3 diff_analysis.py --analysis-dir <analysis_dir> [options]
 ```
 
 ### Positional Arguments
 
 | Argument | Description |
 |----------|-------------|
-| `base` | Path to base (old) analysis JSON |
-| `head` | Path to head (new) analysis JSON |
+| `base` | Path to base (old) analysis JSON (not needed with `--analysis-dir`) |
+| `head` | Path to head (new) analysis JSON (not needed with `--analysis-dir`) |
 
 ### Options
 
@@ -56,6 +57,11 @@ python3 diff_analysis.py <base> <head> [options]
 | `--output FILE`, `-o FILE` | Write output to file instead of stdout |
 | `--text` | Human-readable text output instead of JSON |
 | `--threshold FLOAT` | Ignore numeric deltas below this percentage (default: `1.0`) |
+| `--analysis-dir DIR`, `-d DIR` | Resolve base and head from the folder's `manifest.json`; with no `--run`, diffs the previous run against the current one |
+| `--run RUN_ID` | Run to compare: give it twice (base, then head), or once to diff that run against the current one. Accepts `current`, `previous`, or a run ID (`YYYY-MM-DD_HHMM`) |
+| `--type TYPE` | Output to diff with `--analysis-dir` (`schematic`, `pcb`, `emc`, `spice`, `deep_review`). Default: the first output both runs have; `--trend` defaults to `schematic` |
+| `--trend N` | Show metric trends across the last N runs instead of a diff (requires `--analysis-dir`) |
+| `--only-deterministic` | Read `analysis/<run>/<analyzer>.json` even when an `analysis/merged/<run>/` overlay exists |
 
 ### Exit Codes
 
@@ -63,16 +69,6 @@ python3 diff_analysis.py <base> <head> [options]
 |------|---------|
 | 0 | Success |
 | 1 | Invalid input, parse error, type mismatch, or unrecognized analyzer type |
-
-### Planned Flags
-
-These flags are not yet implemented but are planned for a future release:
-
-| Flag | Description |
-|------|-------------|
-| `--analysis-dir DIR` | Point to an `analysis/` folder; automatically diff the two most recent runs |
-| `--run RUN_ID` | Specify a particular run ID (timestamp folder) as the base |
-| `--trend N` | Show severity trend across the last N runs in the analysis directory |
 
 ---
 
@@ -351,5 +347,5 @@ Natural-language queries and their corresponding command invocations.
 | "Did the EMC risk get worse" | `diff_analysis.py emc_old.json emc_new.json --text` |
 | "Any SPICE regressions" | `diff_analysis.py spice_old.json spice_new.json --text` |
 | "Save the diff report" | `diff_analysis.py base.json head.json --output diff.json` |
-| "Diff my last two runs" | `diff_analysis.py --analysis-dir analysis/ --text` (planned) |
-| "Show trends over time" | `diff_analysis.py --analysis-dir analysis/ --trend 5 --text` (planned) |
+| "Diff my last two runs" | `diff_analysis.py --analysis-dir analysis/ --text` |
+| "Show trends over time" | `diff_analysis.py --analysis-dir analysis/ --trend 5 --text` |

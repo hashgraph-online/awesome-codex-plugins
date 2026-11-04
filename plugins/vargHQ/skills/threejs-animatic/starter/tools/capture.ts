@@ -6,18 +6,21 @@
 //        one video-to-video run: those shots back to back, padded with a tail to whole seconds (min 4 s),
 //        greyscale (so the model cannot hand the previz back as its output), plus run_A.json placement
 //   bun tools/capture.ts --stills --size 1536x864         START / middle / END png per shot (for image edits)
+//   bun tools/capture.ts --look --stills                  the same stills with the look blockout (js/look.js) on,
+//        into renders/look/: for look approval only, never the Seedance @video1
 // Options: --url (default http://localhost:8777/), --fps, --size WxH, --tail auto|<seconds>|0, --crf
 import { mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { launch, args } from './cdp.ts';
 import { FILM } from '../js/config.js';
 
-const o = args({ url: 'http://localhost:8777/', out: '', shots: '', tail: 'auto', grey: false, stills: false, fps: String(FILM.fps), size: `${FILM.export.width}x${FILM.export.height}`, crf: '16' });
+const o = args({ url: 'http://localhost:8777/', out: '', shots: '', tail: 'auto', grey: false, stills: false, look: false, fps: String(FILM.fps), size: `${FILM.export.width}x${FILM.export.height}`, crf: '16' });
 const fps = Number(o.fps);
 const [w, h] = String(o.size).split('x').map(Number);
 const c = await launch({ width: w, height: h });
 try {
-  await c.goto(`${o.url}?export=1&w=${w}&h=${h}`);
+  if (o.look && o.grey) console.warn('warning: --look --grey is a textured render, not the grey-box v2v reference; use it as @video1 only on purpose');
+  await c.goto(`${o.url}?export=1&w=${w}&h=${h}${o.look ? '&look=1' : ''}`);
   const film = await c.evaluate('window.__film');
   const pick = o.shots ? String(o.shots).split(',').map(id => {
     const s = film.shots.find((x: any) => x.id === id);
@@ -26,7 +29,7 @@ try {
   }) : null;
 
   if (o.stills) {
-    const dir = o.out || 'renders/stills';
+    const dir = o.out || (o.look ? 'renders/look' : 'renders/stills');
     await mkdir(dir, { recursive: true });
     for (const s of pick || film.shots) {
       const dur = s.end - s.start;
@@ -49,7 +52,8 @@ try {
       const target = o.tail === 'auto' ? Math.max(4, Math.ceil(frames.length / fps - 1e-6)) * fps : frames.length + Math.round(Number(o.tail) * fps);
       for (let j = 0; frames.length < target; j++) frames.push(`window.__frame(null, ${JSON.stringify(last.id)}, ${dur + j / fps})`);
     }
-    const out = String(o.out || (pick ? `renders/run_${pick.map((s: any) => s.id).join('-')}.mp4` : 'renders/animatic.mp4'));
+    const pre = o.look ? 'look_' : '';
+    const out = String(o.out || (pick ? `renders/${pre}run_${pick.map((s: any) => s.id).join('-')}.mp4` : `renders/${pre}animatic.mp4`));
     await mkdir(dirname(out), { recursive: true });
     const vf = o.grey ? ['-vf', 'hue=s=0,eq=contrast=1.15'] : [];
     const ff = Bun.spawn(['ffmpeg', '-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'png', '-i', '-',
@@ -65,7 +69,7 @@ try {
     console.log(`\r${frames.length} frames, ${secs.toFixed(2)} s -> ${out} (${((Date.now() - t0) / 1000).toFixed(1)} s to render)`);
     if (pick) {
       const side = out.replace(/\.mp4$/, '.json');
-      await Bun.write(side, JSON.stringify({ video: out, fps, size: [w, h], duration: secs, grey: !!o.grey, shots: place,
+      await Bun.write(side, JSON.stringify({ video: out, fps, size: [w, h], duration: secs, grey: !!o.grey, look: !!o.look, shots: place,
         note: 'in/out = seconds inside this clip; timeline = where the shot starts in the film. Frames after the last out are the tail handle.' }, null, 1));
       console.log(`placement -> ${side}`);
     }

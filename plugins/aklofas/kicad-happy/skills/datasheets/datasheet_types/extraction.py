@@ -167,7 +167,7 @@ class DatasheetFacts:
 
         Return type expressed as a string-literal annotation so we don't
         need to import pathlib.Path at this module's load time — CacheContext
-        (in datasheet_lookup.py) is the authoritative owner of the Path type.
+        (in cache_reader.py) is the authoritative owner of the Path type.
         from __future__ import annotations (already in scope) makes the
         literal resolve at type-checker time only.
         """

@@ -25,7 +25,7 @@ https://mcp.bestprice.gr/mcp
 
 - Transport: Streamable HTTP over HTTPS; anonymous shopping, optional OAuth for Events
 - Official Registry ID: `gr.bestprice/mcp`
-- Server version: `1.8.5`
+- Server version: `1.9.0`
 - Public guide: <https://www.bestprice.gr/mcp>
 - Support: <https://www.bestprice.gr/contact>
 
@@ -38,14 +38,25 @@ live gateway, UI, OAuth/Events, the ChatGPT directory listing and separate ACP q
 
 ## Tools
 
+The hosted 1.9.0 service now also advertises `check_deal` and `optimize_basket`.
+Both passed a live check on 3 November 2026. `check_deal` accepts exactly one
+product URL, visible model/barcode text or selected product ID; image bytes are
+not ingested. `optimize_basket` calculates read-only plans for exact products,
+quantities and a supplied postcode. Neither places an order. The client manifests
+now advertise the six research tools. OpenAI's acceptance of the new server
+definitions and the 1.3.0 package are tracked in the
+[release matrix](submission/current-release-matrix.md).
+
 | Tool | What it does | Key arguments |
 | --- | --- | --- |
 | `get_shopping_decision` | Runs the BestPrice Shopping Brain: an evidence-backed recommendation, need-based comparison, or read-only basket plan with reasons, tradeoffs, and unknowns. | `message` (the need in Greek or English, including any budget), optional `postal_code` (required for a completed basket plan), optional `evidence_detail` (`summary`, the default: only the evidence the answer cites; `full`: every claim and source) |
 | `search_products` | Finds canonical products in the catalog. Returns product IDs and the catalog minimum price before shipping. | `query` (2–400 characters: a name, model, category, or a bare GTIN/EAN barcode), optional `price_min`, `price_max`, `required_features`, `sort` (`relevance`, `price_asc`, `price_desc`), `limit` (1–8) |
 | `compare_offers` | Compares current merchant offers for one exact product, separating item price, shipping, and delivered total. | `product_id` from a previous result, optional `postal_code` (a Greek postcode, 10000–85999, for delivered totals), `objective`, `in_stock_only`, `minimum_merchant_rating`, `limit` (1–10) |
 | `get_price_history` | Summarises how a product's price moved over time, against its 180-day median. | `product_id`, optional `period_days` (30, 90 or 180) |
+| `check_deal` | Checks exact identity, current offers and price context for an offer. | Exactly one `url`, visible model/barcode `query`, or selected `product_id`; optional supplied `observed_price` and `postal_code` |
+| `optimize_basket` | Calculates read-only plans for exact selected products and quantities. | `items` with `product_id` and `quantity`, Greek `postal_code`; optional `objective` and `maximum_merchants` |
 
-All four tools are read-only. They never place orders, create alerts, or read account
+Public research tools are read-only. They never place orders, create alerts, or read account
 data. Results link to a BestPrice product page, never directly to a merchant. Unknown
 shipping is reported as unknown, not as free. Search covers safe physical products;
 digital goods, services, and age-restricted categories are excluded.
@@ -56,7 +67,7 @@ A broad request can return `outcome: "clarification"` with `clarifications[].cho
 
 For example, “ANC headphones up to €150 for commuting” can ask whether the shopper wants over-ear or in-ear headphones. The recommendation excludes children’s models and replacement accessories unless the shopper asks for them. This is the same Shopping Brain used by [BestPrice Ask](https://www.bestprice.gr/ask).
 
-Ask’s product cards can open BestPrice’s existing alert and saved-list flows. Only the shopper can confirm those account actions; the connector remains read-only and cannot create alerts, save lists, upload photos, or read account conversations.
+Ask’s product cards can open BestPrice’s existing alert and saved-list flows. Public research remains read-only. On an MCP Events-capable host, optional account linking can separately create and cancel the exact price alerts the shopper requests. No alert is active until subscription succeeds. Saved comparisons in the 1.3.0 candidate remain separately gated; account conversations and image bytes are not accessed.
 
 ## Protocol details
 
@@ -96,10 +107,10 @@ Measured against the live endpoint on 24 September 2026.
   affected. A browser page may call the endpoint from an allowlisted AI-host origin, from
   bestprice.gr, or from `localhost` (so MCP Inspector works in direct mode); any other origin
   gets `403`.
-- **Authentication.** The four shopping tools work without an account. Optional account
+- **Authentication.** The six research tools work without an account. Optional account
   linking is scoped to `events:subscribe`; protected-resource metadata is available at
   `/.well-known/oauth-protected-resource` and `/mcp/oauth-protected-resource`.
-  Events remains disabled during end-to-end qualification.
+  Actual host subscription and delivery qualification is recorded separately in the release matrix.
 
 ## Developer quick start
 

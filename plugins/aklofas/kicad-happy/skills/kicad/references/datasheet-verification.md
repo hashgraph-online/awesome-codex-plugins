@@ -77,7 +77,7 @@ If neither exists, verification is skipped.
 ### Pin voltage absolute maximum exceeded
 
 **Type:** `pin_voltage_abs_max_exceeded`
-**Severity:** CRITICAL
+**Severity:** `error`
 **Condition:** Net voltage > pin's `voltage_abs_max`
 
 Compares the estimated voltage on each pin's connected net against the absolute maximum rating from the datasheet extraction. Net voltages are resolved from:
@@ -93,21 +93,21 @@ GND pins are skipped. Pins without a `voltage_abs_max` in the extraction are ski
 U3 pin 4 (VIN) on +12V (12.0V) exceeds absolute maximum (6.0V) by 6.00V
 ```
 
-This is always CRITICAL -- exceeding absolute maximum ratings causes permanent device damage.
+This is always `error` -- exceeding absolute maximum ratings causes permanent device damage.
 
 ### Pin voltage operating range exceeded
 
 **Type:** `pin_voltage_operating_exceeded`
-**Severity:** HIGH or MEDIUM
+**Severity:** `error` or `warning`
 **Condition:** Net voltage > pin's `voltage_operating_max` (but below `voltage_abs_max`)
 
 Same net voltage resolution as above, but checks against the recommended operating maximum instead of the absolute maximum.
 
 Severity depends on the margin to absolute maximum:
-- **HIGH** when less than 10% margin to `voltage_abs_max`
-- **MEDIUM** when 10% or more margin to `voltage_abs_max`
+- **`error`** when less than 10% margin to `voltage_abs_max`
+- **`warning`** when 10% or more margin to `voltage_abs_max`
 
-If no `voltage_abs_max` is available, the margin is treated as 0% (HIGH severity).
+If no `voltage_abs_max` is available, the margin is treated as 0% (`error` severity).
 
 **Example finding:**
 
@@ -118,7 +118,7 @@ U1 pin 2 (VDD) on +5V (5.0V) exceeds recommended operating maximum (4.5V)
 ### Missing required external components
 
 **Type:** `missing_required_external`
-**Severity:** HIGH
+**Severity:** `error`
 **Condition:** Pin has `required_external` in extraction, but no matching component type found on the net
 
 For each IC pin that has a `required_external` field in the extraction (e.g., "100nF bypass cap to GND", "10K pull-up to VCC"), the verifier checks whether any component of the expected type is connected to that pin's net.
@@ -145,7 +145,7 @@ U2 pin 8 (BYPASS): datasheet requires "100nF bypass cap to GND" but none found o
 ### Decoupling insufficient
 
 **Type:** `decoupling_insufficient`
-**Severity:** HIGH or MEDIUM
+**Severity:** `error` or `warning`
 **Condition:** Fewer matching capacitors on power pins than the application circuit recommends
 
 Checks the `application_circuit` section of the extraction for these fields:
@@ -162,8 +162,8 @@ For each recommendation, the verifier:
 4. Counts capacitors whose parsed value meets at least 80% of the recommended minimum
 
 Severity depends on how many matching caps were found:
-- **HIGH** when zero matching caps found
-- **MEDIUM** when some caps found but fewer than required count
+- **`error`** when zero matching caps found
+- **`warning`** when some caps found but fewer than required count
 
 **Recommendation parsing examples:**
 
@@ -195,7 +195,7 @@ Array of finding objects. Each finding has:
 | Field | Type | Present in | Description |
 |-------|------|------------|-------------|
 | `type` | string | all | Finding type identifier (see check descriptions above) |
-| `severity` | string | all | `CRITICAL`, `HIGH`, or `MEDIUM` |
+| `severity` | string | all | `error`, `warning`, or `info` |
 | `ref` | string | all | Component reference (e.g., `U3`) |
 | `mpn` | string | all | Manufacturer part number |
 | `pin_number` | string | all | Pin number from schematic |
@@ -223,7 +223,7 @@ Array of finding objects. Each finding has:
 | `ics_checked` | int | Total ICs in the design |
 | `ics_with_extractions` | int | ICs that had extraction data available |
 | `total_findings` | int | Total number of findings |
-| `by_severity` | object | Count per severity level (e.g., `{"CRITICAL": 1, "HIGH": 3}`) |
+| `by_severity` | object | Count per severity level (e.g., `{"error": 4, "warning": 1}`) |
 | `note` | string | Present only when no extraction directory was found |
 
 **Example output:**
@@ -233,7 +233,7 @@ Array of finding objects. Each finding has:
   "findings": [
     {
       "type": "pin_voltage_abs_max_exceeded",
-      "severity": "CRITICAL",
+      "severity": "error",
       "ref": "U3",
       "mpn": "TPS61023DRLR",
       "pin_number": "4",
@@ -249,7 +249,7 @@ Array of finding objects. Each finding has:
     "ics_checked": 8,
     "ics_with_extractions": 5,
     "total_findings": 1,
-    "by_severity": {"CRITICAL": 1}
+    "by_severity": {"error": 1}
   }
 }
 ```

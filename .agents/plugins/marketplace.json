@@ -1698,7 +1698,7 @@
       "icon": "./plugins/orwa-mahmoud/nightshift/assets/nightshift-logo.png"
     },
     {
-      "name": "off-the-wall",
+      "name": "dude-toldya",
       "displayName": "Off the Wall",
       "source": {
         "source": "local",
@@ -2317,6 +2317,21 @@
       "category": "Development & Workflow",
       "description": "Local-first scope guard for Codex with explicit task modes, before-action checks, and bounded dependency, hash, and subagent decisions.",
       "icon": "./plugins/lennney/stop-that-shit/assets/stop-icon.svg"
+    },
+    {
+      "name": "suede-skills",
+      "displayName": "Suede AI Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/JasonColapietro/suede-creator-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Open-source Codex plugin with SEO and GEO audits, code review with an A-F ship grade, CI gates, AI evals and app shipping skills.",
+      "icon": "./plugins/JasonColapietro/suede-creator-skills/docs/assets/favicon-64.png"
     },
     {
       "name": "supercov",

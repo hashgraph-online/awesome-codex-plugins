@@ -76,7 +76,7 @@ TikTok Shop Academy's official styles, plus the structure that converts best:
 0:25–end   CTA    "Tap the orange cart" / "tap the basket below"; no price unless it matches the PDP
 ```
 
-Write every spoken line out. The presenter may ad-lib delivery; claims stay as written. Text ≤5–10 words per second, captions inside the safe zone.
+Write every spoken line out. The presenter may ad-lib delivery; claims stay as written. On-screen text at reading speed (at least 0.33 s a word; 5–10 words a second is a ceiling, not a plan), captions inside the safe zone. Size and check the lines with the `video-script` skill.
 
 ## 4. Shot list for a phone shoot (give this to the person)
 

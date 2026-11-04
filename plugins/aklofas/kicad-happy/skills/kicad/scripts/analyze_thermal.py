@@ -27,9 +27,12 @@ import time
 from envelopes.thermal import ThermalEnvelope
 from schema_codec import emit_schema
 from inputs_builder import build_inputs, build_upstream_artifact, build_compat
+from kicad_core.render import wrap_lines
 from capability_mode import get_capability_mode_ref
+from kicad_core.cli import (add_config_arg, add_only_deterministic_arg, add_output_arg, add_schema_arg,
+                            add_stage_audience_args, add_text_arg, envelope_type_error,
+                            utf8_text_stdout)
 from lookup_detectors import detect_tj_exceeds_max
-from lookup_helpers import read_design_context
 
 ANALYZER_SOURCE = "thermal"
 
@@ -890,9 +893,7 @@ def format_text_report(result: dict) -> str:
             sev = f["severity"]
             lines.append(f"  [{sev}] {f['rule_id']}: {f['title']}")
             desc = f.get("description", "")
-            for i in range(0, len(desc), 70):
-                prefix = "    " if i == 0 else "      "
-                lines.append(prefix + desc[i:i + 70])
+            lines.extend(wrap_lines(desc))
             if f.get("recommendation"):
                 lines.append(f"    -> {f['recommendation']}")
             lines.append("")
@@ -906,7 +907,7 @@ def format_text_report(result: dict) -> str:
 # Main
 # ---------------------------------------------------------------------------
 
-def main():
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Thermal hotspot estimator for KiCad designs"
     )
@@ -916,30 +917,21 @@ def main():
     parser.add_argument("--pcb", "-p",
                         help="PCB analyzer JSON (from analyze_pcb.py). "
                              "Auto-resolved from --analysis-dir current run when omitted.")
-    parser.add_argument("--output", "-o",
-                        help="Output JSON file path (default: stdout)")
-    parser.add_argument("--text", action="store_true",
-                        help="Print human-readable text report")
+    add_output_arg(parser, help="Output JSON file path (default: stdout)")
+    add_text_arg(parser, help="Print human-readable text report")
     parser.add_argument("--ambient", type=float, default=DEFAULT_AMBIENT_C,
                         help=f"Ambient temperature in °C (default: {DEFAULT_AMBIENT_C})")
     parser.add_argument("--datasheets", "-d",
                         help="Path to datasheets/extracted/ directory")
-    parser.add_argument("--config", default=None,
-                        help="Path to .kicad-happy.json project config file")
+    add_config_arg(parser)
     parser.add_argument("--analysis-dir",
                         help="Write thermal.json to this directory (analysis folder convention)")
-    parser.add_argument("--schema", action="store_true",
-                        help="Print JSON output schema and exit")
-    parser.add_argument('--stage', default=None,
-                        choices=['schematic', 'layout', 'pre_fab', 'bring_up'],
-                        help='Filter findings by review stage')
-    parser.add_argument('--audience', default=None,
-                        choices=['designer', 'reviewer', 'manager'],
-                        help='Audience level for summaries and --text output')
-    parser.add_argument('--only-deterministic', action='store_true',
-                        help='Accepted for consistency; analyzers never write llm_* fields. '
-                             'Honored by downstream consumers (Phase 4 spec §3.4).')
-    args = parser.parse_args()
+    add_schema_arg(parser)
+    add_stage_audience_args(parser)
+    add_only_deterministic_arg(parser)
+    args = parser.parse_args(argv)
+    if args.text:
+        utf8_text_stdout()
 
     if args.schema:
         emit_schema(ThermalEnvelope)
@@ -969,21 +961,28 @@ def main():
             schematic = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Error reading schematic: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
+    _type_error = envelope_type_error('--schematic', args.schematic, schematic, 'schematic',
+                                      'analyze_schematic.py')
+    if _type_error:
+        parser.error(_type_error)
 
     if 'signal_analysis' in schematic and 'findings' not in schematic:
         print(f'Error: {args.schematic} uses the pre-v1.3 '
               f'signal_analysis wrapper format.\n'
               f'Re-run analyze_schematic.py to produce the current '
               f'findings[] format.', file=sys.stderr)
-        sys.exit(1)
+        return 1
 
     try:
         with open(args.pcb) as f:
             pcb = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Error reading PCB: {e}", file=sys.stderr)
-        sys.exit(1)
+        return 1
+    _type_error = envelope_type_error('--pcb', args.pcb, pcb, 'pcb', 'analyze_pcb.py')
+    if _type_error:
+        parser.error(_type_error)
 
     # Resolve datasheets directory
     extract_dir = args.datasheets
@@ -1070,16 +1069,12 @@ def main():
     # TJ-001 (Phase 4c): recompute TJ via v1.4 facts.base.thermal[theta_ja]
     # and compare to facts.base.absolute_max[TJ_SYNONYMS]. Soft-skip when
     # cache miss or below trust gate.
-    _design_ctx = None
-    if args.output:
-        _design_ctx = read_design_context(_Path(args.output).parent)
-    elif hasattr(args, "analysis_dir") and args.analysis_dir:
-        _design_ctx = read_design_context(args.analysis_dir)
+    diagnostics: list = []
     findings.extend(detect_tj_exceeds_max(
         assessments,
         source=ANALYZER_SOURCE,
         cache_dir=extract_dir,
-        design_context=_design_ctx,
+        diagnostics=diagnostics,
     ))
 
     # Apply suppressions
@@ -1132,6 +1127,7 @@ def main():
         "schema_version": "1.4.0",
         "inputs": inputs,
         "compat": compat,
+        "diagnostics": diagnostics,
         "summary": {
             "total_findings": len(findings),
             "components_assessed": len(assessments),
@@ -1178,26 +1174,8 @@ def main():
 
     # Output
     if analysis_dir_mode:
-        # Route into the current run folder via the manifest. Falls back to
-        # writing at the analysis-dir root if nothing is tracked yet (first
-        # ever run — shouldn't happen since schematic/pcb precede thermal,
-        # but be defensive).
-        import tempfile
-        from analysis_cache import overwrite_current, CANONICAL_OUTPUTS, get_current_run
-        analysis_dir = args.analysis_dir
-        if not os.path.isabs(analysis_dir):
-            analysis_dir = os.path.abspath(analysis_dir)
-        filename = CANONICAL_OUTPUTS.get("thermal", "thermal.json")
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_out = os.path.join(tmp_dir, filename)
-            with open(tmp_out, "w") as f:
-                json.dump(result, f, indent=2)
-            overwrite_current(analysis_dir, tmp_dir, source_hashes=None)
-        current = get_current_run(analysis_dir)
-        if current:
-            out_path = os.path.join(current[0], filename)
-        else:
-            out_path = os.path.join(analysis_dir, filename)
+        from output_io import write_derived_output
+        out_path = write_derived_output(args.analysis_dir, json.dumps(result, indent=2), analyzer="thermal")
         score_str = "SKIPPED" if score is None else f"{score}/100"
         print(f"Thermal analysis complete: {len(findings)} findings "
               f"(score {score_str}) -> {out_path}", file=sys.stderr)
@@ -1216,7 +1194,8 @@ def main():
     else:
         json.dump(result, sys.stdout, indent=2)
         print(file=sys.stdout)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

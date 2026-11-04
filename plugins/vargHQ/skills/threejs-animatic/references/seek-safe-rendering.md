@@ -55,6 +55,7 @@ Modes of the capture tool:
 | `bun tools/capture.ts` | the whole film, colour |
 | `bun tools/capture.ts --shots s02,s03 --grey --out renders/run_A.mp4` | one video-to-video run: the shots back to back by local time, a tail to whole seconds (min 4 s), greyscale; plus `run_A.json` with each shot's in/out inside the clip and its place on the timeline |
 | `bun tools/capture.ts --stills --size 1536x864` | START, middle and END PNG of every shot (for still boards and image edits) |
+| `bun tools/capture.ts --look --stills` | the same stills with the optional look blockout on (`js/look.js`, see look-blockout.md), into `renders/look/`; never the v2v reference |
 
 The tail keeps the blocking running past the last shot's end while the camera holds its END key. Check it: a 2 s
 shot rendered alone gets a 2 s tail, and in the starter that tail shows a later action (an arm rising into the

@@ -52,7 +52,7 @@ The board is the core. Stills feed it; device mockups appear on it as stills bef
 1. **Shot list.** One row per shot: number, time range, shot size, action, place, who is in it, and why the shot
    exists. Cut shots that have no job: a reviewer removed a whole scene as "not clear why it's needed".
    If the person sent a reference clip or images, stay close to it; "make the storyboard closer to the original"
-   was the correction when we drifted.
+   was the correction when we drifted. If they sent none, find some first (see Finding references).
 2. **Anchors first** (see Consistency): character sheet per person, location master per place, product sheet
    per product. Approve these as a small board of their own when the cast or set is new.
 3. **Look test.** Before the full set, make 2-4 test frames of the hardest shots, or one frame in two or three
@@ -113,6 +113,40 @@ Board rules from the reviews:
 
 More layouts (reference board, look-fix plan, asset pack, shot log with music, UI mockup page):
 `references/board-patterns.md`.
+
+## Finding references
+
+Without a specific reference an agent picks the safe, middle version of everything: "most AI videos look cheap
+because nobody gives the AI a real film reference" ([post](https://x.com/ScaleWthAI/status/2111821935021863254)).
+People often cannot name the look they want either ([post](https://x.com/trq212/status/2115641110710419752)), so
+bring frames, not adjectives.
+
+Where to look:
+- **Film-Grab** ([film-grab.com](https://film-grab.com)): free stills from films
+  ([post](https://x.com/miso1278/status/2084635891981750518)).
+- **ShotDeck** ([shotdeck.com](https://shotdeck.com)): paid, two-week trial. Filters film frames by colour, light,
+  camera angle and location; some shots list the camera and lens
+  ([post](https://x.com/tkz_aiart/status/2111805365730095182)).
+- **Shot Cafe** ([shot.cafe](https://shot.cafe)): free reference shots for a scene.
+- **Eyecannndy**: names of visual techniques, for when you know the effect but not the word for it.
+- **Pinterest**: curated boards. Search "[film] still", "[director] color palette", "[decade] film grain",
+  "[genre] lighting", "[character] cosplay".
+- Web and UI motion: [Godly](https://godly.website) and [CTA Gallery](https://cta.gallery)
+  ([post](https://x.com/VullnetAdemaj/status/2116916867923161110)).
+
+How to search and pick:
+- Name the feeling, not the subject, then search by attribute: colour, light, camera angle, location.
+- Go to the specific, recognizable edge on purpose: one famous scene, one iconic costume, one named animation
+  style. The middle version is what the model gives you without a reference.
+- Borrow the look, not the IP: no characters, logos or actors from the source end up in the stills.
+- For every frame, write what you take from it: palette, framing, lens, light direction, texture or motion
+  ("take: the green practical light and lifted blacks", "take: low angle, subject in the lower third"). A frame
+  with no "take" line does not go on the board.
+- You can propose references yourself (a film and the scene, a style, a designer), skipping the obvious first
+  pick. Link the actual frame; the person verifies by looking at it.
+- Put the frames on a reference board with its Never list
+  ([board-patterns.md, pattern 3](references/board-patterns.md#3-reference-board--moodboard)) before any still is
+  generated.
 
 ## Stills that do not look like AI slop
 

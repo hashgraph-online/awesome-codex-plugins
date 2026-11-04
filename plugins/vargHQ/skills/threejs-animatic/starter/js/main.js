@@ -11,7 +11,9 @@ const qs = new URLSearchParams(location.search);
 
 let edits = {};
 try { const r = await fetch('data/edits.json', { cache: 'no-store' }); if (r.ok) edits = await r.json(); } catch { /* first run */ }
-const film = createFilm(edits);
+// ?look=1: the optional look blockout (js/look.js); its images load before the first frame
+const film = createFilm(edits, { look: qs.has('look') });
+await film.ready;
 const { set, shots } = film;
 
 if (qs.has('export')) {

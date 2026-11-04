@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Blockout turnaround</title>
+<style>
+  html, body { margin: 0; background: #e9e6df; overflow: hidden; }
+  canvas { display: block; }
+  .lbl { position: absolute; top: 10px; font: 600 15px/1 Helvetica, Arial, sans-serif; color: #333; letter-spacing: .08em; }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.187.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<script type="module">
+import * as THREE from 'three';
+
+// ---------- 1. A stylised character from primitives: head, limbs, hands, boots ----------
+// Old fisherman: sou'wester hat, yellow oilskin coat, rubber boots, holding a lantern.
+const W = 1600, H = 600, VIEWS = ['FRONT', 'SIDE', 'BACK', 'FACE CLOSE-UP'];
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setSize(W, H);
+renderer.setScissorTest(true);
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8a7f70, 1.6));
+const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(2, 4, 3); scene.add(key);
+const rim = new THREE.DirectionalLight(0xffffff, 0.8); rim.position.set(-3, 2, -3); scene.add(rim);
+
+const mat = (c, r = 0.8) => new THREE.MeshStandardMaterial({ color: c, roughness: r });
+const SKIN = mat(0xd9a58a), COAT = mat(0xe8b923, 0.45), PANTS = mat(0x3b4a5a), BOOT = mat(0x1d1f22, 0.35),
+      BEARD = mat(0xcfcac2, 1), EYE = mat(0x15120f, 0.3), HAT = mat(0xd9a91c, 0.4), METAL = mat(0x6d6a63, 0.35),
+      GLASS = new THREE.MeshStandardMaterial({ color: 0xffd27a, emissive: 0xffa630, emissiveIntensity: 0.9, roughness: 0.2 });
+
+const fig = new THREE.Group(); scene.add(fig);
+function add(geo, m, x, y, z, parent = fig, rot) {
+  const o = new THREE.Mesh(geo, m); o.position.set(x, y, z); if (rot) o.rotation.set(...rot); parent.add(o); return o;
+}
+const cap = (r, len) => new THREE.CapsuleGeometry(r, len, 6, 16);
+
+// legs + boots (boots matter: without them image models turn the figure into a "log")
+for (const s of [-1, 1]) {
+  add(cap(0.12, 0.55), PANTS, s * 0.16, 0.78, 0);
+  add(new THREE.BoxGeometry(0.24, 0.32, 0.36), BOOT, s * 0.16, 0.2, 0.04);   // boot shaft + foot
+  add(new THREE.BoxGeometry(0.26, 0.06, 0.40), BOOT, s * 0.16, 0.03, 0.06);  // sole
+}
+// torso: long oilskin coat (flared cylinder) + chest
+add(new THREE.CylinderGeometry(0.30, 0.42, 0.75, 24), COAT, 0, 1.18, 0);
+add(cap(0.30, 0.35), COAT, 0, 1.62, 0);
+add(new THREE.BoxGeometry(0.05, 0.9, 0.02), mat(0x9c7a14), 0, 1.35, 0.33);   // coat seam / buttons line
+// arms with elbows: upper arm + forearm + hand
+function arm(s, bendDeg) {
+  const shoulder = new THREE.Group(); shoulder.position.set(s * 0.40, 1.80, 0); fig.add(shoulder);
+  shoulder.rotation.z = s * 0.12;
+  add(cap(0.09, 0.32), COAT, 0, -0.22, 0, shoulder);
+  const elbow = new THREE.Group(); elbow.position.set(0, -0.45, 0); shoulder.add(elbow);
+  elbow.rotation.x = -THREE.MathUtils.degToRad(bendDeg);
+  add(cap(0.08, 0.28), COAT, 0, -0.18, 0, elbow);
+  const hand = add(new THREE.SphereGeometry(0.075, 16, 12), SKIN, 0, -0.40, 0, elbow);
+  return hand;
+}
+arm(-1, 5);
+const rightHand = arm(1, 70);
+// neck, head, nose, ears, eyes, brows, beard
+add(new THREE.CylinderGeometry(0.08, 0.1, 0.12, 12), SKIN, 0, 2.02, 0);
+const head = new THREE.Group(); head.position.set(0, 2.25, 0); fig.add(head);
+add(new THREE.SphereGeometry(0.22, 32, 24), SKIN, 0, 0, 0, head).scale.set(1, 1.12, 1);
+add(new THREE.ConeGeometry(0.05, 0.13, 12), SKIN, 0, -0.01, 0.24, head, [Math.PI / 2, 0, 0]);
+for (const s of [-1, 1]) {
+  add(new THREE.SphereGeometry(0.05, 12, 8), SKIN, s * 0.22, 0, 0, head).scale.set(0.5, 1, 0.8);
+  add(new THREE.SphereGeometry(0.028, 12, 8), EYE, s * 0.08, 0.05, 0.19, head);
+  add(new THREE.BoxGeometry(0.09, 0.022, 0.03), BEARD, s * 0.085, 0.11, 0.2, head, [0, 0, -s * 0.15]);
+}
+add(new THREE.SphereGeometry(0.2, 24, 16, 0, Math.PI * 2, Math.PI * 0.45, Math.PI * 0.55), BEARD, 0, -0.04, 0.05, head).scale.set(1.05, 1.1, 1.05);
+// sou'wester hat: crown + brim longer at the back
+add(new THREE.SphereGeometry(0.235, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), HAT, 0, 0.08, 0, head);
+add(new THREE.CylinderGeometry(0.36, 0.4, 0.025, 32), HAT, 0, 0.09, -0.05, head, [-0.12, 0, 0]);
+
+// ---------- 2. One prop: storm lantern held in the right hand ----------
+const lantern = new THREE.Group(); rightHand.add(lantern); lantern.position.set(0, -0.08, 0);
+lantern.rotation.x = THREE.MathUtils.degToRad(70); // undo forearm bend so it hangs straight
+add(new THREE.TorusGeometry(0.07, 0.008, 8, 24, Math.PI), METAL, 0, -0.02, 0, lantern, [0, 0, Math.PI]);
+add(new THREE.CylinderGeometry(0.05, 0.09, 0.05, 16), METAL, 0, -0.1, 0, lantern);
+add(new THREE.CylinderGeometry(0.075, 0.075, 0.16, 16), GLASS, 0, -0.21, 0, lantern);
+add(new THREE.CylinderGeometry(0.1, 0.1, 0.04, 16), METAL, 0, -0.31, 0, lantern);
+for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; add(new THREE.CylinderGeometry(0.006, 0.006, 0.18, 6), METAL, Math.cos(a) * 0.085, -0.21, Math.sin(a) * 0.085, lantern); }
+
+// ground disc so the figure stands somewhere
+add(new THREE.CylinderGeometry(0.7, 0.7, 0.01, 48), mat(0xcbc6bb, 1), 0, -0.005, 0, scene);
+
+// ---------- 3. Four orthographic cameras rendered side by side ----------
+function ortho(height, cx, cy, from) {
+  const aspect = (W / 4) / H, c = new THREE.OrthographicCamera(-height * aspect / 2, height * aspect / 2, height / 2, -height / 2, 0.1, 20);
+  c.position.set(from[0] + cx, from[1] + cy, from[2]); c.lookAt(cx, cy, 0); return c;
+}
+const cams = [
+  ortho(2.9, 0, 1.3, [0, 0, 6]),        // front
+  ortho(2.9, 0, 1.3, [6, 0, 0]),        // side (character's left)
+  ortho(2.9, 0, 1.3, [0, 0, -6]),       // back
+  ortho(0.85, 0, 2.25, [1.6, 0, 5]),    // 3/4 face close-up
+];
+cams[1].lookAt(0, 1.3, 0); cams[3].lookAt(0, 2.25, 0);
+
+// ?solo=1 -> one clean front view on white (input for image-to-3D / image-edit models)
+if (new URLSearchParams(location.search).get('solo')) {
+  scene.children.filter(o => o.isMesh).forEach(o => o.visible = false); // hide ground disc
+  renderer.setScissorTest(false); renderer.setSize(W / 4, H); renderer.setViewport(0, 0, W / 4, H);
+  renderer.setClearColor(0xffffff); renderer.render(scene, cams[0]); window.__done = true; throw 'solo';
+}
+VIEWS.forEach((name, i) => {
+  const x = i * W / 4;
+  renderer.setViewport(x, 0, W / 4, H); renderer.setScissor(x, 0, W / 4, H);
+  renderer.setClearColor(i % 2 ? 0xe2ded6 : 0xece9e2);
+  renderer.render(scene, cams[i]);
+  const d = document.createElement('div'); d.className = 'lbl'; d.textContent = name; d.style.left = (x + 14) + 'px'; document.body.appendChild(d);
+});
+window.__done = true; // for headless runners that wait on a flag
+</script>
+</body>
+</html>

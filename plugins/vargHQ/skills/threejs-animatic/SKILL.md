@@ -8,8 +8,9 @@ description: >-
   rendered to MP4 frame by frame (headless Chrome or HyperFrames), then used as the @video1 reference for
   Seedance 2.5 video-to-video on varg so the generated shots keep the approved camera and blocking. Use when
   someone asks for a three.js animatic or animatronic, a 3D previz or blockout, camera blocking, a camera plan,
-  shot sizes and lenses, a grey-box of a storyboard, previz to Seedance, or a reference video for
-  video-to-video. Includes a working starter project (no npm).
+  shot sizes and lenses, a grey-box of a storyboard, previz to Seedance, a reference video for
+  video-to-video, or a look blockout (reference pictures as textures on the blockout, stills for look approval).
+  Includes a working starter project (no npm).
 license: MIT
 metadata:
   author: vargHQ
@@ -36,7 +37,8 @@ launch films, and a deterministic three.js film rendered through HyperFrames.
 | 1–3 shots, simple camera | skip the animatic: a still per shot, approve, then image-to-video |
 | 3–15 shots, one or two places | **this skill + `starter/`**: hand-key the cameras, review, render, pack |
 | a storyboard of 15+ shots, songs, many locations | this skill for the craft, plus the `varg-previz` skill for its full app: auto cameras from storyboard words ("MCU, 3/4 left, push in"), `pack.json` + board builder, story structure and sheet guides (in this repo: [`varg-previz`](../varg-previz/)) |
-| the animatic itself is the film (3D product shot, explainer) | this skill, render path B (HyperFrames) with HTML text on top |
+| the animatic itself is the film (3D product shot, explainer) | this skill, render path B (HyperFrames) with HTML text on top, plus the optional look blockout |
+| the look must be approved before paid generation | the optional look blockout (below): reference pictures on the grey set, stills only |
 
 ## Quick start
 
@@ -84,6 +86,22 @@ engine. `starter/README.md` lists every key and file.
     QA every output against its `@video1`, cut it back onto the timeline with the run's placement file.
 
 Spend nothing before step 11 except cheap stills. Steps 1–9 are free, and notes cost least there.
+
+## Optional: look blockout (separate from the grey export)
+
+The grey-box approves camera and blocking; a look blockout approves the look on the same set, for free. Reference
+pictures and generated matte paintings go onto the grey geometry as textures (backgrounds, ground, a few hero
+surfaces) with `js/look.js`; geometry, cameras and blocking stay code. Render one still per shot
+(`bun tools/capture.ts --look --stills`), put each next to its reference, list the gaps, fix one area at a time,
+up to 3 rounds, then the person approves the stills. A first version that "looks like a toy" gets a detail pass
+(textures, light matching the reference, small props for scale).
+→ `references/look-blockout.md`
+
+- **Use it** when the animatic itself is the final video (code-rendered), or to approve the look before paid
+  generation. Turn it on only after camera and blocking are approved.
+- **Never feed a textured render as the greyscale `@video1`** unless that is deliberate. The v2v reference stays
+  `capture.ts --grey` without `--look`; the look reaches Seedance through image references and the `Look:` line.
+- Off by default: without `?look=1` / `--look` the review UI and every export are the plain grey film.
 
 ## Camera cheat sheet
 
@@ -177,10 +195,12 @@ Narrow frames: horizontal half-FOV = `atan(tan(vFOV/2)·W/H)`; at 9:16 and vFOV 
 | `references/sets-and-blocking.md` | master sets from plates, lighting, world-time blocking, cheats, labels, the set map |
 | `references/seek-safe-rendering.md` | the determinism contract, CDP capture, HyperFrames path, troubleshooting |
 | `references/seedance-v2v-pack.md` | runs, the greyscale clip, references, a generic prompt, the `call_tool` request, QA |
-| `starter/` | the working project: review UI, set map, camera editor, save/export, checks, MP4/stills capture, HyperFrames builder |
+| `references/look-blockout.md` | optional look pass: textures on the grey set, still vs reference for 3 rounds, detail pass, when not to use it |
+| `starter/` | the working project: review UI, set map, camera editor, save/export, checks, MP4/stills capture, HyperFrames builder, optional look mode (`js/look.js`) |
 
 ## Related skills
 
+`video-animate` (what to do once the animatic is approved: code or AI, which model, cheap pass, takes, sound, plates for motion design),
 `varg-previz` (full previz app, auto cameras, pack builder), `varg-ai` (models, prices, uploads, jobs),
 `varg-video-prompting` (prompting Seedance and other models), `varg-mockups` (still boards before animation),
 `varg-consistent-characters` (character and location sheets), `hyperframes` and its three.js adapter (HTML → MP4,

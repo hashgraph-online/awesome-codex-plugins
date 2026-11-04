@@ -48,7 +48,7 @@ But a hook only has to stop the right people. Barry Hott scaled ads with hook ra
 | Layer | What | Example (knee sleeve) |
 |---|---|---|
 | Visual (0:00) | What is in frame on the first frame | A woman, 55, stops halfway up the stairs, hand on her knee |
-| Spoken | One line, under 12 words | "If your knees crack on the stairs, watch this." |
+| Spoken | One line of 6–8 words, so it fits 3 s at about 2.5 words a second | "Knees crack on the stairs? Watch this." |
 | Text overlay | The same promise in ≤8 words, inside the safe zone | "Knees crack on stairs? 👇" |
 
 The three must agree. "Odd visual + caption + voiceover all saying the same thing" is how operators report 50%+ hook rates.

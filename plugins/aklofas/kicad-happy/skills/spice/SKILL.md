@@ -302,7 +302,7 @@ For detailed information about the behavioral models used, their accuracy envelo
 | `scripts/spice_simulator.py` | Simulator backends — ngspice, LTspice, Xyce auto-detection and batch execution |
 | `scripts/spice_part_library.py` | Lookup table of electrical specs for ~100 common opamps, LDOs, comparators, voltage references, crystal drivers |
 | `scripts/spice_model_generator.py` | Parameterized behavioral .subckt generation from specs dicts |
-| `scripts/spice_model_cache.py` | Project-local model cache in `spice/models/` next to the schematic |
+| `scripts/spice_model_cache.py` | Project-local model cache in `spice/models/` beside the schematic the analysis JSON names (`file` or `inputs.source_files[0]`); only an analysis that names no source file caches under the run's workdir (`--model-cache-dir` to share one cache) |
 | `scripts/spice_spec_fetcher.py` | Queries distributor APIs (LCSC, DigiKey, element14, Mouser), structured datasheet extractions, and PDF regex for parametric specs |
 | `scripts/extract_parasitics.py` | Compute trace R, via L, coupling C from PCB analysis JSON |
 
@@ -311,7 +311,7 @@ For detailed information about the behavioral models used, their accuracy envelo
 When the analyzer detects an opamp with a recognized MPN (e.g., LM358, TL072, MCP6002), the skill uses a **per-part behavioral model** instead of the generic ideal opamp. The model captures the actual GBW, slew rate, input offset, and output swing from the part's datasheet.
 
 Model resolution cascade:
-1. **Project cache** (`<project>/spice/models/`) — previously resolved models
+1. **Project cache** (`<project>/spice/models/`, beside the schematic the analysis JSON names) — previously resolved models
 2. **v1.4 typed datasheet facts** — via `lookup(mpn, cache_dir=<project>/datasheets/extracted)` from the `datasheets` skill. Returns `DatasheetFacts` with `opamp.gbw`, `opamp.slew_rate`, etc. as `SpecValue` instances with trust gating. Recommended source when present.
 3. **Distributor API specs** — queries LCSC (no auth), DigiKey, element14, Mouser for real parametric data
 4. **v1.3 structured datasheet extraction** — reads pre-extracted specs from `<project>/datasheets/extracted/` (legacy dict-shaped JSON, scored for quality). Dual-read compat path; still consulted when v1.4 cache misses.
@@ -319,9 +319,11 @@ Model resolution cascade:
 6. **Built-in lookup table** — ~100 common parts as offline fallback
 7. **Ideal model fallback** — if the MPN isn't recognized by any source
 
+`--offline` skips the distributor and datasheet sources: only the project cache, the built-in lookup table and the ideal fallback are used.
+
 The `model_note` field in the report indicates which model was used: `"LM358 behavioral (lookup:LM358, GBW=1.0MHz)"` vs `"ideal opamp (Aol=1e6, GBW~10MHz)"`.
 
-Models are cached project-locally in a `spice/` directory alongside the schematic files (same pattern as `datasheets/`). This keeps models co-located with the design and handles board revisions and subprojects naturally.
+Models are cached project-locally in a `spice/` directory beside the schematic the analysis JSON names (`file` or `inputs.source_files[0]`), the same pattern as `datasheets/`. Only an analysis that names no source file caches under the run's workdir. This keeps models co-located with the design and handles board revisions and subprojects naturally.
 
 ## Known Limitations
 

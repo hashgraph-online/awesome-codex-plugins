@@ -3,16 +3,15 @@ name: varg-video-edit-library
 description: >-
   A library of named edits an agent adds to footage, each with what it looks like, when to use it,
   the common mistake and how to build it in FFmpeg, HyperFrames, Remotion and CapCut. Cuts and
-  pacing (J-cut, L-cut, match cut, jump cut, speed ramp, smash cut), transitions (whip pan, zoom,
-  glitch, light leak, masks, every FFmpeg xfade, Remotion TransitionSeries, HyperFrames and GL
-  shader transitions), words on screen (headlines, callouts, lower thirds, quotes and reviews, end
-  cards and CTAs), showing a product (UI walkthroughs, cursor moves and clicks, device mockups, code
-  and terminal screens, AI agent flows) and visuals (counters and charts, customer logos, grids and
-  carousels, backdrops). Use when someone asks for a transition, a cut, a title, a lower third, a
-  testimonial, an end card, a CTA, a screen-recording zoom, a cursor, a phone or laptop mockup, a
-  code or terminal animation, an agent workflow animation, an animated number or chart, a logo wall,
-  a carousel or a background while editing a video. Not for choosing an editing service (use
-  varg-video-editing) or generating new footage (varg-ai).
+  pacing (J-cut, L-cut, match cut, speed ramp), transitions (whip pan, zoom, glitch, light leak,
+  masks, FFmpeg xfade, Remotion and shader transitions), words on screen (headlines, callouts, lower
+  thirds, reviews, end cards and CTAs), showing a product (UI walkthroughs, cursor clicks, device
+  mockups, code and terminal screens, agent flows) and visuals (counters and charts, logo walls,
+  grids and carousels, backdrops). Use when someone asks for a transition, a cut, a title, a lower
+  third, a testimonial, an end card, a CTA, a screen-recording zoom, a cursor, a phone or laptop
+  mockup, a code or terminal animation, an animated number or chart, a logo wall or a background
+  while editing a video. Not for choosing an editing service (use varg-video-editing) or generating
+  new footage (varg-ai).
 license: MIT
 metadata:
   author: vargHQ

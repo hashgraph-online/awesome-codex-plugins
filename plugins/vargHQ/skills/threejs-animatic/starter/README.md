@@ -13,6 +13,7 @@ bun tools/check.ts                   # headless: UI screenshot, frames per shot,
 bun tools/capture.ts                 # whole film -> renders/animatic.mp4 (24 fps, 854x480)
 bun tools/capture.ts --shots s01,s02,s03 --grey --out renders/run_A.mp4   # one Seedance v2v reference + run_A.json
 bun tools/capture.ts --stills --size 1536x864                              # START/middle/END png per shot
+bun tools/capture.ts --look --stills       # optional look blockout stills (js/look.js) -> renders/look/, never the v2v reference
 bun tools/make_hf.ts && npx hyperframes render hf -o renders/animatic_hf.mp4   # same film through HyperFrames
 ```
 
@@ -44,6 +45,7 @@ audio) · `F` frame the current moment · `Esc` leave framing.
 | `js/config.js` | title, fps, bpm, aspect, export size, duration, audio path | yes |
 | `js/shots.js` | `SHOTS` (timing, picture, action, START/END camera, subjects to check) and `BLOCKING(S, T)` | yes |
 | `js/sets.js` | the master set: geometry, light, named objects in `S.o`, `reset()` | yes, one builder per location |
+| `js/look.js` | optional look blockout: images on set elements (`LOOK`), on only with `?look=1` / `--look` | when you approve a look |
 | `js/props.js` | primitives, ink outlines, seeded random, jointed mannequin + poses, table, chair, drone, labels | add props |
 | `js/camera.js` | camera keys, eases, arc moves, lens mm ↔ FOV, size/angle/move words, the framing rig | rarely |
 | `js/film.js` | the seek-safe core: `film.pose(t)` and the export hooks `__seek` / `__frame` / `__film` | no |

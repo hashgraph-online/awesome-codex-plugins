@@ -25,27 +25,18 @@ Mode gating:
 
 Sibling-module layout:
     This module lives in skills/emc/scripts/ alongside analyze_emc.py.
-    The analyzer already puts skills/kicad/scripts/ on sys.path before
-    importing; this envelope re-derives the path so it can also be
-    imported standalone (tests, generator tooling).
+    Importing _core_path puts the shared kicad scripts on sys.path, so
+    this envelope also imports standalone (tests, generator tooling).
 """
 from __future__ import annotations
 
-import os
-import sys
 from dataclasses import dataclass, field
 from typing import Optional
 
-# Bridge to skills/kicad/scripts/ for shared primitives. emc_envelope.py
-# is a sibling of analyze_emc.py under skills/emc/scripts/, so reach up
-# two levels and across into skills/kicad/scripts/.
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_KICAD_SCRIPTS = os.path.abspath(os.path.join(_HERE, "..", "..", "kicad", "scripts"))
-if _KICAD_SCRIPTS not in sys.path:
-    sys.path.insert(0, _KICAD_SCRIPTS)
+import _core_path  # noqa: F401
 
 from analyzer_envelope import (  # noqa: E402
-    TrustSummary, Finding, Assessment, BySeverity, InputsBlock, CompatBlock,
+    TrustSummary, Finding, Assessment, BySeverity, InputsBlock, CompatBlock, Diagnostic,
 )
 
 
@@ -244,6 +235,9 @@ class EMCEnvelope:
     compat: CompatBlock = field(metadata={
         "description": "Schema compatibility metadata: minimum consumer "
                        "version + deprecated/experimental field lists."})
+    diagnostics: list[Diagnostic] = field(default_factory=list, kw_only=True, metadata={
+        "description": "Guarded failures that degraded this run (section omitted, "
+                       "fallback model used). Empty when nothing degraded."})
 
     # --- Universal core ---
     target_standard: str = field(metadata={

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Workflow Skills"
+  short_description: "Routes any request to the right Suede AI skill"
+  default_prompt: "Use $suede-workflow-skills to pick the right Suede AI specialist for this request (search visibility, agent automation, code, copy, design, launch, growth, or creator rights) and hand it my request verbatim. If I ask what's next, give me one recommended move and a short runnable prompt."
+policy:
+  allow_implicit_invocation: true

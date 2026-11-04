@@ -141,11 +141,11 @@ Controls analysis script behavior and output.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `output_dir` | string | `"analysis"` | Directory for analysis JSON output |
-| `retention` | integer | `5` | Number of past analysis runs to keep |
+| `output_dir` | string | `"analysis"` | Directory name (relative to the current directory) that receives the `capability_mode.json` sidecar when neither `--analysis-dir` nor `--output` is given; the analysis JSON itself then goes to stdout |
+| `retention` | integer | `0` | 0 = keep every run (default); N keeps the N newest unpinned runs |
 | `auto_diff` | boolean | `true` | Automatically diff against the previous run |
 | `track_in_git` | boolean | `false` | Include analysis output in git tracking |
-| `diff_threshold` | string | `"major"` | Minimum change level to report: `"major"`, `"minor"`, or `"all"` |
+| `diff_threshold` | string | `"major"` | Change level at which a new timestamped run folder is created instead of overwriting the current one: `"major"` (default), `"minor"`, or `"all"` (any detected change) |
 | `power_rails` | object | `{}` | Power rail filtering and annotation (see below) |
 
 #### `analysis.power_rails` (object) — v1.2
@@ -163,7 +163,7 @@ Filter and annotate power rails in analysis output. All patterns use fnmatch glo
 ```jsonc
 "analysis": {
   "output_dir": "analysis",
-  "retention": 5,
+  "retention": 0,
   "auto_diff": true,
   "track_in_git": false,
   "diff_threshold": "major",
@@ -337,7 +337,7 @@ Production consumer electronics board targeting the EU market. LCSC primary supp
 | `bom.field_priority` | array | Yes | — | — |
 | `bom.group_by` | string | Yes | `"value+footprint"` | — |
 | `analysis.output_dir` | string | — | `"analysis"` | — |
-| `analysis.retention` | int | — | 5 | — |
+| `analysis.retention` | int | — | 0 | — |
 | `analysis.auto_diff` | bool | — | true | — |
 | `analysis.track_in_git` | bool | — | false | — |
 | `analysis.diff_threshold` | string | — | `"major"` | — |

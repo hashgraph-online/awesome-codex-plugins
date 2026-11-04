@@ -1,0 +1,44 @@
+[
+  {
+    "keyword": "ceramic bowls",
+    "collectionContext": "Synthetic fixture only",
+    "organic": [
+      {
+        "rank": 1,
+        "url": "https://example.test/bowls"
+      },
+      {
+        "rank": 2,
+        "url": "https://example.test/pottery"
+      }
+    ]
+  },
+  {
+    "keyword": "handmade bowls",
+    "collectionContext": "Synthetic fixture only",
+    "organic": [
+      {
+        "rank": 1,
+        "url": "https://example.test/bowls"
+      },
+      {
+        "rank": 2,
+        "url": "https://example.test/gifts"
+      }
+    ]
+  },
+  {
+    "keyword": "garden tools",
+    "collectionContext": "Synthetic fixture only",
+    "organic": [
+      {
+        "rank": 1,
+        "url": "https://example.test/tools"
+      },
+      {
+        "rank": 2,
+        "url": "https://example.test/garden"
+      }
+    ]
+  }
+]

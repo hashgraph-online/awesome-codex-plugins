@@ -142,8 +142,8 @@ import path3 from "node:path";
 function isTransientLockFsError(error62) {
   return TRANSIENT_LOCK_FS_CODES.has(error62?.code ?? "");
 }
-function pauseBriefly() {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, RETRY_PAUSE_MS);
+function pauseBriefly(delayMs = RETRY_PAUSE_MS) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs);
 }
 async function withProcessLock(directory, operation, timeoutMs = 3e4) {
   const deadline = Date.now() + timeoutMs;
@@ -198,7 +198,7 @@ function tryAcquireProcessLockWithRetry(directory, retries) {
         return acquireExistingLock(directory);
       }
       if (retries < PUBLICATION_RETRY_ATTEMPTS) {
-        pauseBriefly();
+        pauseBriefly(PUBLICATION_RETRY_PAUSE_MS);
         return tryAcquireProcessLockWithRetry(directory, retries + 1);
       }
       throw error62;
@@ -339,14 +339,15 @@ function removeSharedGuard(guard) {
     }
   }
 }
-var selfIdentity, TRANSIENT_LOCK_FS_CODES, DESTINATION_PRESENT_CONTENTION_CODES, PUBLICATION_RETRY_ATTEMPTS, WITHDRAW_RETRY_MS, SHARED_GUARD_RETRY_MS, PRIVATE_CLEANUP_RETRY_MS, RETRY_PAUSE_MS;
+var selfIdentity, TRANSIENT_LOCK_FS_CODES, DESTINATION_PRESENT_CONTENTION_CODES, PUBLICATION_RETRY_ATTEMPTS, PUBLICATION_RETRY_PAUSE_MS, WITHDRAW_RETRY_MS, SHARED_GUARD_RETRY_MS, PRIVATE_CLEANUP_RETRY_MS, RETRY_PAUSE_MS;
 var init_process_lock = __esm({
   "src/store/process-lock.ts"() {
     "use strict";
     selfIdentity = null;
     TRANSIENT_LOCK_FS_CODES = /* @__PURE__ */ new Set(["EEXIST", "EPERM", "EACCES", "EBUSY", "ENOTEMPTY"]);
     DESTINATION_PRESENT_CONTENTION_CODES = /* @__PURE__ */ new Set(["EEXIST", "ENOTEMPTY"]);
-    PUBLICATION_RETRY_ATTEMPTS = 3;
+    PUBLICATION_RETRY_ATTEMPTS = 5;
+    PUBLICATION_RETRY_PAUSE_MS = 50;
     WITHDRAW_RETRY_MS = 5e3;
     SHARED_GUARD_RETRY_MS = 2e3;
     PRIVATE_CLEANUP_RETRY_MS = 1e3;
@@ -2502,16 +2503,28 @@ function verdict(state, reason, now) {
 function failedQuery(reason) {
   return { ok: false, reason, fingerprints: /* @__PURE__ */ new Map() };
 }
-function windowsBatchQuery(pids, timeoutMs) {
+function windowsPowerShellExecutable() {
+  const systemRoot = Object.entries(process.env).find(([key]) => key.toLowerCase() === "systemroot")?.[1];
+  return systemRoot ? `${systemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe` : "powershell.exe";
+}
+function windowsBatchQuery(pids, timeoutMs, onFailure) {
   return new Promise((resolve) => {
-    const script = `$ErrorActionPreference = 'Stop'; Get-Process -Id ${pids.join(",")} -ErrorAction SilentlyContinue | ForEach-Object { "{0}|{1}" -f $_.Id, $_.StartTime.Ticks }; 'bridge_probe_complete_v1'`;
-    const child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
+    const script = `$ErrorActionPreference = 'Stop'; foreach ($id in @(${pids.join(",")})) { try { $target = [System.Diagnostics.Process]::GetProcessById($id); try { [Console]::Out.WriteLine(("{0}|{1}" -f $id, $target.StartTime.Ticks)) } finally { $target.Dispose() } } catch [System.ArgumentException] { } }; [Console]::Out.WriteLine('bridge_probe_complete_v1')`;
+    const child = spawn(windowsPowerShellExecutable(), ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
       shell: false
     });
     let stdout = "";
     let settled = false;
+    const fail = (reason) => {
+      if (settled) return;
+      try {
+        onFailure?.(reason);
+      } catch {
+      }
+      finish(failedQuery(reason));
+    };
     const finish = (query) => {
       if (settled) return;
       settled = true;
@@ -2523,7 +2536,7 @@ function windowsBatchQuery(pids, timeoutMs) {
         child.kill("SIGKILL");
       } catch {
       }
-      finish(failedQuery("timeout"));
+      fail("timeout");
     }, timeoutMs);
     timer.unref();
     child.stdout.setEncoding("utf8");
@@ -2535,19 +2548,27 @@ function windowsBatchQuery(pids, timeoutMs) {
     child.stdout.on("data", (chunk) => {
       if (stdout.length < 1e6) stdout += chunk;
     });
-    child.on("error", () => finish(failedQuery("spawn_error")));
+    child.on("error", () => fail("spawn_error"));
     child.on("close", (code) => {
       const map2 = /* @__PURE__ */ new Map();
       const lines = stdout.trim().split(/\r?\n/u);
-      if (code !== 0 || stderrBytes > 0 || lines.pop() !== "bridge_probe_complete_v1") {
-        finish(failedQuery("query_error"));
+      if (code !== 0) {
+        fail("nonzero_exit");
+        return;
+      }
+      if (stderrBytes > 0) {
+        fail("stderr");
+        return;
+      }
+      if (lines.pop() !== "bridge_probe_complete_v1") {
+        fail("missing_completion_marker");
         return;
       }
       for (const line of lines) {
         if (!line.trim()) continue;
         const match = /^(\d+)\|(\d+)$/u.exec(line.trim());
         if (!match || !pids.includes(Number(match[1])) || map2.has(Number(match[1]))) {
-          finish(failedQuery("query_error"));
+          fail("malformed_output");
           return;
         }
         map2.set(Number(match[1]), match[2]);
@@ -2623,7 +2644,7 @@ function createPlatformProbe(options = {}) {
     if (requests.length === 0) return [];
     const distinct = [...new Set(requests.map((request) => request.pid).filter((pid) => Number.isInteger(pid) && pid > 0))];
     const query = await schedule(async () => {
-      if (process.platform === "win32") return windowsBatchQuery(distinct, timeoutMs);
+      if (process.platform === "win32") return windowsBatchQuery(distinct, timeoutMs, options.onWindowsQueryFailure);
       if (process.platform === "darwin") return darwinQuery(distinct, timeoutMs);
       if (process.platform === "linux") {
         const map2 = /* @__PURE__ */ new Map();
@@ -2664,7 +2685,7 @@ function createPlatformProbe(options = {}) {
   };
   const fingerprintOfPid = async (pid) => {
     const query = await schedule(async () => {
-      if (process.platform === "win32") return windowsBatchQuery([pid], timeoutMs);
+      if (process.platform === "win32") return windowsBatchQuery([pid], timeoutMs, options.onWindowsQueryFailure);
       if (process.platform === "darwin") return darwinQuery([pid], timeoutMs);
       if (process.platform === "linux") {
         const map2 = /* @__PURE__ */ new Map();
@@ -26588,6 +26609,7 @@ var init_zcode_app_server_adapter = __esm({
       #onOutcomeCheckpoint;
       #onInteractionState;
       #terminateProcessTree;
+      #usesDefaultProcessTerminator;
       #verifyTreeClean;
       #onCleanupDecisionTrace;
       #turnBindingCompatMs;
@@ -26612,6 +26634,7 @@ var init_zcode_app_server_adapter = __esm({
         this.#resolveInteraction = options.resolveInteraction;
         this.#onOutcomeCheckpoint = options.onOutcomeCheckpoint;
         this.#onInteractionState = options.onInteractionState;
+        this.#usesDefaultProcessTerminator = options.terminateProcessTreeImpl === void 0;
         this.#terminateProcessTree = options.terminateProcessTreeImpl ?? terminateProcessTree;
         this.#verifyTreeClean = options.verifyTreeClean ?? verifyProcessTreeClaimantsClean;
         this.#onCleanupDecisionTrace = options.onCleanupDecisionTrace;
@@ -27363,6 +27386,12 @@ var init_zcode_app_server_adapter = __esm({
         child.once("spawn", () => {
           spawned = true;
         });
+        let cleanupTransaction = null;
+        const prewarmCleanup = () => {
+          if (process.platform !== "win32" || !this.#usesDefaultProcessTerminator || cleanupTransaction || closed || !child.pid) return;
+          cleanupTransaction = openPowerShellTreeTransaction();
+          void cleanupTransaction.catch(() => void 0);
+        };
         let spawnFailure = null;
         const pending = /* @__PURE__ */ new Map();
         let protocolFatal = null;
@@ -27520,15 +27549,41 @@ var init_zcode_app_server_adapter = __esm({
           const identity = entry.childIdentity?.pid === child.pid ? entry.childIdentity : null;
           if (!terminationStarted && entry.childExitSeen && identity?.fingerprint) {
             traceRootExitedDecision();
+            const pendingTransaction = cleanupTransaction;
+            cleanupTransaction = null;
+            if (pendingTransaction) await (await pendingTransaction).close();
             throw new WindowsTreeCleanupError("process_tree_root_exited", "process_tree_root_exited: original child exit observed; recorded-tree verification required (no termination transaction started)", [child.pid]);
           }
           terminationStarted = true;
           try {
-            const terminated = await this.#terminateProcessTree(child.pid, {
-              graceMs: 500,
-              killWaitMs: 5e3,
-              expectedRootFingerprint: identity?.fingerprint ?? null
-            });
+            let terminated;
+            const pendingTransaction = cleanupTransaction;
+            cleanupTransaction = null;
+            if (pendingTransaction) {
+              try {
+                const transaction = await pendingTransaction;
+                terminated = {
+                  pid: child.pid,
+                  signal: "SIGKILL",
+                  verified: true,
+                  windows: await terminateWindowsProcessTree(child.pid, identity?.fingerprint ?? null, 5e3, {
+                    open: async () => transaction
+                  })
+                };
+              } catch {
+                terminated = await this.#terminateProcessTree(child.pid, {
+                  graceMs: 500,
+                  killWaitMs: 5e3,
+                  expectedRootFingerprint: identity?.fingerprint ?? null
+                });
+              }
+            } else {
+              terminated = await this.#terminateProcessTree(child.pid, {
+                graceMs: 500,
+                killWaitMs: 5e3,
+                expectedRootFingerprint: identity?.fingerprint ?? null
+              });
+            }
             return terminated.windows ?? null;
           } catch (error62) {
             if (error62?.code === "process_tree_root_exited") traceRootExitedDecision();
@@ -27550,11 +27605,7 @@ var init_zcode_app_server_adapter = __esm({
             await identityCapture;
           }
           if (process.platform === "win32" && child.pid) {
-            try {
-              return await closeWindowsTree();
-            } finally {
-              child.stdin.end();
-            }
+            return await closeWindowsTree();
           }
           child.stdin.end();
           await new Promise((resolve) => {
@@ -27575,7 +27626,7 @@ var init_zcode_app_server_adapter = __esm({
           }
           return null;
         };
-        return { child, request, replayEvents, close, get stderr() {
+        return { child, request, replayEvents, prewarmCleanup, close, get stderr() {
           return stderr;
         } };
       }
@@ -27966,6 +28017,7 @@ var init_zcode_app_server_adapter = __esm({
        * (ADR-008); the full text has already streamed through model_output events
        * up to the event-log capacity. */
       #resolveTurnCompleted(entry, payload, event) {
+        if (process.platform === "win32") entry.client?.prewarmCleanup();
         if (entry.turnBinding === "pending") entry.turnBinding = entry.turnId ? "strict" : "compat";
         const rawResponse = typeof payload.response === "string" ? payload.response : "";
         entry.resolveTurn({
@@ -29760,7 +29812,13 @@ async function runClaimOnlyHandshake(options) {
   options.onStage?.("process probe module load");
   const { createPlatformProbe: createPlatformProbe2 } = await Promise.resolve().then(() => (init_process_probe(), process_probe_exports));
   options.onStage?.("process probe initialization");
-  const probe = createPlatformProbe2({ timeoutMs: 1e4 });
+  let processProbeFailure;
+  const probe = createPlatformProbe2({
+    timeoutMs: 1e4,
+    onWindowsQueryFailure: (reason) => {
+      processProbeFailure = reason;
+    }
+  });
   options.onStage?.("identity platform check");
   if (probe.platform !== "win32") throw new Error("claim-only identity requires verified Windows process identity");
   options.onStage?.("process identity probe");
@@ -29768,7 +29826,9 @@ async function runClaimOnlyHandshake(options) {
   options.onStage?.("process identity validation");
   if (identity.platform !== "win32" || identity.fingerprint_precision !== "exact" || typeof identity.fingerprint !== "string" || !identity.fingerprint) {
     options.onStage?.(`process identity rejected platform=${identity.platform} precision=${identity.fingerprint_precision} fingerprint=${identity.fingerprint ? "present" : "missing"}`);
-    throw new Error("worker identity unavailable");
+    const error62 = new Error("worker identity unavailable");
+    error62.code = `worker_identity_${processProbeFailure ?? "unknown"}`;
+    throw error62;
   }
   const report = {
     worker_id: randomUUID5(),

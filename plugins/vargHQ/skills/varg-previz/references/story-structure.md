@@ -25,10 +25,11 @@ the hero.
   a ticking clock), so the camera has something to point at.
 - **Stakes and cost**: the hero fails first and pays something (a scar, a lost thing) that stays to the last frame.
 - **The talker or singer has a reason**: decide which shots are sung or spoken on camera (they need lip-sync later)
-  and which are voice-over.
+  and which are voice-over. Lock the lines, voice and track before any picture (`audio-lock.md`).
 - **A colour script per act** (e.g. cold → warm → dark with one warm point → bright → calm) and **recurring markers**
   (an object, a scar, a colour) that carry the story across cuts.
 - **3–5 film or ad references from one aesthetic**, each tied to a shot: they give the generator a motion vocabulary.
+  Collect them before the story (`refs.md`, `moodboard.md`: `references-and-moodboard.md`).
 - **Loop**: for social, the last frame cuts to frame 1 so the video replays seamlessly.
 
 ## Hero's Journey for 60–180 s

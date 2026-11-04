@@ -1,0 +1,31 @@
+# Version-control and dependency internals
+.git/
+node_modules/
+
+# Generated build, coverage, cache, and temporary output
+.next/
+dist/
+build/
+coverage/
+.cache/
+.turbo/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+*.tmp
+
+# Local environments and secret-bearing configuration
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local release and audit artifacts that are not source inputs
+release-lint-output/
+suede-transfer-package/
+audits/

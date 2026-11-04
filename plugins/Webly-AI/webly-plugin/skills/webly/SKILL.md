@@ -505,6 +505,9 @@ versions between the last publish and that one go live with it (newer ones stay
 unpublished); the response's `alsoPublishes` lists the ones other people or
 agents wrote (who, app, message). Tell your person what of theirs went live.
 Publishing an older version puts nothing new live, and `alsoPublishes` is empty.
+To help someone choose a version: `list_changes` and `diff_source_file` (from the
+version before it) show what it changed, and `preview_version` gives a private link
+to how it looked for an hour, changing nothing.
 
 Git: `get_git_access` gives a read-only clone of a signed-in site's source and
 history (one commit per version). Its token lasts one minute, so run its

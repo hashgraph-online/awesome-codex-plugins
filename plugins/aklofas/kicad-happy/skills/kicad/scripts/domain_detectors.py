@@ -15,9 +15,11 @@ import re
 from collections import Counter
 
 from kicad_types import AnalysisContext
-from kicad_utils import lookup_regulator_vref, parse_value, parse_voltage_from_net_name
+from kicad_core.parts import lookup_regulator_vref
+from kicad_core.values import parse_value
+from kicad_core.netnames import parse_voltage_from_net_name
 from signal_detectors import _get_net_components
-from detector_helpers import get_components_by_type, index_two_pin_components, match_ic_keywords, get_unique_ics
+from detector_helpers import match_ic_keywords, get_unique_ics
 from finding_schema import make_finding, make_provenance
 
 
@@ -4132,7 +4134,7 @@ def _infer_voltage(ctx: AnalysisContext, net_name: str | None) -> float | None:
     """Try to infer voltage from a power net name."""
     if not net_name:
         return None
-    from kicad_utils import parse_voltage_from_net_name
+    from kicad_core.netnames import parse_voltage_from_net_name
     return parse_voltage_from_net_name(net_name)
 
 
@@ -4356,16 +4358,6 @@ _AUDIO_AMP_KEYWORDS = (
     "tda7", "tda2",
     "ssm23", "ssm21",
     "sta3",
-)
-
-_AUDIO_CODEC_KEYWORDS = (
-    "wm89", "wm87",
-    "es83", "es81",
-    "ak49", "ak45",
-    "pcm51", "pcm17", "pcm29", "pcm30",
-    "cs42", "cs43", "cs44", "cs47",
-    "sgtl5", "tlv320",
-    "nau88", "adau17",
 )
 
 _I2S_PINS = {"BCLK", "LRCK", "LRCLK", "WSEL", "WS", "SDIN", "SDOUT",
@@ -5280,10 +5272,10 @@ _PG_PIN_NAMES = {"PG", "PGOOD", "PG1", "PG2", "POWER_GOOD", "POK", "nPG",
                  "~{PG}", "~{PGOOD}", "~{POWER_GOOD}", "~{POK}"}
 
 
-def validate_power_sequencing(ctx: AnalysisContext,
-                               power_regulators: list[dict],
-                               power_path: list[dict],
-                               reset_supervisors: list[dict]) -> dict:
+def build_power_sequencing_graph(ctx: AnalysisContext,
+                                 power_regulators: list[dict],
+                                 power_path: list[dict],
+                                 reset_supervisors: list[dict]) -> dict:
     """Cross-reference power regulators, load switches, and supervisors
     to build a power-up dependency graph and flag sequencing issues."""
 
@@ -5980,7 +5972,7 @@ def detect_i2c_address_conflicts(ctx: AnalysisContext) -> list[dict]:
                 impact='Bus corruption — multiple devices respond to same address',
                 provenance=make_provenance('i2c_addr_conflict', 'deterministic', claimed_components=refs),
             
-                source=ctx.source,))
+                source=ctx.source, schema_era="v3.0",))
     return results
 
 

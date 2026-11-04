@@ -229,7 +229,8 @@ Needs no baseline. The classes of finding:
     or `unchecked`, with a `reason_code`: `non_equality_join`,
     `unsupported_key_expression` (a key rewritten by a function other than a
     cast, `lower`, `upper` or `trim`), `no_safe_cast_on_connector` (a cast key
-    on Postgres, which has no cast that returns NULL), `key_and_filter_condition`, `ambiguous_using`, `unresolved_column`,
+    on Postgres, which has no cast that returns NULL, to a type other than
+    `smallint`, `integer` or `bigint`: those are measured through a guarded cast), `key_and_filter_condition`, `ambiguous_using`, `unresolved_column`,
     `set_operation_cte` (a column read through a UNION CTE, which is not a
     warehouse table), `filtered_cte`, `unparseable_sql`, `relation_not_found`,
     `probe_refused` or `scan_offered`.

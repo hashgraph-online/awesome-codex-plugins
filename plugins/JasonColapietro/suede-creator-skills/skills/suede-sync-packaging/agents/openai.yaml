@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Sync Packaging Skills"
+  short_description: "Prepare tracks for sync review"
+  default_prompt: "Use $suede-sync-packaging to prepare this song or catalog asset for sync review: scene fits, mood tags, lyric flags, the instrumental/clean asset checklist, a supervisor-safe one-sheet, and open clearance questions, without claiming clearance."
+policy:
+  allow_implicit_invocation: true
