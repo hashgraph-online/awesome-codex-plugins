@@ -74,6 +74,9 @@ EXTRA_MIRROR_PATHS = {
     # Cohesivity's .mcp.json starts its local stdio server from
     # ./mcp/project-bootstrap.mjs, which no manifest field references.
     "cohesivity-org/cohesivity-plugin": ("mcp",),
+    # Suede declares its local MCP command inline; keep its server, imported
+    # helpers and catalog data together in the installed bundle.
+    "JasonColapietro/suede-creator-skills": ("mcp",),
     # Espresso inline manifest hooks run src/hooks/*.js, which load the
     # bundled Ponytail runtime from the top-level hooks/ directory.
     "mirkobozzetto/espresso": ("src", "hooks"),
