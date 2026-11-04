@@ -356,6 +356,26 @@ def publish_check(
     upsert_remediation_comment(repository, result, conclusion, check_title, summary, run_url, token)
 
 
+def pull_request_still_open(repository: str, result: dict[str, object], token: str) -> bool:
+    """Re-read the pull request just before publishing.
+
+    A full sweep can run for many minutes, so a pull request found open may have
+    closed or merged since; skip it then. A failed lookup keeps the sweep going.
+    """
+
+    number = result.get("pr_number")
+    if not isinstance(number, int):
+        return True
+    try:
+        pull = github_api(repository, f"/pulls/{number}", token)
+    except RuntimeError:
+        return True
+    if not isinstance(pull, dict) or pull.get("state", "open") == "open":
+        return True
+    print(f"Skipped PR #{number}: closed after the sweep found it")
+    return False
+
+
 def main() -> int:
     repository = os.environ.get("GITHUB_REPOSITORY", "")
     token = os.environ.get("GITHUB_TOKEN", "").strip()
@@ -376,6 +396,8 @@ def main() -> int:
         for result in results:
             if not isinstance(result, dict):
                 raise RuntimeError("validator returned a non-object PR result")
+            if not pull_request_still_open(repository, result, token):
+                continue
             publish_check(repository, result, scanner_jobs, run_url, token)
     except (RuntimeError, json.JSONDecodeError) as error:
         print(f"ERROR: {error}", file=sys.stderr)
