@@ -14,6 +14,35 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GeneratedBundleCleanupTests(unittest.TestCase):
+    def test_suede_inline_mcp_keeps_runtime_and_sibling_dependencies(self):
+        runtime = {
+            "mcp/suede-skills-mcp.mjs": b"import './copy-check.mjs';\n",
+            "mcp/copy-check.mjs": b"export const check = true;\n",
+            "mcp/catalog.json": b'{"skills": []}\n',
+        }
+        manifest = {
+            "name": "suede-skills",
+            "version": "1.0.0",
+            "mcpServers": {
+                "local": {"command": "node", "args": ["./mcp/suede-skills-mcp.mjs"]}
+            },
+        }
+        with tempfile.TemporaryDirectory() as scratch:
+            buffer = io.BytesIO()
+            with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("archive/.codex-plugin/plugin.json", json.dumps(manifest))
+                for path, content in runtime.items():
+                    archive.writestr("archive/" + path, content)
+                archive.writestr("archive/unrelated/data.txt", b"not part of the plugin")
+            with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                MODULE, "fetch_repo_archive", return_value=archive
+            ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                MODULE.mirror_plugin_bundle({"owner": "JasonColapietro", "repo": "suede-creator-skills"})
+            output = Path(scratch) / "JasonColapietro/suede-creator-skills"
+            for path, content in runtime.items():
+                self.assertEqual((output / path).read_bytes(), content)
+            self.assertFalse((output / "unrelated/data.txt").exists())
+
     def test_nested_mirror_retains_nearest_license_without_overwriting_bundle_license(self):
         cases = (
             ({"LICENSE": b"repository license\n"}, {"LICENSE": b"repository license\n"}),
