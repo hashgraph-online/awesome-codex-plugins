@@ -368,7 +368,8 @@ def pull_request_still_open(repository: str, result: dict[str, object], token: s
         return True
     try:
         pull = github_api(repository, f"/pulls/{number}", token)
-    except RuntimeError:
+    except RuntimeError as error:
+        print(f"Could not re-check PR #{number}; publishing anyway: {error}", file=sys.stderr)
         return True
     if not isinstance(pull, dict) or pull.get("state", "open") == "open":
         return True

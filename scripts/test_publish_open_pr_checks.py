@@ -7,7 +7,7 @@ import io
 import json
 import sys
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -220,8 +220,10 @@ class PullRequestStillOpenTests(unittest.TestCase):
             with self.subTest(pull=pull):
                 self.assertFalse(self.check(pull))
 
-    def test_failed_lookup_keeps_publishing(self) -> None:
-        self.assertTrue(self.check(RuntimeError("GitHub API GET failed")))
+    def test_failed_lookup_keeps_publishing_and_says_so(self) -> None:
+        with redirect_stderr(io.StringIO()) as errors:
+            self.assertTrue(self.check(RuntimeError("GitHub API GET failed")))
+        self.assertIn("Could not re-check PR #12", errors.getvalue())
 
     def test_main_does_not_publish_a_pull_request_closed_during_the_sweep(self) -> None:
         env = {
