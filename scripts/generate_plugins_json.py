@@ -18,6 +18,7 @@ import io
 import json
 import re
 import shutil
+import stat
 import sys
 import urllib.request
 import zipfile
@@ -67,6 +68,8 @@ EXTRA_MIRROR_PATHS = {
     # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
     # invoke sibling Python scripts in the same hooks/ directory at runtime.
     "bcanfield/agentic-tech-debt": ("hooks",),
+    # deja's hook configuration invokes its sibling executable wrapper.
+    "vshulcz/deja-vu": ("hooks",),
     # Codex Attachment Manager's .mcp.json starts ./scripts/launch with
     # ./src/plugin-server.ts; the MCP server, engine and panel all live in src/.
     "chipfighter/codex-attachment-manager": ("scripts", "src"),
@@ -329,7 +332,7 @@ def collect_selected_paths(
 
     interface = manifest.get("interface")
     if isinstance(interface, dict):
-        for key in ("composerIcon", "logo"):
+        for key in ("composerIcon", "logo", "logoDark"):
             value = interface.get(key)
             if isinstance(value, str):
                 add_recursive_selection(selected, all_names, plugin_root, value)
@@ -363,7 +366,7 @@ def collect_metadata_only_paths(
 
     interface = manifest.get("interface")
     if isinstance(interface, dict):
-        for key in ("composerIcon", "logo"):
+        for key in ("composerIcon", "logo", "logoDark"):
             value = interface.get(key)
             if isinstance(value, str):
                 add_recursive_selection(selected, all_names, plugin_root, value)
@@ -450,6 +453,10 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
             )
         else:
             destination_path.write_bytes(archive.read(archive_name))
+        # Direct hook commands need the executable bits from the source ZIP.
+        source_mode = archive.getinfo(archive_name).external_attr >> 16
+        executable_bits = source_mode & 0o111 if stat.S_ISREG(source_mode) else 0
+        destination_path.chmod(0o644 | executable_bits)
 
     # Nested bundles may inherit their license from an enclosing directory.
     # Keep a bundle-specific license when present; otherwise retain the nearest

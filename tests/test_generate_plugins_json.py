@@ -14,6 +14,41 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GeneratedBundleCleanupTests(unittest.TestCase):
+    def test_deja_hook_mirror_keeps_executable_wrapper_and_dark_logo(self):
+        manifest = {
+            "name": "deja-vu", "version": "1.0.0",
+            "hooks": "./hooks/hooks.json",
+            "interface": {"logoDark": "./assets/logo-dark.svg"},
+        }
+        with tempfile.TemporaryDirectory() as scratch:
+            buffer = io.BytesIO()
+            with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                prefix = "archive/codex-plugin/"
+                archive.writestr(prefix + ".codex-plugin/plugin.json", json.dumps(manifest))
+                archive.writestr(prefix + "hooks/hooks.json", '{"hooks": {}}')
+                wrapper = MODULE.zipfile.ZipInfo(prefix + "hooks/deja.sh")
+                wrapper.external_attr = 0o100755 << 16
+                archive.writestr(wrapper, b'#!/bin/sh\nexec deja "$@"\n')
+                archive.writestr(prefix + "assets/logo-dark.svg", b"<svg/>\n")
+                archive.writestr("archive/unrelated.txt", b"not bundled")
+            with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                MODULE, "fetch_repo_archive", return_value=archive
+            ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                MODULE.mirror_plugin_bundle({"owner": "vshulcz", "repo": "deja-vu"})
+            output = Path(scratch) / "vshulcz/deja-vu"
+            self.assertEqual((output / "hooks/deja.sh").read_bytes(), b'#!/bin/sh\nexec deja "$@"\n')
+            self.assertEqual((output / "hooks/deja.sh").stat().st_mode & 0o777, 0o755)
+            self.assertEqual((output / "assets/logo-dark.svg").read_bytes(), b"<svg/>\n")
+            self.assertFalse((output / "unrelated.txt").exists())
+
+    def test_metadata_only_mirror_keeps_dark_logo(self):
+        root = MODULE.PurePosixPath("archive")
+        selected = MODULE.collect_metadata_only_paths(
+            {"interface": {"logoDark": "./assets/logo-dark.svg"}},
+            {"archive/assets/logo-dark.svg", "archive/unrelated.txt"}, root,
+        )
+        self.assertEqual(selected, {".codex-plugin/plugin.json", "assets/logo-dark.svg"})
+
     def test_suede_inline_mcp_keeps_runtime_and_sibling_dependencies(self):
         runtime = {
             "mcp/suede-skills-mcp.mjs": b"import './copy-check.mjs';\n",
