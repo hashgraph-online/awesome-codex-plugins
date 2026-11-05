@@ -26,7 +26,7 @@ The contribution-gate comment on the pull request repeats these steps with the
 exact claim link.
 
 To see which steps are still open for a listed plugin, read
-`https://hol.org/api/plugins/owner-next-steps?repo=OWNER/REPO` (JSON, no key
+`https://hol.org/api/v1/plugin-data/owner-next-steps?repo=OWNER/REPO` (JSON, no key
 needed) or call the `get_plugin_owner_next_steps` tool on the HOL MCP server at
-`https://hol.org/api/v1/mcp`. Both return the same steps with a `done` flag for
+`https://hol.org/api/v1/plugin-data/mcp`. Both return the same steps with a `done` flag for
 each, and both answer only after the listing is live in the catalog.
