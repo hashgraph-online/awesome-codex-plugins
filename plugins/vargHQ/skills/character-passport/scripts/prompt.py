@@ -12,7 +12,9 @@ A prop's ```motion block (how it moves and sounds) is added only with --video.
 """
 import argparse, difflib, pathlib, re, sys
 
-FENCE = re.compile(r"```(passport|look|motion|voice)[^\n]*\n(.*?)```", re.S)
+# A fence opens and closes at the start of a line (CommonMark allows up to 3 spaces), so prose that mentions
+# ```passport mid-sentence is never read as a block.
+FENCE = re.compile(r"^ {0,3}```(passport|look|motion|voice)[^\n]*\n(.*?)^ {0,3}```", re.S | re.M)
 
 def block(path, kind, required=True):
     text = pathlib.Path(path).read_text(encoding="utf-8")

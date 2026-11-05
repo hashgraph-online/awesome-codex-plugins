@@ -9,6 +9,7 @@ first, credits in brackets.
 | Sheets, expressions, prop sheet | `nano_banana_2_1` (≤10 reference images) | $0.05 (5 credits) | Holds identity across panels and edits; cheapest. All 22 test images: $1.10 |
 | Photoreal hero face | `seedream_5_pro` | ~$0.07 | Best skin texture in earlier varg tests |
 | Labelled sheet for a client | `gpt_image_2_5` | ~$0.24 | Clean text; keep a text-free twin for models |
+| Sheets and shots, ChatGPT users | `gpt_image_2_6` with `image_size` set, sheet as Image 1 | $0.06-0.07 | Face 0.72 vs 0.66 for Nano Banana with the sheet; ages faces, invents signs, mirrors side details: [gpt-image.md](gpt-image.md) |
 | Shot stills | `nano_banana_2_1`, sheet as Image 1 | $0.05 | 8 of 8 shots kept the face, no grid leak |
 | Voice test lines | `gemini_3_8_flash_tts` with the voice line as `style_instructions` | $0.01 a take | Accent, pace and habit written in words; measured with `voice_check.py` |
 | Voice, final | `eleven_v4` with a chosen voice id + audio tags (`[sighs]`, `[whispers]`) | ~$0.008 per character | Most expressive; voice names can 404 on v4, raw ElevenLabs voice ids work |

@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.0"
+  version: "1.0.1"
   openclaw:
     requires:
       anyBins:
@@ -124,7 +124,7 @@ python3 scripts/prompt.py check prompts/*.txt --cast cast/vesna.md --cast cast/u
 
 Images: the sheet (or its panels) as Image 1, prop sheet as Image 2, location master as Image 3, each named by
 job, plus a winner rule. Video: animate an approved still (Kling 4), or give Seedance 2.5 the face close-up and the
-full-body front. Model table: [references/generate.md](references/generate.md).
+full-body front. Model table: [references/generate.md](references/generate.md). On GPT Image 2.6 / ChatGPT: [references/gpt-image.md](references/gpt-image.md).
 
 ### 8. Judge and rank takes
 
@@ -162,6 +162,7 @@ faces without consent.
 - `references/voice.md`: the voice line, pace numbers, accents, verbal habits, TTS models
 - `references/props.md`: prop passport, materials, wear, motion and sound
 - `references/generate.md`: models and reference order for stills and video
+- `references/gpt-image.md`: GPT Image 2.6 (ChatGPT's model): settings, measured drift, fixes, prompts
 - `references/code.md`: three.js, VRM, SVG and Blender routes
 - `references/reference-sites.md`: tested sites for faces, costumes, props, poses and accents
 - `references/people.md`: who to learn from on X and in the craft, why to trust them, and red flags

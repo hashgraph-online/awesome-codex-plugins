@@ -224,7 +224,7 @@ on 2026-11-04/05 with `gpt_image_2_6`.
 
 | What you see | Fix |
 |---|---|
-| A face changes from the second edit on; saturation drifts ([@k_matsumaru](https://x.com/k_matsumaru/status/2118186638228816322)); edit wear shows from about the third edit ([@NeneneAI](https://x.com/NeneneAI/status/2118165875979407628)) | Edit from the original each time, put all changes in one pass (markup helps), pin Sunburst for chains |
+| A face changes from the second edit on; saturation drifts ([@k_matsumaru](https://x.com/k_matsumaru/status/2118186638228816322)); edit wear shows from about the third edit ([@NeneneAI](https://x.com/NeneneAI/status/2118165875979407628)) | Edit from the original each time, put all changes in one pass (markup helps). Measured on a face (2026-11-05): five chained edits fell from 0.74 to 0.48 face similarity on Flare and from 0.73 to 0.29 on Sunburst with `reasoning_effort: low`; fresh calls from the character sheet averaged 0.77. Pinning Sunburst did not cure the chain: [character-passport/references/gpt-image.md](../character-passport/references/gpt-image.md) |
 | Sepia wash, muddy noise ([@PJaccetturo](https://x.com/PJaccetturo/status/2118146909340868789)) | Not fixed by a setting we know of. Compare with `nano_banana_2_1` for that shot |
 | "Pretty doll faces", a 2015 Tumblr look next to Nano Banana's camera-roll realism ([@flowersslop](https://x.com/flowersslop/status/2118140335687930256)) | For casual phone-photo realism use `nano_banana_2_1` |
 | Pencil and other media looks are cleaner but less like the medium than 2.5 ([@munou_ac](https://x.com/munou_ac/status/2118194696757424613)) | Try `gpt_image_2_5` for hand-made texture |
