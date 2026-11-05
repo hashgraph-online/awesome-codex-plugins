@@ -149,6 +149,8 @@ class ClaimNoticeTests(unittest.TestCase):
         self.lookup = patch.object(MODULE, "fetch_catalog_repos", return_value=set()).start()
         self.post = patch.object(MODULE, "post_comment", return_value=True).start()
         self.update = patch.object(MODULE, "update_comment", return_value=True).start()
+        self.agent = patch.object(MODULE, "pull_request_is_agent_marked", return_value=False).start()
+        patch.object(MODULE, "PR_AGENT_MARKED", False).start()
         self.addCleanup(patch.stopall)
 
     def test_unindexed_listing_gets_a_claim_link(self):
@@ -254,11 +256,13 @@ class NoticeEvidenceTests(unittest.TestCase):
             with self.assertRaises(MODULE.GitHubCommentsFetchError):
                 MODULE.has_existing_claim_comment()
 
-    def test_notice_is_one_paragraph_with_attributed_repository_links(self):
-        body = MODULE.build_comment_body("author", ["owner/second", "owner/first"])
-        self.assertNotIn("\n", body)
+    def test_notice_is_one_paragraph_after_the_marker_with_attributed_repository_links(self):
+        body = MODULE.build_comment_body("owner", ["owner/second", "owner/first"])
+        marker, notice = body.split("\n", 1)
+        self.assertEqual(marker, MODULE.MARKER)
+        self.assertNotIn("\n", notice)
         self.assertNotIn("\\n", body)
-        self.assertIn("@author", body)
+        self.assertIn("@owner", body)
         self.assertIn("Claim your plugin", body)
         self.assertIn("Continue with GitHub", body)
         links = re.findall(r"https://hol.org/guard/plugins\?[^)]+", body)
@@ -280,6 +284,72 @@ class NoticeEvidenceTests(unittest.TestCase):
             "+- [New](https://github.com/owner/new) - New"])
         with patch.object(MODULE.subprocess, "run", return_value=CompletedProcess([], 0, stdout=diff)):
             self.assertEqual(MODULE.parse_pr_diff_for_repos(), {"owner/new"})
+
+
+class OwnerHandoffTests(unittest.TestCase):
+    def setUp(self):
+        patch.object(MODULE, "PR_AGENT_MARKED", False).start()
+        self.addCleanup(patch.stopall)
+
+    def test_marker_sits_on_its_own_line_so_markdown_renders(self):
+        for body in (MODULE.build_comment_body("contributor", {"owner/plugin"}), MODULE.build_comment_body("contributor")):
+            with self.subTest(body=body[:40]):
+                self.assertEqual(body.splitlines()[0], MODULE.MARKER)
+
+    def test_outside_repository_owner_is_mentioned(self):
+        body = MODULE.build_comment_body("contributor", {"owner/plugin"})
+        self.assertIn("@owner: this pull request listed your repository.", body)
+        self.assertIn("Congrats @contributor", body)
+
+    def test_author_who_owns_the_repository_is_not_mentioned_twice(self):
+        body = MODULE.build_comment_body("Owner", {"owner/plugin"})
+        self.assertNotIn("listed your repository", body)
+        self.assertIn("merged into the catalog! [Claim your plugin", body)
+
+    def test_maintainer_repositories_are_not_mentioned(self):
+        body = MODULE.build_comment_body("contributor", {"hashgraph-online/plugin"})
+        self.assertNotIn("listed your repository", body)
+
+    def test_agent_marked_pull_request_uses_agent_handoff_attribution(self):
+        with patch.object(MODULE, "PR_AGENT_MARKED", True):
+            body = MODULE.build_comment_body("contributor", {"owner/plugin"})
+        query = parse_qs(urlparse(re.search(r"\((https://hol\.org/guard/plugins\?[^)]+)\)", body).group(1)).query)
+        self.assertEqual(query["utm_campaign"], ["agent_handoff"])
+        self.assertEqual(query["utm_content"], ["merge_agent"])
+
+    def test_plain_pull_request_keeps_merge_notice_attribution(self):
+        query = parse_qs(urlparse(MODULE.claim_link("owner/plugin")).query)
+        self.assertEqual(query["utm_campaign"], ["plugin_claim"])
+        self.assertEqual(query["utm_content"], ["merge_notice"])
+
+    def test_agent_markers(self):
+        marked = [
+            {"head": {"ref": "codex/add-plugin"}, "user": {"login": "dev"}, "body": ""},
+            {"head": {"ref": "add-plugin"}, "user": {"login": "helper[bot]"}, "body": ""},
+            {"head": {"ref": "add-plugin"}, "user": {"login": "dev"}, "body": "Generated with a coding agent"},
+            {"head": {"ref": "add-plugin"}, "user": {"login": "dev"}, "body": "Co-Authored-By: Codex <noreply@example.com>"},
+        ]
+        for pull in marked:
+            with self.subTest(pull=pull):
+                self.assertTrue(MODULE.is_agent_marked(pull))
+        self.assertFalse(MODULE.is_agent_marked({"head": {"ref": "add-plugin"}, "user": {"login": "dev"}, "body": None}))
+
+    def test_agent_markers_are_read_only_when_a_claim_link_is_posted(self):
+        patch.multiple(MODULE, GH_TOKEN="fixture", PR_NUMBER="1", REPO_FULL="owner/catalog",
+                       PR_AUTHOR="author", PR_TITLE="Add plugin").start()
+        patch.dict(os.environ, {}, clear=True).start()
+        patch.object(MODULE, "has_existing_claim_comment", return_value=False).start()
+        patch.object(MODULE, "parse_pr_diff_for_repos", return_value={"owner/plugin"}).start()
+        patch.object(MODULE, "catalog_source_repos", return_value={"owner/plugin"}).start()
+        lookup = patch.object(MODULE, "fetch_catalog_repos", return_value=set()).start()
+        patch.object(MODULE, "post_comment", return_value=True).start()
+        agent = patch.object(MODULE, "pull_request_is_agent_marked", return_value=True).start()
+        self.assertEqual(MODULE.main(), 0)
+        agent.assert_called_once_with()
+        agent.reset_mock()
+        lookup.return_value = {"owner/plugin"}
+        self.assertEqual(MODULE.main(), 0)
+        agent.assert_not_called()
 
 
 if __name__ == "__main__":

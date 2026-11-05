@@ -191,7 +191,7 @@ class OwnerHandoffTests(unittest.TestCase):
         self.assertIn("utm_medium=check_run&utm_campaign=agent_handoff&utm_content=check_summary", summary)
 
     def test_contributor_docs_carry_the_same_handoff(self) -> None:
-        for name in ("AGENTS.md", "CONTRIBUTING.md"):
+        for name in ("AGENTS.md", "CONTRIBUTING.md", ".agents/skills/list-my-plugin/SKILL.md"):
             with self.subTest(name=name):
                 text = (SCRIPTS.parent / name).read_text(encoding="utf-8")
                 self.assertIn(self.base.HANDOFF_HEADING, text)
