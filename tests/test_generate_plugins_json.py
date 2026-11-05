@@ -14,6 +14,51 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GeneratedBundleCleanupTests(unittest.TestCase):
+    def test_agent_harness_mirror_preserves_shared_resources_and_validation(self):
+        manifest = {
+            "name": "agent-harness-skills", "version": "0.2.0",
+            "skills": "./skills/",
+            "interface": {"composerIcon": "./assets/icon.svg"},
+        }
+        resources = {
+            "skills/validation-harness-design/SKILL.md":
+                b"Read `../../references/harness-patterns.md`.\n",
+            "references/harness-patterns.md": b"# Shared patterns\n",
+            "references/harness-profiles.json": b'{"templateDirectory": "templates"}\n',
+            "templates/validation-matrix.md": b"# Validation matrix\n",
+            "scripts/check_skill_closure.py": b"print('passed')\n",
+            "scripts/test_check_skill_closure.py": b"# Validator tests\n",
+            ".opencode/plugins/agent-harness-skills.js": b"export default async () => ({});\n",
+            ".claude-plugin/plugin.json": b'{"name": "agent-harness-skills"}\n',
+            ".cursor-plugin/plugin.json": b'{"name": "agent-harness-skills"}\n',
+            "gemini-extension.json": b'{"contextFileName": "GEMINI.md"}\n',
+            "AGENTS.md": b"# Repository instructions\n",
+            "INDEX.md": b"# Skill routing\n",
+            "GEMINI.md": b"Read INDEX.md.\n",
+            "README.zh-CN.md": b"# Translated README\n",
+            "CONTRIBUTING.md": b"# Contributing\n",
+            "CODE_OF_CONDUCT.md": b"# Code of conduct\n",
+            "docs/scenario-tests.md": b"# Scenario evidence\n",
+            "assets/icon.svg": b"<svg/>\n",
+            "package.json": b'{"scripts": {"validate": "python3 scripts/check_skill_closure.py"}}\n',
+        }
+        with tempfile.TemporaryDirectory() as scratch:
+            buffer = io.BytesIO()
+            with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("archive/.codex-plugin/plugin.json", json.dumps(manifest))
+                for path, content in resources.items():
+                    archive.writestr("archive/" + path, content)
+                archive.writestr("archive/unrelated/data.txt", b"not part of the plugin")
+            with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                MODULE, "fetch_repo_archive", return_value=archive
+            ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                MODULE.mirror_plugin_bundle({"owner": "yfge", "repo": "agent-harness-skills"})
+            output = Path(scratch) / "yfge/agent-harness-skills"
+            for path, content in resources.items():
+                self.assertTrue((output / path).is_file(), path)
+                self.assertEqual((output / path).read_bytes(), content)
+            self.assertFalse((output / "unrelated/data.txt").exists())
+
     def test_deja_hook_mirror_keeps_executable_wrapper_and_dark_logo(self):
         manifest = {
             "name": "deja-vu", "version": "1.0.0",
