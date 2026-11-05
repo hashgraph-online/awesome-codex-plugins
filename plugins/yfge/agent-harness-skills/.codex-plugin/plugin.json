@@ -1,7 +1,7 @@
 {
   "id": "agent-harness-skills",
   "name": "agent-harness-skills",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Reusable skills for building agent-ready repository harnesses.",
   "author": {
     "name": "Agent Harness Skills contributors"
