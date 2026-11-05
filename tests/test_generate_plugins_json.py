@@ -59,6 +59,38 @@ class GeneratedBundleCleanupTests(unittest.TestCase):
                 self.assertEqual((output / path).read_bytes(), content)
             self.assertFalse((output / "unrelated/data.txt").exists())
 
+    def test_complete_metis_bundle_is_mirrored_verbatim(self):
+        files = {
+            ".codex-plugin/plugin.json": b'{"name":"metis-check","version":"1.0.3","skills":"./skills/","mcpServers":"./.mcp.json"}\n',
+            ".claude-plugin/plugin.json": b'{"name":"metis-check"}\n',
+            ".mcp.json": b'{"mcpServers":{}}\n',
+            "mcp.json": b'{"servers":{}}\n',
+            "plugin.json": b'{"name":"metis-check"}\n',
+            "LICENSE": b"complete unmodified bundle mirroring permitted\n",
+            "README.md": b"installation instructions\n",
+            "assets/README.txt": b"asset attribution\n",
+            "assets/icon-codex.png": b"codex icon",
+            "assets/icon.png": b"other client icon",
+            "assets/logo.png": b"logo",
+            "skills/metis-check/SKILL.md": b"check citations\n",
+            "skills/setup/SKILL.md": b"configure the service\n",
+            "future/new.json": b'{"keep":"new bundle files too"}\n',
+        }
+        with tempfile.TemporaryDirectory() as scratch:
+            buffer = io.BytesIO()
+            with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                for path, content in files.items():
+                    archive.writestr("archive/plugins/metis-check/" + path, content)
+                archive.writestr("archive/dist/music.mp3", b"not licensed for mirroring")
+            with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                MODULE, "fetch_repo_archive", return_value=archive
+            ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                MODULE.mirror_plugin_bundle({"owner": "MetisFoundry", "repo": "metis-plugins"})
+            output = Path(scratch) / "MetisFoundry/metis-plugins"
+            actual = {p.relative_to(output).as_posix(): p.read_bytes()
+                      for p in output.rglob("*") if p.is_file()}
+            self.assertEqual(actual, files)
+
     def test_deja_hook_mirror_keeps_executable_wrapper_and_dark_logo(self):
         manifest = {
             "name": "deja-vu", "version": "1.0.0",

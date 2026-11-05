@@ -34,7 +34,7 @@ Optional preflight, from the plugin's own repository, with the reviewed
 scanner release pinned in `CONTRIBUTING.md`:
 
 ```bash
-pipx run --spec "plugin-scanner==3.58.0" plugin-scanner scan . --format text
+pipx run --spec "plugin-scanner==3.59.0" plugin-scanner scan . --format text
 ```
 
 The pull request runs a required source scan; it needs a score of at least 75.
