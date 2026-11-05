@@ -80,6 +80,8 @@ EXTRA_MIRROR_PATHS = {
     # Suede declares its local MCP command inline; keep its server, imported
     # helpers and catalog data together in the installed bundle.
     "JasonColapietro/suede-creator-skills": ("mcp",),
+    # Mirroring permission requires the complete, unmodified Metis bundle.
+    "MetisFoundry/metis-plugins": (".",),
     # Espresso inline manifest hooks run src/hooks/*.js, which load the
     # bundled Ponytail runtime from the top-level hooks/ directory.
     "mirkobozzetto/espresso": ("src", "hooks"),
@@ -442,11 +444,12 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         shutil.rmtree(destination_root)
     destination_root.mkdir(parents=True, exist_ok=True)
 
+    complete_bundle = "." in EXTRA_MIRROR_PATHS.get(owner_repo, ())
     for relative_path in sorted(selected_paths):
         archive_name = plugin_root.joinpath(PurePosixPath(relative_path)).as_posix()
         destination_path = destination_root / PurePosixPath(relative_path)
         destination_path.parent.mkdir(parents=True, exist_ok=True)
-        if relative_path == ".codex-plugin/plugin.json":
+        if relative_path == ".codex-plugin/plugin.json" and not complete_bundle:
             destination_path.write_text(
                 json.dumps(mirrored_manifest, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8",
