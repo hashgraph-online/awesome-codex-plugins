@@ -376,7 +376,10 @@ Runs `dbt build` against a dev target, with a cost preflight first.
   is needed by hand.
 - Each node in `data.nodes` carries dbt's `unique_id` beside a readable `name`.
 - `data.outcome` says what the run established: `empty_selection`, `unrelated`,
-  `stale`, or `validated`. `--for-plan <id>` adds `coverage`; an empty one is
+  `partial`, `skipped`, `indeterminate` (nothing failed, but a node reported a
+  status dex does not recognize, such as `partial success`), `stale`, `failed`,
+  or `validated`. `data.evidence.generated` lists only the relations this run's
+  successful nodes produced. `--for-plan <id>` adds `coverage`; an empty one is
   refused rather than read as absent.
 - `data.completion` is the first key of `data`: a bounded summary of all of the
   above. Read it first. See below.

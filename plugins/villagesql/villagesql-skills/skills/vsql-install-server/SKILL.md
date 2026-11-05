@@ -48,7 +48,8 @@ An installer build does **not** put the client on `PATH`, so a bare `mysql`
 gives `mysql: command not found`. Take the path from `credentials.txt`:
 
 ```bash
-VSQL_CLIENT="$HOME/.villagesql/prebuilt/bin/mysql"  # installer build
+VSQL_CLIENT="$HOME/.villagesql/prebuilt/bin/mysql"  # installer, prebuilt
+VSQL_CLIENT="$HOME/.villagesql/build/bin/mysql"     # installer, source build
 VSQL_CLIENT=mysql                                   # Docker, or a client already on PATH
 ```
 
