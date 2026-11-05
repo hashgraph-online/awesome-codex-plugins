@@ -60,6 +60,14 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Agent Harness Skills shares root references and templates across skills.
+    # Its package commands also need validation scripts and runtime entrypoints.
+    "yfge/agent-harness-skills": (
+        ".claude-plugin", ".cursor-plugin", ".opencode", "assets",
+        "AGENTS.md", "CODE_OF_CONDUCT.md", "CONTRIBUTING.md", "GEMINI.md",
+        "INDEX.md", "README.zh-CN.md", "docs", "gemini-extension.json",
+        "references", "scripts", "templates",
+    ),
     # Multi-LLM's MCP configuration starts the bundled Python server.
     "beastlabai/multi-llm-plugin": ("mcp",),
     # Workflow MCP bootstrap loads the sibling control-plane runtime; its MCP
