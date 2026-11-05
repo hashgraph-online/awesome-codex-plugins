@@ -60,8 +60,11 @@ everything else. Insert the line in alphabetical order by display name, then
 run:
 
 ```bash
-python3 scripts/check-alphabetical.py README.md
+python3 scripts/check-alphabetical.py README.md --base-ref origin/main
 ```
+
+The base ref matters: the catalog carries older ordering mistakes, and the
+check fails only on ones your change introduces.
 
 Change only `README.md`. Do not add `plugins/`, `plugins.json` or
 `.agents/plugins/marketplace.json`; they are generated from the source
