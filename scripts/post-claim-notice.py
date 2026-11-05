@@ -416,6 +416,16 @@ def catalog_source_repos():
     root = Path(__file__).resolve().parents[1]
     with open(root / "README.md", encoding="utf-8") as readme:
         content = readme.read()
+    # Only Community Plugins feeds the catalog; navigation and related links
+    # do not create registry listings that an owner can claim.
+    catalog_lines = []
+    in_catalog = False
+    for line in content.splitlines():
+        if line.startswith("## "):
+            in_catalog = line.strip() == "## Community Plugins"
+        elif in_catalog:
+            catalog_lines.append(line)
+    content = "\n".join(catalog_lines)
     links = re.findall(
         r"^\s*-\s+\[[^\]]+\]\((https://github\.com/|\./plugins/)"
         r"([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)",
