@@ -74,7 +74,6 @@ The full instructions are in [`skills/tweetapi/SKILL.md`](skills/tweetapi/SKILL.
 - `.claude-plugin/plugin.json`: Claude Code plugin metadata
 - `.mcp.json`: hosted TweetAPI MCP connection
 - `scripts/validate_repository.py`: local packaging and safety checks
-- `docs/design-decisions.md`: packaging decisions and deferred distribution work
 
 ## Validate
 

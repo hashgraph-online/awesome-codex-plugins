@@ -90,9 +90,8 @@ by hand if the request depends on them. `UNBOUNDED` and `CURRENT ROW` are not
 listed, because they have no offset to be off by one.
 
 The scaffold notes a window it could not place rows for, and that input keeps
-one example row. The reasons are: an `ORDER BY` that is an expression rather than
-an input column, a month or year unit, a non-temporal ordering column, or a
-`RANGE` bound that is a bare number. BigQuery's day window, `range between 6
-preceding` over `unix_date(d)`, is the last kind (`numeric_range_offset`). Its
-mutant still runs, so place its boundary rows by hand from the survivor's `frame`:
-there `unit` is the ordering value, which for `unix_date` is days.
+one example row. The reasons are: an `ORDER BY` that is an expression other than
+a whole-day function of a date column, a month or year unit, a non-temporal
+ordering column, or a `RANGE` bound that is a bare number over an arbitrary
+expression. BigQuery's day window over `unix_date(d)` or `date_diff(d, ..., day)`
+is recognized and gets the same four boundary rows as an interval frame.

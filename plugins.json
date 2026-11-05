@@ -3664,13 +3664,13 @@
     },
     {
       "name": "WaveSpeed",
-      "url": "https://github.com/WaveSpeedAI/codex-plugin-wavespeed-cli",
+      "url": "https://github.com/WaveSpeedAI/codex-plugins",
       "owner": "WaveSpeedAI",
-      "repo": "codex-plugin-wavespeed-cli",
-      "description": "Generate and edit AI images, video, audio, and 3D on the WaveSpeed platform with a bundled MCP server and CLI skill, including live catalog search, local-file upload, and price quotes before running.",
+      "repo": "codex-plugins",
+      "description": "Generate and edit AI images, video, audio, and 3D on WaveSpeed through the hosted WaveSpeed MCP server and a CLI skill, with live catalog search and price quotes before running.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/WaveSpeedAI/codex-plugin-wavespeed-cli/HEAD/plugins/wavespeed-cli/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/WaveSpeedAI/codex-plugins/HEAD/plugins/wavespeed-cli/.codex-plugin/plugin.json"
     },
     {
       "name": "Webly",

@@ -1,6 +1,7 @@
 ---
 name: work-state-and-delivery
 description: Use when designing or reconciling design docs, task boards, external trackers, execution plans, delivery records, handoffs, review evidence, task-to-change traceability, or repository commit-coupling policy.
+license: MIT
 ---
 
 # Work State And Delivery

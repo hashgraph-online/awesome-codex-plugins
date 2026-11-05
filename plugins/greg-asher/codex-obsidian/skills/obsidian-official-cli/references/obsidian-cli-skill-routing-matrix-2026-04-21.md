@@ -5,7 +5,8 @@ Use this matrix to pick the right skill and chain them safely.
 ## Skill ownership
 
 - `obsidian-official-cli`:
-  - note CRUD, search, links, tasks, properties, templates, daily notes, history/diff
+  - note CRUD, Obsidian Markdown conventions, controlled section revision, search, links, tasks, properties, templates, daily notes, history/diff
+  - shared note-write preview/recheck/verification/retry contract consumed by workflow saves/captures/repairs
 - `obsidian-cli-bases-and-bookmarks`:
   - base discovery/query/create workflows and bookmark listing/creation
 - `obsidian-cli-runtime-admin`:
@@ -22,6 +23,7 @@ Use this matrix to pick the right skill and chain them safely.
 
 ## Routing examples
 
+- "Update Risks in Projects/Atlas.md in Work" -> `obsidian-official-cli` (resolve vault and section; review minimal diff and supported write mechanism)
 - "Append this to Projects/Plan.md" -> `obsidian-official-cli`
 - "Query Projects.base Roadmap in JSON and bookmark blocked items" -> `obsidian-cli-bases-and-bookmarks`
 - "Install Dataview and enable it" -> `obsidian-cli-runtime-admin`

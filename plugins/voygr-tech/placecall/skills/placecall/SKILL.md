@@ -4,7 +4,7 @@ description: PlaceCall lets your agent call US businesses for reservations, inqu
 license: MIT
 compatibility: Uses the PlaceCall MCP tools when a plugin has connected them (browser sign-in, no key). Otherwise needs curl and outbound HTTPS to api.voygr.tech, the only host this skill contacts and the only place it sends PLACECALL_API_KEY. Places calls to US numbers only, except Indiana, Louisiana, Minnesota, Montana and Nebraska.
 metadata:
-  version: "6.5.1"
+  version: "6.6.0"
   author: voygr-tech
   openclaw:
     primaryEnv: PLACECALL_API_KEY
@@ -296,6 +296,10 @@ Following a call with the MCP tools:
   `CODEX_SANDBOX`, `GEMINI_CLI`), so this expands to the tool that placed the
   call (`claude-code`, `cursor`, `codex` or `gemini-cli`), or to nothing.
   Telemetry only, like `X-Client-Surface`.
+- Version marker: every `POST /calls` also carries
+  `-H "X-Client-Version: placecall-skill/6.6.0"`. Keep it exactly as written.
+  It is telemetry only: it lets the service count calls from older installed
+  copies of this skill before it removes a field.
 - Idempotency key: every `POST /calls` also carries `Idempotency-Key`. The
   value in the examples is a sample: generate a new UUID per call and remember
   it with that call. Send the same value only to retry that same call with
@@ -388,6 +392,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
   -H "X-Client-Surface: claude-plugin" \
   -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
+  -H "X-Client-Version: placecall-skill/6.6.0" \
   -H "Idempotency-Key: 3f6c2a0e-0b8e-4c55-9a51-2d7d1f0b6c11" \
   -d '{
         "target_phone": "+15551234567",
@@ -421,9 +426,9 @@ Body:
   `POST /v1/places/suggest` (next section). If sent, `target_phone` must equal
   that card's `phone_e164`.
 - `voice` (optional, best effort): `{"gender": "female"}` or `"male"` (top
-  level, never inside `slots`; unknown keys are a `422`). It never fails the
-  call. `female` is honored only on calls in `en`, `nl`, `tr`, `ja` or `ru`
-  (elsewhere it is treated as `male`). When the call's language has no voice
+  level; unknown keys are a `422`). It never fails the call. `female` is
+  honored only on calls in `en`, `nl`, `tr`, `ja` or `ru` (elsewhere it is
+  treated as `male`). When the call's language has no voice
   of the asked gender, that language's default voice speaks.
   `GET /calls/{id}` returns `voice.gender` (asked) and `voice.gender_used`
   (the voice that spoke; `null` until audio starts): report `gender_used`.
@@ -449,7 +454,7 @@ are refused:
 - `company_name` (≤60, default `PlaceCall`): must be your own business or one
   you are authorized to represent.
 - `on_behalf_of` (≤80): "calling for {on_behalf_of}". Unset, it is your
-  `parsed_slots.caller_display_name`, else the booking `name`, else "a
+  `parsed_slots.caller_display_name`, else `parsed_slots.name`, else "a
   client" with PlaceCall and no one with your own `company_name`. Must equal
   `caller_display_name` when both are sent.
 - `purpose` (≤100): one clause, no `. ! ? ;`, spoken as sent.
@@ -523,53 +528,13 @@ the name Alex Thompson. If they ask for a callback number, give 415 555 0199.
 Get an explicit confirmation of the reservation before ending."
 ```
 
-### Prefer typed inputs? The structured path (optional, same endpoint)
-
-Instead of writing a `brief`, send `intent` + `slots` and the server builds the
-brief deterministically. Four intents:
-
-| Intent | Required slots |
-|---|---|
-| `inquiry` | `target_phone`, `question` |
-| `info_gathering` | `target_phone`, `questions` |
-| `issue_resolution` | `target_phone`, `issue_description` |
-| `booking` | `target_phone`, `name`, `date` (`YYYY-MM-DD`), `time` (`HH:MM`), `party_size` |
-
-`booking` places the call and stores nothing: the result is the call itself
+State the party size, the date, the time and the name to book under. Always
+give a callback number. "What number can we reach you at?" is the question
+staff ask most often, and a call that cannot answer it tends to end without a
+confirmed reservation. The call stores nothing: the result is the call itself
 (its verdict fields and transcript), not a booking record you can read back or
-cancel later. To cancel a reservation, place a new call and describe the
-cancellation in the `brief`.
-
-```sh
-curl -s -X POST https://api.voygr.tech/calls \
-  -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
-  -H "X-Client-Surface: claude-plugin" \
-  -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
-  -H "Idempotency-Key: 3f6c2a0e-0b8e-4c55-9a51-2d7d1f0b6c11" \
-  -d '{"target_phone": "+15551234567", "intent": "info_gathering",
-       "language": "en", "ask_user_mode": "stream",
-       "slots": {"target_phone": "+15551234567",
-                 "questions": "whether they show the USA match today, and whether a reservation is needed"}}'
-```
-
-- Missing or invalid slots get a 422 with `error_code: "missing_slots"`
-  listing each gap with a ready-made `suggested_question`. Ask your user,
-  refill, resubmit; nothing is charged or dialed until the slots are
-  complete. Schema discovery: `GET /skills/{skill_id}/manifest` (e.g.
-  `concierge`). An unknown intent gets `422 unknown_intent` with the list.
-- The 2xx envelope on this path is flat: a top-level `call_id` (no `call`
-  wrapper), plus `status_url` / `answer_url`. Follow and poll it like a
-  freeform call.
-- For bookings, prefer this structured path: a missing detail comes back as a
-  `422` you can fix before anything is dialed. On the freeform path the same
-  gap surfaces mid-call, as a question the bot has to improvise. For inquiries
-  either path is fine.
-- Always give the bot a callback number for a booking. "What number can we
-  reach you at?" is the question staff ask most often, and a call that cannot
-  answer it tends to end without a confirmed reservation. On `booking` send
-  the optional `phone_to_dictate` slot (read back digit by digit); on the
-  freeform path put the number in the `brief`.
-- Don't mix both in one request: send either a `brief` or `intent` + `slots`.
+cancel later. To cancel, place a new call and describe the cancellation in the
+brief.
 
 ## No number? Find the place first with `POST /v1/places/suggest`
 
@@ -701,6 +666,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
   -H "X-Client-Surface: claude-plugin" \
   -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
+  -H "X-Client-Version: placecall-skill/6.6.0" \
   -H "Idempotency-Key: 3f6c2a0e-0b8e-4c55-9a51-2d7d1f0b6c11" \
   -d '{
         "target_phone": "<card phone_e164>",
@@ -714,8 +680,6 @@ curl -s -X POST https://api.voygr.tech/calls \
 Link rules, all enforced as `422` before anything dials or reserves credits:
 - `target_phone` must equal the card's `phone_e164`
   (`SUGGESTION_PHONE_MISMATCH`; the hint names the right number).
-- `suggestion_id` never mixes with `intent`+`slots`
-  (`SUGGESTION_WITH_SLOTS_UNSUPPORTED`). Cards link freeform briefs only.
 - An unknown id, another account's, or one over 7 days old gets
   `SUGGESTION_NOT_FOUND`. The remedy is always to request fresh suggestions.
 The `brief` itself is yours to edit; only the phone must match the card. A
@@ -804,8 +768,9 @@ done
   Re-read the top-level `call_id` from the `POST /calls` response before you
   poll again. The loop retries `429`, `5xx` and timeouts by itself.
 - `### OUTCOME ###`: terminal; report `result` + `ended_by` + `line_kind` +
-  `result_reason` + `summary` from the `data:` JSON. It also carries the
-  deprecated `outcome_type` and `charge_cents`.
+  `result_reason` + `summary` from the `data:` JSON. It also carries
+  `charge_cents` and the deprecated `outcome_type`, which leaves the API at
+  the sunset. Never wait on `outcome_type` and never branch on it.
 - Other event types: `status_change`, `recording_ready`, `transcript_ready`
   (the post-call check of the recording has finished; `data` is
   `{"at", "turns_count", "duration_ms", "corrections", "unheard"}`, counts
@@ -834,13 +799,17 @@ curl -s -H "X-API-Key: $PLACECALL_API_KEY" https://api.voygr.tech/calls/$ID
 ```
 
 > Keep polling after the status flips. If `status` just became `completed`
-> but `outcome_type` / `transcript_full` are still `null`, the result hasn't
-> finished persisting. Poll `GET /calls/{id}` every few seconds until
-> `outcome_type` is non-null before reporting.
+> but `result` is still `null`, the result hasn't finished persisting. Poll
+> `GET /calls/{id}` every few seconds until `result` is non-null. Any non-null
+> `result` is final for this call, including a value this skill does not
+> list: stop polling, do not redial, and take reachability from `line_kind`.
+> This wait is for a call that just ended. A call that ended before
+> 2026-08-25 keeps `result: null` for good: do not poll it, report it from
+> `outcome_summary` and `transcript_full`.
 
-- Always read `transcript_full` as well as the code. `success_no_booking` is a
-  billable success: information was obtained without a booking, and the
-  details live in the transcript, so report from it.
+- Always read `transcript_full` as well as the verdict fields. Information
+  obtained without a booking is a billable success, and the details live in
+  the transcript, so report from it.
 - `transcript_full` is the call's transcript. Each row has `ts` (epoch
   seconds) and `role`: `operator` (whoever answered: a person, a voicemail
   greeting, a phone menu) or `bot` (our agent). The only other keys are
@@ -916,8 +885,9 @@ four verdict fields. Keep `outcome_type` for correlating with an older log
 line; that is why the values below are spelled exactly as the API returns
 them.
 
-There is no removal date. Twenty values are defined, and the two marked not
-produced yet never appear:
+It leaves the API at the sunset, and no sunset date is announced yet. Never
+wait on it and never branch on it. Twenty values are defined; eighteen are
+produced today, and the two marked not produced yet never appear:
 
 - `success_booked`: the reservation was confirmed.
 - `success_refused`: a real conversation; the venue said no (closed, full,
@@ -1000,9 +970,9 @@ Top-ups are self-serve: <https://api.voygr.tech/checkout?src=claude-plugin>
 
 ## When credits run out
 
-A `402` from a billed request (`POST /calls`, `POST /skills/{id}/run`,
-`POST /v1/places/suggest`) means the balance cannot cover this request.
-Nothing was dialed or searched, and nothing was charged. The body is:
+A `402` from a billed request (`POST /calls` or `POST /v1/places/suggest`)
+means the balance cannot cover this request. Nothing was dialed or searched,
+and nothing was charged. The body is:
 
 ```json
 {"detail": {"error": "quota_exceeded", "needed_credits": N, "checkout_url": "/checkout/buy"}}
@@ -1062,9 +1032,9 @@ have dialed:
 | Status | Code | Meaning, what to do |
 |---|---|---|
 | 400 | `idempotency_key_invalid` | `Idempotency-Key` is not 1-255 characters |
-| 403 | `freeform_disabled` | this key may not send a `brief`: use `intent` + `slots` |
+| 403 | `freeform_disabled` | freeform calls are not enabled for this key: ask support to enable them |
 | 403 | `account_suspended` | the account is suspended: stop, tell the user |
-| 422 | `missing_target_phone`, `invalid_target_phone`, `missing_brief`, `invalid_slots`, `scenario_brief_not_allowed` | fix the request (the `hint` says how) |
+| 422 | `missing_target_phone`, `invalid_target_phone`, `missing_brief`, `scenario_brief_not_allowed` | fix the request (the `hint` says how) |
 | 422 | `emergency_code_blocked`, `service_code_blocked`, `premium_rate_blocked`, `dial_control_syntax_blocked`, `region_not_supported`, `destination_unattributable`, `destination_unscannable`, `destination_blocked` | this number cannot be dialed as sent (`blocked_code`, `hint`): never retry it unchanged |
 | 422 | `brief_policy_violation` | the pre-call check refused the brief: rewrite it |
 | 422 | `ask_user_channel_required` | `ask_user_mode: "webhook"`, but the key has no webhook |
@@ -1099,11 +1069,13 @@ call may have been placed. See
 ## Gotchas (learned the hard way)
 1. Put all details in the `brief`. The bot can only say what it was given.
 2. Take the top-level `call_id`: `POST /calls` answers `202` with a flat
-   body (`call_id`, `status: "queued"`) on both paths. With an empty id, every
+   body (`call_id`, `status: "queued"`). With an empty id, every
    poll returns `404`. Stop on an empty id or a `404`; a loop that ignores
    them runs until its timeout and misses the call.
-3. Poll until `outcome_type` is non-null: a just-completed call can still
-   show `null` outcome/transcript for a few seconds (see above).
+3. Poll until `result` is non-null: a just-completed call can still show a
+   `null` verdict for a few seconds (see above). Any non-null `result` is
+   final for this call. A call that ended before 2026-08-25 keeps a `null`
+   `result` for good: do not poll it.
 4. Follow events with `?after_event_id=N`, not the `Last-Event-ID` header.
 5. Language codes are validated: 13 accepted + `auto` (the default);
    anything else is a fast `422`, nothing is dialed or charged. `en` is the
@@ -1152,8 +1124,8 @@ On the `curl` path:
    `call_brief`).
 2. `POST /calls`, then capture the top-level `call_id`; stop if it is empty.
 3. Run the poll loop; answer any `ask_user` promptly, then re-poll.
-4. On outcome, poll `GET /calls/{id}` until `outcome_type` is non-null (it is
-   the column that lands last, so it is the readiness signal), then read the
-   four verdict fields + `outcome_summary` + `transcript_full`. Report from the
-   transcript as well as the outcome code. For the complete transcript, keep
+4. On outcome, poll `GET /calls/{id}` until `result` is non-null (any
+   non-null value is final for this call), then read the four verdict
+   fields + `outcome_summary` + `transcript_full`. Report from the
+   transcript as well as the verdict fields. For the complete transcript, keep
    polling until `transcript_status` is `final`.

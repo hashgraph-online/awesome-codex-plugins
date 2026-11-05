@@ -27,6 +27,8 @@ Apply must:
 - require explicit confirmation for medium/high risk workflows
 - enforce target matching between preview and apply
 - execute only approved matching steps
+- consume the core authoring/revision contract for every note write, including optional saved reports; retain vault identity/root and path, before/expected state, and per-step verification
+- reuse existing matching approval; reconcile uncertain effects before retries and stop dependent steps on conflict
 - summarize mutations and side effects clearly
 - stop immediately on capability blockers
 

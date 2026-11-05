@@ -2,6 +2,10 @@
 
 This registry is decision-complete for `obsidian-cli-workflows`.
 
+## Shared note-output foundation
+
+All 18 entries below retain their IDs and domain ownership. Any capture, synthesis/report save, task-log insertion, property repair, or optional `output=note` delegates to the core [authoring/revision contract](../../obsidian-official-cli/SKILL.md) and [procedure](../../obsidian-official-cli/references/authoring-and-revision.md). A destination path alone is insufficient: resolve and retain vault identity/root too. Preview exact content/diff and collision policy; recheck before apply, verify after, and reconcile uncertain completion before retry. Existing-file default is block unless an approved append/revision/replacement policy applies. A note save promotes a read-only workflow to medium risk and requires matching apply authorization. Preview never writes. Matching existing approval is sufficient.
+
 ## Canonical interface
 
 - required: `workflow_id=<command-id>`

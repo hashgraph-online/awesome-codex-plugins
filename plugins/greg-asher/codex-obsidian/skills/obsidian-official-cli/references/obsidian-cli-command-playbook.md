@@ -8,38 +8,29 @@ Check that the CLI is visible:
 
 ```bash
 command -v obsidian
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian version'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian version'
 ```
 
 Remember:
 - `vault=<name>` or `vault=<id>` must come before the command.
 - `file=<name>` is for loose read-only note resolution only.
 - `path=<path>` is exact vault-relative targeting and should be preferred once resolved.
-- In Codex Desktop on macOS, prefer the sanitized `script -q /dev/null /usr/local/bin/zsh -ilc 'unset ...; export TERM=xterm-256color; obsidian ...'` wrapper instead of direct `obsidian ...` launches.
+- `CODEX_OBSIDIAN_ZSH_PATH` can override the default `/usr/local/bin/zsh` launcher path and must point to an absolute Zsh-compatible executable.
+- In Codex Desktop on macOS, prefer the sanitized `script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset ...; export TERM=xterm-256color; obsidian ...'` wrapper instead of direct `obsidian ...` launches.
 - The wrapper is the command form. Escalation is a separate decision.
 - Local filesystem support is acceptable when it helps the official CLI complete a safe vault workflow.
 
 ## Mutation session recipe
 
-For reliable mutations in Codex:
-
-1. Resolve the vault target.
-2. Resolve the exact note target.
-3. Ensure the parent folder situation is handled for `create path=...` or similar exact-path mutations.
-4. Run a lightweight read-only probe such as `obsidian version`, `read`, or `daily:read`.
-5. If the vault path is outside writable roots, try the wrapped CLI mutation first when available.
-6. If the wrapped CLI mutation fails for write-permission reasons, or a required support step cannot run in-sandbox, request escalated execution for the wrapped command.
-7. Immediately verify with `read path=...`, `daily:read`, or an on-disk check.
-
-Use this sequence especially when the vault lives outside the current workspace.
+Use the [shared authoring/revision procedure](authoring-and-revision.md) for vault identity/root/path resolution, current-content inspection, substantive previews, matching authorization, collision/recheck/retry behavior, and effect verification. That procedure also defines lossless whole-file transport for section revisions and specific blockers when it cannot be established. For arbitrary supplied content, use JSON and `../scripts/cli.py` instead of interpolating it into the illustrative shell commands below. Static shell examples are for known literal text only.
 
 ## Codex-safe launcher
 
 When running from Codex Desktop on macOS, use the raw wrapper form directly:
 
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian version'
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" read path="Projects/Kestrel.md"'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian version'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" read path="Projects/Kestrel.md"'
 ```
 
 When the wrapped command needs higher privilege in Codex, escalate this exact wrapped form rather than switching back to raw `obsidian ...`.
@@ -48,10 +39,9 @@ Example enhanced execution shape:
 
 ```text
 functions.exec_command(
-  cmd="script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault=\"My Vault\" append path=\"Projects/Kestrel.md\" content=\"\\n- [ ] Review\"'",
+  cmd="script -q /dev/null \"${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}\" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault=\"My Vault\" append path=\"Projects/Kestrel.md\" content=\"\\n- [ ] Review\"'",
   sandbox_permissions="require_escalated",
-  justification="Do you want to run the official Obsidian CLI to update this note in the external vault?",
-  prefix_rule=["script","-q","/dev/null","/usr/local/bin/zsh","-ilc"]
+  justification="Do you want to run the official Obsidian CLI to update this note in the external vault?"
 )
 ```
 
@@ -59,59 +49,59 @@ functions.exec_command(
 
 ### Read the active file
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian read'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian read'
 ```
 
 ### Read a named file
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" read file=Recipe'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" read file=Recipe'
 ```
 
 ### Read an exact path
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" read path="Projects/Kestrel.md"'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" read path="Projects/Kestrel.md"'
 ```
 
 ### Search the vault
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" search query="meeting notes"'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" search query="meeting notes"'
 ```
 
 ### Search with line context
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" search:context query="agent loop"'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" search:context query="agent loop"'
 ```
 
 ## Create and edit
 
 ### Create a note
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" create name="Project Brief"'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" create path="Projects/Project Brief.md"'
 ```
 
 ### Create a note with content
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" create path="Projects/Brief.md" content="# Brief\n\nInitial notes"'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" create path="Projects/Brief.md" content="# Brief\n\nInitial notes"'
 ```
 
 Important:
 - `create path=...` should assume the parent folder already exists unless official CLI docs prove otherwise.
-- If `Projects/` does not already exist, first use the documented CLI path if it works in this environment. If the CLI fails specifically because the parent folder is missing, create the parent folder locally and retry.
+- If `Projects/` does not already exist, first try the CLI. After a specific missing-parent failure, inspect state, validate containment under the resolved vault root, create the parent only when permitted, recheck absence, and retry once. Never run a relative `mkdir` from the repository.
 - Keep the note-content creation itself on the official CLI path.
 
 ### Create from a template
 ```bash
-obsidian vault="My Vault" create name="Trip to Paris" template=Travel
+obsidian vault="My Vault" create path="Trips/Trip to Paris.md" template=Travel
 ```
 
 ### Append content
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" append path="Projects/Brief.md" content="\n- [ ] Review outline"'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" append path="Projects/Brief.md" content="\n- [ ] Review outline"'
 ```
 
 ### Prepend content after frontmatter
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" prepend path="Projects/Brief.md" content="Summary line\n"'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian vault="My Vault" prepend path="Projects/Brief.md" content="Summary line\n"'
 ```
 
 ### Rename a note
@@ -256,15 +246,17 @@ obsidian vault="My Vault" diff path="Projects/Kestrel.md" from=2 to=1
 
 ## Failure triage
 
+A mutation error/timeout can follow an applied or still-in-flight effect. Follow the shared state/completion checks before repeating any write, including a privileged retry. A disabled CLI or unsupported option is a capability blocker, not grounds for escalation.
+
 - `read` works but write fails:
   - suspect sandbox or write-permission boundaries first
   - if the wrapped CLI mutation failed for write-permission reasons, escalate the wrapped command before retrying
 - direct `version`, `read`, or `daily:read` crash from Codex Desktop on macOS:
   - retry with the sanitized `script + zsh -ilc` wrapper first
   - if the wrapped probe succeeds, continue using the wrapped launch form for the rest of the session
-  - if the wrapped probe still fails and the command is important, retry it under escalated execution
+  - if the wrapped read-only probe is launch/IPC sandbox-blocked and important, retry it under escalated execution
   - if the wrapped probe also fails under escalation, then suspect Obsidian launch or runtime problems and ask the user to open Obsidian manually before retrying
 - `create path=...` fails and the parent folder is missing:
-  - create the missing parent folder locally, then retry the CLI mutation
+  - inspect actual state; validate the parent under the resolved canonical vault root (never repo CWD), create it only when permitted, recheck collision state, then retry the CLI mutation once
 - a non-content vault structure operation is needed before the CLI can proceed:
   - do the smallest safe filesystem step needed, then return to the CLI flow

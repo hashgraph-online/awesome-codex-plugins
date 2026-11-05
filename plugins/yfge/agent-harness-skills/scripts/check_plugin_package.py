@@ -20,7 +20,7 @@ PACKAGE_FILES = (
     ".codexignore",
     "AGENTS.md", "INDEX.md", "GEMINI.md", "README.md", "README.zh-CN.md",
     "LICENSE", "CONTRIBUTING.md", "CODE_OF_CONDUCT.md", "SECURITY.md",
-    "package.json", "gemini-extension.json",
+    "package.json", "package-lock.json", "gemini-extension.json",
 )
 RESOURCE_RE = re.compile(r"`((?:\.\./)*references/[\w./-]+\.(?:md|json))`")
 SCRIPT_RE = re.compile(r"\b((?:scripts/|\.opencode/)[\w./-]+\.(?:py|mjs|js))\b")

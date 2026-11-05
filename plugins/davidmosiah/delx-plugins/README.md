@@ -4,6 +4,27 @@ See the repository README: https://github.com/davidmosiah/delx-plugins#delx-reco
 
 Skill: `skills/`. MCP server: `mcp.json` (Agent Plugins) / `.mcp.json` (Claude Code).
 
+## Hermes Agent
+
+```bash
+hermes plugins install davidmosiah/delx-plugins/delx-recovery --no-enable
+hermes plugins enable delx-recovery
+```
+
+Hermes reads this directory as a portable Agent Plugins v1 package: the
+`delx` MCP server from `mcp.json` (Streamable HTTP, hosted at `api.delx.ai`)
+and the `delx-recovery-first-hour` skill. It does not load the `hooks/`
+scripts — those are opt-in Claude Code guardian hooks.
+
+Disclosure: every tool call goes to the hosted Delx Protocol MCP server; there
+is no local code. No API key, OAuth, or payment. Public triage needs no
+credential; private continuity uses the free agent credential returned at
+registration, passed as a tool argument. Whatever the agent chooses to store
+(state, context memory, Continuity Capsules) is retained by Delx under the
+[Privacy Policy](https://ontology.delx.ai/legal/privacy) — do not send secrets.
+Requests carry `?src=plugin` for channel attribution. The tool set is served
+by the remote server at runtime.
+
 
 ## Guardian endpoint policy
 

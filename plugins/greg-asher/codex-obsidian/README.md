@@ -4,7 +4,7 @@
 
 It currently ships seven focused skills:
 
-- `obsidian-official-cli` for core note and metadata workflows.
+- `obsidian-official-cli` for core note/metadata workflows, Obsidian Markdown authoring, and reviewed section revisions.
 - `obsidian-cli-bases-and-bookmarks` for Bases discovery/query and bookmark workflows.
 - `obsidian-cli-runtime-admin` for plugin/theme/snippet and command/hotkey runtime administration.
 - `obsidian-cli-devtools` for runtime diagnostics and developer-command workflows.
@@ -43,6 +43,16 @@ Use explicit workflow command IDs through `obsidian-cli-workflows`:
 - `workflow_id=workspace.focus_mode mode=preview`
 - `workflow_id=workspace.focus_mode mode=apply` (run only after preview + explicit confirmation)
 
+## Controlled Note Authoring
+
+Invoke `$obsidian-official-cli`, for example: “Update the Risks section of Projects/Atlas.md in Work using these findings.” The skill resolves both vault and exact path, reads current content, previews a minimal diff, rechecks before apply, and verifies the result. It preserves unrelated content and inspects state before retrying a timeout. Existing-file creation defaults to a collision; overwrite requires a reviewed, approved write. Workflow note outputs reuse the same contract.
+
+Section revision has no assumed native patch command. It uses a reviewed exact-text candidate and capability-verified whole-file CLI overwrite only when lossless transport is established and approved. Rechecks are optimistic with a remaining concurrency race. Unsupported patches return the proposed diff and a specific blocker.
+
+Prerequisites: official Obsidian desktop installer 1.12.7+ with CLI enabled/registered and app available. Optional bundled helpers require Python 3.9+ (standard library only). They handle JSON arguments and exact-text previews; they do not install services, configure vaults, or write note content directly. Resolve helper paths from the installed skill, including cached copies. See [authoring/revision details](skills/obsidian-official-cli/references/authoring-and-revision.md) and [validation evidence/remaining live checks](skills/obsidian-official-cli/references/validation.md).
+
+All seven skills retain explicit invocation. Natural-language examples describe requests after selecting a skill; named orchestration still uses `workflow_id=`.
+
 ## What This Plugin Does Not Do
 
 - It does not target community Obsidian CLIs or plugin-specific APIs.
@@ -62,6 +72,16 @@ This repository is the plugin root.
 ```
 
 The source of truth is the unpacked plugin content in this repository. There is no separate packaged copy.
+
+## macOS Zsh Path Override
+
+The Codex Desktop launcher uses `/usr/local/bin/zsh` by default for backward compatibility. If Zsh is installed elsewhere, set `CODEX_OBSIDIAN_ZSH_PATH` to an absolute path before starting Codex. For example:
+
+```bash
+export CODEX_OBSIDIAN_ZSH_PATH=/bin/zsh
+```
+
+The launcher quotes the resolved path and continues to use the existing sanitized `script + zsh -ilc` execution form.
 
 ## Local Install And Test Flow
 

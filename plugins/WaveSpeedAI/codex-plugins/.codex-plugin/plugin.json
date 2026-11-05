@@ -1,0 +1,50 @@
+{
+  "name": "wavespeed-cli",
+  "version": "0.1.6",
+  "description": "Generate and edit AI media (image, video, audio, 3D) on WaveSpeed through its hosted MCP server and a CLI skill for local files, batches, live catalog search and price quotes.",
+  "author": {
+    "name": "WaveSpeedAI",
+    "email": "support@wavespeed.ai",
+    "url": "https://wavespeed.ai"
+  },
+  "homepage": "https://github.com/WaveSpeedAI/codex-plugins",
+  "repository": "https://github.com/WaveSpeedAI/codex-plugins",
+  "license": "MIT",
+  "keywords": [
+    "wavespeed",
+    "image-generation",
+    "video-generation",
+    "audio-generation",
+    "3d-generation",
+    "mcp",
+    "cli"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "WaveSpeed",
+    "shortDescription": "AI image, video, audio and 3D generation from Codex — every model on WaveSpeed is one call.",
+    "longDescription": "Adds WaveSpeed to Codex through the hosted WaveSpeed MCP server, authorized once in the browser, and a skill for the open-source wavespeed CLI. Generate, edit and extend images and videos, run any model, inspect schemas, and check prices and balance. The hosted server accepts public URLs; use the CLI with @path for local files. CLI authentication uses wavespeed login separately.",
+    "developerName": "WaveSpeedAI",
+    "category": "Creativity",
+    "capabilities": [
+      "Generate images",
+      "Generate videos",
+      "Generate audio",
+      "Generate 3D assets",
+      "Upload files",
+      "Download outputs"
+    ],
+    "websiteURL": "https://wavespeed.ai",
+    "privacyPolicyURL": "https://wavespeed.ai/static/privacy",
+    "termsOfServiceURL": "https://wavespeed.ai/static/terms",
+    "defaultPrompt": [
+      "Generate a 16:9 hero image of a cyberpunk skyline at golden hour.",
+      "Animate ./hero.jpg into a 5-second clip with subtle parallax.",
+      "Replace the background of ./product.png with a sunlit kitchen, then quote the cost first."
+    ],
+    "brandColor": "#7C5CFF",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
+  }
+}

@@ -76,7 +76,14 @@ the project edits, migrations and dev builds described below.
    asked for that difference: state an intended rename with `--map` or type change
    with `--accept-type`, and never loosen the comparison to get a match.
    `not_checked` is not equivalence: relay its `reason_code`, and where it names
-   an input to rebuild or repair, do that and compare again. Equivalence is about
+   an input to rebuild or repair, do that and compare again. When the offer says
+   `baseline_ready: false`, the baseline itself does not build: repair the input
+   it names in a plan of its own, apply and build that plan (with `--cold-deps`
+   where a package owns the node), and only then compare the refactor's plan,
+   which stays unapplied until it is compared; if the repair changed a file
+   that plan edits, plan the refactor again first (`plan_stale`). Never put the repair in the
+   refactor's plan: its comparison would have nothing built to read
+   (`mixed_with_repair`). Equivalence is about
    the results the request keeps, not an intermediate's layout. A change meant
    to alter results needs no comparison.
 4. **Apply.** `dex transform apply <plan-id>` writes the plan as a reviewable
@@ -158,7 +165,18 @@ declares is `contract`.
   tests and semantic references, while "make it permanent" keeps them and drops
   only the conditionals. A flag's default decides neither. State the behavior
   that survives with a `retirement` contract on `dex transform remove var`.
+  Where it refuses because the reference scan cannot finish, add
+  `"scope": "authored"` to the contract rather than falling back to a plain
+  plan, and relay its discovery as unchecked.
   Recipe: `skills/transform/references/feature-retirement.md`.
+- Adding or changing a flag that stays ("hide the fee columns when it is
+  false") has to hold on both values in every model of the project, not only
+  the models that feed one mart. State it with a `toggle` contract on
+  `dex transform plan` (`variable`, `on_value`, `off_value`, the governed
+  `columns`): `data.toggle` compiles every model at each value and names each
+  producer still outputting a governed column with the flag off. An empty
+  table proves nothing by its rows; the build judges its columns.
+  Recipe: `skills/transform/references/feature-toggles.md`.
 - A new version of an existing model ("v2", a future replacement) is a native
   dbt version: a `versions:` list on the model's YAML entry, with
   `latest_version` keeping the current default, never an independent
@@ -212,7 +230,10 @@ declares is `contract`.
   the repairs dbt supports, make a supported one through a plan (an explicit
   cast, never dropped rows), and prove it with `--cold-deps` on the build. With no
   repair in scope the deliverable is incomplete: report the prerequisite and the
-  remedy tried. Recipe: `skills/transform/references/prerequisite-repairs.md`.
+  remedy tried. `dex transform deps` and the build's own install fetch the
+  packages the project already declares (pinned where `package-lock.yml`
+  matches `packages.yml`): that is not installing or upgrading a tool, so a
+  request not to update tools does not rule it out. Recipe: `skills/transform/references/prerequisite-repairs.md`.
 
 **Spending authority.** It comes from the person running this session, or from
 limits committed before it started: `budget.ceiling` (per command) and
@@ -396,6 +417,11 @@ a field, flag, or macro you need is not described here.
   file, re-plan against the current state. Re-run with `--confirm` only when the
   user says so.
 - List plans with `transform plans`; never browse `.dex/plans/` by hand.
+- A refactor whose offer says `baseline_ready: false` has no baseline yet:
+  repair the blocked input in a plan of its own, apply it, build it
+  (`--cold-deps` for a package's model), then compare the refactor's plan, which
+  you have not applied. A plan carrying both (`mixed_with_repair`) can never be
+  compared. Recipe: `${CLAUDE_SKILL_DIR}/references/prerequisite-repairs.md`.
 - A delete is refused while a surviving file still `ref()`s it. Carry the edits
   that remove those references in the same plan.
 - `transform rename` needs a column named as `model.column`. It refuses rather
@@ -568,6 +594,9 @@ a field, flag, or macro you need is not described here.
 - `${CLAUDE_SKILL_DIR}/references/feature-retirement.md`: retiring a feature flag
   versus making it permanent, the `retirement` contract on `remove var`, and how
   each check holds the change to the behavior it keeps.
+- `${CLAUDE_SKILL_DIR}/references/feature-toggles.md`: a flag that stays live,
+  the `toggle` contract on `transform plan`, every producer of its columns
+  checked on both values, and an off build judged by its columns.
 - `${CLAUDE_SKILL_DIR}/references/model-versions.md`: a new version of a model as
   native dbt versions, declaring each version, reading `data.model_versions`, and
   promotion as its own plan.

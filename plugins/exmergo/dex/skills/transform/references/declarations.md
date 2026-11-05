@@ -481,9 +481,8 @@ general SCD verifier: history built on anything but a dbt snapshot, a model hold
 one row per period, and any policy not listed here are out of scope, and no policy
 is inferred. Nothing here repairs a snapshot or a model. A source timestamp that
 merely equals a creation timestamp is not evidence either way, so it is not flagged;
-only a failure observed at a status change is. `explore --use-project` does not
-carry `history` yet, `semantic ossie|slayer|cube` refuse it, and a derived semantic
-definition lists it under `not_carried`.
+only a failure observed at a status change is. `semantic ossie|slayer|cube` refuse
+it, and a derived semantic definition lists it under `not_carried`.
 
 The statements are aggregate-only, priced with `(declared facts)`, and go through
 the same handshake and session ceiling. They return counts, never a row or a value.
@@ -493,10 +492,13 @@ the same handshake and session ceiling. They return counts, never a row or a val
 `explore profile` and `explore map` with `--use-project` return each declared
 model's declaration as `declaration` on the relation it builds: grain (with
 `grain_status` comparing it with the measured keys), population (a declared
-`parent` as `model`, `columns` and `parent_columns`), and each column's role,
-unit, additivity and `references`. A `references` is also a declared join,
-`declared_by: declaration <model>.<column>`. It is read from the YAML on every run and never cached, so a later session reads the rule the
-project records rather than one remembered from the conversation that wrote it.
+`parent` as `model`, `columns` and `parent_columns`), history (under
+`--values-free` or on PII-flagged status columns, `status.target` is withheld
+and named in `withheld_fields`), and each column's role, unit, additivity and
+`references`. A `references` is also a declared join,
+`declared_by: declaration <model>.<column>`. It is read from the YAML on every
+run and never cached, so a later session reads the rule the project records
+rather than one remembered from the conversation that wrote it.
 
 A native layer is read back the same way, so `semantic ossie|slayer|cube plan`
 with `declarations` reaches `explore --use-project` with no dbt project present.

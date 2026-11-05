@@ -42,5 +42,17 @@ When the requested action is outside the supported official desktop CLI surface:
 
 If the task is blocked because the official CLI cannot create the needed parent folder or because the execution environment prevents writes:
 1. say why the current mutation path is blocked
-2. use the smallest safe local vault operation needed to support the CLI path, or request escalated execution when the vault is outside writable roots
+2. use the smallest safe local vault operation needed to support the CLI path, or request escalated execution after an actual permission/IPC failure or blocked required support step
 3. stop only if the remaining work would require broader raw filesystem editing or another unsupported surface
+
+## Controlled revision limits
+
+- No documented arbitrary section/block replacement primitive is assumed. Heading append/prepend is insertion only. Reviewed section revisions may use `create ... overwrite` only after the shared authoring contract's capability, preservation, approval, and recheck gates.
+- Whole-file transport requires a byte-preserving snapshot and verified lossless round trip. Literal backslash-n/backslash-t and CR/CRLF content are blocked by the optional helper pending verified transport. Return a proposed diff and specific blocker instead of guessed escaping.
+- Rechecks are optimistic; CLI writes are not atomic compare-and-swap or proven create-exclusive. There remains a concurrent-edit race window. Post-write success cannot establish that an intervening edit was never overwritten.
+- Metadata commands may reserialize frontmatter; inspect/disclose this and verify the raw diff. No unrelated body normalization is permitted.
+- Retry safety depends on retained before/expected state and a readable current target. A timeout or error after dispatch may have applied the effect. Never repeat append/create without reconciling state and establishing the original operation can no longer apply; unchanged-before alone is insufficient after timeout; no exactly-once guarantee after session evidence is lost.
+- Snapshots are ephemeral recovery evidence, not automatic backups or persistent memory. Never restore over later user edits without a reviewed compensating change.
+- Python 3.9+ standard library is required for bundled helpers; no third-party package, service, persistent configuration, or install-cache writes are introduced. macOS retains sanitized script/Zsh execution; other platforms use direct argv without a shell. Cross-platform CLI/runtime behavior still needs local verification.
+
+See [authoring-and-revision.md](authoring-and-revision.md) and [obsidian-markdown.md](obsidian-markdown.md).

@@ -20,6 +20,13 @@ Hand content over with `--edits-file <path>` (or `-` to read stdin):
 ]}
 ```
 
+Beside `edits`, `transform plan` also takes `declarations`
+([declarations.md](declarations.md)) and a `toggle` contract for a flag that
+stays live ([feature-toggles.md](feature-toggles.md)). `transform remove var`
+takes a `retirement` contract instead
+([feature-retirement.md](feature-retirement.md)). A command that does not read a
+contract refuses it rather than dropping it, and one payload never carries both.
+
 ## Kinds and what each must be
 
 A new version of an existing model is a `model_sql` edit for the version's file

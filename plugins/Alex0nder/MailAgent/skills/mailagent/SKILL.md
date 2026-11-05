@@ -37,13 +37,13 @@ MCP in `.cursor/mcp.json` → `@mailagent/mcp` or `mcp/dist/index.js`. Skill aut
 ### Agent Skills catalog (repo root)
 
 ```bash
-npx skills add Alex0nder/MailAgent --skill mailagent
+npx skills add navorina-labs/MailAgent --skill mailagent
 ```
 
 ### OpenAI Codex
 
 ```bash
-codex plugin marketplace add Alex0nder/MailAgent
+codex plugin marketplace add navorina-labs/MailAgent
 codex plugin add mailagent@mailagent
 ```
 

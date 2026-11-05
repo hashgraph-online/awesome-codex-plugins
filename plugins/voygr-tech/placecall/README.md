@@ -9,6 +9,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
   -H "X-Client-Surface: gh-repo" \
   -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
+  -H "X-Client-Version: placecall-skill/6.6.0" \
   -d '{"target_phone":"+1XXXXXXXXXX","brief":"Call this restaurant and ask what time the kitchen closes tonight.","language":"en"}'
 ```
 
@@ -464,9 +465,10 @@ remove or disable that too, for the same reason.
   The free tier is one pot: 250 free calls is 2,500 credits, and suggestions
   spend from the same 2,500.
 - After a call reaches `completed`, the outcome and transcript can land a
-  moment after the status flips, so poll `GET /calls/{id}` until
-  `outcome_type` is non-null. The transcript is complete once
-  `transcript_status` reads `final`, usually a minute or two later.
+  moment after the status flips, so poll `GET /calls/{id}` until `result` is
+  non-null. Any non-null `result` is final for that call. The transcript is
+  complete once `transcript_status` reads `final`, usually a minute or two
+  later.
 - 13 language codes are accepted: `en`, `es`, `fr`, `de`, `hi`, `ru`, `pt`,
   `ja`, `it`, `nl`, `sr`, `tr`, `pl`. The default, `auto`, runs the call in
   English and does not switch mid-call; send `es` for a call in Spanish. `en`
@@ -494,8 +496,8 @@ The skill is instructions your agent follows, through the MCP tools or
   `GET /calls/{id}/recording` follow and read it.
 - Finding a place: `POST /v1/places/suggest` sends your request, plus the name
   and callback number when you give them.
-- Account: `GET /users/me`, `GET /v1/usage`, `GET /checkout/packs`,
-  `GET /skills/{id}/manifest` and `PUT /users/me/limits`.
+- Account: `GET /users/me`, `GET /v1/usage`, `GET /checkout/packs` and
+  `PUT /users/me/limits`.
 - Sign-up by email code: `POST /signup` sends your name and email;
   `POST /signup/verify` sends the code from the email.
 
@@ -505,12 +507,14 @@ access token, not a key; the Gemini CLI extension sends your key in
 two sign-up calls, which send none (`POST /signup/verify` returns one).
 `PLACECALL_API_KEY` goes only to `api.voygr.tech`.
 
-`POST /calls` also sends three headers that never affect auth or billing.
+`POST /calls` also sends four headers that never affect auth or billing.
 `Idempotency-Key` stops a retry dialing twice. `X-Client-Surface` names the
 listing these instructions came from. `X-Client-Agent` names the tool that
 placed the call (`claude-code`, `cursor`, `codex` or `gemini-cli`), worked out
 from which of `CLAUDECODE`, `CURSOR_AGENT`, `CODEX_SANDBOX` and `GEMINI_CLI`
-is set. Only the name is sent, never a variable's value.
+is set. Only the name is sent, never a variable's value. `X-Client-Version`
+names the version of these instructions, so the service can count calls from
+older installed copies before it removes a field.
 
 The skill reads one local file, `~/.codex/placecall.env`, only when
 `PLACECALL_API_KEY` is unset; the email-code sign-up writes it. `install.sh`

@@ -1,6 +1,7 @@
 ---
 name: validation-harness-design
 description: Use when designing repository validation commands, doctor scripts, test matrices, JSON or JUnit outputs, CI gates, smoke checks, or harness command surfaces.
+license: MIT
 ---
 
 # Validation Harness Design

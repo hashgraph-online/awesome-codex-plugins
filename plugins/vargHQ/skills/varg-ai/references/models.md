@@ -193,6 +193,8 @@ Use with `varg.imageModel("id")`. Credits are per image.
 | `qwen_angles` | ~9 | `{ text, images }` | New camera angle of a subject. |
 | `topaz` / `seedvr` / `clarity_upscaler` | ~2-17 | image | Upscaling. |
 
+**GPT Image 2.6 skills** (for `gpt_image_2_6`): `gpt-image-2-6` (model guide, measured prices, layout recipes), `gpt-image-gif` (looping GIFs and the sprite-sheet pixel budget), `gpt-image-sticker-pack` (animated stickers for six messengers), `gpt-image-sprite-sheet` (game sprite sheets and atlases), `gpt-image-markup-edit` (circle-and-arrow edits).
+
 ### Image Prompt Examples
 
 **Text-to-image:**

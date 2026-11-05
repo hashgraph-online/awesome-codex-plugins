@@ -19,7 +19,7 @@
   "interface": {
     "displayName": "Codex Obsidian",
     "shortDescription": "Local Obsidian workflows through the official desktop CLI.",
-    "longDescription": "Install focused Codex skills for local Obsidian note workflows, Bases/Bookmarks operations, runtime administration, devtools diagnostics, Sync operations, capability-gated Publish operations, workspace/navigation workflows, and named one-command orchestration workflows through documented official desktop CLI commands.",
+    "longDescription": "Install focused Codex skills for local Obsidian note workflows with reviewed authoring/revision and verified write outcomes, Bases/Bookmarks operations, runtime administration, devtools diagnostics, Sync operations, capability-gated Publish operations, workspace/navigation workflows, and named one-command orchestration workflows through documented official desktop CLI commands.",
     "developerName": "Greg Asher",
     "category": "Productivity",
     "capabilities": [

@@ -5417,15 +5417,15 @@
       "displayName": "WaveSpeed",
       "source": {
         "source": "local",
-        "path": "./plugins/WaveSpeedAI/codex-plugin-wavespeed-cli"
+        "path": "./plugins/WaveSpeedAI/codex-plugins"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Generate and edit AI images, video, audio, and 3D on the WaveSpeed platform with a bundled MCP server and CLI skill, including live catalog search, local-file upload, and price quotes before running.",
-      "icon": "./plugins/WaveSpeedAI/codex-plugin-wavespeed-cli/assets/icon.png"
+      "description": "Generate and edit AI images, video, audio, and 3D on WaveSpeed through the hosted WaveSpeed MCP server and a CLI skill, with live catalog search and price quotes before running.",
+      "icon": "./plugins/WaveSpeedAI/codex-plugins/assets/icon.png"
     },
     {
       "name": "webly",

@@ -40,13 +40,16 @@ Common controls for every workflow:
 3. Preview output must include step plan, target summary, risk classification, and required confirmations.
 4. Apply output must include executed-step list, skipped-step list, and explicit mutation summaries.
 5. Medium/high-risk workflows require explicit apply confirmation before mutating steps.
-6. Apply mode may run only user-approved steps that match preview targets.
+6. Apply mode may run only user-approved steps that match preview targets. Existing approval for matching steps satisfies this requirement; do not reconfirm unchanged scope/content.
 7. Ambiguous note/base/workspace targets fail closed with a disambiguation requirement.
 8. `publish.release_gate` must probe `help publish:status` before any publish command.
 9. If publish probe returns unsupported, return explicit blocker and do not attempt `publish:*`.
 10. Keep `vault:open` out of executable workflow steps in this release.
 11. Preserve existing domain-skill safety boundaries and mutation guardrails.
 12. If a request falls outside official desktop CLI workflow surface, say so and stop.
+13. Every note write (including `output=note`, capture, synthesis, task logging, and repair) consumes the shared authoring/revision contract in `../obsidian-official-cli/SKILL.md` and its `references/authoring-and-revision.md`. Retain vault identity/root plus exact path, reviewed content/diff, collision policy, before/expected state, and per-step status. Recheck before apply; verify after each write. Never blindly retry completed or uncertain effects.
+14. `output=note` is a mutation even when the source workflow is read-only: promote to medium risk, preview the exact destination/content and existing-file policy, and require matching apply authorization. No note writes occur in preview. A missing destination blocks saving; existing notes default to collision, never silent overwrite.
+15. If a delegated write is uncertain/conflicted, stop dependent steps, report completed/pending/blocked steps, and reconcile actual state before resuming. Preserve domain-specific developer execution and remote-side-effect gates.
 
 ## Codex-safe launcher and escalation policy
 

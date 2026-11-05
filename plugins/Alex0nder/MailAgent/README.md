@@ -49,7 +49,7 @@ This bundle keeps stdio MCP via `npx -y -p @mailagent/mcp@0.2.16 mailagent-mcp`.
 ## Install from GitHub marketplace
 
 ```bash
-codex plugin marketplace add Alex0nder/MailAgent
+codex plugin marketplace add navorina-labs/MailAgent
 codex plugin add mailagent@mailagent
 ```
 
