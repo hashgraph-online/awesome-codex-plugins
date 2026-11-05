@@ -34,7 +34,7 @@ Optional preflight, from the plugin's own repository, with the reviewed
 scanner release pinned in `CONTRIBUTING.md`:
 
 ```bash
-pipx run --spec "plugin-scanner==3.58.0" plugin-scanner scan . --format text
+pipx run --spec "plugin-scanner==3.59.0" plugin-scanner scan . --format text
 ```
 
 The pull request runs a required source scan; it needs a score of at least 75.
@@ -60,8 +60,11 @@ everything else. Insert the line in alphabetical order by display name, then
 run:
 
 ```bash
-python3 scripts/check-alphabetical.py README.md
+python3 scripts/check-alphabetical.py README.md --base-ref origin/main
 ```
+
+The base ref matters: the catalog carries older ordering mistakes, and the
+check fails only on ones your change introduces.
 
 Change only `README.md`. Do not add `plugins/`, `plugins.json` or
 `.agents/plugins/marketplace.json`; they are generated from the source
