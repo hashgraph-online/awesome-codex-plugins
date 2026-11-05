@@ -634,6 +634,8 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [Tura](https://github.com/Tura-AI/tura) - A local, open-source coding agent for developers who are tired of vague skill claims, token-saving extensions with no evidence, and agents that change a repository before understanding it.
 - [UsageLoop](https://github.com/benthompsondev/usageloop) - Free, local-first standalone Windows/Linux desktop app (not a Codex plugin) that schedules the start of normal Codex five-hour usage windows, with usage checks, no automatic retry after an uncertain start, and no quota bypass.
 
+<div align="center">
+
 <!-- hol-sponsors:start -->
 ### Sponsors
 
@@ -644,10 +646,11 @@ The score is best used as a quick trust signal and triage summary (not the only 
 </p>
 <!-- hol-sponsors:end -->
 
-<p align="center">
-  Thank you to our sponsors for supporting this list. <a href="https://synthetic.new/?referral=FTVR2kb0">Synthetic</a> (referral link) offers private inference for open-source models.<br>
-  Sponsorship does not change any plugin's trust score or ranking. To sponsor this list, see <a href="https://hol.org/advertise">hol.org/advertise</a>.
-</p>
+<sub>Thank you to <a href="https://synthetic.new/?referral=FTVR2kb0">Synthetic</a> (referral link) for supporting this list. Synthetic offers private inference for open-source models.<br>Sponsorship does not change any plugin's trust score or ranking.</sub>
+
+<a href="https://hol.org/advertise"><img src="https://img.shields.io/badge/Become_a_sponsor-hol.org%2Fadvertise-1e3970?style=flat" alt="Become a sponsor" height="22"></a>
+
+</div>
 
 ## Claim Your Plugin
 
