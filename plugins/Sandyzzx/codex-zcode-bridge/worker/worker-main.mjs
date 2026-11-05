@@ -4180,7 +4180,7 @@ function windowsTreeTransactionScript() {
 async function openPowerShellTreeTransaction() {
   return PowerShellTreeTransaction.start();
 }
-var CIM_REPRESENTATION_INTERVAL_TICKS, WindowsTreeCleanupError, TRANSPORT_MAX_LINE_BYTES, TRANSPORT_MAX_BUFFERED_BYTES, TRANSPORT_MAX_BUFFERED_LINES, TRANSPORT_MAX_ENUM_ROWS, TRANSPORT_TOTAL_SESSION_MS_DEFAULT, PowerShellTreeTransaction;
+var CIM_REPRESENTATION_INTERVAL_TICKS, WindowsTreeCleanupError, TRANSPORT_MAX_LINE_BYTES, TRANSPORT_MAX_BUFFERED_BYTES, TRANSPORT_MAX_BUFFERED_LINES, TRANSPORT_MAX_ENUM_ROWS, TRANSPORT_TOTAL_SESSION_MS_DEFAULT, TRANSPORT_HELPER_STARTUP_MS_DEFAULT, PowerShellTreeTransaction;
 var init_windows_process_cleanup = __esm({
   "src/adapters/windows-process-cleanup.ts"() {
     "use strict";
@@ -4200,6 +4200,7 @@ var init_windows_process_cleanup = __esm({
     TRANSPORT_MAX_BUFFERED_LINES = 65536;
     TRANSPORT_MAX_ENUM_ROWS = 4096;
     TRANSPORT_TOTAL_SESSION_MS_DEFAULT = 12e4;
+    TRANSPORT_HELPER_STARTUP_MS_DEFAULT = 6e4;
     PowerShellTreeTransaction = class _PowerShellTreeTransaction {
       #child;
       #bounds;
@@ -4275,6 +4276,7 @@ var init_windows_process_cleanup = __esm({
           this.#fail(new Error("process_tree_transport_stderr"));
         });
         child.on("error", (error62) => this.#fail(new Error(`process_tree_transport_error: ${String(error62.message)}`)));
+        child.stdin.on("error", () => this.#fail(new Error("process_tree_transport_stdin_error")));
         child.on("close", (code, signal) => {
           this.#closed = true;
           this.#exitCode = code;
@@ -4325,7 +4327,7 @@ var init_windows_process_cleanup = __esm({
           this.#waiters.push({ resolve, reject, timer });
         });
       }
-      static async start(timeoutMs = 2e4) {
+      static async start(timeoutMs = TRANSPORT_HELPER_STARTUP_MS_DEFAULT) {
         const encoded = Buffer.from(windowsTreeTransactionScript(), "utf16le").toString("base64");
         const child = spawn2("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded], {
           shell: false,
@@ -27029,7 +27031,9 @@ var init_zcode_app_server_adapter = __esm({
           entry.providerSendNumber = 1;
           await client.request("session/send", { sessionId, content: prompt });
           entry.rpcAcceptedAt = this.#now().toISOString();
-          entry.onEvent({ type: "turn_started", summary: "ZCode accepted the task and started a turn", details: { rpc_accepted: true, ...entry.turnId ? { turn_id: entry.turnId } : {} } });
+          if (!entry.turnStartedAt) {
+            entry.onEvent({ type: "turn_started", summary: "ZCode accepted the task and started a turn", details: { rpc_accepted: true, ...entry.turnId ? { turn_id: entry.turnId } : {} } });
+          }
           entry.bindingTimer = setTimeout(() => {
             if (!entry.awaitingTurnStart) return;
             entry.awaitingTurnStart = false;
@@ -27443,6 +27447,8 @@ var init_zcode_app_server_adapter = __esm({
         child.stdout.setEncoding("utf8");
         child.stderr.setEncoding("utf8");
         child.stdin.on("error", () => void 0);
+        child.stdout.on("error", () => void 0);
+        child.stderr.on("error", () => void 0);
         child.stdout.on("data", (chunk) => {
           if (protocolFatal) return;
           stdoutBuffer += chunk;
@@ -29822,7 +29828,7 @@ init_profile();
 init_json_writer_quiescence();
 init_process_probe();
 import { createHash as createHash7, randomUUID as randomUUID5 } from "node:crypto";
-import { closeSync as closeSync4, createWriteStream, readFileSync as readFileSync8, writeFileSync as writeFileSync4 } from "node:fs";
+import { closeSync as closeSync4, createWriteStream, readFileSync as readFileSync8, writeFileSync as writeFileSync4, writeSync } from "node:fs";
 import { Socket } from "node:net";
 var workerArgs = process.argv.slice(2);
 var bridgeLaunchMarker = workerArgs.at(-1) === BRIDGE_WORKER_LAUNCH_MARKER;
@@ -29832,11 +29838,31 @@ var positionalArgs = bridgeLaunchMarker ? workerArgs.slice(0, -1).filter((argume
 if (bridgeLaunchMarker && positionalArgs.length === 0) {
   let claimOnlyStage = "start";
   let interactionStreamsCreated = false;
+  const writeFatalDiagnostic = (origin, error62) => {
+    const message = error62 instanceof Error ? `${error62.name}: ${error62.message}` : String(error62);
+    const frames = error62 instanceof Error && typeof error62.stack === "string" ? error62.stack.split("\n").slice(1, 6).join("\n") : "";
+    writeDiagnostic(`[bridge-worker] fatal ${origin} at ${claimOnlyStage}: ${message.slice(0, 300)}
+${frames.slice(0, 1200)}
+`);
+  };
+  const reallyExit = process.reallyExit.bind(process);
+  process.on("exit", (code) => {
+    writeDiagnostic(`[bridge-worker] exit code=${String(code)}
+`);
+  });
+  process.on("uncaughtException", (error62) => {
+    writeFatalDiagnostic("uncaught_exception", error62);
+    reallyExit(1);
+  });
+  process.on("unhandledRejection", (reason) => {
+    writeFatalDiagnostic("unhandled_rejection", reason);
+    reallyExit(1);
+  });
   try {
     if (dropAfterPrepared && !interactionMode) throw new Error("interaction test mode required");
     await runClaimOnlyHandshake({ interactionMode, dropAfterPrepared, onStage: (stage) => {
       claimOnlyStage = stage;
-      if (interactionMode) process.stderr.write(`[bridge-worker] claim-only stage=${stage}
+      if (interactionMode) writeDiagnostic(`[bridge-worker] claim-only stage=${stage}
 `);
     }, onInteractionStreamsCreated: () => {
       interactionStreamsCreated = true;
@@ -29852,9 +29878,11 @@ if (bridgeLaunchMarker && positionalArgs.length === 0) {
       }
     }
     const failureCode = error62 && typeof error62 === "object" && "code" in error62 && typeof error62.code === "string" ? error62.code : "unclassified";
-    console.error(`[bridge-worker] claim-only handshake rejected${interactionMode ? ` at ${claimOnlyStage} code=${failureCode}` : ""}`);
+    writeDiagnostic(`[bridge-worker] claim-only handshake rejected${interactionMode ? ` at ${claimOnlyStage} code=${failureCode}` : ""}
+`);
     process.exitCode = 3;
   }
+  process.exit(process.exitCode ?? 0);
 } else {
   const [dataRoot, taskId, attemptText] = positionalArgs;
   if (positionalArgs.length !== 3 || !dataRoot || !taskId || !attemptText || !/^[1-9]\d*$/u.test(attemptText) || !Number.isSafeInteger(Number(attemptText))) {
@@ -30055,7 +30083,18 @@ async function runZCodeAdapter(bootstrap, execution, interaction) {
   const adapter = new ZCodeAppServerAdapter2({
     host: execution.host_profile,
     executionProfileId: execution.execution_profile_id,
-    onEvent: () => void 0,
+    onEvent: (event) => {
+      if (!interactionMode) return;
+      if (event.type === "cleanup_unverified") {
+        const summary = event.summary;
+        const reason = summary.startsWith("Managed browser cleanup") ? "browser_cleanup" : summary.includes("process_tree_root_exited") ? "root_exited_scan_unverified" : summary.includes("Identity-bound Windows process-tree cleanup receipt") ? "receipt_unavailable" : "unclassified";
+        writeDiagnostic(`[bridge-worker] adapter event=${event.type} reason=${reason} summary=${summary.slice(0, 500)}
+`);
+        return;
+      }
+      writeDiagnostic(`[bridge-worker] adapter event=${event.type}
+`);
+    },
     resolveInteraction: interaction ? async (request, signal) => {
       if (signal.aborted) return { action: "decline" };
       await interaction.sendRequest(request);
@@ -30148,6 +30187,12 @@ function requiredStringArray(value, error62) {
 }
 function nullableString(value) {
   return typeof value === "string" ? value : null;
+}
+function writeDiagnostic(line) {
+  try {
+    writeSync(2, line);
+  } catch {
+  }
 }
 async function closeOwnedStreams(streams) {
   await Promise.all(streams.map((stream) => new Promise((resolve) => {

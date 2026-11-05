@@ -1,6 +1,6 @@
 # Conversion routing — from authored sources to native documents
 
-Reference data for the `convert` and `verify` gates of `skills/_shared/tracks/import.md`. The skill's LLM does the extraction and the composition; this file is the contract it follows. Contract: `import-conversion-and-staging.spec`. Source records and verdicts: `skills/init/lib/sources.md`.
+Reference data for the `convert` and `verify` gates of `skills/_shared/tracks/import.md`. The skill's LLM does the extraction and the composition; this file is the contract it follows. Source records and verdicts: `skills/init/lib/sources.md`.
 
 The unit of work is the **target document**, not the source file. A converted corpus follows the structure of Archcore — one document per topic, of the type that fits the content — never the structure of the files it came from.
 

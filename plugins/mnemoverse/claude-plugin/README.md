@@ -69,7 +69,9 @@ The plugin installs enabled, and Antigravity opens the browser for the sign-in w
 
 ## First run: sign in once, no API key
 
-The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Installing the plugin does not open anything by itself: run `/mcp`, select the Mnemoverse server (from this plugin it is listed as `plugin:mnemoverse:mnemoverse`) and choose Authenticate, then sign in to your Mnemoverse account in the browser (free tier at [console.mnemoverse.com](https://console.mnemoverse.com?utm_source=github&utm_medium=readme&utm_campaign=claude-plugin), no credit card) and grant the requested scopes, which include `memory:read` and `memory:write`. There is no API key to paste. To disconnect, remove the server from your client; resetting your password in the console can also disconnect all connected apps at once. The bundled `setup` skill walks Claude through this if anything goes wrong.
+The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. In Claude Code, installing the plugin does not open anything by itself: run `/mcp`, select the Mnemoverse server (from this plugin it is listed as `plugin:mnemoverse:mnemoverse`) and choose Authenticate, then sign in to your Mnemoverse account in the browser (free tier at [console.mnemoverse.com](https://console.mnemoverse.com?utm_source=github&utm_medium=readme&utm_campaign=claude-plugin), no credit card) and grant the requested scopes, which include `memory:read` and `memory:write`. There is no API key to paste. To disconnect, remove the server from your client; resetting your password in the console can also disconnect all connected apps at once. The bundled `setup` skill walks the agent through the current host's sign-in flow if anything goes wrong.
+
+After sign-in, ask the agent to check the connection with `memory_stats`. A successful stats result confirms read access, including when the account is empty. Tools appearing in a list are only discovery; an error or empty response does not confirm the connection. This check does not write a memory or verify writes. If you also asked the agent to save or recall something, that task needs its own successful tool result.
 
 ## What you get
 
@@ -84,7 +86,7 @@ The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Install
 **Seven skills:**
 
 - `agent-memory-discipline` (CC0, backend-neutral): standing rules for when to recall and what is worth saving. It names no vendor and works on any memory backend; it ships here so the connected memory is actually used.
-- `setup`: guides Claude through connecting and troubleshooting the MCP server.
+- `setup`: guides the current host through connecting and troubleshooting the MCP server.
 - `memory-search`: searches memory before answering, then rates which recalled memories helped.
 - `memory-save`: saves a decision, preference, correction or lesson as one self-contained fact, never a secret.
 - `memory-catch-up`: lists what was added since a given time, in personal memory or in a shared room (beta).
@@ -101,14 +103,14 @@ The server at `https://mcp.mnemoverse.com/mcp` uses OAuth 2.1 with PKCE. Install
 
 ## What gets stored, and what does not
 
-The plugin stores only what you or Claude explicitly save through the memory tools: single facts, decisions, corrections. It does not record conversations, does not read your chat history, and the bundled skill explicitly refuses to persist secrets, API keys, passwords, payment data, or personal identifiers.
+The plugin stores only what you or the connected agent explicitly save through the memory tools: single facts, decisions, corrections. It does not record conversations, does not read your chat history, and the bundled skill refuses to persist passwords, API keys, tokens, payment data, MFA codes, government IDs or health records.
 
 Memory content lives in your Mnemoverse account. Privacy policy: [mnemoverse.com/docs/legal/privacy-policy](https://mnemoverse.com/docs/legal/privacy-policy).
 
 ## Troubleshooting
 
-- **No sign-in prompt**: Claude Code does not open the browser by itself. Run `/mcp`, select `plugin:mnemoverse:mnemoverse` and choose Authenticate. If the server is not listed, add it for all your projects with `claude mcp add --transport http --scope user mnemoverse https://mcp.mnemoverse.com/mcp`; it then appears in `/mcp` as `mnemoverse`, and you authenticate it the same way.
-- **`401` after it used to work**: the token expired; the next tool call normally refreshes it. If not, run `/mcp`, select the server and choose Re-authenticate.
+- **No sign-in prompt in Claude Code**: run `/mcp`, select `plugin:mnemoverse:mnemoverse` and choose Authenticate. If the server is absent from Claude Code's configuration, add it for all your projects with `claude mcp add --transport http --scope user mnemoverse https://mcp.mnemoverse.com/mcp`; it then appears in `/mcp` as `mnemoverse`, and you authenticate it the same way. Other hosts use their own sign-in flows described above.
+- **`401` after it used to work**: authentication failed. Use the same host's sign-in flow for the same server; in Claude Code, run `/mcp` and choose Authenticate or Re-authenticate as offered. Then check `memory_stats` again. A `403` means access was denied, and a timeout leaves the connection unverified; neither proves an expired token.
 - **`malformed_token` in logs**: the bearer token is neither an OAuth token from the sign-in nor a Mnemoverse API key, for example a key copied without its `mk_live_` prefix, or a placeholder left in a config. Since 2026-10-19 the remote endpoint accepts either: a host that cannot complete the sign-in can send an API key as `Authorization: Bearer mk_live_...` ([details](https://mnemoverse.com/docs/api/remote-mcp-server#with-an-api-key-instead-of-the-sign-in)). A revoked or unknown key gets `invalid_api_key` instead.
 
 More: [docs](https://mnemoverse.com/docs/api/remote-mcp-server).

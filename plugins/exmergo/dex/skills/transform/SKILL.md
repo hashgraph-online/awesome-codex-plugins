@@ -165,13 +165,31 @@ declares is `contract`.
   `<model>_v2`. Declare a version as `<model>.v<N>`. Promotion is its own plan:
   `data.model_versions` names the default and every consumer it moves.
   Recipe: `skills/transform/references/model-versions.md`.
+- An incremental model is two programs: the full build and the next
+  incremental run. A `--full-refresh` runs only the first, so it does not show
+  that rows the next run skips or duplicates are fixed; a model it lists under
+  `data.full_refresh.not_refreshed` (`full_refresh: false`) was not rebuilt at
+  all, so report its history repair incomplete. Before choosing a
+  repair, read the materialization, the watermark comparison (`>` skips rows on
+  the current watermark) and the `unique_key` or deduplication that makes `>=`
+  safe. Prove the incremental branch with a unit test that overrides
+  `is_incremental` (`dex transform test --scaffold <model>` writes one), build
+  again without `--full-refresh`, and state the late-arrival horizon the repair
+  supports. Never insert probe rows into a loader's source.
+  Recipe: `skills/transform/references/incremental-repairs.md`.
 - Change only what the request asks; keep the output columns the request and
   the existing model define.
 - A balance or a running total is `semi_additive`: never sum it across time.
   Take each entity's latest value (`max` for a running total), then sum across
   entities.
-- Test logic with `dex transform test --scaffold <model>` (dbt unit tests) and
-  measure the tests with `dex transform test --mutate <model>`.
+- Test logic with `dex transform test --scaffold <model>` (dbt unit tests), then
+  measure the tests with `dex transform test --mutate <model>` before calling the
+  model covered. Each survivor is a defect the tests let through: add the fixture
+  its `suggested_test` names (a window survivor's `frame` gives the last day the
+  window includes and the first it excludes), and mutate again. A frame bound
+  under `data.unsupported_sites` was never tested. The score covers only the
+  defects Dex plants, so it is not proof the model is right.
+  Recipe: `skills/transform/references/test-strength.md`.
 - Repair the layer the request names, and settle which one before choosing a
   remedy. "Modify our data" or "fix the source types" asks for an input change;
   "make it build" or "adapt the project" asks for a project change; otherwise the
@@ -298,7 +316,9 @@ fetches the engine's dependencies from PyPI or your configured index.
 5. **Read the plan** (rules below), then `transform apply <plan-id>`.
 6. **Build and verify:** `transform build --target dev --verify`.
 7. **Measure the tests** right after you author or scaffold them, and before
-   telling the user a model is covered: `transform test --mutate <model>`.
+   telling the user a model is covered: `transform test --mutate <model>`. Fix
+   each survivor with the fixture its `suggested_test` names, then measure again
+   (`${CLAUDE_SKILL_DIR}/references/test-strength.md`).
 
 Per-command fields and flags are in `${CLAUDE_SKILL_DIR}/references/commands.md`.
 Shipped macros are in `${CLAUDE_SKILL_DIR}/references/macros.md`. Read them when
@@ -541,6 +561,10 @@ a field, flag, or macro you need is not described here.
   request asks to change (the input data or the project), a failed prerequisite's
   owner and repair routes, keeping a type repair's meaning, proving it with
   `--cold-deps`, and reporting a deliverable incomplete.
+- `${CLAUDE_SKILL_DIR}/references/incremental-repairs.md`: an incremental model
+  as two programs, reading its watermark and `unique_key` before a repair, the
+  incremental unit test `test --scaffold` writes, and why a `--full-refresh`
+  alone does not show the next run is right.
 - `${CLAUDE_SKILL_DIR}/references/feature-retirement.md`: retiring a feature flag
   versus making it permanent, the `retirement` contract on `remove var`, and how
   each check holds the change to the behavior it keeps.

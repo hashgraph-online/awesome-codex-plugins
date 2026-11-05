@@ -14,6 +14,8 @@
 
 ```sh
 # Install in 1 line (Claude Code, Codex, OpenClaw + CLI on PATH)
+
+
 curl -fsSL https://raw.githubusercontent.com/Quinnod345/ponder/main/install.sh | sh
 # Or via npm / Homebrew / Claude Code / Agent Skills / ClawHub / Tessl / LobeHub / Gemini CLI:
 #   npm install -g @quinnod345/ponder   # or: npx @quinnod345/ponder / npx ponder-cli

@@ -3570,7 +3570,7 @@ function windowsTreeTransactionScript() {
 async function openPowerShellTreeTransaction() {
   return PowerShellTreeTransaction.start();
 }
-var CIM_REPRESENTATION_INTERVAL_TICKS, WindowsTreeCleanupError, TRANSPORT_MAX_LINE_BYTES, TRANSPORT_MAX_BUFFERED_BYTES, TRANSPORT_MAX_BUFFERED_LINES, TRANSPORT_MAX_ENUM_ROWS, TRANSPORT_TOTAL_SESSION_MS_DEFAULT, PowerShellTreeTransaction;
+var CIM_REPRESENTATION_INTERVAL_TICKS, WindowsTreeCleanupError, TRANSPORT_MAX_LINE_BYTES, TRANSPORT_MAX_BUFFERED_BYTES, TRANSPORT_MAX_BUFFERED_LINES, TRANSPORT_MAX_ENUM_ROWS, TRANSPORT_TOTAL_SESSION_MS_DEFAULT, TRANSPORT_HELPER_STARTUP_MS_DEFAULT, PowerShellTreeTransaction;
 var init_windows_process_cleanup = __esm({
   "src/adapters/windows-process-cleanup.ts"() {
     "use strict";
@@ -3590,6 +3590,7 @@ var init_windows_process_cleanup = __esm({
     TRANSPORT_MAX_BUFFERED_LINES = 65536;
     TRANSPORT_MAX_ENUM_ROWS = 4096;
     TRANSPORT_TOTAL_SESSION_MS_DEFAULT = 12e4;
+    TRANSPORT_HELPER_STARTUP_MS_DEFAULT = 6e4;
     PowerShellTreeTransaction = class _PowerShellTreeTransaction {
       #child;
       #bounds;
@@ -3665,6 +3666,7 @@ var init_windows_process_cleanup = __esm({
           this.#fail(new Error("process_tree_transport_stderr"));
         });
         child.on("error", (error2) => this.#fail(new Error(`process_tree_transport_error: ${String(error2.message)}`)));
+        child.stdin.on("error", () => this.#fail(new Error("process_tree_transport_stdin_error")));
         child.on("close", (code, signal) => {
           this.#closed = true;
           this.#exitCode = code;
@@ -3715,7 +3717,7 @@ var init_windows_process_cleanup = __esm({
           this.#waiters.push({ resolve, reject, timer });
         });
       }
-      static async start(timeoutMs = 2e4) {
+      static async start(timeoutMs = TRANSPORT_HELPER_STARTUP_MS_DEFAULT) {
         const encoded = Buffer.from(windowsTreeTransactionScript(), "utf16le").toString("base64");
         const child = spawn3("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded], {
           shell: false,
@@ -37041,7 +37043,7 @@ function formatDuration(durationMs2) {
 
 // src/mcp/server.ts
 var SERVER_NAME = "codex-zcode-bridge";
-var SERVER_VERSION = "1.5.0"; // x-release-please-version
+var SERVER_VERSION = "1.6.0"; // x-release-please-version
 var EXECUTION_NOT_VERDICT = "Results describe Bridge/ZCode execution only: status 'completed' means the invocation and report normalization finished, NOT that the calling host accepted the work. the calling host must independently review the workspace diff and checks before deciding PASS.";
 function okResult2(data) {
   return {

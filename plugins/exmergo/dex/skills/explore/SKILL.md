@@ -164,13 +164,31 @@ declares is `contract`.
   `<model>_v2`. Declare a version as `<model>.v<N>`. Promotion is its own plan:
   `data.model_versions` names the default and every consumer it moves.
   Recipe: `skills/transform/references/model-versions.md`.
+- An incremental model is two programs: the full build and the next
+  incremental run. A `--full-refresh` runs only the first, so it does not show
+  that rows the next run skips or duplicates are fixed; a model it lists under
+  `data.full_refresh.not_refreshed` (`full_refresh: false`) was not rebuilt at
+  all, so report its history repair incomplete. Before choosing a
+  repair, read the materialization, the watermark comparison (`>` skips rows on
+  the current watermark) and the `unique_key` or deduplication that makes `>=`
+  safe. Prove the incremental branch with a unit test that overrides
+  `is_incremental` (`dex transform test --scaffold <model>` writes one), build
+  again without `--full-refresh`, and state the late-arrival horizon the repair
+  supports. Never insert probe rows into a loader's source.
+  Recipe: `skills/transform/references/incremental-repairs.md`.
 - Change only what the request asks; keep the output columns the request and
   the existing model define.
 - A balance or a running total is `semi_additive`: never sum it across time.
   Take each entity's latest value (`max` for a running total), then sum across
   entities.
-- Test logic with `dex transform test --scaffold <model>` (dbt unit tests) and
-  measure the tests with `dex transform test --mutate <model>`.
+- Test logic with `dex transform test --scaffold <model>` (dbt unit tests), then
+  measure the tests with `dex transform test --mutate <model>` before calling the
+  model covered. Each survivor is a defect the tests let through: add the fixture
+  its `suggested_test` names (a window survivor's `frame` gives the last day the
+  window includes and the first it excludes), and mutate again. A frame bound
+  under `data.unsupported_sites` was never tested. The score covers only the
+  defects Dex plants, so it is not proof the model is right.
+  Recipe: `skills/transform/references/test-strength.md`.
 - Repair the layer the request names, and settle which one before choosing a
   remedy. "Modify our data" or "fix the source types" asks for an input change;
   "make it build" or "adapt the project" asks for a project change; otherwise the

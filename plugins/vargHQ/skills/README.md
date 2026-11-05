@@ -1,6 +1,6 @@
 # varg — AI Agent Skills for Video, Image, Speech & Music Generation
 
-A collection of [Agent Skills](https://agentskills.io) for AI video, image, speech, and music generation using the varg platform. One skill to access Seedance 2.5, Kling 4, Wan 3, Veo 3.1, Nano Banana 2.1, GPT Image 2.5, ElevenLabs v4 and 200+ more models — zero code, just prompt.
+A collection of [Agent Skills](https://agentskills.io) for AI video, image, speech, and music generation using the varg platform. One skill to access Seedance 2.5, Kling 4, Wan 3, Veo 3.1, Nano Banana 2.1, GPT Image 2.6, ElevenLabs v4 and 200+ more models — zero code, just prompt.
 
 <p align="center">
   <a href="https://github.com/vargHQ/skills/stargazers"><img src="https://img.shields.io/github/stars/vargHQ/skills" alt="GitHub stars"></a>

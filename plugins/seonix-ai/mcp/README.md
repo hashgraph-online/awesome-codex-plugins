@@ -12,13 +12,14 @@ Seonix grows organic and AI-search visibility for a website on autopilot: it cra
 
 ## What the agent can do
 
-41 tools (36 read, 5 write) and 11 SEO playbooks.
+46 tools (41 read, 5 write) and 11 SEO playbooks.
 
 | Area | Tools |
 |---|---|
 | Account & projects | `get_account`, `list_projects`, `get_project`, `get_plan_status`, `get_site_dna`, `get_seo_progress` |
 | Site Health | `get_site_health`, `get_fix_plan`, `list_issues`, `get_issue`, `get_remediation_profile`, `list_scans`, `get_scan_status`, `get_results` |
 | Search Console | `gsc_status`, `gsc_top_queries`, `gsc_top_pages`, `gsc_page_queries`, `gsc_opportunities`, `gsc_coverage`, `gsc_impact`, `gsc_timeseries` |
+| Google Analytics 4 | `ga4_status`, `ga4_traffic`, `ga4_sources`, `ga4_pages`, `ga4_ai_traffic` |
 | Keywords & content | `list_keyword_candidates`, `list_clusters`, `get_cluster`, `get_calendar`, `list_articles`, `get_article`, `analyze_seo`, `score_article`, `list_channels`, `get_blog_integration_guide` |
 | AI search | `get_ai_visibility` |
 | Playbooks | `list_playbooks`, `get_playbook` |

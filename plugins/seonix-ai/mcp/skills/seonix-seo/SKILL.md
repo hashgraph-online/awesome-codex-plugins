@@ -38,6 +38,10 @@ detailed step-by-step procedures live on the server as playbooks.
   is connected), then `gsc_top_queries`, `gsc_top_pages`, `gsc_page_queries`,
   `gsc_opportunities` (striking distance), `gsc_coverage`, `gsc_impact`,
   `gsc_timeseries`.
+- **Visits and sources**: `ga4_status` first (it says whether Google
+  Analytics 4 is connected), then `ga4_traffic` (totals, channels, key
+  events), `ga4_sources`, `ga4_pages`, `ga4_ai_traffic` (visits from AI
+  assistants).
 - **Writing**: `get_site_dna` (voice, audience, topics to avoid) +
   `analyze_seo` on the draft before anything is published. Details in the
   `seonix-content` skill.

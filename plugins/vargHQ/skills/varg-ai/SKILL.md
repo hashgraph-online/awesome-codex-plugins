@@ -3,7 +3,7 @@ name: varg-ai
 description: >-
   Generate AI videos, images, voiceovers and music with one varg API key.
   Text- and image-to-video on Seedance 2.5, Kling 4, Veo 3.1 and Wan 3;
-  images and edits on Nano Banana 2.1, GPT Image 2.5 and Flux 3; lip sync
+  images and edits on Nano Banana 2.1, GPT Image 2.6 and Flux 3; lip sync
   and talking avatars; ElevenLabs v4 voices; Lyria and Mureka music;
   captions and multi-scene renders to MP4. Use when someone asks to make or
   render a video, animate a photo, generate an image, create a UGC ad,
@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "2.2.1"
+  version: "2.2.2"
   openclaw:
     requires:
       env:
@@ -39,13 +39,13 @@ varg's TSX/JSX composition (`vargai/react`: `<Render>`, `<Clip>`, `Video({...})`
 
 ## Version Check (run once per session)
 
-This skill is version **2.2.1**. Before first use each session, check for updates:
+This skill is version **2.2.2**. Before first use each session, check for updates:
 
 ```bash
 curl -sf https://raw.githubusercontent.com/vargHQ/skills/main/varg-ai/SKILL.md | grep 'version:' | head -1
 ```
 
-If the remote version is newer than 2.2.1, update and re-read this file:
+If the remote version is newer than 2.2.2, update and re-read this file:
 
 ```bash
 npx -y skills update
@@ -163,7 +163,7 @@ Ranks are from the Artificial Analysis arenas. Details and alternatives: [models
 | Video, long multi-shot (up to 30s) | `kling_v4` | 82 per 5s 720p |
 | Video drafts | `minimax_h3_max_turbo` | 42 per 5s |
 | Image, generation and editing / character consistency | `nano_banana_2_1` | 8 |
-| Image, top quality / dense text | `gpt_image_2_5` | 11-23 |
+| Image, top quality / dense text | `gpt_image_2_6` | 3-6 |
 | Speech | `eleven_v4` (or `eleven_v4_turbo`, #1 and half price) | 84 / 42 |
 | Background music (instrumental) | `mureka_9_5` | 25 |
 | Song with vocals | `lyria_3_5` | 11 |
@@ -284,7 +284,7 @@ Both modes use `varg.*` for all models. The only difference is imports:
 
 ## Cost & Iteration
 
-- **Prices are in credits.** Typical prices: nano_banana_2_1 image ≈ 8, gpt_image_2_5 (high) ≈ 23, seedance_2_5 5s 720p ≈ 210, wan_3 5s 720p ≈ 53, eleven_v4 line ≈ 84, mureka_9_5 track ≈ 25. Live catalog: `GET https://api.varg.ai/v2/pricing` (no auth). Every model spec: `https://varg.ai/models/llms.txt`. Estimate any request: `POST /v2/estimate`.
+- **Prices are in credits.** Typical prices: nano_banana_2_1 image ≈ 8, gpt_image_2_6 (high) ≈ 6, seedance_2_5 5s 720p ≈ 210, wan_3 5s 720p ≈ 53, eleven_v4 line ≈ 84, mureka_9_5 track ≈ 25. Live catalog: `GET https://api.varg.ai/v2/pricing` (no auth). Every model spec: `https://varg.ai/models/llms.txt`. Estimate any request: `POST /v2/estimate`.
 - **Cache saves credits.** Keep unchanged prompts character-for-character identical across iterations.
 - **Preview first** (local mode only): `--preview` generates free placeholders to validate structure.
 - Full pricing: [models.md](references/models.md)

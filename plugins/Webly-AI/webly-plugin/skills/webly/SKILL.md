@@ -160,7 +160,8 @@ and says why when:
 - **The linked site isn't this machine's anonymous site** (it was claimed, or
   the link came from someone else). Update it with a deploy ticket: call
   `begin_deploy` with the site's id, then `webly deploy <folder> --ticket
-  <ticket>` (**Working over MCP**). If `begin_deploy` is a 404 (a fork, another
+  <ticket> --message "<subject>" --body "<what changed and why>"` (**Working
+  over MCP**). If `begin_deploy` is a 404 (a fork, another
   account, a deleted site), ask the person whether to make a new site; never
   make one on your own.
 - **The folder isn't linked and this machine is connected to an account.**
@@ -418,11 +419,16 @@ as the person. The token stays in the helper; never ask for it or print it.
    whose change it is (`theirsBy`), re-read, re-apply, resend. `force` only
    when the person asks. For a folder on disk (a build's `dist/`, anything with
    bundles or images), call `begin_deploy` with the site's id and straight away
-   run `webly deploy <folder> --ticket <ticket> --message "<what changed>"` (the
-   ticket lasts 5 minutes and one deploy; never echo it back to the person). The
-   message is one line saying what changed ("Button reads Start here"); the
-   site's History shows it, so the people sharing the site can tell your
-   version from everyone else's. The helper builds the project
+   run `webly deploy <folder> --ticket <ticket> --message "<subject>" --body
+   "<what changed and why>"` (the ticket lasts 5 minutes and one deploy; never
+   echo it back to the person). Every write (deploy, `put_source_file`,
+   `str_replace`, deletes) takes a message, written like a git commit message:
+   a subject line of what changed, about 50 characters, imperative ("Show
+   yearly plans first on Pricing"), then a blank line and a body in plain words
+   for the site owner: what changed and why, which pages, anything to check.
+   The site's History shows the subject, and the body when someone opens the
+   version, so the people sharing the site can tell your version from
+   everyone else's. Skip the body only for a trivial change. The helper builds the project
    if needed, uploads it (up to 2000 files; images and video over 1 MiB go
    straight to storage, up to the plan's per-file limit), links
    the folder and prints the draft URL. Never put a bundle's bytes in a tool

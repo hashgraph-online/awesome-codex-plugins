@@ -13,7 +13,7 @@ import { resolve4, resolveCname } from 'node:dns/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /** Skill release. scripts/sync-plugin.sh stamps this into the plugin manifests; bump it to ship. */
-export const VERSION = '0.14.13';
+export const VERSION = '0.14.14';
 // Lets the API tell helper traffic from other REST clients in its product analytics.
 const UA = { 'User-Agent': `webly-helper/${VERSION}` };
 // The published plugin manifest is what `npx skills`, install.sh and /plugin install all read from.
@@ -48,10 +48,11 @@ const USAGE = `Usage: webly.mjs <command>
                               replace --anonymous discards that). Edits made to the site elsewhere since this
                               machine's last deploy are replaced and reported as "replaced". A project with a package.json
                               build script is built first and its output folder deployed.
-  deploy <dir|file> --ticket T [--message M] [--to E] [--force]
+  deploy <dir|file> --ticket T [--message M [--body B]] [--to E] [--force]
                               Signed in: upload the folder to a static site with the ticket from the begin_deploy MCP tool
                               (5 minutes, one deploy). Makes a draft; publish_website after the person approves. --message
-                              says what changed in one line ("Button reads Start here"); the site's History shows it. Up to 2000
+                              is the commit subject, what changed in one line ("Button reads Start here"); --body says what
+                              changed and why in plain words. The site's History shows both. Up to 2000
                               files; those up to 1 MiB go in one request of up to 100 MiB, bigger ones (images, video)
                               straight to storage, up to the plan's per-file limit and counted toward its storage. Refuses (would_revert) if it would undo changes made to the
                               site since this folder's last deploy, or (with no earlier deploy from here) would remove files the folder
@@ -736,7 +737,7 @@ async function main() {
   const folderFlag = folderAt === -1 ? undefined : argv.splice(folderAt, 2)[1];
   const option = (flag) => { const at = argv.indexOf(flag); return at === -1 ? undefined : argv.splice(at, 2)[1]; };
   const toggle = (flag) => { const at = argv.indexOf(flag); if (at !== -1) argv.splice(at, 1); return at !== -1; };
-  const toFlag = option('--to'), asFlag = option('--as'), ticketFlag = option('--ticket'), messageFlag = option('--message'), anonymousFlag = toggle('--anonymous'), forceFlag = toggle('--force');
+  const toFlag = option('--to'), asFlag = option('--as'), ticketFlag = option('--ticket'), messageFlag = option('--message'), bodyFlag = option('--body'), anonymousFlag = toggle('--anonymous'), forceFlag = toggle('--force');
   const [command, argument, extra] = argv;
   const print = (value) => console.log(typeof value === 'string' ? value : JSON.stringify(value, null, 2));
   const readPending = async () => (await readFile(PENDING_FILE, 'utf8').catch(() => '')).trim() || null;
@@ -940,9 +941,10 @@ async function main() {
     const root = await projectRoot(argument);
     const entryName = toFlag ?? 'default';
     const entry = (await readProject(root)).sites[entryName];
+    if (bodyFlag && !messageFlag) throw new Error('--body needs --message (the subject line it goes under).');
     if (ticketFlag !== undefined) {
       if (anonymousFlag) throw new Error('--ticket deploys to the signed-in site the ticket names; --anonymous makes a throwaway anonymous one. Pass one, not both.');
-      return print(await ticketDeploy(base, { command, argument, root, entryName, entry, ticket: ticketFlag, force: forceFlag, message: messageFlag }));
+      return print(await ticketDeploy(base, { command, argument, root, entryName, entry, ticket: ticketFlag, force: forceFlag, message: [messageFlag, bodyFlag].filter(Boolean).join('\n\n') }));
     }
     const setup = await mcpSetup();
     const connected = setup.claudeCode.configured || setup.codex.configured;

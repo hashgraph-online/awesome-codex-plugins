@@ -3250,6 +3250,21 @@
       "icon": "./plugins/getclera/mcp/assets/logo.svg"
     },
     {
+      "name": "clickwise",
+      "displayName": "Clickwise",
+      "source": {
+        "source": "local",
+        "path": "./plugins/softdevfz/clickwise-api"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Affiliate programs, deals, tracked links and product search, plus merchant program setup tools.",
+      "icon": "./plugins/softdevfz/clickwise-api/assets/icon.png"
+    },
+    {
       "name": "be-serious",
       "displayName": "Codex Be Serious",
       "source": {
