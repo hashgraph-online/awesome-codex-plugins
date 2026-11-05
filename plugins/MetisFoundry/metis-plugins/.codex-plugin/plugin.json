@@ -1,0 +1,63 @@
+{
+  "name": "metis-check",
+  "version": "1.0.3",
+  "description": "Metis Check settles identifiers at the bodies that issue them. Give it one identifier (a DOI, PubMed ID, arXiv id, ORCID, ROR, ISBN, LEI, ISIN, CUSIP, SEC CIK, EIN, NPI, RxCUI, PubChem CID, OpenAlex id, Wikidata item, UK company number, FAA N-number, USGS event id, domain name or U.S. case citation) or a passage that contains several, and it asks the registry for each one and answers with exactly one of four states: settled true, settled false, not decidable (a person decides) or unreachable (a delay, not evidence). Anything it did not look at is reported as not checked, with the reason. Every check ends in a report with a unique id (MC-XXXX-XXXX-XXXX), a public page, a PDF, signed receipts and a recheck button that asks the registries again. It checks the checkable parts of a text at the source; it does not grade a text true or false.",
+  "author": {
+    "name": "Metis Foundry",
+    "email": "paul@metisfoundry.com",
+    "url": "https://metisfoundry.com"
+  },
+  "homepage": "https://mcp.metisfoundry.com/docs",
+  "repository": "https://github.com/MetisFoundry/metis-plugins",
+  "license": "LicenseRef-Proprietary",
+  "keywords": [
+    "citations",
+    "citation checker",
+    "DOI checker",
+    "verify references",
+    "hallucinated citations",
+    "references",
+    "DOI",
+    "PubMed",
+    "arXiv",
+    "ORCID",
+    "LEI",
+    "company number",
+    "case law",
+    "identifiers",
+    "registries",
+    "provenance",
+    "research integrity",
+    "fact check at the source"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Metis Check",
+    "shortDescription": "Checks citations at the source",
+    "longDescription": "Metis Check asks the body that issues an identifier whether it exists and what it points to, then tells you in plain words.\n\nWHAT IT CHECKS\nScholarly: DOI, PubMed ID, arXiv id, ORCID iD, ROR ID, ISBN, OpenAlex ID.\nCompanies and finance: Legal Entity Identifier (LEI), ISIN, CUSIP, SEC CIK, US EIN (tax-exempt), UK company number.\nHealth and science: NPI, RxNorm RxCUI, PubChem CID, USGS event id.\nOther: Wikidata item, FAA N-number, domain name, U.S. case citation (CourtListener index).\n\nHOW IT ANSWERS\nEach identifier gets exactly one of four states, never a score:\n- settled true: the registry answered and the identifier resolves as stated.\n- settled false: the registry answered and it does not.\n- not decidable: the registry's answer does not settle it (for example the name given does not match the registered one); a person decides.\n- unreachable: the registry did not answer in time. That is a delay, not evidence.\nAnything not looked at is listed as not checked, with the reason.\n\nFIVE TOOLS\ncheck_identifier checks one identifier. check_text finds every identifier in one passage you paste or point to (a paragraph, a reference list, an abstract) at its exact position and checks each one; the passage itself is not stored, only the identifiers, their positions and a hash. get_report opens a report you already have by its id.\nrequest_human_verification asks a Metis researcher to verify the identifiers in one of your reports by hand: that each resolves to the work or entity the citation names, and what the registry and the source document say (not whether the surrounding argument is true). The result is filed on the same report as a signed addendum with the reviewer's name and the date. set_live_verification turns that on for every report the account files, for eight hours, and off again. Where an account does not include human verification, these two tools say so and file nothing.\n\nTHE REPORT\nEvery check ends in a report with a unique id (MC-XXXX-XXXX-XXXX), a public page, a PDF, signed receipts (the registry query, the HTTP status and the SHA-256 of the registry's answer) and a recheck button. Anyone with the link can recheck the report; the recheck asks the registries again, live, and is filed as a new report linked to the first. Reports also live on your Metis account page.\n\nWHAT IT DOES NOT DO\nIt does not grade a text true or false, and a report is not a statement that the surrounding text is accurate. It checks the identifiers in a text, not the argument around them. Registries are issuers or indexes: CourtListener is a case-law citation index, not the court that issued a decision. It does not read your conversation; it checks only the identifier or passage you give it.\n\nACCOUNT\nRequires a Metis account (sign in or create one when connecting). Checks count against the account's monthly allowance; the account page shows what has been used.",
+    "developerName": "Metis Foundry",
+    "category": "Productivity",
+    "capabilities": [
+      "Checks a DOI, PubMed ID or arXiv id at its registry",
+      "Checks ORCID, ROR, ISBN, OpenAlex and Wikidata ids at their registries",
+      "Checks LEI, ISIN, CUSIP, CIK, EIN, NPI and UK company numbers at their issuers",
+      "Checks U.S. case citations against the CourtListener index",
+      "Checks every identifier in a pasted passage at its exact position",
+      "Returns one of four states per identifier, never a score",
+      "Files a report with a unique id, PDF, signed receipts and a recheck button"
+    ],
+    "websiteURL": "https://mcp.metisfoundry.com/docs",
+    "privacyPolicyURL": "https://mcp.metisfoundry.com/privacy",
+    "termsOfServiceURL": "https://mcp.metisfoundry.com/terms",
+    "defaultPrompt": [
+      "Check the citations in this paragraph: ...",
+      "Is 10.1038/s41586-020-2649-2 a real DOI?",
+      "Check the LEI HWUPKR0MPOU8FGXBT394 for Apple Inc."
+    ],
+    "brandColor": "#835AFF",
+    "composerIcon": "./assets/icon-codex.png",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}

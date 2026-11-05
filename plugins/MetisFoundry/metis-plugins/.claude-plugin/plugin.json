@@ -1,0 +1,27 @@
+{
+  "name": "metis-check",
+  "version": "1.0.3",
+  "description": "The check every cited AI answer needs before you rely on it: each DOI, PubMed id, arXiv id, ORCID, ROR, ISBN, LEI, ISIN, CUSIP, SEC CIK, EIN, NPI, UK company number or domain is asked at the registry that issues it. One of four states per identifier, a signed report anyone can recheck. Free for 5 checks a month. One account covers Claude, ChatGPT and Codex.",
+  "author": {
+    "name": "Metis Foundry",
+    "email": "hello@metisfoundry.com",
+    "url": "https://metisfoundry.com"
+  },
+  "homepage": "https://mcp.metisfoundry.com/docs",
+  "repository": "https://github.com/MetisFoundry/metis-plugins",
+  "license": "Proprietary",
+  "keywords": [
+    "citations",
+    "citation checker",
+    "DOI",
+    "references",
+    "verify references",
+    "hallucinated citations",
+    "PubMed",
+    "arXiv",
+    "LEI",
+    "case law",
+    "fact check",
+    "research integrity"
+  ]
+}
