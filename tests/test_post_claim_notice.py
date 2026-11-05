@@ -30,7 +30,7 @@ class DeliveryRegressionTests(unittest.TestCase):
             MODULE, "fetch_catalog_repos",
             side_effect=MODULE.RegistryCatalogFetchError("registry catalog exceeded 100 pages"),
         ), patch(
-            "builtins.open", mock_open(read_data="- [Plugin](https://github.com/owner/plugin) - Plugin")
+            "builtins.open", mock_open(read_data="## Community Plugins\n- [Plugin](https://github.com/owner/plugin) - Plugin")
         ), patch.object(MODULE, "post_comment", return_value=True) as post:
             self.assertEqual(MODULE.main(), 0)
             post.assert_called_once_with("author", {"owner/plugin"})
@@ -215,8 +215,29 @@ class ClaimNoticeTests(unittest.TestCase):
 
 
 class NoticeEvidenceTests(unittest.TestCase):
+    def test_source_excludes_navigation_and_related_projects(self):
+        readme = "\n".join([
+            "# Catalog",
+            "## Contents",
+            "- [Navigation](https://github.com/owner/navigation) - Reference",
+            "## Community Plugins",
+            "### Tools & Integrations",
+            "- [Plugin](https://github.com/owner/plugin) - Actual listing",
+            "## Related Projects",
+            "- [Related](https://github.com/owner/related) - Reference",
+        ])
+        with patch("builtins.open", mock_open(read_data=readme)):
+            self.assertEqual(MODULE.catalog_source_repos(), {"owner/plugin"})
+
+    def test_source_without_community_catalog_is_not_claimable(self):
+        with patch("builtins.open", mock_open(read_data=
+            "## Related Projects\n- [Related](https://github.com/owner/related) - Reference\n"
+        )):
+            self.assertEqual(MODULE.catalog_source_repos(), set())
+
     def test_source_accepts_exact_listing_links_only(self):
         readme = "\n".join([
+            "## Community Plugins",
             "- [Plugin](https://github.com/Owner/Plugin.git/tree/main) - Plugin",
             "Documentation mentions https://github.com/other/unlisted",
         ])
@@ -226,7 +247,7 @@ class NoticeEvidenceTests(unittest.TestCase):
     def test_local_mirror_uses_trusted_upstream_identity_instead_of_folder_name(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "README.md").write_text("- [Mirror](./plugins/author/alias) - Plugin")
+            (root / "README.md").write_text("## Community Plugins\n- [Mirror](./plugins/author/alias) - Plugin")
             manifest = root / "plugins" / "author" / "alias" / ".codex-plugin" / "plugin.json"
             manifest.parent.mkdir(parents=True)
             manifest.write_text(json.dumps({"repository": "https://github.com/author/upstream.git"}))
@@ -234,7 +255,7 @@ class NoticeEvidenceTests(unittest.TestCase):
                 self.assertEqual(MODULE.catalog_source_repos(), {"author/upstream"})
 
     def test_local_listing_cannot_read_metadata_outside_the_catalog(self):
-        with patch("builtins.open", mock_open(read_data="- [Bad](./plugins/../../outside) - Plugin")):
+        with patch("builtins.open", mock_open(read_data="## Community Plugins\n- [Bad](./plugins/../../outside) - Plugin")):
             with self.assertRaises(OSError):
                 MODULE.catalog_source_repos()
 
