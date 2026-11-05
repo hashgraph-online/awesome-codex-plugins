@@ -104,6 +104,9 @@ column named `window`, which DuckDB reserves and dbt must quote).
   `contradicted`, `unmeasured`, `missing_columns`, `unprofiled`) says how they
   compare. It is read from the repository each run, never cached, so a cache hit
   is annotated too. Declared columns are capped at 12 unless `--columns all`.
+  A version of a native dbt versioned model carries its own declaration, keyed
+  by its label (`dim_teams.v2`) and read as dbt builds that version: the shared
+  entry merged with the version's own.
   Values-free mode withholds the rule and all population filter values. In full
   mode, any PII-flagged filter withholds the entire rule and that filter's values,
   at any confidence, named in `withheld_fields`.

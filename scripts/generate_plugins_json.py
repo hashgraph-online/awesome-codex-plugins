@@ -18,6 +18,7 @@ import io
 import json
 import re
 import shutil
+import stat
 import sys
 import urllib.request
 import zipfile
@@ -67,6 +68,8 @@ EXTRA_MIRROR_PATHS = {
     # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
     # invoke sibling Python scripts in the same hooks/ directory at runtime.
     "bcanfield/agentic-tech-debt": ("hooks",),
+    # deja's hook configuration invokes its sibling executable wrapper.
+    "vshulcz/deja-vu": ("hooks",),
     # Codex Attachment Manager's .mcp.json starts ./scripts/launch with
     # ./src/plugin-server.ts; the MCP server, engine and panel all live in src/.
     "chipfighter/codex-attachment-manager": ("scripts", "src"),
@@ -77,6 +80,8 @@ EXTRA_MIRROR_PATHS = {
     # Suede declares its local MCP command inline; keep its server, imported
     # helpers and catalog data together in the installed bundle.
     "JasonColapietro/suede-creator-skills": ("mcp",),
+    # Mirroring permission requires the complete, unmodified Metis bundle.
+    "MetisFoundry/metis-plugins": (".",),
     # Espresso inline manifest hooks run src/hooks/*.js, which load the
     # bundled Ponytail runtime from the top-level hooks/ directory.
     "mirkobozzetto/espresso": ("src", "hooks"),
@@ -329,7 +334,7 @@ def collect_selected_paths(
 
     interface = manifest.get("interface")
     if isinstance(interface, dict):
-        for key in ("composerIcon", "logo"):
+        for key in ("composerIcon", "logo", "logoDark"):
             value = interface.get(key)
             if isinstance(value, str):
                 add_recursive_selection(selected, all_names, plugin_root, value)
@@ -363,7 +368,7 @@ def collect_metadata_only_paths(
 
     interface = manifest.get("interface")
     if isinstance(interface, dict):
-        for key in ("composerIcon", "logo"):
+        for key in ("composerIcon", "logo", "logoDark"):
             value = interface.get(key)
             if isinstance(value, str):
                 add_recursive_selection(selected, all_names, plugin_root, value)
@@ -439,17 +444,22 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         shutil.rmtree(destination_root)
     destination_root.mkdir(parents=True, exist_ok=True)
 
+    complete_bundle = "." in EXTRA_MIRROR_PATHS.get(owner_repo, ())
     for relative_path in sorted(selected_paths):
         archive_name = plugin_root.joinpath(PurePosixPath(relative_path)).as_posix()
         destination_path = destination_root / PurePosixPath(relative_path)
         destination_path.parent.mkdir(parents=True, exist_ok=True)
-        if relative_path == ".codex-plugin/plugin.json":
+        if relative_path == ".codex-plugin/plugin.json" and not complete_bundle:
             destination_path.write_text(
                 json.dumps(mirrored_manifest, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8",
             )
         else:
             destination_path.write_bytes(archive.read(archive_name))
+        # Direct hook commands need the executable bits from the source ZIP.
+        source_mode = archive.getinfo(archive_name).external_attr >> 16
+        executable_bits = source_mode & 0o111 if stat.S_ISREG(source_mode) else 0
+        destination_path.chmod(0o644 | executable_bits)
 
     # Nested bundles may inherit their license from an enclosing directory.
     # Keep a bundle-specific license when present; otherwise retain the nearest

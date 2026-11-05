@@ -31,7 +31,10 @@ fingerprints of the dbt project and of the semantic layer.
   a filter's values, or moving the entry to another YAML file is not a change.
   `data.transform_layer.declared_model_count` says how many models were
   fingerprinted (`0` is a project that declares nothing, which is a baseline;
-  `null` is a format that does not read declarations).
+  `null` is a format that does not read declarations). A native dbt versioned
+  model is fingerprinted per version, from the entry dbt builds each version
+  from, under its label (`dim_teams.v2`), so drift names the version whose
+  declaration moved.
 - Without a cache it captures a metadata-only baseline and says so. It warns
   when the cache it pinned is thin (objects without column detail) or older than
   the profile freshness window, because either makes "accept current state" only
@@ -109,7 +112,13 @@ complete composite, never one column at a time. Aggregates only.
   from the count the axis already takes; that alone never lowers the severity,
   because a surrogate grain stays unique through a real duplicate.
 - Finding codes: `key_lost_uniqueness` (proven unique at baseline, not now),
-  `declared_grain_not_unique` (declared, never held), and
+  `declared_grain_not_unique` (declared, never held),
+  `join_orphans_increased` (a baseline join's orphan fraction rose),
+  `declared_join_orphans` (a join declared now, at 20% orphaned or more,
+  `high` from 50%, that the baseline never measured or measured at or above
+  that bound already; `data.baseline` is `absent`, `unmeasured` or
+  `measured`; the joins come from the project and from a native semantic
+  layer, not from a dbt layer's entities), and
   `join_cardinality_exceeded` (a join whose declared arity, SLayer's
   `cardinality` or Cube's `relationship`, does not hold: the side it says is
   unique is not).
@@ -156,8 +165,12 @@ on that model. `data.declaration_drift` says whether this focus ran:
 `{"checked": true, "baseline_declared_models", "declared_models"}`, or
 `{"checked": false, "reason"}` with a warning. A baseline pinned before
 declarations were fingerprinted is unchecked, never clean and never every
-declaration newly added; `maintain snapshot --project-only` baselines them
-without re-measuring the warehouse, which is also how an intended declaration
+declaration newly added. So is a versioned model on a baseline that keyed its
+declaration by the bare name, before declarations were read per version: it is
+named under `data.declaration_drift.unchecked_models`, with
+`unchecked_reason: baseline_predates_versions` and a warning, and is never
+reported as removed. `maintain snapshot --project-only` baselines them without
+re-measuring the warehouse, which is also how an intended declaration
 change is accepted. `maintain reconcile` answers these findings with advisories
 only: a declaration is a human's decision, so Dex never rewrites one to match the
 baseline.

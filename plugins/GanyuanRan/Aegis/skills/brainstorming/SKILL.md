@@ -73,14 +73,8 @@ interview; retain the no-implementation hard gates.
 
 ### Opening Card
 
-After the user has entered the mode, emit this once in the user's language, then begin the interview:
-
-```text
-◆ Grilling Session
-Target: <idea / plan / design>
-Question path: value -> boundaries -> failure modes -> acceptance
-Pace: deep (default) | fast (user-requested)
-```
+After the user enters the mode, emit the one-time opening card exactly as
+specified in `grilling-mode-reference.md`, then begin the interview.
 
 ### Pace
 
@@ -200,16 +194,14 @@ You MUST create a task for each of these items and complete them in order:
   `establishing-project-context`; do not leave the resolution only in the spec.
 - If the request is diagnosis/root-cause/follow-up to an approved plan → route to correct workflow
 - If the request spans multiple independent subsystems → flag and decompose first
-- Ask clarifying questions one at a time, prefer multiple choice
-- Separate facts, assumptions, unknowns while exploring
 
-**Working artifacts:** Keep four drafts: `TaskIntentDraft` (outcome, goal,
-success evidence, stop condition, non-goals, scope, risks),
-`BaselineReadSetHint` (candidate docs, authority gaps),
-`BaselineUsageDraft` (required refs, optionally delivered context refs,
-acknowledged-before-plan refs, cited refs, missing refs, advisory decision),
-and `ImpactStatementDraft` (affected layers, owners, invariants, compat,
-non-goals). Refresh when scope changes.
+**Working artifacts:** keep the four drafts named by the compact output
+contract and refresh them when scope changes. `TaskIntentDraft` carries outcome,
+goal, success evidence, stop condition, non-goals, scope, and risks;
+`BaselineReadSetHint` carries candidate docs and authority gaps;
+`BaselineUsageDraft` carries required, delivered-context, acknowledged-before-plan,
+cited, and missing refs plus the advisory decision; `ImpactStatementDraft` carries
+affected layers, owners, invariants, compat, and non-goals.
 
 **Compact output contract:** `Aegis Visibility`, `TaskIntentDraft`, `BaselineReadSetHint`,
 `BaselineUsageDraft`, `Requirement Ready Check`, `ImpactStatementDraft`,
@@ -223,99 +215,6 @@ before implementation and what drift, overbuild, wrong-owner, or missing
 acceptance risk that restraint reduces. Keep it natural and task-specific; do
 not turn it into a fixed skill trace.
 
-Use a compact `BaselineUsageDraft` whenever the design direction depends on
-specific baseline docs or current-authority refs:
-
-```text
-BaselineUsageDraft:
-- Required baseline refs:
-- Delivered context refs:
-- Acknowledged before plan refs:
-- Cited in design refs:
-- Missing refs:
-- Decision: continue | needs-baseline-readback | needs-verification | pause-for-user | blocked
-```
-
-`Delivered context refs` is optional host-projected bookkeeping only. It is not
-authoritative proof that a host injected or the model internally consumed a
-context payload. The artifact exists to make baseline/context attention drift
-visible before the design is recommended or approved.
-
-Use a compact `Requirement Ready Check` before recommending a design when the
-requirement is not already confirmed and complete:
-
-```text
-Requirement Ready Check:
-- Requirement source refs:
-- Goals and scope refs:
-- User / scenario refs:
-- Requirement item refs:
-- Acceptance / verification criteria refs:
-- Open blocker questions:
-- Decision: ready | needs-source | needs-goal-alignment | needs-scenario | needs-acceptance-criteria | needs-clarification | needs-user-decision | blocked
-```
-
-Treat task intent, conversation, source documents, and agent inference as
-candidate requirement sources until project authority confirms them. If the
-decision is not `ready`, keep the design at proposal/spec clarification level;
-do not turn the gap into implementation tasks.
-
-**Existence Check:** Before recommending an approach that adds a new owner,
-skill, artifact, host adapter, fallback, compatibility path, workflow step, or
-benchmark metric, check whether it needs to exist. Use
-`docs/current/AEGIS_MINIMALITY_REFERENCE.md` as the reference. Do not force this
-onto ordinary feature design that reuses existing owners and artifacts.
-
-```text
-Existence Check:
-- Proposed new surface:
-- Existing owner / reuse candidate:
-- Why existing surface is insufficient:
-- Creation proof:
-- Entropy / retirement impact:
-- Decision: reuse-existing | add-with-proof | defer | reject | needs-first-principles-review
-```
-
-If the decision is `reuse-existing`, recommend the reuse path instead of a new
-surface. If the decision is `add-with-proof`, carry the proof, verification
-signal, and any retirement trigger into the design/spec.
-
-**Product Risk Lens:** For ambiguous product, feature, UI, workflow, or
-architecture choices, add a compact review lens, not persona roleplay:
-
-```text
-Product Risk Lens:
-- Value:
-- Non-goals:
-- Trade-offs:
-- Decision needed:
-```
-
-This is a review lens, not persona output. It does not override baseline evidence,
-approved requirements, or current authority docs; it only makes the product risk
-and decision point visible before implementation.
-
-**Plan-Time Complexity Check:** Before choosing an implementation direction for
-medium/high work, inspect the likely owner files and current shape. This is an
-advisory design pressure check, not a gate and not completion authority. Do not
-force it onto tiny low-risk edits.
-
-Use `using-aegis/references/complexity-governance.md` for the shared artifact
-classes, pressure-signal interpretation, and over-budget handling.
-
-```text
-Complexity Budget:
-- Artifact class:
-- Target files / artifacts:
-- Current pressure:
-- Projected post-change pressure:
-- Budget result: within-budget | at-risk | over-budget
-- Planned governance:
-
-Plan-Time Complexity Check:
-- Better file boundary:
-- Recommendation: edit-in-place | extract helper | add owner file | split task | defer refactor
-```
 
 **Exploring approaches:** Propose 2-3 approaches with trade-offs and
 recommendation. Make scope boundary explicit: what's in, what's deferred, what
@@ -342,50 +241,6 @@ answer invariant, canonical owner / contract, responsibility overlap,
 higher-level simplification, retirement / falsifier, and verdict before the
 approach is recommended.
 
-**Prior-Art & Reuse Lens:** When a candidate approach would introduce a new
-mechanism, protocol, artifact shape, or nontrivial interaction pattern, check
-proven external practice before inventing one. This lens is behavior-triggered:
-research precedents when the direction is novel for the project, plausible
-approaches remain after internal reuse checks, or the domain sits outside
-current repository evidence. Do not run research ceremony for routine work that
-already maps to well-known framework patterns, and do not let an unavailable
-web/search tool stall approach selection.
-
-```text
-Prior-Art & Reuse Lens:
-- Searched precedents: <bounded sources; index-first summary; cite anchor per claim>
-- Adopt verbatim: <proven pattern + source>
-- Adapt with reason: <tailored part -> project constraint / non-negotiable it maps to>
-- Reject with reason: <project fact that makes the pattern inapplicable>
-- Degraded: <no web/search tooling -> external basis unknown; internal-only evidence stated>
-```
-
-Search results are evidence candidates, not prompt payload: summarize
-index-first and cite anchors instead of pasting raw pages. An "industry
-standard" claim without a citable anchor stays `unknown`. Every adapt/reject
-decision binds to a named project constraint or fact, not taste. The lens feeds
-only the approach recommendation; it stays advisory and grants no completion
-authority.
-
-**Baseline Role Alignment:** When a question may involve both "what should be
-built" and "where it should live", keep requirement truth separate from
-architecture truth:
-
-```text
-Baseline Role Alignment:
-- Product / Requirement Baseline:
-- Architecture / Runtime Boundary Baseline:
-- Result: aligned | Design Defect | Implementation Drift | missing-authority | needs-clarification
-- scope: requirements | architecture | both
-- Next action:
-```
-
-Use `Design Defect` when the relevant requirement, design, or baseline is wrong.
-Use `Implementation Drift` when the work deviates from a correct unchanged
-baseline. `Architecture Defect` and `Architecture Drift` remain compatibility
-aliases for architecture-scoped `Design Defect` and architecture-scoped
-`Implementation Drift`. This is a review lens, not a runtime gate or completion
-authority.
 
 **Presenting the design:** Scale sections to complexity. Cover only the surfaces that matter: architecture, components, data flow, error handling, testing, compatibility boundary. Get approval for the design before implementation when behavior, contract, architecture, or user-facing flow is being decided.
 
@@ -402,27 +257,26 @@ create accepted architecture memory from unexecuted ideas.
 
 ## Conditional Detailed Guidance
 
-For user-facing interface or interaction design, compose `ui-ux-governance`;
-carry scoped experience rules into the existing acceptance criteria. This skill
-retains design approval and handoff ownership.
+Load only the evidence-matched section, never either file whole, and never for
+route selection, first-turn clarification, route-away cases, or an active
+Grilling Mode interview.
 
-Conditional design probe, scenario profile, and workspace/spec documentation
-detail maps to explicit headings below.
+`expanded-design-guidance.md` owns these sections; read only the activated one:
 
-Read only the evidence-matched section of `expanded-design-guidance.md`:
-
-- `## Design Probe` only when existing evidence is insufficient and a bounded
-  probe can change the design direction;
-- `## Software Scenario Profiles` only after the work is classified as one of
-  its named scenario classes and profile-specific state/risk coverage is useful;
-- `## Documentation And Workspace Bootstrap` only after the Doc Necessity Gate
+- `## Design Artifact Templates` — the template for the single artifact the
+  current evidence activates (`Baseline Usage Draft`, `Requirement Ready Check`,
+  `Existence Check`, `Product Risk Lens`, `Plan-Time Complexity Check`,
+  `Prior-Art And Reuse Lens`, `Baseline Role Alignment`);
+- `## Design Probe`;
+- `## Software Scenario Profiles` — only after the scenario class is known;
+- `## Documentation And Workspace Bootstrap` — only after the Doc Necessity Gate
   selects a spec or workspace artifact;
-- `## Spec Self-Review` only for a written Design Spec; and
-- a named baseline template section only when initializing that exact file.
+- `## Spec Self-Review` — only for a written Design Spec; and
+- a named baseline template — only when initializing that exact file.
 
-Do not load the reference for route selection, first-turn clarification,
-route-away cases, or an active Grilling Mode interview. The reference supplies
-detail; this main skill continues to own routing, design approval, and handoff.
+For user-facing interface or interaction design, compose `ui-ux-governance` and
+carry scoped experience rules into the existing acceptance criteria. Routing,
+design approval, and handoff stay with this skill.
 
 ## Design Ready And Design Complete
 

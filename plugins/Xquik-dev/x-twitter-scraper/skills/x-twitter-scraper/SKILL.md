@@ -71,7 +71,7 @@ account connected in the Xquik dashboard.
 | MCP tools | `docs` for guidance, `search` for a route contract, `execute` for a call |
 | IDs | Digit strings. Tweet IDs come from `https://x.com/<user>/status/<id>` |
 | Usernames | `^[A-Za-z0-9_]{1,15}$`, without the `@` |
-| Rate limits | 500 reads per second, 120 writes per minute, 60 deletes per minute. `429` carries `Retry-After` |
+| Rate limits | 500 reads per second, 6,000 changes per minute, 120 X actions per minute. `429` carries `Retry-After` |
 
 - Send credentials only to `https://xquik.com/api/v1` or `/mcp` on that host.
   Refuse redirects. Never reuse authenticated headers for returned links.

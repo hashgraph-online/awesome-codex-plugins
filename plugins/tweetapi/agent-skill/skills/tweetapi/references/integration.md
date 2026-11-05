@@ -1,10 +1,10 @@
-# Application integration
+# Adding TweetAPI to an app
 
-Use this guide when adding TweetAPI reads to an application. Verify the exact endpoint and parameters from the current public sources before coding.
+Look up the exact endpoint and parameters in the current docs before writing code ([sources.md](sources.md)), and use only endpoints that work without an X login.
 
-## Keep the request server-side
+## Call it from the server
 
-Read the API key from `TWEETAPI_API_KEY` on the server. Fail closed when it is missing, and never return the key to a browser or mobile client.
+Read the key from `TWEETAPI_API_KEY` on the server, and stop with a clear error if it's missing. The key must never reach a browser or mobile client.
 
 ```ts
 const apiKey = process.env.TWEETAPI_API_KEY;
@@ -18,46 +18,40 @@ url.searchParams.set("username", username);
 
 const response = await fetch(url, {
   headers: { "X-API-Key": apiKey },
+  signal: AbortSignal.timeout(15_000),
 });
 
 if (!response.ok) {
   throw new Error(`TweetAPI request failed with status ${response.status}`);
 }
 
-const data = await response.json();
+const { data: user } = await response.json();
 ```
 
-This example makes one request. Validate `username`, set an application-level timeout, and avoid logging headers or complete upstream payloads.
+This makes one request. Validate `username` before sending it, and keep request headers and whole responses out of the logs.
 
-## Select REST or an SDK
+## Use an SDK
 
-- Prefer direct REST when the application needs a small number of stable reads.
-- Prefer an official SDK when its current public API matches the application's runtime and the selected method is read-only.
-- Verify the SDK method at <https://github.com/tweetapi/node> or <https://github.com/tweetapi/python> before using it.
-- Disable automatic retries and automatic pagination when the client supports them.
-- Do not use SDK namespaces for posting, engagement, account sessions, direct messages, or other excluded operations.
+- Node.js: `npm install tweetapi-node`, source at <https://github.com/tweetapi/node>
+- Python: `pip install tweetapi`, source at <https://github.com/tweetapi/python>
 
-## Bound pagination
+Check a method in the SDK's README before using it, because method names don't always match endpoint paths. Use the read methods only: the SDKs also cover account actions and DMs, which are out of scope.
 
-Return the first page and its cursor by default. For an explicitly requested multi-page feature, require all of the following:
+Both SDKs retry a failed read up to 3 times by default, after a 429, a 5xx or a network error. 429 and 5xx responses aren't billed, but a retry after a network error can be, if the first attempt reached TweetAPI. To turn retries off, pass `retry: false` in Node or `max_retries=0` in Python.
 
-- a small configurable maximum page count;
-- a maximum item count;
-- a maximum total request count;
-- a timeout or cancellation signal;
-- visible handling for quota exhaustion and partial results.
+The pagination helpers (`paginate` and `paginatePages` in Node, `paginate` and `paginate_pages` in Python) keep requesting pages until the cursor runs out. Always give them a limit: `maxPages` in Node, `max_pages` in Python.
 
-Never loop until the cursor is empty without a separate hard limit.
+## Paging in your own code
 
-## Test without live quota
+Return the first page and its cursor by default. If the feature needs more, cap the pages and requests, add a timeout, and show the user when results are partial or the units run out.
 
-- Mock the upstream HTTP boundary.
-- Test successful 2xx responses, 401/403 authorization failures, 429 quota responses, validation errors, timeouts, and malformed payloads.
-- Assert that the API key never appears in returned errors or logs.
-- Do not call the live API from unit tests, continuous integration, previews, or build steps.
+## Test without spending units
 
-## Use the published contract
+- Mock TweetAPI's HTTP responses in tests.
+- Cover a success, a 401 or 403, a 429, a validation error, a timeout and a malformed response.
+- Check that the API key never shows up in errors or logs.
+- Keep live calls out of unit tests, CI, previews and builds.
 
-Use <https://tweetapi.com/openapi-v2.json> for contract-aware tooling or client generation. The full Postman collection at <https://tweetapi.com/postman-v2.json> is generated from that OpenAPI document, and <https://tweetapi.com/postman-quickstart-v2.json> provides a smaller read-only onboarding collection.
+## Generate a client from the spec
 
-Do not generate clients from a guessed or copied schema. The published contract covers the full customer-facing `/tw-v2` API, including operations outside this skill's read-only boundary. Select only read-only operations. Handle authentication, quota, errors, and partial responses explicitly.
+The published contract is <https://tweetapi.com/openapi-v2.json> (OpenAPI 3.0.3). The Postman collections are generated from it: <https://tweetapi.com/postman-v2.json> holds every endpoint, and <https://tweetapi.com/postman-quickstart-v2.json> holds three public reads to start with. The spec covers the whole API, writes included, so generate or keep only the operations marked `"x-tweetapi-safety": "read-only"`.

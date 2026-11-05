@@ -58,7 +58,7 @@ Before step 1, set up the project with `video-project-github` (it creates the fo
 
 | # | Step | Writes | Goes deeper |
 |---|---|---|---|
-| 1 | References: real film stills and frames, what to take from each | `refs.md` | `find-references`, `varg-mockups` |
+| 1 | References: the brief as query packs, light first; a never board; human-made frames, what to take from each | `refs.md`, `never.md` | `find-references`, `varg-mockups` |
 | 2 | Moodboard, in ranked order: references, light, subject lock, framing, palette (hex from a reference), motion, texture, type, sound, "Never"; proved on 3 test stills | `moodboard.md`, `board.html` **STOP** | `video-moodboard`, `varg-mockups`, `varg-video-prompting` |
 | 3 | Script, then storyboard: one promise, beats joined by but/therefore, every line sized to its seconds and checked (`check_script.py`), then the camera per shot | `script.md`, `STORYBOARD.md` **STOP** | `video-script`, `varg-previz` |
 | 4 | Sound first: sound plan, voices cast from candidates, lines with pauses and breaths, music mapped to bars, key SFX, a checked mix | `sound/plan.md`, `cues.json`, `mix.wav`, `beats.json` **STOP** | `video-sound`, `varg-ai`, `varg-music-video`, [earshot](https://github.com/Leonxlnx/earshot) |

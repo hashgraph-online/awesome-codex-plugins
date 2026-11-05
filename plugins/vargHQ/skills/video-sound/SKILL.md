@@ -1,19 +1,19 @@
 ---
 name: video-sound
 description: >-
-  Make the sound of any video so it feels real: AI voices that don't sound fake (cast from candidates a person
-  picks, directed with each model's documented tags), dialogue and narration written for the ear with pauses,
-  breaths and small actions, sound effects on the right frame, music planned bar by bar with a quiet part, and a
-  measured mix. Built from 480 sourced findings (Walter Murch, Randy Thom, Ben Burtt, trailer editors, NPR, voice
-  directors, ElevenLabs, Google, Kling and Seedance docs, HyperFrames, earshot) plus paid tests. An agent can't hear,
-  so every step writes numbers: a cue sheet, scripts that build and grade the mix (LUFS, true peak, voice over music,
-  effects within a frame, cuts on the beat, dead air) and a voice audition page. Use for "add sound", "voiceover",
-  "sound design", "music for my video", "make the AI voice sound real", "dialogue", "SFX", "mix", "launch video
+  Make the sound of any video so it feels real: AI voices that don't sound fake (cast from candidates a person picks,
+  directed with each model's documented tags), dialogue and narration written for the ear with pauses, breaths and
+  small actions, sound effects on the right frame, music planned bar by bar with a quiet part, and a measured mix.
+  Built from 480 sourced findings (Walter Murch, Randy Thom, Ben Burtt, trailer editors, NPR, voice directors, model
+  docs, HyperFrames, earshot) plus paid tests. An agent can't hear, so every step writes numbers: a cue sheet, scripts
+  that build and grade the mix (LUFS, true peak, voice over music, effects within a frame, cuts on the beat, dead
+  air), a voice audition page and an audio LLM judge that shortlists takes. Use for "add sound", "voiceover", "sound
+  design", "music for my video", "make the AI voice sound real", "pick the best take", "SFX", "mix", "launch video
   audio", "trailer sound", in HyperFrames, Remotion or AI films. Not for making a song as the product.
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.0"
+  version: "1.1.0"
   openclaw:
     requires:
       anyBins:
@@ -119,6 +119,11 @@ second take. With the varg MCP instead of a key, generate with `call_tool` (`too
 `get_job`), put each file path in `audition.json` and run `score` and `page`. **STOP:** the person listens and picks.
 Write the voice id, model and settings into `brief.md`.
 
+Too many takes to play them all? Shortlist with an audio LLM judge, never pick with one (`references/judge.md`). A
+vague "which is better?" judge picked the plain mix over the designed one every time in our test, and picked between
+identical takes. Ask yes/no questions about one take at a time, let code decide, compare survivors two at a time in
+both orders, and count only verdicts that agree: `python3 scripts/judge_takes.py prompt | check | make | tally`.
+
 ### 4. Record every line
 
 Render all lines in the chosen voice. Transcribe each take with word timestamps and compare with the script: models
@@ -188,8 +193,10 @@ SSML `<break>` on Eleven v4/v3 · emotion adjectives instead of behaviour · nam
 - `references/mix.md`: loudness targets per platform, ducking, EQ, checks, what the views evidence says
 - `references/types.md`: launch, cinematic film, music video, trailer or ad, UGC, narrated explainer
 - `references/cue-sheet.md`: the `cues.json` format
+- `references/judge.md`: ranking takes with an LLM judge without bias: the criteria and who checks each, our test, twelve rules, the prompts
 - `references/evidence.md`: the tests and every sourced finding with its quote and link
 - `references/goal-prompt.md`: the whole skill as one copy-paste prompt
 - `scripts/sound.py`: measure, beats, fit, mix, check, sheet, preview, mux
 - `scripts/audition.py`: voice candidates, rendered, measured and put on one page to pick from
+- `scripts/judge_takes.py`: judge prompts, code verdicts on one take, blind pair files in both orders, a tally of agreeing wins
 - `examples/launch-20s/`: the 20 s launch soundtrack from the tests (cue sheets, beat map, checks)

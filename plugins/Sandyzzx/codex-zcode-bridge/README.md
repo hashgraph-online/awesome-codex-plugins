@@ -30,3 +30,4 @@ codex plugin add codex-zcode-bridge@codex-zcode-bridge
 ZCode 以当前操作系统用户权限运行。Git worktree 不是 OS 沙箱；`allowed_paths` 和 `forbidden_paths` 是任务指令，不能强制限制文件或命令访问。普通本地读取、编辑、构建、测试和批准范围内的清理可按 `yolo` 策略执行；Push、Merge、Tag、Release、生产 Authority 切换、任务范围外的数据删除、凭据修改和真实生产任务数据操作仍需用户明确授权。任务 prompt、Skill 或 worktree 选择不能自行产生这些授权。任务 prompt、日志、可见模型输出和结果会保存在本机 `.codex/codex-zcode-bridge/` 目录。派发前请检查任务可见的工作区内容。
 
 Marketplace 用户配置自定义 ZCode 路径或默认模型的说明见[中文安装指南](https://github.com/Sandyzzx/codex-zcode-bridge/blob/master/README.zh-CN.md#安装)。
+- **Read-only wait helper:** hosts with background-command completion can run the bundled `dist/wait-task.mjs` against the same SQLite Attention Core. The helper never approves, cancels, or mutates task state; its notification still depends on the host lifecycle.

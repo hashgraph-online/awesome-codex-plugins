@@ -18,6 +18,9 @@
 //   appstore-icon.png, appstore-shot-01.png, x-profile.jpg …
 //                  the app icon and screenshots from the app store listings
 //                  the site links to, and its social profile pictures
+//   FACTS.md, facts.json, pages/
+//                  with --facts: the site's own claims with their pages
+//                  (see facts.js)
 
 const fs = require("fs");
 const path = require("path");
@@ -26,6 +29,7 @@ const { metrics, walk, waitForContent, hideOverlays, resetPictureWait, capture }
 const { findLogos, captureLogos, readWords } = require("./logos");
 const { renderCard } = require("./card");
 const { brandYml } = require("./brandyml");
+const { readFactPages, writeFacts, removeFacts } = require("./facts");
 const { classify, readSource } = require("./stores");
 const { setTimeLimit, timeLeft, sleep } = require("./time");
 const version = require("./version");
@@ -104,6 +108,7 @@ function prepareDir(dir) {
     throw new Error(`${dir} is not empty and holds no earlier brand kit. Pick another folder with --out.`);
   }
   for (const file of [...kitFiles(old), "brand.json", "BRAND.md", "_brand.yml"]) fs.rmSync(path.join(dir, file), { force: true });
+  removeFacts(dir);
 }
 
 // The site's name: og:site_name, else the title up to its first separator
@@ -147,7 +152,7 @@ async function captureFirstScreen(cdp, dir) {
   return [{ file: "screen-01.png", width: png.readUInt32BE(16), height: png.readUInt32BE(20) }];
 }
 
-async function readPage(url, dir, log, alsoNamed = "") {
+async function readPage(url, dir, log, alsoNamed = "", facts = false) {
   const chrome = await launch(SCREEN);
   let cdp;
   try {
@@ -195,7 +200,10 @@ async function readPage(url, dir, log, alsoNamed = "") {
     const colors = withLogoColor(found.brand.colors, logos);
     log("Drawing the card");
     const card = await renderCard(chrome.base, { url: pageUrl, name, colors, fonts: found.brand.fonts, logos, screenshots }, dir).catch(() => null);
-    return { pageUrl, found, name, colors, text, logos, screenshots, card };
+    // The claims last, from the page as the kit leaves it and the pages it
+    // links to: the kit is made the same way with or without them.
+    const factPages = facts ? await readFactPages(cdp, pageUrl, log).catch((err) => ({ pages: [], skipped: [{ role: "home", url: pageUrl, reason: String(err.message || err) }] })) : null;
+    return { pageUrl, found, name, colors, text, logos, screenshots, card, factPages };
   } finally {
     if (cdp) cdp.close();
     await chrome.close();
@@ -311,7 +319,7 @@ function cleanUp(target, existed) {
   }
 }
 
-async function makeKit(rawUrl, { dir, stores = true, timeLimit = 120_000, log = () => {} } = {}) {
+async function makeKit(rawUrl, { dir, stores = true, facts = false, timeLimit = 120_000, log = () => {} } = {}) {
   setTimeLimit(timeLimit);
   const asked = normalizeUrl(rawUrl);
   const host = new URL(asked).hostname.toLowerCase();
@@ -344,13 +352,14 @@ async function makeKit(rawUrl, { dir, stores = true, timeLimit = 120_000, log = 
     }
     // The app's own name, up to a tagline ("Duolingo: Learn Languages").
     const appName = given ? String(given.name || "").split(/\s*[:|\u2013\u2014]\s*|\s+-\s+/)[0] : "";
-    if (page) read = await readPage(page, target, log, appName);
+    if (page) read = await readPage(page, target, log, appName, facts);
   } catch (err) {
     cleanUp(target, existed);
     throw err;
   }
   const found = read ? read.found : { brand: { fonts: {} }, icons: [], images: [], manifest: "", links: [] };
   if (read && !read.logos.length) notes.push("No logo was found on the page itself.");
+  if (facts && !read) notes.push("No facts were read: the listing names no website.");
   const others = stores && read ? await readSources(found.links, target, log, given ? [given.type] : []) : [];
   const sources = [...(given ? [given] : []), ...others];
   for (const source of others) {
@@ -382,7 +391,8 @@ async function makeKit(rawUrl, { dir, stores = true, timeLimit = 120_000, log = 
   // The page's ground is not in brand.json: its list of colors can file
   // that color under the header or footer.
   fs.writeFileSync(path.join(target, "_brand.yml"), brandYml(kit, { background: found.brand.background || "", site: read ? read.pageUrl : "" }));
-  return { dir: target, kit };
+  const claims = facts && read ? writeFacts(target, { name: kit.name, site: kit.url, generator: kit.generator, ...read.factPages }) : null;
+  return { dir: target, kit, facts: claims };
 }
 
 module.exports = { makeKit, normalizeUrl, homePageOf, siteOfListing, prepareDir, brandName };

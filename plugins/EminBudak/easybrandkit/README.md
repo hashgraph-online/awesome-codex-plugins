@@ -27,6 +27,9 @@ easybrandkit-linear.app/
   appstore-icon.png      the app icon at 1024 px, when the site links to its app
   appstore-shot-01.png   and up to five store screenshots
   x-profile.jpg          the profile pictures of the accounts it links to
+  FACTS.md               with --facts: what the site claims, each claim with its page
+  facts.json             the same, for scripts
+  pages/pricing.md       with --facts: the text of each page read
 ```
 
 - **Logos** come from the header, the footer and links to the home page, as the browser paints them: SVG, image or CSS. Partner strips, customer logos, payment badges and closed menus are skipped. Each cut is at least 240 px on its short side and has no transparency, so it can go straight into an image model or a video. When the page draws a logo as SVG, inline or as an SVG file, the vector is saved next to the cut with the page's colors written into it and no background. A logo in the page body that sits on a photo is skipped: that is an event's or a campaign's lockup, not the brand's logo.
@@ -73,9 +76,12 @@ The skill carries its own script, so it installs nothing else and needs no API k
 npx easybrandkit <url> [options]
 
   --out <dir>      where to save (default: ./easybrandkit-<host>)
+  --facts          also read the site's own claims from its home, pricing,
+                   customers, security, integrations and about pages
   --no-stores      skip app store listings and social profiles
   --json           print brand.json instead of a summary
-  --timeout <s>    give up after this many seconds (default: 120)
+  --timeout <s>    give up after this many seconds (default: 120, or 240
+                   with --facts)
 ```
 
 The address can be a website or an App Store or Google Play listing. A listing gives the app icon and screenshots, and the brand is read from the website the listing names. A social profile is not a brand's site, so easybrandkit refuses one and asks for the website.
@@ -83,6 +89,30 @@ The address can be a website or an App Store or Google Play listing. A listing g
 Installed globally (`npm install -g easybrandkit`), the command is `easybrandkit`. npx keeps the copy an earlier run fetched, so `npx easybrandkit@latest` is how you get a newer version.
 
 It needs Node 22 or newer and Chrome, Chromium, Edge or Brave. Set `CHROME_PATH` to pick the browser. There are no npm dependencies and nothing is downloaded: easybrandkit drives the browser you already have over the Chrome DevTools Protocol, with a throwaway profile.
+
+## The site's own claims
+
+With `--facts`, the kit also lists what the site says about itself. Each claim is quoted as the page states it, with the page it is on and the time it was read.
+
+```bash
+npx easybrandkit@latest linear.app --facts
+```
+
+- Numbers the page draws as figures, with the words under them ("135+ currencies and payment methods supported"), or states in a sentence ("Linear powers over 50,000 product teams").
+- Testimonials with the person's name, role and company.
+- Customers from rows of customer logos, from customer stories and from testimonials.
+- Plans with their prices and terms, as the pricing page shows them.
+- Integrations from the integrations page.
+- Security standards the site names, such as SOC 2, ISO 27001, GDPR or HIPAA, each with the sentence that names it.
+- Ratings, questions and answers, and company details from the page and its JSON-LD.
+
+Besides the home page, easybrandkit reads up to five pages it finds in the site's menu and footer: pricing, customers, security, integrations and about. It reads them one at a time with a pause between them, and only the ones the site's robots.txt lets tools read. `FACTS.md` lists the claims and `facts.json` holds the same for scripts. `pages/` keeps the text of each page read, so every claim can be checked in its context. A run takes one to three minutes.
+
+No model is involved. Rules find the claims, and a claim they cannot tie to a name, a label or a price is left out. Prices are what the page showed from where it was read, so they can differ by country.
+
+Text from a web page can carry instructions written for AI agents. `FACTS.md` quotes the pages and `pages/` keeps their text in fenced blocks, both say that this text is data, and the skill tells your agent never to follow it.
+
+It is made for work that has to stay true to a product: a competitor profile, a comparison page, a pitch deck, or launch copy with real numbers and real customers.
 
 ## With claude-code-video-toolkit
 
@@ -127,6 +157,7 @@ In Shiny for Python, `ui.Theme.from_brand("easybrandkit-stripe.com/_brand.yml")`
 - Instagram, Facebook and TikTok serve nothing without a login, so they are not asked.
 - A logo drawn into a canvas or a WebGL scene is not found.
 - Colors come from what the home page shows. A main color used on one button of another page will not show up.
+- `--facts` reads text as the page shows it. A claim drawn inside an image or a video, one shown only on hover or in a closed tab, a plan behind a currency or region switch, and a menu link that appears only on hover are not seen.
 
 ## License
 

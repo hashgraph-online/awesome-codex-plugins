@@ -25,14 +25,16 @@ MONEY
 
 WORK IN THIS ORDER. Each step writes one file. At every STOP, show me the file and wait for my answer.
 
-1. References -> refs.md
-   Find 8-12 frames for the look: film stills (Film-Grab https://film-grab.com, ShotDeck https://shotdeck.com,
-   Shot Cafe https://shot.cafe), Pinterest boards ("[film] still", "[director] color palette",
-   "[decade] film grain", "[genre] lighting"), and for web or UI motion Godly https://godly.website and
-   CTA Gallery https://cta.gallery. Search by the feeling and by attribute (color, light, angle), not by subject.
-   Skip the obvious first pick; go to one specific, recognizable edge (one famous scene, one named style).
-   Borrow the look, never characters or logos.
-   For every frame write what we take from it: palette, framing, lens, light direction, texture, motion.
+1. References -> refs.md, never.md
+   If the find-references skill is installed, follow it. Otherwise read it first:
+   https://github.com/vargHQ/skills/tree/main/find-references
+   Write the brief, then one query pack per job this piece needs. Light gets the most, then framing, people,
+   location, texture, palette, type, motion, music. Run the obvious search first and turn what repeats into
+   never.md. Search each source in its own words: no library searches by ratio or Kelvin, so search what is visible.
+   Open everything you keep, and prove who made it from records. Never fetch sites that forbid bots (Film-Grab,
+   ShotDeck, Shot Cafe, Pinterest): write those searches into links.md for me.
+   Each reference gets one job, what not to copy, and a tag: feed, words or look. Any real person is words only.
+   Show me three candidates per job. Borrow the look, never characters or logos.
    My own references: [links or "none"].
 
 2. Moodboard -> moodboard.md

@@ -82,10 +82,11 @@ so it needs no separate API key. That does not mean nothing leaves your machine;
 
 **1. Install**
 
-Claude Code, at the prompt:
+Claude Code, in a terminal:
 
 ```
-/plugin install dude-toldya --marketplace toranalytics/dude-toldya
+claude plugin marketplace add toranalytics/dude-toldya
+claude plugin install dude-toldya@dude-toldya
 ```
 
 Codex:
@@ -96,6 +97,8 @@ codex plugin add dude-toldya@dude-toldya
 ```
 
 Then open `/hooks` in Codex once and trust the Dude Toldya hooks. Codex skips plugin hooks until they are trusted.
+
+**Coming from Off the Wall?** The plugin id changed, so `off-the-wall@off-the-wall` now fails with "plugin not found". Install `dude-toldya@dude-toldya` as above, and remove the old plugin in your plugin manager so only one copy of the hooks runs. Codex will ask you to trust the hooks again. Your saved corrections in `~/.otw` stay.
 
 **2. Try the report on the example history** (no history of your own needed)
 

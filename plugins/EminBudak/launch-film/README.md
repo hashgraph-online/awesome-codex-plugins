@@ -16,7 +16,7 @@ Read the story behind it on my blog: [launch-film: A Launch Film From Your Websi
 
 ## Use it with your agent
 
-launch-film ships as an [Agent Skill](https://agentskills.io). Your agent gets the brand, picks a look, writes the scenes from the page's words, renders the film, looks at its frames and hands you the MP4.
+launch-film ships as an [Agent Skill](https://agentskills.io). Your agent gets the brand, picks a look, writes the scenes from the page's words, renders the film, checks it and hands you the MP4, with the launch pictures if you ask for them.
 
 ```bash
 npx skills add EminBudak/launch-film
@@ -67,6 +67,8 @@ npx launch-film <url> [options]          read the brand, plan the film, render i
 npx launch-film plan <url> [options]     read the brand and write film.json only
 npx launch-film render <film.json>       render a film.json after editing it
 npx launch-film frames <film.mp4>        save stills of each clip and a contact sheet
+npx launch-film check <film.mp4>         measure a render and write pass or fail
+npx launch-film stills <url|film.json>   launch pictures at store and site sizes
 npx launch-film looks | types | icons <word> | doctor
 
   --out <dir>           folder for the brand, film.json and the film (default ./launch-film-<site>)
@@ -87,7 +89,69 @@ launch-film-linear.app/
   film.json           the plan, which you can edit and render again
   film.mp4            the film
   frames/sheet.jpg    two stills from every clip, for checking
+  check/CHECK.md      what launch-film check measured, when you run it
+  stills/             the launch pictures, when you run launch-film stills
 ```
+
+## Launch stills
+
+```bash
+npx launch-film@latest stills linear.app --for ph,og,x,play,chrome
+```
+
+`stills` makes the pictures a launch needs, at the exact size each place asks for, from the film's look, the brand's logo and the site's real screen. Give it a site and it plans the film first, or give it a `film.json` you already have, so the pictures match the film you edited.
+
+| file | size | for |
+| --- | --- | --- |
+| `ph-1.png` | 1270x760 | Product Hunt gallery: the logo, the promise and the site's screen |
+| `ph-2.png` to `ph-6.png` | 1270x760 | Product Hunt gallery: the film's own scenes, from the headline to the logo close |
+| `ph-thumbnail.png` | 240x240 | Product Hunt thumbnail: the app icon, or the logo |
+| `og.png` | 1200x630 | `og:image`, the picture a shared link shows |
+| `x.png` | 1600x900 | a post on X |
+| `play-feature.png` | 1024x500 | the Google Play feature graphic |
+| `chrome-small.png` | 440x280 | the Chrome Web Store small promo tile: the logo alone |
+| `chrome-marquee.png` | 1400x560 | the Chrome Web Store marquee tile: the logo and the screen, no text |
+
+Every picture is an opaque PNG, since Google Play refuses transparency. `stills/STILLS.md` lists them with what each one is for. Leave out `--for` to get all of them.
+
+## Check a render
+
+```bash
+npx launch-film@latest check film.mp4 --expect 1920x1080@30 --seconds 30 --lufs -14 --cues cues.json
+```
+
+An agent can't watch a film or listen to it. `check` measures it with ffmpeg's own filters and writes down what it found:
+
+- `CHECK.md`: PASS or FAIL, a table of the checks, the stretches it found and every cut.
+- `check.json`: the same, for a program.
+- `sheet.png`: a frame from each shot, numbered, with its cut's time and whether it lands on the beat.
+- `wave.png`: the sound's outline and loudness over time, with the cuts, beats, bars and hits marked.
+
+| check | passes when |
+| --- | --- |
+| size and frame rate | they match `--expect` |
+| length | it is within half a second of `--seconds`, or inside a range like `28-32` |
+| black, still picture, silence | there is no long stretch of one inside the film |
+| loudness | the integrated loudness is within 1 LU of `--lufs` |
+| true peak | it is -1 dBTP or lower (up to 0 is a warning) |
+| clipping | the sound never reaches full scale or sits flat on its peak |
+| cuts on beats | every cut is within one frame of a beat in `--cues` |
+
+Holds are often meant, so they don't raise alarms: up to 1 s of black at the start and 2 s at the end, an end card that stands still for up to 6 s, and a still picture shorter than 2 s inside the film all pass. A longer stretch is a warning, not a failure, unless most of the film is black or silent. Give the stretches you meant with `--allow 27-30` and they count as meant. `check` exits with 1 when the film fails, so a script can stop on it.
+
+The cuts come from the timeline launch-film writes next to its film. For a film made elsewhere, give them with `--cuts 3.2,7.5` or a JSON file. Without either, `check` finds the hard cuts in the picture, and lists soft changes (a crossfade, or something starting to move) without judging them.
+
+### cues.json
+
+`--cues` reads a track's beats as frame numbers. A tool that fits music to a cut can write it, or you can write it by hand:
+
+```json
+{ "fps": 30, "beats": [0, 15, 30, 45], "bars": [0, 60, 120], "hits": [825], "frames": 960, "bpm": 120 }
+```
+
+- `fps` and `beats` are needed. Every number is a whole frame at `fps`, and frame 0 is the film's first frame.
+- `bars` (each bar's first beat), `hits` (accents an edit should land on, like the drop), `frames` (the track's length) and `bpm` are optional.
+- Other keys are ignored, so a tool can add its own.
 
 ## How it works
 
@@ -96,7 +160,7 @@ launch-film-linear.app/
 3. **Plan.** A first film is planned without a brief: the name and its promise, the real screen in a browser window, the page's own sentence as a headline, three sections as feature cards, a number the page states (or an app's store rating), the app's store screenshots, and the logo close with the site's address. It is written to `film.json`.
 4. **Render.** Each clip is an HTML page with one paused timeline. A virtual clock steps it frame by frame in headless Chrome, so every frame is drawn for its time however long drawing takes, and the frames go to ffmpeg. Two clips render at a time.
 5. **Sound.** The music and every sound effect are synthesised in code for this film: the groove starts on the second clip, each clip lasts whole bars so cuts land on the beat, and the logo lands on a hit. There are no samples.
-6. **Check.** Stills from each clip and a contact sheet are saved, so you (or your agent) can look before sharing.
+6. **Check.** Stills from each clip and a contact sheet are saved, so you (or your agent) can look before sharing. `launch-film check` measures the film as well: its size, length, black or still stretches, silence, loudness, peaks, and whether the cuts land on the beat.
 
 ## film.json
 
@@ -143,7 +207,7 @@ Words between asterisks are set in the brand's accent color. A bar is one bar of
 - ffmpeg (set `LAUNCH_FILM_FFMPEG` and `LAUNCH_FILM_FFPROBE` to use another build)
 - [easybrandkit](https://github.com/EminBudak/easybrandkit): install it with `npm install -g easybrandkit`, or launch-film runs it with `npx -y easybrandkit@latest` (set `LAUNCH_FILM_EASYBRANDKIT` to use a copy of your own)
 
-Run `npx launch-film@latest doctor` to check. It has been tested on macOS with Chrome 156 and ffmpeg 7.1.
+Run `npx launch-film@latest doctor` to check. It has been tested on macOS with Chrome 156 and ffmpeg 7.1, and on Linux with Chrome 155 and ffmpeg 8.0.
 
 ## Limits
 

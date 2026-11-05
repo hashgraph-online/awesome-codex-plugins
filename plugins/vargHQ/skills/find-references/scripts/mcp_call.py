@@ -45,6 +45,13 @@ def open_session(url):
     return sid
 
 
+def call_tool(url, tool, args, sid=None):
+    """Call one tool and return the JSON-RPC reply. search.py uses this for Refs."""
+    res, _ = post(url, {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": tool, "arguments": args}},
+                  sid or open_session(url))
+    return res
+
+
 def main():
     if len(sys.argv) < 3:
         sys.exit(__doc__)
@@ -57,8 +64,7 @@ def main():
             print(f"{t['name']}({', '.join(args)}): {(t.get('description') or '').splitlines()[0][:160]}")
         return
     args = json.loads(sys.argv[3]) if len(sys.argv) > 3 else {}
-    res, _ = post(url, {"jsonrpc": "2.0", "id": 2, "method": "tools/call",
-                        "params": {"name": tool, "arguments": args}}, sid)
+    res = call_tool(url, tool, args, sid)
     if res is None:
         sys.exit("No answer from the server.")
     if "error" in res:

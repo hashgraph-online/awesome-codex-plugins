@@ -26,6 +26,8 @@ TARGETS = {  # integrated LUFS, true peak dBTP. Sources: references/mix.md
     "web": (-16.0, -1.0), "podcast": (-16.0, -1.0), "broadcast": (-23.0, -1.0),
 }
 SR_AN = 8000  # analysis sample rate (mono float), enough for RMS and onsets
+# sheet colours (varg.ai brand): near-black panel, light waveform, orange voice, white effects, grey cuts
+PANEL, WAVE, VOICE, SFX, CUT = "0x0e0e0f", "0xd4d4d8", "0xff5315", "0xffffff", "0x737373"
 
 
 def die(msg):
@@ -519,16 +521,16 @@ def cmd_sheet(args):
     out = args.o or os.path.splitext(args.file)[0] + "_sheet.png"
     marks = []
     for s, e in (voice_windows(cues) if cues["tracks"] else []):
-        marks.append(f"drawbox=x={int(s / total * W)}:y=0:w={max(2, int((e - s) / total * W))}:h=28:color=0x2f80ed@0.9:t=fill")
+        marks.append(f"drawbox=x={int(s / total * W)}:y=0:w={max(2, int((e - s) / total * W))}:h=28:color={VOICE}@0.95:t=fill")
     for t in cues["tracks"]:
         if t["role"] == "sfx":
-            marks.append(f"drawbox=x={int(t.get('at', t['start']) / total * W)}:y=0:w=5:h=ih:color=0xeb5757@0.9:t=fill")
+            marks.append(f"drawbox=x={int(t.get('at', t['start']) / total * W)}:y=0:w=5:h=ih:color={SFX}@0.9:t=fill")
     for c in cues.get("cuts", []):
-        marks.append(f"drawbox=x={int(c / total * W)}:y=0:w=2:h=ih:color=0xffffff@0.7:t=fill")
-    fc = (f"color=c=0x16181d:s={W}x300:d=1[bg];"
-          f"[0:a]asplit=2[a][b];[a]showwavespic=s={W}x300:split_channels=0:colors=0xb8bcc4[w0];"
+        marks.append(f"drawbox=x={int(c / total * W)}:y=0:w=2:h=ih:color={CUT}@0.9:t=fill")
+    fc = (f"color=c={PANEL}:s={W}x300:d=1[bg];"
+          f"[0:a]asplit=2[a][b];[a]showwavespic=s={W}x300:split_channels=0:colors={WAVE}:scale=sqrt[w0];"
           f"[bg][w0]overlay=format=auto,format=rgb24[w];"
-          f"[b]showspectrumpic=s={W}x400:legend=0:scale=log:color=intensity,format=rgb24[s];"
+          f"[b]showspectrumpic=s={W}x400:legend=0:scale=log:color=fire:gain=3,format=rgb24[s];"
           f"[w][s]vstack=inputs=2" + ("," + ",".join(marks) if marks else "") + "[o]")
     run(["ffmpeg", "-y", "-hide_banner", "-i", args.file, "-filter_complex", fc, "-map", "[o]", "-frames:v", "1", out])
     labels = []  # (seconds, text): --labels "0=bare;7=punctuation" plus every cue id
@@ -536,7 +538,7 @@ def cmd_sheet(args):
         if "=" in part:
             t, txt = part.split("=", 1)
             labels.append((float(t), txt.strip()))
-    for t in cues["tracks"]:
+    for t in cues["tracks"] if not getattr(args, "no_labels", False) else []:
         if t["role"] in ("voice", "sfx") and t.get("id"):
             labels.append((t.get("at", t["start"]), t["id"]))
     if labels:
@@ -556,7 +558,7 @@ def cmd_sheet(args):
             im.save(out)
         except ImportError:
             pass  # labels need Pillow; the marks are still drawn
-    print(json.dumps({"sheet": out, "legend": "blue bars = voice lines, red = sfx moments, white = cuts; "
+    print(json.dumps({"sheet": out, "legend": "orange bars = voice lines, white = sfx moments, grey = cuts; "
                       "top = waveform, bottom = spectrogram (low notes at the bottom)"}, indent=1))
 
 
@@ -564,10 +566,10 @@ def cmd_preview(args):
     """The sheet as a video with a moving playhead and the sound: look and listen at the same time."""
     need_ffmpeg()
     sheet = os.path.splitext(args.o)[0] + "_sheet.png"
-    ns = argparse.Namespace(file=args.file, cues=args.cues, o=sheet, labels=args.labels)
+    ns = argparse.Namespace(file=args.file, cues=args.cues, o=sheet, labels=args.labels, no_labels=False)
     cmd_sheet(ns)
     d = duration(args.file)
-    fc = (f"[0:v]scale=1280:-2,format=yuv420p[bg];color=c=white:s=4x720:r=30[ph];"
+    fc = (f"[0:v]scale=1280:-2,format=yuv420p[bg];color=c=0xff5315:s=4x720:r=30[ph];"
           f"[bg][ph]overlay=x='t/{d:.3f}*W':y=0:shortest=1,format=yuv420p[v]")
     run(["ffmpeg", "-y", "-hide_banner", "-loop", "1", "-framerate", "30", "-i", sheet, "-i", args.file,
          "-filter_complex", fc, "-map", "[v]", "-map", "1:a", "-c:v", "libx264", "-tune", "stillimage",
@@ -597,6 +599,7 @@ def main():
     a.add_argument("--stems"); a.set_defaults(fn=cmd_check)
     a = sp.add_parser("sheet"); a.add_argument("file"); a.add_argument("--cues"); a.add_argument("-o")
     a.add_argument("--labels", help='text at times, e.g. "0=bare;7=with pauses"')
+    a.add_argument("--no-labels", action="store_true", help="marks only, no cue ids")
     a.set_defaults(fn=cmd_sheet)
     a = sp.add_parser("preview"); a.add_argument("file"); a.add_argument("--cues"); a.add_argument("-o", required=True)
     a.add_argument("--labels", help='text at times, e.g. "0=bare;7=with pauses"')

@@ -76,6 +76,38 @@ one, and a key it leaves out is kept. `population` merges one level further, so
 adding a `parent` keeps the `rule` and `filters` declared earlier. Every byte outside the keys above, comments
 included, stays where it was.
 
+### A versioned model
+
+A model with native dbt versions has one YAML entry with a `versions:` list.
+Name one version by its label, `"model": "dim_teams.v2"`. The declaration then
+renders into that item of `versions:`:
+
+- the description and model facts go to the version's `description` and
+  `config.meta.dex`;
+- the column facts go to the version's own column entries.
+
+The bare `"model": "dim_teams"` renders into the shared top-level entry, which
+every version inherits. A version's file stem (`dim_teams_v2`) is refused,
+naming the label, because a declaration under that name would add a second,
+plain entry.
+
+Two dbt rules decide what the version holds:
+
+- **Lists concatenate.** dbt merges a version's `config` into the shared one,
+  concatenating lists and merging mappings. A model-level fact (`grain`,
+  `population`, `assumptions`, `history`) stated at both levels would be read
+  back as neither, so one stated at the other level is refused, naming the move.
+- **An inherited column is replaced, not merged.** A version's own column entry
+  replaces the inherited one wholesale. A fact about an inherited column is
+  therefore written as an override: the column joins the version's `exclude`
+  list, and the version gets its own entry, carrying the inherited description
+  and tests forward. A plan warning names each one. A fact the inherited entry
+  already states changes nothing.
+
+A `references` to `dim_teams.v2.team_id` renders `to: ref('dim_teams', v=2)`.
+Every reader below reads a version as dbt builds it, under its label. The
+workflow is in `model-versions.md`.
+
 ## What is checked
 
 Refused, with the fix named:
@@ -261,7 +293,9 @@ dex transform declare --edits-file intent.json   # every model, with intent
 
 The selector is the one `maintain verify` takes: model names, repeatable and
 comma-separated, case-insensitive, and none for every model. It is read from the
-repository, so nothing is compiled.
+repository, so nothing is compiled. A versioned model is selected by version:
+`dim_teams.v2` (or its file stem `dim_teams_v2`) selects one, and the bare
+`dim_teams` selects every version. Each is proposed into its own `versions:` item.
 
 **What is proposed.** Per model, only the fields its YAML does not already state:
 
@@ -291,7 +325,6 @@ paths the payload stated). `data.skipped` lists every other selected model:
 | --- | --- |
 | `not_a_model` | no `.sql` model of that name under the model paths |
 | `python_model` | a Python model; dex drafts from SQL only |
-| `versioned` | a model with `versions:`; declare each version by hand |
 | `sql_unreadable` | the SQL could not be read statically (`detail` says why) |
 | `unprofiled_inputs` | the cache has not profiled what it reads; `commands` holds an `explore profile` call that can reach each one: `explore profile <dev namespace>.<model> --target dev` for a project model whose dev namespace the source allowlist does not reach, and none (the reason says why) for a name that matches several profiled relations, which no profile run settles. Nothing is scanned |
 | `nothing_drafted` | the cache proves no key, verified join or running total for it |

@@ -20,4 +20,6 @@
 5. 如果结果未达标，先集中整理全部验收失败点和证据，再调用 zcode_continue 做一次完整返工，复用同一 ZCode session 和原执行目录。保持当前策略与授权范围，只收紧实际失败的维度（如遗漏约束、缺少测试或错误决定边界），不无差别追加整段规则；不要把返工拆成连续的微任务，也不要用续作推进正常实现的下一步。不得自动原样重派、切换模型或无限重试。任务运行期间若用户取消，调用 zcode_cancel 并确认终态。
 6. 如果结果为 `invalid_agent_report` 且执行工作已完成，先检查 `report_candidate`、原始 `zcode_output` 和实际 diff；续作提示只要求修复 JSON 报告，不要再次编辑或重跑测试。缺少的决定字段必须基于证据补齐，无法确认时设 `needs_master_decision=true`。
 7. 任务为 failed 时用 `zcode_result.error_code` 确认原因，不仅凭 `zcode_feedback` 的失败标签判断代码失败。`cleanup_failed` 是当时清理未能确认；后续 `zcode_status.observation.cleanup=verified` 表示已取得退出证据，原失败仍保留。分别报告两个事实，再独立验收代码。新鲜查询为 unknown 或 unverified 时不自行删除锁、改历史状态或另起同目录任务；旧不可读取锁需要独立诊断，不能按时间删锁。
+   - 对已知 SQLite `failed + cleanup_unverified` Task，按入口的 **HOLD RECOVERY POLICY** 报告已能确认的 workspace、Task、Attempt 和原因，并先取得用户对可能终止仍存活 Worker 的明确授权。MCP 无 Task 枚举工具；`zcode_status` 不返回 workspace，因此信息缺失时须明确标为未知。当前 `zcode_cancel` 仅接受 `{ task_id }`，成功返回 Task status record；它可能执行原身份绑定的进程树终止，不提供单独的 dry-run/authorize 参数。未授权不得调用。
+   - 获准后调用 `zcode_cancel`，再读取 `zcode_status`。成功才代表该次恢复完成，不代表历史 cleanup failure 未发生；不确定或失败时保留占用，检查其他独立 workspace 是否仍可工作。成功后先检查 workspace Git diff/WIP，再决定是否发起新 Attempt。
 8. 若 `zcode_result.error_code` 或失败事件为 `zcode_usage_exhausted`，这表示本次 ZCode 执行已中断：立即停止当前任务，不要继续编辑、派发、调用 `zcode_continue` 或自动重试；马上明确告知用户额度已耗尽、当前任务已中断，并等待用户确认额度恢复后再继续。
