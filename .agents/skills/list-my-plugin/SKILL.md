@@ -15,8 +15,11 @@ to, and never claim, sign up or buy anything on their behalf.
 grep -in "github.com/OWNER/REPO" README.md
 ```
 
-If it is listed, stop and tell your user where. Update an existing line only
-when they asked for a change.
+A match is a duplicate only when an existing line names this plugin. A
+repository can list several bundles, one line each, so compare the display
+names with the plugin's `.codex-plugin/plugin.json`. If this plugin is listed,
+stop and tell your user where. Update an existing line only when they asked
+for a change.
 
 ## 2. Check the plugin repository
 
@@ -27,11 +30,11 @@ The source repository must be public and contain:
 - No hardcoded secrets or dangerous MCP commands
 - SHA-pinned GitHub Actions, if it uses Actions, and a dependency lockfile
 
-Optional preflight, from the plugin's own repository:
+Optional preflight, from the plugin's own repository, with the reviewed
+scanner release pinned in `CONTRIBUTING.md`:
 
 ```bash
-pipx run plugin-scanner lint .
-pipx run plugin-scanner verify .
+pipx run --spec "plugin-scanner==3.58.0" plugin-scanner scan . --format text
 ```
 
 The pull request runs a required source scan; it needs a score of at least 75.

@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import io
 import json
+import re
 import sys
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
@@ -197,6 +198,14 @@ class OwnerHandoffTests(unittest.TestCase):
                 self.assertIn(self.base.HANDOFF_HEADING, text)
                 self.assertIn(self.base.HANDOFF_PAID_NOTE, text)
                 self.assertIn("utm_campaign=agent_handoff", text)
+
+    def test_skill_pins_the_scanner_release_from_contributing(self) -> None:
+        pin = re.compile(r'plugin-scanner==([0-9][0-9A-Za-z.]*)')
+        contributing = set(pin.findall((SCRIPTS.parent / "CONTRIBUTING.md").read_text(encoding="utf-8")))
+        skill_text = (SCRIPTS.parent / ".agents/skills/list-my-plugin/SKILL.md").read_text(encoding="utf-8")
+        self.assertEqual(len(contributing), 1)
+        self.assertEqual(set(pin.findall(skill_text)), contributing)
+        self.assertNotIn("pipx run plugin-scanner", skill_text)
 
 
 class PullRequestStillOpenTests(unittest.TestCase):
