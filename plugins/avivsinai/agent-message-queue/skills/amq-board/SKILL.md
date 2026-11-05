@@ -1,6 +1,6 @@
 ---
 name: amq-board
-version: 0.127.0 # x-release-please-version
+version: 0.127.1 # x-release-please-version
 description: Show the AMQ fleet board and, when asked, classify recent request messages with the current harness model. Use when someone opens or reviews the board, or asks which recent requests may need attention. Not for sending messages (use amq-cli).
 metadata:
   short-description: Fleet board and on-demand request labels

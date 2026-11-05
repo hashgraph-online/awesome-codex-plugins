@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.127.0 # x-release-please-version
+version: 0.127.1 # x-release-please-version
 description: Let the owner reach this running agent from Buzz, on the phone or in Buzz Desktop. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -120,7 +120,8 @@ command's own message. Do not work around a refusal.
      number, answers it. The first answer, in Buzz or in the terminal,
      wins."
    - Claude in a machine agent channel: "The channel also shows each turn this
-     session finishes; type `mirror off` there to stop it."
+     session finishes; type `mirror off` there, or run `/amq-remote mirror
+     off`, to stop it."
    - Codex on the app-server: the same line. A plain `codex` TUI session:
      "Approvals stay in the terminal."
 
@@ -146,6 +147,14 @@ running. Its channel stops taking messages now, and the machine agent then
 archives it; a session with its own agent has that agent archive itself, and
 its DM answers "Not connected". When this session connects again, the same
 channel or agent comes back.
+
+## `/amq-remote mirror on|off|status`
+
+Run `amq-remote mirror <on|off|status> --self` and show its output. It is
+the same switch as typing `mirror on` or `mirror off` in the session's
+channel: while it is off, the machine agent posts no turn of this session,
+and turns that end while it is off are not posted later. Only a Claude
+session the machine agent serves has a mirror.
 
 ## `/amq-remote status`
 
