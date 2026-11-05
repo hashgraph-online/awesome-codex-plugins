@@ -635,6 +635,13 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [UsageLoop](https://github.com/benthompsondev/usageloop) - Free, local-first standalone Windows/Linux desktop app (not a Codex plugin) that schedules the start of normal Codex five-hour usage windows, with usage checks, no automatic retry after an uncertain start, and no quota bypass.
 
 <!-- hol-sponsors:start -->
+### Sponsors
+
+#### Bronze sponsors
+
+<p align="center">
+<a href="https://synthetic.new/?referral=FTVR2kb0"><img src="assets/synthetic-sponsor-bronze.png" alt="Synthetic" width="120" height="48" /></a>
+</p>
 <!-- hol-sponsors:end -->
 
 ## Claim Your Plugin
