@@ -280,6 +280,32 @@ cost handshake on a billed connector), `row_delta` is its delta and the warning
 cites it; where it did not, the warning carries attribution's reason. Nothing
 here runs a query of its own, refuses a plan, or blocks apply.
 
+### Change scope
+
+`data.change_scope` (#1115) is what an edit to an existing model changes beside
+its request, read from both versions with no query: whether the row population
+moves, and which outputs are removed, retyped, re-aggregated or re-NULLed. It is
+held to the assumptions above, not to a new field: a change is `declared` where
+an assumption's `column` names a column it governs, and `undeclared` (a warning)
+otherwise. So the scope of a repair is stated with what already exists:
+
+- a broad filter: an assumption naming the filter column on each model it
+  changes, and a population `rule` (or `filters` on a column the model carries)
+  on a roster it deliberately keeps or drops. `data.change_scope.population`
+  lists the models whose population changed and the ones kept;
+- a coverage repair (missing days or accounts): the spine or parent it joins
+  is a population change (`join_added`, often `group_by_changed`), settled by an
+  assumption naming the grain column (`visit_date`: every day in the range).
+  `count(*)` over a left join counts one on an empty row, so moving to
+  `count(<child key>)` is an `aggregate_changed` to record on the count column
+  (an empty window counts zero, as before), and a `coalesce` added to an average
+  is a `null_handling_changed` that changes what NULL meant;
+- an inferred default stays `default`: retaining parents without children,
+  keeping a roster whole when the request names only metrics. The assumption's
+  `detail` says why in one line and travels in `data.decisions`.
+
+The full record is in `commands.md` under `transform plan`.
+
 ## Declaring models that already exist: `transform declare`
 
 A plan declares the models it creates or edits. Models written before
@@ -737,5 +763,5 @@ layer does not implement the hook nothing is derived and a warning says so.
 
 The plan, apply and build envelopes carry `data.decisions`: every assumption
 declared on the models the command touched, as `{model, decision, chosen,
-evidence}`. It is read back from the project's YAML, so the three commands report
+evidence}`, plus `column` and `detail` where the assumption states them. It is read back from the project's YAML, so the three commands report
 the same list. An empty list means the touched models declare no assumption.

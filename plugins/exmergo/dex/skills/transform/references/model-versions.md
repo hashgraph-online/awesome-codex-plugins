@@ -164,9 +164,14 @@ Promotion is one line, `latest_version: 2`, as its own plan.
 ```
 
 The plan warns `(a promotion)`, and `consumers` lists each one whose `changed`
-is true, with what it read before and after. Check that every moving consumer
-reads only columns the new default has: a consumer selecting `team_label` from
-an unversioned `ref('dim_teams')` breaks when v2 becomes the default.
+is true, with what it read before and after. The plan checks that every moving
+consumer reads only columns the new default has: if a moved consumer reads a
+column the new default lacks (such as selecting `team_label` when v2 dropped it),
+the plan warns, naming the consumer, the column, and the old and new version.
+A consumer pinned with `ref('x', v=N)` is not checked because its target does
+not move (`changed` is false). A consumer whose select list cannot be read
+statically is named as unchecked. The check is warning-only; the plan is not
+refused.
 
 The warehouse name is a separate decision, so record it as an assumption:
 

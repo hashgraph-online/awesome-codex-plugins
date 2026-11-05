@@ -28,6 +28,15 @@ AI_TELLS = [
     "whether you're", "imagine a world", "buckle up", "let's dive in", "dive into", "without further ado",
     "it's not just", "isn't just", "more than just", "the best part?", "here's the thing", "picture this",
     "say goodbye to", "say hello to", "transform the way", "embark", "journey", "realm", "landscape",
+    # chatbot flattery: the sycophancy family
+    "great question", "excellent question", "you're absolutely right",
+]
+# Patterns that a phrase list can't catch. (regex, label)
+AI_TELL_PATTERNS = [
+    # "It's not a glow. It's a vibe." / "This isn't a tool, it's a revolution."
+    (r"\b(it's|it is|this is|that's|it was|this was|this isn't|it isn't|that isn't)\s+(not\s+)?(just\s+|only\s+)?"
+     r"(a |an |the )?[\w' -]{1,30}[.,;:\u2014\u2013-]+\s*(it's|it is|this is|that's|it was|this was)\b",
+     "it's not X. it's Y"),
 ]
 WEAK_OPENERS = [
     "hey guys", "hi guys", "welcome back", "in this video", "today we're going to", "today i'm going to",
@@ -161,9 +170,26 @@ def main():
     # words
     spoken_all = " ".join(x["spoken"] for x in beats)
     words_all = (spoken_all + " " + " ".join(x["screen"] for x in beats)).lower()
-    for p in AI_TELLS:
-        if re.search(r"\b" + re.escape(p) + r"\b", words_all):
-            add("WARN", "ai-tell", f"'{p}' reads as machine copy; say the concrete thing instead")
+    # each tell is reported with its beat and speaker, so a script can show who says it
+    def segments(x):
+        spoken = re.sub(r"\[[^\]]*\]|\([^)]*\)", " ", x["spoken"]).replace("’", "'").replace("‘", "'")
+        parts = re.split(r"\b([A-Z][A-Z0-9 ]{1,20}):\s*", spoken)
+        if len(parts) == 1:
+            yield "", parts[0]
+        else:
+            if parts[0].strip():
+                yield "", parts[0]
+            for i in range(1, len(parts) - 1, 2):
+                yield parts[i].strip(), parts[i + 1]
+        yield "on screen", x["screen"]
+    for x in beats:
+        for who, seg in segments(x):
+            low = seg.lower()
+            where = f"beat {x['n']}" + (f" {who}" if who else "")
+            hits = [p for p in AI_TELLS if re.search(r"\b" + re.escape(p) + r"\b", low)]
+            hits += [label for rx, label in AI_TELL_PATTERNS if re.search(rx, low)]
+            for p in hits:
+                add("WARN", "ai-tell", f"{where}: '{p}' reads as machine copy; say the concrete thing instead")
     sentences = [s for s in re.split(r"[.!?]+", re.sub(r"\[[^\]]*\]|\([^)]*\)", " ", spoken_all)) if s.strip()]
     long = [s.strip() for s in sentences if len(s.split()) > 20]
     for s in long[:3]:

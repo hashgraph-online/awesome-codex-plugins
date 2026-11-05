@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.2.0"
+  version: "1.3.0"
   openclaw:
     requires:
       anyBins:
@@ -73,7 +73,8 @@ cta: one action, or none
 4. **Beat sheet.** One line per beat with its time, and BUT or THEREFORE between beats. Where people appear, answer
    for each beat: who wants what, what happens if they don't get it, why now.
 5. **Write the table** by the rules below.
-6. **Check.** Run `python3 scripts/check_script.py script.md` and fix every FAIL. Read every spoken line aloud at
+6. **Check.** Run `python3 scripts/check_script.py script.md` and fix every FAIL. AI tells are reported with their
+   beat and speaker, so a character who talks in clichés on purpose shows up as exactly that. Read every spoken line aloud at
    speed. Answer the YES/NO list at the end. Change lines because a check or the person named a problem, not on taste.
 7. **Show it.** Show the script and the three hooks and wait for a yes before any voice or video is generated.
 8. **After it ships,** log it and read the numbers: `references/improve.md`.
@@ -117,6 +118,7 @@ Full sources for every rule: `references/sources.md`.
 | "Have you ever wondered…", "In this video…", "Hey guys" | the result, the conflict or the strangest true detail, shown |
 | three adjectives ("fast, simple, powerful") | one fact you can show or measure |
 | "It's not just X, it's Y"; "No X. No Y. Just Z." | say Y |
+| "Great question!", "You're absolutely right!" | the answer itself, or the disagreement |
 | a narrator describing the shot | the shot alone, or a line that adds what it can't show |
 | a vague hopeful ending ("the future is bright") | the payoff, then cut; or one action |
 | speakers who all sound formal and alike | a want and a way of talking for each person |

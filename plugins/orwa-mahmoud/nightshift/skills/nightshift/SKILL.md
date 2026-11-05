@@ -45,9 +45,11 @@ above `## Items` says otherwise; artifact mode completes an item with its receip
 
 Those skills own scaffolding, composition, and preflight. This skill owns the work itself.
 
-Resolve the installed plugin root to an absolute `$NIGHTSHIFT_PLUGIN_ROOT` — `${CLAUDE_PLUGIN_ROOT}`
-on Claude Code, `$PLUGIN_ROOT` on Codex when set, otherwise the absolute path this skill was
-attached from (`skills/nightshift/SKILL.md`). Run every command below through
+Resolve `$NIGHTSHIFT_PLUGIN_ROOT` to the copy this host installed, as an absolute path.
+On Claude Code that is `${CLAUDE_PLUGIN_ROOT}`, on Cursor `${CURSOR_PLUGIN_ROOT}`, and on
+Codex `$PLUGIN_ROOT` when set. A skill loaded from a copy another host installed is the
+wrong runtime — use the copy under this host's plugins directory. When none of those is
+set, use the absolute path this skill was attached from (`skills/nightshift/SKILL.md`). Run every command below through
 `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns"` — native Windows: `& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\ns.ps1"`
 in the PowerShell tool, same verbs — which resolves the host and the workspace; `ns help` lists the
 verbs, and `ns bind` prints the six resolved facts (`TASK_ROOT`, `NIGHTSHIFT_WORKSPACE`, `NS`,

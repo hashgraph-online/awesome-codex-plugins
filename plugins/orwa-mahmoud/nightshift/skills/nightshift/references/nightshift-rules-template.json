@@ -16,19 +16,19 @@
     },
     "containers": {
       "policy": "deny",
-      "pattern": "(/var/run/docker\\.sock|unix://[^ \\t]*docker\\.sock|DOCKER_HOST=)|(^|[;&|(`]|[[:space:]]|'|\")(docker-compose)[[:space:]]+(up|run|start|build|down|create)|(^|[;&|(`]|[[:space:]]|'|\")(docker|podman|nerdctl|colima)[[:space:]]+(run|create|start|build|compose[[:space:]]+(up|run|start|build|down|create))"
+      "pattern": "(/var/run/docker\\.sock|unix://[^ \\t]*docker\\.sock|DOCKER_HOST=)|(^|[;&|(`]|[[:space:]]|'|\")(docker-compose)[[:space:]]+(up|run|exec|start|build|down|create)|(^|[;&|(`]|[[:space:]]|'|\")(docker|podman|nerdctl|colima)[[:space:]]+(run|exec|create|start|build|compose[[:space:]]+(up|run|exec|start|build|down|create))"
     },
     "global-packages": {
       "policy": "deny",
-      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(brew|apt|apt-get|dnf|yum|pacman|choco|winget|scoop)[[:space:]]+(install|upgrade|uninstall|remove|reinstall)|npm[[:space:]]+(i|install)[[:space:]]+(-g|--global)|pnpm[[:space:]]+add[[:space:]]+-g|yarn[[:space:]]+global|(pip3?|cargo|go)[[:space:]]+install"
+      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(brew|apt|apt-get|dnf|yum|pacman|choco|winget|scoop)[[:space:]]+(install|upgrade|uninstall|remove|reinstall)|npm[[:space:]]+(i|install)[[:space:]]+(-g|--global)|pnpm[[:space:]]+add[[:space:]]+-g|yarn[[:space:]]+global|(^|[;&|(`]|[[:space:]]|'|\")([A-Za-z0-9._/-]+/)?(pip3?|cargo|go)[[:space:]]+install|(^|[;&|(`]|[[:space:]]|'|\")([A-Za-z0-9._/-]+/)?python[0-9.]*[[:space:]]+-m[[:space:]]+pip3?[[:space:]]+install"
     },
     "daemons": {
       "policy": "deny",
-      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(systemctl|launchctl|service|brew[[:space:]]+services|pg_ctl|redis-server|mongod|mysqld)([[:space:]]|$)"
+      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(systemctl[[:space:]]+(start|stop|restart|reload|enable|disable)|service[[:space:]]+(start|stop|restart|reload|enable|disable)|launchctl[[:space:]]+(load|bootstrap|bootout|unload)|brew[[:space:]]+services[[:space:]]+(start|stop|restart)|pg_ctl[[:space:]]+(start|stop|restart)|redis-server|mongod|mysqld)([[:space:]]|$)"
     },
     "external-services": {
       "policy": "deny",
-      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(gh[[:space:]]+auth[[:space:]]+login|npm[[:space:]]+login|docker[[:space:]]+login|az[[:space:]]+login|gcloud[[:space:]]+auth|aws[[:space:]]+configure)([[:space:]]|$)"
+      "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(gh[[:space:]]+auth[[:space:]]+login|npm[[:space:]]+login|docker[[:space:]]+login|az[[:space:]]+login|gcloud[[:space:]]+auth[[:space:]]+login)([[:space:]]|$)|(^|[;&|(`]|[[:space:]]|'|\")aws[[:space:]]+configure([[:space:]]*([;&|)]|$)|[[:space:]]+(set|get|add)([^A-Za-z0-9]|$))"
     }
   },
   "stallMax": 0,

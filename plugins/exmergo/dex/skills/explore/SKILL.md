@@ -136,6 +136,27 @@ and continue without asking for approval. "Include every account" and "only
 accounts with events" are each `request`, and a population the project already
 declares is `contract`.
 
+**Settle the scope before the repair.** Before changing a model that already
+exists, name what the request asks for: the outputs (each column and its visible
+type), the grain and the population. Name what it leaves alone: the other models'
+rows, what each count counts, and whether an empty window reads zero or NULL. A
+filter asked for in general terms ("exclude test accounts from our metrics") says
+which aggregates change; whether a roster or lookup model also loses those rows is
+a decision to record, never a side effect. A coverage repair (missing days,
+missing accounts) adds the absent rows and keeps every count and NULL meaning the
+model had. Then read `data.change_scope` on the plan: each model's population is
+`changed`, `kept` or `unchecked`, and each removed output and each changed cast,
+aggregate or NULL treatment is `declared` (an assumption names its `column`) or
+`undeclared`. An `undeclared` change the request asks for gets an assumption
+naming that `column`, with the tier that settles it; one it does not ask for is
+undone. `kept` says only that this edit adds nothing to that model's own SQL that
+moves rows: a roster the plan does not edit is not listed, and one that reads a
+model the plan filters still loses those rows, so check a roster's rows on the
+build. `--verify` checks rows only against a population declared as `filters` or
+a `parent`; a `rule` alone is prose (`obligations.prose_population`), so declare
+the checkable form where the model carries the column, and read
+`data.verification` before saying the rows were checked.
+
 **Correct rows, not only a green build.**
 
 - A protected-value read refusal is not an instruction to remove, redact or
@@ -194,8 +215,9 @@ declares is `contract`.
   again without `--full-refresh`, and state the late-arrival horizon the repair
   supports. Never insert probe rows into a loader's source.
   Recipe: `skills/transform/references/incremental-repairs.md`.
-- Change only what the request asks; keep the output columns the request and
-  the existing model define.
+- Change only what the request asks; keep the output columns, their types and
+  the population the request and the existing model define, and own every other
+  change in `data.change_scope` with an assumption or undo it.
 - A balance or a running total is `semi_additive`: never sum it across time.
   Take each entity's latest value (`max` for a running total), then sum across
   entities.

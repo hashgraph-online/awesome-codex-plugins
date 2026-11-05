@@ -8,9 +8,11 @@ metadata:
 
 Start a Nightshift run in the host-opened project.
 
-Resolve the installed plugin root to an absolute `$NIGHTSHIFT_PLUGIN_ROOT` — `${CLAUDE_PLUGIN_ROOT}`
-on Claude Code, `$PLUGIN_ROOT` on Codex when set, otherwise the absolute path this skill was
-attached from (`skills/start/SKILL.md`). Run every command below through
+Resolve `$NIGHTSHIFT_PLUGIN_ROOT` to the copy this host installed, as an absolute path.
+On Claude Code that is `${CLAUDE_PLUGIN_ROOT}`, on Cursor `${CURSOR_PLUGIN_ROOT}`, and on
+Codex `$PLUGIN_ROOT` when set. A skill loaded from a copy another host installed is the
+wrong runtime — use the copy under this host's plugins directory. When none of those is
+set, use the absolute path this skill was attached from (`skills/start/SKILL.md`). Run every command below through
 `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns"` — native Windows: `& "$NIGHTSHIFT_PLUGIN_ROOT\runtime\windows\ns.ps1"`
 in the PowerShell tool, same verbs — which resolves the host and the workspace; `ns help` lists the
 verbs, and `ns bind` prints the six resolved facts (`TASK_ROOT`, `NIGHTSHIFT_WORKSPACE`, `NS`,
@@ -192,7 +194,7 @@ This runs after the probe and before the watchman, on every host:
 The probe ran every installed Nightshift copy's guard, so the phase first checks that only one copy
 answers this session. `refuse copies` names each copy and its version: remove the markers and reset
 the lease exactly as for `refuse codex-identity` below, append one failed-preflight line to
-`$NS/run/shift-log.md`, and tell the owner to disable all but one copy and start a new conversation.
+`$NS/run/shift-log.md`, and tell the owner to disable the extra copy in that host's plugin settings, leave copies installed by another host enabled, and start a new conversation.
 
 Codex exposes the current task identity through hook payloads, not as a shell environment variable.
 The phase classifies `$NS/run/.shift-session` line 1 with `ns_codex_identity_kind` (native Windows:

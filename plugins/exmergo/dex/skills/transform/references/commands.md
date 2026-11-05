@@ -60,6 +60,40 @@ See the cost-controls reference for the shared budget mechanism.
   plus `--confirm --budget`. `attributed: false` carries the reason (macro SQL, a
   jinja conditional, a renamed CTE, an unprofiled parent). Advisory: nothing here
   refuses a plan.
+- `data.change_scope` (#1115): on each model that already exists, what the edit
+  changes beside its request, read statically from both versions with no query.
+  `population` is `changed` when an authored predicate, join, driving relation,
+  `DISTINCT` or `GROUP BY` can move rows (row attribution's own reading), `kept`
+  when nothing can, `unchecked` when the model could not be rendered (a macro, an
+  `{% if %}`) or a set operation it shares with the prior version changed (a
+  `WHERE` added to one `UNION` branch), since branches are not compared. `outputs` is `changed`, `kept`, or `unchecked` where the final
+  select projects a star and nothing else changed. A star with a changed CTE
+  column is `changed` and still carries a `reason` saying removals and
+  additions could not be read, so read `reason` whatever the state. Both states
+  describe this model's own SQL: `kept` is not proof a roster kept its rows, since
+  a model the plan does not edit is not listed and one reading a filtered model
+  loses those rows anyway. Each entry in
+  `changes` has an `axis` (`population` or `output`), a `kind` and a `scope`:
+  `column_removed`, `column_added`, `type_changed` (the outer cast target),
+  `aggregate_changed` (`count(*)` to `count(col)`, a changed function or
+  `DISTINCT`), `null_handling_changed` (a `coalesce`, `ifnull` or `nullif` added
+  or removed) and `expression_changed`, compared by output name in the final
+  select and in every CTE both versions share; table qualifiers and formatting
+  are ignored. A population change, a removed column and a changed type,
+  aggregate or NULL treatment get a `status`: `declared` where an assumption's
+  `column` names the output column or a column the predicate reads (the
+  assumption is copied, with a note when its evidence is `default`), else
+  `undeclared` and a warning. An added column and a rewritten formula are listed
+  without one. `population` at the top lists the models by state, so a broad
+  filter shows which rosters kept every row. Capped at 25 models and 8 changes a
+  model, undeclared first, with cuts counted in `elided`. A `--for-plan` build
+  carries the unsettled entries into `data.completion.obligations.change_scope`,
+  with an `unread` entry (`unchecked`) for a model either axis could not read
+  (`outputs_unread: true` marks a star whose removals were not read even where
+  `outputs` is `changed`), and an `elided` entry (`unchecked`) for a model whose
+  changes the cap cut or that `beyond_cap` names, so a capped report never reads
+  as complete.
+  Advisory: nothing here refuses a plan.
 - `data.identifier_conversions` (#861): each conversion the plan adds to an
   identifier column, on a new model or an edited one. A conversion is a `cast`, a
   safe cast (`try_cast`, BigQuery `safe_cast`, Snowflake `try_to_number`) or a
