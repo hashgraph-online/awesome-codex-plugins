@@ -646,7 +646,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 </p>
 <!-- hol-sponsors:end -->
 
-<sub>Thank you to <a href="https://synthetic.new/?referral=FTVR2kb0">Synthetic</a> (referral link) for supporting this list. Synthetic offers private inference for open-source models.<br>Sponsorship does not change any plugin's trust score or ranking.</sub>
+<sub>Thank you to our sponsors for supporting this list. Some sponsor links are referral links.<br>Sponsorship does not change any plugin's trust score or ranking.</sub>
 
 <a href="https://hol.org/advertise"><img src="https://img.shields.io/badge/Become_a_sponsor-hol.org%2Fadvertise-1e3970?style=flat" alt="Become a sponsor" height="22"></a>
 
