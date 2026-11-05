@@ -1,6 +1,7 @@
 # Repository guide
 
 - `README.md` is the source catalog. `plugins.json`, `plugins/` and `.agents/plugins/marketplace.json` are generated from each listed source repository; never edit them in a contribution.
+- The `list-my-plugin` skill (`.agents/skills/list-my-plugin/SKILL.md`) walks through a listing end to end.
 - Contribution rules and the README entry format are in `CONTRIBUTING.md`: one line in the right section, alphabetical by display name, `- [Plugin Name](https://github.com/<owner>/<repo>) - One-line description.`
 - Offline checks: `python3 scripts/check-alphabetical.py README.md` and `python3 -m unittest scripts/test_publish_open_pr_checks.py`.
 - The contribution gate validates the source repository and runs the catalog scanner (score 75/100 or higher); fix findings in the source repository, then push to the pull request.
