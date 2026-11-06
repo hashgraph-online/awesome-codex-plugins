@@ -14,6 +14,40 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GeneratedBundleCleanupTests(unittest.TestCase):
+    def test_brewpage_root_relative_mcp_config_is_materialized(self):
+        for reference in ("/.mcp.json", "/./.mcp.json"):
+            with self.subTest(reference=reference), tempfile.TemporaryDirectory() as scratch:
+                raw = io.BytesIO()
+                with MODULE.zipfile.ZipFile(raw, "w") as archive:
+                    archive.writestr("archive/.codex-plugin/plugin.json", json.dumps({
+                        "name": "brewpage", "version": "1.0.0", "mcpServers": reference
+                    }))
+                with MODULE.zipfile.ZipFile(io.BytesIO(raw.getvalue())) as archive, patch.object(
+                    MODULE, "fetch_repo_archive", return_value=archive
+                ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                    MODULE.mirror_plugin_bundle({"owner": "kochetkov-ma", "repo": "brewpage-codex-plugin"})
+                self.assertTrue((Path(scratch) / "kochetkov-ma/brewpage-codex-plugin/.mcp.json").is_file())
+
+    def test_brewpage_missing_mcp_config_uses_documented_server_without_overwriting_source(self):
+        manifest = {"name": "brewpage", "version": "1.0.0", "mcpServers": "./.mcp.json"}
+        for source_config in (None, {"mcpServers": {"custom": {"url": "https://example.com/mcp"}}}):
+            with self.subTest(source_config=source_config), tempfile.TemporaryDirectory() as scratch:
+                buffer = io.BytesIO()
+                with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                    archive.writestr("archive/.codex-plugin/plugin.json", json.dumps(manifest))
+                    if source_config is not None:
+                        archive.writestr("archive/.mcp.json", json.dumps(source_config))
+                with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                    MODULE, "fetch_repo_archive", return_value=archive
+                ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                    MODULE.mirror_plugin_bundle({"owner": "kochetkov-ma", "repo": "brewpage-codex-plugin"})
+                config_path = Path(scratch) / "kochetkov-ma/brewpage-codex-plugin/.mcp.json"
+                self.assertTrue(config_path.is_file())
+                config = json.loads(config_path.read_text())
+                self.assertEqual(config, source_config or {
+                    "mcpServers": {"brewpage": {"type": "http", "url": "https://brewpage.app/mcp"}}
+                })
+
     def test_agent_harness_mirror_preserves_shared_resources_and_validation(self):
         manifest = {
             "name": "agent-harness-skills", "version": "0.2.0",

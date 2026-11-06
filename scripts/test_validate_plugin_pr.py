@@ -411,5 +411,97 @@ class MalformedManifestTests(unittest.TestCase):
         self.assertIn("Missing or invalid 'interface' object in plugin.json", errors)
         self.assertEqual(warnings, [])
 
+class McpConfigReferenceTests(unittest.TestCase):
+    def test_deep_json_becomes_validation_error(self):
+        errors = VALIDATOR.validate_mcp_reference(
+            {"mcpServers": "./.mcp.json"}, lambda _: ("[" * 2000 + "0" + "]" * 2000).encode()
+        )
+        self.assertTrue(any("mcpServers" in error for error in errors))
+
+    def test_decoder_numeric_limits_become_validation_errors(self):
+        with patch.object(VALIDATOR.json, "loads", side_effect=ValueError("integer conversion limit")):
+            errors = VALIDATOR.validate_mcp_reference({"mcpServers": "./.mcp.json"}, lambda _: b"{}")
+        self.assertTrue(any("mcpServers" in error for error in errors))
+
+    def test_resolver_loop_becomes_validation_error(self):
+        def resolve_loop(_relative):
+            raise RuntimeError("Symlink loop")
+        errors = VALIDATOR.validate_mcp_reference({"mcpServers": "./.mcp.json"}, resolve_loop)
+        self.assertTrue(any("mcpServers" in error for error in errors))
+
+    def test_oversized_compressed_remote_config_is_rejected_before_read(self):
+        raw = io.BytesIO()
+        with zipfile.ZipFile(raw, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            archive.writestr("demo-main/.codex-plugin/plugin.json", json.dumps(self.manifest()))
+            archive.writestr("demo-main/icon.svg", "<svg/>")
+            archive.writestr("demo-main/.mcp.json", json.dumps({"pad": "x" * (1024 * 1024)}))
+        with zipfile.ZipFile(io.BytesIO(raw.getvalue())) as archive:
+            original_open = archive.open
+            opened = []
+            def record_open(name, *args, **kwargs):
+                opened.append(name.filename if isinstance(name, zipfile.ZipInfo) else name)
+                return original_open(name, *args, **kwargs)
+            with patch.object(archive, "open", side_effect=record_open), patch.object(
+                VALIDATOR, "fetch_repo_archive", return_value=archive
+            ):
+                errors, _ = VALIDATOR.validate_remote_repo("maker", "demo")
+        self.assertTrue(any("mcpServers" in error and "size limit" in error for error in errors), errors)
+        self.assertNotIn("demo-main/.mcp.json", opened)
+
+    def test_oversized_local_config_is_rejected(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            root = Path(scratch)
+            bundle = root / "plugins/maker/demo"
+            (bundle / ".codex-plugin").mkdir(parents=True)
+            (bundle / ".codex-plugin/plugin.json").write_text(json.dumps(self.manifest()))
+            (bundle / "icon.svg").write_text("<svg/>")
+            (bundle / ".mcp.json").write_text(json.dumps({"pad": "x" * (1024 * 1024)}))
+            with patch.object(VALIDATOR, "REPO_ROOT", root):
+                errors, _ = VALIDATOR.validate_local_bundle(bundle)
+        self.assertTrue(any("mcpServers" in error and "size limit" in error for error in errors), errors)
+
+    def test_inline_declarations_are_unchanged_and_escaping_paths_are_not_read(self):
+        def must_not_read(_relative):
+            self.fail("Unexpected config read")
+        self.assertEqual(VALIDATOR.validate_mcp_reference({"mcpServers": {"demo": {}}}, must_not_read), [])
+        errors = VALIDATOR.validate_mcp_reference({"mcpServers": "../outside.json"}, must_not_read)
+        self.assertTrue(any("mcpServers" in error for error in errors))
+
+    def manifest(self):
+        manifest = MalformedManifestTests.valid_fields({
+            "displayName": "Demo", "shortDescription": "Demo", "composerIcon": "./icon.svg"
+        })
+        manifest["mcpServers"] = "./.mcp.json"
+        return manifest
+
+    def test_remote_mcp_config_must_exist_and_be_json_object(self):
+        for content in (None, "not JSON", "[]", "{}"):
+            with self.subTest(content=content):
+                raw = io.BytesIO()
+                with zipfile.ZipFile(raw, "w") as archive:
+                    archive.writestr("demo-main/.codex-plugin/plugin.json", json.dumps(self.manifest()))
+                    archive.writestr("demo-main/icon.svg", "<svg/>")
+                    if content is not None:
+                        archive.writestr("demo-main/.mcp.json", content)
+                with zipfile.ZipFile(io.BytesIO(raw.getvalue())) as archive, patch.object(
+                    VALIDATOR, "fetch_repo_archive", return_value=archive
+                ):
+                    errors, _ = VALIDATOR.validate_remote_repo("maker", "demo")
+                self.assertEqual(any("mcpServers" in error for error in errors), content != "{}", errors)
+
+    def test_local_mcp_config_must_exist_and_be_json_object(self):
+        for content in (None, "not JSON", "[]", "{}"):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as scratch:
+                root = Path(scratch)
+                bundle = root / "plugins/maker/demo"
+                (bundle / ".codex-plugin").mkdir(parents=True)
+                (bundle / ".codex-plugin/plugin.json").write_text(json.dumps(self.manifest()))
+                (bundle / "icon.svg").write_text("<svg/>")
+                if content is not None:
+                    (bundle / ".mcp.json").write_text(content)
+                with patch.object(VALIDATOR, "REPO_ROOT", root):
+                    errors, _ = VALIDATOR.validate_local_bundle(bundle)
+                self.assertEqual(any("mcpServers" in error for error in errors), content != "{}", errors)
+
 if __name__ == "__main__":
     unittest.main()
