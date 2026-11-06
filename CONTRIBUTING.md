@@ -353,6 +353,8 @@ Must be valid JSON at `.codex-plugin/plugin.json` with at minimum:
 - `license` - SPDX license identifier
 - `interface.composerIcon` - path to the icon file (relative to plugin root)
 
+File-based `mcpServers` references must point to a regular JSON object file within the plugin bundle. MCP config files have a 1 MiB validation limit; oversized archive members are rejected before decompression. Inline server declarations remain supported.
+
 ### Icon
 
 - **Format:** SVG preferred. PNG also accepted.

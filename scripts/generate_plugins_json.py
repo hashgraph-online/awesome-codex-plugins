@@ -471,8 +471,10 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
 
     # The BrewPage source README documents this public server, but its initial
     # manifest references an omitted .mcp.json. Prefer the source file once added.
+    mcp_reference = mirrored_manifest.get("mcpServers")
     if (owner_repo.casefold() == "kochetkov-ma/brewpage-codex-plugin"
-            and mirrored_manifest.get("mcpServers") in ("./.mcp.json", ".mcp.json")):
+            and isinstance(mcp_reference, str)
+            and PurePosixPath(normalize_relative_path(mcp_reference)).as_posix() == ".mcp.json"):
         config_path = destination_root / ".mcp.json"
         if not config_path.exists():
             config_path.write_text(json.dumps({

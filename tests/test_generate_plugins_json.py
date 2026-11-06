@@ -14,6 +14,20 @@ SPEC.loader.exec_module(MODULE)
 
 
 class GeneratedBundleCleanupTests(unittest.TestCase):
+    def test_brewpage_root_relative_mcp_config_is_materialized(self):
+        for reference in ("/.mcp.json", "/./.mcp.json"):
+            with self.subTest(reference=reference), tempfile.TemporaryDirectory() as scratch:
+                raw = io.BytesIO()
+                with MODULE.zipfile.ZipFile(raw, "w") as archive:
+                    archive.writestr("archive/.codex-plugin/plugin.json", json.dumps({
+                        "name": "brewpage", "version": "1.0.0", "mcpServers": reference
+                    }))
+                with MODULE.zipfile.ZipFile(io.BytesIO(raw.getvalue())) as archive, patch.object(
+                    MODULE, "fetch_repo_archive", return_value=archive
+                ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                    MODULE.mirror_plugin_bundle({"owner": "kochetkov-ma", "repo": "brewpage-codex-plugin"})
+                self.assertTrue((Path(scratch) / "kochetkov-ma/brewpage-codex-plugin/.mcp.json").is_file())
+
     def test_brewpage_missing_mcp_config_uses_documented_server_without_overwriting_source(self):
         manifest = {"name": "brewpage", "version": "1.0.0", "mcpServers": "./.mcp.json"}
         for source_config in (None, {"mcpServers": {"custom": {"url": "https://example.com/mcp"}}}):

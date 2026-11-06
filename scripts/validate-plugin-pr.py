@@ -43,6 +43,7 @@ REQUIRED_MANIFEST_FIELDS = ["name", "version", "description", "repository", "lic
 REQUIRED_INTERFACE_FIELDS = ["displayName", "shortDescription", "composerIcon"]
 ICON_EXTENSIONS = {".svg", ".png", ".jpg", ".jpeg", ".webp", ".ico"}
 MAX_ICON_SIZE_BYTES = 50 * 1024  # 50KB
+MAX_MCP_CONFIG_SIZE_BYTES = 1024 * 1024
 REQUEST_TIMEOUT_SECONDS = 60
 USER_AGENT = "awesome-codex-plugins-validator"
 
@@ -197,6 +198,10 @@ def normalize_icon_relative_path(raw_icon: str) -> str | None:
     return relative.as_posix()
 
 
+class McpConfigSizeError(ValueError):
+    """A declared MCP config exceeds the bounded validation budget."""
+
+
 def validate_mcp_reference(manifest: dict, read_config) -> list[str]:
     """Check file-based MCP wiring without changing inline server declarations."""
     reference = manifest.get("mcpServers")
@@ -207,11 +212,15 @@ def validate_mcp_reference(manifest: dict, read_config) -> list[str]:
         return ["mcpServers must reference a safe plugin-relative config file"]
     try:
         contents = read_config(relative)
-    except (OSError, KeyError, ValueError, zipfile.BadZipFile, EOFError):
+    except McpConfigSizeError:
+        return [f"mcpServers config exceeds size limit ({MAX_MCP_CONFIG_SIZE_BYTES} bytes): {relative}"]
+    except (OSError, KeyError, ValueError, RuntimeError, zipfile.BadZipFile, EOFError):
         return [f"mcpServers config file not found or not a regular file: {relative}"]
+    if len(contents) > MAX_MCP_CONFIG_SIZE_BYTES:
+        return [f"mcpServers config exceeds size limit ({MAX_MCP_CONFIG_SIZE_BYTES} bytes): {relative}"]
     try:
         config = json.loads(contents)
-    except (UnicodeDecodeError, json.JSONDecodeError):
+    except (UnicodeDecodeError, ValueError, RecursionError):
         return [f"mcpServers config must be valid JSON: {relative}"]
     if not isinstance(config, dict):
         return [f"mcpServers config must contain a JSON object: {relative}"]
@@ -283,7 +292,10 @@ def validate_local_bundle(plugin_dir: Path) -> tuple[list[str], list[str]]:
         path = plugin_dir / relative
         if not path.resolve().is_relative_to(plugin_dir.resolve()) or not path.is_file():
             raise ValueError("MCP config must stay within the plugin bundle")
-        return path.read_bytes()
+        if path.stat().st_size > MAX_MCP_CONFIG_SIZE_BYTES:
+            raise McpConfigSizeError()
+        with path.open("rb") as stream:
+            return stream.read(MAX_MCP_CONFIG_SIZE_BYTES + 1)
 
     errors.extend(validate_mcp_reference(manifest, read_mcp_config))
 
@@ -357,7 +369,10 @@ def validate_remote_repo(
         info = archive.getinfo(path)
         if info.is_dir() or ((info.external_attr >> 16) & 0o170000) == 0o120000:
             raise ValueError("MCP config must be a regular archive member")
-        return archive.read(path)
+        if info.file_size > MAX_MCP_CONFIG_SIZE_BYTES:
+            raise McpConfigSizeError()
+        with archive.open(info) as stream:
+            return stream.read(MAX_MCP_CONFIG_SIZE_BYTES + 1)
 
     errors.extend(validate_mcp_reference(manifest, read_mcp_config))
 
