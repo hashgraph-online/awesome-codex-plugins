@@ -3102,6 +3102,21 @@
       "icon": "./plugins/avivsinai/bitbucket-cli/assets/bkt-icon.svg"
     },
     {
+      "name": "bowmark",
+      "displayName": "Bowmark",
+      "source": {
+        "source": "local",
+        "path": "./plugins/bowmark-ai/plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Typed, tested functions for live websites like LinkedIn, YouTube and Amazon, from Codex. Start with a free $10.",
+      "icon": "./plugins/bowmark-ai/plugin/assets/icon.svg"
+    },
+    {
       "name": "brewpage",
       "displayName": "BrewPage",
       "source": {

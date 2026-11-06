@@ -1,0 +1,16 @@
+{
+  "name": "bowmark-ai",
+  "interface": {
+    "displayName": "Bowmark AI"
+  },
+  "plugins": [
+    {
+      "name": "bowmark",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
