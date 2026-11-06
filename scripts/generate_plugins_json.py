@@ -469,6 +469,16 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         executable_bits = source_mode & 0o111 if stat.S_ISREG(source_mode) else 0
         destination_path.chmod(0o644 | executable_bits)
 
+    # The BrewPage source README documents this public server, but its initial
+    # manifest references an omitted .mcp.json. Prefer the source file once added.
+    if (owner_repo.casefold() == "kochetkov-ma/brewpage-codex-plugin"
+            and mirrored_manifest.get("mcpServers") in ("./.mcp.json", ".mcp.json")):
+        config_path = destination_root / ".mcp.json"
+        if not config_path.exists():
+            config_path.write_text(json.dumps({
+                "mcpServers": {"brewpage": {"type": "http", "url": "https://brewpage.app/mcp"}}
+            }, indent=2) + "\n", encoding="utf-8")
+
     # Nested bundles may inherit their license from an enclosing directory.
     # Keep a bundle-specific license when present; otherwise retain the nearest
     # ancestor's license verbatim alongside the mirrored files.

@@ -197,6 +197,27 @@ def normalize_icon_relative_path(raw_icon: str) -> str | None:
     return relative.as_posix()
 
 
+def validate_mcp_reference(manifest: dict, read_config) -> list[str]:
+    """Check file-based MCP wiring without changing inline server declarations."""
+    reference = manifest.get("mcpServers")
+    if not isinstance(reference, str) or "://" in reference:
+        return []
+    relative = normalize_icon_relative_path(reference)
+    if relative is None:
+        return ["mcpServers must reference a safe plugin-relative config file"]
+    try:
+        contents = read_config(relative)
+    except (OSError, KeyError, ValueError, zipfile.BadZipFile, EOFError):
+        return [f"mcpServers config file not found or not a regular file: {relative}"]
+    try:
+        config = json.loads(contents)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return [f"mcpServers config must be valid JSON: {relative}"]
+    if not isinstance(config, dict):
+        return [f"mcpServers config must contain a JSON object: {relative}"]
+    return []
+
+
 def validate_icon_bytes(icon_rel: str, icon_data: bytes) -> list[str]:
     """Apply the same icon checks to local files and remote source archives."""
     errors: list[str] = []
@@ -257,6 +278,14 @@ def validate_local_bundle(plugin_dir: Path) -> tuple[list[str], list[str]]:
     # attempt interface/icon lookup on malformed JSON object shapes.
     if not isinstance(manifest, dict) or not isinstance(manifest.get("interface"), dict):
         return errors, warnings
+
+    def read_mcp_config(relative):
+        path = plugin_dir / relative
+        if not path.resolve().is_relative_to(plugin_dir.resolve()) or not path.is_file():
+            raise ValueError("MCP config must stay within the plugin bundle")
+        return path.read_bytes()
+
+    errors.extend(validate_mcp_reference(manifest, read_mcp_config))
 
     # Validate icon locally
     interface = manifest.get("interface", {})
@@ -322,6 +351,15 @@ def validate_remote_repo(
     errors.extend(validate_manifest_fields(manifest))
     if not isinstance(manifest, dict) or not isinstance(manifest.get("interface"), dict):
         return errors, warnings
+
+    def read_mcp_config(relative):
+        path = plugin_root.joinpath(PurePosixPath(relative)).as_posix()
+        info = archive.getinfo(path)
+        if info.is_dir() or ((info.external_attr >> 16) & 0o170000) == 0o120000:
+            raise ValueError("MCP config must be a regular archive member")
+        return archive.read(path)
+
+    errors.extend(validate_mcp_reference(manifest, read_mcp_config))
 
     # Check icon exists in the archive
     interface = manifest.get("interface", {})

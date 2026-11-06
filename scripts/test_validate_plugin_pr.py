@@ -411,5 +411,49 @@ class MalformedManifestTests(unittest.TestCase):
         self.assertIn("Missing or invalid 'interface' object in plugin.json", errors)
         self.assertEqual(warnings, [])
 
+class McpConfigReferenceTests(unittest.TestCase):
+    def test_inline_declarations_are_unchanged_and_escaping_paths_are_not_read(self):
+        def must_not_read(_relative):
+            self.fail("Unexpected config read")
+        self.assertEqual(VALIDATOR.validate_mcp_reference({"mcpServers": {"demo": {}}}, must_not_read), [])
+        errors = VALIDATOR.validate_mcp_reference({"mcpServers": "../outside.json"}, must_not_read)
+        self.assertTrue(any("mcpServers" in error for error in errors))
+
+    def manifest(self):
+        manifest = MalformedManifestTests.valid_fields({
+            "displayName": "Demo", "shortDescription": "Demo", "composerIcon": "./icon.svg"
+        })
+        manifest["mcpServers"] = "./.mcp.json"
+        return manifest
+
+    def test_remote_mcp_config_must_exist_and_be_json_object(self):
+        for content in (None, "not JSON", "[]", "{}"):
+            with self.subTest(content=content):
+                raw = io.BytesIO()
+                with zipfile.ZipFile(raw, "w") as archive:
+                    archive.writestr("demo-main/.codex-plugin/plugin.json", json.dumps(self.manifest()))
+                    archive.writestr("demo-main/icon.svg", "<svg/>")
+                    if content is not None:
+                        archive.writestr("demo-main/.mcp.json", content)
+                with zipfile.ZipFile(io.BytesIO(raw.getvalue())) as archive, patch.object(
+                    VALIDATOR, "fetch_repo_archive", return_value=archive
+                ):
+                    errors, _ = VALIDATOR.validate_remote_repo("maker", "demo")
+                self.assertEqual(any("mcpServers" in error for error in errors), content != "{}", errors)
+
+    def test_local_mcp_config_must_exist_and_be_json_object(self):
+        for content in (None, "not JSON", "[]", "{}"):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as scratch:
+                root = Path(scratch)
+                bundle = root / "plugins/maker/demo"
+                (bundle / ".codex-plugin").mkdir(parents=True)
+                (bundle / ".codex-plugin/plugin.json").write_text(json.dumps(self.manifest()))
+                (bundle / "icon.svg").write_text("<svg/>")
+                if content is not None:
+                    (bundle / ".mcp.json").write_text(content)
+                with patch.object(VALIDATOR, "REPO_ROOT", root):
+                    errors, _ = VALIDATOR.validate_local_bundle(bundle)
+                self.assertEqual(any("mcpServers" in error for error in errors), content != "{}", errors)
+
 if __name__ == "__main__":
     unittest.main()

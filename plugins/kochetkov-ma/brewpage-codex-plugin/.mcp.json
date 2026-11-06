@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "brewpage": {
+      "type": "http",
+      "url": "https://brewpage.app/mcp"
+    }
+  }
+}
