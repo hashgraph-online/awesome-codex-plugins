@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "wavespeed": {
+      "url": "https://api.wavespeed.ai/mcp"
+    }
+  }
+}

@@ -45,7 +45,6 @@ extraction couldn't verify', distinct from explicit False.
 
 import hashlib
 import json
-import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path

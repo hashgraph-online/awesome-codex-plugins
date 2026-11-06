@@ -235,7 +235,7 @@ its provenance marker), and Windows registrations that belong to this installati
 
 Built by **songyb111-gachon** with the assistance of two AI development tools, OpenAI Codex and
 Anthropic Claude Code; [CONTRIBUTORS.md](docs/CONTRIBUTORS.md) has the full breakdown. Thanks to everyone who
-reported a problem, suggested a feature, tested a fix or sent one - [@cervinho](https://github.com/cervinho), [@barkshah2002-pixel](https://github.com/barkshah2002-pixel), [@ZionZhang42](https://github.com/ZionZhang42), [@aca22jy](https://github.com/aca22jy), [@Hunweibyn](https://github.com/Hunweibyn), [@TheEleage](https://github.com/TheEleage), [@Zephreo](https://github.com/Zephreo), [@Kdevaulo](https://github.com/Kdevaulo), [@weng-wen-jun](https://github.com/weng-wen-jun), [@kano0222](https://github.com/kano0222) and [@CuuuuteBrainGoo](https://github.com/CuuuuteBrainGoo) among them;
+reported a problem, suggested a feature, tested a fix or sent one - [@cervinho](https://github.com/cervinho), [@barkshah2002-pixel](https://github.com/barkshah2002-pixel), [@ZionZhang42](https://github.com/ZionZhang42), [@aca22jy](https://github.com/aca22jy), [@Hunweibyn](https://github.com/Hunweibyn), [@TheEleage](https://github.com/TheEleage), [@Zephreo](https://github.com/Zephreo), [@Kdevaulo](https://github.com/Kdevaulo), [@weng-wen-jun](https://github.com/weng-wen-jun), [@kano0222](https://github.com/kano0222), [@CuuuuteBrainGoo](https://github.com/CuuuuteBrainGoo) and [@Chen017](https://github.com/Chen017) among them;
 [CONTRIBUTORS.md](docs/CONTRIBUTORS.md) says what each of them helped with, and the [changelog](docs/CHANGELOG.md)
 names them beside the changes it led to.
 

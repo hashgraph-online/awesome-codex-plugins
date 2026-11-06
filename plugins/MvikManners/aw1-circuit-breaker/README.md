@@ -31,6 +31,7 @@ Get HOL Guard with `pipx install hol-guard` or `uv tool install hol-guard`.
 [![PyPI version](https://img.shields.io/pypi/v/aw1-circuit-breaker.svg?color=blue)](https://pypi.org/project/aw1-circuit-breaker/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Latency](https://img.shields.io/badge/AST%20Evaluation-%3C0.2ms-brightgreen.svg)]()
+[![AW-1 Sovereign Circuit Breaker MCP server](https://mcprush.com/badge/aw-1-sovereign-circuit-breaker-mcp/card.svg)](https://mcprush.com/to/aw-1-sovereign-circuit-breaker-mcp?ref=badge)
 
 > Deterministic sub-0.2ms AST security circuit breaker for autonomous AI agents, tool dispatch pipelines, and MCP servers.
 
@@ -49,7 +50,20 @@ Or verify an arbitrary snippet:
 ```bash
 uvx aw1-circuit-breaker verify "subprocess.run(['rm', '-rf', '/'])"
 ```
+## Quick Connect via MCP
 
+To connect Claude Desktop, Cursor, or any MCP client to the remote AW-1 circuit breaker gateway, add this to your client configuration:
+
+```json
+{
+  "mcpServers": {
+    "aw1-circuit-breaker": {
+      "type": "http",
+      "url": "[https://p20.laveto.net/wisdom/mcp/sse](https://p20.laveto.net/wisdom/mcp/sse)"
+    }
+  }
+}
+```
 ---
 
 # AW-1 Circuit Breaker

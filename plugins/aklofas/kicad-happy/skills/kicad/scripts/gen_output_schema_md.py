@@ -8,6 +8,7 @@ definitions that drive --schema. No manual duplication.
 """
 from __future__ import annotations
 
+import argparse
 import sys
 import typing
 from dataclasses import MISSING, fields, is_dataclass
@@ -25,6 +26,7 @@ from envelopes.gerber import GerberEnvelope  # noqa: E402
 from envelopes.thermal import ThermalEnvelope  # noqa: E402
 from envelopes.cross_analysis import CrossAnalysisEnvelope  # noqa: E402
 from emc_envelope import EMCEnvelope  # noqa: E402
+from kicad_core.diagnostics import Diagnostic  # noqa: E402
 
 
 HEADER = """\
@@ -84,6 +86,9 @@ in `analyzer_envelope.py`. Breaking changes bump the analyzer's
   `config_hash`, `upstream_artifacts`.
 - `compat` — `CompatBlock`. `minimum_consumer_version`,
   `deprecated_fields`, `experimental_fields`.
+- `diagnostics` — `list[Diagnostic]`. Guarded failures that degraded
+  the run (`source`, `exception`, `message`, `effect`); `[]` when
+  nothing degraded.
 
 ### Tier 2 — Analyzer-specific body
 
@@ -196,6 +201,9 @@ def _emit_envelope(cls, *, intro: str) -> str:
 
 
 def main():
+    argparse.ArgumentParser(
+        description="Regenerate skills/kicad/references/output-schema.md from the envelope dataclasses.",
+    ).parse_args()
     parts = [HEADER]
     parts.append(_emit_envelope(
         SchematicEnvelope,
@@ -220,6 +228,10 @@ def main():
     parts.append(_emit_envelope(
         CrossAnalysisEnvelope,
         intro="Output of `python3 skills/kicad/scripts/cross_analysis.py --schematic ... --pcb ...`.",
+    ))
+    parts.append(_emit_envelope(
+        Diagnostic,
+        intro="One entry of the Tier 1 `diagnostics` list, shared by every envelope.",
     ))
     out_path = REPO_ROOT / "skills" / "kicad" / "references" / "output-schema.md"
     out_path.write_text("\n".join(parts))

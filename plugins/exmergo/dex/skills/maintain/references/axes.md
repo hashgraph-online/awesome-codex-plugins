@@ -31,7 +31,10 @@ fingerprints of the dbt project and of the semantic layer.
   a filter's values, or moving the entry to another YAML file is not a change.
   `data.transform_layer.declared_model_count` says how many models were
   fingerprinted (`0` is a project that declares nothing, which is a baseline;
-  `null` is a format that does not read declarations).
+  `null` is a format that does not read declarations). A native dbt versioned
+  model is fingerprinted per version, from the entry dbt builds each version
+  from, under its label (`dim_teams.v2`), so drift names the version whose
+  declaration moved.
 - Without a cache it captures a metadata-only baseline and says so. It warns
   when the cache it pinned is thin (objects without column detail) or older than
   the profile freshness window, because either makes "accept current state" only
@@ -109,7 +112,13 @@ complete composite, never one column at a time. Aggregates only.
   from the count the axis already takes; that alone never lowers the severity,
   because a surrogate grain stays unique through a real duplicate.
 - Finding codes: `key_lost_uniqueness` (proven unique at baseline, not now),
-  `declared_grain_not_unique` (declared, never held), and
+  `declared_grain_not_unique` (declared, never held),
+  `join_orphans_increased` (a baseline join's orphan fraction rose),
+  `declared_join_orphans` (a join declared now, at 20% orphaned or more,
+  `high` from 50%, that the baseline never measured or measured at or above
+  that bound already; `data.baseline` is `absent`, `unmeasured` or
+  `measured`; the joins come from the project and from a native semantic
+  layer, not from a dbt layer's entities), and
   `join_cardinality_exceeded` (a join whose declared arity, SLayer's
   `cardinality` or Cube's `relationship`, does not hold: the side it says is
   unique is not).
@@ -156,8 +165,12 @@ on that model. `data.declaration_drift` says whether this focus ran:
 `{"checked": true, "baseline_declared_models", "declared_models"}`, or
 `{"checked": false, "reason"}` with a warning. A baseline pinned before
 declarations were fingerprinted is unchecked, never clean and never every
-declaration newly added; `maintain snapshot --project-only` baselines them
-without re-measuring the warehouse, which is also how an intended declaration
+declaration newly added. So is a versioned model on a baseline that keyed its
+declaration by the bare name, before declarations were read per version: it is
+named under `data.declaration_drift.unchecked_models`, with
+`unchecked_reason: baseline_predates_versions` and a warning, and is never
+reported as removed. `maintain snapshot --project-only` baselines them without
+re-measuring the warehouse, which is also how an intended declaration
 change is accepted. `maintain reconcile` answers these findings with advisories
 only: a declaration is a human's decision, so Dex never rewrites one to match the
 baseline.
@@ -192,7 +205,9 @@ Needs no baseline. The classes of finding:
   themselves in `data.severity_cap_applied`, and the finding stays listed. A
   model with a `WHERE`, `GROUP BY`,
   `DISTINCT`, `QUALIFY`, `LIMIT`, a semi or anti join, or a set operation is never
-  reported for loss, and an incremental model is skipped outright. A model that
+  reported for loss, and an incremental model is skipped outright (on
+  `transform build --full-refresh --verify`, only one the build did not rebuild,
+  or a microbatch model). A model that
   generates its rows in SQL, such as `range(...)` or a `VALUES` clause, has no
   parent relation. That is named in `notes`. A real parent relation that is
   absent from the warehouse is still a warning.
@@ -204,8 +219,63 @@ Needs no baseline. The classes of finding:
   `unique_combination_of_columns` test, a semantic model's primary entity,
   then a naming guess. `data.source` says which one. A declared grain is
   counted in the declared-fact statement below, so it is priced with it.
-- **Join contract**: `join_zero_overlap` and `join_orphans`, every equality
-  join's measured overlap.
+- **Join contract** (#228, #857): every equality join's coverage, measured
+  with one aggregate probe per driving relation and recorded under
+  `data.join_coverage`, one record per join:
+  - `declared`: what the declaration says about the join. It is `required` when
+    a column it supplies is declared `null_rule: never` on a LEFT join, or the
+    column carrying the driving key is a `foreign_key` whose `references`
+    names the joined relation. `optional` is set when every column it supplies
+    states a NULL rule other than `never`. NULL keys are `excluded`, or
+    counted `unmatched` where the key's column is `null_rule: never`.
+  - `measured` and `coverage`: eligible, matched and unmatched rows and
+    distinct keys, NULL-key rows apart. Coverage is `null` when nothing is
+    eligible.
+  - `key_conversion` (#861), on a join that compares a key through a cast or a
+    `lower`, `upper` or `trim` (`try_cast(a.k as int) = b.k`): each side's keys
+    as the probe applied them, a hard cast measured as its safe form. Keys the
+    conversion fails on stay eligible and unmatched, and are counted apart as
+    `measured.conversion_failed_rows` and `conversion_failed_keys`, so a failed
+    cast reads differently from a missing parent.
+  - `effective_input` (#1085), on a join one of whose sides is read through a
+    filtering CTE or subquery: per side, the physical `relation`, the scopes it
+    was read `through` and the `filters` the probe applied to it. The measured
+    counts are over those rows, so a key present only in rows the filter drops
+    is not a match. Carried only when every filtering hop reads one relation,
+    its only reducing clause is a `WHERE`, and each conjunct is a row-by-row
+    condition over columns and literals (comparisons, `IN` over a literal list,
+    `BETWEEN`, `LIKE`, `IS`, boolean logic, `coalesce`, casts and
+    `lower`/`upper`/`trim`, as in `where coalesce(_fivetran_active, true)`)
+    that traces to the key's own physical relation.
+  - `status`: `satisfied`, `contradicted` (with the finding), `not_applicable`
+    (an empty input or all-NULL keys: no coverage, which is not full coverage)
+    or `unchecked`, with a `reason_code`: `non_equality_join`,
+    `unsupported_key_expression` (a key rewritten by a function other than a
+    cast, `lower`, `upper` or `trim`), `no_safe_cast_on_connector` (a cast key
+    on Postgres, which has no cast that returns NULL, to a type other than
+    `smallint`, `integer` or `bigint`: those are measured through a guarded cast), `key_and_filter_condition`, `ambiguous_using`, `unresolved_column`,
+    `set_operation_cte` (a column read through a UNION CTE, which is not a
+    warehouse table), `filtered_cte` (a filtering scope of any other shape: a
+    `GROUP BY`, `DISTINCT`, `LIMIT`, `HAVING`, `QUALIFY`, a join beside the
+    filter, a subquery or clock function in it, or a filter on a computed or
+    window column such as `rn = 1`; the reason names the scope and the shape),
+    `unparseable_sql`, `relation_not_found`,
+    `probe_refused` or `scan_offered`.
+
+  Findings:
+  - `join_no_match` (high): a nonempty eligible population matched nothing.
+    No threshold. `low` when every column the join supplies is declared as
+    allowed to be NULL.
+  - `join_orphans` and `join_zero_overlap`: on a required join any unmatched
+    row (`threshold_source: contract`, high). Otherwise the stated defaults,
+    0.2 and 0.9 of eligible rows (`threshold_source: default`). On a LEFT join
+    with no requirement, unmatched rows are the optional relationship the join
+    writes: no `join_orphans`, and `join_zero_overlap` at medium.
+  - `join_field_all_null` (high): a column the join supplies, declared
+    `null_rule: never`, NULL on every row. `join_field_newly_null` (medium):
+    one with no rule, NULL on every row, where the exploration cache profiled
+    the same relation with values in it. Otherwise the column is listed on the
+    record as `derived_columns_all_null`, not reported.
 - **Declared facts** (#496), each an aggregate-only statement against the
   built relation:
   - `unit_out_of_range` (medium): a column declared `fraction` with values
@@ -219,9 +289,28 @@ Needs no baseline. The classes of finding:
   - `population_contradicted` (high): a value a `population.filters` entry
     excludes still present (for `includes`, any other value or NULL), as a
     count and never as rows.
+  - `parent_population_missing` (high) and `parent_population_unexpected`
+    (high), for a model declaring `population.parent` (#857): eligible parent
+    keys with no row in the model, and model keys the parent does not have,
+    as distinct-key counts. A population filter whose column the parent also
+    has is applied to the parent first (`excluded_by_filters`); one it lacks is
+    named in `filters_unapplied` and drops the missing finding to medium.
+    Unexpected keys are never the population. Each declared parent has a
+    record under `data.parent_population` with the same statuses as a join.
+  - `temporal_transition_count_mismatch`, `temporal_latest_transition_mismatch`
+    and `temporal_first_attainment_mismatch` (high), `temporal_population_missing`
+    and `temporal_population_unexpected` (high), and
+    `temporal_provenance_contradicted` (medium), for a model declaring `history`
+    (#1027): its columns against what the snapshot's versions and the declared
+    policy give, as entity counts. Each contract has a record under
+    `data.temporal_contracts`, keeping the snapshot's execution, the assertions
+    checked, and what stayed unchecked apart. `no_history_observed` and every
+    `unchecked` reason are not clean: see the transform skill's `declarations.md`,
+    "Temporal contracts".
 
   `null_rule: never` is not checked here: it renders as a `not_null` test.
-  `data.suppressed` names `unit`, `additivity` and `population` whenever one
+  `data.suppressed` names `unit`, `additivity`, `population`,
+  `parent_population` and `temporal` whenever one
   did not run: nothing declares it, the relation is empty, the column is all
   NULL or aggregated away, too few observations to call, or the scan is
   offered.

@@ -172,6 +172,19 @@
         "On a metered connector, asks before adding `--downstream`, since it is opt-in spend, and surfaces one batch estimate before running",
         "Never claims the project or the warehouse was modified: the mutant and the downstream models are ephemeral and confined to a throwaway copy"
       ]
+    },
+    {
+      "id": 11,
+      "prompt": "`transform build --target dev` fails in the installed Fivetran Asana package: stg_asana__task coalesces a TIMESTAMP with an all-NULL INTEGER column. Its SQL selects `{{ fivetran_utils.fill_staging_columns(source_columns=adapter.get_columns_in_relation(ref('stg_asana__task_tmp')), staging_columns=get_task_columns()) }}` and branches on `{% if var('asana__using_tags', true) %}`. We can't change the raw data. Make it build on DuckDB.",
+      "expected_output": "Prerequisite-repair case (#1154, #860). The repair is a project override planned through Dex: a project model of the same name copying the package SQL, column-listing macro included, with an explicit cast, plus `+enabled: false` for the package model, in one plan. `transform plan` answers the compile-time column listing from metadata, so the plan succeeds; it is applied and built with `--verify` and `--cold-deps`.",
+      "files": [],
+      "assertions": [
+        "Reads `data.prerequisites` and chooses the `project_override` route rather than editing the raw data or `dbt_packages/`",
+        "Plans the override through `transform plan`, keeping `fill_staging_columns(adapter.get_columns_in_relation(...))` in the copied SQL, and adds an explicit cast rather than dropping rows",
+        "Disables the package model with `+enabled: false` under `models.<package>` in the same plan",
+        "Applies with `transform apply` and never writes the override outside Dex; a refused plan is relayed, not bypassed",
+        "Builds with `transform build --target dev --verify --cold-deps --for-plan <plan-id>` and relays `data.completion` and the verification"
+      ]
     }
   ]
 }

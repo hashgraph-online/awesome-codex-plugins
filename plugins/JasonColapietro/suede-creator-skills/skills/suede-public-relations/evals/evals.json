@@ -1,0 +1,42 @@
+{
+  "skill_name": "suede-public-relations",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We just finished a survey of 600 e-commerce operators about AI agents. Draft pitches to five reporters and send them.",
+      "expected_output": "Builds a sourced list of five journalists whose recent bylines match the beat (or a research checklist if no browser is callable), drafts a data-story pitch under 200 words for each with the key stats, methodology link, spokesperson, and a clear ask, and runs the pitch quality bar. Stops at the send-approval handover naming recipient, channel, sending identity, and exact message for each. Sends nothing.",
+      "assertions": [
+        "Each pitch is under 200 words unless an outlet states otherwise",
+        "Each pitch references the journalist's recent coverage",
+        "Runs the pitch quality bar before presenting drafts",
+        "Stops at the send-approval handover and sends nothing"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "When people ask ChatGPT and Perplexity for the best tools in our category, we never show up. Can PR fix that?",
+      "expected_output": "Explains that AI answers lean heavily on third-party sources, citing the dated study in the skill, and turns that into a plan: identify which outlets the assistants already cite for the category's top questions, prioritize those in the media list, make placements quotable with original data and exact entity names, keep company and founder facts consistent with on-site Organization and Person schema and sameAs links, and measure AI citation share on a fixed question set before and after. Routes on-site fixes to suede-ai-seo and suede-seo-audit.",
+      "assertions": [
+        "Ties earned media to AI citations with the dated source",
+        "Starts by checking which outlets assistants already cite",
+        "Requires consistent entity facts across press, schema, and profiles",
+        "Defines AI citation share measurement on a fixed question set",
+        "Routes on-site fixes to suede-ai-seo or suede-seo-audit"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Which HARO-style sites should I use? I heard HARO shut down.",
+      "expected_output": "States the current status accurately: Cision discontinued Connectively in December 2024 and Featured acquired and relaunched HARO in April 2025. Recommends a small starter set (Qwoted, Help A B2B Writer, HARO or Featured, #JournoRequest searches), the triage workflow, and the response template, with every response held for approval.",
+      "assertions": [
+        "Gives the accurate HARO and Connectively history",
+        "Recommends a small, fit-based starter set",
+        "Includes the triage workflow or response template",
+        "Keeps responses draft-only pending approval"
+      ],
+      "files": []
+    }
+  ]
+}

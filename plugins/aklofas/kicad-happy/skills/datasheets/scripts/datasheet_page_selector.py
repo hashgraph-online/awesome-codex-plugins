@@ -19,7 +19,6 @@ Usage:
     print(selection.confidence)  # "toc_found" | "keyword_scored" | "fallback"
 """
 
-import os
 import re
 import shutil
 import subprocess
@@ -202,30 +201,6 @@ def _get_page_count(pdf_path):
         return max(count, 1)
     except OSError:
         return 0
-
-
-def _extract_page_text(pdf_path, page_num):
-    """Extract text from a single PDF page.
-
-    Args:
-        pdf_path: Path to PDF file
-        page_num: 1-based page number
-
-    Returns:
-        Extracted text string, or "" if extraction fails
-    """
-    if not _has_pdftotext():
-        return ""
-
-    try:
-        result = subprocess.run(
-            ["pdftotext", "-f", str(page_num), "-l", str(page_num),
-             str(pdf_path), "-"],
-            capture_output=True, text=True, timeout=10,
-        )
-        return result.stdout if result.returncode == 0 else ""
-    except (subprocess.TimeoutExpired, OSError):
-        return ""
 
 
 def _extract_pages_text(pdf_path, first_page=1, last_page=None):

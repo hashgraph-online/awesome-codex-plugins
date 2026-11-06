@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Marketing Loop Skills"
+  short_description: "Turn marketing into a recurring loop an agent runs on a cadence"
+  default_prompt: "Use $suede-marketing-loops on [target]. The user wants a repeatable, self-running marketing workflow rather than a one-off task. Work through ad-fatigue checks, content refresh, churn watch, ranking-drop alerts, and weekly reviews, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

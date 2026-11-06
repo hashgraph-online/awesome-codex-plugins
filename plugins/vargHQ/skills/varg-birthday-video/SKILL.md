@@ -4,13 +4,13 @@ description: >-
   Turns a name, an age and a few photos into a personalized AI birthday video on varg: a song that sings their
   name, their photo coming to life as they blow out the candles, a "then and now" montage, an epic trailer
   starring them, a pet's birthday, an animated e-card or invitation. Asks the 5 questions that make it theirs,
-  writes the lyrics and prompts, makes the stills first (GPT Image 2.5 spells the name on the cake), animates
-  them (Wan 3, Seedance 2.5), makes the song (ElevenLabs Music sings the name), then joins and exports one file
-  that plays on WhatsApp and iMessage. Use when someone asks for a birthday video, a happy birthday message, a
-  birthday song with a name, a birthday surprise, a video for a friend's, partner's, mom's or dad's birthday,
-  a milestone birthday (18, 30, 40, 50, 60, 80), a pet's birthday or a birthday invitation. Not for weddings,
-  anniversaries and holiday greetings (use varg-occasion-video) or a business sending birthday videos to every
-  customer (make-personalized-videos-at-scale on varg how to).
+  makes the stills first (GPT Image 2.5 spells the name on the cake), animates them (Wan 3, Seedance 2.5),
+  makes the song (ElevenLabs Music sings the name), then exports one file that plays on WhatsApp and iMessage.
+  Use when someone asks for a birthday video, a happy birthday message, a birthday song with a name, a
+  birthday surprise, a video for a friend's, partner's, mom's or dad's birthday, a milestone birthday (18, 30,
+  50, 80), a pet's birthday or a birthday invitation. Not for weddings, anniversaries and holiday greetings
+  (use varg-occasion-video) or a business sending birthday videos to every customer
+  (make-personalized-videos-at-scale on varg how to).
 license: MIT
 metadata:
   author: vargHQ

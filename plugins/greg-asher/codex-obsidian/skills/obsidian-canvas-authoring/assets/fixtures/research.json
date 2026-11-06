@@ -1,0 +1,13 @@
+{
+  "layout": "research",
+  "cards": [
+    {"key": "risks", "lane": "Sources", "file": "Atlas/PrivateNotes/Café.md", "subpath": "#Login exercise"},
+    {"key": "spec", "lane": "Sources", "url": "https://jsoncanvas.org/spec/1.0/"},
+    {"key": "synthesis", "lane": "Synthesis", "text": "João verified the Café tenant during staging."},
+    {"key": "gap", "lane": "Open questions", "text": "What evidence establishes production approval?"}
+  ],
+  "relationships": [
+    {"from": "risks", "to": "synthesis", "label": "staging source", "evidence": "documented"},
+    {"from": "synthesis", "to": "gap", "label": "next question", "evidence": "inferred"}
+  ]
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Onboarding Skills"
+  short_description: "Fix the path from signup form to first value"
+  default_prompt: "Use $suede-onboarding on [target]. Find where the activation path breaks. For signup, rank field, identity, verification, and mobile friction by effect on completion. For first value, define the activation event from retention evidence, then design the first session, empty states, checklist, and triggered emails. Return the audit or flow spec, a metrics plan, and at most 3 test hypotheses."
+policy:
+  allow_implicit_invocation: true

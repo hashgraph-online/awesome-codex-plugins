@@ -213,8 +213,10 @@ statically with no Cube server. `list` reads the same shape as anywhere else:
   outside dev mode never reloads an edited model file, so after a
   `semantic cube update` the server serves the old model until restarted, and
   Dex refuses rather than run SQL from a model nobody reviewed. A refusal naming
-  a pre-aggregation means Cube would answer from a rollup table; query members
-  it does not cover.
+  a cube planned over another table than its `sql_table` is the same case: the
+  server holds another model than the repository. A refusal naming a
+  pre-aggregation means Cube would answer from a rollup table; query members it
+  does not cover.
 
 ## When the layer is SLayer models
 

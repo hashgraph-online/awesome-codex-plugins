@@ -80,7 +80,7 @@ To open the dashboard later without distributing anything new:
 
 ## Try it first
 
-The demo at the top serves three sample issues: SHORTCUTS #04, #05 and #06, the one where I wrote about this tool. Every post in them is cut from that issue's own sentences. You can also open `skills/distribute/dashboard/index.html` straight from disk. It shows the same samples, and your ticks stay in that browser.
+The demo at the top serves three sample issues: SHORTCUTS #04, #05 and #06, the one where I wrote about this tool. Every post in them is cut from that issue's own sentences.
 
 ![The posting list](https://raw.githubusercontent.com/mrowean/long-form-distribution/main/docs/screenshot.png)
 

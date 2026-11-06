@@ -11,6 +11,18 @@ You have access to the following skills. Invoke a skill **only on a clear trigge
 signal from the table below**; when the signal is ambiguous, proceed without a
 skill — a wrong skill costs more than no skill.
 
+## Project Overrides (load before dispatching)
+
+Teams commit their own conventions beside the code so every host and every engineer inherits them on pull. Resolution order, highest wins:
+
+| Priority | File | Scope |
+|---|---|---|
+| 1 | `.epic/team.local.md` | personal, gitignored |
+| 2 | `.epic/team.md` | team, committed |
+| 3 | shipped skill defaults | base |
+
+At session start and before any pipeline skill (`spec`, `go`, `audit`, `ship`, `orbit`), read whichever of these exist and treat each bullet as a standing fact for the rest of the session. Facts are plain markdown bullets; a bullet of the form `file: {path}` means load that file too. Skill-specific sections use a heading equal to the skill name (`## spec`, `## go`, ...) and apply only inside that skill. Absence of `.epic/` is normal; never create it unprompted. Never write harness state into `.epic/`; state lives in `$HARNESS_DIR`.
+
 ## Dispatch Rules
 
 | Context Signal | Invoke Skill |

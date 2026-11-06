@@ -160,7 +160,8 @@ and says why when:
 - **The linked site isn't this machine's anonymous site** (it was claimed, or
   the link came from someone else). Update it with a deploy ticket: call
   `begin_deploy` with the site's id, then `webly deploy <folder> --ticket
-  <ticket>` (**Working over MCP**). If `begin_deploy` is a 404 (a fork, another
+  <ticket> --message "<subject>" --body "<what changed and why>"` (**Working
+  over MCP**). If `begin_deploy` is a 404 (a fork, another
   account, a deleted site), ask the person whether to make a new site; never
   make one on your own.
 - **The folder isn't linked and this machine is connected to an account.**
@@ -391,6 +392,12 @@ one before creating a site, and on `400 workspace_required` ask; never guess.
 `workspaces: "one"` means the connection is limited to one workspace. If they
 need another (`list_workspaces` shows `canUse: false`), they reconnect: in
 Claude Code `/mcp` → webly → re-authenticate, and pick All my workspaces.
+When the owner asks about the "Made with Webly" badge: Hobby and Pro sites go
+without it unless they opt in. `set_workspace_badge` turns it on or off for every
+site, new ones included; `update_website` with `showBadge` sets one site, and that
+always wins (`null` follows the workspace again). Free always shows it: on
+`402 plan_required`, give them `details.upgradeUrl`.
+
 When the owner asks for a team workspace photo, `set_workspace_photo` takes a
 public image `url` or the file as `base64` (PNG, JPEG, WebP or GIF, 2 MB);
 `remove_workspace_photo` clears it. A personal workspace shows the person's own
@@ -412,11 +419,16 @@ as the person. The token stays in the helper; never ask for it or print it.
    whose change it is (`theirsBy`), re-read, re-apply, resend. `force` only
    when the person asks. For a folder on disk (a build's `dist/`, anything with
    bundles or images), call `begin_deploy` with the site's id and straight away
-   run `webly deploy <folder> --ticket <ticket> --message "<what changed>"` (the
-   ticket lasts 5 minutes and one deploy; never echo it back to the person). The
-   message is one line saying what changed ("Button reads Start here"); the
-   site's History shows it, so the people sharing the site can tell your
-   version from everyone else's. The helper builds the project
+   run `webly deploy <folder> --ticket <ticket> --message "<subject>" --body
+   "<what changed and why>"` (the ticket lasts 5 minutes and one deploy; never
+   echo it back to the person). Every write (deploy, `put_source_file`,
+   `str_replace`, deletes) takes a message, written like a git commit message:
+   a subject line of what changed, about 50 characters, imperative ("Show
+   yearly plans first on Pricing"), then a blank line and a body in plain words
+   for the site owner: what changed and why, which pages, anything to check.
+   The site's History shows the subject, and the body when someone opens the
+   version, so the people sharing the site can tell your version from
+   everyone else's. Skip the body only for a trivial change. The helper builds the project
    if needed, uploads it (up to 2000 files; images and video over 1 MiB go
    straight to storage, up to the plan's per-file limit), links
    the folder and prints the draft URL. Never put a bundle's bytes in a tool
@@ -488,7 +500,8 @@ Details are in llms.txt.
 narrower than the task, so tell them which access level covers it. `401` /
 `invalid_token`: call a Webly tool again to re-trigger sign-in; don't start a
 second attempt while one is waiting. Other people and agents may edit the
-same site at once. Prefer `str_replace` for small edits. Send `baseVersion`
+same site at once, and people may edit text (on static sites too), styles,
+sections and component props in the dashboard (History shows them as Editor). Prefer `str_replace` for small edits. Send `baseVersion`
 (the `version` your read returned) with `put_source_file` /
 `delete_source_file`: their edits to other lines are merged with yours;
 `409 merge_conflict` means you both changed the same lines — read the file
@@ -499,6 +512,9 @@ versions between the last publish and that one go live with it (newer ones stay
 unpublished); the response's `alsoPublishes` lists the ones other people or
 agents wrote (who, app, message). Tell your person what of theirs went live.
 Publishing an older version puts nothing new live, and `alsoPublishes` is empty.
+To help someone choose a version: `list_changes` and `diff_source_file` (from the
+version before it) show what it changed, and `preview_version` gives a private link
+to how it looked for an hour, changing nothing.
 
 Git: `get_git_access` gives a read-only clone of a signed-in site's source and
 history (one commit per version). Its token lasts one minute, so run its
@@ -511,7 +527,8 @@ before asking again. Never `git push`; write through the tools.
 Hobby and Pro, in both workspaces (`402 plan_required` otherwise: give the
 person `details.upgradeUrl`). `duplicate_website` copies a site 1:1: every
 version, media, CMS, form submissions and settings, passwords; it is published
-if the original is, gets its own addresses, and custom domains stay with the
+if the original is (`publish.status: "building"` means a bigger site is still
+building and goes live by itself: tell your person it is still working), gets its own addresses, and custom domains stay with the
 original. `move_website` moves a site into another workspace your person
 admins, at once: everything comes along, it gets a **new** webly.site address
 there and the old one stops working, so confirm first and share the new

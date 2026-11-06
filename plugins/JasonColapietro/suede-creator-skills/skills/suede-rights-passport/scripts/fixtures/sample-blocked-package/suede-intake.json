@@ -1,0 +1,218 @@
+{
+  "schema_version": "0.1.0",
+  "package_type": "suede-transfer-package",
+  "generated_at": "2026-07-03T03:18:00.964804+00:00",
+  "metadata_source": "metadata.json",
+  "project": {
+    "title": "Neon Static",
+    "artist_name": "Rae Marlowe",
+    "work_type": "song",
+    "description": "Synthetic test fixture: a fictional single with unconfirmed ownership, unconfirmed splits, and an uncleared sample.",
+    "release_status": "unknown",
+    "public_urls": []
+  },
+  "creator": {
+    "name": "Rae Marlowe",
+    "email": "rae.marlowe.synthetic@example.com",
+    "wallet_address": "",
+    "organization": "",
+    "confirmation_status": "needs-confirmation"
+  },
+  "assets": [
+    {
+      "id": "asset-001",
+      "relative_path": "assets/audio/Neon Static - Rough Mix.mp3",
+      "original_path": "Neon Static - Rough Mix.mp3",
+      "category": "audio",
+      "role": "mix",
+      "mime_guess": "audio/mpeg",
+      "size_bytes": 2900,
+      "sha256": "d2b7ea13578c84c374b8ce5d68a902d15da7c7f9a456e60cdf89a80ff5892e7b",
+      "notes": ""
+    },
+    {
+      "id": "asset-002",
+      "relative_path": "assets/lyrics/lyrics-draft.txt",
+      "original_path": "lyrics-draft.txt",
+      "category": "lyrics",
+      "role": "lyrics",
+      "mime_guess": "text/plain",
+      "size_bytes": 244,
+      "sha256": "6a83b7adc23c591455cf60dcf23e3e417864c8764b8a6239c0f20d6e05e33ed1",
+      "notes": ""
+    },
+    {
+      "id": "asset-003",
+      "relative_path": "assets/docs/metadata.json",
+      "original_path": "metadata.json",
+      "category": "document",
+      "role": "document",
+      "mime_guess": "application/json",
+      "size_bytes": 1683,
+      "sha256": "11c144f56211206a92c151a7e32e35a9b2b12b39a766e57a4fc1c728f02e9c58",
+      "notes": ""
+    },
+    {
+      "id": "asset-004",
+      "relative_path": "assets/docs/notes-do-not-share.txt",
+      "original_path": "notes-do-not-share.txt",
+      "category": "document",
+      "role": "document",
+      "mime_guess": "text/plain",
+      "size_bytes": 320,
+      "sha256": "23d039a38e52784fa32ce87c28ef2000ac4e923a94345b78537ec87b95c5fcd1",
+      "notes": ""
+    }
+  ],
+  "rights": {
+    "owner_claim": "Rae Marlowe believes they own it, but a second collaborator (Kai) never signed a split sheet and may have a competing claim",
+    "ownership_status": "disputed",
+    "contributors": [
+      {
+        "name": "Rae Marlowe",
+        "role": "Songwriter/Producer",
+        "master_percent": 70,
+        "publishing_percent": 70,
+        "confirmed": false
+      },
+      {
+        "name": "Kai (last name unknown)",
+        "role": "Co-writer, unconfirmed",
+        "master_percent": 30,
+        "publishing_percent": 30,
+        "confirmed": false
+      }
+    ],
+    "contributors_confirmed": false,
+    "splits_confirmed": false,
+    "contains_samples": "yes",
+    "sample_clearance_status": "uncleared",
+    "cover_or_interpolation": "unknown",
+    "license_restrictions": []
+  },
+  "provenance": {
+    "source_root": "synthetic-blocked-project",
+    "metadata_source": "metadata.json",
+    "creation_notes": "Synthetic test fixture created for validate_transfer_package.py testing. Track includes a vocal chop from an unidentified source; second collaborator's involvement and split were never formally confirmed.",
+    "chain_of_custody": [
+      {
+        "date": "2026-07-03",
+        "event": "Source folder inventoried for Suede transfer package.",
+        "actor": "suede-rights-passport",
+        "evidence": "local file hashes"
+      }
+    ],
+    "registry_status": "ready-for-review"
+  },
+  "optimization": {
+    "requested_services": [],
+    "recommended_services": [
+      {
+        "service": "rights-review",
+        "priority": "high",
+        "reason": "Ownership, contributor, sample, and release facts need confirmation.",
+        "blocks": [
+          "registry",
+          "licensing",
+          "royalty-routing",
+          "agent-commerce"
+        ]
+      },
+      {
+        "service": "provenance-cleanup",
+        "priority": "high",
+        "reason": "File hashes are present, but creation history and chain-of-custody need creator notes.",
+        "blocks": [
+          "registry"
+        ]
+      },
+      {
+        "service": "mastering-or-wav-review",
+        "priority": "normal",
+        "reason": "Primary audio was found and can be reviewed for final delivery quality.",
+        "blocks": []
+      },
+      {
+        "service": "stem-separation",
+        "priority": "normal",
+        "reason": "No stems were detected; stems can improve licensing, remix, and derivative workflows.",
+        "blocks": []
+      },
+      {
+        "service": "artwork-preparation",
+        "priority": "low",
+        "reason": "No artwork was detected.",
+        "blocks": []
+      }
+    ],
+    "priority": "normal",
+    "notes": "Synthetic fixture: rights review required before any further packaging."
+  },
+  "missing_information": [
+    {
+      "field": "rights.owner_claim",
+      "question": "Who owns the master and publishing rights?",
+      "blocks": [
+        "registry",
+        "licensing",
+        "royalty-routing",
+        "agent-commerce"
+      ],
+      "severity": "high"
+    },
+    {
+      "field": "credits.contributors",
+      "question": "Who contributed to the work, what were their roles, and are splits confirmed?",
+      "blocks": [
+        "royalty-routing",
+        "licensing"
+      ],
+      "severity": "high"
+    },
+    {
+      "field": "rights.sample_clearance_status",
+      "question": "Are all samples, loops, interpolations, or third-party beats cleared?",
+      "blocks": [
+        "licensing",
+        "registry"
+      ],
+      "severity": "high"
+    },
+    {
+      "field": "project.release_status",
+      "question": "Has the work already been released, registered, minted, licensed, or sold?",
+      "blocks": [
+        "registry",
+        "licensing",
+        "catalog-discovery"
+      ],
+      "severity": "medium"
+    }
+  ],
+  "risk_flags": [
+    {
+      "label": "ownership-unconfirmed",
+      "severity": "high",
+      "detail": "Owner claim has not been confirmed by the creator.",
+      "recommended_action": "Confirm master and publishing ownership before registry, licensing, or royalty routing."
+    },
+    {
+      "label": "contributors-unconfirmed",
+      "severity": "high",
+      "detail": "Contributor list and splits are not confirmed.",
+      "recommended_action": "Collect contributor roles and split confirmations."
+    },
+    {
+      "label": "sample-clearance-unconfirmed",
+      "severity": "high",
+      "detail": "Samples or third-party material are indicated, but clearance is not confirmed.",
+      "recommended_action": "Collect clearance records or remove uncleared material before licensing."
+    },
+    {
+      "label": "stems-not-found",
+      "severity": "medium",
+      "detail": "No stems were detected.",
+      "recommended_action": "Ask whether stems exist or use Suede stem preparation during optimization."
+    }
+  ]
+}

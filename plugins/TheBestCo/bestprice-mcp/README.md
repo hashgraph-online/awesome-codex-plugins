@@ -13,7 +13,7 @@ and price history. No account or API key is needed.
 
 ## Start shopping
 
-- The [ChatGPT plugin](https://chatgpt.com/plugins/plugin_asdk_app_6a8d8ed6e2bc8191b3caaf7214f3c981) is temporarily unavailable while the updated version is under review. Developer integrations can still call the public endpoint below.
+- The [BestPrice app for ChatGPT](https://chatgpt.com/plugins/plugin_asdk_app_6ad82ceb86108191ac9cd6b08197aabd) is available. Developer integrations can still call the public endpoint below.
 - [Connect BestPrice to Claude](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=BestPrice&connectorUrl=https%3A%2F%2Fmcp.bestprice.gr%2Fmcp) using the prefilled connector form.
 - See the [shopping guide](https://www.bestprice.gr/en/mcp) for examples and other assistants.
 
@@ -25,7 +25,7 @@ https://mcp.bestprice.gr/mcp
 
 - Transport: Streamable HTTP over HTTPS; anonymous shopping, optional OAuth for Events
 - Official Registry ID: `gr.bestprice/mcp`
-- Server version: `1.8.5`
+- Server version: `1.9.0`
 - Public guide: <https://www.bestprice.gr/mcp>
 - Support: <https://www.bestprice.gr/contact>
 
@@ -34,9 +34,18 @@ manifests for each AI client, a local stdio bridge for hosts that cannot speak H
 the browser-native WebMCP layer. The server itself is not in this repository.
 
 The [current release matrix](submission/current-release-matrix.md) records the
-live gateway, UI, OAuth/Events, plugin review and separate ACP qualification.
+live gateway, UI, OAuth/Events, the ChatGPT directory listing and separate ACP qualification.
 
 ## Tools
+
+The hosted 1.9.0 service now also advertises `check_deal` and `optimize_basket`.
+Both passed a live check on 3 November 2026. `check_deal` accepts exactly one
+product URL, visible model/barcode text or selected product ID; image bytes are
+not ingested. `optimize_basket` calculates read-only plans for exact products,
+quantities and a supplied postcode. Neither places an order. The client manifests
+now advertise the six research tools. OpenAI's acceptance of the new server
+definitions and the 1.3.0 package are tracked in the
+[release matrix](submission/current-release-matrix.md).
 
 | Tool | What it does | Key arguments |
 | --- | --- | --- |
@@ -44,11 +53,21 @@ live gateway, UI, OAuth/Events, plugin review and separate ACP qualification.
 | `search_products` | Finds canonical products in the catalog. Returns product IDs and the catalog minimum price before shipping. | `query` (2–400 characters: a name, model, category, or a bare GTIN/EAN barcode), optional `price_min`, `price_max`, `required_features`, `sort` (`relevance`, `price_asc`, `price_desc`), `limit` (1–8) |
 | `compare_offers` | Compares current merchant offers for one exact product, separating item price, shipping, and delivered total. | `product_id` from a previous result, optional `postal_code` (a Greek postcode, 10000–85999, for delivered totals), `objective`, `in_stock_only`, `minimum_merchant_rating`, `limit` (1–10) |
 | `get_price_history` | Summarises how a product's price moved over time, against its 180-day median. | `product_id`, optional `period_days` (30, 90 or 180) |
+| `check_deal` | Checks exact identity, current offers and price context for an offer. | Exactly one `url`, visible model/barcode `query`, or selected `product_id`; optional supplied `observed_price` and `postal_code` |
+| `optimize_basket` | Calculates read-only plans for exact selected products and quantities. | `items` with `product_id` and `quantity`, Greek `postal_code`; optional `objective` and `maximum_merchants` |
 
-All four tools are read-only. They never place orders, create alerts, or read account
+Public research tools are read-only. They never place orders, create alerts, or read account
 data. Results link to a BestPrice product page, never directly to a merchant. Unknown
 shipping is reported as unknown, not as free. Search covers safe physical products;
 digital goods, services, and age-restricted categories are excluded.
+
+### One optional clarification
+
+A broad request can return `outcome: "clarification"` with `clarifications[].choices`. Each choice contains a display `label` and a self-contained `message`. Ask the shopper to choose, then call `get_shopping_decision` with that message. When they choose **Skip**, also send `skip_clarification: true` as returned by that choice. Never choose on the shopper’s behalf. Exact models and requests that already state the missing type bypass this step. Mandatory budget, age-group, product-type and accessory checks still apply after Skip.
+
+For example, “ANC headphones up to €150 for commuting” can ask whether the shopper wants over-ear or in-ear headphones. The recommendation excludes children’s models and replacement accessories unless the shopper asks for them. This is the same Shopping Brain used by [BestPrice Ask](https://www.bestprice.gr/ask).
+
+Ask’s product cards can open BestPrice’s existing alert and saved-list flows. Public research remains read-only. On an MCP Events-capable host, optional account linking can separately create and cancel the exact price alerts the shopper requests. No alert is active until subscription succeeds. Saved comparisons in the 1.3.0 candidate remain separately gated; account conversations and image bytes are not accessed.
 
 ## Protocol details
 
@@ -88,10 +107,10 @@ Measured against the live endpoint on 24 September 2026.
   affected. A browser page may call the endpoint from an allowlisted AI-host origin, from
   bestprice.gr, or from `localhost` (so MCP Inspector works in direct mode); any other origin
   gets `403`.
-- **Authentication.** The four shopping tools work without an account. Optional account
+- **Authentication.** The six research tools work without an account. Optional account
   linking is scoped to `events:subscribe`; protected-resource metadata is available at
   `/.well-known/oauth-protected-resource` and `/mcp/oauth-protected-resource`.
-  Events remains disabled during end-to-end qualification.
+  Actual host subscription and delivery qualification is recorded separately in the release matrix.
 
 ## Developer quick start
 
@@ -147,6 +166,7 @@ Agent-compatible hosts that discover repository-local skills under `.agents/skil
 same canonical workflow at [`.agents/skills/bestprice-shopping/SKILL.md`](.agents/skills/bestprice-shopping/SKILL.md). [`.codex-plugin/`](.codex-plugin/) remains the
 Codex compatibility manifest. [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json) plus the
 same root Skill and [`.mcp.json`](.mcp.json) also make this repository a Claude plugin package.
+[`claude-plugin/`](claude-plugin/) is a slim copy of that Claude plugin, with no build files, for the Claude plugin directory.
 
 
 ### Self-hosted plugin marketplaces

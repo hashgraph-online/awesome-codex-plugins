@@ -21,10 +21,14 @@ routes:
   - to: {location-kebab}
     hours: {travel time as a number}
     mode: "{on foot|horse|coach|boat|train|...}"
+coordinates: [{x}, {y}]
+distances:
+  - to: {location-kebab}
+    distance: {distance in the story.md distance-unit}
 ---
 ```
 
-`pronunciation`, `setting`, and `routes` are optional. `setting` must be `interior`, `exterior`, or `both`; it gives the `INT.`, `EXT.`, or `INT./EXT.` of screenplay scene headings in `story build --format fountain`. A route is two-way unless the other location declares its own; `story continuity` checks dated scenes against its `hours`. See `maps-and-routes.md`.
+`pronunciation`, `setting`, `routes`, `coordinates`, and `distances` are optional. `setting` must be `interior`, `exterior`, or `both`; it gives the `INT.`, `EXT.`, or `INT./EXT.` of screenplay scene headings in `story build --format fountain`. A route is two-way unless the other location declares its own; `story continuity` checks dated scenes against its `hours`. `coordinates` (two numbers on the story's map) and `distances` (in the `story.md` `distance-unit`) feed the distance check once `story.md` lists `travel-modes`. See `maps-and-routes.md`.
 
 `type` and `status` are free-form descriptive strings, not a closed set. Use the validator truth: any kebab-case or plain value passes `story validate`. Match existing example usage where it fits (e.g. `city`, `district`, `wilderness`, `submerged-ruin` for type; `thriving`, `declining`, `strained`, `exposed`, `unknown` for status).
 

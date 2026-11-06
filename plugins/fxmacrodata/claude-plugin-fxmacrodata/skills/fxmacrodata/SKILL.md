@@ -18,8 +18,12 @@ THB, TWD and USD.
 4. Use `forex` for spot rates, `rate_differentials` or `rate_curve` for rates comparisons,
    `cot_data` for positioning, `commodities` for metals and energy, and `market_sessions` for
    which FX sessions are open.
-5. The `*_task` tools (for example `macro_briefing_task`, `pair_intel_task`) build multi-step
-   research outputs. Use them when the user asks for a briefing or analysis, not a single number.
+5. The `*_task` tools (for example `macro_briefing_task`, `event_impact_replay_task`,
+   `fx_backtest_task`) build multi-step research outputs. Use them when the user asks for a
+   briefing, replay or backtest, not a single number.
+6. The `research_run_*` and `research_paper_*` tools save only the signed-in subscriber's own
+   research studies and simulated paper accounts. Confirm before any call that cancels,
+   archives, flattens or reveals a holdout. No tool places live orders or moves money.
 
 ## Access
 

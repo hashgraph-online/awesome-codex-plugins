@@ -1,16 +1,16 @@
 ---
 name: varg-occasion-video
 description: >-
-  Turns a few photos and the details of an occasion into an AI video on varg: a wedding or birthday invitation and
-  save-the-date that unfolds (the names and date printed right), a Christmas, New Year, Diwali, Eid or Lunar New
-  Year greeting the family forwards, old family photos brought to life, a love story across the eras for an
-  anniversary, and a calm memorial or tribute film. Asks what the occasion needs, makes the stills first (GPT Image
-  2.5 prints names and dates), animates them (Seedance 2.5 first and last frames, Kling 4, Wan 3), adds music and
-  exports for WhatsApp, a party screen or a service. Use when someone asks for a video invitation, an e-invite, a
-  save-the-date, a wedding invitation video for WhatsApp, a holiday or festival greeting video, an animated
-  e-card or Christmas card, "bring old photos to life", an anniversary or love-story video, or a memorial,
-  celebration-of-life, retirement or farewell tribute. Not for birthdays (use varg-birthday-video) or editing real
-  wedding footage (varg-video-editing).
+  Turns a few photos and the details of an occasion into an AI video on varg: a wedding or birthday invitation
+  and save-the-date that unfolds (the names and date printed right), a Christmas, New Year, Diwali, Eid or
+  Lunar New Year greeting, old family photos brought to life, a love story across the eras for an anniversary,
+  and a calm memorial or tribute film. Asks what the occasion needs, makes the stills first (GPT Image 2.5
+  prints names and dates), animates them (Seedance 2.5, Kling 4, Wan 3), adds music and exports for WhatsApp,
+  a party screen or a service. Use when someone asks for a video invitation, an e-invite, a save-the-date, a
+  wedding invitation video for WhatsApp, a holiday or festival greeting video, an animated e-card or Christmas
+  card, "bring old photos to life", an anniversary or love-story video, or a memorial, celebration-of-life,
+  retirement or farewell tribute. Not for birthdays (use varg-birthday-video) or editing real wedding footage
+  (varg-video-editing).
 license: MIT
 metadata:
   author: vargHQ

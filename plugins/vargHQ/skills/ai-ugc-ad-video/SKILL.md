@@ -66,7 +66,7 @@ An AI creator talks to camera about your product, holds it, uses it, and sounds 
 
 ## 3. Write the script into the prompt
 
-Every spoken line goes in the video prompt, with timings. Under ~85 words for 30 s. Open on the most embarrassing version of the problem, or mid-motion with a throwaway line ("Okay. Last thing, then bed."). Add written-in stumbles. End on one CTA.
+Every spoken line goes in the video prompt, with timings. 60–75 words for 30 s (about 2.5 a second), never over 85; size and check them with the `video-script` skill. Open on the most embarrassing version of the problem, or mid-motion with a throwaway line ("Okay. Last thing, then bed."). Add written-in stumbles. End on one CTA.
 
 ## 4. Generate shot by shot
 

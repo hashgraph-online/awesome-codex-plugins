@@ -1,0 +1,18 @@
+{
+  "name": "treza-mcp",
+  "version": "1.4.0",
+  "description": "Treza MCP server: build, run, schedule, and publish AI video pipelines. Runs as a stdio bridge to the hosted Treza endpoint.",
+  "type": "module",
+  "bin": { "treza-mcp": "bin/treza-mcp.mjs" },
+  "files": ["bin", "plugin.json", "mcp.json", "skills", "README.md", "LICENSE"],
+  "engines": { "node": ">=18" },
+  "keywords": ["mcp", "model-context-protocol", "ai-video", "youtube", "tiktok", "pipelines", "treza"],
+  "homepage": "https://www.trezalabs.com/connect",
+  "repository": { "type": "git", "url": "git+https://github.com/treza-labs/treza-plugin.git" },
+  "bugs": { "email": "hello@trezalabs.com" },
+  "author": "Treza Labs <hello@trezalabs.com> (https://www.trezalabs.com)",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.0"
+  }
+}

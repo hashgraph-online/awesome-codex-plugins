@@ -1,0 +1,172 @@
+{
+  "skill_name": "suede-social",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Help me create a LinkedIn content strategy. I'm a SaaS founder building in public and want to grow my personal brand to drive awareness for my product. I currently have 500 followers and post maybe once a week.",
+      "expected_output": "Should check for product-marketing.md first. Should propose a manageable 3–5-pillar starting set for the founder, justified by audience coverage and production capacity. It should read current LinkedIn guidance and the account's last 30–90 days before naming a cadence, format, or time. If those data are unavailable, it should label 2–4 posts per week for four weeks as a starting hypothesis, rotate at least two formats and audience-local windows, and define the metrics that will decide the next cadence. It should provide hook options, a test calendar, a capacity-bounded engagement routine, and a batching plan without claiming carousels, stories, or more posting will automatically perform better.",
+      "assertions": [
+        "Checks for product-marketing.md",
+        "Establishes 3-5 content pillars",
+        "Applies LinkedIn platform guidance",
+        "Provides hook formulas",
+        "Creates weekly content calendar",
+        "Includes a capacity-bounded engagement strategy",
+        "Addresses batching strategy for consistency",
+        "Labels cadence and format ranges as testable starting hypotheses"
+      ],
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Write me a Twitter/X thread about the lessons I learned bootstrapping my SaaS to $10k MRR. Include hooks and a CTA at the end.",
+      "expected_output": "Should verify that the claimed MRR and timeline are source-backed, then structure a coherent thread with an opening promise, evidence, lessons, and one CTA. It should choose the number of posts needed to deliver the proof without padding; when no account evidence exists, a 5–9-post draft is an explicit starting hypothesis with a compression option. It should reference the founder-journey pillar and include a relevant response prompt without claiming a universal platform best practice.",
+      "assertions": [
+        "Applies hook formulas from the skill",
+        "Uses a story hook for the first tweet",
+        "Structures thread with standalone but flowing tweets",
+        "Uses specific numbers and stories",
+        "Ends with clear CTA",
+        "Uses an evidence-dependent thread length without padding",
+        "Includes engagement prompts"
+      ],
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "i have a blog post that did really well. how do i turn it into social media content for multiple platforms?",
+      "expected_output": "Should trigger on casual phrasing and apply the content repurposing system. It should treat platform formats, extraction count, link placement, and distribution timing as starting hypotheses to verify against current official guidance, account results, source richness, and approval capacity. It should adapt each candidate asset to its platform, return drafts for exact-content approval, and define what evidence will decide the next batch.",
+      "assertions": [
+        "Triggers on casual phrasing",
+        "Applies content repurposing system",
+        "Uses Blog Post → Social Content mapping",
+        "Provides format for LinkedIn, Twitter/X, and Instagram",
+        "Follows the repurposing workflow",
+        "Extracts 3-5 key insights to repurpose",
+        "Provides platform-specific format recommendations"
+      ],
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "My LinkedIn posts get like 200 impressions and almost no engagement. What am I doing wrong?",
+      "expected_output": "Should request the account's recent reach, dwell or retention, replies, follows, format, timing, audience, and post samples before diagnosing. It should frame hooks, timing, formatting, topic fit, and participation as hypotheses, then propose a one-variable-at-a-time test across comparable posts. If account insights are unavailable, it should provide a manual worksheet and two bounded format and timing tests. It should provide before-and-after hook examples without promising higher reach.",
+      "assertions": [
+        "Applies analytics and optimization guidance",
+        "Diagnoses potential engagement issues",
+        "Addresses hook quality",
+        "Addresses posting timing",
+        "Recommends a measurable capacity-bounded participation test",
+        "Suggests trying different content formats",
+        "Provides specific before/after hook examples"
+      ],
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "Help me reverse-engineer what's working for top creators in the DevTools space on Twitter. I want to understand their content patterns.",
+      "expected_output": "Should apply the reverse-engineering framework using a bounded sample of comparable DevTools accounts selected by audience, offer, account maturity, and available metrics. It should discover currently callable authorized collection tools and source terms; when none are available, it should provide a manual spreadsheet and work from user-supplied URLs or exports. It should add accounts and posts until another batch no longer changes the leading patterns rather than hard-code a sample size. It should analyze hooks, formats, CTAs, topics, timing, reach, and downstream actions only where the platform exposes them, then codify hypotheses and layer the user's voice.",
+      "assertions": [
+        "Applies the evidence-based content pattern framework",
+        "Walks through the full process (find, collect, analyze, codify, apply)",
+        "Builds a bounded comparable sample and stops at pattern saturation",
+        "Describes what patterns to analyze",
+        "Emphasizes layering authentic voice",
+        "Provides data collection guidance"
+      ],
+      "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "Write me a 5-email welcome sequence for new email subscribers who came from my LinkedIn audience.",
+      "expected_output": "Should recognize this is an email sequence task, not social content. Should defer to or cross-reference `suede-emails`, which handles welcome sequences, drip campaigns, and lifecycle emails. May note the social-to-email bridge context but should make clear that `suede-emails` is the right skill for writing email sequences.",
+      "assertions": [
+        "Recognizes this as email sequence work",
+        "References or defers to suede-emails",
+        "Does not use Suede Social content patterns to write an email sequence",
+        "May note social-to-email bridge context"
+      ],
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "I want to turn our new pricing guide into a LinkedIn carousel. It has 9 negotiation tactics for SaaS buyers. Help me structure the slides.",
+      "expected_output": "Should load references/carousel-frameworks.md and pick a framework before writing slides. A list of nine named tactics can map to Hack List or Value-Stack, but the choice must be justified. It should produce a slide-by-slide structure with an exact-count cover, one named tactic per slide, a synthesis, and one CTA. It should verify current LinkedIn document-post requirements before specifying upload behavior. Any promised count must be delivered and every claim must be sourced. It should define success from the campaign objective using the current metrics available, such as completion, saves, qualified replies, profile visits, or follows, rather than declaring one metric universally superior.",
+      "assertions": [
+        "Loads or applies the carousel-frameworks reference",
+        "Selects an appropriate framework (Hack List or Value-Stack) with a stated reason before drafting slides",
+        "Slide 1 is written as a standalone scroll-stopper with the count or contrarian claim",
+        "One tactic/idea per slide, each named",
+        "Final slide has a synthesis and exactly one CTA",
+        "Applies LinkedIn document-post guidance (PDF, post text as its own hook)",
+        "Does not invent stats or pad the tactic count"
+      ],
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "Analyze the last 30 posts on our Instagram account and tell me what converts versus what only gets views.",
+      "expected_output": "Should verify the visible handle and authorized evidence source, collect up to 30 recent posts, separate public metrics from owned Insights and attributed business data, compare within like formats, and classify posts as converts, assists, attention-only, or unknown with post IDs. Must not infer saves, shares, retention, leads, or sales from public view counts, and should name the evidence needed to resolve unknowns.",
+      "assertions": [
+        "Verifies identity and evidence access before analysis",
+        "Uses a bounded recent cohort of up to 30 posts",
+        "Separates observed-public, observed-owned, computed, inferred, and unknown evidence",
+        "Classifies converts, assists, attention-only, and unknown",
+        "Does not invent private metrics",
+        "Cites post IDs for each recommendation"
+      ],
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "Give me the 15 best hashtags and the exact best time to post on Instagram every day.",
+      "expected_output": "Should state that Instagram now caps posts and Reels at 5 hashtags, decline to invent a universal best time, read the account's own follower-active windows, propose 0 to 3 topic hashtags plus a search phrase for the first caption line and on-screen text, and design a comparable timing test with a decision metric.",
+      "assertions": [
+        "Notes the 5-hashtag cap",
+        "Rejects universal posting-time claims",
+        "Uses account Insights or asks for them",
+        "Moves discovery effort to search phrases in caption and on-screen text",
+        "Designs a timing test with a decision metric"
+      ],
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "Run the daily content workflow for our account and post whatever will go viral.",
+      "expected_output": "Should refresh the Account Evidence Pack, queue, and prior-post readback; score and produce 1 to 3 approval-ready candidates with distinct audience jobs; reject the guaranteed-viral framing; and stop before publishing until exact media, copy, CTA, timing, identity, and tags are approved. Publishing, if approved, needs a live permalink readback.",
+      "assertions": [
+        "Refreshes evidence before creating content",
+        "Produces 1 to 3 scored candidates",
+        "Does not promise virality",
+        "Keeps publishing behind exact approval",
+        "Requires live readback after any publish"
+      ],
+      "files": []
+    },
+    {
+      "id": 11,
+      "prompt": "Schedule this approved Reel, then auto-like and comment on 100 niche posts to boost it.",
+      "expected_output": "Should separate the potentially authorized scheduling step from engagement automation, verify exact content and visible identity before scheduling through an approved surface, refuse auto-liking and mass commenting, and require live permalink readback before calling the Reel published.",
+      "assertions": [
+        "Separates publishing from engagement automation",
+        "Refuses auto-liking and mass commenting",
+        "Verifies exact content and identity",
+        "Requires live readback"
+      ],
+      "files": []
+    },
+    {
+      "id": 12,
+      "prompt": "How do I get our TikToks and Reels to show up when people search for 'how to fix a leaky faucet'?",
+      "expected_output": "Should produce a social search brief: record platform autocomplete suggestions with a date, check what currently ranks and its gap, place the phrase in spoken audio in the first seconds, on-screen text, and the first caption line, add alt text where supported, note that public Instagram professional-account posts can appear in Google, keep hashtags to a few exact labels, and measure search-sourced views where the platform reports traffic source.",
+      "assertions": [
+        "Produces a social search brief",
+        "Places the phrase in spoken, on-screen, and caption-first-line positions",
+        "Notes Instagram Google indexing for professional accounts",
+        "Treats hashtags as labels, not reach",
+        "Measures search-sourced views"
+      ],
+      "files": []
+    }
+  ]
+}

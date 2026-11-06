@@ -42,5 +42,5 @@ The following v1.4 Layer 2 cage constraints are removed. Trust now comes from th
 - **Overlay-only constraint (HI-2 label):** the merge still only writes `llm_review` siblings, but this is now a design property, not a cage rule.
 - **Observations-are-not-findings (HI-6 framing):** still true mechanically; but no longer framed as a restriction.
 - **All authority caps and suppression rules (HI-8/HI-9):** `reviewer_observations[]` no longer has a `maxItems` cap; `confidence` is no longer capped at `medium`; `severity` is no longer capped at `warning`; suppressing an `error`-severity or `datasheet-backed` finding now applies normally; the 30% suppression rate cap is removed.
-- **Severity tuning matrix:** `severity_tuning.json` and `severity_tuning.schema.json` deleted; `make_finding(design_context=...)` accepts the parameter for call-site compatibility but ignores it.
+- **Severity tuning matrix:** `severity_tuning.json` and `severity_tuning.schema.json` deleted; `make_finding` no longer takes a `design_context` parameter.
 - **Layer 2 reviewer prompt:** archived to `old/layer2/reviewer.md` (gitignored on disk).

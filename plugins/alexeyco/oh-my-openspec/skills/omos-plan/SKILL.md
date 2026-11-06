@@ -127,7 +127,25 @@ Dispatch `omos-critic` on the drafted change.
 - Mechanical INVALID lines from the critic are always fixed first, never
   waived by you.
 
-### 9. Approval
+### 9. Mechanical validation and recovery
+
+After the critique path is complete and before approval, call
+`openspec_validate` for the drafted change.
+
+- `VALID` → continue to §10.
+- `INVALID` → dispatch `omos-planner` with the exact numbered findings and
+  request a correction. After each planner revision, run `openspec_validate`
+  again for the same change.
+- If findings remain after a revision or the planner reports it cannot safely
+  resolve them, show the exact remaining findings and offer the user another
+  planner revision or the chance to fix them. Do not claim validation passed.
+
+This mechanical correction step does not consume the critique loop's
+three-round limit. When the user previously chose critic-only because the CLI
+was unavailable, report that mechanical validation could not run and continue
+to approval with the critic result clearly identified as non-mechanical.
+
+### 10. Approval
 
 Present: change id, file list with one-line summaries, every `ASSUMPTION:`
 and `REJECTED-RISK:` line verbatim, validation result. Ask the user to

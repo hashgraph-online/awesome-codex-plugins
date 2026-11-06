@@ -1,66 +1,72 @@
 ---
 name: zcode-bridge
-description: 通过 Codex ZCode Bridge 把已授权的开发任务交给本机 ZCode，跟进实时进度、选择模型、按需要由 Codex 准备 worktree、审查改动并决定如何接收。
+description: 用户明确要求使用 ZCode/Codex ZCode Bridge、查询或继续既有 Bridge 任务，或当前存在覆盖本目标的显式会话/持续目标授权时使用。协助派发、跟进、审查与恢复；普通开发请求及此前调用历史本身不触发新委派。
 ---
 
-# Zcode Bridge
+# ZCode Bridge — Master Skill
 
-你是 Master，ZCode 是执行一个有明确边界任务的 worker。仅委派用户已授权的实现工作。不同执行目录可并发；不得让 Codex 与 ZCode 同时修改同一个实际执行目录。Bridge 会串行化共享执行目录的任务。
+> Status: AUTHORITATIVE
+> Last updated: 2026-11-04
+> Last verified: 2026-11-04，静态核对新增 Hold 主动发现、`zcode_cancel` 参数/返回结构和授权流程；真实 Host 与生产恢复 E2E NOT RUN。
+> Verified against: bfab3386937f552d4c60761f32df9ea097fcb6f1 + Codex Rollout token候选；来源74d4764和经审查的JSON文案。
+> Scope: Master 触发/授权、Hold 主动发现与恢复、`auto` 决策、Worker 完整交付、审批与停止条件、按需加载、Codex 主会话 Token 只读接入；不修改 Bridge TaskPackage Schema 或 MCP 工具 API。
 
-## 持续目标
+## 核心职责
 
-- 用户明确要求跨轮持续推进，例如“持续做到项目完成或我让你停止”时，把它视为当前 Codex 线程的长期目标；在派发首个 ZCode 任务前调用 `create_goal`，不要只在普通回复里复述持续意图。目标写明用户授权的最终结果、独立审查/验证要求、接收改动的条件，以及用户叫停或必须等待用户决定时的停止条件。不得借此扩大用户授权；除非用户明确指定，不设置 Goal token budget。
-- 单次、有明确边界的委派或一次性问答不创建 Goal。若当前环境没有 Goal 工具，明确告知用户无法启用持久续行，不要声称已经创建。
-- Goal 属于当前线程。保持它活动，直到最终目标经证据核验完成；Bridge 的 `completed`、ZCode 的完成报告或“任务仍在运行”都不单独满足完成条件。只有所有必要任务终态、改动完成独立审查和适用验证、授权范围内的改动已接收到目标工作区，才可完成 Goal。
-- 若 Codex 当前轮结束时 Bridge 任务仍在运行，保留活动 Goal 并说明当前状态，让 Goal 在可继续时接手轮询；不要把中间状态作为最终结论或自行暂停 Goal。用户要求停止时遵从其指示。
+你是 Master；ZCode 是独立执行的 Worker。你负责理解用户目标、确定是否使用 Bridge、选择派发策略、明确授权/验收边界、跟踪关键状态并独立验收。Worker 在其 TaskPackage 授权范围内自主调查、规划、实现、测试、修复与重测；不要给不必要的逐文件/逐函数操作指令，或在正常执行期间重复干预。
 
-## 派发
+不同执行目录可并发；不得让 Codex 与 ZCode 同时修改同一个实际执行目录。Bridge 会串行化共享执行目录的任务。
 
-1. 确认 Codex 项目根目录，并始终把它作为 zcode_task 的 `workspace`。根据 Codex 对任务的执行指示决定是否需要 worktree；需要时由 Codex 创建并准备，再把其现存绝对路径作为 `worktree_path`。Bridge 不创建、选择或删除 worktree；未提供该字段时任务直接在项目根目录执行。
-2. 将 objective、requirements、allowed_paths、forbidden_paths、acceptance_criteria 和 test_commands 写具体，路径约束只是任务指令，不是强制沙箱。只在任务需要时传入精简的 `context`，按 `PROJECT DECISIONS`、`CONSTRAINTS`、`RELEVANT FILES`、`OPEN DECISIONS — DO NOT CHOOSE` 组织；不要复制整段 Codex 对话。没有未决事项时省略该小节。不要把验收责任交给 ZCode。
-3. 用户指定 ZCode 模型时，传入 model: { provider_id, model_id }。优先使用 runtime 报告的精确 provider/model 标识；Bridge 会识别配置中声明的旧版 builtin ID 和账户 provider ID。若模型预检失败，从 `model_catalog` 事件复制 runtime 实际报告的完整标识再重试；不要猜思考档位。用户未指定时省略 model，保留 ZCode session 默认模型。
-4. 调用 zcode_task。MCP 报错时先解释和解决具体配置问题，不要重复提交相同 task_id。
+## HOLD RECOVERY POLICY
 
-## 跟进
+- 对已知或当前跟踪的 Task，主动检查 `zcode_status` / `zcode_result` 中的 `failed` 与 `cleanup_unverified` 组合并向用户报告。MCP 没有 Task 枚举工具，不能主动发现未知 Task；`zcode_status` 也不返回 workspace。workspace、Attempt 或原因只能从原始 Task 请求和生命周期事件确认；缺失时明确说未知，不得猜测。
+- 说明 `zcode_cancel` 是现有标准恢复入口，并先向用户请求明确授权。该工具输入只有 `{ task_id }`，但对 held Operation 的恢复可能按原 PID/start fingerprint 终止仍存活的 Worker；授权前不得调用。
+- 获准后只调用现有 `zcode_cancel`，再用 `zcode_status` 检查结果。不得拼接底层清理命令、重放原 Prompt 或创建 Attempt 来绕过 Hold。
+- 恢复只有在原 Worker 身份、recorded-tree claimant、interaction 状态及 Operation CAS 均验证成功时才释放占用。失败、状态未知或响应丢失时保持该路径 Hold；不得把历史 `cleanup_unverified` 改写成过去已 verified。
+- Recovery 成功后检查实际 workspace 的 Git diff 和源码 WIP，再讨论是否创建新 Attempt。不得自动 reset、clean、覆盖 checkout 或删除用户源码。
+- 单路径 Hold 不妨碍其他独立 workspace 任务继续；正常 Recovery 不要求重启 Windows、Codex GUI 或 Bridge。
 
-1. `zcode_task` 返回后立即调用 `zcode_events`（`after_seq: 0, view: "summary"`），不要先做别的工作或只复述 queued receipt。先报告 `workspace_ready` 中的 `project_path`、`execution_path`（如有则说明 Codex 准备的 worktree）和 queued/running 状态。按 `next_seq` 和 `wait_ms` 继续读取，直到出现 `turn_started`、明确启动失败或终态；不要忙轮询。
-2. 在 `turn_started` 后、等待模型输出前，先向用户报告：Codex 项目根目录、实际执行目录、ZCode session ID、runtime 实际报告的 provider/model、runtime 实际报告的思考档位和执行模式。思考档位从 `session_ready.details.reasoning_level` 或 `model_selected.details.reasoning_level` 读取；若只有 `requested_reasoning_level`，说明这是请求值而不是 runtime 确认值；两者都没有时明确说 runtime 未报告档位，不要用模型目录的默认档位冒充当前档位。模式来自 Bridge 配置，默认 `yolo`；若为 `yolo`，明确提醒普通工具操作可能不经审批且使用当前 OS 账户权限，并说明可将 `ZCODE_BRIDGE_MODE` 设为 `build`。若使用 worktree，说明它不是 OS 沙箱。模型字段缺失时明确说 runtime 没有报告；不要把用户请求的模型或项目默认值猜成实际已选模型。
-3. 如果在 `turn_started` 前失败，立即报告 Bridge 的启动错误；只有在 `session_ready` 已出现时才能声称 ZCode session 已创建。不存在 `session_ready` 时说明没有 ZCode session/model 元数据。
-4. 运行期间用 `zcode_events` 的 `after_seq` 读取增量事件，默认使用 `view: "summary"`，需要逐条文本时改用 `view: "raw"`；`next_seq` 会跨过已合并事件。`wait_ms` 可设为 10000–25000；如需快速刷新状态，可调用 `zcode_status`。需要简洁、可直接呈现的当前 attempt 摘要时调用 `zcode_feedback`；其 `last_observed` activity 不是当前运行中的工具状态，`interaction: not_observed` 也不代表没有交互。心跳只证明 worker 响应，工具事件只证明已观测活动；没有命令输出或结果时，不把它们描述成测试持续推进、已通过或源码已还原。`stalled` 是提示，不自动取消或重派。向用户简短汇报模型可见输出和工具活动摘要。事件不包含隐藏推理；`interaction_requested` 会包含完成决定所需的有限请求细节。
-5. 收到 `interaction_requested` 时，先向用户概述请求的方法、工具、理由、输入、选项或问题。事件带 `preview: true` 时，`input_preview` 只是有界预览，不是全文：需要完整输入时读 `details.full_request`（同一任务/attempt 的私有记录路径，`bytes`/`sha256` 按 `JSON.stringify(params)` 紧凑序列化计量，不是整个 JSON 记录文件），不要把预览当全文或据此放行。权限请求不得从任务描述、worktree 或 `yolo` 模式推定为获准：只有用户明确授权该项操作才可用 `zcode_interaction_reply` 的 `allow`，否则向用户询问或明确拒绝。批准由 Bridge 在落盘前校验完整记录一致；记录缺失、损坏或被改动时请求会被明确拒绝且不执行，此时如实向用户报告原因。用户输入问题只可依据已知信息或用户明确指示回答；计划审批须让用户决定。对于 `interaction/requestUserInput` 的 AskUserQuestion，`answers` 必须以请求中每个 `questions[].question` 的完整原文作为键，以用户选择或明确回答作为值；不得用 `header`、选项标签或选项值作键。先从 `interaction_requested.details.questions`（必要时从 `details.input.questions`）复制准确问题文本，再调用 `zcode_interaction_reply`。若 Bridge 报 `answers must be keyed by the exact ZCode question text`，用原问题文本修正键并重试同一个待处理请求。回复后继续读取事件并确认 ZCode 已继续或结束。
-6. 任务终态后调用 `zcode_feedback` 获取标注来源的简洁原生文本，再按需调用 `zcode_result` 查看完整结果。completed 仅表示 Bridge/ZCode 执行和报告规范化完成，不代表代码审查通过；feedback 中的 Agent report 也不是 Bridge 独立验证。
+## P0：显式调用授权（先于派发策略）
 
-遇到安装、运行时或 provider 配置问题时，先调用只读工具 `zcode_doctor`，根据每项状态诊断；它不会启动 ZCode session，`unknown` 不得描述成检查通过。
+- **默认不自动调用 Bridge 执行任务。** 普通“帮我开发/修 Bug”的授权不等于选择 ZCode。此前在本 Thread 使用过 Bridge、Skill 被加载或以前创建过任务，也不构成对新独立目标的调用授权。
+- 可以提交新 `zcode_task` 的依据：用户对**当前目标**明确要求使用 ZCode/Bridge；或用户明确给出的会话级/持续目标级 Bridge 授权仍覆盖当前目标。用户指定的会话/目标授权须保持明确范围，不能无限扩张。无法确认时，不提交新 Worker 任务；必要时询问用户是否委派。
+- 对**同一已授权任务**，可自主进行必要监控、结果读取、独立验收与同范围内的证据驱动返工；只读查看既有任务结果可在用户要求查询时进行。下一独立任务不自动继承授权。`staged` 下一阶段只有被同一已授权目标覆盖且所有审批门已满足时才可派发。
+- 用户明确授权使用 Bridge 跨轮持续推进当前目标时，首个任务派发前按 [Goal 生命周期](references/goal-lifecycle.md) 建立或核对当前线程 Goal；单次任务不创建 Goal。Goal 本身不构成新目标的 Bridge 授权。
+- 若用户已明确要求 ZCode 执行，不因 Master 认为自己更快而擅自把整个实现改为自做；Master 可以先完成必要准备和最终独立审查。
+- 用户授权“使用 Bridge”不等于审批所有写入、越权、执行命令、提交、推送、发布或修改其他目标；实际权限由既有工具/运行时合同及用户具体许可约束。
 
-## 审查与接收改动
+## P0：自动档与规划责任
 
-1. 在事件报告的实际执行目录检查 Git 状态、完整 diff、实际文件和测试。对照用户目标、允许/禁止路径和验收标准逐项核实。
-2. 不能仅相信 AgentReport.files_changed、ZCode 报告的测试状态或模型输出；独立运行适用的验收命令。
-3. 若执行目录是 worktree，在审查通过后由 Codex 按用户授权把所需改动接收到项目工作区；先保留项目中已有的用户改动、检查冲突，再复查并运行验收。若直接在项目根目录执行，则在同一目录审查。
-4. Bridge 不会自动应用、合并或删除 worktree。不要在审查及接收改动前删除 Codex 准备的 worktree，也不要自动提交、推送或创建 PR。
-5. 如果结果未达标，调用 zcode_continue，反馈具体失败证据；续作会复用同一 ZCode session 和原执行目录。任务运行期间若用户取消，调用 zcode_cancel 并确认终态。
-6. 如果结果为 `invalid_agent_report` 且执行工作已完成，先检查 `report_candidate`、原始 `zcode_output` 和实际 diff；续作提示只要求修复 JSON 报告，不要再次编辑或重跑测试。缺少的决定字段必须基于证据补齐，无法确认时设 `needs_master_decision=true`。
-7. 任务为 failed 时用 `zcode_result.error_code` 确认原因，不仅凭 `zcode_feedback` 的失败标签判断代码失败。`cleanup_failed` 是当时清理未能确认；后续 `zcode_status.observation.cleanup=verified` 表示已取得退出证据，原失败仍保留。分别报告两个事实，再独立验收代码。新鲜查询为 unknown 或 unverified 时不自行删除锁、改历史状态或另起同目录任务；旧不可读取锁需要独立诊断，不能按时间删锁。
-8. 若 `zcode_result.error_code` 或失败事件为 `zcode_usage_exhausted`，这表示本次 ZCode 执行已中断：立即停止当前任务，不要继续编辑、派发、调用 `zcode_continue` 或自动重试；马上明确告知用户额度已耗尽、当前任务已中断，并等待用户确认额度恢复后再继续。
+- **`auto` 是 Master 的默认派发偏好**（前提是已获 Bridge 调用授权），并非 Bridge 执行模式、TaskPackage 字段、模型配置或新的持久状态。
+- Master 根据目标完整性、冻结合同、真实阶段依赖、审批/安全边界、可验证验收和执行预算，最终选择 `whole_task` 或 `staged`。用户明确指定策略时优先遵从；任何策略都不得覆盖授权、冻结合同或关键停止条件。
+- **优先完整交付**：若当前授权目标能独立闭环、无需外部决定，选择 `whole_task`；需要真实批准门或前阶段成果才能定义后续实施时选择 `staged`。`staged` 的当前阶段仍必须是可独立验收的完整成果，不要微任务化。不得按文件数量、模型名称或价格机械分阶段。
+- 同一任务返工保持原策略，除非有新的事实或用户指令改变必要决策；新的独立目标应重新判断，并重新检查 Bridge 调用授权。详见 [派发策略](references/delegation-policy.md)。
 
-## 边界
+## P0：执行、审批与完成边界
 
-- Bridge 单进程默认最多运行 8 个 worker，可用 `ZCODE_BRIDGE_MAX_CONCURRENT_WORKERS` 设为 1–8；执行目录重叠的任务会串行。多个 Bridge 进程之间没有全局调度锁，共享数据目录时不要并行提交冲突任务。
-- 单次执行默认上限为 60 分钟；可在任务中设置 `timeout_ms`（60 秒至 4 小时），或用 `ZCODE_BRIDGE_TIMEOUT_MS` 设置用户默认值。超时后 Bridge 会终止该次进程树并保留 attempt 证据。
-- 每个任务通过本机 ZCode app-server 运行；默认模式为 `yolo`，也可通过 `ZCODE_BRIDGE_MODE` 配置。`yolo` 会放行普通工具操作。记录版本上已完成单次 43,014-byte Write 的真实权限审批往返实测；其他审批组合未据此认证。告知用户实际执行模式和当前账户权限边界，不要把 worktree 描述成沙箱。
-- `workspace` 是项目身份路径；`worktree_path`（如提供）是实际执行路径。Codex 决定是否准备 worktree，Bridge 只校验并使用所给路径。Git worktree 是工作区隔离，不是 OS 沙箱。allowed_paths / forbidden_paths 是 worker 指令；不得声称它们能强制阻止所有越界命令。
-- ZCode 不得选择仍未解决的 `OPEN DECISIONS`；后续 Master Feedback 明确给出决定后，按新决定继续。即使未列出，遇到需求冲突或会实质改变外部行为的缺失决定，也要提出具体问题、设置 `needs_master_decision=true`，并继续不依赖该决定的工作。低影响实现选择可采用最简单一致的方案，同时报告假设。
-- 不要把 ZCode Hooks、Desktop 历史索引、自动化或并行 worker 当作已启用能力。
-- 不要为了方便而修改 ZCode provider 配置或将凭据写入任务 prompt、日志或仓库。
+- Master 只确定结果、必要事实、非目标、权限和可检查验收；Worker 自主选择实现步骤。必要停止/升级条件要进入 TaskPackage 的 `requirements` 等受约束字段，不要只写在可截断的 `context`。
+- 默认**被动监控**：Worker 正常调查/实现/测试时不发下一步指令；只在真实阻塞、明确失败、权限/关键决定请求或完整交付时介入。
+- **独立验收**：`completed`、Worker 自报和部分测试均不能替代实际 diff/变更检查及适用验证。只对失败证据作受控返工，不能无限原样重派；不得用 `zcode_continue` 偷渡新的阶段或目标。
+- **强制停止**：用户取消则停止；额度耗尽（`zcode_usage_exhausted`）则停止编辑、派发、续作及自动重试，等待用户确认恢复；未获授权的权限请求不能放行。重大未决公共 API、持久化、安全或外部行为决策不得由 Worker 擅自确定。不可把 `stalled`、`unknown` 或进程心跳误判为任务失败/完成。
+- 路径指令、worktree 不等于 OS 沙箱；Bridge Skill 不是服务端可信授权凭证。未获用户相应授权不得提交、推送或发布；不得为了方便更改 provider 配置或将凭据写入任务、日志或仓库。
+- 第一次派发前按[执行监控、互动与审批](references/monitoring-and-approval.md)的“Token 起点”步骤保存 Master 主会话 baseline；报告时按[用户反馈与执行证据表达](references/reporting.md)填充既有 `Codex 主会话 token` 行。
 
-## 结果反馈格式（适合人来判读）
+## 何时加载什么（渐进式披露）
 
-向用户汇报任务结果时使用固定结构：**一句话结论 → 任务总览 → 验收证据 → 待处理事项**。让用户能从固定位置回答四个问题：完成了什么、验证到哪一步、花了多少时间/token、还需要决定什么。
+**每次只阅读当前行为所需要的参考文档，不一次性加载整个 `references/`。** 授权、审批与强制停止规则已在本入口；执行某步骤前必须加载其具体操作指引。需要跨步骤时组合读取相关文档，不因精简遗漏安全前置条件。
 
-1. 任务总览是纵向两列表（项目 / 内容），固定包含：目标与交付、执行标识（task_id、attempt）、执行状态（Bridge 原始状态，注明"不等同验收通过"）、独立验收（通过/未通过/未验证/部分验证，注明责任方与范围）、接收与发布（已接收/未接收、已提交/未提交、已推送/未推送、已发布/未发布，各附证据；没有执行过的操作写"未提交/未推送/未发布"，不适用写"不适用"）、本次耗时（排队/执行/独立验证分开列，未知项写"未知"，不拼成虚假总数）、Codex 主会话 token、ZCode 执行 token、模型与推理档位、后续动作。
-2. 验收证据表固定三列"检查项 / 结果 / 证据"。结果必须区分：独立实测（你真实运行过的）、worker自报（tests 等报告值）、历史记录、NOT RUN。没有独立验证时，绝不能因为 worker 报告 tests=passed 就把验收标成通过。
-3. token 与模型判读规则：Codex 主会话 token 目前无来源，固定写"未取得：当前宿主未提供本次调用统计"，不得用账户额度、会话总量或文本长度估算。ZCode token 显示 `zcode_result.usage` 的输入/输出/总量及完整性，缺失写"未报告"，不填 0；运行中写"截至当前未取得最终 token"，绝不能引用上一次任务的用量。模型只显示 runtime 确认值（`session_ready`/`model_selected` 的 provider_id/model_id 与 reasoning_level）；请求值标"请求"，runtime 未报告写"未报告"；请求与实际不一致时明确标出差异。
-4. 运行中的反馈只报有意义的变化：当前阶段（`zcode_status.observation.activity`）、已执行时长、最后业务进展时间、阻塞项；不反复输出整份完成报告。
-5. 格式：时间用分/秒，超过 1 小时用时/分/秒；token 用千位分隔整数；表格单元格内的竖线、换行、链接要转义；大批同类测试可分组，详细日志放链接不进表格；session ID、PID、OS 指纹、内部 seq 放诊断详情，不占完成反馈。任务成功但清理未确认时，两个事实分开写，不只给一个笼统 PASS/FAIL。
-6. `zcode_status.observation` 是统一观测（worker/runtime 存活、activity、result、cleanup、stalled 提示）。`stalled` 只是观测提示，不代表失败，也不要因此自动重试或取消；`unknown` 不判死。
+| 情境 | 按需读取 |
+|---|---|
+| 选择整任务/阶段策略或能力证据 | [delegation-policy.md](references/delegation-policy.md) |
+| 创建或维护明确授权的持续 Goal | [goal-lifecycle.md](references/goal-lifecycle.md) |
+| 准备 TaskPackage、Ready Gate、首次派发 | [dispatch-workflow.md](references/dispatch-workflow.md)、[task-package-templates.md](references/task-package-templates.md) 的所选策略段落；提交前另读 [monitoring-and-approval.md](references/monitoring-and-approval.md)，确保立即跟踪事件 |
+| 查询已存在的任务状态、跟踪事件、权限交互 | [monitoring-and-approval.md](references/monitoring-and-approval.md) |
+| Worker 终态、验收、返工、接收改动 | [review-and-recovery.md](references/review-and-recovery.md) |
+| 锁/清理/权限/工作区/配置异常 | [runtime-boundaries.md](references/runtime-boundaries.md)；如涉及审批，另读 monitoring 文档 |
+| 准备向用户报告任务结果 | [reporting.md](references/reporting.md) |
 
+## 信息所有权与冲突处理
+
+- **Master Core/Skill**：决定是否委派、如何划阶段和是否验收；**TaskPackage**：本次目标、权限限制、必要背景和验收；**MCP Tool Schema**：准确字段/参数；**Prompt Builder**：Worker 通用决策与 JSON 输出合同；**Runtime/实际证据**：真实模型、session、状态、进程/锁、执行输出。
+- 不在 TaskPackage 重复通用五字段 JSON 报告合同或 Tool Schema；也不要自行发明 `auto` 字段。若指令与实际工具 Schema 不符，应依据实际 Schema 纠正格式，但不以格式变化绕过授权、停止或审批。Runtime 的事实不能由 Master 猜测或仅由 Worker 自证。
+- 完成给用户的判断应区分**执行状态、独立验收状态、改动接收状态**，不能用一个 PASS 覆盖三者。

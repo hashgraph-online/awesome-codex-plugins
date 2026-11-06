@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Operations Assessment Skills"
+  short_description: "Suede floor-map interviews, silo inventory, and ranked friction"
+  default_prompt: "Use $suede-ops-assessment on [target]. The user cannot say what to automate, or wants their operation mapped before anything gets built. Interview the people who do the work rather than only those who manage it, inventory every silo including spreadsheets and inboxes used as databases, quantify each bottleneck in the user's own numbers without substituting benchmarks, rank the opportunities by annual value against build complexity, and return the floor map, the ranked list, and what is still missing."
+policy:
+  allow_implicit_invocation: true

@@ -7,8 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🎯 Session Orchestrator v5.16.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
-            "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"console.log('🎯 Session Orchestrator v5.16.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]')\"",
+            "command": "echo '🎯 Session Orchestrator v5.17.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
+            "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"console.log('🎯 Session Orchestrator v5.17.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]')\"",
             "async": false
           },
           {
@@ -26,43 +26,43 @@
         "hooks": [
           {
             "type": "command",
-            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/pre-bash-destructive-guard.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/pre-bash-destructive-guard.mjs\"",
             "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" pre-bash-destructive-guard.mjs",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/pre-bash-staging-fence.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/pre-bash-staging-fence.mjs\"",
             "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" pre-bash-staging-fence.mjs",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/pre-bash-memory-propose-audit.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/pre-bash-memory-propose-audit.mjs\"",
             "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" pre-bash-memory-propose-audit.mjs",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/pre-bash-sessions-ledger-guard.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/pre-bash-sessions-ledger-guard.mjs\"",
             "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" pre-bash-sessions-ledger-guard.mjs",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/pre-tool-state-md-path-guard.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/pre-tool-state-md-path-guard.mjs\"",
             "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" pre-tool-state-md-path-guard.mjs",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/pre-bash-issue-budget.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/pre-bash-issue-budget.mjs\"",
             "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" pre-bash-issue-budget.mjs",
             "timeout": 5
           },
           {
             "type": "command",
-            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/enforce-commands.mjs\"",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/enforce-commands.mjs\"",
             "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" enforce-commands.mjs",
             "timeout": 5
           }

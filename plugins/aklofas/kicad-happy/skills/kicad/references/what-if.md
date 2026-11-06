@@ -59,8 +59,8 @@ python3 what_if.py <input> [changes...] [options]
 | `--text` | Human-readable text output instead of JSON |
 | `--emc` | Show EMC impact preview (runs `analyze_emc.py` on original and patched JSON) |
 | `--pcb FILE` | PCB analysis JSON for parasitic awareness (auto-discovered if omitted) |
-| `--fix TYPE[INDEX]` | Inverse-solve for component values to hit a target (e.g., `--fix voltage_dividers[0]`) |
-| `--target VALUE` | Target value for `--fix` mode (e.g., `3.3` for ratio, `1000` for Hz) |
+| `--fix TYPE[INDEX]` | Inverse-solve for component values to hit a target (e.g., `--fix 'voltage_dividers[0]'`; quote it so the shell does not expand the brackets) |
+| `--target VALUE` | Target value for `--fix` mode (e.g., `0.66` for a divider ratio Vout/Vin, `1000` for Hz) |
 
 ### Exit Codes
 
@@ -81,7 +81,7 @@ C3=22n
 L1=10u
 ```
 
-Standard engineering notation. The parser uses `parse_value()` from `kicad_utils.py` with automatic component type detection based on the reference prefix (`C` -> capacitor, `L` -> inductor, everything else -> resistor by default).
+Standard engineering notation. The parser uses `parse_value()` from `kicad_core/values.py` with automatic component type detection based on the reference prefix (`C` -> capacitor, `L` -> inductor, everything else -> resistor by default).
 
 ### Comma Sweep
 
@@ -219,7 +219,7 @@ Each suggestion includes the ideal (exact) value plus E-series snapped alternati
 
 ## E-Series Snapping
 
-All fix suggestions are snapped to standard E-series values using `snap_to_e_series()` from `kicad_utils.py`.
+All fix suggestions are snapped to standard E-series values using `snap_to_e_series()` from `kicad_core/values.py`.
 
 **Algorithm:**
 1. Extract the decade: `decade = 10^floor(log10(value))`
@@ -456,16 +456,16 @@ Natural-language queries and their corresponding command invocations.
 | "Sweep R5 through some standard values" | `what_if.py analysis.json R5=1k,2.2k,4.7k,10k --text` |
 | "Sweep R5 from 1k to 100k" | `what_if.py analysis.json R5=1k..100k:10 --text` |
 | "What's the tolerance spread on this filter" | `what_if.py analysis.json R5=10k+-5% C3=100n+-10% --text` |
-| "What value gives me 3.3V on this divider" | `what_if.py analysis.json --fix voltage_dividers[0] --target 3.3 --text` |
-| "Fix the crystal load capacitance" | `what_if.py analysis.json --fix crystal_circuits[0] --text` (target inferred) |
+| "What values give me 3.3V from 5V on this divider" | `what_if.py analysis.json --fix 'voltage_dividers[0]' --target 0.66 --text` (ratio = Vout/Vin) |
+| "Fix the crystal load capacitance" | `what_if.py analysis.json --fix 'crystal_circuits[0]' --text` (target inferred) |
 | "How does changing C3 affect EMC" | `what_if.py analysis.json C3=1u --emc --text` |
 | "What if I use a 4.7k with 1% tolerance instead" | `what_if.py analysis.json R5=4.7k+-1% --text` |
 | "Change R5 and C3 together, show me the filter response" | `what_if.py analysis.json R5=4.7k C3=22n --text` |
 | "Export the patched design for EMC analysis" | `what_if.py analysis.json R5=4.7k --output patched.json` |
 | "Verify with SPICE" | `what_if.py analysis.json R5=4.7k --spice --text` |
-| "What's the best R value for 1kHz cutoff" | `what_if.py analysis.json --fix rc_filters[0] --target 1000 --text` |
-| "Set the opamp gain to 20 dB" | `what_if.py analysis.json --fix opamp_circuits[0] --target 20 --text` (target field = `gain_dB`) |
-| "What shunt resistor for 5A max" | `what_if.py analysis.json --fix current_sense[0] --target 5 --text` |
+| "What's the best R value for 1kHz cutoff" | `what_if.py analysis.json --fix 'rc_filters[0]' --target 1000 --text` |
+| "Set the opamp gain to 20 dB" | `what_if.py analysis.json --fix 'opamp_circuits[0]' --target 20 --text` (target field = `gain_dB`) |
+| "What shunt resistor for 5A max" | `what_if.py analysis.json --fix 'current_sense[0]' --target 5 --text` |
 
 For fix mode, the `--target` value is in the natural unit of the first derived field for that detection type (ratio for dividers, Hz for filters, linear gain or dB for opamps, pF for crystals, amps for current sense).
 

@@ -1,0 +1,49 @@
+{
+  "project": {
+    "title": "Neon Static",
+    "artist_name": "Rae Marlowe",
+    "work_type": "song",
+    "description": "Synthetic test fixture: a fictional single with unconfirmed ownership, unconfirmed splits, and an uncleared sample.",
+    "release_status": "unknown",
+    "public_urls": []
+  },
+  "creator": {
+    "name": "Rae Marlowe",
+    "email": "rae.marlowe.synthetic@example.com",
+    "wallet_address": "",
+    "organization": "",
+    "confirmation_status": "needs-confirmation"
+  },
+  "rights": {
+    "owner_claim": "Rae Marlowe believes they own it, but a second collaborator (Kai) never signed a split sheet and may have a competing claim",
+    "ownership_status": "disputed",
+    "contributors": [
+      {
+        "name": "Rae Marlowe",
+        "role": "Songwriter/Producer",
+        "master_percent": 70,
+        "publishing_percent": 70,
+        "confirmed": false
+      },
+      {
+        "name": "Kai (last name unknown)",
+        "role": "Co-writer, unconfirmed",
+        "master_percent": 30,
+        "publishing_percent": 30,
+        "confirmed": false
+      }
+    ],
+    "contributors_confirmed": false,
+    "splits_confirmed": false,
+    "contains_samples": "yes",
+    "sample_clearance_status": "uncleared",
+    "cover_or_interpolation": "unknown",
+    "license_restrictions": []
+  },
+  "provenance": {
+    "creation_notes": "Synthetic test fixture created for validate_transfer_package.py testing. Track includes a vocal chop from an unidentified source; second collaborator's involvement and split were never formally confirmed."
+  },
+  "suede": {
+    "optimization_notes": "Synthetic fixture: rights review required before any further packaging."
+  }
+}

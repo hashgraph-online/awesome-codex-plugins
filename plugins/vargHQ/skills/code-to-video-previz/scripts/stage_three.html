@@ -1,0 +1,134 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Staging, three.js</title>
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.2/build/three.module.js"}}</script>
+<script type="module">
+// Renders staging.json. Same file, same world and same lens maths as stage_blender.py.
+// Open stage_three.html?scene=staging.json to watch it. window.__frame(shotId, lt) -> PNG data URL. window.__film -> shots.
+import * as THREE from 'three';
+const q = new URLSearchParams(location.search);
+const S = await (await fetch(q.get('scene') || 'staging.json')).json();
+const W = +(q.get('w') || S.frame.w), H = +(q.get('h') || S.frame.h);
+const flat = q.get('flat') === '1' || !S.key;
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+r.setPixelRatio(1); r.setSize(W, H);
+r.shadowMap.enabled = !flat; r.shadowMap.type = THREE.PCFShadowMap;
+r.toneMapping = flat || S.tone === 'none' ? THREE.NoToneMapping : THREE.AgXToneMapping;   // AgX desaturates: "tone": "none" keeps a painted red
+document.body.append(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color().setRGB(.02, .02, .02, THREE.LinearSRGBColorSpace);
+const P = a => new THREE.Vector3(a[0], a[2], -a[1]);       // staging world (x right, y depth, z up) -> three (y up, -z depth)
+const rgb = c => typeof c === 'number' ? new THREE.Color().setRGB(c, c, c, THREE.LinearSRGBColorSpace) : new THREE.Color().setRGB(c[0], c[1], c[2], THREE.LinearSRGBColorSpace);
+const mat = (c, rough = .85) => new THREE.MeshStandardMaterial({ color: rgb(c), roughness: rough });
+const add = m => { m.castShadow = m.receiveShadow = true; scene.add(m); return m; };
+const smooth = x => x * x * (3 - 2 * x);
+const clamp = x => Math.max(0, Math.min(1, x));
+
+function lerpKeys(keys, t, get) {
+  if (t <= keys[0].t) return get(keys[0]);
+  for (let i = 0; i + 1 < keys.length; i++) {
+    const a = keys[i], b = keys[i + 1];
+    if (t <= b.t) { const x = smooth((t - a.t) / Math.max(b.t - a.t, 1e-6)), u = get(a), v = get(b); return u.map((n, k) => n + (v[k] - n) * x); }
+  }
+  return get(keys[keys.length - 1]);
+}
+const CYL = new THREE.CylinderGeometry(1, 1, 1, 18), BALL = new THREE.SphereGeometry(1, 24, 14), Y = new THREE.Vector3(0, 1, 0);
+class Limb {
+  constructor(rad, color) {
+    const m = mat(color); this.rad = rad;
+    this.body = add(new THREE.Mesh(CYL, m)); this.a = add(new THREE.Mesh(BALL, m)); this.b = add(new THREE.Mesh(BALL, m));
+    this.a.scale.setScalar(rad * .985); this.b.scale.setScalar(rad * .985);
+  }
+  place(p, q) {
+    const A = P(p), B = P(q), d = B.clone().sub(A), L = d.length();
+    this.body.position.copy(A.clone().add(B).multiplyScalar(.5));
+    this.body.quaternion.setFromUnitVectors(Y, L > 1e-4 ? d.clone().normalize() : Y);
+    this.body.scale.set(this.rad, Math.max(L, 1e-3), this.rad);
+    this.a.position.copy(A); this.b.position.copy(B);
+  }
+}
+const JL = [['neck', 'hip', 'torso'], ['shL', 'elL', 'upper'], ['elL', 'haL', 'fore'], ['shR', 'elR', 'upper'], ['elR', 'haR', 'fore'],
+  ['hip', 'knL', 'thigh'], ['knL', 'ftL', 'shin'], ['hip', 'knR', 'thigh'], ['knR', 'ftR', 'shin']];
+const RAD = { torso: .115, upper: .055, fore: .042, thigh: .08, shin: .058 };
+const skin = S.skin ?? .6;
+const movers = [];
+for (const b of S.boxes || []) {
+  const material = b.unlit ? new THREE.MeshBasicMaterial({ color: rgb(b.color ?? b.grey ?? .5) }) : mat(b.color ?? b.grey ?? .5, b.rough ?? .85);
+  const m = add(new THREE.Mesh(new THREE.BoxGeometry(b.size[0], b.size[2], b.size[1]), material));
+  if (b.unlit) m.castShadow = false;        // a window or a lamp: glows at its own colour and blocks no light
+  m.position.copy(P(b.center)); m.rotation.y = THREE.MathUtils.degToRad(b.rot_z || 0);
+  if (b.keys) movers.push(t => m.position.copy(P(lerpKeys(b.keys, t, k => k.center))));
+}
+for (const f of S.figures || []) {
+  if (f.style === 'joints') {
+    const c = { torso: f.top ?? .3, upper: f.top ?? .3, fore: f.fore ?? skin, thigh: f.legs ?? .2, shin: f.legs ?? .2 };
+    const limbs = JL.map(([a, b, part]) => [a, b, new Limb(RAD[part], c[part])]);
+    const hr = f.head_r ?? .115, head = add(new THREE.Mesh(BALL, mat(f.head ?? skin))); head.scale.set(hr * .9, hr * 1.12, hr * .95);
+    const names = Object.keys(f.keys[0].joints);
+    movers.push(t => { const j = {}; for (const n of names) j[n] = lerpKeys(f.keys, t, k => k.joints[n]);
+      for (const [a, b, l] of limbs) l.place(j[a], j[b]); head.position.copy(P(j.head)); });
+  } else {
+    const h = f.height ?? 1.75, body = new Limb(h * .115, f.color ?? .5);
+    const head = add(new THREE.Mesh(BALL, mat(f.head ?? skin))); head.scale.setScalar(h * .085);
+    const nose = add(new THREE.Mesh(new THREE.BoxGeometry(h * .05, h * .035, h * .06), mat(f.head ?? skin)));
+    movers.push(t => { const p = lerpKeys(f.keys, t, k => k.pos), hd = THREE.MathUtils.degToRad(lerpKeys(f.keys, t, k => [k.heading ?? 0])[0]);
+      body.place([p[0], p[1], p[2] + h * .115], [p[0], p[1], p[2] + h * .72]);
+      head.position.copy(P([p[0], p[1], p[2] + h * .9]));
+      nose.position.copy(P([p[0] + Math.sin(hd) * h * .085, p[1] + Math.cos(hd) * h * .085, p[2] + h * .9]));
+      nose.rotation.y = -hd; });
+  }
+}
+for (const fl of S.flags || []) {   // cast shadow, never seen by the camera
+  const v = fl.verts.map(P), g = new THREE.BufferGeometry();
+  g.setFromPoints([v[0], v[1], v[2], v[0], v[2], v[3]]); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide, shadowSide: THREE.DoubleSide }));
+  m.castShadow = true; scene.add(m);
+}
+if (flat) {
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a8a, 2.4));
+} else {
+  const k = S.key;
+  const key = new THREE.SpotLight(new THREE.Color(...(k.color || [1, 1, 1])), k.power_three ?? 300, 0, THREE.MathUtils.degToRad((k.angle_deg ?? 60) / 2), k.blend ?? .05, 2);
+  key.position.copy(P(k.pos)); key.target.position.copy(P(k.aim));
+  key.castShadow = true; key.shadow.mapSize.set(4096, 4096); key.shadow.bias = -.0003; key.shadow.camera.near = .5; key.shadow.camera.far = 40;
+  scene.add(key, key.target);
+  scene.add(new THREE.AmbientLight(0xffffff, (S.fill ?? .12) * 3));
+}
+const camera = new THREE.PerspectiveCamera(50, W / H, .05, 200);
+const ease = (kind, x) => { x = clamp(x); return kind === 'linear' ? x : kind === 'in' ? x * x : kind === 'out' ? 1 - (1 - x) ** 2 : kind === 'hold' ? 0 : smooth(x); };
+function setCam(s, lt) {
+  let a = s.from, b = s.to || s.from, x;
+  if (s.keys) {                             // a path with several keys, for instance from solve_camera.py
+    let i = 0; while (i < s.keys.length - 2 && lt > s.keys[i + 1].t) i++;
+    a = s.keys[i]; b = s.keys[Math.min(i + 1, s.keys.length - 1)];
+    x = ease(s.ease || 'linear', (lt - a.t) / Math.max(b.t - a.t, 1e-6));
+  } else x = ease(s.ease, lt / Math.max(s.end - s.start, 1e-6));
+  const look = a.look.map((n, i) => n + (b.look[i] - n) * x);
+  let pos;
+  if (s.path === 'arc') {          // orbit: interpolate angle and radius around the look point
+    const pa = a.pos.map((n, i) => n - look[i]), pb = b.pos.map((n, i) => n - look[i]);
+    const aa = Math.atan2(pa[1], pa[0]), ab = Math.atan2(pb[1], pb[0]), d = ((ab - aa + Math.PI * 3) % (2 * Math.PI)) - Math.PI;
+    const ra = Math.hypot(pa[0], pa[1]), rb = Math.hypot(pb[0], pb[1]), rad = ra + (rb - ra) * x, ang = aa + d * x;
+    pos = [look[0] + rad * Math.cos(ang), look[1] + rad * Math.sin(ang), look[2] + pa[2] + (pb[2] - pa[2]) * x];
+  } else pos = a.pos.map((n, i) => n + (b.pos[i] - n) * x);
+  const la = a.lens ?? s.lens ?? 35, lb = b.lens ?? s.lens ?? 35, lens = la + (lb - la) * x;
+  const f = lens / (s.sensor ?? 36) * Math.max(W, H);    // the sensor spans the longer side, as in Blender
+  camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(H / 2 / f));
+  const vp = s.vp || [.5, .5];              // where the vanishing point sits in the frame: a shifted lens, as in a painting
+  if (vp[0] !== .5 || vp[1] !== .5) camera.setViewOffset(W, H, (.5 - vp[0]) * W, (.5 - vp[1]) * H, W, H); else camera.clearViewOffset();
+  camera.updateProjectionMatrix();
+  camera.position.copy(P(pos)); camera.lookAt(P(look));
+  camera.rotateZ(THREE.MathUtils.degToRad((a.roll ?? 0) + ((b.roll ?? 0) - (a.roll ?? 0)) * x));
+  camera.updateMatrixWorld();
+}
+function pose(s, lt) { setCam(s, lt); const T = s.start + lt; for (const m of movers) m(T); }
+window.__frame = (id, lt = 0) => { const s = S.shots.find(x => x.id === id) || S.shots[0]; pose(s, lt); r.render(scene, camera); return r.domElement.toDataURL('image/png'); };
+window.__film = { fps: S.frame.fps, shots: S.shots.map(s => ({ id: s.id, start: s.start, end: s.end })) };
+// Live preview when opened by hand: plays the film and loops.
+if (q.get('export') !== '1') {
+  const t0 = performance.now(), total = S.shots[S.shots.length - 1].end;
+  const tick = now => { const t = ((now - t0) / 1000) % total, s = S.shots.find(x => t >= x.start && t < x.end) || S.shots[0]; pose(s, t - s.start); r.render(scene, camera); requestAnimationFrame(tick); };
+  requestAnimationFrame(tick);
+}
+window.__ready = true;
+</script>

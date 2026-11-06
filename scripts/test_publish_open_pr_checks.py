@@ -3,9 +3,14 @@
 from __future__ import annotations
 
 import importlib.util
+import io
+import json
+import re
 import sys
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 
 SCRIPTS = Path(__file__).parent
@@ -120,6 +125,131 @@ class CentralizedPublisherTests(unittest.TestCase):
         self.assertNotIn("\n", comment)
         self.assertIn("Source-repository scanner CI is optional", comment)
         self.assertIn("source repository does not already run the scanner", comment)
+
+
+class OwnerHandoffTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.base = PUBLISHER.PUBLISHER
+        self.scan_result = {
+            "pr_number": 12,
+            "head_sha": "a" * 40,
+            "title": "Example plugin",
+            "author_login": "contributor",
+            "state": "scan",
+            "failure_reasons": [],
+            "contributions": [{"owner": "example", "repo": "plugin"}],
+        }
+
+    def fake_api(self, calls, comments=None):
+        def fake(_repository, path, _token, *, method="GET", payload=None):
+            calls.append((method, path, payload))
+            if "/comments?" in path:
+                return comments or []
+            if path.startswith("/commits/"):
+                return {"check_runs": []}
+            return {}
+        return fake
+
+    def test_listing_comment_keeps_single_paragraph_verdict_then_handoff(self) -> None:
+        calls = []
+        with patch.object(self.base, "github_api", side_effect=self.fake_api(calls)):
+            self.base.upsert_remediation_comment(
+                "example/repo", self.scan_result, "success", "t", "s", "https://example.test/run", "token")
+
+        posts = [payload["body"] for method, path, payload in calls if method == "POST"]
+        self.assertEqual(len(posts), 1)
+        body = posts[0]
+        verdict = body.split("\n\n", 1)[0]
+        self.assertNotIn("\n", verdict)
+        self.assertIn(self.base.HANDOFF_HEADING, body)
+        self.assertIn("https://hol.org/guard/plugins?claim=example%2Fplugin&utm_source=github&utm_medium=pr_comment"
+                      "&utm_campaign=agent_handoff&utm_content=pr_open", body)
+        self.assertIn("**Optional, paid:**", body)
+        self.assertIn(self.base.HANDOFF_PAID_NOTE, body)
+        self.assertTrue(body.endswith("\n\n" + self.base.COMMENT_MARKER))
+
+    def test_passing_pr_without_new_listing_stays_quiet(self) -> None:
+        calls = []
+        with patch.object(self.base, "github_api", side_effect=self.fake_api(calls)):
+            self.base.upsert_remediation_comment(
+                "example/repo", {**self.scan_result, "state": "success"}, "success", "t", "s",
+                "https://example.test/run", "token")
+
+        self.assertFalse([path for method, path, _ in calls if method == "POST"])
+
+    def test_catalog_failure_has_no_handoff(self) -> None:
+        self.assertEqual(self.base.owner_handoff_section({**self.scan_result, "state": "failure"}), "")
+        self.assertEqual(self.base.owner_handoff_section({**self.scan_result, "contributions": [{"owner": "a b", "repo": "x"}]}), "")
+
+    def test_check_summary_carries_handoff_tagged_as_check_run(self) -> None:
+        calls = []
+        with patch.object(self.base, "github_api", side_effect=self.fake_api(calls)), \
+                patch.object(self.base, "upsert_remediation_comment"):
+            self.base.publish_check("example/repo", self.scan_result, {12: ["success"]}, "https://example.test/run", "token")
+
+        summary = next(payload for method, path, payload in calls if path == "/check-runs")["output"]["summary"]
+        self.assertIn(self.base.HANDOFF_HEADING, summary)
+        self.assertIn("utm_medium=check_run&utm_campaign=agent_handoff&utm_content=check_summary", summary)
+
+    def test_contributor_docs_carry_the_same_handoff(self) -> None:
+        for name in ("AGENTS.md", "CONTRIBUTING.md", ".agents/skills/list-my-plugin/SKILL.md"):
+            with self.subTest(name=name):
+                text = (SCRIPTS.parent / name).read_text(encoding="utf-8")
+                self.assertIn(self.base.HANDOFF_HEADING, text)
+                self.assertIn(self.base.HANDOFF_PAID_NOTE, text)
+                self.assertIn("utm_campaign=agent_handoff", text)
+
+    def test_skill_pins_the_scanner_release_from_contributing(self) -> None:
+        pin = re.compile(r'plugin-scanner==([0-9][0-9A-Za-z.]*)')
+        contributing = set(pin.findall((SCRIPTS.parent / "CONTRIBUTING.md").read_text(encoding="utf-8")))
+        skill_text = (SCRIPTS.parent / ".agents/skills/list-my-plugin/SKILL.md").read_text(encoding="utf-8")
+        self.assertEqual(len(contributing), 1)
+        self.assertEqual(set(pin.findall(skill_text)), contributing)
+        self.assertNotIn("pipx run plugin-scanner", skill_text)
+
+
+class PullRequestStillOpenTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.base = PUBLISHER.PUBLISHER
+
+    def check(self, pull: object) -> bool:
+        side_effect = pull if isinstance(pull, Exception) else None
+        with patch.object(self.base, "github_api", return_value=pull, side_effect=side_effect), \
+                redirect_stdout(io.StringIO()):
+            return self.base.pull_request_still_open("example/repo", {"pr_number": 12}, "token")
+
+    def test_open_pull_request_is_published(self) -> None:
+        self.assertTrue(self.check({"state": "open"}))
+
+    def test_pull_request_closed_or_merged_during_the_sweep_is_skipped(self) -> None:
+        for pull in (
+            {"state": "closed", "merged": False, "merged_at": None},
+            {"state": "closed", "merged": True, "merged_at": "2026-11-04T17:55:42Z"},
+        ):
+            with self.subTest(pull=pull):
+                self.assertFalse(self.check(pull))
+
+    def test_failed_lookup_keeps_publishing_and_says_so(self) -> None:
+        with redirect_stderr(io.StringIO()) as errors:
+            self.assertTrue(self.check(RuntimeError("GitHub API GET failed")))
+        self.assertIn("Could not re-check PR #12", errors.getvalue())
+
+    def test_main_does_not_publish_a_pull_request_closed_during_the_sweep(self) -> None:
+        env = {
+            "GITHUB_REPOSITORY": "example/repo",
+            "GITHUB_TOKEN": "test-token",
+            "GITHUB_RUN_ID": "1",
+            "SWEEP_RUN_URL": "https://github.com/example/repo/actions/runs/1",
+            "OPEN_PR_RESULTS": json.dumps([{"pr_number": 12, "state": "success", "contributions": []}]),
+        }
+        responses = [{"jobs": []}, {"state": "closed", "merged": False, "merged_at": None}]
+        with patch.dict(self.base.os.environ, env, clear=True), \
+                patch.object(self.base, "github_api", side_effect=responses), \
+                patch.object(self.base, "publish_check") as publish, \
+                redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(self.base.main(), 0)
+        publish.assert_not_called()
+        self.assertIn("Skipped PR #12", output.getvalue())
 
 
 if __name__ == "__main__":

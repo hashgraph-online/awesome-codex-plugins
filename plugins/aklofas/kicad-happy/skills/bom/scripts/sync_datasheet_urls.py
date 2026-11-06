@@ -37,7 +37,7 @@ from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).parent))
 from edit_properties import apply_updates
-from kicad_sexp import collect_schematic_files, find_matching_paren
+from kicad_sexp import collect_schematic_files, iter_placed_symbol_blocks
 
 
 # ---------------------------------------------------------------------------
@@ -80,20 +80,7 @@ def extract_ref_datasheets(text: str) -> dict[str, str]:
     """Extract {reference: datasheet_url} from placed symbols in a schematic."""
     result = {}
 
-    # Skip lib_symbols section
-    lib_match = re.search(r'\(lib_symbols\b', text)
-    search_start = 0
-    if lib_match:
-        lib_end = find_matching_paren(text, lib_match.start())
-        search_start = lib_end + 1
-
-    # Find placed symbols
-    pattern = re.compile(r'\(symbol\s*\n?\s*\(lib_id\s+')
-    for match in pattern.finditer(text, search_start):
-        sym_start = match.start()
-        sym_end = find_matching_paren(text, sym_start)
-        block = text[sym_start:sym_end + 1]
-
+    for _sym_start, _sym_end, block in iter_placed_symbol_blocks(text):
         ref_match = re.search(
             r'\(property\s+"Reference"\s+"((?:[^"\\]|\\.)*)"', block
         )

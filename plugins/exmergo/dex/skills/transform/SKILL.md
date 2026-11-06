@@ -19,7 +19,9 @@ the `dex` CLI; where it is not installed, run the same command through the
 skill's `scripts/run.py` wrapper. Each command prints one JSON envelope: read
 it and decide the next step from it. Step 1 only reads. Steps 2 to 5 change the
 project, so take them only when the task asks for a change; a question about the
-data stops after step 1 and reports what it found.
+data stops after step 1 and reports what it found. Explore and maintain report
+findings and hand repair work to transform; only the transform workflow performs
+the project edits, migrations and dev builds described below.
 
 1. **Profile what the change reads.** Before writing or fixing SQL against a
    table whose columns, types, grain or join keys you have not verified in this
@@ -51,57 +53,212 @@ data stops after step 1 and reports what it found.
    `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`
    (any count of things), or a plain unit such as `days`; `aggregation` is how
    the column rolls up (a count rolls up with `sum`, a running total with
-   `max`). A declaration is JSON in the payload, rendered into the model's YAML:
-   it never adds, drops or renames an output column.
+   `max`). A model that holds one row per entity of another model declares
+   that parent too, `"population": {"parent": {"model": "stg_subscriptions",
+   "key": {"subscription_id": "subscription_id"}}}`, so verification counts
+   the parents missing from it. A model derived from a dbt snapshot's status
+   history declares a `history` block (`skills/transform/references/declarations.md`):
+   whether the first observation is a baseline or a transition, the NULL-status
+   policy, the entities it holds, and whether its timestamp is business or capture
+   time. A declaration is JSON in the payload, rendered into the model's YAML: it
+   never adds, drops or renames an output column.
 3. **Read the draft, supply the intent, plan again.** `data.declarations.<model>`
    holds `drafted` (what Dex measured: keys, running totals, units, value
    domains, and `precedent`, what sibling models do with the same columns),
    `missing` (the intent still owed) and `contradictions`. Read them with the
    `warnings` and, on an existing model, `data.row_attribution`. Correct the SQL
    or the declaration until both say what the request asks, then plan again.
+   When the change should keep an existing model's results (a refactor, an
+   extraction, a cleanup), run each `data.refactor_comparison_offer.per_model`
+   command before applying, above all where `static_attribution` is not
+   `attributed`. `equivalent` holds for its `input_scope` at `compared_at`:
+   relay both. `different` is a defect to fix in the SQL, unless the request
+   asked for that difference: state an intended rename with `--map` or type change
+   with `--accept-type`, and never loosen the comparison to get a match.
+   `not_checked` is not equivalence: relay its `reason_code`, and where it names
+   an input to rebuild or repair, do that and compare again. When the offer says
+   `baseline_ready: false`, the baseline itself does not build: repair the input
+   it names in a plan of its own, apply and build that plan (with `--cold-deps`
+   where a package owns the node), and only then compare the refactor's plan,
+   which stays unapplied until it is compared; if the repair changed a file
+   that plan edits, plan the refactor again first (`plan_stale`). Never put the repair in the
+   refactor's plan: its comparison would have nothing built to read
+   (`mixed_with_repair`). Equivalence is about
+   the results the request keeps, not an intermediate's layout. A change meant
+   to alter results needs no comparison.
 4. **Apply.** `dex transform apply <plan-id>` writes the plan as a reviewable
    diff. A `needs_confirmation` here means a file changed since planning:
    plan again against it. A commit carrying files Dex wrote ends with the
    `data.commit_trailer` line, after a blank line.
-5. **Build and verify on dev.** `dex transform build --target dev --verify`.
-   Read `data.verification.ran`, then every finding and everything under
+5. **Build and verify on dev.**
+   `dex transform build --target dev --verify --for-plan <plan-id>`. Read
+   `data.completion` first: it leads the payload and is bounded, so it survives
+   a cut-off read, and `details` names where the rest is. A required deliverable
+   that `failed`, was `skipped` or is `missing` is not done, whatever relation is
+   left in dev from an earlier run; fix what `blockers` names and build again.
+   `build_only` means nothing checked those rows. Then read
+   `data.verification.ran`, every finding and everything under
    `suppressed`. A green build says dbt ran, not that the rows are right: a
    column that came back all NULL, a parent that vanished, or rows that
-   multiplied is a defect to fix, not a data issue to report.
+   multiplied is a defect to fix, not a data issue to report. Each record in
+   `join_coverage`, `parent_population` and `temporal_contracts` is `satisfied`,
+   `contradicted` (a finding to fix), `not_applicable` (nothing to judge, such as
+   an empty input, which is not full coverage) or `unchecked` (its `reason_code`
+   says why, and it is not clean).
+   Output keys the parent lacks are never the population: drive the model from
+   the parent instead.
 6. **Maintain.** `dex maintain verify` checks the project as it stands;
    `dex maintain check` compares it with the last `dex maintain snapshot`;
    `dex maintain reconcile` proposes the fix as a plan for `transform apply`.
 
 **Decide, record, continue.** When a decision is ambiguous, do not stop to ask.
 Decide on the best evidence, record it as an `assumptions` entry with its
-evidence tier, continue, and relay `data.decisions` at the end. Weigh evidence
-in this order, and never present a `default` as the user's business rule:
+evidence tier, continue, and relay `data.decisions` at the end. Record the
+choices that change which rows exist or what a value means, not every
+implementation detail. Weigh evidence in this order, and never present a
+`default` as the user's business rule:
 
-1. `request`: what the request means. A filter literal that matches no value in
+1. `request`: what the request settles. A filter literal that matches no value in
    the column is a spelling to correct against the column's values, not a rule
    to follow.
-2. `contract`: the project's declared columns, tests and metric filters.
+2. `contract`: what the project's declared columns, tests and metric filters
+   settle.
 3. `precedent`: how sibling models decide the same thing
    (`dex transform references <model.column> --usage`).
-4. `data`: what profiling showed.
+4. `data`: what profiling showed about the data. Observed counts describe the
+   data; they do not establish the intended population or NULL policy.
 5. `default`: the conventional analytics-engineering choice.
+
+Name `request` or `contract` only when that source actually settles the choice;
+citing wording that leaves it open does not. "Event rate per account" alone does
+not decide whether accounts with no events belong in the output: pick a
+reasonable population, record it as `default`, say why in one line of `detail`,
+and continue without asking for approval. "Include every account" and "only
+accounts with events" are each `request`, and a population the project already
+declares is `contract`.
+
+**Settle the scope before the repair.** Before changing a model that already
+exists, name what the request asks for: the outputs (each column and its visible
+type), the grain and the population. Name what it leaves alone: the other models'
+rows, what each count counts, and whether an empty window reads zero or NULL. A
+filter asked for in general terms ("exclude test accounts from our metrics") says
+which aggregates change; whether a roster or lookup model also loses those rows is
+a decision to record, never a side effect. A coverage repair (missing days,
+missing accounts) adds the absent rows and keeps every count and NULL meaning the
+model had. Then read `data.change_scope` on the plan: each model's population is
+`changed`, `kept` or `unchecked`, and each removed output and each changed cast,
+aggregate or NULL treatment is `declared` (an assumption names its `column`) or
+`undeclared`. An `undeclared` change the request asks for gets an assumption
+naming that `column`, with the tier that settles it; one it does not ask for is
+undone. `kept` says only that this edit adds nothing to that model's own SQL that
+moves rows: a roster the plan does not edit is not listed, and one that reads a
+model the plan filters still loses those rows, so check a roster's rows on the
+build. `--verify` checks rows only against a population declared as `filters` or
+a `parent`; a `rule` alone is prose (`obligations.prose_population`), so declare
+the checkable form where the model carries the column, and read
+`data.verification` before saying the rows were checked.
 
 **Correct rows, not only a green build.**
 
+- A protected-value read refusal is not an instruction to remove, redact or
+  replace a column in a transformation. When the requested or existing output
+  contract includes a protected field, preserve its authorized pass-through
+  through the normal plan/apply path where supported. Check column presence and
+  types with metadata and rows with permitted aggregates, without requesting raw
+  protected values. Intentional removal or redaction needs an applicable user
+  instruction or contract. If the transformation itself is prohibited or
+  unsupported, report that limitation accurately: permission on another command
+  does not transfer, and a privacy or dev-target guard is never bypassed. Keep
+  protected examples out of assumptions, tests, logs and explanations. Only a
+  human clears a PII flag.
 - Drive a model from the entity it describes. When that entity is the parent
   and the population keeps parents with no children, left-join the children so
   each such parent survives, with a count of zero rather than NULL.
-- A refactor keeps its results: `data.row_attribution` nets to zero, and
-  `count(*)` stays `count(*)`.
+- A refactor keeps its results: `data.row_attribution` nets to zero,
+  `count(*)` stays `count(*)`, and `transform compare` says `equivalent`.
 - Keep every valid row. Never filter rows out to make a cast or a join succeed.
-- Change only what the request asks; keep the output columns the request and
-  the existing model define.
+  An identifier that does not cast may be a second legitimate scheme, and
+  casting can merge keys (`7` and `007`). When `data.identifier_conversions`
+  reports a conversion `undeclared`, keep the other scheme (compare as text,
+  normalize, bridge or namespace) or record the exclusion as an assumption
+  naming its `column`; `unchecked` is not clean.
+- Removing a feature flag: "retire it" drops the feature's CTEs, joins, outputs,
+  tests and semantic references, while "make it permanent" keeps them and drops
+  only the conditionals. A flag's default decides neither. State the behavior
+  that survives with a `retirement` contract on `dex transform remove var`.
+  Where it refuses because the reference scan cannot finish, add
+  `"scope": "authored"` to the contract rather than falling back to a plain
+  plan, and relay its discovery as unchecked.
+  Recipe: `skills/transform/references/feature-retirement.md`.
+- Adding or changing a flag that stays ("hide the fee columns when it is
+  false") has to hold on both values in every model of the project, not only
+  the models that feed one mart. State it with a `toggle` contract on
+  `dex transform plan` (`variable`, `on_value`, `off_value`, the governed
+  `columns`): `data.toggle` compiles every model at each value and names each
+  producer still outputting a governed column with the flag off. An empty
+  table proves nothing by its rows; the build judges its columns.
+  Recipe: `skills/transform/references/feature-toggles.md`.
+- A new version of an existing model ("v2", a future replacement) is a native
+  dbt version: a `versions:` list on the model's YAML entry, with
+  `latest_version` keeping the current default, never an independent
+  `<model>_v2`. Declare a version as `<model>.v<N>`. Promotion is its own plan:
+  `data.model_versions` names the default and every consumer it moves.
+  Recipe: `skills/transform/references/model-versions.md`.
+- An incremental model is two programs: the full build and the next
+  incremental run. A `--full-refresh` runs only the first, so it does not show
+  that rows the next run skips or duplicates are fixed; a model it lists under
+  `data.full_refresh.not_refreshed` (`full_refresh: false`) was not rebuilt at
+  all, so report its history repair incomplete. Before choosing a
+  repair, read the materialization, the watermark comparison (`>` skips rows on
+  the current watermark) and the `unique_key` or deduplication that makes `>=`
+  safe. Prove the incremental branch with a unit test that overrides
+  `is_incremental` (`dex transform test --scaffold <model>` writes one), build
+  again without `--full-refresh`, and state the late-arrival horizon the repair
+  supports. Never insert probe rows into a loader's source.
+  Recipe: `skills/transform/references/incremental-repairs.md`.
+- Change only what the request asks; keep the output columns, their types and
+  the population the request and the existing model define, and own every other
+  change in `data.change_scope` with an assumption or undo it.
 - A balance or a running total is `semi_additive`: never sum it across time.
   Take each entity's latest value (`max` for a running total), then sum across
   entities.
-- Test logic with `dex transform test --scaffold <model>` (dbt unit tests) and
-  measure the tests with `dex transform test --mutate <model>`.
-- Never edit installed packages (`dbt_packages/`); override in the project.
+- Test logic with `dex transform test --scaffold <model>` (dbt unit tests), then
+  measure the tests with `dex transform test --mutate <model>` before calling the
+  model covered. Each survivor is a defect the tests let through: add the fixture
+  its `suggested_test` names (a window survivor's `frame` gives the last day the
+  window includes and the first it excludes), and mutate again. A frame bound
+  under `data.unsupported_sites` was never tested. The score covers only the
+  defects Dex plants, so it is not proof the model is right.
+  Recipe: `skills/transform/references/test-strength.md`.
+- Repair the layer the request names, and settle which one before choosing a
+  remedy. "Modify our data" or "fix the source types" asks for an input change;
+  "make it build" or "adapt the project" asks for a project change; otherwise the
+  contract decides who owns the input (a seed the project loads, or a source a
+  loader owns), recorded as an assumption. Explore and maintain report the owner,
+  requested postcondition and supported remedy, then hand off to transform.
+  In transform, a project change does not fulfil an
+  input request, and an input request authorizes no write Dex cannot make:
+  change a project seed through its CSV or `+column_types` and a build; for a
+  loader's source, write any migration as a reviewable file, say it was not run,
+  and report that part incomplete, never reaching for a raw database client. A
+  project request never changes the input. Check the requested postcondition on
+  the original relation (`explore profile` for types, aggregates for rows); for a
+  built project seed use `explore profile <dev namespace>.<seed> --target dev`:
+  `--cold-deps` proves a project repair survives a reinstall, not that the data
+  changed.
+- Never edit installed packages (`dbt_packages/`) and never repair only in the
+  warehouse: a reinstall or a reload undoes both. When a prerequisite blocks a
+  deliverable, read `data.prerequisites` for its owner, its `plan_relation` and
+  the repairs dbt supports, make a supported one through a plan (an explicit
+  cast, never dropped rows), and prove it with `--cold-deps` on the build. With no
+  repair in scope the deliverable is incomplete: report the prerequisite and the
+  remedy tried. An override of a model its package documents takes the
+  package's YAML entry, and dbt allows it no second one, so it carries no
+  declaration: declare the models that read it. `dex transform deps` and the
+  build's own install fetch the packages the project already declares (pinned
+  where `package-lock.yml` matches `packages.yml`): that is not installing or
+  upgrading a tool, so a request not to update tools does not rule it out.
+  Recipe: `skills/transform/references/prerequisite-repairs.md`.
 
 **Spending authority.** It comes from the person running this session, or from
 limits committed before it started: `budget.ceiling` (per command) and
@@ -205,7 +362,9 @@ fetches the engine's dependencies from PyPI or your configured index.
 5. **Read the plan** (rules below), then `transform apply <plan-id>`.
 6. **Build and verify:** `transform build --target dev --verify`.
 7. **Measure the tests** right after you author or scaffold them, and before
-   telling the user a model is covered: `transform test --mutate <model>`.
+   telling the user a model is covered: `transform test --mutate <model>`. Fix
+   each survivor with the fixture its `suggested_test` names, then measure again
+   (`${CLAUDE_SKILL_DIR}/references/test-strength.md`).
 
 Per-command fields and flags are in `${CLAUDE_SKILL_DIR}/references/commands.md`.
 Shipped macros are in `${CLAUDE_SKILL_DIR}/references/macros.md`. Read them when
@@ -238,7 +397,9 @@ a field, flag, or macro you need is not described here.
   says which side looks out of date; `unchecked` means Dex could not read the
   SQL for that rule, so read it yourself before applying.
 - A SELECT list that diverges from the model's `schema.yml` is warned in both
-  directions. Fix whichever side is stale, and tell the user which one you
+  directions, including through a `select * from final`; a warning resting on a
+  cached profile names it, so check that profile is current. `--verify` reports
+  the same comparison against the built relation. Fix whichever side is stale, and tell the user which one you
   decided it was.
 - A warning that a model **exposes a raw foreign key with no resolved
   counterpart** names sibling precedent and a parent. Prefer resolving it the way
@@ -281,6 +442,11 @@ a field, flag, or macro you need is not described here.
   file, re-plan against the current state. Re-run with `--confirm` only when the
   user says so.
 - List plans with `transform plans`; never browse `.dex/plans/` by hand.
+- A refactor whose offer says `baseline_ready: false` has no baseline yet:
+  repair the blocked input in a plan of its own, apply it, build it
+  (`--cold-deps` for a package's model), then compare the refactor's plan, which
+  you have not applied. A plan carrying both (`mixed_with_repair`) can never be
+  compared. Recipe: `${CLAUDE_SKILL_DIR}/references/prerequisite-repairs.md`.
 - A delete is refused while a surviving file still `ref()`s it. Carry the edits
   that remove those references in the same plan.
 - `transform rename` needs a column named as `model.column`. It refuses rather
@@ -350,6 +516,15 @@ a field, flag, or macro you need is not described here.
 
 ### Seeds and PII
 
+- Preserve a protected field the requested or existing output contract includes
+  through supported, authorized model plans. A read refusal does not authorize
+  dropping, redacting or replacing it. Check presence and types with metadata
+  and rows with permitted aggregates; keep protected examples out of the diff
+  and the report. Redaction needs an applicable instruction or contract.
+- A model pass-through does not authorize a seed export. If the transformation
+  itself is prohibited or unsupported, report that limitation without bypassing
+  a privacy or dev-target guard. Only a human clears a PII flag.
+
 - A seed puts values into git. Never build one out of warehouse rows you have not
   looked at: detection reads names and types, never values, so it cannot see
   personal data under a neutral column name.
@@ -393,8 +568,9 @@ a field, flag, or macro you need is not described here.
   `data.session_ceiling_cap`. It counts as a committed daily limit. A refusal
   naming it can only be lifted by the host, never by a flag or a config change,
   so report it rather than work around it.
-- `--verify` is priced into the build's own estimate as `(row counts)` and
-  `(declared facts)` lines, so never add a second budget for it. An `ok` envelope with `data.offer` means the
+- `--verify` is priced into the build's own estimate as `(row counts)`,
+  `(declared facts)` and `(join overlap probes)` lines, so never add a second
+  budget for it. An `ok` envelope with `data.offer` means the
   build is done and billed: relay the offer instead of re-running the build.
 - Verification findings never fail the build. Do not treat one as a failure or
   re-run to make it go away: relay the finding, its two counts, and the join it
@@ -432,6 +608,23 @@ a field, flag, or macro you need is not described here.
 - `${CLAUDE_SKILL_DIR}/references/declarations.md`: the `declarations` payload,
   every field and its allowed values, what each renders into, and
   `transform declare` for models that already exist.
+- `${CLAUDE_SKILL_DIR}/references/prerequisite-repairs.md`: which layer the
+  request asks to change (the input data or the project), a failed prerequisite's
+  owner and repair routes, keeping a type repair's meaning, proving it with
+  `--cold-deps`, and reporting a deliverable incomplete.
+- `${CLAUDE_SKILL_DIR}/references/incremental-repairs.md`: an incremental model
+  as two programs, reading its watermark and `unique_key` before a repair, the
+  incremental unit test `test --scaffold` writes, and why a `--full-refresh`
+  alone does not show the next run is right.
+- `${CLAUDE_SKILL_DIR}/references/feature-retirement.md`: retiring a feature flag
+  versus making it permanent, the `retirement` contract on `remove var`, and how
+  each check holds the change to the behavior it keeps.
+- `${CLAUDE_SKILL_DIR}/references/feature-toggles.md`: a flag that stays live,
+  the `toggle` contract on `transform plan`, every producer of its columns
+  checked on both values, and an off build judged by its columns.
+- `${CLAUDE_SKILL_DIR}/references/model-versions.md`: a new version of a model as
+  native dbt versions, declaring each version, reading `data.model_versions`, and
+  promotion as its own plan.
 - `${CLAUDE_SKILL_DIR}/references/commands.md`: `references`, `rename`, `remove`,
   `place`, `declare`, `build`, `build --verify`, `test --mutate`, and `deps` in detail.
 - `${CLAUDE_SKILL_DIR}/references/init-and-dev-target.md`: per-connector init and

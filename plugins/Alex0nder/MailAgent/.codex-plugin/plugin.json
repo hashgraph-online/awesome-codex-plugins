@@ -3,11 +3,11 @@
   "version": "0.2.8",
   "description": "Temporary inboxes for Codex OTP, magic links, and signup QA flows.",
   "author": {
-    "name": "MailAgent",
-    "url": "https://webmailagent.com"
+    "name": "Navorina",
+    "url": "https://navorina.ai"
   },
-  "homepage": "https://webmailagent.com/docs/agents.html",
-  "repository": "https://github.com/Alex0nder/MailAgent",
+  "homepage": "https://github.com/navorinaai/navorina/tree/main/agents-os/agents/mail-agent",
+  "repository": "https://github.com/navorinaai/navorina",
   "license": "MIT",
   "keywords": [
     "email",
@@ -23,15 +23,15 @@
     "displayName": "MailAgent",
     "shortDescription": "Temporary inboxes for OTP and magic link QA.",
     "longDescription": "Create disposable inboxes, wait for signup messages, extract OTPs or magic links, and clean up test inboxes from Codex.",
-    "developerName": "MailAgent",
+    "developerName": "Navorina",
     "category": "Productivity",
     "capabilities": [
       "MCP",
       "Skills"
     ],
-    "websiteURL": "https://webmailagent.com/",
-    "privacyPolicyURL": "https://webmailagent.com/privacy.html",
-    "termsOfServiceURL": "https://webmailagent.com/terms.html",
+    "websiteURL": "https://agents.navorina.ai/",
+    "privacyPolicyURL": "https://agents.navorina.ai/privacy.html",
+    "termsOfServiceURL": "https://agents.navorina.ai/terms.html",
     "defaultPrompt": [
       "Verify a signup flow with a temporary inbox.",
       "Create an inbox and wait for an OTP email.",

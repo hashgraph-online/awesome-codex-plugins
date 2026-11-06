@@ -58,6 +58,16 @@ Typical pressure signals:
 A new file is not automatically better. Prefer a new file only when owner,
 contract, call path, and retirement story are clearer than add-in-place growth.
 
+For a structural-improvement claim, line reduction alone is insufficient.
+Joining statements, compressing imports, deleting useful explanation or moving
+code solely to satisfy a count does not resolve pressure or earn growth allowance.
+Compare responsibilities, branches, dependencies, duplication and executable
+statements where available; explain changed dimensions and preserved behavior.
+Statement counts are optional supporting evidence, not a threshold. Missing
+measurements stay unknown/inapplicable, never zero or passed. A cohesive extraction
+may improve ownership with unchanged statement totals or slightly more wiring;
+check boundaries, callers, dependencies and old-path disposition.
+
 ## Phase Rules
 
 Planning / pre-edit:
@@ -94,6 +104,13 @@ Complexity Closure:
   `govern-now`, `follow-up-required`, or `not-complete`. `govern-now` may
   continue only inside the current authorized slice with a clear verification
   boundary; otherwise report follow-up or downgrade completion.
+- Prefer a feasible authorized repair: reuse the correct owner or extract a
+  cohesive module; separate mixed responsibilities or simplify duplicated
+  branches/dependencies; narrow the change only while preserving the requested
+  outcome. Continue within existing authority without repeated approval. If no
+  candidate fits, name the limiting constraint and concrete follow-up/decision.
+  Do not silently drop required behavior. These are candidates, not mandatory
+  refactoring, destructive permission or a numeric growth allowance.
 
 ## Major Complexity Follow-up
 

@@ -19,8 +19,10 @@ import os
 import shutil
 import sys
 import tempfile
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
+
+from kicad_core.diagnostics import record
 
 
 # ---------------------------------------------------------------------------
@@ -50,12 +52,55 @@ _OUTPUT_SOURCE_EXT = {
                     '.gm1', '.drl', '.txt'),
 }
 
+# The only names the cache ever records in a run's 'outputs' map.
+_CANONICAL_NAMES = frozenset(CANONICAL_OUTPUTS.values())
+
 GITIGNORE_CONTENT = """\
 # Analysis output -- regenerable from source files
 *
 !.gitignore
 !manifest.json
 """
+
+def _run_id_problem(analysis_dir: str, rid: Any) -> Optional[str]:
+    """Why *rid* does not name one run folder directly inside *analysis_dir*, or None.
+
+    Manifest run ids become paths that are written into and deleted; a manifest is
+    user-editable (track_in_git commits it), so an absolute, dotted or nested id must
+    never resolve outside the analysis directory.
+    """
+    if not isinstance(rid, str) or not rid or rid in ('.', '..'):
+        return "is not a folder name"
+    if os.path.basename(rid) != rid or os.path.isabs(rid) or '/' in rid or '\\' in rid:
+        return "is not a folder name"
+    try:
+        root = os.path.realpath(analysis_dir)
+        # A symlinked run dir resolving anywhere but directly under the root is not a run.
+        if os.path.dirname(os.path.realpath(os.path.join(analysis_dir, rid))) == root:
+            return None
+        return "resolves outside the analysis directory"
+    except (ValueError, OSError):
+        return "is not a folder name"
+
+
+def _is_run_id(analysis_dir: str, rid: Any) -> bool:
+    """True when *rid* names one run folder directly inside *analysis_dir*."""
+    return _run_id_problem(analysis_dir, rid) is None
+
+
+def get_run(analysis_dir: str, run_id: Any,
+            manifest: Optional[Dict[str, Any]] = None) -> Optional[Tuple[str, Dict[str, Any]]]:
+    """Return (folder_path, run_metadata) for *run_id*, or None when the manifest has no
+    such run or the id is not a folder directly inside *analysis_dir*."""
+    if manifest is None:
+        manifest = load_manifest(analysis_dir)
+    runs = manifest.get('runs', {})
+    if not run_id or not isinstance(run_id, str) or run_id not in runs:
+        return None
+    if not _is_run_id(analysis_dir, run_id):
+        return None
+    return os.path.join(analysis_dir, run_id), runs[run_id]
+
 
 def _empty_manifest() -> Dict[str, Any]:
     """Return a fresh empty manifest (avoids mutable default sharing)."""
@@ -297,10 +342,23 @@ def create_run(analysis_dir: str,
     # unrelated outputs. (KH-281 follow-up: original guard was too blunt.)
     prev_run_id = manifest.get('current')
     prev_outputs = {}
+    problem = _run_id_problem(analysis_dir, prev_run_id) if prev_run_id else None
+    if problem:
+        record(None, "analysis_cache.create_run",
+               ValueError(f"manifest current run id {prev_run_id!r} {problem}"),
+               "run id ignored")
+        prev_run_id = None
     if prev_run_id and prev_run_id in manifest.get('runs', {}):
         prev_run_dir = os.path.join(analysis_dir, prev_run_id)
         prev_run_info = manifest['runs'][prev_run_id]
-        prev_outputs = prev_run_info.get('outputs', {})
+        prev_outputs = {}
+        for analysis_type, filename in (prev_run_info.get('outputs', {}) or {}).items():
+            if filename in _CANONICAL_NAMES:
+                prev_outputs[analysis_type] = filename
+            else:
+                record(None, "analysis_cache.create_run",
+                       ValueError(f"manifest output {filename!r} is not a canonical output name"),
+                       "manifest output ignored")
         prev_hashes = prev_run_info.get('source_hashes', {}) or {}
         cur_hashes = source_hashes or {}
         for analysis_type, filename in prev_outputs.items():
@@ -373,6 +431,19 @@ def overwrite_current(analysis_dir: str,
                    source_hashes=source_hashes or {},
                    scripts={})
         return
+    problem = _run_id_problem(analysis_dir, current_id)
+    if problem:
+        record(None, "analysis_cache.overwrite_current",
+               ValueError(f"manifest current run id {current_id!r} {problem}"),
+               "run id ignored")
+        manifest['current'] = None
+        manifest['runs'] = {rid: meta for rid, meta in manifest.get('runs', {}).items()
+                            if _is_run_id(analysis_dir, rid)}
+        save_manifest(analysis_dir, manifest)
+        create_run(analysis_dir, outputs_dir,
+                   source_hashes=source_hashes or {},
+                   scripts={})
+        return
 
     current_dir = os.path.join(analysis_dir, current_id)
     os.makedirs(current_dir, exist_ok=True)
@@ -433,6 +504,13 @@ def prune_runs(analysis_dir: str, retention: int = 5) -> List[str]:
             runs.items(), key=lambda x: x[1].get('generated', ''))
         if not meta.get('pinned', False) and rid != current_id
     ]
+    for rid, _meta in list(unpinned):
+        problem = _run_id_problem(analysis_dir, rid)
+        if problem:
+            record(None, "analysis_cache.prune_runs",
+                   ValueError(f"manifest run id {rid!r} {problem}"),
+                   "run id ignored")
+            unpinned.remove((rid, _meta))
 
     # Always keep current in the unpinned count
     unpinned_count = len(unpinned) + (1 if current_id and current_id in runs
@@ -488,11 +566,7 @@ def get_current_run(analysis_dir: str
     Returns None if no current run exists.
     """
     manifest = load_manifest(analysis_dir)
-    current_id = manifest.get('current')
-    if not current_id or current_id not in manifest.get('runs', {}):
-        return None
-    run_dir = os.path.join(analysis_dir, current_id)
-    return run_dir, manifest['runs'][current_id]
+    return get_run(analysis_dir, manifest.get('current'), manifest)
 
 
 def list_runs(analysis_dir: str, limit: int = 0) -> list:
@@ -506,6 +580,8 @@ def list_runs(analysis_dir: str, limit: int = 0) -> list:
     sorted_ids = sorted(runs.keys(), reverse=True)
     result = []
     for run_id in sorted_ids:
+        if not _is_run_id(analysis_dir, run_id):
+            continue
         run_dir = os.path.join(analysis_dir, run_id)
         if os.path.isdir(run_dir):
             result.append((run_id, runs[run_id]))
@@ -518,8 +594,9 @@ def list_runs(analysis_dir: str, limit: int = 0) -> list:
 # New-run decision logic
 # ---------------------------------------------------------------------------
 
-# Severity ordering for threshold comparison
-_SEVERITY_ORDER = {'none': 0, 'minor': 1, 'major': 2, 'breaking': 3}
+# Severity ordering for threshold comparison; the 'all' threshold means any detected change, the
+# same level as 'minor' (an unchanged output still overwrites the current run).
+_SEVERITY_ORDER = {'none': 0, 'all': 1, 'minor': 1, 'major': 2, 'breaking': 3}
 
 
 def should_create_new_run(analysis_dir: str,
@@ -527,20 +604,20 @@ def should_create_new_run(analysis_dir: str,
                           diff_threshold: str = 'major') -> bool:
     """Decide whether new outputs warrant a new timestamped folder.
 
-    Runs diff_analysis.py on each matching output type between the
+    Runs the pure diff engine (diff_engine) on each matching output type between the
     current run and the new outputs. If any diff severity meets or
     exceeds the threshold, returns True.
 
     Returns True if:
       - No current run exists (first run)
-      - diff_analysis.py finds changes at or above the threshold
+      - diff_engine finds changes at or above the threshold
     Returns False if all diffs are below the threshold.
 
     Args:
         analysis_dir: Path to the analysis/ directory.
         new_outputs_dir: Directory containing the new output JSONs.
         diff_threshold: Minimum severity to trigger a new folder.
-            One of: 'minor', 'major', 'breaking'.
+            One of: 'all' (any detected change, same as 'minor'), 'minor', 'major', 'breaking'.
     """
     current = get_current_run(analysis_dir)
     if current is None:
@@ -549,17 +626,16 @@ def should_create_new_run(analysis_dir: str,
     current_dir, current_meta = current
     threshold_level = _SEVERITY_ORDER.get(diff_threshold, 2)
 
-    # Try to import diff_analysis for programmatic comparison
+    # Pure diff engine (no CLI import; v3 removed the analysis_cache <-> diff_analysis cycle).
     try:
-        import diff_analysis
+        import diff_engine
     except ImportError:
-        # diff_analysis.py not on sys.path -- try adding our directory
         import sys
         scripts_dir = os.path.dirname(os.path.abspath(__file__))
         if scripts_dir not in sys.path:
             sys.path.insert(0, scripts_dir)
         try:
-            import diff_analysis
+            import diff_engine
         except ImportError:
             # Can't diff -- default to creating a new run
             return True
@@ -587,17 +663,17 @@ def should_create_new_run(analysis_dir: str,
         # Detect analyzer type and diff
         analyzer_type = base_data.get('analyzer_type', '')
         diff_func = {
-            'schematic': getattr(diff_analysis, 'diff_schematic', None),
-            'pcb': getattr(diff_analysis, 'diff_pcb', None),
-            'emc': getattr(diff_analysis, 'diff_emc', None),
-            'spice': getattr(diff_analysis, 'diff_spice', None),
+            'schematic': getattr(diff_engine, 'diff_schematic', None),
+            'pcb': getattr(diff_engine, 'diff_pcb', None),
+            'emc': getattr(diff_engine, 'diff_emc', None),
+            'spice': getattr(diff_engine, 'diff_spice', None),
         }.get(analyzer_type)
 
         if diff_func is None:
             continue  # Unknown type -- skip
 
         diff_result = diff_func(base_data, head_data, threshold=1.0)
-        severity = diff_analysis.classify_severity(analyzer_type, diff_result)
+        severity = diff_engine.classify_severity(analyzer_type, diff_result)
         if _SEVERITY_ORDER.get(severity, 0) >= threshold_level:
             return True
 

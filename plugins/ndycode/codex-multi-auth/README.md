@@ -157,7 +157,7 @@ After signing in again, a running native or custom-provider router adopts the sa
 
 ## Release notes
 
-- Current stable: [v2.25.0](docs/releases/v2.25.0.md) — `npm i -g codex-multi-auth`
+- Current stable: [v2.26.0](docs/releases/v2.26.0.md) — `npm i -g codex-multi-auth`
 - Earlier stable lines: [v2.6.0](docs/releases/v2.6.0.md), [v2.5.0](docs/releases/v2.5.0.md)
 - Full release archive: [docs/README.md#release-history](docs/README.md#release-history)
 

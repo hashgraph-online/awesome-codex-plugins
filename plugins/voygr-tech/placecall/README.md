@@ -9,6 +9,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
   -H "X-Client-Surface: gh-repo" \
   -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
+  -H "X-Client-Version: placecall-skill/6.6.0" \
   -d '{"target_phone":"+1XXXXXXXXXX","brief":"Call this restaurant and ask what time the kitchen closes tonight.","language":"en"}'
 ```
 
@@ -49,7 +50,9 @@ number.
 The Claude Code, Codex and Cursor plugins carry the skill and the PlaceCall
 MCP server (`https://api.voygr.tech/mcp`). You sign in once in a browser; the
 first sign-in creates a PlaceCall account with free credits, so there is no key
-to copy. The claude.ai and ChatGPT connectors work the same way. The skill-only
+to copy. The claude.ai connector works the same way, and so does PlaceCall in
+the OpenAI plugin directory, which ChatGPT and Codex share. The directory
+listing carries the MCP server but not the skill. The skill-only
 routes (a copied skill, the Codex skill installer, OpenClaw) call the API with a
 key; see [Get a key](#get-a-key-self-serve-and-set-it). A few options need a
 key on every route: switching off recording, changing the opening notice,
@@ -62,6 +65,11 @@ shell or git:
 /plugin marketplace add voygr-tech/placecall
 /plugin install placecall@placecall
 ```
+For the Anthropic plugin directory, submit the `claude-directory` folder. It
+uses the same MCP server and browser sign-in, with an MCP-only skill. The root
+marketplace retains the API-key instructions for clients that need API-only
+options.
+
 Choose user scope ("Install for you") unless you want it confined to one
 repository. Then run `/mcp`, pick the `placecall` server and sign in. The
 skill answers to `/placecall:placecall`, and Claude uses it on its own when
@@ -133,8 +141,21 @@ One API key for a whole workspace? Add the connector with **No sign-in** and a
 Request header `x-api-key` carrying your key. All calls then bill to that key.
 
 ### ChatGPT
-Add PlaceCall as a custom app in ChatGPT on the web. Custom apps depend on your
-ChatGPT plan.
+PlaceCall is in the ChatGPT plugin directory.
+
+1. Open **Plugins**, search for PlaceCall and press **+** on the one by
+   Voygr Tech, inc, or go straight to
+   <https://chatgpt.com/plugins?search=placecall>.
+2. Sign in with Google or email, then press **Allow** to let ChatGPT use your
+   PlaceCall account. The first sign-in accepts the terms and creates your
+   account with free credits.
+3. In a chat, type `@PlaceCall` and ask for a call.
+
+Added PlaceCall as a custom app before it was listed? Remove that custom app,
+so ChatGPT has one PlaceCall to choose.
+
+If the directory listing isn't available to you, add PlaceCall as a custom
+app in ChatGPT on the web instead. Custom apps depend on your ChatGPT plan.
 
 1. Open **Plugins**, then **+** > **Create plugin** > **Create MCP App**.
 2. Name it `PlaceCall`, server URL `https://api.voygr.tech/mcp`,
@@ -168,7 +189,30 @@ project. The plugin above is still the richer path for Claude Code: it adds
 the full skill to the four tools.
 
 ### Codex
-The same plugin as Claude Code. Run these in your shell:
+PlaceCall is in the OpenAI plugin directory. Type this inside Codex (not your
+shell):
+
+```
+/plugins
+```
+
+Open the **OpenAI Curated** tab, pick PlaceCall and choose **Install plugin**.
+Codex opens ChatGPT: press **Connect**, sign in and press **Allow**. Then start
+a new Codex session and type `@PlaceCall`.
+
+Codex and ChatGPT share the directory, so a PlaceCall you add in ChatGPT
+(<https://chatgpt.com/plugins?search=placecall>) shows up in Codex as
+installed.
+
+If Codex answers `Unknown tool`, open PlaceCall's page in ChatGPT's
+**Plugins** and check that its app is connected; press **Connect** if it is
+not. If `@PlaceCall` ends up in another phone-call app, remove that app.
+
+#### The plugin from this repo
+The directory listing has the MCP server only. The plugin in this repo, the
+same one as Claude Code's, also carries the PlaceCall skill. Install one or
+the other: with both, Codex has two sets of PlaceCall tools. Run these in your
+shell:
 
 ```sh
 codex plugin marketplace add voygr-tech/placecall
@@ -421,9 +465,10 @@ remove or disable that too, for the same reason.
   The free tier is one pot: 250 free calls is 2,500 credits, and suggestions
   spend from the same 2,500.
 - After a call reaches `completed`, the outcome and transcript can land a
-  moment after the status flips, so poll `GET /calls/{id}` until
-  `outcome_type` is non-null. The transcript is complete once
-  `transcript_status` reads `final`, usually a minute or two later.
+  moment after the status flips, so poll `GET /calls/{id}` until `result` is
+  non-null. Any non-null `result` is final for that call. The transcript is
+  complete once `transcript_status` reads `final`, usually a minute or two
+  later.
 - 13 language codes are accepted: `en`, `es`, `fr`, `de`, `hi`, `ru`, `pt`,
   `ja`, `it`, `nl`, `sr`, `tr`, `pl`. The default, `auto`, runs the call in
   English and does not switch mid-call; send `es` for a call in Spanish. `en`
@@ -451,8 +496,8 @@ The skill is instructions your agent follows, through the MCP tools or
   `GET /calls/{id}/recording` follow and read it.
 - Finding a place: `POST /v1/places/suggest` sends your request, plus the name
   and callback number when you give them.
-- Account: `GET /users/me`, `GET /v1/usage`, `GET /checkout/packs`,
-  `GET /skills/{id}/manifest` and `PUT /users/me/limits`.
+- Account: `GET /users/me`, `GET /v1/usage`, `GET /checkout/packs` and
+  `PUT /users/me/limits`.
 - Sign-up by email code: `POST /signup` sends your name and email;
   `POST /signup/verify` sends the code from the email.
 
@@ -462,12 +507,14 @@ access token, not a key; the Gemini CLI extension sends your key in
 two sign-up calls, which send none (`POST /signup/verify` returns one).
 `PLACECALL_API_KEY` goes only to `api.voygr.tech`.
 
-`POST /calls` also sends three headers that never affect auth or billing.
+`POST /calls` also sends four headers that never affect auth or billing.
 `Idempotency-Key` stops a retry dialing twice. `X-Client-Surface` names the
 listing these instructions came from. `X-Client-Agent` names the tool that
 placed the call (`claude-code`, `cursor`, `codex` or `gemini-cli`), worked out
 from which of `CLAUDECODE`, `CURSOR_AGENT`, `CODEX_SANDBOX` and `GEMINI_CLI`
-is set. Only the name is sent, never a variable's value.
+is set. Only the name is sent, never a variable's value. `X-Client-Version`
+names the version of these instructions, so the service can count calls from
+older installed copies before it removes a field.
 
 The skill reads one local file, `~/.codex/placecall.env`, only when
 `PLACECALL_API_KEY` is unset; the email-code sign-up writes it. `install.sh`

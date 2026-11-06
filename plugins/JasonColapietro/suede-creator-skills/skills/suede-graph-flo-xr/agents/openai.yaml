@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Graph Flo XR Skills"
+  short_description: "Evidence-gated plan contract for repo changes"
+  default_prompt: "Use $suede-graph-flo-xr as the orchestration contract for [multi-file scope] in [repo]. In Codex, implement directly with the available agent tools, preserve the skill's safety and evidence gates, do not claim its bundled Claude Workflow ran, and never deploy or publish."
+policy:
+  allow_implicit_invocation: true

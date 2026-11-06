@@ -18,7 +18,7 @@ All prices are in credits. Never convert them to money: what a credit costs depe
 | Video (fast drafts) | `minimax_h3_max_turbo` | ~42 per 5s 1080p | Close to H3 Max quality for half the price. Use it to test motion before paying for hero shots. |
 | Video (cheapest with audio) | `grok_imagine_1_5_lite` / `veo_3_1_lite` | ~16 / ~26 per 5s | Previews and throwaway B-roll. |
 | Image (default, gen + edit) | `nano_banana_2_1` | ~6 (1K), ~8 (2K), ~16 (4K) | T2I #4, Edit tied #3. One model for generating and editing: pass `{ text, images }` to edit. |
-| Image (top quality) | `gpt_image_2_5` | ~11 medium, ~23 high | **#1 T2I and #1 Edit.** Use for hero stills, ads and anything with dense text. |
+| Image (top quality) | `gpt_image_2_6` | ~3 low, ~5 medium, ~6 high | OpenAI's newest, the successor of `gpt_image_2_5` (#1 T2I and #1 Edit). Hero stills, ads, dense text; animated GIFs with `output_format: "gif"`. New, not ranked yet. |
 | Image (cheap) | `muse_image` / `grok_imagine_image` | ~1 / ~3 | Muse is #8 T2I for about 1 credit. |
 | Image (logos, SVG) | `ideogram_vector` | ~14+ | Editable SVG output. |
 | Speech (default) | `eleven_v4` | ~84 per typical line | #2 TTS arena (tied with #1), 90+ languages, audio tags. |
@@ -171,6 +171,7 @@ Use with `varg.imageModel("id")`. Credits are per image.
 | Model ID | Credits (~) | Prompt Format | Rank / notes |
 |----------|-------------|---------------|--------------|
 | `nano_banana_2_1` | ~6 (1K), ~8 (2K), ~16 (4K) | `string` or `{ text, images }` | T2I #4, Edit tied #3. **Default.** Generation and editing in one model: with `images` it edits / keeps the subject consistent. Extreme aspect ratios. |
+| `gpt_image_2_6` | ~3 low, ~5 medium, ~6 high (+1 per edit reference) | `string` or `{ text, images }` | OpenAI's newest, not ranked yet. Same strengths as 2.5 for text-heavy designs, ads and hero stills, plus `reasoning_effort` and animated GIFs (`output_format: "gif"`, 2-16 frames). Sunburst tier: pin `fal:openai/gpt-image-2.6/sunburst/text-to-image` (same price, ~50 s). |
 | `gpt_image_2_5` | ~2 low, ~11 medium, ~23 high, ~43 max | `string` or `{ text, images }` | **#1 T2I and #1 Edit.** Best for text-heavy designs, ads and hero stills. |
 | `grok_imagine_image_2` | ~6 (2K ~8) | `string` or `{ text, images }` | T2I #6. Strong text rendering. |
 | `muse_image` | ~1 | `string` or `{ text, images }` | T2I #8 (Meta). Can look things up and run code for charts, QR codes and diagrams. Best quality per credit. |
@@ -191,6 +192,8 @@ Use with `varg.imageModel("id")`. Credits are per image.
 | `bria_guided_remove_background` | ~4 | image | Background removal with real alpha. |
 | `qwen_angles` | ~9 | `{ text, images }` | New camera angle of a subject. |
 | `topaz` / `seedvr` / `clarity_upscaler` | ~2-17 | image | Upscaling. |
+
+**GPT Image 2.6 skills** (for `gpt_image_2_6`): `gpt-image-2-6` (model guide, measured prices, layout recipes), `gpt-image-gif` (looping GIFs and the sprite-sheet pixel budget), `gpt-image-sticker-pack` (animated stickers for six messengers), `gpt-image-sprite-sheet` (game sprite sheets and atlases), `gpt-image-markup-edit` (circle-and-arrow edits).
 
 ### Image Prompt Examples
 

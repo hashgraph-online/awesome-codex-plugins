@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Code Skills"
+  short_description: "Code review and A-F ship grade in one prompted pass"
+  default_prompt: "Use $suede-code to review and grade this change: P0-P3 findings with file:line evidence, an A-F grade, a deploy-safety gate, and a commit-dirt scan. Say --findings-only or --grade-only to narrow it. Run only when I ask; do not auto-fire on a diff."
+policy:
+  allow_implicit_invocation: false

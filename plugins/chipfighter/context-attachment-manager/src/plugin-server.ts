@@ -12,7 +12,7 @@
 // v0.1-14 — the panel reports Codex's interface language with its calls; it is remembered (language.ts), and the tool
 // list (the tab's title), results and refusals speak it (messages.ts). v0.1-20 — Codex's language setting counts too.
 // v0.3 — cam_view_image, the one tool for the model: in a thread with automatic selection on, it returns the originals
-// of images by id, each after a line naming it (rewrite.ts), so the index knows them as copies. Codex's code mode does
+// of images by id, each after a line naming it (core/words.ts), so the index knows them as copies. Codex's code mode does
 // not list plugin tools to the model; the model learns its name from the context note and looks it up.
 // v0.4 — the same service under Claude Code (CAM_HOST=claude, set by the Claude plugin's manifest): it keeps the same
 // engine running, and serves the Claude plugin's mod (its panel and its routing, hooks/register.js) and the model's
@@ -23,28 +23,36 @@
 // Input: MCP JSON-RPC over stdio. Env: CAM_ENGINE_PORT (default 17891), CAM_NO_ENGINE=1 (tests), CAM_DATA_DIR,
 // CAM_HOST. Output: tool results; <data dir>/plugin-server.jsonl (events and counts only, no conversation content).
 
-import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
-import { fileURLToPath } from "node:url";
-import { codexHome } from "./codexconfig.ts";
-import { bindThread, isUserThread, newThreads, resolveThread } from "./binding.ts";
-import { claudeStartedAt, loadClaudeIndex } from "./claude-index.ts";
+import { codexHome } from "./adapters/codex/codexconfig.ts";
+import { bindThread, isUserThread, newThreads, resolveThread } from "./adapters/codex/binding.ts";
+import { claudeStartedAt, loadClaudeIndex } from "./adapters/claude/claude-index.ts";
 import { DEFAULT_PORT, ensureEngine } from "./engine.ts";
-import { isEntryPoint } from "./entry.ts";
-import { currentLang, langOf, rememberLang, type Lang } from "./language.ts";
-import { say } from "./messages.ts";
-import { migrateDataOnce } from "./migrate-data.ts";
-import { applySelection, claudeImageFor, imageFor, loadPanelState, type ClaudePanelOptions, type PanelState } from "./panel-state.ts";
-import { claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "./paths.ts";
-import { fetchedLabel, fetchWords } from "./rewrite.ts";
-import { claudeSelection, effectiveSelection, ensureAutoDefault } from "./selection.ts";
-import { connectDirectly, useEngine, usesEngine } from "./setup.ts";
-import { hasRollout, loadThreadIndex, readThreadHistory, sessionMetaOf, setPixelCache, sideChatOrigin } from "./thread-index.ts";
-import { threadTitle } from "./thread-names.ts";
+import { isEntryPoint } from "./core/entry.ts";
+import { currentLang, rememberLang } from "./adapters/codex/language.ts";
+import { langOf } from "./core/language.ts";
+import type { Lang } from "./core/lang.ts";
+import { say } from "./core/messages.ts";
+import { migrateDataOnce } from "./core/migrate-data.ts";
+import { panelHtml } from "./panel/page.ts";
+import { applySelection, imageFor, loadPanelState } from "./adapters/codex/panel.ts";
+import { claudeImageFor, type ClaudePanelOptions } from "./adapters/claude/panel.ts";
+import type { PanelState } from "./panel/panel-state.ts";
+import { claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "./core/paths.ts";
+import { fetchedLabel, fetchWords } from "./core/words.ts";
+import { claudeSelection } from "./adapters/claude/selection.ts";
+import { effectiveSelection } from "./adapters/codex/selection.ts";
+import { ensureAutoDefault, ensureStableIds, stableIdsSince } from "./core/selection.ts";
+import { connectDirectly, useEngine, usesEngine } from "./adapters/codex/setup.ts";
+import { hasRollout, loadThreadIndex, readThreadHistory, sessionMetaOf, sideChatOrigin } from "./adapters/codex/thread-index.ts";
+import { setPixelCache } from "./core/pixels.ts";
+import { threadTitle } from "./adapters/codex/thread-names.ts";
+import { latestSession, openRequestIndex, seenImage } from "./core/request-index.ts";
+import { corePlatformOf } from "./platforms.ts";
 
 type Json = Record<string, any>;
-const here = dirname(fileURLToPath(import.meta.url));
 // Kept fixed: Codex Desktop on Windows may show a blank panel after a resource URI changes (openai/codex#47512).
 export const PANEL_URI = "ui://codex-attachment-manager/panel.html";
 export const PANEL_MIME = "text/html;profile=mcp-app";
@@ -92,7 +100,7 @@ export function toolsFor(lang: Lang) {
       inputSchema: { type: "object", properties: { ...shared, target: { type: "string" } }, required: ["target"] },
       _meta: APP_ONLY,
     },
-    // For the model (no app-only visibility); its words are text for the model, so they live in rewrite.ts.
+    // For the model (no app-only visibility); its words are text for the model, so they live in core/words.ts.
     {
       name: "cam_view_image",
       title: fetchWords(lang).title,
@@ -107,7 +115,9 @@ export const TOOLS = toolsFor("zh");
 // v0.4: under Claude Code only the model's fetch tool is listed. The Claude panel (the mod) reads and changes a
 // session's state through the engine (proxy.ts, claudePanelApi): a mod reaches an MCP server only through Claude Code's
 // tool permissions, a prompt for every call, and Claude Code registers no app-only tool at all.
-export const HOST: "codex" | "claude" = process.env.CAM_HOST === "claude" ? "claude" : "codex";
+// v0.11: or a platform using the core alone (platforms.ts), named by its MCP configuration (CAM_HOST=workbuddy, …):
+// only the model's fetch tool too.
+export const HOST: string = corePlatformOf(process.env.CAM_HOST) ? process.env.CAM_HOST! : process.env.CAM_HOST === "claude" ? "claude" : "codex";
 export const claudeToolsFor = (lang: Lang) => toolsFor(lang).filter((tool) => tool.name === "cam_view_image");
 
 // A stack of pictures, drawn for light and dark themes (Codex takes https or data URLs only).
@@ -120,7 +130,7 @@ export const serverInfo = (lang: Lang) => ({ name: "codex-attachment-manager", t
 
 export function readResource(uri: string): Json {
   if (uri !== PANEL_URI) throw new Error(`unknown resource ${uri}`);
-  const text = readFileSync(join(here, "panel.html"), "utf8");
+  const text = panelHtml();
   // The page is self-contained: images arrive as data URLs through tool calls, nothing is fetched.
   return { contents: [{ uri, mimeType: PANEL_MIME, text, _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] }, prefersBorder: false } } }] };
 }
@@ -257,8 +267,9 @@ export function callClaudeTool(name: string, args: Json, options: ClaudePanelOpt
   if (name === "cam_view_image") {
     const words = fetchWords(lang);
     const ids: string[] = Array.isArray(args.ids) ? args.ids.map(String) : typeof args.id === "string" ? [args.id] : [];
-    const index = loadClaudeIndex(sessionId, options.home);
-    if (!claudeSelection(sessionId, claudeSelectionDirOf(options.dataRoot ?? dataDir()), claudeStartedAt(index)).auto) {
+    const selectionDir = claudeSelectionDirOf(options.dataRoot ?? dataDir());
+    const index = loadClaudeIndex(sessionId, options.home, stableIdsSince(selectionDir));
+    if (!claudeSelection(sessionId, selectionDir, claudeStartedAt(index), index.previous).auto) {
       log({ event: "fetch", host: "claude", sessionId, ids, refused: "automatic selection is off" });
       return { content: [{ type: "text", text: words.off }], isError: true };
     }
@@ -280,16 +291,44 @@ export function callClaudeTool(name: string, args: Json, options: ClaudePanelOpt
   throw new Error(`unknown tool ${name}`);
 }
 
+// v0.11: the model's fetch tool on a platform using the core alone. The images are the ones the engine kept from the
+// session's requests (core/request-index.ts); the session is the one whose conversation went out last, the request the
+// model's call came from. Automatic selection is always on there.
+export function callPlatformTool(platform: string, name: string, args: Json, root = dataDir()): Json {
+  const lang = langOf(args.lang) ?? currentLang();
+  if (name !== "cam_view_image") throw new Error(`unknown tool ${name}`);
+  const words = fetchWords(lang);
+  const ids: string[] = Array.isArray(args.ids) ? args.ids.map(String) : typeof args.id === "string" ? [args.id] : [];
+  const session = latestSession(platform, root);
+  if (!session) throw new Error(say(lang, "call.noThread"));
+  const index = openRequestIndex(platform, session, root);
+  const content: Json[] = [];
+  const found: string[] = [];
+  for (const asked of ids) {
+    const id = asked.trim().toUpperCase();
+    const image = seenImage(index, id, root);
+    if (!image) { content.push({ type: "text", text: words.missing(asked) }); continue; }
+    if (!image.data) { content.push({ type: "text", text: words.unavailable(id) }); continue; }
+    const { seen } = image;
+    content.push({ type: "text", text: fetchedLabel({ id: seen.id, name: null, label: null, kind: seen.kind, turn: seen.turn, width: seen.width, height: seen.height }, lang) }, { type: "image", data: image.data, mimeType: seen.mime ?? "image/png" });
+    found.push(id);
+  }
+  log({ event: "fetch", host: platform, session, ids, found });
+  return { content, isError: ids.length > 0 && !found.length };
+}
+
 function main(): void {
   migrateDataOnce(); // v0.1-15: Windows moved the data folder
   // v0.6: the panel may read a selection before the engine has started: the same start for both (selection.ts).
   ensureAutoDefault(selectionDirOf());
   ensureAutoDefault(claudeSelectionDirOf());
+  // v0.10: ids of Claude sessions resumed after a compaction stay as they were from now on (claude-index.ts).
+  ensureStableIds(claudeSelectionDirOf());
   const send = (message: Json) => process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...message })}\n`);
   let engineState = "";
   const supervise = async () => {
     if (process.env.CAM_NO_ENGINE === "1") return;
-    const result = await ensureEngine({ port: enginePort });
+    const result = await ensureEngine({ port: enginePort, client: HOST });
     const replaced = result.replaced ? { replacedPid: result.replaced.pid, replacedBuild: result.replaced.build ?? null } : {};
     if (result.state !== "running" || engineState !== "running") log({ event: "engine", host: HOST, state: result.state, enginePid: result.health?.pid ?? null, build: result.health?.build ?? null, ...replaced });
     engineState = result.state;
@@ -311,7 +350,7 @@ function main(): void {
     if (method === "initialize") {
       send({ id, result: { protocolVersion: params.protocolVersion ?? "2025-06-18", capabilities: { tools: {}, resources: {} }, serverInfo: serverInfo(currentLang()) } });
     } else if (method === "tools/list") {
-      send({ id, result: { tools: HOST === "claude" ? claudeToolsFor(currentLang()) : toolsFor(currentLang()) } });
+      send({ id, result: { tools: HOST === "codex" ? toolsFor(currentLang()) : claudeToolsFor(currentLang()) } });
     } else if (method === "resources/list") {
       send({ id, result: { resources: [{ uri: PANEL_URI, name: say(currentLang(), "resource.name"), mimeType: PANEL_MIME }] } });
     } else if (method === "resources/templates/list") {
@@ -326,7 +365,7 @@ function main(): void {
     } else if (method === "tools/call") {
       const started = performance.now();
       try {
-        const result = HOST === "claude" ? callClaudeTool(params.name, params.arguments ?? {}) : callTool(params.name, params.arguments ?? {}, params._meta);
+        const result = HOST === "claude" ? callClaudeTool(params.name, params.arguments ?? {}) : HOST === "codex" ? callTool(params.name, params.arguments ?? {}, params._meta) : callPlatformTool(HOST, params.name, params.arguments ?? {});
         const ms = Math.round(performance.now() - started);
         // The open panel reads its state every few seconds and loads each image once; only changes, and slow calls
         // (v0.1-11), are worth a line.

@@ -1,0 +1,13 @@
+{
+  "origin": "https://example.test",
+  "pages": [
+    {
+      "url": "https://example.test/en",
+      "html": "<head><title>Handmade bowl</title><link rel=\"alternate\" hreflang=\"en\" href=\"https://example.test/en\"><link rel=\"alternate\" hreflang=\"fr\" href=\"https://example.test/fr\"><script type=\"application/ld+json\">{\"@type\": \"Product\", \"name\": \"Handmade bowl\", \"image\": \"https://example.test/bowl.jpg\", \"offers\": {\"@type\": \"Offer\", \"price\": \"24.50\", \"priceCurrency\": \"USD\", \"availability\": \"https://schema.org/InStock\"}}</script></head><body><h1>Handmade bowl</h1><img src=\"/bowl.jpg\" alt=\"Handmade ceramic bowl\" width=\"640\" height=\"480\"></body>"
+    },
+    {
+      "url": "https://example.test/fr",
+      "html": "<head><title>Bol artisanal</title><link rel=\"alternate\" hreflang=\"en\" href=\"https://example.test/en\"><link rel=\"alternate\" hreflang=\"fr\" href=\"https://example.test/fr\"></head><body><h1>Bol artisanal</h1></body>"
+    }
+  ]
+}

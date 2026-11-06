@@ -48,7 +48,7 @@ POST /v2/image
 }
 ```
 
-Image editing: send a source image in `files` with `nano_banana_2_1` or `gpt_image_2_5` (both edit when `files` are present). Upscaling: `clarity_upscaler`, `aura_sr`, `topaz`.
+Image editing: send a source image in `files` with `nano_banana_2_1` or `gpt_image_2_6` (both edit when `files` are present). Upscaling: `clarity_upscaler`, `aura_sr`, `topaz`.
 
 ### Generate Video
 

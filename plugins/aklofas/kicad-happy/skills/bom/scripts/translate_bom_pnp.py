@@ -2,12 +2,12 @@
 """Translate BOM and Pick-and-Place (CPL) files into JLCPCB upload format.
 
 Two subcommands:
-    bom  — read Altium xlsx or KiCad CSV BOM, write JLCPCB BOM CSV
+    bom  — read a KiCad or Altium CSV BOM, write JLCPCB BOM CSV
     pnp  — read CPL CSV, write JLCPCB Pick-and-Place CSV
            (with optional --bom filter to drop CPL rows whose designators
             don't appear in the BOM — avoids JLCPCB upload rejection)
 
-Stdlib-only except optional ``openpyxl`` for Altium xlsx input.
+Stdlib-only. xlsx input is not supported: save the BOM as CSV first.
 
 Inspired by MattStarfield/kicad-happy fork commits fe440c8 + 8d8d06c.
 Clean reimplementation under the kicad-happy MIT license.
@@ -20,7 +20,6 @@ import csv
 import json
 import sys
 from pathlib import Path
-from typing import Iterator
 
 
 # --- Header field synonyms (loose-match dictionaries) -----------------------
@@ -267,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="cmd", required=True)
 
     p_bom = sub.add_parser("bom", help="Translate a BOM file to JLCPCB format.")
-    p_bom.add_argument("input", help="Input BOM file (.csv or .xlsx).")
+    p_bom.add_argument("input", help="Input BOM file (.csv).")
     p_bom.add_argument("-o", "--output", required=True, help="Output CSV path.")
 
     p_pnp = sub.add_parser("pnp", help="Translate a CPL file to JLCPCB format.")
@@ -286,6 +285,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "self-test":
         return _self_test()
     if args.cmd == "bom":
+        if Path(args.input).suffix.lower() in (".xlsx", ".xls"):
+            parser.error(f"{args.input}: xlsx input is not supported; save the BOM as CSV and rerun")
         stats = translate_bom(args.input, args.output)
     elif args.cmd == "pnp":
         stats = translate_pnp(args.input, args.output, bom_filter_path=args.bom)
@@ -297,9 +298,16 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _read_csv_rows(path: str) -> list[list[str]]:
-    """Read a CSV file into a list of rows (each row a list of strings)."""
-    with open(path, newline="", encoding="utf-8-sig") as f:
-        return [list(row) for row in csv.reader(f)]
+    """Read a CSV file into a list of rows (each row a list of strings).
+
+    UTF-8 (with or without a BOM); a file that is not UTF-8 is read as cp1252,
+    the encoding Excel and Altium use on Windows (its five undefined bytes become U+FFFD)."""
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as f:
+            return [list(row) for row in csv.reader(f)]
+    except UnicodeDecodeError:
+        with open(path, newline="", encoding="cp1252", errors="replace") as f:
+            return [list(row) for row in csv.reader(f)]
 
 
 def translate_bom(input_path: str, output_path: str) -> dict:

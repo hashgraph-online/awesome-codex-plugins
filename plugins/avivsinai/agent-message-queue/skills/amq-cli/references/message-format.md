@@ -66,7 +66,7 @@ Notes:
 | `decision` | - | normal | Record a decision. |
 | `brainstorm` | - | normal | Explore options. |
 | `status` | - | low | Report progress or state. |
-| `todo` | - | normal | Assign work. |
+| `todo` | `status` | normal | Assign work. |
 
 ## Integration metadata
 

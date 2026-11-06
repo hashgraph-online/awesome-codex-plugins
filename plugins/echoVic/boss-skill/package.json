@@ -52,7 +52,9 @@
     "test:watch": "vitest",
     "provenance:generate": "node scripts/provenance.js generate",
     "provenance:verify": "node scripts/provenance.js verify",
-    "release": "node scripts/release.js"
+    "release": "node scripts/release.js",
+    "dsh:build": "node scripts/build-dsh.js",
+    "dsh:check": "node scripts/build-dsh.js --check"
   },
   "engines": {
     "node": ">=22.18"

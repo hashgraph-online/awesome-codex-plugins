@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Agent Teams Skills"
+  short_description: "Coordinate safe delivery and contribution lanes"
+  default_prompt: "Use $suede-agent-teams to orchestrate [task]. Define the Team Contract and lane map, run WIP collision detection, open parallel lanes only where safe, allow up to three genuinely different fixes per failing check and stop early when the same root cause repeats, then close with a signed evidence handoff. For a recurring public-repository contribution program, load the contribution reference, lease each task before work starts, keep publication disabled by default, and package conventional outward artifacts behind the exact authority boundary."
+policy:
+  allow_implicit_invocation: true

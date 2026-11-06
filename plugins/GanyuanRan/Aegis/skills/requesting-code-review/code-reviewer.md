@@ -186,6 +186,16 @@ browser/device/state evidence as a gap; keep tiny UI changes bounded.
 - Acknowledge strengths
 - Give clear verdict
 - Distinguish missing evidence from missing code
+- Attribute material findings when first stated to inspected code, executed
+  tests, runtime observations, documentation or inference, with covered scope.
+  A search miss alone proves no absence. Code describes implementation; approved
+  requirements define obligations. Report conflicts without rewriting either.
+- Judge structural improvement by responsibilities, branches, dependencies and
+  duplication, not line reduction alone. Joining statements, deleting useful
+  explanation or moving code solely to meet counts is not improvement. Unchanged
+  statement totals do not invalidate a cohesive extraction with clearer owners.
+  Use `../using-aegis/references/complexity-governance.md` for material pressure
+  or a complexity-improvement claim; recommend a repair within existing authority.
 - Call out Design Defect / Implementation Drift, compatibility alias mapping,
   and retirement debt explicitly
 

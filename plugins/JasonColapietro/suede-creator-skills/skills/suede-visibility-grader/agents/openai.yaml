@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Visibility Grader Skills"
+  short_description: "Fast A-F promotion-readiness grade for a page"
+  default_prompt: "Use $suede-visibility-grader to grade [URL or page]. Score findability, first-screen clarity, CTA pull, proof quality, AI citation readiness, and design signal. Return an A-F grade per lane with evidence, up to five ranked fixes with the KPI each should move, and a ship gate."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "memtomem Update"
+  short_description: "Save durable session and commit learnings"
+  default_prompt: "Use $memtomem-update to review this session and recent commits for durable memories."
+policy:
+  allow_implicit_invocation: false

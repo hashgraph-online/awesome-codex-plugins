@@ -1,0 +1,34 @@
+[
+ {
+  "id": "L1",
+  "core": true,
+  "question": "Is there a visible source, or a cast shadow that shows where the main light comes from?",
+  "pass_example": "Window at frame left, or nose shadow falling frame-right",
+  "fail_example": "Flat even light, no shadow on subject or ground",
+  "ct_rule": "Crop hides all shadow areas, subject under 1/8 of frame height"
+ },
+ {
+  "id": "L2",
+  "core": true,
+  "needs": "direction",
+  "question": "Does the key come from the side on the want card?",
+  "pass_example": "Want camera-left: lit cheek frame-left, or in a room: the wall or floor nearest the source brighter on frame-left, furniture shadows falling frame-right",
+  "fail_example": "Key from the other side, or frontal, or no single direction exists: flat even light, or two equally strong sources with no cast shadow",
+  "ct_rule": "You cannot see it: the lit side and shadow side are too small or too dark to read, or the crop hides them"
+ },
+ {
+  "id": "L3",
+  "needs": "hardness",
+  "question": "Name one shadow edge. Is it crisp or gradual, as asked?",
+  "pass_example": "Want hard: crisp line along nose, wall or floor",
+  "fail_example": "Want hard: gradient across the whole cheek, or no shadow edge exists anywhere because the light is flat",
+  "ct_rule": "You cannot see it: the area is too small or too dark, motion blur or heavy compression hides the edge, or the crop hides it"
+ },
+ {
+  "id": "L5",
+  "question": "Could something in this scene produce this light, and do shadows agree with each other?",
+  "pass_example": "Street lamp visible, shadows fall away from it",
+  "fail_example": "Rim light from nowhere, shadows in two directions",
+  "ct_rule": "Tight close-up, no environment"
+ }
+]

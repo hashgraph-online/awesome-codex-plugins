@@ -1,0 +1,43 @@
+{
+  "name": "keep-mac-awake",
+  "version": "1.0.6",
+  "description": "Lets your agent keep a MacBook with Apple silicon awake with the lid closed while long tasks run, through the keepmacawake command of the Keep Mac Awake app: it starts a timed session before long work, stops it after, and tells you when the app needs your attention. Requires the Keep Mac Awake app, a paid app with a free trial.",
+  "author": {
+    "name": "Bart Dudzic",
+    "email": "hi@keepmacawake.com",
+    "url": "https://keepmacawake.com"
+  },
+  "homepage": "https://keepmacawake.com",
+  "repository": "https://github.com/bartdudzic/keepmacawake",
+  "license": "MIT",
+  "keywords": [
+    "macos",
+    "macbook",
+    "lid-closed",
+    "keep-awake",
+    "sleep",
+    "long-running-tasks",
+    "remote-control"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Keep Mac Awake",
+    "shortDescription": "Keep a MacBook awake with the lid closed while long tasks run",
+    "longDescription": "Before long work, the agent starts a timed Keep Mac Awake session, so the MacBook keeps running with the lid closed while you check in from your phone; it stops the session when the work is done. It always asks before a session without a time limit, battery use, installing the app and buying. Requires the Keep Mac Awake app on a Mac with Apple silicon and macOS 26 or later.",
+    "developerName": "Bart Dudzic",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://keepmacawake.com",
+    "privacyPolicyURL": "https://keepmacawake.com/privacy.md",
+    "termsOfServiceURL": "https://github.com/bartdudzic/keepmacawake/blob/main/TERMS.md",
+    "defaultPrompt": [
+      "Run the full test suite and fix what fails. I'm closing the lid and will check back from my phone.",
+      "Keep the Mac awake for the next 2 hours while this migration runs."
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

@@ -1,23 +1,64 @@
-# Claude Code Skills & Plugins — Agent Skills for Every Coding Tool
+# Claude Code Skills & Plugins
 
-**407 production-ready Claude Code skills, plugins, and agent skills for 13 AI coding tools.**
-
-The most comprehensive open-source library of Claude Code skills and agent plugins — also works with OpenAI Codex, Gemini CLI, Cursor, and 9 more coding agents. Reusable expertise packages covering engineering, DevOps, marketing (incl. AEO — Answer Engine Optimization for LLM citation), security (PreToolUse hooks), compliance, C-level advisory (incl. founder-mode CFO/CMO/CRO/CPO/COO/CHRO/CISO/GC/CDO/CAIO/CCO/VPE personas + 21 /c-level-agents:* slash commands), productivity (capture/email/reflect/weekly-review/deep-work/meetings), an academic research stack (litreview/grants/dossier/patent/syllabus/pulse/notebooklm/deep-research + hybrid router), and enterprise Research Operations (clinical-research/research-finance/market-research/product-research, v2.9.0).
-
-**Works with:** Claude Code · OpenAI Codex · Gemini CLI · OpenClaw · Hermes Agent[^hermes] · Mistral Vibe[^vibe] · Cursor · Aider · Windsurf · Kilo Code · OpenCode · Augment · Antigravity
-
-[^hermes]: Hermes Agent is **BYO-sync tier**: the repo ships a pre-generated `.hermes/skills/claude-skills/` tree, but you run `python scripts/sync-hermes-skills.py` once locally to install into `~/.hermes/skills/`. Uses the same agentskills.io SKILL.md standard — no format conversion.
-[^vibe]: Mistral Vibe is also **BYO-sync tier**: the repo ships a pre-generated `.vibe/skills/claude-skills/` tree, run `./scripts/vibe-install.sh` once locally to install into `~/.vibe/skills/`. Same agentskills.io SKILL.md standard — no format conversion. Docs: <https://docs.mistral.ai/mistral-vibe/agents-skills>.
+**411 production-ready skills for Claude Code and 12 other coding agents, covering engineering, product, marketing, compliance, finance and the C-suite. We test whether each skill loads when you ask in plain words, and [publish the results](VERIFIED.md).**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](https://opensource.org/licenses/MIT)
-[![Skills](https://img.shields.io/badge/Skills-407-brightgreen?style=for-the-badge)](#skills-overview)
-[![Agents](https://img.shields.io/badge/Agents-127-blue?style=for-the-badge)](#agents)
+[![Skills](https://img.shields.io/badge/Skills-411-brightgreen?style=for-the-badge)](#skills-overview)
+[![Agents](https://img.shields.io/badge/Agents-129-blue?style=for-the-badge)](#agents)
 [![Personas](https://img.shields.io/badge/Personas-7-purple?style=for-the-badge)](#personas)
-[![Commands](https://img.shields.io/badge/Commands-165-orange?style=for-the-badge)](#commands)
+[![Commands](https://img.shields.io/badge/Commands-169-orange?style=for-the-badge)](#commands)
 [![Stars](https://img.shields.io/github/stars/alirezarezvani/claude-skills?style=for-the-badge)](https://github.com/alirezarezvani/claude-skills/stargazers)
 [![SkillCheck Validated](https://img.shields.io/badge/SkillCheck-Validated-4c1?style=for-the-badge)](https://getskillcheck.com)
 
-> **5,200+ GitHub stars** — the most comprehensive open-source Claude Code skills & agent plugins library.
+**Works with:** Claude Code · OpenAI Codex · Gemini CLI · OpenClaw · Hermes Agent[^hermes] · Mistral Vibe[^vibe] · Cursor · Aider · Windsurf · Kilo Code · OpenCode · Augment · Antigravity
+
+## Install in one minute
+
+**Claude Code**
+
+```bash
+/plugin marketplace add alirezarezvani/claude-skills
+/plugin install engineering-skills@claude-code-skills
+```
+
+**Codex, Cursor, Gemini CLI, Copilot and other agents** (the open-source [`skills`](https://github.com/vercel-labs/skills) installer)
+
+```bash
+npx skills add alirezarezvani/claude-skills
+```
+
+More options for each tool are under [Quick Install](#quick-install).
+
+## Pick your role
+
+| You are | Install | You get |
+|---|---|---|
+| Software engineer | `engineering-skills` | Architecture, code review, TDD, frontend, backend, DevOps, security, QA |
+| Platform or AI engineer | `engineering-advanced-skills` | Agent design, RAG, MCP servers, CI/CD, observability, SLOs, evals |
+| Product manager | `product-skills` | Discovery, RICE, PRDs, user stories, roadmaps, UX research |
+| Delivery lead or scrum master | `pm-skills` | Sprint health, Jira and Confluence, flow metrics, forecasts |
+| Marketer | `marketing-skills` | SEO, answer-engine optimization, copywriting, CRO, email, paid ads |
+| Founder or executive | `c-level-skills` | CEO, CTO, CFO, CMO, CRO and other advisors, board prep, hard calls |
+| Regulated industry | `ra-qm-skills` | ISO 13485, EU MDR, FDA, ISO 27001, SOC 2, GDPR, CAPA, risk files |
+| Finance | `finance-skills` | DCF, budgets, SaaS metrics, month-end close |
+
+Install with `/plugin install <name>@claude-code-skills`.
+
+## Start with these
+
+Each of these loaded on every plain-language test prompt. [See all verified skills](VERIFIED.md).
+
+| Skill | What it does | Install |
+|---|---|---|
+| [agent-run-forensics](engineering/agent-run-forensics/) | Checks what your agent actually did against what it said it did, from the session transcript | `agent-run-forensics` |
+| [human-gate](engineering/human-gate/) | Refuses to ship a plan, spec or migration until a named person has reviewed it and no blocker is open | `human-gate` |
+| [skill-retro](engineering/skill-retro/) | Grades your skills from your own past sessions and proposes only the edits the evidence supports | `skill-retro` |
+| [i18n-localization](engineering/i18n-localization/) | Finds missing keys, broken placeholders and wrong plural forms before a language ships | `i18n-localization` |
+| [month-end-close](finance/month-end-close/) | Runs the close calendar, proves reconciliations and refuses boilerplate variance explanations | `month-end-close` |
+| [cmmc-readiness](ra-qm-team/cmmc-readiness/) | Scores CMMC 2.0 Level 2 readiness, SPRS and POA&M close-out | `cmmc-readiness` |
+
+[^hermes]: Hermes Agent is **BYO-sync tier**: the repo ships a pre-generated `.hermes/skills/claude-skills/` tree, but you run `python scripts/sync-hermes-skills.py` once locally to install into `~/.hermes/skills/`. Uses the same agentskills.io SKILL.md standard — no format conversion.
+[^vibe]: Mistral Vibe is also **BYO-sync tier**: the repo ships a pre-generated `.vibe/skills/claude-skills/` tree, run `./scripts/vibe-install.sh` once locally to install into `~/.vibe/skills/`. Same agentskills.io SKILL.md standard — no format conversion. Docs: <https://docs.mistral.ai/mistral-vibe/agents-skills>.
 
 ---
 
@@ -26,10 +67,10 @@ The most comprehensive open-source library of Claude Code skills and agent plugi
 Claude Code skills (also called agent skills or coding agent plugins) are modular instruction packages that give AI coding agents domain expertise they don't have out of the box. Each skill includes:
 
 - **SKILL.md** — structured instructions, workflows, and decision frameworks
-- **Python tools** — 706 CLI scripts (all stdlib-only, zero pip installs)
-- **Reference docs** — 823 templates, checklists, and domain-specific knowledge files
+- **Python tools** — 807 CLI scripts (all stdlib-only, zero pip installs)
+- **Reference docs** — 917 templates, checklists, and domain-specific knowledge files
 
-**One repo, thirteen platforms.** Works natively as Claude Code plugins, Codex agent skills, Gemini CLI skills, Hermes Agent skills, Mistral Vibe skills, and converts to more tools via `scripts/convert.sh`. All 792 Python tools run anywhere Python runs.
+**One repo, thirteen platforms.** Works natively as Claude Code plugins, Codex agent skills, Gemini CLI skills, Hermes Agent skills, Mistral Vibe skills, and converts to more tools via `scripts/convert.sh`. All 807 Python tools run anywhere Python runs.
 
 ### Skills vs Agents vs Personas
 
@@ -48,7 +89,59 @@ All three work together. See [Orchestration](#orchestration) for how to combine 
 
 > **Windows users:** clone with `git clone -c core.symlinks=true` (Developer Mode enabled) — otherwise the `.gemini/`/`.codex/`/`.vibe/`/`.hermes/` mirror trees check out as 1-line pointer text files instead of skills — and set `PYTHONUTF8=1` so tools that print Unicode don't crash on legacy-codepage consoles. Details: [INSTALLATION.md → Windows Notes](INSTALLATION.md#windows-notes).
 
-### Gemini CLI (New)
+### Claude Code (Recommended)
+
+```bash
+# Add the marketplace
+/plugin marketplace add alirezarezvani/claude-skills
+
+# Install by domain
+/plugin install engineering-skills@claude-code-skills          # core engineering
+/plugin install engineering-advanced-skills@claude-code-skills  # POWERFUL-tier
+/plugin install product-skills@claude-code-skills               # product
+/plugin install marketing-skills@claude-code-skills             # marketing
+/plugin install ra-qm-skills@claude-code-skills                 # regulatory/quality
+/plugin install pm-skills@claude-code-skills                    # project management
+/plugin install c-level-skills@claude-code-skills               # C-level advisory (full C-suite)
+/plugin install business-growth-skills@claude-code-skills       # business & growth
+/plugin install finance-skills@claude-code-skills               # finance
+
+# Or install a standalone plugin
+/plugin install pw@claude-code-skills                           # Playwright testing toolkit
+/plugin install self-improving-agent@claude-code-skills         # Auto-memory curation
+/plugin install karpathy-coder@claude-code-skills               # Coding-discipline reviewer
+/plugin install grill-me@claude-code-skills                     # Plan interrogator
+```
+
+Only names listed in [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) can be installed. Most skills (for example `skill-security-auditor` or `content-creator`) ship inside a domain bundle, so install the bundle that contains them. Run `/plugin` and open the marketplace to browse every installable name.
+
+### Claude Code (Recommended)
+
+```bash
+# Add the marketplace
+/plugin marketplace add alirezarezvani/claude-skills
+
+# Install by domain
+/plugin install engineering-skills@claude-code-skills          # core engineering
+/plugin install engineering-advanced-skills@claude-code-skills  # POWERFUL-tier
+/plugin install product-skills@claude-code-skills               # product
+/plugin install marketing-skills@claude-code-skills             # marketing
+/plugin install ra-qm-skills@claude-code-skills                 # regulatory/quality
+/plugin install pm-skills@claude-code-skills                    # project management
+/plugin install c-level-skills@claude-code-skills               # C-level advisory (full C-suite)
+/plugin install business-growth-skills@claude-code-skills       # business & growth
+/plugin install finance-skills@claude-code-skills               # finance
+
+# Or install a standalone plugin
+/plugin install pw@claude-code-skills                           # Playwright testing toolkit
+/plugin install self-improving-agent@claude-code-skills         # Auto-memory curation
+/plugin install karpathy-coder@claude-code-skills               # Coding-discipline reviewer
+/plugin install grill-me@claude-code-skills                     # Plan interrogator
+```
+
+Only names listed in [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) can be installed. Most skills (for example `skill-security-auditor` or `content-creator`) ship inside a domain bundle, so install the bundle that contains them. Run `/plugin` and open the marketplace to browse every installable name.
+
+### Gemini CLI
 
 ```bash
 # Clone the repository
@@ -62,32 +155,6 @@ cd claude-skills
 > activate_skill(name="senior-architect")
 ```
 
-### Claude Code (Recommended)
-
-```bash
-# Add the marketplace
-/plugin marketplace add alirezarezvani/claude-skills
-
-# Install by domain
-/plugin install engineering-skills@claude-code-skills          # 24 core engineering
-/plugin install engineering-advanced-skills@claude-code-skills  # 25 POWERFUL-tier
-/plugin install product-skills@claude-code-skills               # 12 product skills
-/plugin install marketing-skills@claude-code-skills             # 43 marketing skills
-/plugin install ra-qm-skills@claude-code-skills                 # 12 regulatory/quality
-/plugin install pm-skills@claude-code-skills                    # 6 project management
-/plugin install c-level-skills@claude-code-skills               # 28 C-level advisory (full C-suite)
-/plugin install business-growth-skills@claude-code-skills       # 4 business & growth
-/plugin install finance-skills@claude-code-skills               # 2 finance (analyst + SaaS metrics)
-
-# Or install a standalone plugin
-/plugin install pw@claude-code-skills                           # Playwright testing toolkit
-/plugin install self-improving-agent@claude-code-skills         # Auto-memory curation
-/plugin install karpathy-coder@claude-code-skills               # Coding-discipline reviewer
-/plugin install grill-me@claude-code-skills                     # Plan interrogator
-```
-
-Only names listed in [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json) can be installed. Most skills (for example `skill-security-auditor` or `content-creator`) ship inside a domain bundle, so install the bundle that contains them. Run `/plugin` and open the marketplace to browse every installable name.
-
 ### OpenAI Codex
 
 ```bash
@@ -98,7 +165,8 @@ npx agent-skills-cli add alirezarezvani/claude-skills --agent codex
 ### OpenClaw
 
 ```bash
-bash <(curl -s https://raw.githubusercontent.com/alirezarezvani/claude-skills/main/scripts/openclaw-install.sh)
+git clone https://github.com/alirezarezvani/claude-skills.git
+cd claude-skills && ./scripts/openclaw-install.sh
 ```
 
 ### Manual Installation
@@ -112,7 +180,7 @@ git clone https://github.com/alirezarezvani/claude-skills.git
 
 ## Multi-Tool Support (New)
 
-**Convert all 345 skills to 9 AI coding tools** with a single script:
+**Convert the skills for 9 more AI coding tools** with a single script:
 
 | Tool | Format | Install |
 |------|--------|---------|
@@ -139,11 +207,11 @@ git clone https://github.com/alirezarezvani/claude-skills.git
 ./scripts/install.sh --tool aider --target . --force
 
 # 3. Verify
-find .cursor/rules -name "*.mdc" | wc -l  # Should show 346
+find .cursor/rules -name "*.mdc" | wc -l  # one file per skill
 ```
 
 **Each tool gets:**
-- ✅ All 345 skills converted to native format
+- ✅ All skills converted to native format
 - ✅ Per-tool README with install/verify/update steps
 - ✅ Support for scripts, references, templates where applicable
 - ✅ Zero manual conversion work
@@ -154,17 +222,17 @@ Run `./scripts/convert.sh --tool all` to generate tool-specific outputs locally.
 
 ## Skills Overview
 
-**407 production-ready skills across 20 domains:**
+**411 production-ready skills across 20 domains:**
 
 | Domain | Skills | Highlights | Details |
 |--------|--------|------------|---------|
 | **🔧 Engineering — Core** | 54 | Architecture, frontend, backend, fullstack, QA, DevOps, SecOps, AI/ML, data, Playwright Pro (test gen, flaky fix, migrations), self-improving agent (auto-memory curation), security suite, a11y audit, **named-persona-adversarial-review** (review via named engineering philosophies), **embedded-iot-mentor** (MCU/board selection, firmware-reuse-first, breadboard-MVP discipline) | [engineering-team/](engineering-team/) |
-| **⚡ Engineering — POWERFUL** | 100 | Agent designer, RAG architect, database designer, CI/CD builder, security auditor, MCP builder, AgentHub, Helm charts, Terraform, self-eval, llm-wiki, tc-tracker, autoresearch-agent, **reliability portfolio** (feature-flags-architect, kubernetes-operator, chaos-engineering, slo-architect), ship-gate, security-guidance PreToolUse hook, **Matt Pocock skills** (write-a-skill, caveman, grill-me, handoff, grill-with-docs), **zero-hallucination-coder** (Discuss→Map→Decompose→Execute→Verify), **agent-harness** (goal→plan→execute→verify→close loops over any domain), **memory-engineering** (price the memory write path, pick which cost to pay, audit FACT/SKILL/LOG density, gate on a forgetting policy), **skillopt-sleep** (nightly gated self-evolution from real Claude Code sessions, vendored from microsoft/SkillOpt), **book-to-skill** (compile a book, docs folder, or spec collection into a knowledge-base skill, then package it as a plugin), **boost-asio-pro** (async C++ networking — version-gated coroutine/callback styles, strand discipline), **human-gate** (batched human review as a structured artifact + a gate that refuses to close on open blockers), **agent-memory** (four-tier L0-L3 memory ladder over Claude Code hooks; promotion earned by recurrence across sessions and days, redacted or contested claims refuse to promote, nothing reaches CLAUDE.md without a human adopt), **skill-retro** (grade the agent setup from real session history — rubric-judged, deterministically gated, evidence-traced skill edits), **deep-learning-book** (companion to the free Goodfellow/Bengio/Courville textbook — 20 chapter files with a 2016→2026 delta layer, reading-path planner, Ch-11 training diagnostic, capacity planner, FLOP/activation-memory calculator), **spinning-up-deep-rl** (knowledge base compiled from OpenAI's Spinning Up in Deep RL — RL fundamentals, the model-free taxonomy, policy-gradient derivations, and one chapter per reference algorithm), **agent-regression-evals** (repeated-trial eval gate: trajectory grading, flake detection with pass^k, paired regression statistics that block a merge), **coding-agent-rollout** (team settings, permissions, MCP and plugin governance, CLAUDE.md layering, privacy-safe adoption counts), **commit-craft** (split a tangled working tree into a reviewable commit series, block staged secrets, lint messages for the why) | [engineering/](engineering/) |
+| **⚡ Engineering — POWERFUL** | 104 | Agent designer, RAG architect, database designer, CI/CD builder, security auditor, MCP builder, AgentHub, Helm charts, Terraform, self-eval, llm-wiki, tc-tracker, autoresearch-agent, **reliability portfolio** (feature-flags-architect, kubernetes-operator, chaos-engineering, slo-architect), ship-gate, security-guidance PreToolUse hook, **Matt Pocock skills** (write-a-skill, caveman, grill-me, handoff, grill-with-docs), **zero-hallucination-coder** (Discuss→Map→Decompose→Execute→Verify), **agent-harness** (goal→plan→execute→verify→close loops over any domain), **memory-engineering** (price the memory write path, pick which cost to pay, audit FACT/SKILL/LOG density, gate on a forgetting policy), **skillopt-sleep** (nightly gated self-evolution from real Claude Code sessions, vendored from microsoft/SkillOpt), **book-to-skill** (compile a book, docs folder, or spec collection into a knowledge-base skill, then package it as a plugin), **boost-asio-pro** (async C++ networking — version-gated coroutine/callback styles, strand discipline), **human-gate** (batched human review as a structured artifact + a gate that refuses to close on open blockers), **agent-memory** (four-tier L0-L3 memory ladder over Claude Code hooks; promotion earned by recurrence across sessions and days, redacted or contested claims refuse to promote, nothing reaches CLAUDE.md without a human adopt), **skill-retro** (grade the agent setup from real session history — rubric-judged, deterministically gated, evidence-traced skill edits), **deep-learning-book** (companion to the free Goodfellow/Bengio/Courville textbook — 20 chapter files with a 2016→2026 delta layer, reading-path planner, Ch-11 training diagnostic, capacity planner, FLOP/activation-memory calculator), **spinning-up-deep-rl** (knowledge base compiled from OpenAI's Spinning Up in Deep RL — RL fundamentals, the model-free taxonomy, policy-gradient derivations, and one chapter per reference algorithm), **agent-regression-evals** (repeated-trial eval gate: trajectory grading, flake detection with pass^k, paired regression statistics that block a merge), **coding-agent-rollout** (team settings, permissions, MCP and plugin governance, CLAUDE.md layering, privacy-safe adoption counts), **commit-craft** (split a tangled working tree into a reviewable commit series, block staged secrets, lint messages for the why), **i18n-localization** (check translation files against CLDR plural rules, find hardcoded UI strings, build pseudo-locales) | [engineering/](engineering/) |
 | **🎯 Product** | 19 | Product manager, agile PO, strategist, UX researcher, UI design, landing pages, SaaS scaffolder, analytics, experiment designer, discovery, roadmap communicator, code-to-prd, apple-hig-expert, UI finish QA (design-qa) | [product-team/](product-team/) |
 | **📣 Marketing** | 50 | 8 pods: Content, SEO + AEO (`aeo` — E-E-A-T audit, citation tracking across 5 LLMs) + local (`local-seo-manager` — GBP/NAP/Map-Pack), CRO, Channels, Growth, Intelligence, Sales + `business-name-fit` (cross-cultural naming) + context foundation + orchestration router | [marketing-skill/](marketing-skill/) |
 | **🚀 Productivity** | 12 | `capture` (brain-dump-to-action), `email` pair (inbox-setup + inbox-triage), `reflect` (journal), `handoff` (Matt Pocock-inspired), `andreessen` (market-first decision mode), `roast` (5-angle idea panel → GO/RESHAPE/KILL), `fable-goal` (ramble → autonomous /goal prompt), `weekly-review` (GTD loop with refusal gate), `deep-work` (time-blocking + shallow-work budget), `meetings` (cost gate + agenda + action items), `swedish-mentor` (CEFR-leveled Swedish learning paths) | [productivity/](productivity/) |
 | **🎨 Marketing (top-level)** | 7 | `landing` — single-file HTML landing-page generator (4 design styles, GSAP patterns, brand palette validator); `linkedin` — organic LinkedIn presence with User Agreement §8.2 refusals in code (orchestrator + profile, strategy, content, engagement, analytics) | [marketing/](marketing/) |
-| **🔬 Research (academic)** | 10 | `research` orchestrator (hybrid router + fallback) + 8 specialists: `pulse`, `litreview`, `grants` (NIH), `dossier`, `patent`, `syllabus`, `notebooklm`, `deep-research` (rigor-first meta-research), `deepread` (evidence-first reading of supplied documents) | [research/](research/) |
+| **🔬 Research (academic)** | 10 | `research` orchestrator (hybrid router + fallback) + 8 specialists: `pulse`, `litreview`, `grants` (NIH), `dossier`, `patent`, `syllabus`, `notebooklm`, `meta-research` (rigor-first meta-research), `deepread` (evidence-first reading of supplied documents) | [research/](research/) |
 | **🧪 Research Operations** ✨v2.9.0 | 6 | Enterprise/cross-functional research: orchestrator + `clinical-research` (study design), `research-finance` (R&D program finance), `market-research` (sizing/survey/segmentation), `product-research` (user research), `interview-mapper` (transcript coding with quote verification) — each with onboarding + customization + opt-in autoresearch bridge | [research-ops/](research-ops/) |
 | **📋 Project Management** | 9 | Senior PM, scrum master, Jira, Confluence, Atlassian admin, templates + bundled Atlassian Remote MCP | [project-management/](project-management/) |
 | **🏥 Regulatory & QM** | 23 | ISO 13505, MDR 2017/745, FDA, ISO 27001, GDPR, SOC 2, CAPA, risk management, access reviews (access-lifecycle), CMMC 2.0 Level 2 (cmmc-readiness), agent-decision-receipts (PQ-signed action receipts) | [ra-qm-team/](ra-qm-team/) |
@@ -230,7 +298,7 @@ See [orchestration/ORCHESTRATION.md](orchestration/ORCHESTRATION.md) for the ful
 
 ## POWERFUL Tier
 
-25 advanced skills with deep, production-grade capabilities:
+A selection of the advanced skills with deep, production-grade capabilities:
 
 | Skill | What It Does |
 |-------|-------------|
@@ -313,7 +381,7 @@ for MDR Annex II compliance gaps.
 
 ## Python Analysis Tools
 
-580 CLI tools ship with the skills (all verified, stdlib-only):
+807 Python tools ship with the skills (all stdlib-only). A few examples:
 
 ```bash
 # SaaS health check
@@ -361,7 +429,7 @@ Yes. Skills work natively with 13 tools: Claude Code, OpenAI Codex, Gemini CLI, 
 No. We follow semantic versioning and maintain backward compatibility within patch releases. Existing script arguments, plugin source paths, and SKILL.md structures are never changed in patch versions. See the [CHANGELOG](CHANGELOG.md) for details on each release.
 
 **Are the Python tools dependency-free?**
-Yes. All 792 Python tools use the standard library only — zero pip installs required. Every skill's CLI entry point is verified to run with `--help` (most skills ship one script per tool; a few, like the vendored `engineering/skillopt-sleep` engine, ship a multi-module package behind a single `python -m` entry point). A few tools — `engineering/book-to-skill`'s document extractors — can *optionally* use third-party parsers for higher-fidelity output, but every format falls back to a standard-library parser and nothing is installed implicitly.
+Yes. All 807 Python tools use the standard library only — zero pip installs required. Every skill's CLI entry point is verified to run with `--help` (most skills ship one script per tool; a few, like the vendored `engineering/skillopt-sleep` engine, ship a multi-module package behind a single `python -m` entry point). A few tools — `engineering/book-to-skill`'s document extractors — can *optionally* use third-party parsers for higher-fidelity output, but every format falls back to a standard-library parser and nothing is installed implicitly.
 
 **How do I create my own Claude Code skill?**
 Each skill is a folder with a `SKILL.md` (frontmatter + instructions), optional `scripts/`, `references/`, and `assets/`. See the [Skills & Agents Factory](https://github.com/alirezarezvani/claude-code-skills-agents-factory) for a step-by-step guide.

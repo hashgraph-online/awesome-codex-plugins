@@ -29,6 +29,8 @@ import os
 import re
 import sys
 
+from kicad_core.diagnostics import record
+
 # Optional schematic keys -> required report section. Section is required only
 # when the key is present AND non-empty in schematic.json. Aliases are the
 # header substrings (normalized) accepted as satisfying the section.
@@ -91,8 +93,9 @@ def _resolve_run_dir(analysis_dir: str | None, run_dir: str | None) -> str:
             current = get_current_run(analysis_dir)
             if current is not None:
                 return current[0]
-        except Exception:
-            pass
+        except Exception as exc:
+            record(None, "check_report_sections._resolve_run_dir", exc,
+                   "current run not resolved; analysis_dir used as given")
         return analysis_dir
     return "analysis"
 

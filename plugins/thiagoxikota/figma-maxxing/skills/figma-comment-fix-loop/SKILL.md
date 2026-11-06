@@ -17,7 +17,7 @@ metadata:
 
 Address the requested comments on the actual pinned screens and return proof.
 Reading or quoting a comment does not itself authorize a canvas fix, a global
-sweep or a public reply. Use the owner’s current scope and approvals without
+sweep or a public reply. Use the owner's current scope and approvals without
 asking for the same confirmation again.
 
 ## Context and trust
@@ -49,12 +49,12 @@ means read-back, not rerun from assumption.
 
 Validate the changed property and live appearance; export freshness matters.
 The package maps request→action→node→evidence, preserving pending/intentional
-items and unverified states. Screenshots must not expose the rest of the user’s
+items and unverified states. Screenshots must not expose the rest of the user's
 desktop. Keep raw commenter data and review exports private.
 
 Independent review is optional when requested or justified by material risk;
 recheck changed areas when new evidence warrants it, without fixed rounds or
 printing draft/self-critique. A reviewer cannot authorize a write or reply.
-Comment replies require the designer’s explicit request; resolving threads is
+Comment replies require the designer's explicit request; resolving threads is
 a human action where the available API does not support it. Record durable
 project-map changes within the task; runtime memory needs its own permission.

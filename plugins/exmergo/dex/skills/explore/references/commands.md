@@ -104,6 +104,9 @@ column named `window`, which DuckDB reserves and dbt must quote).
   `contradicted`, `unmeasured`, `missing_columns`, `unprofiled`) says how they
   compare. It is read from the repository each run, never cached, so a cache hit
   is annotated too. Declared columns are capped at 12 unless `--columns all`.
+  A version of a native dbt versioned model carries its own declaration, keyed
+  by its label (`dim_teams.v2`) and read as dbt builds that version: the shared
+  entry merged with the version's own.
   Values-free mode withholds the rule and all population filter values. In full
   mode, any PII-flagged filter withholds the entire rule and that filter's values,
   at any confidence, named in `withheld_fields`.
@@ -207,6 +210,14 @@ string are refused. Two or more statements return `data.results`, one entry per
 statement, each with its own `status` (`ok`, `refused`, `failed`, `skipped`).
 Results are capped (rows, cell width, bytes), and `query.max_payload_bytes` is
 the budget for the whole call.
+
+A statement the warehouse refuses returns the warehouse's own words, so a
+misspelled column or a missing table reads as such. A conversion, parse or range
+failure quotes the value it could not handle, and that value is masked
+(`Could not convert string <value withheld> to INT32`): the failure is a cast
+your SQL or the warehouse made implicitly, such as comparing a text key to an
+integer key. Profile the column (`explore profile`) to learn its shapes rather
+than retrying to see the value.
 
 Example envelopes (columnar; never `rows`):
 

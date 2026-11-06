@@ -1,0 +1,3 @@
+* text=auto
+# Two side copies that each add takes merge without a conflict.
+media.lock.jsonl merge=union

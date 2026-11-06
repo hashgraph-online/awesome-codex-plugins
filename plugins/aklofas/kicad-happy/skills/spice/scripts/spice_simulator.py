@@ -10,14 +10,11 @@ Auto-detection tries ngspice → LTspice → Xyce. Override with --simulator
 flag or SPICE_SIMULATOR environment variable.
 """
 
-import json
-import math
 import os
 import re
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 
 # ---------------------------------------------------------------------------
@@ -32,7 +29,7 @@ class SimulatorBackend:
         """Locate the simulator binary. Returns path string or None."""
         raise NotImplementedError
 
-    def run(self, cir_file, timeout=5):
+    def run(self, cir_file, timeout=5, cwd=None):
         """Run simulation in batch mode.
 
         Args:
@@ -91,11 +88,11 @@ class NgspiceBackend(SimulatorBackend):
         # Explicit override
         env_path = os.environ.get("NGSPICE_PATH")
         if env_path and os.path.isfile(env_path):
-            return env_path
+            return os.path.abspath(env_path)
         # Standard PATH lookup
         found = shutil.which("ngspice")
         if found:
-            return found
+            return os.path.abspath(found)
         # Windows default
         for candidate in [
             os.path.join(os.environ.get("PROGRAMFILES", ""), "Spice64", "bin", "ngspice.exe"),
@@ -105,14 +102,15 @@ class NgspiceBackend(SimulatorBackend):
                 return candidate
         return None
 
-    def run(self, cir_file, timeout=5):
+    def run(self, cir_file, timeout=5, cwd=None):
         binary = self.find()
         if not binary:
             return False, "", "ngspice not found"
         try:
             result = subprocess.run(
                 [binary, "-b", cir_file],
-                capture_output=True, text=True, timeout=timeout,
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                timeout=timeout, cwd=cwd,
             )
             return result.returncode == 0, result.stdout, result.stderr
         except subprocess.TimeoutExpired:
@@ -201,13 +199,13 @@ class LtspiceBackend(SimulatorBackend):
     def find(self):
         env_path = os.environ.get("LTSPICE_PATH")
         if env_path and os.path.isfile(env_path):
-            return env_path
+            return os.path.abspath(env_path)
 
         # Standard PATH
         for name in ("ltspice", "LTspice", "XVIIx64"):
             found = shutil.which(name)
             if found:
-                return found
+                return os.path.abspath(found)
 
         # Platform-specific defaults
         if sys.platform == "win32":
@@ -236,7 +234,7 @@ class LtspiceBackend(SimulatorBackend):
 
         return None
 
-    def run(self, cir_file, timeout=5):
+    def run(self, cir_file, timeout=5, cwd=None):
         binary = self.find()
         if not binary:
             return False, "", "LTspice not found"
@@ -250,7 +248,8 @@ class LtspiceBackend(SimulatorBackend):
                 cmd = [binary, "-b", cir_file]
 
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=timeout,
+                cmd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                timeout=timeout, cwd=cwd,
             )
             # LTspice returns 0 on success
             return result.returncode == 0, result.stdout, result.stderr
@@ -315,9 +314,9 @@ class LtspiceBackend(SimulatorBackend):
             text = stdout
         else:
             try:
-                with open(log_path) as f:
+                with open(log_path, encoding="utf-8", errors="replace") as f:
                     text = f.read()
-            except OSError:
+            except (OSError, UnicodeDecodeError):
                 text = stdout
 
         # Parse LTspice .meas output format:
@@ -349,14 +348,14 @@ class XyceBackend(SimulatorBackend):
     def find(self):
         env_path = os.environ.get("XYCE_PATH")
         if env_path and os.path.isfile(env_path):
-            return env_path
+            return os.path.abspath(env_path)
         for name in ("Xyce", "xyce"):
             found = shutil.which(name)
             if found:
-                return found
+                return os.path.abspath(found)
         return None
 
-    def run(self, cir_file, timeout=5):
+    def run(self, cir_file, timeout=5, cwd=None):
         binary = self.find()
         if not binary:
             return False, "", "Xyce not found"
@@ -364,7 +363,8 @@ class XyceBackend(SimulatorBackend):
             # Xyce doesn't use -b; just pass the netlist file
             result = subprocess.run(
                 [binary, cir_file],
-                capture_output=True, text=True, timeout=timeout,
+                capture_output=True, text=True, encoding="utf-8", errors="replace",
+                timeout=timeout, cwd=cwd,
             )
             return result.returncode == 0, result.stdout, result.stderr
         except subprocess.TimeoutExpired:
@@ -416,9 +416,9 @@ class XyceBackend(SimulatorBackend):
         text = ""
         if os.path.isfile(mt0_path):
             try:
-                with open(mt0_path) as f:
+                with open(mt0_path, encoding="utf-8", errors="replace") as f:
                     text = f.read()
-            except OSError:
+            except (OSError, UnicodeDecodeError):
                 text = stdout
         else:
             text = stdout

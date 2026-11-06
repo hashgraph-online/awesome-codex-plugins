@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Customer Research Skills"
+  short_description: "Find out what customers actually think"
+  default_prompt: "Use $suede-customer-research on [target]. The user wants to run or analyse customer research, mine reviews and forums, or build evidence-backed personas. Work through interview design, transcript and ticket synthesis, review mining, and turning raw input into personas and jobs, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Design Skills"
+  short_description: "Interface reviews, tokens, restyles and rendered visual QA"
+  default_prompt: "Use $suede-design on [repo/route/change]. Identify the intended task and mode. Keep an audit read-only, resolve exact base/head/scope for a UI diff, preserve approved copy and brand conventions, and rank evidence by user impact. For authorized fixes, correct shared causes and recapture matching desktop/mobile states until verified or blocked. State missing render evidence explicitly."
+policy:
+  allow_implicit_invocation: true

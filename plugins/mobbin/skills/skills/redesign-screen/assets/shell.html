@@ -1,0 +1,108 @@
+<!doctype html>
+<!--
+  Mockup shell for the redesign-screen skill's explore mode. The rules are in
+  references/variations.md.
+
+  The lead agent copies this file and chrome/ once, sets the device and fills
+  the slot with the baseline: the frozen app frame outside the region, and the
+  region itself between the two region markers. Every variation is a copy of that
+  file with only the part between the region markers changed, plus data-glyphs on
+  .device when its top background needs the other glyph colour.
+
+  On .device:
+  - data-platform: "ios" draws the chrome; "web" draws none.
+  - data-glyphs: "dark" for a light screen top, "light" for a dark one.
+  - data-keyboard: "none", "light" or "dark", from the state the baseline shows.
+  - style: --device-width, the input's width in points (iOS) or CSS pixels (web).
+    There is no height to set: the screen is as tall as its content, so a
+    variation that drops parts is shorter and one that adds parts is longer.
+
+  The slot is padded clear of the status bar, the home indicator and the keyboard,
+  and carries the screen's background, so the chrome draws over it. The region's
+  CSS goes in its own style block, scoped to .slot, and never styles .chrome.
+
+  Capture .device at the input's scale factor (3 for a modern iPhone screenshot).
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mockup</title>
+    <link rel="stylesheet" href="chrome/ios.css" />
+    <style>
+      html,
+      body {
+        margin: 0;
+      }
+      .device[data-platform="web"] .chrome {
+        display: none;
+      }
+      .device[data-platform="web"] {
+        --safe-top: 0px;
+        --safe-bottom: 0px;
+      }
+      .slot {
+        position: relative;
+        z-index: 0;
+        padding: var(--safe-top) 0 calc(var(--safe-bottom) + var(--keyboard-height));
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      class="device"
+      data-platform="ios"
+      data-glyphs="dark"
+      data-keyboard="none"
+      style="--device-width: 393px"
+    >
+      <main class="slot">
+        <!-- The frozen app frame, as the baseline has it. -->
+
+        <!-- region:start -->
+        <style>
+          .slot .region {
+          }
+        </style>
+        <div class="region"></div>
+        <!-- region:end -->
+
+        <!-- The frozen app frame, continued. -->
+      </main>
+
+      <div class="chrome status-bar" aria-hidden="true">
+        <div class="ear"><span class="time">9:41</span></div>
+        <div class="ear">
+          <span class="glyph signal"></span><span class="glyph wifi"></span
+          ><span class="glyph battery"></span>
+        </div>
+      </div>
+
+      <div class="chrome keyboard" aria-hidden="true">
+        <div class="predictive"><span>I</span><span>The</span><span>I'm</span></div>
+        <div class="row">
+          <span class="key">q</span><span class="key">w</span><span class="key">e</span
+          ><span class="key">r</span><span class="key">t</span><span class="key">y</span
+          ><span class="key">u</span><span class="key">i</span><span class="key">o</span
+          ><span class="key">p</span>
+        </div>
+        <div class="row inset">
+          <span class="key">a</span><span class="key">s</span><span class="key">d</span
+          ><span class="key">f</span><span class="key">g</span><span class="key">h</span
+          ><span class="key">j</span><span class="key">k</span><span class="key">l</span>
+        </div>
+        <div class="row">
+          <span class="key alt">⇧</span><span class="key">z</span><span class="key">x</span
+          ><span class="key">c</span><span class="key">v</span><span class="key">b</span
+          ><span class="key">n</span><span class="key">m</span><span class="key alt">⌫</span>
+        </div>
+        <div class="row">
+          <span class="key alt">123</span><span class="key space">space</span
+          ><span class="key alt wide">return</span>
+        </div>
+        <div class="bottom"><span class="glyph globe"></span><span class="glyph mic"></span></div>
+      </div>
+
+      <div class="chrome home-indicator" aria-hidden="true"></div>
+    </div>
+  </body>
+</html>

@@ -87,9 +87,10 @@ Without `--prose`, `rename` leaves the chapter text alone, for when the user wan
 
 To kill a character off:
 
-1. Set `status: deceased` and `died-in: chapter-NN` in the character file
-2. In every later chapter and scene, move the id from `characters` (and `pov`) to `mentions` where they appear only in memory, letters, or flashback
-3. Run `story continuity .`: it reports any later chapter or scene that still lists them in its cast
+1. Test the death first: `story impact die {id} chapter-NN --path .` sets `died-in` and `status` on a scratch copy, runs the checks, and lists only what the death would break, such as each later chapter and scene that still lists them, writing nothing. Show the user that list; when they are choosing between chapters, run it for each. `story impact remove character {id} --path .` does the same for cutting a character
+2. Set `status: deceased` and `died-in: chapter-NN` in the character file
+3. In every later chapter and scene, move the id from `characters` (and `pov`) to `mentions` where they appear only in memory, letters, or flashback
+4. Run `story continuity .`: it reports any later chapter or scene that still lists them in its cast
 
 Variants:
 

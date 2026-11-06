@@ -77,7 +77,7 @@ python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --standard 
 # Select target market (sets all applicable standards)
 python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --market eu
 
-# Filter by severity
+# Filter by severity (high = error findings only)
 python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --severity high
 
 # Human-readable text output
@@ -121,17 +121,18 @@ Read the JSON report and incorporate findings into the design review. Each findi
 ```json
 {
   "summary": {
-    "total_checks": 42,
-    "critical": 2, "high": 5, "medium": 8, "low": 12, "info": 15,
+    "total_findings": 27, "categories_checked": 12,
+    "active": 27, "suppressed": 0,
+    "by_severity": {"error": 2, "warning": 10, "info": 15},
     "emc_risk_score": 73
   },
   "target_standard": "fcc-class-b",
   "findings": [
     {
       "category": "ground_plane",
-      "severity": "CRITICAL",
+      "severity": "error",
       "rule_id": "GP-001",
-      "title": "Signal crosses ground plane void",
+      "summary": "Signal crosses ground plane void",
       "description": "Net SPI_CLK crosses a 3.2mm gap in GND on In1.Cu",
       "components": ["U3", "U7"],
       "nets": ["SPI_CLK"],
@@ -158,11 +159,11 @@ Read the JSON report and incorporate findings into the design review. Each findi
 
 | Severity | Meaning | Action |
 |----------|---------|--------|
-| **CRITICAL** | Almost certain to cause EMC failure | Must fix before fabrication |
-| **HIGH** | Very likely to cause issues | Strongly recommend fixing |
-| **MEDIUM** | May cause issues depending on specifics | Review and assess |
-| **LOW** | Minor risk, good practice | Fix if convenient |
-| **INFO** | Informational — frequencies, estimates | Useful for lab prep |
+| **error** | Likely to cause an EMC failure | Fix before fabrication |
+| **warning** | May cause issues depending on specifics | Review and assess |
+| **info** | Informational — frequencies, estimates, good practice | Useful for lab prep |
+
+`--severity` takes the older five-level names as the threshold: `critical` and `high` keep `error` findings, `medium` keeps `error` and `warning`, `low` and `all` keep everything.
 
 ### Risk Score
 
@@ -172,7 +173,7 @@ Each rule ID contributes at most 3 findings to the score (worst severity first).
 
 ## Interpreting Results
 
-**Ground plane findings** — Any CRITICAL finding (signal crossing a void) is almost always a real problem. Fix unconditionally.
+**Ground plane findings** — Any `error` finding (signal crossing a void) is almost always a real problem. Fix unconditionally.
 
 **Decoupling findings** — Distance-based findings have moderate false positive rates. A cap at 6mm may be fine for a low-speed IC but problematic for a 100MHz clock buffer. Use frequency context to prioritize.
 

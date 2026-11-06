@@ -12,7 +12,6 @@ import json
 import os
 import re
 import sys
-from pathlib import Path
 
 # Allow imports from same directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -35,8 +34,9 @@ def _load_extraction(extract_dir: str, mpn: str) -> dict:
 
     # Preserve dots and hyphens — planner/merger write literal MPN-named
     # files (`ABM8G-106-12.000MHZ-T.json`), so the legacy positional path
-    # MUST match what they wrote. Aligned with datasheet_lookup.sanitize_mpn
-    # and the flag-mode regex in _cli_v14 below.
+    # MUST match what they wrote. Aligned with
+    # datasheet_types.cache_reader.sanitize_mpn and the flag-mode regex in
+    # _cli_v14 below.
     sanitized = re.sub(r'[^A-Za-z0-9_.-]', '_', mpn.strip())
 
     # Direct file lookup
@@ -176,7 +176,7 @@ def _not_verifiable_finding(mpn: str, detail: str) -> dict:
     """
     return {
         "type": "extraction_not_verifiable",
-        "severity": "INFO",
+        "severity": "info",
         "mpn": mpn,
         "detail": detail,
     }
@@ -211,7 +211,7 @@ def _quality_finding(mpn, extraction):
     score = q14 if isinstance(q14, (int, float)) else q13
     return {
         "type": "extraction_quality_low",
-        "severity": "INFO",
+        "severity": "info",
         "mpn": mpn,
         "quality_score": score,
         "detail": (f"{mpn}: extraction quality score {score} is below the "
@@ -330,7 +330,7 @@ def verify_pin_voltages(components: list, nets: dict, extraction_dir: str,
             if v_abs_max is not None and net_voltage > v_abs_max:
                 findings.append({
                     "type": "pin_voltage_abs_max_exceeded",
-                    "severity": "CRITICAL",
+                    "severity": "error",
                     "ref": ref,
                     "mpn": mpn,
                     "pin_number": pin_num,
@@ -348,7 +348,7 @@ def verify_pin_voltages(components: list, nets: dict, extraction_dir: str,
                 margin_pct = (v_abs_max - net_voltage) / v_abs_max * 100 if v_abs_max else 0
                 findings.append({
                     "type": "pin_voltage_operating_exceeded",
-                    "severity": "HIGH" if margin_pct < 10 else "MEDIUM",
+                    "severity": "error" if margin_pct < 10 else "warning",
                     "ref": ref,
                     "mpn": mpn,
                     "pin_number": pin_num,
@@ -470,7 +470,7 @@ def verify_required_externals(components: list, nets: dict, extraction_dir: str,
                 # Nothing matching the requirement is connected
                 findings.append({
                     "type": "missing_required_external",
-                    "severity": "HIGH",
+                    "severity": "error",
                     "ref": ref,
                     "mpn": mpn,
                     "pin_number": pin_num,
@@ -494,7 +494,7 @@ def _parse_cap_recommendation(text: str) -> dict:
         "22uF ceramic x2" -> {min_farads: 22e-6, count: 2}
         "100nF" -> {min_farads: 100e-9, count: 1}
     """
-    from kicad_utils import parse_value
+    from kicad_core.values import parse_value
 
     result = {"min_farads": None, "count": 1, "dielectric": [], "max_distance_mm": None}
 
@@ -622,7 +622,7 @@ def verify_decoupling(components: list, nets: dict, extraction_dir: str,
             total_matching = len(matching)
 
             if total_matching < req["count"]:
-                severity = "HIGH" if total_matching == 0 else "MEDIUM"
+                severity = "error" if total_matching == 0 else "warning"
                 findings.append({
                     "type": "decoupling_insufficient",
                     "severity": severity,
@@ -730,7 +730,7 @@ def run_datasheet_verification(analysis: dict, project_dir: str = "") -> dict:
     # Build severity summary
     by_severity = {}
     for f in all_findings:
-        sev = f.get("severity", "INFO")
+        sev = f.get("severity", "info")
         by_severity[sev] = by_severity.get(sev, 0) + 1
 
     return {
@@ -751,12 +751,6 @@ def run_datasheet_verification(analysis: dict, project_dir: str = "") -> dict:
 def _spec_max(sv_list):
     if isinstance(sv_list, list) and sv_list and isinstance(sv_list[0], dict):
         return sv_list[0].get("max")
-    return None
-
-
-def _spec_min(sv_list):
-    if isinstance(sv_list, list) and sv_list and isinstance(sv_list[0], dict):
-        return sv_list[0].get("min")
     return None
 
 

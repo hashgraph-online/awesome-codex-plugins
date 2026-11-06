@@ -33,8 +33,10 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
+
+from kicad_core.cli import add_only_deterministic_arg, add_output_arg
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +97,9 @@ _STATUS_NORMALIZE = {
     "ltb": "last_time_buy",
 }
 
+# Normalized statuses that mean "not active" (end of life or heading there).
+_EOL_STATUSES = frozenset({"obsolete", "discontinued", "last_time_buy", "nrnd"})
+
 
 def _normalize_status(raw: str | None) -> str:
     """Normalize a lifecycle status string to a standard value."""
@@ -138,6 +143,7 @@ def _parse_temp_range(text: str) -> tuple[float, float] | None:
 
 # ---------------------------------------------------------------------------
 # MPN filtering (same pattern as sync_datasheets_digikey.py)
+# Twin of distributor_core.inputs (_GENERIC_VALUE_RE / _SKIP_TYPES).
 # ---------------------------------------------------------------------------
 
 _GENERIC_VALUE_RE = re.compile(
@@ -502,9 +508,8 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
     # Consensus: True when distributors disagree and at least one says active.
     # A part reported obsolete by one distributor but active by another is
     # still orderable, so the finding should be warning rather than error.
-    _non_active = {"obsolete", "discontinued", "last_time_buy", "nrnd"}
     has_active = any(s == "active" for s in per_source_status.values())
-    has_non_active = any(s in _non_active for s in per_source_status.values())
+    has_non_active = any(s in _EOL_STATUSES for s in per_source_status.values())
     result["consensus_split"] = has_active and has_non_active
     result["per_source_status"] = per_source_status
     result["attempted"] = sorted(attempted)
@@ -688,7 +693,7 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
         }
 
         # Flag non-active statuses
-        if status in ("nrnd", "last_time_buy", "obsolete", "discontinued"):
+        if status in _EOL_STATUSES:
             alert_map = {
                 "nrnd": "NRND — not recommended for new designs, consider replacement",
                 "last_time_buy": "Last Time Buy — order soon or find alternative",
@@ -997,7 +1002,7 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Component lifecycle and temperature audit",
     )
@@ -1012,10 +1017,7 @@ def main():
              "is negative, use the = form so argparse doesn't read it as a flag: "
              "--temp-range=\"-40,85\"",
     )
-    parser.add_argument(
-        "--output", "-o",
-        help="Output file path (default: stdout)",
-    )
+    add_output_arg(parser, help="Output file path (default: stdout)")
     parser.add_argument(
         "--analysis-dir",
         help="Write lifecycle.json to this directory (analysis folder convention). "
@@ -1034,13 +1036,8 @@ def main():
         "--suggest-alternatives", action="store_true",
         help="Search for replacement parts when EOL/NRND/obsolete (extra API calls)",
     )
-    parser.add_argument(
-        "--only-deterministic", action="store_true",
-        help="Read raw analysis/<run>/<analyzer>.json instead of "
-             "analysis/merged/<run>/<analyzer>.json. "
-             "Strips Layer 2 overlays for CI/offline use (Phase 4 spec §3.4).",
-    )
-    args = parser.parse_args()
+    add_only_deterministic_arg(parser, consumer=True)
+    args = parser.parse_args(argv)
 
     # Load analyzer JSON (honor --only-deterministic: skip merged/ overlay)
     input_path = Path(args.input)
@@ -1048,8 +1045,17 @@ def main():
         candidate = input_path.parent.parent / "merged" / input_path.parent.name / input_path.name
         if candidate.exists():
             input_path = candidate
-    with open(input_path) as f:
-        analysis = json.load(f)
+    expected = "expected the JSON file written by analyze_schematic.py"
+    if not input_path.is_file():
+        what = "is a directory" if input_path.is_dir() else "no such file"
+        parser.error(f"input {input_path}: {what}; {expected}")
+    try:
+        with open(input_path, encoding="utf-8") as f:
+            analysis = json.load(f)
+    except ValueError as e:
+        parser.error(f"input {input_path}: not JSON ({e}); {expected}")
+    except OSError as e:
+        parser.error(f"input {input_path}: cannot read ({e}); {expected}")
 
     # Resolve project directory from analyzer JSON
     source_file = analysis.get("file", "")
@@ -1131,7 +1137,9 @@ def main():
 
     for obs in result.get("observations", []):
         print(f"  ! {obs}", file=sys.stderr)
+    return 0
 
 
 if __name__ == "__main__":
+    # Bare call kept: the missing-input traceback quotes this line, and that text is frozen.
     main()

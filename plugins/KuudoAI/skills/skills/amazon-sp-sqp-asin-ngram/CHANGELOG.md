@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.2] - 2026-11-02
+
+### Added
+
+- A source for the merchant ID with no SKU: a seller profile's
+  `accountInfo.id` from the Kuudo Amazon Ads MCP, which worked as `sellerId`
+  in `listings_searchListingsItems` on 2026-11-02.
+
 ## [2.1.1] - 2026-10-28
 
 ### Added

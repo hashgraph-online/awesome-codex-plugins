@@ -1,0 +1,42 @@
+{
+  "name": "launch-film",
+  "version": "0.2.0",
+  "description": "A launch film from a website or an App Store page: its real logo, colors, fonts and screens, rendered locally with Chrome and ffmpeg.",
+  "license": "MIT",
+  "author": "Emin Budak",
+  "bin": {
+    "launch-film": "bin/launch-film.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "assets/",
+    "skills/",
+    "THIRD_PARTY.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\""
+  },
+  "keywords": [
+    "video",
+    "launch",
+    "motion-design",
+    "agent-skill",
+    "claude-code",
+    "codex",
+    "cursor",
+    "ffmpeg",
+    "chrome"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EminBudak/launch-film.git"
+  },
+  "homepage": "https://github.com/EminBudak/launch-film#readme",
+  "bugs": {
+    "url": "https://github.com/EminBudak/launch-film/issues"
+  }
+}

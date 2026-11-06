@@ -37,7 +37,7 @@ description: >-
 
 **Before analysis:** When the user asks to analyze or review a KiCad project, check whether a `datasheets/` directory exists in the project. If not, and DigiKey API keys are available (`DIGIKEY_CLIENT_ID`), offer to sync datasheets first: "I can download datasheets for your components before analysis — this enables pin-level verification and decoupling validation against manufacturer specs. Want me to sync them?" If the user declines or no API keys are set, proceed without datasheets — the analysis works without them but datasheet verification findings won't be available.
 
-**If you see a `DS-001` finding in the analyzer output** (severity `high`, detector `audit_datasheet_coverage`), the review cannot make any verified claim. Stop and either (a) run the datasheet sync via `digikey` / `mouser` / `lcsc` / `element14` (whichever has credentials/stock), (b) populate MPNs on the BOM parts, or (c) state explicitly in the report that every pin-level, electrical, and regulator finding is *consistency only* — do not use the words "verified", "confirmed", or "per datasheet" anywhere. `DS-002` (datasheets missing but MPNs set) and `DS-003` (partial MPN coverage) are softer variants with the same implication for the parts they cite.
+**If you see a `DS-001` finding in the analyzer output** (severity `error`, detector `audit_datasheet_coverage`), the review cannot make any verified claim. Stop and either (a) run the datasheet sync via `digikey` / `mouser` / `lcsc` / `element14` (whichever has credentials/stock), (b) populate MPNs on the BOM parts, or (c) state explicitly in the report that every pin-level, electrical, and regulator finding is *consistency only* — do not use the words "verified", "confirmed", or "per datasheet" anywhere. `DS-002` (datasheets missing but MPNs set) and `DS-003` (partial MPN coverage) are softer variants with the same implication for the parts they cite.
 
 ## Design Review Contract
 
@@ -187,7 +187,7 @@ See `references/schematic-analysis.md` Step 2 for the full verification checklis
 ```bash
 python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --analysis-dir analysis/
 python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --analysis-dir analysis/ --proximity  # add crosstalk analysis
-python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --output pcb.json --schematic analysis/schematic.json  # one-off; cross-ref + power-rail auto-detect
+python3 <skill-path>/scripts/analyze_pcb.py <file.kicad_pcb> --output pcb.json --schematic analysis/<run_id>/schematic.json  # one-off; cross-ref + power-rail auto-detect
 ```
 Outputs structured JSON (~50-300KB depending on board complexity) with:
 - **Core**: footprint inventory (pads, courtyards, net assignments, extended attrs, schematic cross-reference), track/via statistics, zone summaries, board outline/dimensions, routing completeness
@@ -347,7 +347,7 @@ The `analysis` section in `.kicad-happy.json` controls the shared analysis outpu
 {
   "analysis": {
     "output_dir": "analysis",
-    "retention": 5,
+    "retention": 0,
     "auto_diff": true,
     "track_in_git": false,
     "diff_threshold": "major"
@@ -357,8 +357,8 @@ The `analysis` section in `.kicad-happy.json` controls the shared analysis outpu
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `output_dir` | `"analysis"` | Analysis directory path, relative to project root |
-| `retention` | `5` | Max unpinned runs to keep. `0` = unlimited |
+| `output_dir` | `"analysis"` | Analysis directory; relative paths resolve against the working directory |
+| `retention` | `0` | Max unpinned runs to keep. `0` = keep all (default) |
 | `auto_diff` | `true` | Auto-include delta section in design reviews |
 | `track_in_git` | `false` | When false, JSONs gitignored but manifest tracked |
 | `diff_threshold` | `"major"` | Severity that triggers new timestamped folder: `minor`, `major`, `breaking` |
@@ -473,7 +473,7 @@ DigiKey is best (direct PDF URLs). element14 is reliable (no bot protection). LC
 **Structured datasheet extraction (for large designs or repeated reviews):** Pre-extract datasheet specs into cached JSON for faster, more consistent pin verification. This is especially valuable for designs with 10+ ICs where re-reading PDFs from scratch each time is slow.
 
 ```bash
-python3 <skill-path>/scripts/datasheet_page_selector.py <pdf_path> --mpn <mpn> --category <category>
+python3 -c "import sys; sys.path.insert(0, '<datasheets-skill-path>/scripts'); from datasheet_page_selector import suggest_pages; s = suggest_pages('<pdf_path>', '<mpn>', '<category>'); print(s.pages, s.reasons)"
 ```
 
 After reading the selected pages and producing an extraction JSON, score and cache it using `datasheet_score` and `datasheet_extract_cache` modules. Extractions are stored in `datasheets/extracted/<MPN>.json` and reused across reviews. The **`datasheets` skill** owns the full extraction pipeline (schema, page selection, scoring rubric, consumer API) — see `skills/datasheets/SKILL.md` and its reference guides.
@@ -584,9 +584,9 @@ python3 <skill-path>/scripts/what_if.py analysis.json R5=1k..100k:10 --text
 # Tolerance corner analysis (±5% worst-case)
 python3 <skill-path>/scripts/what_if.py analysis.json R5=4.7k+-5% C3=100n+-10% --text
 
-# Find the right value: inverse solver with E-series snapping
-python3 <skill-path>/scripts/what_if.py analysis.json --fix voltage_dividers[0] --target 3.3 --text
-python3 <skill-path>/scripts/what_if.py analysis.json --fix rc_filters[0] --target 1000 --text
+# Inverse solver, E-series snapping (divider target = Vout/Vin, e.g. 3.3 V of 5 V; filter = Hz)
+python3 <skill-path>/scripts/what_if.py analysis.json --fix 'voltage_dividers[0]' --target 0.66 --text
+python3 <skill-path>/scripts/what_if.py analysis.json --fix 'rc_filters[0]' --target 1000 --text
 
 # EMC impact preview
 python3 <skill-path>/scripts/what_if.py analysis.json C3=1u --emc --text
@@ -608,8 +608,8 @@ Summarises findings across all analyzers in a run. Use when the user wants a top
 # Top findings from the current run (default: top 20)
 python3 <skill-path>/scripts/summarize_findings.py analysis/
 
-# Limit to top 10 high-severity findings
-python3 <skill-path>/scripts/summarize_findings.py analysis/ --top 10 --severity high
+# Limit to the top 10 error findings
+python3 <skill-path>/scripts/summarize_findings.py analysis/ --top 10 --severity error
 
 # JSON output for programmatic consumption
 python3 <skill-path>/scripts/summarize_findings.py analysis/ --json
@@ -618,7 +618,7 @@ python3 <skill-path>/scripts/summarize_findings.py analysis/ --json
 python3 <skill-path>/scripts/summarize_findings.py analysis/ --run <run_id>
 ```
 
-Flags: `--top N` (default 20), `--severity` (filter to `critical`/`high`/`warning`/`info`), `--run` (explicit run ID instead of latest), `--json` (machine-readable output).
+Flags: `--top N` (default 20), `--severity` (filter to `error`/`warning`/`info`; `critical`/`high` mean `error`), `--run` (explicit run ID instead of latest), `--json` (machine-readable output); also `--confidence`, `--evidence-source`, `--by-confidence`, `--only-deterministic`, `--no-deep-review` (see `--help`).
 
 ### Component Lifecycle & Temperature Audit
 
@@ -654,19 +654,19 @@ All schematic rule findings appear in `findings[]`. The following rule IDs are p
 
 | Rule | Detector | Condition | Severity |
 |------|----------|-----------|----------|
-| SS-001 | `audit_sourcing_gate` | MPN coverage < 50% | high |
+| SS-001 | `audit_sourcing_gate` | MPN coverage < 50% | error |
 | SS-002 | `audit_sourcing_gate` | MPN coverage 50–80% | warning |
 | SS-003 | `audit_sourcing_gate` | MPN coverage 80–100% | info |
 | NT-001 | `analyze_connectivity` | Single-pin net: signal pin | warning |
 | NT-001 | `analyze_connectivity` | Single-pin net: power_out or passive pin | info |
 | RS-001 | `audit_rail_sources` | Rail has no declared source (no power_out pin, no PWR_FLAG, no bridged-jumper or regulator output) | warning |
-| RS-002 | `audit_rail_sources` | Rail depends on user closing an open jumper | high |
+| RS-002 | `audit_rail_sources` | Rail depends on user closing an open jumper | error |
 | RS-003 | `audit_rail_sources` | Rail sourced indirectly via a bridged-by-default solder jumper or ferrite — functional but consider adding PWR_FLAG | info |
 | LB-001 | `detect_label_aliases` | Net has >= 2 distinct global/hierarchical labels (power nets excluded) | info |
-| PP-001 | `audit_power_pin_dc_paths` | IC power_in pin reaches a rail only through a capacitor (2-hop BFS) | high |
+| PP-001 | `audit_power_pin_dc_paths` | IC power_in pin reaches a rail only through a capacitor (2-hop BFS) | error |
 | SP-001 | `detect_shorted_two_pin_components` | Two-pin passive or diode with both pins on one net (jumpers, net ties, 0R, DNP excluded); >= 5 on one net collapse into one net-level finding | warning |
 
-SS-001 is a pre-fab blocker — a `high` finding that should be resolved before ordering. NT-001 severity depends on pin type: signal pins (digital I/O, bidirectional) are `warning`; power_out and passive pins are `info`. RS-001 is reserved for the "no source at all" case (warning); the softer "sourced via bridged jumper / ferrite" case has its own rule_id RS-003 (info) so reviewers and CI gates can filter the two independently. PP-001 uses a 2-hop BFS over the net graph, rejecting capacitor edges, to confirm a direct DC path from a power rail to each IC power_in pin. PP-001 demotes to `info` on module-internal LDO rails (`VDDPLL_*`, `VDDA_INT_*`, `VDDCORE_*`, `VCAP`, `VDDREG`) where decoupling-only is the correct topology.
+SS-001 is a pre-fab blocker — an `error` finding that should be resolved before ordering. NT-001 severity depends on pin type: signal pins (digital I/O, bidirectional) are `warning`; power_out and passive pins are `info`. RS-001 is reserved for the "no source at all" case (warning); the softer "sourced via bridged jumper / ferrite" case has its own rule_id RS-003 (info) so reviewers and CI gates can filter the two independently. PP-001 uses a 2-hop BFS over the net graph, rejecting capacitor edges, to confirm a direct DC path from a power rail to each IC power_in pin. PP-001 demotes to `info` on module-internal LDO rails (`VDDPLL_*`, `VDDA_INT_*`, `VDDCORE_*`, `VCAP`, `VDDREG`) where decoupling-only is the correct topology.
 
 ## Deep Review Pass
 
@@ -726,26 +726,26 @@ Detailed methodology and format documentation lives in reference files. Read the
 
 | Reference | Lines | When to Read |
 |-----------|-------|-------------|
-| `deep-review.md` | — | Deep Review pass: per-part-class comparison heuristics, pair checks, helper-script conventions, fan-out |
-| `schematic-analysis.md` | 1133 | Deep schematic review: datasheet validation, design patterns, error taxonomy, tolerance stacking, GPIO audit, motor control, battery life, supply chain |
+| `deep-review.md` | 162 | Deep Review pass: per-part-class comparison heuristics, pair checks, helper-script conventions, fan-out |
+| `schematic-analysis.md` | 1167 | Deep schematic review: datasheet validation, design patterns, error taxonomy, tolerance stacking, GPIO audit, motor control, battery life, supply chain |
 | `pcb-layout-analysis.md` | 447 | Advanced PCB: impedance calculations, differential pairs, return paths, copper balance, edge clearance, copper-sensitive components (capacitive touch, antennas), custom analysis scripts |
-| `output-schema.md` | 293 | Full analyzer JSON schema with field names, types, and common extraction patterns |
+| `output-schema.md` | 337 | Full analyzer JSON schema with field names, types, and common extraction patterns |
 | `file-formats.md` | 379 | Manual file inspection: S-expression structure, field-by-field docs for all KiCad file types, version detection |
 | `gerber-parsing.md` | 729 | Gerber/Excellon format details, X2 attributes, analysis techniques |
 | `pdf-schematic-extraction.md` | 315 | PDF schematic analysis: extraction workflow, notation conventions, KiCad translation |
 | `supplementary-data-sources.md` | 288 | Legacy KiCad 5 data recovery: netlist parsing, cache library, PCB cross-reference |
-| `net-tracing.md` | 120 | Manual net tracing: coordinate math, Y-axis inversion, rotation transforms |
+| `net-tracing.md` | 169 | Manual net tracing: coordinate math, Y-axis inversion, rotation transforms |
 | `manual-schematic-parsing.md` | 289 | Fallback when schematic script fails |
 | `manual-pcb-parsing.md` | 467 | Fallback when PCB script fails |
 | `manual-gerber-parsing.md` | 621 | Fallback when Gerber script fails |
-| `report-generation.md` | 614 | Report template (critical findings at top), analyzer output field reference (schematic/PCB/gerber), severity definitions, writing principles, domain-specific focus areas, known analyzer limitations |
+| `report-generation.md` | 696 | Report template (critical findings at top), analyzer output field reference (schematic/PCB/gerber), severity definitions, writing principles, domain-specific focus areas, known analyzer limitations |
 | `standards-compliance.md` | 638 | IPC/IEC standards tables: conductor spacing (IPC-2221A Table 6-1), current capacity (IPC-2221A/IPC-2152), annular rings, hole sizes, impedance, via protection (IPC-4761), creepage/clearance (ECMA-287/IEC 60664-1). Consider for all boards; auto-trigger for professional/industrial designs, high voltage, mains input, or safety isolation. |
-| `oshwa-certification.md` | — | OSHWA open-source hardware certification readiness: editable KiCad sources, public documentation, licensing, version registration, certification-mark use. Read when the user asks about OSHWA certification or an open-source hardware release — a documentation/licensing audit with explicit approval gates, not an electrical check |
-| `design-intent.md` | — | Design intent resolution, target market / certification / power constraints that gate findings by context |
-| `diff-analysis.md` | — | How `diff_analysis.py` compares two analyzer runs and emits severity-ranked change reports |
-| `what-if.md` | — | How `what_if.py` patches component values, recalculates derived fields, and suggests fixes for feedback dividers / crystal load caps / cap derating |
-| `config-reference.md` | — | `.kicad-happy.json` schema — project config for analysis cache, suppressions, design intent, risk scoring |
-| `datasheet-verification.md` | — | Automated cross-check of schematic connections against structured datasheet extractions (pin voltage, required externals, decoupling adequacy) |
+| `oshwa-certification.md` | 89 | OSHWA open-source hardware certification readiness: editable KiCad sources, public documentation, licensing, version registration, certification-mark use. Read when the user asks about OSHWA certification or an open-source hardware release — a documentation/licensing audit with explicit approval gates, not an electrical check |
+| `design-intent.md` | 123 | Design intent resolution, target market / certification / power constraints that gate findings by context |
+| `diff-analysis.md` | 351 | How `diff_analysis.py` compares two analyzer runs and emits severity-ranked change reports |
+| `what-if.md` | 500 | How `what_if.py` patches component values, recalculates derived fields, and suggests fixes for feedback dividers / crystal load caps / cap derating |
+| `config-reference.md` | 356 | `.kicad-happy.json` schema — project config for analysis cache, suppressions, design intent, risk scoring |
+| `datasheet-verification.md` | 322 | Automated cross-check of schematic connections against structured datasheet extractions (pin voltage, required externals, decoupling adequacy) |
 
 For script internals, data structures, signal analysis patterns, and batch test suite documentation, see `scripts/README.md`.
 
@@ -807,7 +807,7 @@ The narrative matters most for probes that investigate *why* something looks wro
 
 Small investment, much lower friction.
 
-For probing the raw `.kicad_sch` / `.kicad_pcb` files themselves (not the analyzer JSON), use `<skill-path>/scripts/sexp_parser.py`: `parse(text)` and `parse_file(path)` return the document as nested Python lists; `find_all(node, kw)`, `find_first(node, kw)`, and `get_value(node, kw)` navigate it.
+For probing the raw `.kicad_sch` / `.kicad_pcb` files themselves (not the analyzer JSON), use `<skill-path>/scripts/kicad_core/sexp.py`: `parse(text)` and `parse_file(path)` return the document as nested Python lists; `find_all(node, kw)`, `find_first(node, kw)`, and `get_value(node, kw)` navigate it.
 
 ### Quick Review Checklists
 
@@ -831,7 +831,7 @@ third-party PDF datasheets, distributor API responses). The parsing architecture
 mitigates prompt injection and code execution risks:
 
 - **Deterministic parsers**: S-expression files (`.kicad_sch`, `.kicad_pcb`) are
-  parsed by a dedicated recursive-descent parser (`sexp_parser.py`) — not
+  parsed by a dedicated recursive-descent parser (`kicad_core/sexp.py`) — not
   `eval()`, `exec()`, or any code execution primitive. The parser produces
   Python lists/strings only.
 - **Structured JSON boundary**: All analyzer output is structured JSON with a
@@ -843,8 +843,8 @@ mitigates prompt injection and code execution risks:
   5-dimension quality rubric before caching.
 - **No shell commands from input**: No analyzer constructs shell commands from
   file content. Subprocess calls use list-based arguments exclusively.
-- **Read-only by default**: Analysis scripts never modify input files. BOM
-  write-back requires an explicit `--write` flag.
+- **Read-only analysis**: Analysis scripts never modify input files. The BOM
+  write-back scripts do write when run; `--dry-run` previews the change.
 - **Distributor API scope**: Network requests are limited to known distributor
   APIs (DigiKey, Mouser, LCSC, element14) for datasheet downloads and component
   lookups. Only MPNs are sent — no design data leaves the local machine.

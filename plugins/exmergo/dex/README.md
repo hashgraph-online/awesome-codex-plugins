@@ -1,6 +1,6 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/preview-dark.png" />
-  <img alt="Dex: analytics engineering for your coding agent. Explore, transform, maintain." src="assets/preview-light.png" />
+  <img alt="Dex: let your agent build your analytics. Explore, transform, maintain." src="assets/preview-light.png" />
 </picture>
 
 > *Most deadly errors arise from obsolete assumptions.*
@@ -9,10 +9,13 @@
 
 # Dex
 
-**Analytics engineering for your coding agent, with guardrails and lifecycle built into the engine.**
+**Dex lets your agent build your analytics.**
 
-Dex lets your agent build your analytics: data warehouse exploration, dbt data transformation and semantic modeling, 
-and schema-drift maintenance.
+Explore your data, build models and semantic layers, and keep them in sync
+as schemas change.
+
+Works with databases, data warehouses, lakehouses, and SQL engine endpoints
+through [supported connectors](#connectors).
 
 **Built by [Exmergo](https://www.exmergo.com)**
 
@@ -51,6 +54,16 @@ npx skills add exmergo/dex
 npx skills add exmergo/dex --agent codex
 ```
 
+## What you get
+
+- **Explore** your database, data warehouse, or SQL endpoint. Find the tables that matter, understand their structure, and verify how they join. Get column profiles, personal-data flags, and an ER diagram.
+- **Transform** your dbt project and semantic layer. Create models, tests, docs, and metrics as reviewable plans, then build and verify on a dev target.
+- **Maintain** your models and metrics as sources change. Detect drift in schemas, volumes, grain, and metric definitions, with proposed fixes to review.
+
+Your source data stays read-only. Builds run on a dev target, query costs are
+quoted before spend, and every project change is a diff you review.
+Works in Claude Code, Codex, or any agent that loads Agent Skills.
+
 > [!IMPORTANT]
 > **Dex needs [`uv`](https://docs.astral.sh/uv/) on your `PATH`.** No agent installs
 > it for you. Run `brew install uv` or `pipx install uv`, or see the
@@ -78,30 +91,23 @@ not run in claude.ai chat.
 uv run --no-project --script skills/<skill>/scripts/run.py --warm
 ```
 
-What you get:
-
-- **Explore** a warehouse you have never seen. Ranked inventory, column profiles built from aggregates, PII flags, verified joins, and an ER diagram.
-- **Transform** your dbt project and semantic layer. Models, tests, docs, and metrics arrive as reviewable plans and build only on a dev target.
-- **Maintain** it as the world changes. Schema, volume, grain, and metric-definition drift, each with a proposed fix.
-
-Your source data is never written to, and builds run on a dev target only. Cost
-quoted before any spend. Every change is a diff you review. Works in Claude Code, Codex, or any agent that loads Agent Skills.
-
 ## Why
 
-A general coding agent is a good SQL author and a poor analytics engineer. It:
+Writing SQL is one part of analytics engineering. Your agent also needs to:
 
-- re-learns the schema every session,
-- has no strategy for a warehouse with thousands of tables,
-- is blind to what a query costs,
-- will happily pull personal data into its context,
-- does not treat a dbt project or a semantic layer as an object to keep coherent over time.
+- understand the schema without starting from scratch every session,
+- find the relevant tables among thousands,
+- account for what a query costs,
+- keep personal data out of its context,
+- keep models and metric definitions coherent as their sources change.
 
-Dex owns exactly that loop, and enforces its rules in the engine rather than in a prompt.
+Dex gives the agent a repeatable explore, transform, maintain loop, with
+guardrails enforced in the engine.
 
 ## Try it in three commands
 
-No warehouse, no credentials, no cloud account, no network.
+No existing database, no credentials, no cloud account, and no network once the
+package is installed.
 
 ```bash
 pip install "exmergo-dex-core[duckdb]"
@@ -109,7 +115,7 @@ dex demo
 dex explore map
 ```
 
-`dex demo` writes a small e-commerce DuckDB warehouse (`dex_demo.duckdb`, 7 tables,
+`dex demo` writes a small e-commerce DuckDB database (`dex_demo.duckdb`, 7 tables,
 29,512 rows) and a `.dex/config.yml` into the current directory, so every command
 after it runs with no flags. It refuses rather than overwrite anything. The data
 comes from a pinned seed, so what you see is what is written here.
@@ -151,50 +157,72 @@ type contradicts their content, and two designed PII false positives. See the
 
 > [!NOTE]
 > DuckDB is free and local, so nothing here asks you to confirm a spend. On a
-> metered warehouse the same commands return an estimate first and run only once
+> metered connector the same commands return an estimate first and run only once
 > you agree to it.
 
 ## How it works
 
 ```mermaid
-flowchart LR
-  Agent[Coding agent] --> Skills[Dex skills]
-  Skills --> Engine[exmergo-dex-core engine]
-  Engine -->|SELECT-only SQL, cost-capped| Warehouse[(Your warehouse)]
-  Engine -->|dbt builds, dev target only| Warehouse
-  Engine -->|one sanitized JSON envelope| Agent
-  Engine -->|plans as diffs| Repo[Your repository: dbt project + semantic layer]
-  Engine <--> Cache[.dex/ cache and snapshot]
+%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 40, "rankSpacing": 56, "padding": 14}, "themeVariables": {"lineColor": "#51a2ff", "edgeLabelBackground": "#020618", "textColor": "#51a2ff", "fontSize": "14px"}, "themeCSS": ".edgeLabel p { padding: 6px 12px; margin: 0; border-radius: 6px; background: #020618; } .labelBkg { background: none !important; }"}}%%
+flowchart TB
+  agent["<b>Your coding agent</b><br/>Claude Code, Codex, any skills host"]
+  skills["<b>Dex skills</b><br/>explore · transform · maintain"]
+  engine["<b>exmergo-dex-core</b><br/>engine + guardrails"]
+  db[("<b>Your data</b><br/>database, warehouse,<br/>or SQL endpoint")]
+  repo["<b>Your repository</b><br/>dbt project +<br/>semantic layer"]
+  cache["<b>.dex/</b><br/>cache + snapshot"]
+
+  agent -->|"runs a command"| skills
+  skills --> engine
+  engine -->|"SELECT-only, cost-capped<br/>dbt builds on dev only"| db
+  engine -->|"plans as<br/>reviewable diffs"| repo
+  engine -->|"one sanitized<br/>JSON envelope"| agent
+  engine <--> cache
+
+  linkStyle default stroke:#51a2ff,stroke-width:1.5px,color:#51a2ff
+
+  classDef host fill:#020618,stroke:#51a2ff,stroke-width:1.5px,color:#ffffff
+  classDef core fill:#2563eb,stroke:#51a2ff,stroke-width:2px,color:#ffffff
+  classDef yours fill:#020618,stroke:#22d3ee,stroke-width:1.5px,color:#ffffff
+  classDef state fill:#020618,stroke:#22d3ee,stroke-width:1.5px,stroke-dasharray:5 4,color:#cad5e2
+
+  class agent,skills host
+  class engine core
+  class db,repo yours
+  class cache state
 ```
 
-The skills are thin. All the logic, and every guardrail, lives in one engine
-(`exmergo-dex-core`) behind a [small command contract](https://docs.exmergo.com/dex/reference/command-contract).
-Your repository is the source of truth on two independent axes: the transformation
-project (dbt) and the semantic layer. The `.dex/` directory is only a cache.
+The skills connect your agent to the `exmergo-dex-core` engine, which holds the
+logic and guardrails behind a [small command contract](https://docs.exmergo.com/dex/reference/command-contract).
+Your dbt project and semantic-layer definitions live in your repository as
+reviewable files. The `.dex/` directory holds Dex's cache and snapshots.
 
 ### Explore
 
-Rank what matters, profile selectively, infer and verify joins, answer ad-hoc
-questions through a PII-aware query firewall, read and query the semantic layer,
-and draw the map as a Mermaid ER diagram. Fully read-only.
+Find the tables that matter, profile their columns, and verify joins before
+writing SQL. Answer ad-hoc questions through a query firewall that checks for
+personal data, read and query the semantic layer, and map relationships as a
+Mermaid ER diagram. Exploration is read-only and needs no dbt project.
 [Skill](skills/explore/SKILL.md) · [methodology](https://docs.exmergo.com/dex/concepts/methodology) · [commands](https://docs.exmergo.com/dex/cli/explore)
 
 <img width="522" height="343" alt="Explore" src="https://github.com/user-attachments/assets/7f16b370-66ed-4596-ae01-041cf3db3525" />
 
 ### Transform
 
-Author and refactor dbt models from staging to marts, with tests and docs, plus the
-semantic layer on top. Every change is a stored plan you review, then apply. Builds
-run against a dev target only.
+Build and refactor dbt models from staging to marts, with tests, docs, and declared
+grain and population. Define semantic models and metrics over them, or work with a
+native semantic layer without a dbt project. Review each stored plan before
+applying it, then build and verify on a dev target.
 [Skill](skills/transform/SKILL.md) · [what Dex writes](https://docs.exmergo.com/dex/concepts/dbt-project) · [commands](https://docs.exmergo.com/dex/cli/transform)
 
 <img width="504" height="271" alt="Transform" src="https://github.com/user-attachments/assets/fda40e48-b481-424c-adc7-d79c0ede346b" />
 
 ### Maintain
 
-Diff the warehouse, the project, and the semantic layer against the last snapshot,
-rank the drift by blast radius, and propose the reconciling edits. `maintain verify`
-checks a project as it stands, with no baseline needed.
+Compare database schemas and profiles, the dbt project, and the semantic layer
+with the last snapshot. See which models and metrics a change affects and review
+the proposed edits. `maintain verify` also checks a project as it stands, with no
+baseline needed.
 [Skill](skills/maintain/SKILL.md) · [commands](https://docs.exmergo.com/dex/cli/maintain)
 
 <img width="484" height="344" alt="Maintain" src="https://github.com/user-attachments/assets/ff714eaf-f0b2-46d6-8a4b-c69791740f18" />
@@ -210,18 +238,18 @@ checks a project as it stands, with no baseline needed.
 
 ## Connectors
 
-| Connector | Type | Self-hostable | Extra / `--connector` | Cost surfaced as | Credentials from |
+| Connector | Type | Self-hostable | Extra / `--connector` | Cost guardrail | Connection details |
 | --- | --- | :---: | --- | --- | --- |
 | <img src="https://www.exmergo.com/connectors/snowflake.png" width="20" height="20" alt=""> [**Snowflake**](https://docs.exmergo.com/dex/connectors/snowflake) | Cloud warehouse | ❌ | `snowflake` | Warehouse-seconds, with credits | `connections.toml`, `SNOWFLAKE_*` env, or a dbt profile |
 | <img src="https://www.exmergo.com/connectors/bigquery.png" width="20" height="20" alt=""> [**BigQuery**](https://docs.exmergo.com/dex/connectors/bigquery) | Cloud warehouse | ❌ | `bigquery` | Bytes scanned | Application Default Credentials |
-| <img src="https://www.exmergo.com/connectors/databricks.png" width="20" height="20" alt=""> [**Databricks**](https://docs.exmergo.com/dex/connectors/databricks) | Cloud warehouse | ❌ | `databricks` | Warehouse-seconds, with DBUs | `databricks auth login`, `DATABRICKS_*` env, or a dbt profile |
+| <img src="https://www.exmergo.com/connectors/databricks.png" width="20" height="20" alt=""> [**Databricks**](https://docs.exmergo.com/dex/connectors/databricks) | Lakehouse via SQL endpoint | ❌ | `databricks` | Warehouse-seconds, with DBUs | `databricks auth login`, `DATABRICKS_*` env, or a dbt profile |
 | <img src="https://www.exmergo.com/connectors/redshift.png" width="20" height="20" alt=""> [**Amazon Redshift**](https://docs.exmergo.com/dex/connectors/redshift) | Cloud warehouse, Serverless-first | ❌ | `redshift` | Compute-seconds, with RPU-hours | The AWS credential chain or `REDSHIFT_*` env |
-| <img src="https://www.exmergo.com/connectors/clickhouse.png" width="20" height="20" alt=""> [**ClickHouse**](https://docs.exmergo.com/dex/connectors/clickhouse) | Analytical database | ✅ | `clickhouse` | Compute-seconds on Cloud, database-seconds self-hosted | `CLICKHOUSE_URL`, `CLICKHOUSE_*` env, or a dbt profile |
-| <img src="https://www.exmergo.com/connectors/trino.png" width="20" height="20" alt=""> [**Trino**](https://docs.exmergo.com/dex/connectors/trino) | Federated query engine | ✅ | `trino` | Cluster-seconds | `TRINO_URL`, `TRINO_*` env, or a dbt profile |
+| <img src="https://www.exmergo.com/connectors/postgresql.png" width="20" height="20" alt=""> [**Postgres**](https://docs.exmergo.com/dex/connectors/postgres) | Operational database | ✅ | `postgres` | Database-seconds | `pg_service.conf`, `DATABASE_URL`, `PG*` env, or a dbt profile<br>Also works with <img src="assets/supabase-logo.png" width="20" height="20" alt=""> [Supabase](https://supabase.com/), <img src="assets/neon-logo.png" width="20" height="20" alt=""> [Neon](https://neon.com/), and [more managed Postgres platforms](references/postgres.md#managed-postgres-platforms) |
 | <img src="https://www.exmergo.com/connectors/duckdb.png" width="20" height="20" alt=""> [**DuckDB**](https://docs.exmergo.com/dex/connectors/duckdb) | Embedded analytical | ✅ | `duckdb` | Free and local | None, just a file path |
-| <img src="https://www.exmergo.com/connectors/postgresql.png" width="20" height="20" alt=""> [**Postgres**](https://docs.exmergo.com/dex/connectors/postgres) | Operational database | ✅ | `postgres` | Database-seconds | `pg_service.conf`, `DATABASE_URL`, `PG*` env, or a dbt profile |
+| <img src="https://www.exmergo.com/connectors/clickhouse.png" width="20" height="20" alt=""> [**ClickHouse**](https://docs.exmergo.com/dex/connectors/clickhouse) | Analytical database | ✅ | `clickhouse` | Compute-seconds on Cloud, database-seconds self-hosted | `CLICKHOUSE_URL`, `CLICKHOUSE_*` env, or a dbt profile |
+| <img src="https://www.exmergo.com/connectors/trino.png" width="20" height="20" alt=""> [**Trino**](https://docs.exmergo.com/dex/connectors/trino) | Federated query engine | ✅ | `trino` | Cluster-seconds| `TRINO_URL`, `TRINO_*` env, or a dbt profile<br>Also works with: <img src="assets/mysql-logo.png" width="20" height="20" alt=""> MySQL, <img src="assets/sqlserver-logo.png" width="20" height="20" alt=""> SQL Server, <img src="assets/mongodb-logo.png" width="20" height="20" alt=""> MongoDB, and [more databases through Trino catalogs](references/trino.md#databases-through-configured-catalogs)  |
 
-Credentials are discovered, never asked for, and never enter the agent's context.
+Credentials are discovered and never enter the agent's context.
 Every scan is estimated, confirmed, and capped server-side, and settled spend is
 recorded in a local ledger ([cost controls](https://docs.exmergo.com/dex/guardrails/cost-controls)).
 Self-hosted databases bill no dollars and are still gated, because an unbounded
@@ -231,8 +259,10 @@ scan on a production Postgres primary is a real cost too.
 
 ## Semantic layers
 
-The semantic layer is its own axis, chosen once per repository in `.dex/config.yml`.
-With Ossie, SLayer or Cube, it needs no dbt project at all. ([overview](https://docs.exmergo.com/dex/semantic-layers/overview))
+Choose the semantic layer independently of your database connector. Dex supports
+dbt semantic models and native Ossie, SLayer, or Cube files. Configure the choice
+in `.dex/config.yml`; Ossie, SLayer, and Cube need no dbt project.
+([overview](https://docs.exmergo.com/dex/semantic-layers/overview))
 
 | Semantic layer | Hosted | Queryable | `vendor` / `deployment` | Read through | Documentation |
 | --- | :---: | :---: | --- | --- | --- |
@@ -248,7 +278,7 @@ With Ossie, SLayer or Cube, it needs no dbt project at all. ([overview](https://
 **[github-repo-analytics](https://github.com/exmergo/github-repo-analytics)** is a template that tracks GitHub traffic, stars, downloads and contributors for your open-source projects, free on GitHub Actions.   
 Every model and metric was built and is maintained with Dex. Its [audit trail](https://github.com/exmergo/github-repo-analytics/blob/main/.dex/review/README.md) holds the raw envelopes, including the drift Dex blocked.
 
-## The Core Python Library you can use
+## Use Dex from Python
 
 The engine is a plain Python package, `exmergo-dex-core`:
 
@@ -276,7 +306,7 @@ to a project on disk, the way the CLI does.
 For hosts embedding Dex:
 
 - **Values-free mode** keeps every table value out of the model's view, aggregates only. ([values-free mode](https://docs.exmergo.com/dex/guardrails/values-free-mode))
-- **Per-user credentials**: pass a `ConnectionSource` so each request reaches the warehouse as its own principal.
+- **Per-user credentials**: pass a `ConnectionSource` so each request reaches the connected system as its own principal.
 - **Multi-process lifecycles**: export a plan, verify and apply it elsewhere, and get typed evidence of what a build established. ([host integration](https://docs.exmergo.com/dex/reference/host-integration))
 - **Other formats and stores**: plug in a [project format](https://docs.exmergo.com/dex/reference/project-formats) or a [storage backend](https://docs.exmergo.com/dex/reference/storage-backends).
 
@@ -303,7 +333,7 @@ and treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/de
 ### What Dex sends where
 
 - **On install**, `uv` downloads the pinned engine (and a Python 3.11 to 3.14 if you have none) from PyPI or your configured index.
-- **Your warehouse** gets SELECT-only SQL from Dex, plus the dbt builds you confirm on a dev target, with credentials from your existing credential chain.
+- **Your connected database, data warehouse, or SQL endpoint** gets SELECT-only SQL from Dex, plus the dbt builds you confirm on a dev target, with credentials from your existing credential chain.
 - **dbt Cloud** is contacted only if you enable the hosted semantic layer.
 - **dbt-core**, when Dex runs it, sends dbt Labs no usage statistics: Dex sets `DO_NOT_TRACK=1` for every dbt process it starts. `transform deps` downloads the packages your `packages.yml` declares.
 - **Your repository** holds Dex's state in `.dex/`. dbt writes its usual `target/` and `logs/`.
@@ -325,7 +355,7 @@ data values:
 | `.dex/config.yml` | Yes | No: connector targets, `pii_overrides` (column names, not values), budgets and limits. Credentials live in environment variables or dbt profiles, never in this file. |
 | `.dex/snapshot.json` | Like a lockfile, where its values may be public; otherwise take a metadata-only baseline or keep it out | Yes: when snapshotted from a cache it pins the cache's datasets wholesale, including each non-PII column's capped value domain and min/max. A metadata-only baseline (no cache) carries schema and volume only. PII-flagged columns never carry value domains. |
 | `.dex/cache.json` | Only if values may be public | Yes: column profiles with capped value domains (actual values with counts). Never for PII-flagged columns. |
-| `.dex/plans/*.json` | Optional, as an audit trail | No warehouse values: the proposed contents of project files. |
+| `.dex/plans/*.json` | Optional, as an audit trail | No data values: the proposed contents of project files. |
 | `.dex/queries.jsonl` | Optional, as a ledger | SQL text, which may hold literals. |
 | `.dex/drift.json` | No: regenerate with `maintain check` | Aggregates only: counts, names and schema metadata in drift findings. |
 
@@ -340,6 +370,7 @@ For a repo that must not publish data values, ignore the rest:
 .dex/drift.json
 .dex/spend.jsonl
 .dex/spend.lock
+.dex/cache.lock
 ```
 
 `.dex/dex.db` is the SQLite backend's equivalent of `cache.json`, so it gets
@@ -349,7 +380,7 @@ but it is local spend history, so there is no reason to commit it.
 
 ### What Dex will never do
 
-- **Write to your source data.** Dex's own SQL is SELECT-only. The only writes to your warehouse are the dbt builds you confirm, on a dev target.
+- **Write to your source data.** Dex's own SQL is SELECT-only. The only data writes are the dbt builds you confirm, on a dev target.
 - **Put personal data in your agent's context.** PII is flagged by column, category, and confidence, and never surfaced. Only a human clears a flag. ([PII policy](https://docs.exmergo.com/dex/guardrails/pii-policy))
 - **Spend before quoting.** A metered scan returns an estimate and runs only with your confirmation and a budget. ([cost controls](https://docs.exmergo.com/dex/guardrails/cost-controls))
 - **Change your project behind your back.** Every edit is a diff, and a human edit made since planning is never overwritten. ([source of truth](https://docs.exmergo.com/dex/concepts/source-of-truth))
@@ -362,7 +393,7 @@ but it is local spend history, so there is no reason to commit it.
 - [Command contract](https://docs.exmergo.com/dex/reference/command-contract) and [`AGENTS.md`](AGENTS.md): how any agent drives the engine
 - [Cost controls](https://docs.exmergo.com/dex/guardrails/cost-controls) and [PII policy](https://docs.exmergo.com/dex/guardrails/pii-policy): the two guardrails that cut across everything
 - [Configuration](https://docs.exmergo.com/dex/cli/config): read and change `.dex/config.yml` as a confirmed diff
-- [Connectors](https://docs.exmergo.com/dex/connectors/duckdb): setup, cost, and read-only enforcement per warehouse
+- [Connectors](https://docs.exmergo.com/dex/connectors/duckdb): setup, cost, and read-only enforcement per connector
 - [Changelog](https://docs.exmergo.com/dex/changelog)
 - [`references/`](references/): the same material as Markdown, for agents and offline reading
 
@@ -378,9 +409,10 @@ Apache-2.0. [Learn more](https://www.exmergo.com/dex/enterprise).
 
 ### Community Integrations
 
-| Integration | Maintainer | What it does |
-| --- | --- | --- |
-| <img src="assets/dagster-logo.png" width="20" height="20" alt=""> **[dagster-dex](https://github.com/catincloud-labs/dagster-dex)** | <img src="assets/catincloudlabs-logo.png" width="20" height="20" alt=""> [CatInCloud Labs](https://github.com/catincloud-labs) | Explore and maintain your Dagster assets with Dex, using the asset graph in place of a dbt project. |
+| Integration&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Maintainer&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | What it does | Details |
+| --- | --- | --- | --- |
+| <img src="assets/dagster-logo.png" width="20" height="20" alt=""> **[dagster-dex](https://github.com/catincloud-labs/dagster-dex)** | <img src="assets/catincloudlabs-logo.png" width="20" height="20" alt=""> [CatInCloud Labs](https://github.com/catincloud-labs) | Explore and maintain your Dagster assets with Dex, using the asset graph in place of a dbt project. | [Repository](https://github.com/catincloud-labs/dagster-dex) |
+| <img src="assets/openlakeforge-logo.png" width="20" height="20" alt=""> **[OpenLakeForge](https://github.com/OpenLakeForge/openlakeforge)** | <img src="assets/openlakeforge-logo.png" width="20" height="20" alt=""> [OpenLakeForge](https://github.com/OpenLakeForge) | Explore an OpenLakeForge lakehouse alongside Dex through the `olf` CLI, with read-only access to Trino data, OpenMetadata domains and products, and Dagster jobs and runs. | [Skill](https://github.com/OpenLakeForge/openlakeforge/blob/main/skills/exploring-openlakeforge/SKILL.md) |
 
 ### Connect with the Community
 

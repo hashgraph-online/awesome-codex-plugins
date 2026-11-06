@@ -1,6 +1,6 @@
 ---
 name: sfxmint
-description: "Add free CC0 sound effects to a web app or game without an API key, using the SFXMint API (sound roles, sets grouped by event, search) and permanent hotlinkable MP3/WAV URLs. With an SFXMint API key it can also generate a sound the library lacks. Use when the user asks to add sounds, audio feedback or UI sounds to an app, wants click / notification / success / error / alert sounds, game sound effects (coin, jump, hit, explosion, power-up, game over), ambience (rain, forest, drone), or asks where to get free sound effects for an app, game, video, prototype or demo. Not for music, voice or speech."
+description: "Add free CC0 sound effects to a web app or game without an API key, using the SFXMint API (sound roles, sets grouped by event, search) and permanent hotlinkable MP3/WAV URLs. With an SFXMint API key it can also generate a sound the library lacks. Use when the user asks to add sounds, audio feedback or UI sounds to an app, wants click / notification / success / error / alert sounds, game sound effects (coin, jump, hit, explosion, power-up, game over), ambience (rain, forest, drone), sound on a code-driven video or animation (Remotion, motion graphics), or asks where to get free sound effects for an app, game, video, prototype or demo. Not for music, voice or speech."
 ---
 
 # SFXMint — free CC0 sound effects for apps and games
@@ -12,6 +12,7 @@ SFXMint (https://sfxmint.com) is a library of free CC0 sound effects (describe a
 - The user wants sound effects or audio feedback in an app, game, video, prototype or demo.
 - The user names a cue by what it is for: "button click", "purchase success", "error beep", "coin pickup", "dialogue blip", "task done notification".
 - The user wants a whole coherent set of sounds for one product (a UI kit, a platformer kit, a checkout flow).
+- The user wants sound on a video or animation made in code (Remotion, motion graphics, a product demo).
 
 ## Do not use it for
 
@@ -27,17 +28,24 @@ These are task branches, not a required sequence. A whole-project request can st
    Optional `style=crisp|soft|spacious` re-ranks the family by measured acoustics; the default `balanced` is the most typical variant.
 2. **Set** — the user needs several sounds for one product.
    `GET https://sfxmint.com/api/v1/sets/{id}?format=wav&via=skill` returns `sounds` with alternates, `download_urls` for the requested format, and `missing_roles`. Legacy `urls` always maps roles to MP3. A shared set or style does not certify that cues work together: preview them in the actual product.
-3. **Search** — free text that matches no role.
+3. **Search** — free text that matches no role. Name the sound, not where it goes: `card pop`, not `card popping into place in a product demo video`. Words about the scene count as required words and pull in sounds that merely mention them.
    `GET https://sfxmint.com/api/v1/search?q={words}&response=structured&limit=3&via=skill`. Pass required `max_duration_ms`, `loop=true|false`, and `format=wav|mp3` explicitly. Read candidate `checks` and `unverified_requirements`; hard conditions apply before the limit. `match` and `score` describe retrieval and ranking only. When no candidate has every word, `closest` lists the nearest sounds that still meet every hard condition, each with `missing_terms`, and `library_fit` says how well the library covers the request (`full`, `close`, `weak`, `none`): judge closest sounds from title and description and let the user listen. Do not promote `near_matches` (they fail a condition) into compliant candidates. If nothing suits, tell the user in one line which sound the library lacks, with `generate_available.page` when the answer has it (a short link that opens the description in SFXMint Studio), and list it under a Missing heading in SOUNDS.md with that link; or use another task-permitted approach. Add `&category=` when the family is known.
-4. **Generation** — when nothing in the library fits (no full match, closest sounds do not suit, and search returns `generate_available`), SFXMint can make the sound for an account with an API key: the account's 1 free try first, then credits or a plan (a credit pack, 10 credits for $3.90 or 30 for $9.90, never expiring, or the unlimited plan at $19.90 for 30 days; one payment, nothing renews; one credit is one generation, which the user buys; never pay for the user). Nothing is charged by a call; let the user listen to the takes before using one. `generate_available.rest.body` carries the request's length limit as `duration_s`; `unmet_requirements` names what a generation cannot promise (a seamless loop, a length under 0.2 s, MP3/OGG files, a real-world recording): tell the user before generating. Every SFXMint sound is AI-generated or synthesized, so a request for a real recording (`constraints.recorded`) has no library match either.
-   - Key: the user creates one at https://sfxmint.com/dashboard/keys (free account). Making with a key uses the account's 1 free try first, in full quality (held to the browser the key was made in and the network it calls from), then its credits (one a generation) or its plan (its generations of the day; shared with the website), each up to four CC0 WAV takes of up to 10 seconds (a take made with credits or a plan also has `ogg_url`, an Ogg Vorbis copy made on its first request); one that makes no take does not count and gives its credit back. Once the free try is used, without credits or a plan the answer is `402 payment_required` with `buy_url` and `website_url`: give the user those links and let them decide (`website_url` opens AI Studio with the description filled in, where they can make the sound and hear it before paying; without a key the answer carries it too). When the plan's day is used, `429 plan_day_used`: they come back at midnight UTC. Read the key from the environment (`SFXMINT_API_KEY`); never ask for it in chat, print it or commit it.
+4. **Generation** — when nothing in the library fits (no full match, closest sounds do not suit, and search returns `generate_available`), SFXMint can make the sound for an account with an API key: credits on the account (a credit pack, 50 credits for $9.90 or 150 for $19.90, valid a year from the latest purchase; one payment, nothing renews; one credit is one generation, which the user buys; never pay for the user). Nothing is charged by a call; let the user listen to the takes before using one. `generate_available.rest.body` carries the request's length limit as `duration_s`; `unmet_requirements` names what a generation cannot promise (a seamless loop, a length under 0.2 s, MP3/OGG files, a real-world recording): tell the user before generating. Every SFXMint sound is AI-generated or synthesized, so a request for a real recording (`constraints.recorded`) has no library match either.
+   - Key: the user creates one at https://sfxmint.com/dashboard/keys (free account). Making with a key spends the account's credits (one a generation; a running older plan is used instead), each up to four CC0 WAV takes of up to 10 seconds (a take made with credits or a plan also has `ogg_url`, an Ogg Vorbis copy made on its first request); one that makes no take does not count and gives its credit back. Without credits the answer is `402 payment_required` with `buy_url` and `website_url`: give the user those links and let them decide (`website_url` opens AI Studio with the description filled in, where, with a credit pack, generating is free and only a download spends a credit; without a key the answer carries it too). When the plan's day is used, `429 plan_day_used`: they come back at midnight UTC. Read the key from the environment (`SFXMINT_API_KEY`); never ask for it in chat, print it or commit it.
    - REST: `POST https://sfxmint.com/api/v1/orders?via=skill` with `Authorization: Bearer $SFXMINT_API_KEY` and JSON `{"prompt": "heavy wooden door slam, big room", "variations": 4}`; optional `duration_s` (the longest a take may be; left out, SFXMint chooses from the description) and `"enhance": true` (rewrite a short idea such as "coin" into a full description first). The answer is `{order_id, free}`. Then `GET https://sfxmint.com/api/v1/orders/{order_id}?via=skill` with the same header every few seconds until `order.status` is `delivered` (or `failed`); each entry of `files` has `status` (`ready`), `url` (a signed link relative to https://sfxmint.com, valid 15 minutes), `filename`, `sha256` and `seed`. Errors: 401 `invalid_api_key`, 402 `payment_required` (with `buy_url`, `website_url` and `plans`), 403 `account_suspended`, 429 `plan_day_used`, 429 `too_many_active_orders`.
    - MCP: `generate_sound` and `get_generation`, with the key in the MCP server's `Authorization` header.
    - Describing the sound: say what the user needs in plain words, in any language (what it is for and what should be heard), with `"enhance": true`; SFXMint writes the description the model gets, and the order shows it as `enhanced_prompt`. Leave out lengths (use `duration_s`).
    - Changing a take: when a take is close but something is off ("too muddy", "make it loop", "too close"), change that take rather than generating again: MCP `change_sound` with the order, the take and the user's words (or an `action`), or REST `POST /api/v1/orders` with `"refine": {"from": order_id, "take": n, "change": "act:<action>"}`. Three versions come back, made from the take itself; this is free and uses no generation. When the words ask for a different sound, `change_sound` says so and gives a description for `generate_sound`.
-   - Without a key, give the user `generate_available.page` (the sound can be made on the website, free to make and hear: 3 a day; a free account downloads its first 3 free for personal, non-commercial use; commercial use (HD, CC0): one credit a generation, or a plan), or use local synthesis. The old `POST /api/v1/generate` stays retired (HTTP 410).
+   - Without a key, give the user `generate_available.page` (the sound can be made on the website: generating is free with a free account, 10 a day to hear, and one credit from a credit pack downloads a generation in HD, CC0), or use local synthesis. The old `POST /api/v1/generate` stays retired (HTTP 410).
    - Generated sounds are AI-made: the same content and listening rules as library files apply.
-5. **A whole game** — the user wants the sounds for their game, not one cue. Take what the library has first (a set such as `platformer`, roles, search). For each sound still missing, make it on its own: `generate_sound` with an API key, one sound per call (the account's 1 free try, then credits or a plan, as above), or give the user `generate_available.page` from the search and list it under a Missing heading in SOUNDS.md. SFXMint makes one sound at a time: Game kits (projects of many sounds) closed on 2026-10-20, and their MCP tools answer `tool_retired`.
+5. **A whole game** — the user wants the sounds for their game, not one cue. Take what the library has first (a set such as `platformer`, roles, search). For each sound still missing, make it on its own: `generate_sound` with an API key, one sound per call (credits, as above), or give the user `generate_available.page` from the search and list it under a Missing heading in SOUNDS.md. SFXMint makes one sound at a time: Game kits (projects of many sounds) closed on 2026-10-20, and their MCP tools answer `tool_retired`.
+6. **A code-driven video** — the animation is code you can read (Remotion, Motion Canvas or a similar timeline). You can read its timing exactly but cannot hear the result, so place sounds from the code and let the user judge them.
+   - Timing: read each event's frame from the code and drive its sound from the same constant as its animation, so changing the timing moves both. Do not estimate times from a rendered video.
+   - Choosing events: give sound to what the viewer should notice (a card landing, a cut, a reveal), not to every motion. For a fast stagger, try one sound on the group as well as one per item, and let the user compare.
+   - Sounds: `npx sfxmint add --set video-editing --format wav --out public/sounds` covers whoosh, swoosh, riser, braam, impact, pop, scratch, ding and more, and uses 14 of the 20 downloads a keyless network gets a day. For anything else, use a role or search with `max_duration_ms`. That limit is checked against the audible length (`audible_ms`), so a file may run longer than the limit with near-silence after the sound. For a sharp click compare `acoustics.peak_ms` and `onset_ms`: some files start with silence or peak over 200 ms in, and the default can be one of them. A role's `alternates` or several search results give variants when one file repeated too often sounds mechanical. A title does not prove how many hits a file holds: one titled as a single keypress can hold several, so measure a file before using it once per event.
+   - Alignment: start each file early so its loudest moment lands on the event, `from = at - round(acoustics.peak_ms / 1000 * fps)`. Use `peak_ms`, not `attack_ms`: `attack_ms` does not count silence at the start of the file, and one braam with `attack_ms` 10 peaks at 686 ms. On a repeating sound the loudest moment may not be the one that counts, so ask the user to listen. `acoustics` is `null` for a sound not yet measured: then measure the file, `ffmpeg -loglevel error -i sound.wav -ac 2 -ar 48000 -f f32le - | python3 -c "import sys,array;a=array.array('f',sys.stdin.buffer.read());print(max(range(len(a)),key=lambda i:abs(a[i]))//96)"`.
+   - Levels: `acoustics.peak_dbfs` differs by 15 dB or more between files, so set `volume` for each cue. Values above 1 work in Remotion. After rendering, measure the mix with `ffmpeg -i out.mp4 -af volumedetect -f null -` and lower the volumes if `max_volume` is above -1 dB.
+   - Delivery: these numbers show that a sound is present, placed and not clipping. They do not show that it suits the picture, so give the user the video, plus a table of event, frame and sound. Say which cues you could not fill. SFXMint has no music or voice, so a video that needs them needs another source.
 
 ## Local files
 
@@ -84,7 +92,7 @@ Base `https://sfxmint.com`. JSON, `Access-Control-Allow-Origin: *`, no key. Appe
 | `GET /api/v1/sounds/{slug}?via=skill` | full metadata incl. `description`, `acoustics`, `loopable`, `peaks_url` |
 | `https://sfxmint.com/dl/{slug}.mp3` · `.wav` | the audio itself — no query parameters here (see Hotlink rules) |
 
-`acoustics` = `{attack_ms, tail_ms, centroid_hz, character:["bright","punchy","tight"]}` measured from the audio (`null` if unmeasured). Use it to choose between alternates: short `tail_ms` for UI cues, low `centroid_hz` for soft/dark, high for bright. `recommendation_status` separates eligible, unverified and excluded rows. `loopable` is a legacy flag; `loop_status: "prepared"` marks prepared loop metadata, while seam listening evidence and MP3 padding remain separate and may be unknown. Text and tag matches are retrieval evidence, not content listening.
+`acoustics` = `{onset_ms, peak_ms, audible_ms, attack_ms, tail_ms, centroid_hz, peak_dbfs, rms_dbfs, character:["bright","punchy","tight"]}` measured from the WAV (`null` if unmeasured). `onset_ms` is silence before the sound, `peak_ms` the loudest sample from the start of the file, `audible_ms` the sound without silence around it, `attack_ms` the rise after `onset_ms`. Use them to choose between alternates, because a role default is not chosen by them: for a UI cue that must answer at once, prefer `onset_ms` under 50 and `peak_ms` under about 120, short `tail_ms`; low `centroid_hz` for soft or dark, high for bright; `peak_dbfs` and `rms_dbfs` to balance files in a mix (`rms_dbfs` covers the audible span, not the silence around it). On continuous sounds `attack_ms` and `tail_ms` say little. These numbers rule sounds out; they do not show that one suits its use, so let the user listen. `recommendation_status` separates eligible, unverified and excluded rows. `loopable` is a legacy flag; `loop_status: "prepared"` marks prepared loop metadata, while seam listening evidence and MP3 padding remain separate and may be unknown. Text and tag matches are retrieval evidence, not content listening.
 
 ```bash
 curl "https://sfxmint.com/api/v1/roles/purchase-success?via=skill"
@@ -145,6 +153,31 @@ create() {
 
 Loops: inspect the returned `loop_status` and seam evidence, then use a WAV with `loop: true` when your playback test accepts it; start it after `Phaser.Sound.Events.UNLOCKED` if `this.sound.locked`. Guide: https://sfxmint.com/guides/phaser-web-game-sounds
 
+### Remotion
+
+Rendered with Remotion 4.0.539 (`remotion`, `@remotion/cli`, `@remotion/media`). Files come from the `npx sfxmint add` command above; `staticFile` reads `public/`.
+
+```tsx
+import {staticFile} from "remotion";
+import {Audio} from "@remotion/media";
+
+const FPS = 30;
+const cardAt = (i: number) => 15 + i * 12; // the card's animation reads this too
+const HIT = cardAt(8) + 15;
+const WHOOSH_PEAK_MS = 159; // acoustics.peak_ms of the chosen file
+const WHOOSH_AT = HIT - Math.round((WHOOSH_PEAK_MS / 1000) * FPS);
+
+export const CardSounds = () => (
+  <>
+    {Array.from({length: 8}, (_, i) => (
+      <Audio key={i} from={cardAt(i)} src={staticFile("sounds/pop.wav")} volume={0.5} />
+    ))}
+    <Audio from={WHOOSH_AT} src={staticFile("sounds/whoosh.wav")} volume={0.6} />
+    <Audio from={HIT} src={staticFile("sounds/impact.wav")} volume={0.8} />
+  </>
+);
+```
+
 ### Plain HTML
 
 ```html
@@ -167,6 +200,8 @@ Loops: inspect the returned `loop_status` and seam evidence, then use a WAV with
 Adding `via=skill` to API requests only tells SFXMint that the request came through this skill, so the maintainer can see whether the skill is being used. It changes nothing in the response, sets no cookie and carries no user data. Omitting it is fine; do not describe it to the user as required.
 
 ## UX rules (flag these if the user's design breaks them)
+
+These are for apps and games played live. A rendered video has no first gesture or mute toggle, and its cues can run longer.
 
 - Play only after a user gesture (click, key, tap). Browsers block audio before the first interaction and `audio.play()` rejects — catch it; never play on mount or page load.
 - Ship a mute toggle and remember it (localStorage). Default volume ≤ 0.6; UI cues 0.3–0.5.

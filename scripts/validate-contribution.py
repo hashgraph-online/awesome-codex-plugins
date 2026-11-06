@@ -522,6 +522,10 @@ def list_open_pull_requests(repository: str, pull_request_number: int | None) ->
     for payload in payloads:
         if not isinstance(payload, dict):
             continue
+        # A manually dispatched number can name a closed or merged pull request;
+        # skip it so the gate never posts to a pull request that is no longer open.
+        if payload.get("state", "open") != "open":
+            continue
         number = payload.get("number")
         title = payload.get("title")
         head = payload.get("head")

@@ -1,5 +1,6 @@
 // Purpose: P3-2 — lifecycle of the engine (the local proxy): one instance per machine, `ensure` starts it in the
-// background when it is not running, and it exits by itself once no Codex process is left.
+// background when it is not running, and it exits by itself once no Codex process is left (v0.11: and no plugin service
+// of any platform checks in).
 // v0.1-3 — an engine reports which code it runs (build and version). After a plugin update, the new plugin's `ensure`
 // asks the older engine still running to retire: it stops listening at once, finishes what is in flight, then exits,
 // and an engine of the new code takes the port.
@@ -26,10 +27,11 @@ export function isEngineHealth(value: unknown): value is Health {
   return !!health && health.ok === true && health.service === ENGINE_SERVICE && typeof health.pid === "number";
 }
 
-// Loopback only, and never through a system proxy: plain http.get on 127.0.0.1.
-export async function engineHealth(port = DEFAULT_PORT, timeoutMs = 800): Promise<Health | null> {
+// Loopback only, and never through a system proxy: plain http.get on 127.0.0.1. v0.11: `client`, the platform whose
+// plugin service is asking (ensureEngine): the engine stays while such checks keep coming (watchForClients).
+export async function engineHealth(port = DEFAULT_PORT, timeoutMs = 800, client?: string): Promise<Health | null> {
   try {
-    const response = await fetch(`http://127.0.0.1:${port}/__cam/health`, { signal: AbortSignal.timeout(timeoutMs) });
+    const response = await fetch(`http://127.0.0.1:${port}/__cam/health`, { signal: AbortSignal.timeout(timeoutMs), ...(client ? { headers: { "x-cam-client": client } } : {}) });
     const body = await response.json();
     return isEngineHealth(body) ? body : null;
   } catch {
@@ -37,12 +39,14 @@ export async function engineHealth(port = DEFAULT_PORT, timeoutMs = 800): Promis
   }
 }
 
-// Which code a runtime folder holds: a hash of its .ts files, line endings normalised (a copy made from a Windows
-// checkout has CRLF). null when the folder is gone, e.g. a plugin version Codex has removed.
+// Which code a runtime folder holds: a hash of its .ts files, subfolders included (v0.11), line endings normalised (a
+// copy made from a Windows checkout has CRLF). A flat folder hashes as before. null when the folder is gone, e.g. a
+// plugin version Codex has removed.
 export function buildOf(dir = here): string | null {
   try {
     const hash = createHash("sha256");
-    for (const name of readdirSync(dir).filter((file) => file.endsWith(".ts")).sort()) {
+    const names = readdirSync(dir, { recursive: true, encoding: "utf8" }).map((name) => name.replaceAll("\\", "/"));
+    for (const name of names.filter((file) => file.endsWith(".ts")).sort()) {
       hash.update(`${name}\0${readFileSync(join(dir, name), "utf8").replaceAll("\r\n", "\n")}\0`);
     }
     return hash.digest("hex").slice(0, 12);
@@ -106,10 +110,10 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 // The build of each runtime folder, read again once for every different build a running engine reports.
 const knownBuilds = new Map<string, { build: string | null; against: string | null | undefined }>();
 
-export async function ensureEngine(options: { port?: number; waitMs?: number; extraArgs?: string[]; dir?: string; force?: boolean } = {}): Promise<{ state: EngineState; health: Health | null; replaced?: Health }> {
+export async function ensureEngine(options: { port?: number; waitMs?: number; extraArgs?: string[]; dir?: string; force?: boolean; client?: string } = {}): Promise<{ state: EngineState; health: Health | null; replaced?: Health }> {
   const port = options.port ?? DEFAULT_PORT;
   const dir = options.dir ?? here;
-  const existing = await engineHealth(port);
+  const existing = await engineHealth(port, 800, options.client);
   let replaced: Health | undefined;
   if (existing) {
     const known = knownBuilds.get(dir);
@@ -164,10 +168,16 @@ export function listCodexProcesses(): Promise<number> {
   });
 }
 
-// Exit only after `misses` checks in a row found no Codex (v0.4: and no Claude Code), so a restart does not stop the
-// engine.
-export function watchForCodex(onGone: () => void, options: { intervalMs?: number; misses?: number; count?: () => Promise<number> } = {}): () => void {
-  const count = options.count ?? listCodexProcesses;
+// v0.11: a plugin service of any platform checks the engine every few seconds while its platform runs (plugin-server.ts);
+// one checked within this long counts as a client still there.
+export const CLIENT_SEEN_MS = 60_000;
+
+// Exit only after `misses` checks in a row found no Codex (v0.4: and no Claude Code; v0.11: and no plugin service of
+// another platform checking in, `lastClient`), so a restart does not stop the engine.
+export function watchForClients(onGone: () => void, options: { intervalMs?: number; misses?: number; count?: () => Promise<number>; lastClient?: () => number } = {}): () => void {
+  const processes = options.count ?? listCodexProcesses;
+  const lastClient = options.lastClient ?? (() => 0);
+  const count = async () => (Date.now() - lastClient() < CLIENT_SEEN_MS ? 1 : await processes());
   const needed = options.misses ?? 2;
   let missed = 0;
   const timer = setInterval(async () => {

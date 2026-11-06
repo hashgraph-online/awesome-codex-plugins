@@ -98,7 +98,7 @@ JSX is only for composition components: `<Render>`, `<Clip>`, `<Music>`, `<Capti
 
 **Cause**: An `/edit` model (`nano_banana_pro/edit`, `nano_banana_2/edit`, `grok_imagine_image/edit`) called with a plain string prompt, or a reference you meant to keep was never passed.
 
-**Fix**: Pass references as `{ text, images }`. `nano_banana_2_1`, `gpt_image_2_5` and the other current models take both forms. With `images` they edit, without them they generate.
+**Fix**: Pass references as `{ text, images }`. `nano_banana_2_1`, `gpt_image_2_6` and the other current models take both forms. With `images` they edit, without them they generate.
 ```tsx
 // CORRECT: editing / character consistency
 Image({

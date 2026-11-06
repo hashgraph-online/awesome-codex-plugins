@@ -14,7 +14,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 
-# Allow importing kicad_utils from same directory
+# Allow importing kicad_core from same directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
@@ -85,13 +85,20 @@ def _recalc_crystal_load(det: dict) -> None:
 
 
 def _recalc_regulator_feedback(det: dict) -> None:
-    """Regulator feedback divider: nested ratio."""
+    """Regulator feedback divider: nested ratio, then estimated_vout = Vref / ratio
+    (negative for an inverting regulator, as the detector reports it)."""
     fd = det.get("feedback_divider")
     if isinstance(fd, dict) and "r_top" in fd and "r_bottom" in fd:
         r_top = fd["r_top"].get("ohms")
         r_bot = fd["r_bottom"].get("ohms")
         if r_top and r_bot and (r_top + r_bot) > 0:
             fd["ratio"] = round(r_bot / (r_top + r_bot), 6)
+            vref = det.get("assumed_vref")
+            vout = det.get("estimated_vout")
+            if (isinstance(vref, (int, float)) and vref > 0
+                    and isinstance(vout, (int, float)) and fd["ratio"] > 0):
+                new_vout = round(vref / fd["ratio"], 3)
+                det["estimated_vout"] = -new_vout if vout < 0 else new_vout
 
 
 def _recalc_opamp_gain(det: dict) -> None:

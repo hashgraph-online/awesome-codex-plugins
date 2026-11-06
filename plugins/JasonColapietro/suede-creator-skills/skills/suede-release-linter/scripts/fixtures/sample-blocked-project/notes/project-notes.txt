@@ -1,0 +1,5 @@
+Synthetic fixture folder for suede-release-linter testing.
+
+This project deliberately omits required assets and metadata so the linter
+produces real, reproducible blocking errors. Not a real release. No real
+personal data.

@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Newsroom Skills"
+  short_description: "Run one idea through a six-role content pipeline"
+  default_prompt: "Use $suede-newsroom to move this idea through the pipeline: scout, research, angle, flagship, then a distribution set where every asset carries its own entryway and passes the collision gate. Hand off through the campaign record, and stop at the human approval boundary."
+policy:
+  allow_implicit_invocation: true

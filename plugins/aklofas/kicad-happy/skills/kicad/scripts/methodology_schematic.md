@@ -18,13 +18,13 @@ This means the analyzer:
 .kicad_sch file(s)
        |
        v
-  sexp_parser.py          Parse S-expressions into nested Python lists
+  kicad_core/sexp.py      Parse S-expressions into nested Python lists
        |
        v
   analyze_schematic.py     Multi-sheet recursive descent, extraction, analysis
    |       |       |
    v       v       v
-kicad_utils.py  kicad_types.py  signal_detectors.py
+kicad_core/     kicad_types.py  signal_detectors.py
 (classification,  (AnalysisContext    (21 circuit pattern
  value parsing,    shared state)       detectors)
  net name rules)
@@ -37,8 +37,8 @@ kicad_utils.py  kicad_types.py  signal_detectors.py
 
 | Module | Role |
 |--------|------|
-| `sexp_parser.py` | Generic S-expression tokenizer and parser. No KiCad-specific knowledge. |
-| `kicad_utils.py` | Component classification, engineering value parsing, power/ground net name detection. Stateless utility functions. |
+| `kicad_core/sexp.py` | Generic S-expression tokenizer and parser. No KiCad-specific knowledge. |
+| `kicad_core/` | Component classification (`classify.py`), engineering value parsing (`values.py`), power/ground net name detection (`netnames.py`). Stateless utility functions. |
 | `kicad_types.py` | `AnalysisContext` dataclass — shared state built once and passed to all analysis functions. Holds components, nets, pin-net map, pre-computed lookups. |
 | `signal_detectors.py` | 21 detector functions + 2 shared helpers. Each identifies a specific circuit pattern (voltage dividers, RC filters, regulators, etc.) from the connectivity graph. |
 | `analyze_schematic.py` | Orchestrator. Handles file parsing, multi-sheet traversal, net building, BOM generation, and all analysis functions not in signal_detectors. Assembles the final JSON output. |
@@ -58,7 +58,7 @@ KiCad stores schematics in a Lisp-like S-expression format:
     (pin "2" (at 0 1.27) ...)))
 ```
 
-The parser (`sexp_parser.py`) converts this to nested Python lists:
+The parser (`kicad_core/sexp.py`) converts this to nested Python lists:
 
 ```python
 ["kicad_sch", ["version", "20231120"], ["generator", "eeschema"],
@@ -227,7 +227,7 @@ nets = {
 
 ## 5. Component Classification
 
-`classify_component()` in `kicad_utils.py` assigns a type string to each component based on its reference designator, library ID, and value field.
+`classify_component()` in `kicad_core/classify.py` assigns a type string to each component based on its reference designator, library ID, and value field.
 
 ### Classification Hierarchy
 

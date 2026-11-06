@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Component Lab Skills"
+  short_description: "Real-component states, stress fixtures, and live variants"
+  default_prompt: "Use $suede-component-lab on [component/path]. Build only the requested local workbench or review, import the real component, isolate every side effect before execution, and use synthetic fixtures excluded from production. Preserve the approved design system and copy. Check representative desktop/mobile states, report rendered evidence and gaps, and fix product code only within my authorized scope."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,50 @@
+{
+  "name": "brewpage",
+  "version": "0.1.0",
+  "description": "Publish HTML, Markdown, files and multi-file static sites from Codex to BrewPage, a hosted service that returns an HTTPS link with no account or API key; via the brewpage-publish skill and the BrewPage remote MCP server.",
+  "author": {
+    "name": "Maksim Kochetkov",
+    "email": "info@brewpage.app",
+    "url": "https://brewpage.app"
+  },
+  "homepage": "https://brewpage.app",
+  "repository": "https://github.com/kochetkov-ma/brewpage-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "publishing",
+    "html-hosting",
+    "markdown",
+    "static-site",
+    "file-sharing",
+    "ai-artifacts",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "BrewPage",
+    "shortDescription": "Publish HTML, Markdown, files and sites to a shareable link",
+    "longDescription": "BrewPage turns something Codex produced (an HTML report, a Markdown document, a file or a small static site) into an HTTPS link. Publishing needs no account or API key. Pages are unlisted by default and expire after 1 to 30 days; the public namespace lists them in a gallery. The plugin bundles the brewpage-publish skill, which asks for namespace and password before upload and keeps owner tokens in a private local history file, and connects the BrewPage remote MCP server. BrewPage itself is a hosted, closed-source service; this plugin is MIT-licensed.",
+    "developerName": "Maksim Kochetkov",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://brewpage.app",
+    "privacyPolicyURL": "https://brewpage.app/privacy",
+    "termsOfServiceURL": "https://brewpage.app/terms",
+    "defaultPrompt": [
+      "Publish report.html to BrewPage and give me the link",
+      "Share this Markdown summary as a BrewPage page that expires in 7 days",
+      "Upload the ./dist folder to BrewPage as a site"
+    ],
+    "brandColor": "#EBBB40",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./assets/screenshot-home.png",
+      "./assets/screenshot-api.png"
+    ]
+  }
+}

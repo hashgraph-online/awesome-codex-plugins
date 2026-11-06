@@ -5,7 +5,8 @@ Use this matrix to pick the right skill and chain them safely.
 ## Skill ownership
 
 - `obsidian-official-cli`:
-  - note CRUD, search, links, tasks, properties, templates, daily notes, history/diff
+  - note CRUD, Obsidian Markdown conventions, controlled section revision, search, links, tasks, properties, templates, daily notes, history/diff
+  - shared note-write preview/recheck/verification/retry contract consumed by workflow saves/captures/repairs
 - `obsidian-cli-bases-and-bookmarks`:
   - base discovery/query/create workflows and bookmark listing/creation
 - `obsidian-cli-runtime-admin`:
@@ -16,18 +17,29 @@ Use this matrix to pick the right skill and chain them safely.
   - Sync status/history/restore flows and capability-gated Publish flows
 - `obsidian-cli-workspace-and-navigation`:
   - vault/workspace/tab/navigation and utility workflows
+- `obsidian-bases-authoring`:
+  - preview and revise table definition artifacts, then delegate exact-path writes and runtime queries
+- `obsidian-canvas-authoring`:
+  - preview and revise source-linked Canvas maps, then delegate exact-path transport and navigation
 - `obsidian-cli-workflows`:
   - one-command orchestration by named workflow ID with preview/apply controls
+  - after explicit skill selection, cited questions and related notes use `research.pack`; briefings and handoffs use `project.status_digest`
+  - explicit meeting, decision, idea, kickoff, or source recipes use shared capture preparation and core controlled authoring
+  - vault discovery delegates to workspace/navigation; bounded note evidence and optional saves delegate to the core skill
   - owns workflow IDs only; delegates direct command execution to the six domain skills
 
 ## Routing examples
 
+- "Update Risks in Projects/Atlas.md in Work" -> `obsidian-official-cli` (resolve vault and section; review minimal diff and supported write mechanism)
+- “Capture this project decision” after selecting the workflow skill → `inbox.capture recipe=decision`; preview and delegate the approved create to core authoring.
 - "Append this to Projects/Plan.md" -> `obsidian-official-cli`
 - "Query Projects.base Roadmap in JSON and bookmark blocked items" -> `obsidian-cli-bases-and-bookmarks`
 - "Install Dataview and enable it" -> `obsidian-cli-runtime-admin`
 - "Show console errors from my plugin" -> `obsidian-cli-devtools`
 - "Check sync status and, if publish commands are supported, publish changed files" -> `obsidian-cli-sync-and-publish`
 - "Load the Daily Review workspace, inspect recents, then open a note in a new tab" -> `obsidian-cli-workspace-and-navigation`
+- "Use $obsidian-cli-workflows to give me an Atlas handoff with sources" -> `project.status_digest`
+- "Use $obsidian-cli-workflows to explain related notes for Projects/Atlas/Decision.md" -> `research.pack`
 - "Run workflow_id=tasks.rollup mode=preview output=json" -> `obsidian-cli-workflows`
 - "Run workflow_id=workspace.focus_mode mode=apply workspace_name=Focus" -> `obsidian-cli-workflows`
 
@@ -100,3 +112,5 @@ Use this matrix to pick the right skill and chain them safely.
 - Keep runtime admin and customization operations in `obsidian-cli-runtime-admin`.
 - Keep vault/workspace/tab/navigation and utility operations in `obsidian-cli-workspace-and-navigation`.
 - Keep one-command workflow IDs and preview/apply orchestration in `obsidian-cli-workflows`.
+
+For a scoped convention audit, mixed metadata and link repairs, or explained orphan review, select [Obsidian CLI Workflows](../../obsidian-cli-workflows/SKILL.md). Core still owns the underlying property, link and note commands.

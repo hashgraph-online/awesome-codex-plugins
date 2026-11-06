@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Attribution Skills"
+  short_description: "Know which marketing actually drove revenue"
+  default_prompt: "Use $suede-attribution on [target]. The user wants to figure out which marketing actually drives conversions and revenue, choose or interpret an attribution model, reconcile conflicting numbers across tools, or instrument attribution themselves. Work through attribution models, measurement paradigms, self-reported surveys, and reconciling conflicting sources, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

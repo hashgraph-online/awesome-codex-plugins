@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tweetapi": {
+      "type": "http",
+      "url": "https://mcp.tweetapi.com/mcp"
+    }
+  }
+}

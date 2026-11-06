@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.120.1 # x-release-please-version
+version: 0.131.0 # x-release-please-version
 description: Let the owner reach this running agent from Buzz, on the phone or in Buzz Desktop. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -94,52 +94,53 @@ command's own message. Do not work around a refusal.
      Desktop (Agents, the agent, Start); it then makes this session's
      channel."
    If the JSON has `warning`, show it too.
-4. **`--native` on Claude Code only: the approval hook.** Run
-   `amq-remote doctor --root "$ROOT" --json` and read its `failing` list; the
-   exit code is not the signal. When a `native_capability` entry says the
-   PermissionRequest hook is not installed:
-   - **No relay share** (the usual `--native` case). Tell the user: "This adds
-     one PermissionRequest hook. It exits at once in sessions that are not
-     connected. It lets Buzz deny a tool call only: a cross-mark reaction (❌)
-     in the DM denies, and allow stays in Claude's terminal.
-     `amq-remote claude uninstall-approval-hook` removes it." Ask once, then run
+4. **Claude Code only: the approval hook** (default and `--native`, after
+   a successful attach). Read `approval_hook` from the attach JSON: `ok`,
+   `missing`, `stale`, `disabled` or `unreadable`. An older amq-remote
+   gives no `approval_hook`: then run `amq-remote doctor --json` and use its
+   `hooks` row for this session's settings file (`approval`: `installed`
+   is `ok`, `missing` is `missing`; `approval_form` `stale` is `stale`), or
+   with an even older doctor treat a `native_capability` failure that names
+   the PermissionRequest hook as `missing` and anything else as `ok`.
+   - `ok`: nothing to do.
+   - `disabled`: say that this session's Claude settings set
+     `disableAllHooks`, so approvals stay in the terminal unless a project
+     or managed setting turns hooks on.
+   - `unreadable`: say that the Claude settings file cannot be read, and that
+     `amq-remote doctor` names it and the reason.
+   - `stale`: say the installed hook is an older form, then run
+     `amq-remote claude install-approval-hook`, which replaces only that
+     entry. You may offer `amq-remote doctor --fix` as a question (it also
+     installs the other hooks, the login service and the machine agent's
+     import file); never run it without a yes.
+   - `missing`: tell the user: "This adds one approval hook. The first
+     approval dialog of each Claude Code session on this machine connects
+     that session to its own Buzz channel, even one that never ran
+     /amq-remote: an AMQ session gets its own binding (the mailbox one
+     /amq-remote writes), any other session a native binding, where chat
+     needs /amq-remote --native. Every dialog of the session then shows
+     there; ✅ allows, ❌ denies, first answer wins. /amq-remote off stops it
+     for that session, and `amq-remote claude uninstall-approval-hook`
+     removes the hook." Ask once, then run
      `amq-remote claude install-approval-hook`.
-   - **A Claude target shared through a relay share.** Tell the user:
-     - "This adds one PermissionRequest hook. It exits at once in sessions
-       that are not shared."
-     - "It pins your Buzz public key and this share's relay, body, DM channel
-       and target. Only your signed check-mark reaction (✅), or your yes in
-       the approval's thread, in this DM can allow a tool call."
-     - "Do not allow Claude to edit .claude for a session, use
-       bypassPermissions or auto permission mode (also when started with
-       `--permission-mode`), or allow every Bash command: each lets the pin
-       be changed."
-     - "The relay is trusted to return the message's full edit and deletion
-       history. Replacing the amq-remote binary, or a settings edit you
-       approve, defeats the pin."
-     - "Run the install again if the share's relay or channel changes.
-       Another decision hook you have can answer first.
-       `amq-remote claude uninstall-approval-hook` removes it."
 
-     Ask once, then run
-     `amq-remote claude install-approval-hook --root "$ROOT"`. If doctor
-     reports `claude_approval_pin_warnings`, show them to the user.
+   Codex needs no hook: its approvals reach Buzz only for a session on the
+   Codex app-server (the `--native` Codex path below); a plain `codex` TUI
+   session answers approvals in the terminal.
 5. Add one line for the carrier:
    - Default: "Buzz messages arrive in this agent's AMQ inbox. Stop in Buzz
      stops waiting; a delivered message may still be acted on."
    - `--native`: "A message sent while this session is busy waits. Buzz Stop
      cannot interrupt a Claude turn."
-   - In a channel the machine agent made, a tool approval can only be denied
-     (❌); allow it in the terminal.
-   - Approval hook installed in step 4 with a relay share: "When a Buzz
-     request needs a tool approval, the DM shows it. A cross-mark reaction
-     (❌) blocks that call. A check-mark reaction (✅), or yes replied in the
-     approval's thread, allows it when the DM offers the check mark: a Bash
-     command shown whole. Otherwise allow it in the terminal. The first
-     answer wins."
-   - Approval hook installed without a relay share: "When a Buzz request
-     needs a tool approval, the DM shows it. A cross-mark reaction (❌)
-     denies that call; allow it in Claude's terminal. The first answer wins."
+   - Claude with the hook installed: "Every approval dialog of this session
+     shows in its Buzz channel with its options. ✅ or ❌, or a reply with the option
+     number, answers it. The first answer, in Buzz or in the terminal,
+     wins."
+   - Claude in a machine agent channel: "The channel also shows each turn this
+     session finishes; type `mirror off` there, or run `/amq-remote mirror
+     off`, to stop it."
+   - Codex on the app-server: the same line. A plain `codex` TUI session:
+     "Approvals stay in the terminal."
 
 Codex with `--native`: attach needs `CODEX_THREAD_ID` and a thread loaded in
 the Codex app-server daemon. A session started with plain `codex` is not in
@@ -156,6 +157,10 @@ Do the work, then answer with `amq reply --id <that message id>`. Use
 `--kind status` for an interim update. Keep the final answer short; it is
 read in a chat.
 
+An image the owner sent arrives as a line `[image: <absolute path>]`: open
+that file to see it. `[image not attached: <reason>]` means the image did not
+arrive; say so in the answer and ask the owner to send it again if it matters.
+
 ## `/amq-remote off`
 
 Run `amq-remote detach --self` and show its output. The session keeps
@@ -163,6 +168,14 @@ running. Its channel stops taking messages now, and the machine agent then
 archives it; a session with its own agent has that agent archive itself, and
 its DM answers "Not connected". When this session connects again, the same
 channel or agent comes back.
+
+## `/amq-remote mirror on|off|status`
+
+Run `amq-remote mirror <on|off|status> --self` and show its output. It is
+the same switch as typing `mirror on` or `mirror off` in the session's
+channel: while it is off, the machine agent posts no turn of this session,
+and turns that end while it is off are not posted later. Only a Claude
+session the machine agent serves has a mirror.
 
 ## `/amq-remote status`
 

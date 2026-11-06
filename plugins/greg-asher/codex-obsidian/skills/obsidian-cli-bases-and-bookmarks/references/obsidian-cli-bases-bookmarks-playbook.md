@@ -3,17 +3,19 @@
 Use the Codex-safe wrapper in Codex Desktop on macOS:
 
 ```bash
-script -q /dev/null /usr/local/bin/zsh -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian <command>'
+script -q /dev/null "${CODEX_OBSIDIAN_ZSH_PATH:-/usr/local/bin/zsh}" -ilc 'unset __CFBundleIdentifier LaunchInstanceID XPC_SERVICE_NAME CODEX_CI CODEX_SANDBOX CODEX_SHELL; export TERM=xterm-256color; obsidian <command>'
 ```
 
 ## Read-only discovery
 
 ```bash
 obsidian bases
-obsidian base:views path="Projects.base"
+obsidian base:views
 obsidian base:query path="Projects.base" view="Roadmap" format=json
 obsidian bookmarks verbose format=json
 ```
+
+`base:views` uses the active base on Obsidian 1.15.0. Use it only when that active file is the intended target. Use `base:query` with an exact path and view for pinned checks.
 
 ## Mutating operations
 

@@ -47,7 +47,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from kicad_sexp import escape_kicad_string, find_matching_paren
+from kicad_sexp import escape_kicad_string, find_matching_paren, iter_placed_symbol_blocks
 
 
 # ---------------------------------------------------------------------------
@@ -61,20 +61,7 @@ def find_placed_symbols(text: str) -> list[tuple[int, int, str]]:
     """
     symbols = []
 
-    # Skip past lib_symbols section
-    lib_match = re.search(r'\(lib_symbols\b', text)
-    search_start = 0
-    if lib_match:
-        lib_end = find_matching_paren(text, lib_match.start())
-        search_start = lib_end + 1
-
-    # Find placed symbols
-    pattern = re.compile(r'\(symbol\s*\n?\s*\(lib_id\s+')
-    for match in pattern.finditer(text, search_start):
-        sym_start = match.start()
-        sym_end = find_matching_paren(text, sym_start)
-        block = text[sym_start:sym_end + 1]
-
+    for sym_start, sym_end, block in iter_placed_symbol_blocks(text):
         # Extract reference
         ref_match = re.search(
             r'\(property\s+"Reference"\s+"((?:[^"\\]|\\.)*)"', block
@@ -168,7 +155,7 @@ def update_property_value(
     escaped_name = re.escape(prop_name)
     new_block = re.sub(
         rf'(\(property\s+"{escaped_name}"\s+)"(?:[^"\\]|\\.)*"',
-        rf'\1"{escaped_value}"',
+        lambda m: f'{m.group(1)}"{escaped_value}"',
         old_block,
         count=1,
     )
@@ -367,7 +354,7 @@ def main():
 
     # Read updates
     if args.updates:
-        updates = json.loads(args.updates.read_text())
+        updates = json.loads(args.updates.read_text(encoding="utf-8"))
     elif not sys.stdin.isatty():
         updates = json.load(sys.stdin)
     else:

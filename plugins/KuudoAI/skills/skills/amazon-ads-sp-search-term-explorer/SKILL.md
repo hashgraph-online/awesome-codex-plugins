@@ -15,11 +15,11 @@ description: >
   rising stars, exact-match harvest, attribution window questions, or any
   variant of "find me wasted spend / scale-worthy keywords / branded
   defenders" via the Amazon Ads MCP.
-compatibility: Requires an Amazon Ads MCP exposing allv1_QueryAdvertiserAccount, allv1_AdsApiv1CreateReport, and allv1_AdsApiv1RetrieveReport (such as the Kuudo Amazon Ads MCP), plus a client-side execution facility that can fetch an HTTPS URL and parse CSV.
+compatibility: Requires an Amazon Ads MCP exposing ac_listProfiles, allv1_QueryAdvertiserAccount, allv1_AdsApiv1CreateReport, and allv1_AdsApiv1RetrieveReport (such as the Kuudo Amazon Ads MCP), plus a client-side execution facility that can fetch an HTTPS URL and parse CSV.
 license: PolyForm-Shield-1.0.0 (see LICENSE.txt)
 metadata:
   display-name: "Amazon Ads Sponsored Products Search Term Explorer"
-  version: "0.5.3"
+  version: "0.5.4"
 ---
 
 # Amazon Ads — SP Search Term Explorer

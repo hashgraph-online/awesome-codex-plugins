@@ -50,7 +50,7 @@ run’s `fixes`; intentional/debt decisions use `.figma-slop-check/decisions.jso
 with scope and reason. Do not silently erase debt or invent canon.
 
 A requested audit reports findings without applying them. An authorized fix
-can batch its approved scope, preserving lock/preflight and read-back. “Fix all”
+can batch its approved scope, preserving lock/preflight and read-back. "Fix all"
 does not decide an unresolved product question. New evidence/regression
 justifies rechecking; no mandatory double pass, hidden checklist log or
 single-agent-versus-fanout ritual. Stop repeated failures for diagnosis.

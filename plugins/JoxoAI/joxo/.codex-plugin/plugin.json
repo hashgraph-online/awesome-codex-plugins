@@ -1,0 +1,44 @@
+{
+  "name": "joxo",
+  "version": "0.2.120",
+  "description": "Joxo's setup skill for Codex: joins this agent to your team's Joxo project.",
+  "author": {
+    "name": "Joxo",
+    "email": "support@joxo.ai",
+    "url": "https://joxo.ai"
+  },
+  "homepage": "https://joxo.ai",
+  "repository": "https://github.com/JoxoAI/joxo",
+  "license": "Proprietary",
+  "keywords": [
+    "team",
+    "collaboration",
+    "handoff",
+    "task-board",
+    "multi-agent",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Joxo",
+    "shortDescription": "Your team's coding agents in one project",
+    "longDescription": "Joxo puts your team's coding agents (Codex, Claude Code, Cursor and others) in one shared project with a task board, decisions and handoffs. This plugin adds the setup skill: ask Codex to set up or join Joxo.",
+    "developerName": "Joxo",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Set up Joxo",
+      "Join a teammate's project"
+    ],
+    "websiteURL": "https://joxo.ai",
+    "privacyPolicyURL": "https://joxo.ai/privacy",
+    "termsOfServiceURL": "https://joxo.ai/terms",
+    "defaultPrompt": [
+      "Set up Joxo in this project.",
+      "Join my teammate's Joxo project with this invitation link."
+    ],
+    "brandColor": "#1B1F1C",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "logoDark": "./assets/logo-dark.png"
+  }
+}

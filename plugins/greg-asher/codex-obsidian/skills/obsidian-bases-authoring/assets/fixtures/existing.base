@@ -1,0 +1,22 @@
+# Existing dashboard configuration
+filters:
+  and:
+    - 'file.ext == "md"'
+    - 'file.inFolder("Atlas/Work")'
+x-extension:
+  flags: [keep, unchanged]
+views:
+  - type: table
+    name: Open
+    order:
+      - file.name
+      - note.owner
+    # Column widths were hand-tuned.
+    columnSize:
+      note.owner: 180
+    x-view-extension:
+      selected: true
+  - type: table
+    name: Other
+    order: [file.name, note.status]
+    x-layout: "preserve me"

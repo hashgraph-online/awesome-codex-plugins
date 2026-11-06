@@ -30,7 +30,7 @@ if _PARENT not in sys.path:
     sys.path.insert(0, _PARENT)
 
 from analyzer_envelope import (  # noqa: E402
-    TrustSummary, Finding, Assessment, BySeverity, TitleBlock, InputsBlock, CompatBlock,
+    TrustSummary, Finding, Assessment, BySeverity, TitleBlock, InputsBlock, CompatBlock, Diagnostic,
 )
 
 
@@ -223,6 +223,9 @@ class SchematicEnvelope:
     compat: CompatBlock = field(metadata={
         "description": "Schema compatibility metadata: minimum consumer "
                        "version + deprecated/experimental field lists."})
+    diagnostics: list[Diagnostic] = field(default_factory=list, kw_only=True, metadata={
+        "description": "Guarded failures that degraded this run (section omitted, "
+                       "fallback model used). Empty when nothing degraded."})
 
     # --- Universal core ---
     summary: SchematicSummary = field(metadata={

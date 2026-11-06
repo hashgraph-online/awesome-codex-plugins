@@ -35,11 +35,11 @@ import unicodedata
 from difflib import SequenceMatcher
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-sys.path.insert(0, str(REPO_ROOT / "skills" / "kicad" / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))   # skills/kicad/scripts
 
 from _mini_jsonschema import iter_errors            # noqa: E402
+from analysis_cache import get_run                  # noqa: E402
 from finding_schema import assign_deep_review_ids   # noqa: E402
 
 SCHEMA_PATH = (Path(__file__).resolve().parents[1] / "schemas"
@@ -64,9 +64,9 @@ def load_anchor_sets(analysis_dir, run_id=None):
     manifest = analysis_dir / "manifest.json"
     if manifest.is_file():
         m = json.loads(manifest.read_text())
-        rid = run_id or m.get("current")
-        if rid and (analysis_dir / rid).is_dir():
-            run_dir = analysis_dir / rid
+        run = get_run(str(analysis_dir), run_id or m.get("current"), m)
+        if run and Path(run[0]).is_dir():
+            run_dir = Path(run[0])
     comps, nets = set(), set()
     sch = run_dir / "schematic.json"
     if sch.is_file():

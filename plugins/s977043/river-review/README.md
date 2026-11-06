@@ -42,7 +42,7 @@ codex plugin marketplace add s977043/river-review
 
 <!-- x-release-please-start-version -->
 
-最新リリース: [v1.137.0](https://github.com/s977043/river-review/releases/latest)
+最新リリース: [v1.139.5](https://github.com/s977043/river-review/releases/latest)
 
 <!-- x-release-please-end -->
 

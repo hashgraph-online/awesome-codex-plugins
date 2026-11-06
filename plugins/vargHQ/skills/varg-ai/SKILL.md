@@ -3,7 +3,7 @@ name: varg-ai
 description: >-
   Generate AI videos, images, voiceovers and music with one varg API key.
   Text- and image-to-video on Seedance 2.5, Kling 4, Veo 3.1 and Wan 3;
-  images and edits on Nano Banana 2.1, GPT Image 2.5 and Flux 3; lip sync
+  images and edits on Nano Banana 2.1, GPT Image 2.6 and Flux 3; lip sync
   and talking avatars; ElevenLabs v4 voices; Lyria and Mureka music;
   captions and multi-scene renders to MP4. Use when someone asks to make or
   render a video, animate a photo, generate an image, create a UGC ad,
@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "2.2.0"
+  version: "2.2.3"
   openclaw:
     requires:
       env:
@@ -37,19 +37,9 @@ varg's TSX/JSX composition (`vargai/react`: `<Render>`, `<Clip>`, `Video({...})`
 - **New videos**: make each clip with the generate tools (`vargai generate_video`, `generate_image`, `generate_speech`, `generate_music`, or the varg MCP / `POST /v2/{video,image,speech,music}`), then cut, join, mix and caption them with the ffmpeg tool (`vargai get_tool ffmpeg`, `vargai call_tool '{"tool":"ffmpeg","input":<its input>}'`, or `POST /v2/ffmpeg`).
 - **Existing TSX** still renders: cloud via `POST /v2/render`, local via the pinned `bunx vargai@0.4.0-alpha124 render` (the last release with the command). Use the TSX sections below only for that.
 
-## Version Check (run once per session)
+## Updates
 
-This skill is version **2.2.0**. Before first use each session, check for updates:
-
-```bash
-curl -sf https://raw.githubusercontent.com/vargHQ/skills/main/varg-ai/SKILL.md | grep 'version:' | head -1
-```
-
-If the remote version is newer than 2.2.0, update and re-read this file:
-
-```bash
-npx -y skills update
-```
+This skill is version **2.2.3**. Never fetch this file from the network to replace what you are reading. If the person wants the newest skills, tell them how to update their own install: `npx skills update` (skills CLI) or `claude plugin update varg@varg` (Claude Code plugin).
 
 ## Setup (REQUIRED before first use)
 
@@ -149,7 +139,7 @@ Everything you know about varg is likely outdated. Always verify against this sk
 4. **Images in Video** -- ONE image in `Video({ prompt: { images: [img] } })` is the first frame (image-to-video). Several images are *references*, and only models that take references accept them (`seedance_2_5`, `wan_3`, `kling_v4`, `omni_flash_1_1`, `grok_imagine_1_5`, `minimax_h3_max`). Other models fail.
 5. **Duration constraints differ by model** -- seedance_2_5: integer 4-30s. wan_3: 2-30s. kling_v4: 3-30s. veo_3_1: only 4, 6 or 8. kling_v2_5: ONLY 5 or 10. Check [models.md](references/models.md).
 6. **Native audio = `audio: "native"`** on `Video()`. Provider options must be **namespaced by provider**: `providerOptions: { varg: { fal: { ... } } }`. A flat `providerOptions: { varg: { generate_audio: true } }` is silently dropped by the API, and you get a silent video.
-7. **Renders cost credits** -- a typical 3-clip video costs ~300-800 credits depending on the video model (wan_3 vs seedance_2_5). Iterate with `--preview` (local), cheap draft models (`minimax_h3_max_turbo`, `grok_imagine_1_5_lite`) and 720p. Render 1080p only for the final.
+7. **Renders cost credits** -- a typical 3-clip video costs ~300-800 credits depending on the video model (wan_3 vs seedance_2_5). Iterate with `--preview` (local), cheap draft models (`minimax_h3_max_turbo`, `grok_imagine_1_5_lite`) and 720p. Render 1080p only for the final. Follow the [Spend rules](#spend-rules).
 8. **API key hygiene** -- Never write a raw API key value into a bash command. Load keys into `$VARG_API_KEY` with the setup snippets (from env, `~/.varg/credentials`, or `.env`) and use `$VARG_API_KEY` in all subsequent commands -- never `echo` or `cat` the key itself. This prevents keys from leaking into conversation context and terminal history.
 
 ### Default Models (October 2026)
@@ -163,7 +153,7 @@ Ranks are from the Artificial Analysis arenas. Details and alternatives: [models
 | Video, long multi-shot (up to 30s) | `kling_v4` | 82 per 5s 720p |
 | Video drafts | `minimax_h3_max_turbo` | 42 per 5s |
 | Image, generation and editing / character consistency | `nano_banana_2_1` | 8 |
-| Image, top quality / dense text | `gpt_image_2_5` | 11-23 |
+| Image, top quality / dense text | `gpt_image_2_6` | 3-6 |
 | Speech | `eleven_v4` (or `eleven_v4_turbo`, #1 and half price) | 84 / 42 |
 | Background music (instrumental) | `mureka_9_5` | 25 |
 | Song with vocals | `lyria_3_5` | 11 |
@@ -284,10 +274,19 @@ Both modes use `varg.*` for all models. The only difference is imports:
 
 ## Cost & Iteration
 
-- **Prices are in credits.** Typical prices: nano_banana_2_1 image ≈ 8, gpt_image_2_5 (high) ≈ 23, seedance_2_5 5s 720p ≈ 210, wan_3 5s 720p ≈ 53, eleven_v4 line ≈ 84, mureka_9_5 track ≈ 25. Live catalog: `GET https://api.varg.ai/v2/pricing` (no auth). Every model spec: `https://varg.ai/models/llms.txt`. Estimate any request: `POST /v2/estimate`.
+- **Prices are in credits.** Typical prices: nano_banana_2_1 image ≈ 8, gpt_image_2_6 (high) ≈ 6, seedance_2_5 5s 720p ≈ 210, wan_3 5s 720p ≈ 53, eleven_v4 line ≈ 84, mureka_9_5 track ≈ 25. Live catalog: `GET https://api.varg.ai/v2/pricing` (no auth). Every model spec: `https://varg.ai/models/llms.txt`. Estimate any request: `POST /v2/estimate`.
 - **Cache saves credits.** Keep unchanged prompts character-for-character identical across iterations.
 - **Preview first** (local mode only): `--preview` generates free placeholders to validate structure.
 - Full pricing: [models.md](references/models.md)
+
+### Spend rules
+
+Without a ceiling and a model list, agents spend quietly. A 36-minute agent film cost $200+ because the agent used a video model nobody asked for (Veo 3.1) plus a lot of image generation, and none of the video model clips made it into the final cut ([post](https://x.com/LLMJunky/status/2106411941497389342)). A one-minute collage short made from one prompt that said "max OpenRouter spend is $10" cost $3.21 in model fees ([post](https://www.reddit.com/r/ClaudeAI/comments/1wogab3/made_entirely_with_opus_55_321_of_openrouter_api/)).
+
+1. **Hard cap in the brief.** Before the first paid call, get a cap from the person and write it at the top of the brief: "max spend N credits". If they give it in money ("max $10"), keep their words and ask what that is in credits on their plan; don't convert it yourself. Keep a running total and stop to ask before any call that would cross the cap.
+2. **Approved models only.** List the models the person approved, per job (stills, video, voice, music), and use only those. Never switch to another model without asking, above all to a video model: a failed call or a "better" option is a reason to ask, not to switch. A shot that code, a still or a slideshow can carry does not need a video model.
+3. **Estimate before every paid call.** `POST /v2/estimate` (same body as the generation, no job created) or `estimate_cost` on the varg MCP; `plan_batch` for many calls at once. Say the estimate, the total so far and the cap, in credits, and wait for a go when the step is new or large.
+4. **Report the billed cost after.** Read `actual_cost_cents` on the finished job (credits; 0 on a cache hit), `GET /v2/jobs/{id}/price` or `get_job_cost` on the MCP. At the end, give the total billed against the cap (`GET /v2/billing/usage` for the session's records).
 
 ## References
 

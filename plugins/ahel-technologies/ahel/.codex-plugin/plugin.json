@@ -1,0 +1,35 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "ahel",
+  "version": "1.0.0",
+  "description": "Data and tools for your AI agent: company and people enrichment, SEO and SERP data, social media data, official EU business registers and more, from one catalog. Pay per call; each call's price is shown before it runs.",
+  "author": {
+    "name": "Ahel Technologies",
+    "email": "support@ahel.ai",
+    "url": "https://ahel.ai"
+  },
+  "homepage": "https://ahel.ai",
+  "repository": "https://github.com/ahel-technologies/ahel",
+  "license": "MIT",
+  "keywords": [
+    "data",
+    "enrichment",
+    "seo",
+    "mcp",
+    "business-registers"
+  ],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Ahel",
+    "shortDescription": "Data for AI agents through one MCP connection, paid per call",
+    "longDescription": "Company and people enrichment, SEO and SERP data, social media data, official EU business registers and more, through one MCP connection. Each call's price is shown before it runs and paid from a prepaid balance.",
+    "developerName": "Ahel Technologies",
+    "category": "Productivity",
+    "websiteURL": "https://ahel.ai",
+    "supportURL": "mailto:support@ahel.ai",
+    "privacyPolicyURL": "https://ahel.ai/privacy",
+    "termsOfServiceURL": "https://ahel.ai/terms",
+    "composerIcon": "./assets/ahel-icon.png",
+    "logo": "./assets/ahel-icon.png"
+  }
+}

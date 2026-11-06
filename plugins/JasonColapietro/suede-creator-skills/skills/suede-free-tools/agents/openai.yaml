@@ -1,0 +1,6 @@
+interface:
+  display_name: "Suede AI Free Tools Skills"
+  short_description: "Engineering as marketing: build a free tool that pulls"
+  default_prompt: "Use $suede-free-tools on [target]. The user is weighing or building a free calculator, grader, generator, or other interactive tool for lead generation or links. Work through pick a free tool worth building, scope it honestly, and design it so the output pulls people toward the paid product, ground every recommendation in evidence the user can check, and return the decisions, the reasoning, and what to measure next."
+policy:
+  allow_implicit_invocation: true

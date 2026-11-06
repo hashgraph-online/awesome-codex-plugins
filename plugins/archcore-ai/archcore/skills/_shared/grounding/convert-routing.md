@@ -1,6 +1,6 @@
 # Conversion routing — from authored sources to native documents
 
-Reference data for the `convert` and `verify` gates of `skills/_shared/tracks/import.md`. The skill's LLM does the extraction and the composition; this file is the contract it follows. Contract: `import-conversion-and-staging.spec`. Source records and verdicts: `skills/init/lib/sources.md`.
+Reference data for the `convert` and `verify` gates of `skills/_shared/tracks/import.md`. The skill's LLM does the extraction and the composition; this file is the contract it follows. Source records and verdicts: `skills/init/lib/sources.md`.
 
 The unit of work is the **target document**, not the source file. A converted corpus follows the structure of Archcore — one document per topic, of the type that fits the content — never the structure of the files it came from.
 
@@ -90,7 +90,7 @@ every pair. Preserve the links needed to read a split subject as a whole.
 | target | `related` | a seed fact (stack rule, data-model, entry points) | a named statement in the target uses that fact |
 | split part | `related` | another part | a shared boundary or reading sequence requires both parts |
 
-WHEN a `search_documents` result carries `source_kind: "global"`, load `skills/_shared/globals.md`: a global document never counts as covering a cluster in Step 5.9, and `add_relation` never targets one. WHEN no result is global, proceed as usual. Skip an edge when an endpoint was not created.
+WHEN a `search_documents` result carries `source_kind: "global"`, load `skills/_shared/globals.md`: a global document never counts as covering a cluster in Step 5.9, and `add_relation` never joins one with a local document. WHEN no result is global, proceed as usual. Skip an edge when an endpoint was not created.
 
 ## Fidelity check (used by `verify`)
 

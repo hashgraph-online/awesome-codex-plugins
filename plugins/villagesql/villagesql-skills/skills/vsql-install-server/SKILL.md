@@ -48,7 +48,8 @@ An installer build does **not** put the client on `PATH`, so a bare `mysql`
 gives `mysql: command not found`. Take the path from `credentials.txt`:
 
 ```bash
-VSQL_CLIENT="$HOME/.villagesql/prebuilt/bin/mysql"  # installer build
+VSQL_CLIENT="$HOME/.villagesql/prebuilt/bin/mysql"  # installer, prebuilt
+VSQL_CLIENT="$HOME/.villagesql/build/bin/mysql"     # installer, source build
 VSQL_CLIENT=mysql                                   # Docker, or a client already on PATH
 ```
 
@@ -170,12 +171,17 @@ curl -fsSL https://install.villagesql.com | \
 `prebuilt` downloads a binary release, `source` builds from source, `docker`
 delegates to the Docker path. Use `prebuilt` unless told otherwise.
 
-**The installer cannot finish as root**, the normal case in containers and CI.
-Both the prebuilt and source paths start the server once to apply the generated
-root password, and neither passes `--user=root`, which MySQL requires before it
-will run as root. The install downloads, unpacks and initializes the database,
-then stops with `⚠ VillageSQL Server Failed to Start` and exit code 1, leaving
-no `credentials.txt`. Install as an ordinary user, or use the Docker path.
+**The installer refuses to run as root**, the normal case in containers and
+CI. It stops before it downloads anything, with exit code 1:
+
+```
+Error: Running this installer as root is not supported.
+Re-run it as a regular user (e.g. without sudo).
+```
+
+Run it as an ordinary user, or use the Docker path. A container that has only
+root needs a user first, for example `useradd -m dev`, then
+`su - dev -c '<the install command>'`.
 
 **Do not trust the completion banner.** The installer can print
 `✓ Installation Complete!` with a generated root password after database
@@ -393,12 +399,14 @@ instead:
 | An MCP server for AI agents | `vsql_mcp` (preview) |
 | JWT login from an OAuth2/OIDC provider | `vsql_oauth2` (preview) |
 | Per-statement telemetry to ClickHouse | `vsql_stat_ch` (preview) |
+| Queries over Parquet, CSV or JSON files in object storage | `vsql_duckdb` (preview) |
 
 Not every one of these is bundled. For an extension missing from your
 `veb_dir` listing, follow the build steps in the README of its repository,
 `github.com/villagesql/<name with hyphens>`. A preview extension needs
-`vsql_allow_preview_extensions=ON`, set as Step 3 describes. Function
-signatures for each are in <https://villagesql.com/llms.txt>.
+`vsql_allow_preview_extensions=ON`, set as Step 3 describes. For the
+function signatures, follow the extension's link in
+<https://villagesql.com/llms.txt> to its docs page.
 
 Shipping the `.veb` is not the same as installing the extension. Install it:
 

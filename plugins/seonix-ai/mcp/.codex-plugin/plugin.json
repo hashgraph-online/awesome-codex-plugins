@@ -1,0 +1,53 @@
+{
+  "name": "seonix",
+  "version": "1.0.0",
+  "description": "Connect your Seonix SEO project: Site Health and fix plan, Google Search Console, keywords, articles and SEO playbooks, with skills that fix a site in code and ship content through Seonix.",
+  "author": {
+    "name": "Seonix",
+    "email": "info@seonix.ai",
+    "url": "https://seonix.ai"
+  },
+  "homepage": "https://seonix.ai/mcp",
+  "repository": "https://github.com/seonix-ai/mcp",
+  "license": "MIT",
+  "keywords": [
+    "seo",
+    "search-console",
+    "site-health",
+    "content",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Seonix",
+    "shortDescription": "SEO and AI-search visibility",
+    "longDescription": "Seonix grows organic and AI-search visibility for a website on autopilot. This plugin connects the agent to your Seonix project over MCP: Site Health and the prioritised fix plan, Google Search Console, keyword clusters and the content calendar, articles and draft scoring, and eleven SEO playbooks. Write actions (start a scan, apply or roll back a Seonix fix on WordPress, mark an issue as intentional) run only after you confirm. Requires a Seonix account with at least one project added at app.seonix.ai.",
+    "developerName": "Seonix",
+    "category": "Productivity",
+    "capabilities": [
+      "Read the Site Health report and prioritised fix plan",
+      "Read Google Search Console queries, pages and opportunities",
+      "Browse keywords, clusters, calendar and articles",
+      "Score a draft with Seonix SEO checks",
+      "Start scans and apply Seonix fixes with confirmation"
+    ],
+    "websiteURL": "https://seonix.ai/mcp",
+    "supportURL": "https://github.com/seonix-ai/mcp/issues",
+    "privacyPolicyURL": "https://seonix.ai/privacy-policy",
+    "termsOfServiceURL": "https://seonix.ai/terms-of-use",
+    "defaultPrompt": [
+      "What are the biggest SEO problems on my site right now?",
+      "Which search queries are close to page one and worth a push?",
+      "Check this draft against my site's SEO rules before I publish it."
+    ],
+    "brandColor": "#A835F6",
+    "logo": "./assets/logo-512.png",
+    "composerIcon": "./assets/icon-128.png"
+  },
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/seonix-seo/SKILL.md"
+    }
+  }
+}

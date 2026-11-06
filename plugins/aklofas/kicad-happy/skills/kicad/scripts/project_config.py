@@ -22,91 +22,16 @@ import json
 import os
 import re
 from fnmatch import fnmatch
+import sys
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-
-# ---------------------------------------------------------------------------
-# JSONC loader (JSON with // and /* */ comments, trailing commas)
-# ---------------------------------------------------------------------------
-
-
-
-def _strip_jsonc(text: str) -> str:
-    """Strip JS-style comments and trailing commas from JSON text.
-
-    Single-pass, string-aware scanner: comments are only recognized
-    outside of JSON string literals, so `//` or `/* */` occurring
-    inside a string value (e.g. a URL) survives intact.
-    """
-    out = []
-    state = 'normal'  # normal | in_string | line_comment | block_comment
-    i, n = 0, len(text)
-    while i < n:
-        c = text[i]
-        if state == 'normal':
-            if c == '"':
-                state = 'in_string'
-                out.append(c)
-            elif c == '/' and text[i + 1:i + 2] == '/':
-                state = 'line_comment'
-                i += 1
-            elif c == '/' and text[i + 1:i + 2] == '*':
-                state = 'block_comment'
-                i += 1
-            else:
-                out.append(c)
-        elif state == 'in_string':
-            out.append(c)
-            if c == '\\':
-                i += 1
-                if i < n:
-                    out.append(text[i])
-            elif c == '"':
-                state = 'normal'
-        elif state == 'line_comment':
-            if c == '\n':
-                state = 'normal'
-                out.append(c)
-        elif state == 'block_comment':
-            if c == '*' and text[i + 1:i + 2] == '/':
-                state = 'normal'
-                i += 1
-        i += 1
-    stripped = ''.join(out)
-    # Second pass: drop a comma that is followed only by whitespace and then
-    # `}` or `]`, but never inside a string literal (KH-400).
-    res = []
-    in_str = False
-    i, n = 0, len(stripped)
-    while i < n:
-        c = stripped[i]
-        if in_str:
-            res.append(c)
-            if c == '\\' and i + 1 < n:
-                res.append(stripped[i + 1])
-                i += 1
-            elif c == '"':
-                in_str = False
-        elif c == '"':
-            in_str = True
-            res.append(c)
-        elif c == ',':
-            j = i + 1
-            while j < n and stripped[j] in ' \t\r\n':
-                j += 1
-            if not (j < n and stripped[j] in '}]'):
-                res.append(c)
-        else:
-            res.append(c)
-        i += 1
-    return ''.join(res)
-
-
-def load_jsonc(path: str) -> dict:
-    """Load a JSONC file, returning parsed dict."""
-    with open(path, 'r', encoding='utf-8') as f:
-        raw = f.read()
-    return json.loads(_strip_jsonc(raw))
+# standalone load by file path (harness spec_from_file_location, docs)
+if str(Path(__file__).parent) not in sys.path:
+    sys.path.insert(0, str(Path(__file__).parent))
+from kicad_core.project import load_jsonc
+from kicad_core.model import ResolvedConfig
+from kicad_core.diagnostics import record
 
 
 # ---------------------------------------------------------------------------
@@ -121,6 +46,7 @@ VALID_DERATING_PROFILES = {'hobby', 'commercial', 'conservative', 'automotive'}
 VALID_BOARD_CLASSES = {'class_1', 'class_2', 'class_3'}
 VALID_SUPPLIERS = {'digikey', 'mouser', 'lcsc', 'element14'}
 VALID_BOM_GROUP_BY = {'value', 'mpn', 'value+footprint'}
+VALID_DIFF_THRESHOLDS = {'all', 'minor', 'major', 'breaking'}
 
 # Top-level keys whose list values are concatenated across layers
 # instead of replaced.  All other lists use closer-wins semantics.
@@ -135,7 +61,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     'bom': {},
     'analysis': {
         'output_dir': 'analysis',
-        'retention': 5,
+        'retention': 0,
         'auto_diff': True,
         'track_in_git': False,
         'diff_threshold': 'major',
@@ -148,8 +74,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
 # Deep merge
 # ---------------------------------------------------------------------------
 
-def _deep_merge(base: Dict[str, Any], override: Dict[str, Any],
-                _path: str = '') -> Dict[str, Any]:
+def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
     """Recursively merge *override* into *base*, returning a new dict.
 
     - Dict values are merged recursively (override keys win on conflict).
@@ -161,12 +86,11 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any],
     merged: Dict[str, Any] = {}
     all_keys = set(base) | set(override)
     for key in all_keys:
-        full_key = f'{_path}.{key}' if _path else key
         if key in override and key in base:
             bval = base[key]
             oval = override[key]
             if isinstance(bval, dict) and isinstance(oval, dict):
-                merged[key] = _deep_merge(bval, oval, full_key)
+                merged[key] = _deep_merge(bval, oval)
             elif isinstance(bval, list) and isinstance(oval, list) \
                     and key in _ADDITIVE_KEYS:
                 merged[key] = bval + oval
@@ -253,6 +177,24 @@ def load_config_from_path(path: str) -> Dict[str, Any]:
     return cfg if cfg is not None else dict(DEFAULT_CONFIG)
 
 
+def resolve_config(explicit_path: Optional[str], search_dir: str) -> ResolvedConfig:
+    """The one place that decides which config applies and which file is hashed (S6).
+
+    Explicit (``--config PATH``): that file only, no cascade -- ``load_config_from_path``.
+    Discovered: the cascade ``load_config`` performs from *search_dir*.
+    ``hash_input`` reproduces the CLIs' historical rule: the explicit file when it exists,
+    else ``<search_dir>/.kicad-happy.json`` when it exists, else None.
+    """
+    if explicit_path:
+        exists = os.path.isfile(explicit_path)
+        return ResolvedConfig(load_config_from_path(explicit_path), "explicit",
+                              (explicit_path,) if exists else (), explicit_path if exists else None)
+    default = os.path.join(search_dir, CONFIG_FILENAME)
+    return ResolvedConfig(load_config(search_dir), "discovered",
+                          tuple(_discover_config_paths(search_dir)),
+                          default if os.path.isfile(default) else None)
+
+
 def _load_and_validate(path: str) -> Optional[Dict[str, Any]]:
     """Load, validate, and return config from *path*.
 
@@ -269,8 +211,18 @@ def _load_and_validate(path: str) -> Optional[Dict[str, Any]]:
         print(f'Warning: {path} root must be an object', file=sys.stderr)
         return None
 
+    def _wrong_type(container: dict, key: str, label: str, expected: str) -> None:
+        record(None, "project_config._load_and_validate",
+               TypeError(f"{path}: {label} must be {expected}, got "
+                         f"{type(container[key]).__name__}"),
+               f"{label} ignored, default used")
+        del container[key]
+
     # Validate suppressions if present
     raw_suppressions = cfg.get('suppressions')
+    if raw_suppressions is not None and not isinstance(raw_suppressions, list):
+        _wrong_type(cfg, 'suppressions', 'suppressions', 'a list')
+        raw_suppressions = None
     if raw_suppressions is not None:
         valid_suppressions = []
         for i, s in enumerate(raw_suppressions):
@@ -282,8 +234,37 @@ def _load_and_validate(path: str) -> Optional[Dict[str, Any]]:
                 print(f'Warning: {path}: suppressions[{i}] missing required '
                       f'"rule_id", skipping', file=sys.stderr)
                 continue
+            # A pattern list given as one string is one pattern, not one per character.
+            bad_patterns = False
+            for list_key in ('components', 'nets'):
+                val = s.get(list_key)
+                if isinstance(val, str):
+                    record(None, "project_config._load_and_validate",
+                           TypeError(f"{path}: suppressions[{i}].{list_key} must be a list, got str"),
+                           f"suppressions[{i}].{list_key} read as a one-element list")
+                    s[list_key] = [val]
+                elif val is not None and not isinstance(val, list):
+                    record(None, "project_config._load_and_validate",
+                           TypeError(f"{path}: suppressions[{i}].{list_key} must be a list, got "
+                                     f"{type(val).__name__}"),
+                           f"suppressions[{i}] ignored")
+                    bad_patterns = True
+            if bad_patterns:
+                continue
             valid_suppressions.append(s)
         cfg['suppressions'] = valid_suppressions
+
+    # Validate project section (ambient temperature feeds thermal arithmetic)
+    raw_project = cfg.get('project')
+    if raw_project is not None:
+        if not isinstance(raw_project, dict):
+            _wrong_type(cfg, 'project', 'project', 'an object')
+        else:
+            ambient = raw_project.get('ambient_temperature_c')
+            if ambient is not None and (isinstance(ambient, bool)
+                                        or not isinstance(ambient, (int, float))):
+                _wrong_type(raw_project, 'ambient_temperature_c',
+                            'project.ambient_temperature_c', 'a number')
 
     # Validate preferred_suppliers
     raw_suppliers = cfg.get('preferred_suppliers')
@@ -311,7 +292,9 @@ def _load_and_validate(path: str) -> Optional[Dict[str, Any]]:
             del cfg['bom']
         else:
             group_by = raw_bom.get('group_by')
-            if group_by is not None and group_by not in VALID_BOM_GROUP_BY:
+            if group_by is not None and not isinstance(group_by, str):
+                _wrong_type(raw_bom, 'group_by', 'bom.group_by', 'a string')
+            elif group_by is not None and group_by not in VALID_BOM_GROUP_BY:
                 print(f'Warning: {path}: bom.group_by "{group_by}" invalid '
                       f'(expected {VALID_BOM_GROUP_BY}), ignoring',
                       file=sys.stderr)
@@ -349,6 +332,49 @@ def _load_and_validate(path: str) -> Optional[Dict[str, Any]]:
                                   f'voltage_overrides.{k} must be numeric, '
                                   f'ignoring', file=sys.stderr)
                             del overrides[k]
+
+        # Analysis-cache knobs: an invalid value is warned and dropped (the default applies).
+        retention = raw_analysis.get('retention')
+        if retention is not None and (isinstance(retention, bool) or not isinstance(retention, int)
+                                      or retention < 0):
+            print(f'Warning: {path}: analysis.retention must be a non-negative '
+                  f'integer, ignoring', file=sys.stderr)
+            del raw_analysis['retention']
+        threshold = raw_analysis.get('diff_threshold')
+        if threshold is not None and (not isinstance(threshold, str)
+                                      or threshold not in VALID_DIFF_THRESHOLDS):
+            print(f'Warning: {path}: analysis.diff_threshold "{threshold}" invalid '
+                  f'(expected {sorted(VALID_DIFF_THRESHOLDS)}), ignoring', file=sys.stderr)
+            del raw_analysis['diff_threshold']
+        output_dir = raw_analysis.get('output_dir')
+        if output_dir is not None and (not isinstance(output_dir, str) or not output_dir):
+            print(f'Warning: {path}: analysis.output_dir must be a non-empty '
+                  f'string, ignoring', file=sys.stderr)
+            del raw_analysis['output_dir']
+
+    # Validate design_intent types (values outside the vocabularies already fall back to auto)
+    if 'design_intent' in cfg:
+        raw_intent = cfg['design_intent']
+        if not isinstance(raw_intent, dict):
+            _wrong_type(cfg, 'design_intent', 'design_intent', 'an object')
+        else:
+            def _is_number(v):
+                return isinstance(v, (int, float)) and not isinstance(v, bool)
+            checks = (
+                ('product_class', lambda v: isinstance(v, str), 'a string'),
+                ('target_market', lambda v: isinstance(v, str), 'a string'),
+                ('ipc_class', _is_number, 'a number'),
+                ('expected_lifetime_years', _is_number, 'a number'),
+                ('test_coverage_target', _is_number, 'a number'),
+                ('operating_temp_range',
+                 lambda v: isinstance(v, list) and len(v) == 2 and all(_is_number(t) for t in v),
+                 'a [min, max] list of numbers'),
+                ('operating_temp_min', _is_number, 'a number'),
+                ('operating_temp_max', _is_number, 'a number'),
+            )
+            for key, ok, expected in checks:
+                if key in raw_intent and not ok(raw_intent[key]):
+                    _wrong_type(raw_intent, key, f'design_intent.{key}', expected)
 
     return cfg
 
@@ -775,6 +801,8 @@ def matches_suppression(finding: Dict[str, Any],
 
     # Component match (optional filter)
     sup_components = suppression.get('components')
+    if isinstance(sup_components, str):
+        sup_components = [sup_components]
     if sup_components:
         finding_components = finding.get('components', [])
         if not finding_components:
@@ -785,6 +813,8 @@ def matches_suppression(finding: Dict[str, Any],
 
     # Net match (optional filter)
     sup_nets = suppression.get('nets')
+    if isinstance(sup_nets, str):
+        sup_nets = [sup_nets]
     if sup_nets:
         finding_nets = finding.get('nets', [])
         if not finding_nets:

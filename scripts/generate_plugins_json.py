@@ -18,6 +18,7 @@ import io
 import json
 import re
 import shutil
+import stat
 import sys
 import urllib.request
 import zipfile
@@ -59,6 +60,14 @@ METADATA_ONLY_MIRROR_REPOS = {
     "mturac/everything-openai-codex",
 }
 EXTRA_MIRROR_PATHS = {
+    # Agent Harness Skills shares root references and templates across skills.
+    # Its package commands also need validation scripts and runtime entrypoints.
+    "yfge/agent-harness-skills": (
+        ".claude-plugin", ".cursor-plugin", ".opencode", "assets",
+        "AGENTS.md", "CODE_OF_CONDUCT.md", "CONTRIBUTING.md", "GEMINI.md",
+        "INDEX.md", "README.zh-CN.md", "docs", "gemini-extension.json",
+        "references", "scripts", "templates",
+    ),
     # Multi-LLM's MCP configuration starts the bundled Python server.
     "beastlabai/multi-llm-plugin": ("mcp",),
     # Workflow MCP bootstrap loads the sibling control-plane runtime; its MCP
@@ -67,6 +76,8 @@ EXTRA_MIRROR_PATHS = {
     # debt-ops's manifest points hooks at hooks/hooks.json; the hook commands
     # invoke sibling Python scripts in the same hooks/ directory at runtime.
     "bcanfield/agentic-tech-debt": ("hooks",),
+    # deja's hook configuration invokes its sibling executable wrapper.
+    "vshulcz/deja-vu": ("hooks",),
     # Codex Attachment Manager's .mcp.json starts ./scripts/launch with
     # ./src/plugin-server.ts; the MCP server, engine and panel all live in src/.
     "chipfighter/codex-attachment-manager": ("scripts", "src"),
@@ -74,6 +85,11 @@ EXTRA_MIRROR_PATHS = {
     # Cohesivity's .mcp.json starts its local stdio server from
     # ./mcp/project-bootstrap.mjs, which no manifest field references.
     "cohesivity-org/cohesivity-plugin": ("mcp",),
+    # Suede declares its local MCP command inline; keep its server, imported
+    # helpers and catalog data together in the installed bundle.
+    "JasonColapietro/suede-creator-skills": ("mcp",),
+    # Mirroring permission requires the complete, unmodified Metis bundle.
+    "MetisFoundry/metis-plugins": (".",),
     # Espresso inline manifest hooks run src/hooks/*.js, which load the
     # bundled Ponytail runtime from the top-level hooks/ directory.
     "mirkobozzetto/espresso": ("src", "hooks"),
@@ -326,7 +342,7 @@ def collect_selected_paths(
 
     interface = manifest.get("interface")
     if isinstance(interface, dict):
-        for key in ("composerIcon", "logo"):
+        for key in ("composerIcon", "logo", "logoDark"):
             value = interface.get(key)
             if isinstance(value, str):
                 add_recursive_selection(selected, all_names, plugin_root, value)
@@ -360,7 +376,7 @@ def collect_metadata_only_paths(
 
     interface = manifest.get("interface")
     if isinstance(interface, dict):
-        for key in ("composerIcon", "logo"):
+        for key in ("composerIcon", "logo", "logoDark"):
             value = interface.get(key)
             if isinstance(value, str):
                 add_recursive_selection(selected, all_names, plugin_root, value)
@@ -436,17 +452,52 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         shutil.rmtree(destination_root)
     destination_root.mkdir(parents=True, exist_ok=True)
 
+    complete_bundle = "." in EXTRA_MIRROR_PATHS.get(owner_repo, ())
     for relative_path in sorted(selected_paths):
         archive_name = plugin_root.joinpath(PurePosixPath(relative_path)).as_posix()
         destination_path = destination_root / PurePosixPath(relative_path)
         destination_path.parent.mkdir(parents=True, exist_ok=True)
-        if relative_path == ".codex-plugin/plugin.json":
+        if relative_path == ".codex-plugin/plugin.json" and not complete_bundle:
             destination_path.write_text(
                 json.dumps(mirrored_manifest, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8",
             )
         else:
             destination_path.write_bytes(archive.read(archive_name))
+        # Direct hook commands need the executable bits from the source ZIP.
+        source_mode = archive.getinfo(archive_name).external_attr >> 16
+        executable_bits = source_mode & 0o111 if stat.S_ISREG(source_mode) else 0
+        destination_path.chmod(0o644 | executable_bits)
+
+    # The BrewPage source README documents this public server, but its initial
+    # manifest references an omitted .mcp.json. Prefer the source file once added.
+    mcp_reference = mirrored_manifest.get("mcpServers")
+    if (owner_repo.casefold() == "kochetkov-ma/brewpage-codex-plugin"
+            and isinstance(mcp_reference, str)
+            and PurePosixPath(normalize_relative_path(mcp_reference)).as_posix() == ".mcp.json"):
+        config_path = destination_root / ".mcp.json"
+        if not config_path.exists():
+            config_path.write_text(json.dumps({
+                "mcpServers": {"brewpage": {"type": "http", "url": "https://brewpage.app/mcp"}}
+            }, indent=2) + "\n", encoding="utf-8")
+
+    # Nested bundles may inherit their license from an enclosing directory.
+    # Keep a bundle-specific license when present; otherwise retain the nearest
+    # ancestor's license verbatim alongside the mirrored files.
+    license_names = {f"{stem}{extension}" for stem in ("license", "licence", "copying")
+                     for extension in ("", ".md", ".txt")}
+    license_files = [PurePosixPath(name) for name in names
+                     if PurePosixPath(name).name.lower() in license_names]
+    for ancestor in (plugin_root, *plugin_root.parents):
+        if ancestor == PurePosixPath("."):
+            break
+        inherited = sorted(path for path in license_files if path.parent == ancestor)
+        if inherited:
+            for source_path in inherited:
+                destination_path = destination_root / source_path.name
+                if not destination_path.exists():
+                    destination_path.write_bytes(archive.read(source_path.as_posix()))
+            break
 
     marketplace_path = f"./plugins/{plugin['owner']}/{plugin['repo']}"
     if use_subpath and plugin_root_relative:
