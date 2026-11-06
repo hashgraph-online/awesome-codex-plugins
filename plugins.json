@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-06",
-  "total": 376,
+  "total": 378,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1229,6 +1229,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/pixeltable/pixeltable-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Plugin Stack",
+      "url": "https://github.com/theopenapps/plugin-stack",
+      "owner": "theopenapps",
+      "repo": "plugin-stack",
+      "description": "Six agent skills for getting an AI plugin into the ChatGPT, Claude and Cursor stores and found there: submission checks, listing copy, discoverability audits, widget critique and competitor tracking, on live store data from [OpenApps](https://theopenapps.com?ref=plugin-stack).",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/theopenapps/plugin-stack/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "PMC",
@@ -2681,6 +2691,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Xquik-dev/hermes-tweet/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "host0",
+      "url": "https://github.com/host0-ai/skills",
+      "owner": "host0-ai",
+      "repo": "skills",
+      "description": "Publishes files, sites and apps with a shared database to a link you can share, and manages them through a remote MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/host0-ai/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Jenkins CLI",

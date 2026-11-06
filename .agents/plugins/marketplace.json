@@ -1817,6 +1817,21 @@
       "icon": "./plugins/pixeltable/pixeltable-skill/assets/icon.png"
     },
     {
+      "name": "plugin-stack",
+      "displayName": "Plugin Stack",
+      "source": {
+        "source": "local",
+        "path": "./plugins/theopenapps/plugin-stack"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Six agent skills for getting an AI plugin into the ChatGPT, Claude and Cursor stores and found there: submission checks, listing copy, discoverability audits, widget critique and competitor tracking, on live store data from [OpenApps](https://theopenapps.com?ref=plugin-stack).",
+      "icon": "./plugins/theopenapps/plugin-stack/assets/icon.svg"
+    },
+    {
       "name": "project-memory-core",
       "displayName": "PMC",
       "source": {
@@ -3962,6 +3977,21 @@
       "category": "Tools & Integrations",
       "description": "Hermes Agent X/Twitter plugin for read-first social research, monitoring, and approval-gated actions through Xquik.",
       "icon": "./plugins/Xquik-dev/hermes-tweet/assets/icon.svg"
+    },
+    {
+      "name": "host0",
+      "displayName": "host0",
+      "source": {
+        "source": "local",
+        "path": "./plugins/host0-ai/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Publishes files, sites and apps with a shared database to a link you can share, and manages them through a remote MCP server.",
+      "icon": "./plugins/host0-ai/skills/assets/icon.png"
     },
     {
       "name": "jk",

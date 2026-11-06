@@ -1,0 +1,20 @@
+{
+  "name": "plugin-stack",
+  "version": "1.0.0",
+  "description": "Skills for AI plugin builders: find openings, submit to stores, track launches, optimize listings, audit discoverability, design widgets and watch competitors, on live data from OpenApps",
+  "author": {
+    "name": "The Open Apps, Inc.",
+    "url": "https://theopenapps.com"
+  },
+  "homepage": "https://theopenapps.com?ref=plugin-stack",
+  "repository": "https://github.com/theopenapps/plugin-stack",
+  "license": "MIT",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Plugin Stack",
+    "shortDescription": "Find openings, submit to stores, track launches, optimize listings, audit discoverability, design widgets and watch competitors",
+    "developerName": "The Open Apps, Inc.",
+    "websiteURL": "https://theopenapps.com?ref=plugin-stack",
+    "composerIcon": "./assets/icon.svg"
+  }
+}

@@ -578,7 +578,7 @@ VillageSQL is a drop-in MySQL replacement, so MySQL plugins and components
 work as they do in MySQL, while VEF extensions are the model for adding new
 functionality and the only one that can define custom column types. Do not
 re-explain the comparison in your own words — point the user at
-[Extensions or Plugins and Components](https://villagesql.com/docs/mysql-8.4/stable/extensions-or-plugins),
+[Extensions or Plugins and Components](https://villagesql.com/docs/en/extensions/build/extensions-or-plugins),
 which exists for exactly this question.
 
 ## Common failures

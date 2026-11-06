@@ -1,0 +1,11 @@
+# Setup
+
+1. **Look first.** Read the README, manifests, MCP server code, and the repo's issues and discussions. Then gather:
+   - Listings. Search the plugin's exact name per store: `listings_search query="<name>" store=<store> limit=5`. Accept a row only if `name` matches and the publisher is plausible; search matches single words, so the first row is often wrong. `linked` on an accepted row names the plugin's other stores. No exact match means unlisted, so record no ref for that store.
+   - Competitors. Take 1-3 nouns from the README, because a whole sentence matches on its filler words. Run `listings_search query="<noun>" limit=10`, read the narrowest job tag off the best hits (skip the `cap-*`, `kind-*` and `for-*` tags; `data.tag.facet` reads `job` on the right one), then run `tags_get tag=<tag> store=<store> limit=20`. Propose 3-5 with one reason each; the user confirms.
+   - Target prompts, 5-10. Take them from issues, support threads and the user's own words first, then from competitors' starter prompts, restated in your own words. On ChatGPT those are at `data.detail[-1].data.release.interface.default_prompts` in `listings_versions ref=<ref>`. Draft the rest. Leave the plugin's own listing out as a source, because prompts written from it always match it.
+
+   Done when each store has an accepted ref or is recorded as unlisted, the user has confirmed the competitors, and you hold 5-10 target prompts.
+2. **Ask what the looking left open.** One question at a time, each with a recommended answer. Done when every section of context-template.md holds something you found or the user told you.
+3. **Show the draft, and write `.agents/plugin-stack.md` from context-template.md on the user's yes.** Write it in your own words and hold only what's above; keys, tokens and text copied from listings stay out. With the draft, say how many target prompts you drafted.
+4. **Show one finding.** Something the repo can't tell them: a target prompt competitors cover and they don't, a competitor's rewrite in the last 7 days, or a chart position. Done when it cites a row, links its `url`, and has a date and basis. No listing yet: use the three closest live listings and what they all say that the README doesn't.

@@ -1,0 +1,20 @@
+{
+  "name": "theopenapps",
+  "interface": {
+    "displayName": "OpenApps"
+  },
+  "plugins": [
+    {
+      "name": "plugin-stack",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
