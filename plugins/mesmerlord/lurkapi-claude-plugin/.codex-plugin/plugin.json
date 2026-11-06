@@ -1,0 +1,50 @@
+{
+  "name": "lurkapi",
+  "version": "1.4.0",
+  "description": "Social media research skills and the LurkAPI MCP server: public profiles, posts, comments, transcripts and ads from TikTok, Instagram, YouTube, Reddit, X (Twitter), the Facebook Ad Library, LinkedIn and more as clean JSON, and whole jobs like a brand lurk, an ad library teardown, Reddit research or creator vetting. Paid per call, with 100 free credits at signup.",
+  "author": {
+    "name": "Mesmer s.r.o.",
+    "email": "support@lurkapi.com",
+    "url": "https://lurkapi.com"
+  },
+  "homepage": "https://lurkapi.com/docs",
+  "repository": "https://github.com/mesmerlord/lurkapi-claude-plugin",
+  "license": "MIT",
+  "keywords": [
+    "social-media-scraper",
+    "tiktok-scraper",
+    "instagram-scraper",
+    "youtube-transcript",
+    "reddit-scraper",
+    "facebook-ad-library",
+    "ad-library",
+    "competitor-research",
+    "influencer-vetting",
+    "mcp",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "LurkAPI",
+    "shortDescription": "Social media research on live public data",
+    "longDescription": "Seven skills run whole research jobs: a brand lurk, ad library teardowns across Meta, Google, LinkedIn and TikTok, Reddit research, creator vetting, video transcripts and demand research. They call LurkAPI's hosted MCP server, which reads public posts, profiles, comments, transcripts and ads from 16 platforms. Sign in through the browser with codex mcp login lurkapi; there's no key to paste. Most calls cost 1 credit, and new accounts get 100 free credits with no card.",
+    "developerName": "Mesmer s.r.o.",
+    "category": "Research",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://lurkapi.com",
+    "privacyPolicyURL": "https://lurkapi.com/privacy",
+    "termsOfServiceURL": "https://lurkapi.com/terms",
+    "defaultPrompt": [
+      "Lurk Allbirds.",
+      "Tear down Gymshark's ads.",
+      "What does Reddit say about Notion vs Obsidian?"
+    ],
+    "brandColor": "#0D8456",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

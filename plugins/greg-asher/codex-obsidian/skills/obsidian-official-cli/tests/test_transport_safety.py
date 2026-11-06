@@ -133,7 +133,7 @@ class CaptureSafetyTests(unittest.TestCase):
         with tempfile.NamedTemporaryFile(buffering=0) as stream:
             stream.write(b'original')
             offset = stream.tell()
-            self.assertEqual(cli.read_capture(stream), ('original', False))
+            self.assertEqual(cli.read_capture(stream, 32), ('original', False))
             self.assertEqual(stream.tell(), offset)
             stream.write(b' later')
             self.assertEqual(stream.tell(), len(b'original later'))
@@ -150,6 +150,30 @@ class CaptureSafetyTests(unittest.TestCase):
         self.assertEqual(report['status'], 'process-completed')
         self.assertEqual(report['stdout'], 'x' * 32)
         self.assertTrue(report['stdout_truncated'])
+
+    def test_request_limit_caps_both_streams_by_bytes(self):
+        child = ('import sys; data = "ééé".encode("utf-8"); '
+                 'sys.stdout.buffer.write(data); sys.stderr.buffer.write(data)')
+        output = io.StringIO()
+        request = json.dumps({'argv': ['read', 'path=Atlas.md'], 'capture_limit': 4})
+        with patch('cli.command', return_value=[sys.executable, '-c', child]), \
+                patch('cli.sys.stdin', io.StringIO(request)), contextlib.redirect_stdout(output):
+            self.assertEqual(cli.main(), 2)
+        report = json.loads(output.getvalue())
+        for stream in ('stdout', 'stderr'):
+            self.assertEqual(report[stream], 'éé')
+            self.assertTrue(report[stream + '_truncated'])
+
+    def test_invalid_request_limits_fail_before_launch(self):
+        for limit in (False, None, '4', 4.0, 0, -1, cli.MAX_CAPTURE_BYTES + 1):
+            with self.subTest(limit=limit):
+                output = io.StringIO()
+                request = json.dumps({'argv': ['version'], 'capture_limit': limit})
+                with patch('cli.sys.stdin', io.StringIO(request)), \
+                        patch('cli.subprocess.Popen') as launch, contextlib.redirect_stdout(output):
+                    self.assertEqual(cli.main(), 1)
+                launch.assert_not_called()
+                self.assertIn('capture_limit must be an integer', json.loads(output.getvalue())['error'])
 
     def test_cleanup_errors_cannot_replace_timeout_evidence(self):
         for failure in [PermissionError('kill blocked'), subprocess.TimeoutExpired('stub', 1)]:

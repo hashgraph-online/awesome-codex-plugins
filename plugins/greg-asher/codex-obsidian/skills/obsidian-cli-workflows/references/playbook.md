@@ -12,6 +12,22 @@ Defaults:
 - `mode=preview`
 - `output=inline`
 
+## Cited answers, related notes, and handoffs
+
+After explicitly selecting `$obsidian-cli-workflows`, ask in plain language. For example:
+
+- In the Work vault under Projects/Atlas, what did we decide about authentication? Include conflicting evidence and open questions. Exclude Projects/Atlas/Private.
+- Find notes related to Projects/Atlas/Decision.md in Work and show what makes each relevant.
+- Prepare an Atlas handoff from Work, scoped to Projects/Atlas and tagged #atlas. Preview saving it to Handoffs/Atlas.md.
+
+For a named call that runs retrieval and returns structured evidence without writing:
+
+```text
+workflow_id=research.pack mode=apply output=json vault=Work view=answer query="What did we decide about authentication?" scope_path=Projects/Atlas
+```
+
+Use [cited retrieval](cited-retrieval.md) for both workflows. Inline and JSON execution are read-only. A save preview includes the actual draft and exact destination. Apply only matching approved changes through the core authoring procedure.
+
 ## Preview behavior requirements
 
 Preview must return:
@@ -30,7 +46,7 @@ Apply must:
 - consume the core authoring/revision contract for every note write, including optional saved reports; retain vault identity/root and path, before/expected state, and per-step verification
 - reuse existing matching approval; reconcile uncertain effects before retries and stop dependent steps on conflict
 - summarize mutations and side effects clearly
-- stop immediately on capability blockers
+- stop on required capability blockers; for cited retrieval, report unavailable optional evidence and use supported scoped reads
 
 ## Global orchestration guardrails
 

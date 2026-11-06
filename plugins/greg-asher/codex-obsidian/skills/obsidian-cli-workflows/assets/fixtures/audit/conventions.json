@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "status": {"type": "text", "required": true, "allowed": ["open", "done"], "default": "open"},
+    "due": {"type": "date"},
+    "hours": {"type": "number"},
+    "owner": {"type": "text"}
+  },
+  "tag_aliases": {"atlas-old": "atlas"}
+}

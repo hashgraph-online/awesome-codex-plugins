@@ -202,6 +202,8 @@ obsidian vault="My Vault" property:read path="Projects/Kestrel.md" name=status
 obsidian vault="My Vault" property:set path="Projects/Kestrel.md" name=status value="draft" type=text
 ```
 
+Use this native example only when `status` is already assigned the text type and the approved change allows frontmatter reserialization. Follow [metadata revision](authoring-and-revision.md#revise-metadata) for exact repairs.
+
 ### Remove one property
 ```bash
 obsidian vault="My Vault" property:remove path="Projects/Kestrel.md" name=status

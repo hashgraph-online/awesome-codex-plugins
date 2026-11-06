@@ -1639,6 +1639,21 @@
       "icon": "./plugins/memtomem/memtomem/assets/icon.png"
     },
     {
+      "name": "minicut",
+      "displayName": "MiniCut",
+      "source": {
+        "source": "local",
+        "path": "./plugins/lliu56/minicut-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Agent skills for Claude Code, Codex, Cursor and Gemini CLI that make a multi-shot AI short film from an idea (story, shot sheet, takes, voice, music, edit) and run Seedance, Kling and Wan video models, with the price shown before every paid job.",
+      "icon": "./plugins/lliu56/minicut-skills/assets/icon.png"
+    },
+    {
       "name": "ml-pipeline",
       "displayName": "ML Pipeline",
       "source": {
@@ -3072,6 +3087,21 @@
       "icon": "./plugins/avivsinai/bitbucket-cli/assets/bkt-icon.svg"
     },
     {
+      "name": "brewpage",
+      "displayName": "BrewPage",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kochetkov-ma/brewpage-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skill and remote MCP server that publish HTML, Markdown, files and static sites from Codex to an expiring BrewPage HTTPS link with no account or API key.",
+      "icon": "./plugins/kochetkov-ma/brewpage-codex-plugin/assets/icon.svg"
+    },
+    {
       "name": "build-remote-agent",
       "displayName": "Build Remote Agent",
       "source": {
@@ -4290,6 +4320,21 @@
       "category": "Tools & Integrations",
       "description": "Search, price and run paid data APIs for SEO, enrichment, email verification and social from one prepaid balance through the hosted looot MCP server and one skill, with browser sign-in and no provider keys.",
       "icon": "./plugins/loootai/looot-plugin/plugins/claude-code/looot/.claude-plugin/icon.png"
+    },
+    {
+      "name": "lurkapi",
+      "displayName": "LurkAPI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mesmerlord/lurkapi-claude-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Social media research skills and LurkAPI's hosted MCP server: public posts, profiles, comments, transcripts and Meta, Google, LinkedIn and TikTok ad library results from TikTok, Instagram, YouTube, Reddit, X and more, paid per call with 100 free credits.",
+      "icon": "./plugins/mesmerlord/lurkapi-claude-plugin/assets/icon.png"
     },
     {
       "name": "costguard",

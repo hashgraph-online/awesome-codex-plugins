@@ -126,6 +126,8 @@ One error shape (`{"error": {"code", "message", "status", "request_id"}}`), `Rat
 - OpenAPI 3.1: <https://partners.clickwise.net/api/v1/publisher/openapi.json> (snapshot in [`openapi/`](openapi/openapi.json))
 - Postman collection: <https://partners.clickwise.net/api/v1/publisher/postman.json>
 - For LLMs: <https://partners.clickwise.net/llms.txt>
+- Video walkthrough: [Clickwise for developers and AI agents: API, MCP server and sandbox key](https://youtu.be/tyN8JzoA75w) · [Short](https://youtu.be/oU-1Q9BLU1U)
+- Guía en español: [Conecta tu asistente de IA a ofertas de productos](https://youtu.be/Bk_g05Mytgc)
 - MCP: `https://partners.clickwise.net/api/v1/mcp`
 - HasOffers/TUNE-compatible affiliate API: `https://partners.clickwise.net/Apiv3/json`
 

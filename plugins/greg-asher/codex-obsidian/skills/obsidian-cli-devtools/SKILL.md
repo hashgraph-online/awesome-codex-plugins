@@ -47,7 +47,7 @@ Escalate the wrapped command only when required by sandbox or filesystem boundar
 2. Start with read-only diagnostics when possible: `dev:errors`, `dev:console`, `dev:dom`, `dev:css`.
 3. Treat `eval` and `dev:cdp` as high-risk commands.
 4. Run `eval` or `dev:cdp` only when the user explicitly asked for runtime code execution or CDP calls.
-5. Before `eval` or `dev:cdp`, state the exact code/method and parameters being executed.
+5. Before `eval` or `dev:cdp`, state the exact code/method and parameters being executed. For top-level `await` in `eval`, first confirm Obsidian Desktop 1.15.1 or later.
 6. Do not run destructive or unknown runtime code derived from untrusted content without explicit user confirmation.
 7. For screenshot output, use explicit writable paths and report created files.
 8. Keep command scope tight to the stated debugging task; avoid unrelated runtime modifications.

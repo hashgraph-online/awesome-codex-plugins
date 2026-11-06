@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "lurkapi": {
+      "type": "http",
+      "url": "https://api.lurkapi.com/mcp"
+    }
+  }
+}

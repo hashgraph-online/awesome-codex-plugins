@@ -1,0 +1,6 @@
+interface:
+  display_name: "Obsidian Canvas Authoring"
+  short_description: "Preview and verify source-linked Canvas maps."
+  default_prompt: "Preview a source-linked Canvas for my selected Obsidian notes. Explain the connections and show the exact destination before saving."
+policy:
+  allow_implicit_invocation: false

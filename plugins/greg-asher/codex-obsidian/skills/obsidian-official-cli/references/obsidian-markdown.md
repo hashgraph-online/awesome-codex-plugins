@@ -12,7 +12,7 @@ If a target/anchor is absent, report it. An explicitly requested future-note lin
 
 ## Properties and callouts
 
-Use one YAML frontmatter block at file start. Quote wikilinks and YAML-sensitive scalar values; use lists for `tags`, `aliases`, and `cssclasses`. Avoid duplicate keys; do not coerce existing property types. Prefer typed CLI property operations after inspecting their installed help and existing vault types. Obsidian property types are shared by name across a vault; do not change global type definitions to repair one note. Date/date-time values follow the installed app's supported ISO formats; missing is different from an empty or false value. Nested YAML may be valid YAML without being editable in the Properties UI; do not promise full UI support.
+Use one YAML frontmatter block at file start. Quote wikilinks and YAML-sensitive scalar values; use lists for `tags`, `aliases`, and `cssclasses`. Avoid duplicate keys; do not coerce existing property types. Follow [metadata revision](authoring-and-revision.md#revise-metadata) to preserve frontmatter and verify typed CLI behavior. Obsidian property types are shared by name across a vault; do not change global type definitions to repair one note. Date/date-time values follow the installed app's supported ISO formats; missing is different from an empty or false value. Nested YAML may be valid YAML without being editable in the Properties UI; do not promise full UI support.
 
 ```markdown
 ---

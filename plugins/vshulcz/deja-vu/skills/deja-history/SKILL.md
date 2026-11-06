@@ -24,7 +24,7 @@ These are the modes of the one deja tool, passed as `mode`.
 - fix: paste a failing output verbatim to see the commands that followed that same error before, in sessions where it did not come back.
 - how: the real command with the real flags this machine runs for a build, test, deploy or script, ordered by how many sessions ran it. A guessed invocation is plausible and fails on this setup.
 - orient: at the start of work in a project, the commands past sessions ran there and the files they worked in, before you go reading.
-- remember: store one durable decision after it is settled, as a single self-contained fact. Not transcripts, not anything already obvious from the code.
+- remember: store one durable decision after it is settled, as a single self-contained fact. Not transcripts, not anything already obvious from the code. Only when the user asks for it to go into the repository, set project to `repo:` (or `repo:rejected`, `repo:gotcha`): it is written to this repository's `.deja/memory.jsonl` for the team, and the user reviews the diff and commits it.
 - handoff: continue another session's work. Pass its id or harness.
 
 ## Reading a result

@@ -13,6 +13,8 @@
 - CLI help: https://obsidian.md/help/cli
 - CLI landing page: https://obsidian.md/cli
 - CLI introduction in changelog: https://obsidian.md/changelog/2026-02-27-desktop-v1.12.4/
+- [Obsidian Desktop 1.15 public release](https://obsidian.md/changelog/2026-11-02-desktop-v1.15.0/) for heading insertion and line-break control.
+- [Obsidian Desktop 1.15.1 early access](https://obsidian.md/changelog/2026-11-03-desktop-v1.15.1/) for the fix to missing output from slower scripted commands.
 
 ## Authoring/revision sources (reviewed 2026-11-05)
 

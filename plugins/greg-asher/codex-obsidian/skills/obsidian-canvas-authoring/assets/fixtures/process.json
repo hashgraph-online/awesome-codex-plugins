@@ -1,0 +1,12 @@
+{
+  "layout": "process",
+  "cards": [
+    {"key": "review", "text": "Review the proposed redirect URI list."},
+    {"key": "stage", "text": "Exercise sign-in and outage scenarios in staging."},
+    {"key": "release", "text": "Record approval and prepare the production trial."}
+  ],
+  "relationships": [
+    {"from": "review", "to": "stage", "label": "review first", "evidence": "inferred"},
+    {"from": "stage", "to": "release", "label": "review results", "evidence": "inferred"}
+  ]
+}

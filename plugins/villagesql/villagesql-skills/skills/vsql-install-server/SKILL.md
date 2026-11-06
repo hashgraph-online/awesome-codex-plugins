@@ -399,6 +399,7 @@ instead:
 | An MCP server for AI agents | `vsql_mcp` (preview) |
 | JWT login from an OAuth2/OIDC provider | `vsql_oauth2` (preview) |
 | Per-statement telemetry to ClickHouse | `vsql_stat_ch` (preview) |
+| Queries over Parquet, CSV or JSON files in object storage | `vsql_duckdb` (preview) |
 
 Not every one of these is bundled. For an extension missing from your
 `veb_dir` listing, follow the build steps in the README of its repository,

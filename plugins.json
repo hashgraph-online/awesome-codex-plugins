@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-05",
-  "total": 372,
+  "last_updated": "2026-11-06",
+  "total": 375,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1111,6 +1111,16 @@
       "install_url": "https://raw.githubusercontent.com/memtomem/memtomem/HEAD/plugins/memtomem/.codex-plugin/plugin.json"
     },
     {
+      "name": "MiniCut",
+      "url": "https://github.com/lliu56/minicut-skills",
+      "owner": "lliu56",
+      "repo": "minicut-skills",
+      "description": "Agent skills for Claude Code, Codex, Cursor and Gemini CLI that make a multi-shot AI short film from an idea (story, shot sheet, takes, voice, music, edit) and run Seedance, Kling and Wan video models, with the price shown before every paid job.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/lliu56/minicut-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "ML Pipeline",
       "url": "https://github.com/jananthan30/ml-pipeline",
       "owner": "jananthan30",
@@ -2082,6 +2092,16 @@
       "install_url": "https://raw.githubusercontent.com/avivsinai/bitbucket-cli/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "BrewPage",
+      "url": "https://github.com/kochetkov-ma/brewpage-codex-plugin",
+      "owner": "kochetkov-ma",
+      "repo": "brewpage-codex-plugin",
+      "description": "Skill and remote MCP server that publish HTML, Markdown, files and static sites from Codex to an expiring BrewPage HTTPS link with no account or API key.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kochetkov-ma/brewpage-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Build Remote Agent",
       "url": "https://github.com/LinespottingOrg/GrokBuildRemote-Agents",
       "owner": "LinespottingOrg",
@@ -2901,6 +2921,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/loootai/looot-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "LurkAPI",
+      "url": "https://github.com/mesmerlord/lurkapi-claude-plugin",
+      "owner": "mesmerlord",
+      "repo": "lurkapi-claude-plugin",
+      "description": "Social media research skills and LurkAPI's hosted MCP server: public posts, profiles, comments, transcripts and Meta, Google, LinkedIn and TikTok ad library results from TikTok, Instagram, YouTube, Reddit, X and more, paid per call with 100 free credits.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/mesmerlord/lurkapi-claude-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Maestro: Costguard",

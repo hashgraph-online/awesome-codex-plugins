@@ -4,17 +4,16 @@ description: >-
   Edit real footage with an agent: turn raw takes of a talking head, podcast, vlog, course or ad into a clean cut, then
   add captions, B-roll, motion graphics and sound with HyperFrames or Remotion. Reads the take as text and audio, removes
   dead air, retakes and stumbles without clipping words, writes the cut as an edit list a person can review, keeps every
-  graphic on the spoken word, and checks the result with numbers and frames before a person watches. Built from 2,318 X
-  posts by the people who actually do this, with defaults for padding, pauses, cuts, captions and loudness, and tested
-  scripts. Use for "edit this video", "cut my footage", "remove the pauses", "cut the dead air", "clean up my talking
-  head", "rough cut", "edit with HyperFrames", "edit with Remotion", "make it look edited", or when an agent's video edit
-  keeps coming back wrong, or to compare cuts with an unbiased LLM judge: "which edit is better", "rank these versions".
+  graphic on the spoken word, and checks the result with numbers and frames before a person watches; tested scripts
+  and defaults from 2,318 editors' posts. Use for "edit this video", "cut my footage", "remove the pauses", "cut the dead air", "clean up my talking
+  head", "rough cut", "edit with HyperFrames", "edit with Remotion", "make it look edited", when an agent's edit keeps
+  coming back wrong, or to rank cuts with an unbiased LLM judge ("which edit is better").
   Not for generating video from a prompt (varg-ai), for choosing a hosted editing service
   (varg-video-editing), or for finding music, B-roll or sound effects (video-asset-sources).
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.0"
+  version: "1.0.1"
   openclaw:
     requires:
       bins:

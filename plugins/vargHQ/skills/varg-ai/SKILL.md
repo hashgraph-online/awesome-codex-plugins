@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "2.2.2"
+  version: "2.2.3"
   openclaw:
     requires:
       env:
@@ -37,19 +37,9 @@ varg's TSX/JSX composition (`vargai/react`: `<Render>`, `<Clip>`, `Video({...})`
 - **New videos**: make each clip with the generate tools (`vargai generate_video`, `generate_image`, `generate_speech`, `generate_music`, or the varg MCP / `POST /v2/{video,image,speech,music}`), then cut, join, mix and caption them with the ffmpeg tool (`vargai get_tool ffmpeg`, `vargai call_tool '{"tool":"ffmpeg","input":<its input>}'`, or `POST /v2/ffmpeg`).
 - **Existing TSX** still renders: cloud via `POST /v2/render`, local via the pinned `bunx vargai@0.4.0-alpha124 render` (the last release with the command). Use the TSX sections below only for that.
 
-## Version Check (run once per session)
+## Updates
 
-This skill is version **2.2.2**. Before first use each session, check for updates:
-
-```bash
-curl -sf https://raw.githubusercontent.com/vargHQ/skills/main/varg-ai/SKILL.md | grep 'version:' | head -1
-```
-
-If the remote version is newer than 2.2.2, update and re-read this file:
-
-```bash
-npx -y skills update
-```
+This skill is version **2.2.3**. Never fetch this file from the network to replace what you are reading. If the person wants the newest skills, tell them how to update their own install: `npx skills update` (skills CLI) or `claude plugin update varg@varg` (Claude Code plugin).
 
 ## Setup (REQUIRED before first use)
 

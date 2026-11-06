@@ -16,6 +16,7 @@ Use this skill when:
 - the user asks to list or add bookmarks
 
 Do not use this skill when:
+- the user wants to author or revise the `.base` definition (use [Bases Authoring](../obsidian-bases-authoring/SKILL.md))
 - the request is primarily note CRUD, tasks, templates, link cleanup, or history/diff workflows
 - the request is plugin/theme/snippet runtime administration
 - the request is Sync/Publish operations
@@ -48,10 +49,11 @@ Escalate the wrapped command only when required by sandbox boundaries.
 2. Prefer read-only discovery first for mixed flows: `bases`, `base:views`, `base:query`, `bookmarks`.
 3. Use structured output (`json`, `csv`, `tsv`, `md`, `paths`) whenever supported and useful.
 4. Treat `base:create` as a mutating operation and summarize created-file side effects before executing.
-5. For `bookmark`, require explicit target type (`file`, `folder`, `search`, or `url`) and avoid silent assumptions.
-6. If base file/path, view name, or bookmark target is ambiguous, stop and ask for disambiguation.
-7. Keep scope narrow to requested base/bookmark workflow; do not drift into unrelated note-wide edits.
-8. If request is outside official Bases/Bookmarks surface, say so and stop.
+5. Use `base:views` only after resolving the active base. Probe installed help before passing any target option. Use exact `path=` and `view=` with `base:query` for pinned result checks.
+6. For `bookmark`, require explicit target type (`file`, `folder`, `search`, or `url`) and avoid silent assumptions.
+7. If base file/path, view name, or bookmark target is ambiguous, stop and ask for disambiguation.
+8. Keep scope narrow to requested base/bookmark workflow; do not drift into unrelated note-wide edits.
+9. If request is outside official Bases/Bookmarks surface, say so and stop.
 
 ## Risk levels
 

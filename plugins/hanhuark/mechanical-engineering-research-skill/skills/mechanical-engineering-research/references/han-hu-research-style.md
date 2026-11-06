@@ -2,6 +2,10 @@
 
 Use this reference for manuscripts authored or supervised by Han Hu and when the user explicitly asks to match Han Hu's established research-writing style. Apply these preferences after the domain and integrity checks in the main skill. When a private style-calibration corpus is available, also use [han-hu-style-calibration-protocol.md](han-hu-style-calibration-protocol.md); its evidence labels control which exemplars may be treated as accepted-author text.
 
+## Concise Section Revisions
+
+Use the description-observation-explanation-conclusion sequence in [technical-writing-analysis.md](technical-writing-analysis.md). Combine related plots when they explain one consistent story, and add a short purpose statement when needed to connect a subsection. Prefer essential table notes in the main text over an explanatory paragraph below the table; preserve venue-required footnotes. Apply the same concision to conclusions while retaining the principal finding and its evidence boundary.
+
 ## Stable Style Primitives
 
 - Start from the mechanical or thermal-fluid problem, coupled physics, and multiscale difficulty before introducing AI, software, or data infrastructure.

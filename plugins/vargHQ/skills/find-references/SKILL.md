@@ -2,8 +2,8 @@
 name: find-references
 description: >-
   Find real, human-made references before anything is made, for AI image, video and music and for video made with
-  code. Turns a request into one query pack per job (light first if generated; type, motion and palette first if
-  coded; then framing, people, location, texture, music, and a "never" board of what must not appear), searches each
+  code. Turns a request into one query pack per job (light first, then framing, people, location, texture, type,
+  motion, palette, music and a "never" board), searches each
   source in its own words, opens everything it keeps, proves who made it, measures what code can measure, checks light
   with an LLM judge, and hands a person three candidates per job. Use when someone says "find references", "reference
   board", "what should this look like", "lighting reference", "framing reference", "texture reference", "font
@@ -14,7 +14,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "2.0.0"
+  version: "2.0.1"
   openclaw:
     requires:
       anyBins:

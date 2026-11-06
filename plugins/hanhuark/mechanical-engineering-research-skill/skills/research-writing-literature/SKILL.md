@@ -17,7 +17,7 @@ Before a substantial draft or structural revision, identify the reader, the deci
 
 - For critical literature synthesis, read `references/literature-review.md`.
 - For journal-paper structure and results-led storytelling, read `references/paper-writing-style.md`.
-- For section-specific technical writing, methods, DOE, and figure discussion, read `references/technical-writing-analysis.md`.
+- For section-specific technical writing, concise revisions, conclusions, methods, DOE, and figure discussion, read `references/technical-writing-analysis.md`.
 - For equation explanations, claim-evidence checks, methods completeness, and figure or equation narratives, read `references/technical-argument-audit.md` before a final prose-only pass.
 - For a clarity pass focused on reader understanding rather than formulaic compression, read `references/technical-prose-clarity.md`.
 - When matching the calibrated research style and its evidence boundaries, read `references/han-hu-research-style.md`.
@@ -35,7 +35,7 @@ After each source group, state the limitation, contradiction, or knowledge gap t
 
 ## Methods, Models, And Results
 
-Methods must make the work reproducible: facility/model details, procedure, data reduction, uncertainty, assumptions, and justification. For results, use four levels: figure description, observation, physical explanation, and comparison with existing work. State whether agreement, disagreement, or a new regime is supported, and limit claims to the evidence.
+Methods must make the work reproducible: facility/model details, procedure, data reduction, uncertainty, assumptions, and justification. For results, describe the figure, state the observation, explain it with mechanisms or relevant studies, and draw a bounded conclusion. Combine related plots into one argument when appropriate. Distinguish observed trends from hypotheses and preserve model, protocol, and uncertainty definitions during compression.
 
 ## Editorial Safeguards
 

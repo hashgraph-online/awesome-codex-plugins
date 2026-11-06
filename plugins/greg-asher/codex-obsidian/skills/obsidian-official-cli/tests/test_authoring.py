@@ -92,6 +92,30 @@ class ContainmentTests(unittest.TestCase):
                 revision.contained_target(root, 'linked/note.md')
 
 
+    def test_internal_symlink_alias_blocks_even_within_vault(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'actual').mkdir()
+            try:
+                (root / 'alias').symlink_to(root / 'actual', target_is_directory=True)
+            except (OSError, NotImplementedError) as error:
+                self.skipTest(f'symlink creation unavailable: {error}')
+            with self.assertRaisesRegex(ValueError, 'filesystem alias'):
+                revision.contained_target(root, 'alias/note.md')
+
+    def test_hard_link_blocks_mutation_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            note = root / 'note.md'
+            note.write_text('unchanged')
+            try:
+                os.link(note, root / 'other.md')
+            except (OSError, NotImplementedError) as error:
+                self.skipTest(f'hard link creation unavailable: {error}')
+            with self.assertRaisesRegex(ValueError, 'multiple hard links'):
+                revision.contained_target(root, 'note.md')
+
+
 class LauncherTests(unittest.TestCase):
     def test_platform_argv_no_shell(self):
         args = ['vault=verified-id', 'append', 'path=Projects/Atlas.md', 'content=$x `id`']

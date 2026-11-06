@@ -1,0 +1,6 @@
+interface:
+  display_name: "Obsidian Bases Authoring"
+  short_description: "Preview and verify Obsidian Bases dashboards."
+  default_prompt: "Preview a table dashboard over my Obsidian notes and verify its expected rows before any approved write."
+policy:
+  allow_implicit_invocation: false

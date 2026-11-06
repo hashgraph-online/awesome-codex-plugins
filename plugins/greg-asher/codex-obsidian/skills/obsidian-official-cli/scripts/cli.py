@@ -65,16 +65,16 @@ def stop_launcher(process, report):
         report['cleanup_error'] = str(error)
 
 
-def read_capture(stream):
+def read_capture(stream, capture_limit):
     # A separate open preserves the writer's offset if a descendant is alive.
     # Windows temporary files require delete-sharing on this additional handle.
     flags = os.O_RDONLY | getattr(os, 'O_BINARY', 0) | getattr(os, 'O_TEMPORARY', 0)
     with os.fdopen(os.open(stream.name, flags), 'rb') as reader:
-        data = reader.read(MAX_CAPTURE_BYTES + 1)
-    return data[:MAX_CAPTURE_BYTES].decode('utf-8', errors='replace'), len(data) > MAX_CAPTURE_BYTES
+        data = reader.read(capture_limit + 1)
+    return data[:capture_limit].decode('utf-8', errors='replace'), len(data) > capture_limit
 
 
-def execute(launch):
+def execute(launch, capture_limit):
     report = None
     exit_code = 1
     try:
@@ -101,7 +101,7 @@ def execute(launch):
                     exit_code = 2
                     stop_launcher(process, report)
                 for name, stream in [('stdout', stdout), ('stderr', stderr)]:
-                    report[name], truncated = read_capture(stream)
+                    report[name], truncated = read_capture(stream, capture_limit)
                     if truncated:
                         report[name + '_truncated'] = True
                         exit_code = 2
@@ -118,8 +118,11 @@ def execute(launch):
 def main():
     try:
         request = read_request()
-        if not isinstance(request, dict) or set(request) - {'argv', 'content'}:
-            raise ValueError('expected {"argv": [...], "content": optional literal text}')
+        if not isinstance(request, dict) or set(request) - {'argv', 'content', 'capture_limit'}:
+            raise ValueError('expected argv and optional content/capture_limit fields')
+        capture_limit = request.get('capture_limit', MAX_CAPTURE_BYTES)
+        if type(capture_limit) is not int or not 1 <= capture_limit <= MAX_CAPTURE_BYTES:
+            raise ValueError(f'capture_limit must be an integer from 1 to {MAX_CAPTURE_BYTES} bytes')
         argv = request.get('argv')
         if not isinstance(argv, list) or not argv:
             raise ValueError('argv must include the requested CLI command')
@@ -132,7 +135,7 @@ def main():
         launch = command(argv)
     except (OSError, ValueError, TypeError) as error:
         return emit_report({'status': 'launch-failed', 'error': str(error)}, 1)
-    report, exit_code = execute(launch)
+    report, exit_code = execute(launch, capture_limit)
     # A zero exit from Obsidian or its launcher never proves a completed write.
     return emit_report(report, exit_code)
 

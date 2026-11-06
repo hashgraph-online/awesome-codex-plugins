@@ -64,6 +64,8 @@ obsidian vault="My Vault" tasks verbose format=json
 obsidian vault="My Vault" property:set path="Projects/Kestrel.md" name=status value="draft" type=text
 ```
 
+Use this native example only when `status` is already assigned the text type and the approved change allows frontmatter reserialization. Follow [metadata revision](authoring-and-revision.md#revise-metadata) for exact repairs.
+
 ## Daily-note append
 
 ```bash
@@ -72,6 +74,16 @@ obsidian vault="My Vault" daily:append content="- [ ] Follow up with design team
 
 Target mode:
 - `daily-note`
+
+## Insert under a heading
+
+For an exact-path note with a unique `Next Steps` heading, follow the [heading insertion procedure](authoring-and-revision.md#insert-under-a-heading) before applying this JSON request with the CLI argument helper.
+
+```json
+{"argv":["vault=verified-id","append","path=Projects/Kestrel.md","heading=Next Steps"],"content":"- [ ] Follow up"}
+```
+
+For an existing daily note, resolve `daily:path` and use that exact path in the same request. Use `prepend` for insertion at the start of the heading's section after confirming its behavior on the installed build.
 
 ## Vault structure support before CLI move
 

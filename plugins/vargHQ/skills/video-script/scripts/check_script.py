@@ -124,6 +124,9 @@ def main():
                       "screen": col(r, "screen", "text", "super"), "visual": col(r, "visual", "shot", "image"),
                       "sound": col(r, "sound", "audio", "sfx", "music")})
 
+    if not beats:  # every row failed to parse: report that instead of crashing below
+        return finish(res)
+
     # timing
     for x, y in zip(beats, beats[1:]):
         if abs(x["b"] - y["a"]) > 0.25:

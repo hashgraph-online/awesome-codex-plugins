@@ -50,9 +50,14 @@ def contained_target(root, relative):
             or any(part in ('', '.', '..') for part in relative.split('/'))):
         raise ValueError('require existing absolute vault root and exact vault-relative path')
     vault = vault.resolve()
-    target = vault.joinpath(*path.parts).resolve()
+    candidate = vault.joinpath(*path.parts)
+    target = candidate.resolve()
     if not target.is_relative_to(vault) or target == vault:
         raise ValueError('target escapes the resolved vault root (including symlinks)')
+    if target != candidate:
+        raise ValueError('target uses a filesystem alias; resolve and review the actual path')
+    if target.is_file() and target.stat().st_nlink > 1:
+        raise ValueError('target has multiple hard links; use a note with a unique filesystem path')
     return target
 
 
