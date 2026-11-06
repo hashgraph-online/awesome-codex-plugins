@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.127.2 # x-release-please-version
+version: 0.131.0 # x-release-please-version
 description: Let the owner reach this running agent from Buzz, on the phone or in Buzz Desktop. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -95,21 +95,38 @@ command's own message. Do not work around a refusal.
      channel."
    If the JSON has `warning`, show it too.
 4. **Claude Code only: the approval hook** (default and `--native`, after
-   a successful attach). Run `amq-remote doctor --root "$ROOT" --json` and
-   read its `failing` list; the exit code is not the signal. When a
-   `native_capability` entry says the PermissionRequest hook is not
-   installed, tell the user: "This adds one approval hook. The first approval
-   dialog of each Claude Code session on this machine connects that session
-   to its own Buzz channel, even one that never ran /amq-remote: an AMQ
-   session gets its own binding (the mailbox one /amq-remote writes), any
-   other session a native binding, where chat needs /amq-remote --native. Every dialog of
-   the session then shows there; ✅ allows, ❌ denies, first answer wins.
-   /amq-remote off stops it for that session, and
-   `amq-remote claude uninstall-approval-hook` removes the hook." Ask once, then run
-   `amq-remote claude install-approval-hook`. Codex needs no hook: its
-   approvals reach Buzz only for a session on the Codex app-server (the
-   `--native` Codex path below); a plain `codex` TUI session answers
-   approvals in the terminal.
+   a successful attach). Read `approval_hook` from the attach JSON: `ok`,
+   `missing`, `stale`, `disabled` or `unreadable`. An older amq-remote
+   gives no `approval_hook`: then run `amq-remote doctor --json` and use its
+   `hooks` row for this session's settings file (`approval`: `installed`
+   is `ok`, `missing` is `missing`; `approval_form` `stale` is `stale`), or
+   with an even older doctor treat a `native_capability` failure that names
+   the PermissionRequest hook as `missing` and anything else as `ok`.
+   - `ok`: nothing to do.
+   - `disabled`: say that this session's Claude settings set
+     `disableAllHooks`, so approvals stay in the terminal unless a project
+     or managed setting turns hooks on.
+   - `unreadable`: say that the Claude settings file cannot be read, and that
+     `amq-remote doctor` names it and the reason.
+   - `stale`: say the installed hook is an older form, then run
+     `amq-remote claude install-approval-hook`, which replaces only that
+     entry. You may offer `amq-remote doctor --fix` as a question (it also
+     installs the other hooks, the login service and the machine agent's
+     import file); never run it without a yes.
+   - `missing`: tell the user: "This adds one approval hook. The first
+     approval dialog of each Claude Code session on this machine connects
+     that session to its own Buzz channel, even one that never ran
+     /amq-remote: an AMQ session gets its own binding (the mailbox one
+     /amq-remote writes), any other session a native binding, where chat
+     needs /amq-remote --native. Every dialog of the session then shows
+     there; ✅ allows, ❌ denies, first answer wins. /amq-remote off stops it
+     for that session, and `amq-remote claude uninstall-approval-hook`
+     removes the hook." Ask once, then run
+     `amq-remote claude install-approval-hook`.
+
+   Codex needs no hook: its approvals reach Buzz only for a session on the
+   Codex app-server (the `--native` Codex path below); a plain `codex` TUI
+   session answers approvals in the terminal.
 5. Add one line for the carrier:
    - Default: "Buzz messages arrive in this agent's AMQ inbox. Stop in Buzz
      stops waiting; a delivered message may still be acted on."
@@ -139,6 +156,10 @@ in this session's channel or its agent's DM.
 Do the work, then answer with `amq reply --id <that message id>`. Use
 `--kind status` for an interim update. Keep the final answer short; it is
 read in a chat.
+
+An image the owner sent arrives as a line `[image: <absolute path>]`: open
+that file to see it. `[image not attached: <reason>]` means the image did not
+arrive; say so in the answer and ask the owner to send it again if it matters.
 
 ## `/amq-remote off`
 

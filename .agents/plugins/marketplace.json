@@ -4954,6 +4954,21 @@
       "icon": "./plugins/hyprh/self-starter/assets/icon.svg"
     },
     {
+      "name": "seltz",
+      "displayName": "Seltz",
+      "source": {
+        "source": "local",
+        "path": "./plugins/seltz-ai/seltz-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Live web search and page fetch for current, source-backed answers in Codex through Seltz's hosted MCP server, with browser sign-in to a Seltz account and usage drawn from the account's balance.",
+      "icon": "./plugins/seltz-ai/seltz-codex-plugin/assets/logo.svg"
+    },
+    {
       "name": "legends-seo-dungeon",
       "displayName": "SEO Dungeon",
       "source": {

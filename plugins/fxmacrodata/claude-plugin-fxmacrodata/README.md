@@ -2,7 +2,7 @@
 
 # FXMacroData
 
-Official economic data, release calendars and currency research with source-linked charts and histories.
+Official economic data, release calendars and actual release times, with source-linked charts, release replays and FX backtests.
 
 Research macroeconomic releases in Claude using data from central banks,
 statistical agencies and other official publishers. Keep the observation period,
@@ -13,13 +13,18 @@ unit, source and revision context beside each result.
 - **Prepare a macro brief.** Review inflation, interest rates, employment and growth with source references.
 - **Plan around releases.** Find confirmed economic release schedules in your timezone.
 - **Compare currency drivers.** Bring policy rates, FX reference data, positioning and commodities into a research question where your access permits.
+- **See when data really came out.** Actual publication times are kept separate from the schedule and from later revisions.
+- **Test an idea.** Replay how a pair moved after past releases, or run a spot FX backtest on rate-differential or momentum signals with costs included.
+- **Follow events.** Review a sourced history of maritime, sanctions and conflict-zone events.
+- **Keep your research.** Signed-in subscribers can save research studies and simulated paper accounts.
 - **Explore the evidence.** Use interactive charts in compatible Claude surfaces, with structured tables when a chart cannot render.
 
 The connection discovers the server's full tool set. It covers catalogue and
 coverage metadata; macro histories and revisions; current and historical release
-calendars; forecast coverage and predictions; official news; FX reference data,
-curves and differentials; market sessions; COT positioning; commodities;
-financial prices; official dataset families; seasonality; and research tasks.
+calendars; release predictions; official news; FX rates, curves and
+differentials; market sessions; COT positioning; commodities; official
+datasets; organisation profiles; geopolitical event history; seasonality;
+release replays, backtests and trade setups; and saved research.
 Protected tools follow your account's entitlements. See the complete
 [tool and workflow reference](CONNECTORS.md) for supported operations and
 transport limitations.
@@ -32,8 +37,8 @@ Connect the FXMacroData connector when prompted.
 Start with:
 
 - "What US economic releases are scheduled this week? Show them in Australia/Sydney time."
-- "Show recent US inflation observations with their units and official sources."
-- "Compare the latest available Australian and US inflation observations. Keep their reference periods clear."
+- "What was the latest US CPI reading, and when was it actually published?"
+- "Build a US macro briefing: rates, inflation, jobs and the releases due next."
 
 The public USD baseline works without an FXMacroData account or API key, within
 the current public history window and release delay. Other currencies, older
@@ -58,8 +63,8 @@ FXMacroData account through the host's OAuth flow when needed.
 
 ## Data and access
 
-The plugin connects to the hosted read-only MCP server at
-`https://mcp.fxmacrodata.com/mcp`. It cannot place trades or change accounts.
+The plugin connects to the hosted MCP server at
+`https://mcp.fxmacrodata.com/mcp`. Data tools are read-only. Research tools save only your own research studies and simulated paper accounts. No tool places live orders, moves money or changes account settings.
 Account credentials belong in the host's connection flow, never in a prompt.
 
 Returned observations retain their units, periods and source references.

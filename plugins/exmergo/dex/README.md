@@ -163,14 +163,33 @@ type contradicts their content, and two designed PII false positives. See the
 ## How it works
 
 ```mermaid
-flowchart LR
-  Agent[Coding agent] --> Skills[Dex skills]
-  Skills --> Engine[exmergo-dex-core engine]
-  Engine -->|SELECT-only SQL, cost-capped| Database[(Your database, data warehouse, or SQL endpoint)]
-  Engine -->|dbt builds, dev target only| Database
-  Engine -->|one sanitized JSON envelope| Agent
-  Engine -->|plans as diffs| Repo[Your repository: dbt project + semantic layer]
-  Engine <--> Cache[.dex/ cache and snapshot]
+%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 40, "rankSpacing": 56, "padding": 14}, "themeVariables": {"lineColor": "#51a2ff", "edgeLabelBackground": "#020618", "textColor": "#51a2ff", "fontSize": "14px"}, "themeCSS": ".edgeLabel p { padding: 6px 12px; margin: 0; border-radius: 6px; background: #020618; } .labelBkg { background: none !important; }"}}%%
+flowchart TB
+  agent["<b>Your coding agent</b><br/>Claude Code, Codex, any skills host"]
+  skills["<b>Dex skills</b><br/>explore · transform · maintain"]
+  engine["<b>exmergo-dex-core</b><br/>engine + guardrails"]
+  db[("<b>Your data</b><br/>database, warehouse,<br/>or SQL endpoint")]
+  repo["<b>Your repository</b><br/>dbt project +<br/>semantic layer"]
+  cache["<b>.dex/</b><br/>cache + snapshot"]
+
+  agent -->|"runs a command"| skills
+  skills --> engine
+  engine -->|"SELECT-only, cost-capped<br/>dbt builds on dev only"| db
+  engine -->|"plans as<br/>reviewable diffs"| repo
+  engine -->|"one sanitized<br/>JSON envelope"| agent
+  engine <--> cache
+
+  linkStyle default stroke:#51a2ff,stroke-width:1.5px,color:#51a2ff
+
+  classDef host fill:#020618,stroke:#51a2ff,stroke-width:1.5px,color:#ffffff
+  classDef core fill:#2563eb,stroke:#51a2ff,stroke-width:2px,color:#ffffff
+  classDef yours fill:#020618,stroke:#22d3ee,stroke-width:1.5px,color:#ffffff
+  classDef state fill:#020618,stroke:#22d3ee,stroke-width:1.5px,stroke-dasharray:5 4,color:#cad5e2
+
+  class agent,skills host
+  class engine core
+  class db,repo yours
+  class cache state
 ```
 
 The skills connect your agent to the `exmergo-dex-core` engine, which holds the

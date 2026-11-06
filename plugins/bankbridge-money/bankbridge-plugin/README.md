@@ -1,10 +1,10 @@
-# BankBridge for Claude
+# BankBridge
 
-BankBridge is a remote MCP server that lets Claude, ChatGPT, Cursor and other AI agents read your bank accounts, credit cards and investments. Ask "how much did I spend on restaurants last month?" or "what subscriptions am I paying for?" and get answers from live data. Read-only, US banks, $5 a month per connected bank.
+**Works in any MCP agent, including local models.** BankBridge is a remote MCP server that lets Hermes, OpenClaw, Open WebUI, Goose, Claude, ChatGPT, Cursor and other agents read your bank accounts, credit cards and investments. Ask "how much did I spend on restaurants last month?" or "what subscriptions am I paying for?" and the answer comes from your own accounts. Read-only, US banks, $5 a month per connected bank.
 
 **Install in Claude Code:** `/plugin install bankbridge --marketplace bankbridge-money/bankbridge-plugin` (Claude Code 2.1.275 or later; on older versions run `/plugin marketplace add bankbridge-money/bankbridge-plugin` first, then `/plugin install bankbridge`).
 
-**Works with:** Claude (claude.ai, Desktop, mobile, Cowork), Claude Code, ChatGPT, Cursor, VS Code Copilot, Codex, Gemini CLI, Windsurf and any MCP client.
+**Works with:** any MCP client that can reach a Streamable HTTP server, with a local model or a hosted one. That covers Hermes Agent, OpenClaw, Open WebUI, Goose, LM Studio, opencode, Cline, Continue, Claude, ChatGPT, Cursor, VS Code Copilot, Codex and Gemini CLI.
 
 [![Add to Claude](https://img.shields.io/badge/Claude-Add_connector-D97757?style=flat-square&logo=claude&logoColor=white)](https://claude.ai/directory/connectors/bankbridge)
 [![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://bankbridge.money/api/add/cursor)
@@ -16,6 +16,34 @@ More to ask: *"find any subscriptions I've forgotten about"*, *"draft a budget f
 ---
 
 ## Install
+
+### Local models and self-hosted agents
+
+Point your agent at `https://bankbridge.money/api/mcp`. Clients with MCP OAuth sign in through your browser. Clients without it send `Authorization: Bearer bbk_...` with a key from your dashboard. Pick a model with reliable tool calling.
+
+With a local model, the conversation stays on your machine. The numbers still pass through the bank-data provider and BankBridge, which keeps no copy.
+
+**Hermes Agent.** Install the package, enable it, then add the server to your profile's config so Hermes can run the sign-in:
+
+```shell
+hermes plugins install bankbridge-money/bankbridge-plugin --no-enable
+hermes plugins enable bankbridge
+```
+
+```yaml
+mcp_servers:
+  bankbridge:
+    url: https://bankbridge.money/api/mcp
+    auth: oauth
+```
+
+```shell
+hermes mcp login bankbridge
+```
+
+The package holds a skill and the server URL, with no executable code and no stored credentials. Hermes keeps the sign-in token. Every BankBridge tool is read-only.
+
+**Other agents:** step-by-step guides for [Goose](https://bankbridge.money/docs/goose), [LM Studio](https://bankbridge.money/docs/lm-studio), [OpenClaw](https://bankbridge.money/docs/openclaw), [opencode](https://bankbridge.money/docs/opencode), [Cline](https://bankbridge.money/docs/cline), [Continue](https://bankbridge.money/docs/continue) and [Zed](https://bankbridge.money/docs/zed). All guides: [bankbridge.money/docs](https://bankbridge.money/docs).
 
 ### Claude.ai, Claude Desktop, Claude mobile, Cowork
 
@@ -220,11 +248,11 @@ All **read-only**. BankBridge literally can&rsquo;t move money, change passwords
 
 ## Privacy & security
 
-Your transactions never touch our servers. **We never store them.**
+Your balances and transactions pass through to your agent when it asks. **We never store them.**
 
 | | |
 |---|---|
-| **We don&rsquo;t keep your data** | Every question your agent asks live-fetches in real time. No transaction cache, and no record of what you asked or what came back. |
+| **We don&rsquo;t keep your data** | Every question your agent asks fetches from your bank when it's asked. No transaction cache, and no record of what you asked or what came back. |
 | **Read-only access** | Your agent can read balances and transactions. Nothing can move money, pay a bill, or change your accounts. |
 | **Bank-grade encryption** | AES-256-GCM for access tokens at rest. HTTPS everywhere. |
 | **Revocable right away** | Disconnect a bank or delete your account anytime, and the connection is revoked and deleted right away. |
@@ -242,7 +270,7 @@ Full privacy policy → [bankbridge.money/privacy](https://bankbridge.money/priv
 
 **$5/month per connected bank, or $50/year per bank.** First bank unlocks the service. Each additional bank adds $5/mo, prorated when you connect it. Cancel anytime, access ends at the end of your billing period.
 
-No free tier, no freemium, no trial. Just $5 per bank. It&rsquo;s fair, predictable, and means we&rsquo;re never tempted to monetize your data. We&rsquo;re a real subscription business.
+$5 per bank is the whole business model.
 
 ---
 

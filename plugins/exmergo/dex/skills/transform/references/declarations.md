@@ -61,6 +61,12 @@ the project it lives. A model with no entry gets one beside its SQL, named for
 it, which is where the scaffold puts one. Dex never writes a second entry for a
 model, which dbt refuses.
 
+One model has no entry to write into: a project override of a package model the
+package documents (`prerequisite-repairs.md`). dbt gives the package's entry to
+the override, so any project entry is a second one. The declaration is refused,
+naming the package's file and the project's, and the override owes none: declare
+the models that read it.
+
 | Declared | Written as |
 |---|---|
 | `description` (model or column) | dbt's own `description` |
@@ -121,13 +127,17 @@ Refused, with the fix named:
 - a population filter listing values on a column that looks like personal data;
 - a `population.parent` naming no model, seed or snapshot, naming the model
   itself, mapping an output column the model does not produce, or a parent
-  column the parent does not produce.
+  column the parent does not produce;
+- a declaration on a project override of a package model the package documents,
+  naming both files. A hand-written `schema_yml` entry for that model is refused
+  the same way, before dbt parses.
 
 Warned, never refused: a `population.parent` key that is not the declared
 grain, a missing description, grain, population, assumptions or
 column role (one warning per missing field), a measure without its aggregation,
 additivity or unit, an assumption missing its decision, chosen value or evidence,
-and a model the plan writes SQL for with no declaration at all. Where the SQL
+and a model the plan writes SQL for with no declaration at all (except an
+override of a package-documented model, which can take none). Where the SQL
 already implies the decision, the warning names it: `fct_orders declares no
 population rule; its SQL filters on status`.
 
@@ -193,7 +203,9 @@ payload's declaration merged over whatever the entry already carried. `missing`
 names each intent field nobody has supplied (`description`, `grain`,
 `population`, `assumptions`, `columns.<c>.role`, and a measure's `aggregation`,
 `additivity` and `unit`), and each is also a warning. Where the drafted grain and
-the declared one disagree, a warning says so.
+the declared one disagree, a warning says so. An override of a package model the
+package documents owes nothing: its `missing` is empty, and `package_documented`
+names the `package` and its `package_entry`, the YAML file that documents it.
 
 ### Precedent
 
@@ -356,8 +368,10 @@ paths the payload stated). `data.skipped` lists every other selected model:
 | `nothing_drafted` | the cache proves no key, verified join or running total for it |
 | `complete` | it already declares every fact dex can draft |
 | `not_writable` | its YAML cannot be spliced predictably (a flow-style entry), or a drafted fact does not fit the SELECT list; the rest of the batch still plans |
+| `package_documented` | it overrides a package model the package documents; dbt gives the package's entry to the override and allows it none of its own (`detail` names the file), so it takes no declaration |
 
-A skipped model also carries `missing`, the intent it still owes.
+Where present, `missing` lists the intent a skipped model still owes; a
+`package_documented` model owes none and carries it empty.
 
 **The cap.** At most 25 models are proposed per plan; `--limit N` narrows that and
 never widens it. Skipped models do not count. The models left over are counted in

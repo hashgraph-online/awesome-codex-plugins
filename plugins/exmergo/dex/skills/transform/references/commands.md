@@ -17,8 +17,16 @@ compilation stores no plan. The
 authored Jinja remains the reviewable edit. Compile-time SELECTs from
 `run_query`, statement blocks and `adapter.execute` pass through Dex's query
 firewall, scoped read-only connector, PII screening, query limits and cost guard.
-`get_relation()` and `is_incremental()` use Dex's scoped inventory; direct
-database handles and other unsupported adapter introspection refuse. A truncated
+`get_relation()` and `is_incremental()` use Dex's scoped inventory, and
+`adapter.get_columns_in_relation()` (what `dbt_utils.star`,
+`get_filtered_columns_in_relation` and Fivetran's `fill_staging_columns` call) is
+answered from that inventory's column metadata: names and types, no rows, free on
+every connector. Each listing counts toward `query.max_statements` and is named in
+`warnings`; a relation outside the inventory is answered with no columns and named.
+A raw `DESCRIBE`, `SUMMARIZE`, `SHOW`, `PRAGMA` or `information_schema` read, the
+dispatched `get_columns_in_relation` macro called directly included, still
+refuses, naming `adapter.get_columns_in_relation`. Direct database handles and
+other unsupported adapter introspection refuse. A truncated
 macro result refuses rather than producing an incomplete model.
 
 Compilation that reads no warehouse data needs no spend confirmation. For

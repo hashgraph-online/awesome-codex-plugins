@@ -211,6 +211,14 @@ statement, each with its own `status` (`ok`, `refused`, `failed`, `skipped`).
 Results are capped (rows, cell width, bytes), and `query.max_payload_bytes` is
 the budget for the whole call.
 
+A statement the warehouse refuses returns the warehouse's own words, so a
+misspelled column or a missing table reads as such. A conversion, parse or range
+failure quotes the value it could not handle, and that value is masked
+(`Could not convert string <value withheld> to INT32`): the failure is a cast
+your SQL or the warehouse made implicitly, such as comparing a text key to an
+integer key. Profile the column (`explore profile`) to learn its shapes rather
+than retrying to see the value.
+
 Example envelopes (columnar; never `rows`):
 
 Single statement:

@@ -1,0 +1,46 @@
+{
+  "name": "seltz",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Search the live web for current, source-backed context through Seltz's official MCP server.",
+  "author": {
+    "name": "Seltz",
+    "url": "https://seltz.ai"
+  },
+  "repository": "https://github.com/seltz-ai/seltz-codex-plugin",
+  "homepage": "https://seltz.ai",
+  "keywords": [
+    "seltz",
+    "web-search",
+    "research",
+    "web-knowledge",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Seltz",
+    "shortDescription": "Real-time, source-backed web knowledge for Codex.",
+    "longDescription": "Use Seltz's official Streamable HTTP MCP server to search the live web for current, source-backed context. The plugin connects Codex to Seltz's documented MCP tools, requires users to sign in to their Seltz account when connecting, and does not claim that search output is complete, authoritative, or a substitute for reviewing the linked sources.",
+    "developerName": "Seltz",
+    "category": "Research",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://seltz.ai",
+    "privacyPolicyURL": "https://seltz.ai/privacy-policy",
+    "termsOfServiceURL": "https://seltz.ai/terms",
+    "defaultPrompt": [
+      "Search the live web for current, source-backed information about this question.",
+      "Find recent sources on this topic and summarize what they say.",
+      "Fact-check this claim with current web sources and show the supporting links."
+    ],
+    "brandColor": "#1DC19C",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg",
+    "screenshots": [
+      "./assets/seltz-search-workflow.svg"
+    ]
+  }
+}

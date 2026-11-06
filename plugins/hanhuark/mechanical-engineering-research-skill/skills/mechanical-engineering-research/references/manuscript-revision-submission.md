@@ -40,6 +40,12 @@ When the requested evidence is available locally or through authorized sources, 
 
 Prefer a formal narrative response with editor/reviewer headings. A tracking matrix may support the work but should not replace the submitted response. Start from [response-to-reviewers.md](../assets/templates/response-to-reviewers.md) and use [reviewer-response-matrix.csv](../assets/templates/reviewer-response-matrix.csv) internally when useful.
 
+- Make the response readable without the manuscript open. Reproduce each figure the responses argue from, with the manuscript's own caption, under the first comment that uses it, and point later comments back to that comment rather than repeating the image.
+- Take the reproduced figures and captions from the manuscript file itself, not from the figure-generation package. A figure map written before a reorder keeps the old numbering, and a figure the author redrew by hand may not exist in the package at all.
+- Quote the manuscript verbatim and re-source every quote after each revision round. A quote that no longer matches is worse than no quote, since the reviewer will look for it.
+- Write the supplement for readers rather than for reviewers. Material that documents the submitted version, recoverability from an archive, or what changed between rounds belongs in the response, not in a document that will be published alongside the paper.
+- Carry caveats the reviewers asked for into the manuscript itself. A response that describes a limitation the manuscript no longer states will be checked and found wanting.
+
 ## Highlighted Manuscript
 
 - Highlight only changed phrases, clauses, or sentences. Do not highlight unchanged portions of a paragraph, title, table, or caption.
@@ -71,6 +77,18 @@ Compare both content and rendering:
 - no color-key paragraph, response note, or reviewer language present in only one manuscript.
 
 Use text extraction for content and raster/page inspection for layout. Treat differences as findings to investigate; PDF extraction and raster comparison can each produce false positives.
+
+
+## Document Mechanics
+
+Revision packages in Word accumulate failures that no proofreading pass catches.
+
+- Word re-encodes embedded images on save, typically to a quarter of their size. Disable image compression in the file before circulating a package whose figures were placed at publication resolution.
+- Script edits to a `.docx` must be run-aware. Assigning to a run's text replaces every child of that run, which deletes an inline drawing whose run text is empty, and a reference manager's citation is a content control that plain-text rewriting removes without warning.
+- Iterate the document body, not the paragraph list, when moving blocks. Tables are not paragraphs and are left behind.
+- Guard every automated edit with a before-and-after census of numeric tokens, and declare the intended change. Anchor numeric matches on both sides: an unanchored `36.79` matches inside `36.798`, and `7.21` matches inside `37.21`.
+- Make verification fail on an empty result. A checker that iterates found items reports success on a file whose items have all been destroyed.
+- A constants or fixture file mirroring the manuscript drifts in one direction: an updater that rewrites matched entries never notices a deleted paragraph, so retired text keeps satisfying checks. Delete the entry when the passage goes.
 
 ## Submission Packet
 

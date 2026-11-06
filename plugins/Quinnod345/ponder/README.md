@@ -190,7 +190,34 @@ Run the multi-trial evaluator yourself:
 node studies/one-shot-vs-ponder/evaluate-trials.mjs
 ```
 
-### 3. Production Field Studies ([`studies/field-studies.md`](studies/field-studies.md))
+### 3. 7-Model Clean-Room Benchmark: Which Model Uses Ponder Best? ([`studies/model-benchmark/`](studies/model-benchmark/))
+
+We evaluated **seven frontier models across Anthropic, Google, and OpenAI** (`Claude Opus 5.5`, `Claude Sonnet 5.5`, `Claude Haiku 5.5`, `GPT-6.1 Sol`, `GPT-6 Astra`, `Gemini 4 Argon`, and `Gemini 3.8 Flash`) in isolated clean-room workspaces on a **14-defect, 4-trap multi-slice corpus** (combining `target-app/` and `webhook-billing-slice/` with all source hint comments stripped), comparing each model's **Single-Shot Baseline (`Ponder OFF`)** against its **Full Multi-Pass `ponder` Session (`Ponder ON`)**:
+
+| Model | Provider | Single-Shot Recall (`must`/`should`) | **Ponder Recall (`must`/`should`)** | **Ponder Recall (All Open)** | Units Graded (`Coverage`) | Passes | 4-Voice Revisions (`S / B / D / E`) | Phantom Route Pruned (`phantom: true`) | Mean Surprise ($\lvert\text{pred} - \text{actual}\rvert$) | `ponder verify` |
+|---|---|---:|---:|---:|---:|---:|---|---:|---:|---:|
+| **Gemini 4 Argon** | Google | `12/14` (`85.7%`) | **`14/14` (`100.0%`)** | **`14/14` (`100.0%`)** | `18` (`1.00`) | `4` (`converged`) | `3 / 5 / 2 / 2` (**4/4 voices**) | **Yes (`unit-delete`)** | **`0.002`** | `OK (0)` |
+| **Claude Sonnet 5.5** | Anthropic | `11/14` (`78.6%`) | **`14/14` (`100.0%`)** | **`14/14` (`100.0%`)** | `41` (`1.00`) | `5` (`converged`) | `3 / 9 / 11 / 12` (**4/4 voices**) | Kept as route unit | `0.032` | `OK (0)` |
+| **Claude Haiku 5.5** | Anthropic | `12/14` (`85.7%`) | **`14/14` (`100.0%`)** | **`14/14` (`100.0%`)** | `37` (`1.00`) | `4` (`converged`) | `2 / 4 / 11 / 8` (**4/4 voices**) | Kept as route unit | `0.062` | `OK (0)` |
+| **Claude Opus 5.5** | Anthropic | **`13/14` (`92.9%`)** | `13/14` (`92.9%`)* | **`14/14` (`100.0%`)** | `54` (`1.00`) | `5` (`converged`) | `2 / 17 / 11 / 14` (**4/4 voices**) | Kept as route unit | `0.035` | `OK (0)` |
+| **GPT-6.1 Sol** | OpenAI | `12/14` (`85.7%`) | `13/14` (`92.9%`) | `13/14` (`92.9%`) | **`62` (`1.00`)** | `4` (`converged`) | `0 / 11 / 3 / 2` (`3/4` - `0` Skeptic deletes) | Kept as route unit | `0.031` | `OK (0)` |
+| **GPT-6 Astra** | OpenAI | `12/14` (`85.7%`) | `13/14` (`92.9%`) | `13/14` (`92.9%`) | `46` (`1.00`) | `4` (`converged`) | `0 / 8 / 4 / 2` (`3/4` - `0` Skeptic deletes) | Kept as route unit | `0.036` | `OK (0)` |
+| **Gemini 3.8 Flash** | Google | `9/14` (`64.3%`) | `11/14` (`78.6%`) | `12/14` (`85.7%`) | `17` (`1.00`) | `4` (`converged`) | `2 / 2 / 2 / 2` (**4/4 voices**) | **Yes (`unit-delete`)** | `0.026` | `OK (0)` |
+
+*\*Claude Opus 5.5 caught all `14/14` (`100.0%`) defects in Ponder, ranking `GT-6` (bare `"No invoices"` empty state) as `could` (`f-0047`) so `must`/`should` stayed reserved for functional, security, and privacy defects.*
+
+- **Best at Protocol Mastery, Phantom Pruning & Predictive Calibration (`Gemini 4 Argon`):** Achieved `14/14` (`100.0%`) actionable recall in 4 passes, was the only flagship model to execute `unit-delete` with `"phantom": true` (`verified-missing`) on `legacy-export.jsx` plus `unit-edit` on `screen.dashboard`, explicitly retracted the `safe-query.js` SQLi decoy via `skeptic:delete`, and achieved `0.002` mean churn prediction error.
+- **Best at Deep Architectural Discovery & Cross-Contract Synthesis (`Claude Opus 5.5` & `Claude Sonnet 5.5`):** **Claude Opus 5.5** built an in-memory React + `jsdom` probe harness inside `.ponder/tmp/` during deliberation and uncovered **32 verified findings beyond its 20-finding single-shot baseline** (including $N \to N+1$ score-diff deanonymization even above the 3-person threshold). **Claude Sonnet 5.5** jumped **`+21.4%`** (`11/14` → `14/14`) across 5 passes by adding 5 cross-cutting contract units via `dreamer:unit-add`.
+- **Best Fast / Cost-Effective Model (`Claude Haiku 5.5`):** Lifted from `12/14` (`85.7%`) in single-shot to **`14/14` (`100.0%`)** in 4 passes with all 4 voices active (`2` Skeptic deletes, `4` Builder edits, `11` Dreamer adds, `8` Empath re-ranks).
+- **Codex / OpenAI Model Behavior (`GPT-6.1 Sol` vs. `GPT-6 Astra`):** Both OpenAI models enumerated fine-grained units (`62` and `46`) and converged cleanly in 4 passes (`13/14` recall), but emitted **`0` `skeptic:delete` deltas** because they pre-converted candidate decoys into `note` observations on Pass 1 rather than falsifying them on Pass 2. Prefer **GPT-6.1 Sol** over **GPT-6 Astra** (which under-calibrated UI confidence at `0.45` when no browser was attached).
+
+Run the 7-model evaluator and ledger verifier (`reconcile()` across all 7 `.ponder` stores):
+
+```sh
+node studies/model-benchmark/evaluate-models.mjs
+```
+
+### 4. Production Field Studies ([`studies/field-studies.md`](studies/field-studies.md))
 
 | Field Study | Surface Size | Key Discovery Made Only After Pass 1 |
 |---|---:|---|
@@ -199,7 +226,7 @@ node studies/one-shot-vs-ponder/evaluate-trials.mjs
 | **[Study 3 - Emotional & Privacy Audit](studies/field-studies.md#field-study-3-first-time-user--emotional-privacy-audit)** | **16 user journeys** | Walking the app as both Participant and Admin exposed a 3-way anonymity contradiction (`>=5` on landing copy, `>=3` in survey header, `>=1` in admin results). |
 | **[Study 4 - Interactive Portfolio Sweep](studies/field-studies.md#field-study-4-37-unit-interactive-portfolio-deliberation)** | **37 units** (WebGL, motion, mobile) | Converged subjective motion & typography in 4 passes with `0.00` thrash and `surprise` falling `0.04 → 0.02 → 0.00`. |
 
-### 4. Live Open-Source Ecosystem Audits ([`studies/ecosystem-audits/`](studies/ecosystem-audits/))
+### 5. Live Open-Source Ecosystem Audits ([`studies/ecosystem-audits/`](studies/ecosystem-audits/))
 
 We ran 4-pass sessions across eight major open-source AI developer repositories (**1,039,000+ combined stars**), verifying real `must` and `should` defects while **Skeptic (`delete`)** retracted Pass-1 false alarms before filing:
 

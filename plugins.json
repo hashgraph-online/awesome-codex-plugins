@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-06",
-  "total": 375,
+  "total": 376,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -3351,6 +3351,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hyprh/self-starter/HEAD/codex-plugin/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Seltz",
+      "url": "https://github.com/seltz-ai/seltz-codex-plugin",
+      "owner": "seltz-ai",
+      "repo": "seltz-codex-plugin",
+      "description": "Live web search and page fetch for current, source-backed answers in Codex through Seltz's hosted MCP server, with browser sign-in to a Seltz account and usage drawn from the account's balance.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/seltz-ai/seltz-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "SEO Dungeon",

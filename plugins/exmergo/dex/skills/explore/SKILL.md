@@ -251,10 +251,13 @@ the checkable form where the model carries the column, and read
   the repairs dbt supports, make a supported one through a plan (an explicit
   cast, never dropped rows), and prove it with `--cold-deps` on the build. With no
   repair in scope the deliverable is incomplete: report the prerequisite and the
-  remedy tried. `dex transform deps` and the build's own install fetch the
-  packages the project already declares (pinned where `package-lock.yml`
-  matches `packages.yml`): that is not installing or upgrading a tool, so a
-  request not to update tools does not rule it out. Recipe: `skills/transform/references/prerequisite-repairs.md`.
+  remedy tried. An override of a model its package documents takes the
+  package's YAML entry, and dbt allows it no second one, so it carries no
+  declaration: declare the models that read it. `dex transform deps` and the
+  build's own install fetch the packages the project already declares (pinned
+  where `package-lock.yml` matches `packages.yml`): that is not installing or
+  upgrading a tool, so a request not to update tools does not rule it out.
+  Recipe: `skills/transform/references/prerequisite-repairs.md`.
 
 **Spending authority.** It comes from the person running this session, or from
 limits committed before it started: `budget.ceiling` (per command) and

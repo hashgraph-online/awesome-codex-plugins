@@ -18,6 +18,14 @@
 
 Boss works with Claude Code, Codex, OpenClaw, Antigravity, and Hermes.
 
+## DeepSeek Harness
+
+Boss also ships a DeepSeek Harness bundle. It adds a selectable **Boss Expert Squad**
+preset and a right sidebar that reads live Agent Teams members and tasks. Install
+`integrations/deepseek-harness` from the [GitHub Release](https://github.com/echoVic/boss-skill/releases/tag/dsh-boss-mode-v0.1.3) or the
+[raw DSH market index](https://raw.githubusercontent.com/echoVic/boss-skill/main/integrations/deepseek-harness/marketplace.json), then restart DSH and select `Boss Expert Squad`. Enable DSH's experimental Agent Teams profile
+when you want `spawn_teammate`, the native roster, and the task board.
+
 ## Why Boss
 
 Prompt-only orchestration can sound organized, but it usually cannot prove that the plan was followed, tests were run, or gates passed. Boss is built around evidence and hard contracts:
