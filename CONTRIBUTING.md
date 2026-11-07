@@ -86,7 +86,7 @@ python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner
 python3 -m pip hash .hol-plugin-scanner-dist/*.whl
 ```
 
-You need a score of **80/130** or higher with **no critical or high severity findings**. Save the output to include in your PR description.
+Listing eligibility requires a normalized centralized score of **75/100** or higher. Finding severities are advisory; required catalog checks and substantive review issues must also be clear. Save the output to include in your PR description.
 
 ### Step 3: Verify your plugin repo has the required files
 
