@@ -436,6 +436,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Frugal](https://github.com/fainir/frugal) - Skill that has Codex check free tiers, programs, verified promo codes and cheaper alternatives before anything is bought, subscribed to or upgraded.
 - [FXMacroData](https://github.com/fxmacrodata/claude-plugin-fxmacrodata) - Official-source macro releases, central-bank rates, release calendars and FX rates for 22 currencies through the hosted FXMacroData MCP server.
 - [GH Project](https://github.com/zfifteen/gh-project-plugin) - Create GitHub repositories from Codex with inferred defaults, native menus, explicit confirmation, and deterministic local cloning.
+- [Gradients Studio](https://github.com/anusandhan/gradients-studio-mcp) - Renders gradient backgrounds with real grain and pixel or dither finishes for website heroes, OG images and slides, with free previews.
 - [Hermes Tweet](https://github.com/Xquik-dev/hermes-tweet) - Hermes Agent X/Twitter plugin for read-first social research, monitoring, and approval-gated actions through Xquik.
 - [host0](https://github.com/host0-ai/skills) - Publishes files, sites and apps with a shared database to a link you can share, and manages them through a remote MCP server.
 - [Imagera](https://github.com/alexadams6ix/imagera-skills) - Generate and edit images, video, voice and music through the hosted Imagera MCP server (OAuth sign-in) and 37 skills, with the credit cost stated before each run. Website: https://imagera.ai/mcp
